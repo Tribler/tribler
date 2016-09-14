@@ -77,13 +77,13 @@ class TestBoostingManagerSys(TestAsServer):
     def setUpPreSession(self):
         super(TestBoostingManagerSys, self).setUpPreSession()
 
-        self.config.set_torrent_checking(True)
-        self.config.set_megacache(True)
-        self.config.set_dispersy(True)
+        self.config.set_torrent_checking_enabled(True)
+        self.config.set_megacache_enabled(True)
+        self.config.set_dispersy_enabled(True)
         self.config.set_torrent_store(True)
-        self.config.set_enable_torrent_search(True)
-        self.config.set_enable_channel_search(True)
-        self.config.set_libtorrent(True)
+        self.config.set_torrent_search_enabled(True)
+        self.config.set_channel_search_enabled(True)
+        self.config.set_libtorrent_enabled(True)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -331,7 +331,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         super(TestBoostingManagerSysChannel, self).setUpPreSession()
 
         # we use dummy dispersy here
-        self.config.set_dispersy(False)
+        self.config.set_dispersy_enabled(False)
 
     @blocking_call_on_reactor_thread
     def create_torrents_in_channel(self, dispersy_cid_hex):
@@ -356,7 +356,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
 
         It includes finding and downloading actual torrent
         """
-        self.session.get_dispersy = lambda: True
+        self.session.config.get_dispersy_enabled = lambda: True
         self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
         dispersy_cid_hex = "abcd" * 9 + "0012"
         dispersy_cid = binascii.unhexlify(dispersy_cid_hex)
@@ -424,7 +424,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         It also tests how boosting manager cope with unknown channel with retrying
         the lookup
         """
-        self.session.get_dispersy = lambda: True
+        self.session.config.get_dispersy_enabled = lambda: True
         self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
         dispersy_cid_hex = "abcd" * 9 + "0012"
         dispersy_cid = binascii.unhexlify(dispersy_cid_hex)
@@ -489,7 +489,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         """
         Test the restriction of max_torrents in a source.
         """
-        self.session.get_dispersy = lambda: True
+        self.session.config.get_dispersy_enabled = lambda: True
         self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
         dispersy_cid_hex = "abcd" * 9 + "0012"
         dispersy_cid = binascii.unhexlify(dispersy_cid_hex)

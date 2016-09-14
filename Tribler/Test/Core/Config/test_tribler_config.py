@@ -10,10 +10,7 @@ class TestTriblerConfig(TriblerCoreTest):
     def setUp(self, annotate=True):
         super(TestTriblerConfig, self).setUp(annotate=annotate)
 
-        self.mock_session = MockObject()
-        self.mock_session.get_state_dir = lambda: self.session_base_dir
-
-        self.tribler_conf = TriblerConfig(self.mock_session)
+        self.tribler_conf = TriblerConfig()
         self.assertIsNotNone(self.tribler_conf)
         self.assertEqual(self.tribler_conf.config['user_download_states'], {})
 

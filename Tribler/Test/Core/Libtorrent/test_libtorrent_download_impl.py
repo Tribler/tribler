@@ -4,7 +4,6 @@ import libtorrent as lt
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
-from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.twisted_thread import deferred, reactor
@@ -19,18 +18,14 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
     def setUpPreSession(self):
         super(TestLibtorrentDownloadImpl, self).setUpPreSession()
-        self.config = SessionStartupConfig()
-        self.config.set_state_dir(self.getStateDir())
-        self.config.set_multicast_local_peer_discovery(False)
-        self.config.set_megacache(True)
-        self.config.set_dispersy(False)
+        self.config.set_torrent_checking_enabled(False)
+        self.config.set_megacache_enabled(True)
+        self.config.set_dispersy_enabled(False)
         self.config.set_tunnel_community_enabled(False)
-        self.config.set_mainline_dht(False)
-        self.config.set_torrent_collecting(False)
-        self.config.set_libtorrent(True)
-        self.config.set_dht_torrent_collecting(False)
-        self.config.set_videoserver_enabled(False)
-        self.config.set_torrent_collecting_dir(os.path.join(self.session_base_dir, 'torrent_collecting_dir'))
+        self.config.set_mainline_dht_enabled(False)
+        self.config.set_torrent_collecting_enabled(False)
+        self.config.set_libtorrent_enabled(True)
+        self.config.set_video_server_enabled(False)
 
     def create_tdef(self):
         """
@@ -42,7 +37,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         tdef.set_tracker("http://localhost/announce")
         tdef.finalize()
 
-        torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
+        torrentfn = os.path.join(self.session.config.get_state_dir(), "gen.torrent")
         tdef.save(torrentfn)
 
         return tdef

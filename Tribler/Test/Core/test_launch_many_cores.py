@@ -55,23 +55,6 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.assertIsInstance(config, CallbackConfigParser)
         self.assertEqual(config.get('general', 'version'), 11)
 
-    def test_sessconfig_changed_cb(self):
-        """
-        Testing whether the callback works correctly when changing session config parameters
-        """
-        self.assertFalse(self.lm.sessconfig_changed_callback('blabla', 'fancyname', '3', '4'))
-        self.lm.ltmgr = MockObject()
-
-        def mocked_set_utp(val):
-            self.assertEqual(val, '42')
-            mocked_set_utp.called = True
-
-        self.lm.ltmgr.set_utp = mocked_set_utp
-        mocked_set_utp.called = False
-        self.assertTrue(self.lm.sessconfig_changed_callback('libtorrent', 'utp', '42', '3'))
-        self.assertTrue(mocked_set_utp.called)
-        self.assertTrue(self.lm.sessconfig_changed_callback('libtorrent', 'anon_listen_port', '42', '43'))
-
 
 class TestLaunchManyCoreFullSession(TestAsServer):
     """
@@ -86,9 +69,10 @@ class TestLaunchManyCoreFullSession(TestAsServer):
                            'channel_community', 'preview_channel_community', 'tunnel_community', 'dispersy']
 
         for section in config_sections:
-            self.config.sessconfig.set(section, 'enabled', True)
+            self.config.config[section]['enabled'] = True
 
-        self.config.set_megacache(True)
+        self.config.set_megacache_enabled(True)
+        self.config.set_mainline_dht_enabled(True)
 
     def get_community(self, community_cls):
         for community in self.session.get_dispersy_instance().get_communities():

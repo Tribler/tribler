@@ -163,7 +163,7 @@ class SettingsDialog(wx.Dialog):
 
         restart = False
 
-        state_dir = self.utility.session.get_state_dir()
+        state_dir = self.utility.session.config.get_state_dir()
         cfgfilename = self.utility.session.get_default_config_filename(state_dir)
         scfg = SessionStartupConfig.load(cfgfilename)
 
@@ -179,8 +179,8 @@ class SettingsDialog(wx.Dialog):
                     self.guiUtility.utility.session.set_max_download_speed(value)
 
         valport = self._firewall_value.GetValue()
-        if valport != str(self.utility.session.get_listen_port()):
-            scfg.set_listen_port(int(valport))
+        if valport != str(self.utility.session.config.get_libtorrent_port()):
+            scfg.set_libtorrent_port(int(valport))
             scfg.set_dispersy_port(int(valport) - 1)
             self.saveDefaultDownloadConfig(scfg)
 
@@ -256,7 +256,7 @@ class SettingsDialog(wx.Dialog):
             if minimizeToTray != curMintray:
                 self.utility.write_config('mintray', minimizeToTray)
 
-        for target in [scfg, self.utility.session]:
+        for target in [scfg, self.utility.session.config]:
             try:
                 target.set_nickname(self._my_name_field.GetValue())
                 if getattr(self, 'icondata', False):
@@ -264,7 +264,7 @@ class SettingsDialog(wx.Dialog):
             except:
                 self._logger.exception("Could not set target")
 
-        for target in [scfg, self.utility.session]:
+        for target in [scfg, self.utility.session.config]:
             if target.get_watch_folder_enabled() != self._use_watch_folder.GetValue():
                 target.set_watch_folder_enabled(self._use_watch_folder.GetValue())
                 restart = True
@@ -297,31 +297,31 @@ class SettingsDialog(wx.Dialog):
         self.utility.write_config("seeding_time", seeding_time, 'downloadconfig')
 
         # Proxy settings
-        old_ptype, old_server, old_auth = self.utility.session.get_libtorrent_proxy_settings()
+        old_ptype, old_server, old_auth = self.utility.session.config.get_libtorrent_proxy_settings()
         new_ptype = self._lt_proxytype.GetSelection()
         new_server = (self._lt_proxyserver.GetValue(), int(self._lt_proxyport.GetValue())
                       ) if self._lt_proxyserver.GetValue() and self._lt_proxyport.GetValue() else None
         new_auth = (self._lt_proxyusername.GetValue(), self._lt_proxypassword.GetValue()
                     ) if self._lt_proxyusername.GetValue() and self._lt_proxypassword.GetValue() else None
         if old_ptype != new_ptype or old_server != new_server or old_auth != new_auth:
-            self.utility.session.set_libtorrent_proxy_settings(new_ptype, new_server, new_auth)
+            self.utility.session.config.set_libtorrent_proxy_settings(new_ptype, new_server, new_auth)
             scfg.set_libtorrent_proxy_settings(new_ptype, new_server, new_auth)
 
         enable_utp = self._enable_utp.GetValue()
-        if enable_utp != self.utility.session.get_libtorrent_utp():
-            self.utility.session.set_libtorrent_utp(enable_utp)
-            scfg.set_libtorrent_utp(enable_utp)
+        if enable_utp != self.utility.session.config.get_libtorrent_utp():
+            self.utility.session.config.set_libtorrent_utp(enable_utp)
+            scfg.config.set_libtorrent_utp(enable_utp)
 
         # Multichain
         use_multichain = self._use_multichain.IsChecked()
-        if use_multichain != self.utility.session.get_enable_multichain():
-            scfg.set_enable_multichain(use_multichain)
+        if use_multichain != self.utility.session.config.get_multichain_enabled():
+            scfg.set_multichain_enabled(use_multichain)
             restart = True
 
         # Credit Mining
         use_boosting = self._use_boosting.IsChecked()
-        if use_boosting != self.utility.session.get_creditmining_enable():
-            scfg.set_creditmining_enable(use_boosting)
+        if use_boosting != self.utility.session.config.get_credit_mining_enabled():
+            scfg.set_credit_mining_enabled(use_boosting)
             restart = True
 
         scfg.save(cfgfilename)
@@ -361,7 +361,7 @@ class SettingsDialog(wx.Dialog):
 
     def BrowseWatchFolderClicked(self, event=None):
         dlg = wx.DirDialog(None, "Choose watch folder", style=wx.DEFAULT_DIALOG_STYLE)
-        dlg.SetPath(self.utility.session.get_watch_folder_path())
+        dlg.SetPath(self.utility.session.config.get_watch_folder_path())
         if dlg.ShowModal() == wx.ID_OK:
             self._wf_location_ctrl.SetForegroundColour(wx.BLACK)
             self._wf_location_ctrl.SetValue(dlg.GetPath())
@@ -384,7 +384,7 @@ class SettingsDialog(wx.Dialog):
                 dlg.allselected = not dlg.allselected
 
     def saveDefaultDownloadConfig(self, scfg):
-        state_dir = self.utility.session.get_state_dir()
+        state_dir = self.utility.session.config.get_state_dir()
 
         # Save DownloadStartupConfig
         dlcfgfilename = get_default_dscfg_filename(state_dir)
@@ -477,14 +477,14 @@ class SettingsDialog(wx.Dialog):
         # They are automatically picked up by Tribler and added to the download queue if not there yet.
         gp_s3_sizer = create_subsection(general_panel, gp_vsizer, "Watch Folder", 1)
         self._use_watch_folder = wx.CheckBox(general_panel, label="Enable watch folder")
-        self._use_watch_folder.SetValue(self.utility.session.get_watch_folder_enabled())
+        self._use_watch_folder.SetValue(self.utility.session.config.get_watch_folder_enabled())
         gp_s3_sizer.Add(self._use_watch_folder, 0, wx.EXPAND)
 
         gp_s3_wf_path_label = wx.StaticText(general_panel, label="Watch folder path:")
         gp_s2_sizer.Add(gp_s3_wf_path_label)
         gp_s3_wf_path_hsizer = wx.BoxSizer(wx.HORIZONTAL)
         self._wf_location_ctrl = EditText(general_panel, validator=DirectoryValidator())
-        self._wf_location_ctrl.SetValue(self.utility.session.get_watch_folder_path())
+        self._wf_location_ctrl.SetValue(self.utility.session.config.get_watch_folder_path())
         gp_s3_wf_path_hsizer.Add(self._wf_location_ctrl, 1, wx.ALIGN_CENTER_VERTICAL)
         self._browse_wf_location = wx.Button(general_panel, label="Browse")
         self._browse_wf_location.Bind(wx.EVT_BUTTON, self.BrowseWatchFolderClicked)
@@ -587,11 +587,11 @@ class SettingsDialog(wx.Dialog):
         else:
             self._firewall_status_text.SetLabel(
                 'Tribler has not yet received any incoming\nconnections. Unless you\'re using a proxy, this\ncould indicate a problem with your network\nconnection.')
-        self._firewall_value.SetValue(str(self.utility.session.get_listen_port()))
+        self._firewall_value.SetValue(str(self.utility.session.config.get_libtorrent_port()))
         # uTP
-        self._enable_utp.SetValue(self.utility.session.get_libtorrent_utp())
+        self._enable_utp.SetValue(self.utility.session.config.get_libtorrent_utp())
         # proxy
-        ptype, server, auth = self.utility.session.get_libtorrent_proxy_settings()
+        ptype, server, auth = self.utility.session.config.get_libtorrent_proxy_settings()
         self._lt_proxytype.SetSelection(ptype)
         if server:
             self._lt_proxyserver.SetValue(server[0])
@@ -760,7 +760,7 @@ class SettingsDialog(wx.Dialog):
         self._emc_username.SetValue(self.utility.read_config('emc_username'))
         self._emc_password.SetValue(self.utility.read_config('emc_password'))
 
-        self._use_boosting.SetValue(self.utility.session.get_creditmining_enable())
+        self._use_boosting.SetValue(self.utility.session.config.get_credit_mining_enabled())
 
         return exp_panel, item_id
 
@@ -827,9 +827,9 @@ class SettingsDialog(wx.Dialog):
         exp_s3_sizer.Add(self._use_multichain, 0, wx.EXPAND)
 
         # load values
-        self._become_exitnode.SetValue(self.utility.session.get_tunnel_community_exitnode_enabled())
+        self._become_exitnode.SetValue(self.utility.session.config.get_tunnel_community_exitnode_enabled())
         self._sliderhops.SetValue(self.utility.read_config('default_number_hops'))
-        self._use_multichain.SetValue(self.utility.session.get_enable_multichain())
+        self._use_multichain.SetValue(self.utility.session.config.get_multichain_enabled())
 
         return exp_panel, item_id
 

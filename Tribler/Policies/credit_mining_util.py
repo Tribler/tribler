@@ -111,7 +111,7 @@ class TorrentManagerCM(TaskManager):
         """
 
         # session is quitting
-        if not (self.session and self.session.get_torrent_store() and self.session.lm.torrent_store):
+        if not (self.session and self.session.config.get_torrent_store() and self.session.lm.torrent_store):
             return
 
         if not isinstance(torrent, CollectedTorrent):

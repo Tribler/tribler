@@ -28,7 +28,7 @@ class RESTManager(TaskManager):
         Starts the HTTP API with the listen port as specified in the session configuration.
         """
         self.root_endpoint = RootEndpoint(self.session)
-        self.site = reactor.listenTCP(self.session.get_http_api_port(),
+        self.site = reactor.listenTCP(self.session.config.get_http_api_port(),
                                       server.Site(resource=self.root_endpoint, requestFactory=RESTRequest))
 
     def stop(self):

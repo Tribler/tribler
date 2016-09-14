@@ -44,7 +44,7 @@ class DBUpgrader(object):
         self.torrent_store = torrent_store
 
         self.failed = True
-        self.torrent_collecting_dir = self.session.get_torrent_collecting_dir()
+        self.torrent_collecting_dir = self.session.config.get_torrent_collecting_dir()
 
     def start_migrate(self):
         """
@@ -104,7 +104,7 @@ class DBUpgrader(object):
         """
         Cleans up all SearchCommunity and MetadataCommunity stuff in dispersy database.
         """
-        db_path = os.path.join(self.session.get_state_dir(), u"sqlite", u"dispersy.db")
+        db_path = os.path.join(self.session.config.get_state_dir(), u"sqlite", u"dispersy.db")
         if not os.path.isfile(db_path):
             return
 
@@ -346,7 +346,7 @@ CREATE TABLE IF NOT EXISTS MetadataData (
         self.status_update_func(u"Upgrading database from v%s to v%s..." % (23, 24))
 
         # remove all thumbnail files
-        for root, dirs, files in os.walk(self.session.get_torrent_collecting_dir()):
+        for root, dirs, _ in os.walk(self.session.config.get_torrent_collecting_dir()):
             for d in dirs:
                 dir_path = os.path.join(root, d)
                 rmtree(dir_path, ignore_errors=True)

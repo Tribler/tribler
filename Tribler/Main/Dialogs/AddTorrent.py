@@ -160,8 +160,8 @@ class AddTorrent(wx.Dialog):
         dlg.Destroy()
 
     def OnCreate(self, event):
-        configfile = os.path.join(self.guiutility.utility.session.get_state_dir(), 'recent_trackers')
-        configfile2 = os.path.join(self.guiutility.utility.session.get_state_dir(), 'recent_created')
+        configfile = os.path.join(self.guiutility.utility.session.config.get_state_dir(), 'recent_trackers')
+        configfile2 = os.path.join(self.guiutility.utility.session.config.get_state_dir(), 'recent_created')
         trackers = self.guiutility.channelsearch_manager.torrent_db.getRecentlyAliveTrackers()
 
         dlg = CreateTorrentDialog(None, configfile, configfile2, trackers, self.toChannel)

@@ -87,7 +87,7 @@ def _upgradeVersion(self, my_version, latest_version, info):
         self._logger.info("-- Downloading %s for upgrade", info[torrent_key])
 
         # prepare directory and .torrent file
-        location = os.path.join(self.utility.session.get_state_dir(), "upgrade")
+        location = os.path.join(self.utility.session.config.get_state_dir(), "upgrade")
         if not os.path.exists(location):
             os.mkdir(location)
         self._logger.info("-- Dir: %s", location)

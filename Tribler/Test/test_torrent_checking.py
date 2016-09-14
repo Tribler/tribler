@@ -21,10 +21,10 @@ class TestTorrentChecking(TestAsServer):
 
     def setUpPreSession(self):
         super(TestTorrentChecking, self).setUpPreSession()
-        self.config.set_torrent_checking(True)
-        self.config.set_megacache(True)
+        self.config.set_torrent_checking_enabled(True)
+        self.config.set_megacache_enabled(True)
         self.config.set_torrent_store(True)
-        self.config.set_libtorrent(True)
+        self.config.set_libtorrent_enabled(True)
 
     def test_torrent_checking(self):
         tdef = TorrentDef.load(TORRENT_FILE)

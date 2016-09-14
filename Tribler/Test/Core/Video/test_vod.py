@@ -40,7 +40,7 @@ class TestVideoOnDemand(TestAsServer):
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
-        self.config.set_libtorrent(True)
+        self.config.set_libtorrent_enabled(True)
 
     def create_torrent(self):
         [srchandle, sourcefn] = mkstemp()
@@ -54,7 +54,7 @@ class TestVideoOnDemand(TestAsServer):
         self.tdef.set_tracker("http://127.0.0.1:12/announce")
         self.tdef.finalize()
 
-        torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
+        torrentfn = os.path.join(self.session.config.get_state_dir(), "gen.torrent")
         self.tdef.save(torrentfn)
 
         dscfg = DownloadStartupConfig()

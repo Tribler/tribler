@@ -80,7 +80,7 @@ class EventsEndpoint(resource.Resource):
         for channel in results['result_list']:
             channel_json = convert_db_channel_to_json(channel, include_rel_score=True)
 
-            if self.session.tribler_config.get_family_filter_enabled() and \
+            if self.session.config.get_family_filter_enabled() and \
                     self.session.lm.category.xxx_filter.isXXX(channel_json['name']):
                 continue
 
@@ -98,7 +98,7 @@ class EventsEndpoint(resource.Resource):
         for torrent in results['result_list']:
             torrent_json = convert_search_torrent_to_json(torrent)
 
-            if self.session.tribler_config.get_family_filter_enabled() and torrent_json['category'] == 'xxx':
+            if self.session.config.get_family_filter_enabled() and torrent_json['category'] == 'xxx':
                 continue
 
             if 'infohash' in torrent_json and torrent_json['infohash'] not in self.infohashes_sent:

@@ -51,7 +51,7 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
         results_json = []
         for channel in all_channels_db:
             channel_json = convert_db_channel_to_json(channel)
-            if self.session.tribler_config.get_family_filter_enabled() and \
+            if self.session.config.get_family_filter_enabled() and \
                     self.session.lm.category.xxx_filter.isXXX(channel_json['name']):
                 continue
 

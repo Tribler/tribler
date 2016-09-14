@@ -189,7 +189,7 @@ class TorrentManager(object):
 
     @warnIfNotDispersyThread
     def searchDispersy(self):
-        if self.session.get_enable_torrent_search():
+        if self.session.config.get_torrent_search_enabled():
             return self.session.search_remote_torrents(self.searchkeywords)
         return 0
 
@@ -749,7 +749,7 @@ class LibraryManager(object):
 
             infohash = download.get_def().get_infohash()
             value = "restartseed" if force_seed and download.get_progress() == 1.0 else "restart"
-            self.session.tribler_config.set_download_state(infohash, value)
+            self.session.config.set_download_state(infohash, value)
 
         if not resumed:
             torrent_data = self.guiUtility.utility.session.get_collected_torrent(torrent.infohash)
@@ -773,7 +773,7 @@ class LibraryManager(object):
             download.stop()
 
             infohash = download.get_def().get_infohash()
-            self.session.tribler_config.set_download_state(infohash, "stop")
+            self.session.config.set_download_state(infohash, "stop")
 
     def deleteTorrent(self, torrent, removecontent=False):
         ds = torrent.download_state
@@ -1576,7 +1576,7 @@ class ChannelManager(object):
 
     @warnIfNotDispersyThread
     def searchDispersy(self):
-        if self.session.get_enable_channel_search():
+        if self.session.config.get_channel_search_enabled():
             return self.session.search_remote_channels(self.searchkeywords)
         return 0
 

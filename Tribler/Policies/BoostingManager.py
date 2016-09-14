@@ -78,13 +78,13 @@ class BoostingManager(TaskManager):
         self.settings = settings or BoostingSettings(session, load_config=True)
 
         if self.settings.check_dependencies:
-            assert self.session.get_libtorrent()
-            assert self.session.get_torrent_checking()
-            assert self.session.get_dispersy()
-            assert self.session.get_torrent_store()
-            assert self.session.get_enable_torrent_search()
-            assert self.session.get_enable_channel_search()
-            assert self.session.get_megacache()
+            assert self.session.config.get_libtorrent_enabled()
+            assert self.session.config.get_torrent_checking_enabled()
+            assert self.session.config.get_dispersy_enabled()
+            assert self.session.config.get_torrent_store()
+            assert self.session.config.get_torrent_search_enabled()
+            assert self.session.config.get_channel_search_enabled()
+            assert self.session.config.get_megacache_enabled()
 
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
@@ -390,13 +390,13 @@ class BoostingManager(TaskManager):
                 self.boosting_sources[boosting_source].enabled = enabled
 
         # set policy
-        self.settings.policy = self.session.get_cm_policy(True)(self.session)
+        self.settings.policy = self.session.config.get_credit_mining_policy(True)(self.session)
 
         for k in SAVED_ATTR:
             # see the session configuration
-            object.__setattr__(self.settings, k, getattr(self.session, "get_cm_%s" %k)())
+            object.__setattr__(self.settings, k, getattr(self.session.config, "get_credit_mining_%s" % k)())
 
-        for k, val in self.session.get_cm_sources().items():
+        for k, val in self.session.config.get_credit_mining_sources().items():
             if k is "boosting_sources":
                 _add_sources(val)
             elif k is "archive_sources":
@@ -435,12 +435,12 @@ class BoostingManager(TaskManager):
             if boosting_source.archive:
                 archive_sources.append(bsname)
 
-        self.session.set_cm_sources(lboosting_sources, CONFIG_KEY_SOURCELIST)
-        self.session.set_cm_sources(flag_enabled_sources, CONFIG_KEY_ENABLEDLIST)
-        self.session.set_cm_sources(flag_disabled_sources, CONFIG_KEY_DISABLEDLIST)
-        self.session.set_cm_sources(archive_sources, CONFIG_KEY_ARCHIVELIST)
+        self.session.config.set_credit_mining_sources(lboosting_sources, CONFIG_KEY_SOURCELIST)
+        self.session.config.set_credit_mining_sources(flag_enabled_sources, CONFIG_KEY_ENABLEDLIST)
+        self.session.config.set_credit_mining_sources(flag_disabled_sources, CONFIG_KEY_DISABLEDLIST)
+        self.session.config.set_credit_mining_sources(archive_sources, CONFIG_KEY_ARCHIVELIST)
 
-        self.session.save_pstate_sessconfig()
+        self.session.config.write()
 
     def log_statistics(self):
         """Log transfer statistics"""

@@ -14,9 +14,9 @@ from twisted.python import usage
 from twisted.python.log import msg
 from zope.interface import implements
 
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
 
 # Register yappi profiler
 from Tribler.community.allchannel.community import AllChannelCommunity
@@ -79,7 +79,7 @@ class TriblerServiceMaker(object):
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
-        config = SessionStartupConfig()
+        config = TriblerConfig()
         config.set_http_api_enabled(True)
 
         # Check if we are already running a Tribler instance
@@ -101,7 +101,7 @@ class TriblerServiceMaker(object):
             config.set_dispersy_port(options["dispersy"])
 
         if options["libtorrent"] != -1 and options["libtorrent"] > 0:
-            config.set_listen_port(options["libtorrent"])
+            config.set_libtorrent_port(options["libtorrent"])
 
         self.session = Session(config)
         upgrader = self.session.prestart()

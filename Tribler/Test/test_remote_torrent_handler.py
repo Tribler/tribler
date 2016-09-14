@@ -24,12 +24,14 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.file_names = {}
         self.infohash_strs = {}
         self.infohashes = {}
+        self.session1_port = None
+        self.session2_state_dir = None
 
     def setUpPreSession(self):
         super(TestRemoteTorrentHandler, self).setUpPreSession()
-        self.config.set_dispersy(True)
+        self.config.set_dispersy_enabled(True)
         self.config.set_torrent_store(True)
-        self.config.set_enable_metadata(True)
+        self.config.set_metadata_enabled(True)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -74,7 +76,7 @@ class TestRemoteTorrentHandler(TestAsServer):
 
     def setup_torrentdownloader(self):
         self.download_event = Event()
-        self.session1_port = self.session.get_dispersy_port()
+        self.session1_port = self.session.config.get_dispersy_port()
 
         self.infohash_strs = ["41aea20908363a80d44234e8fef07fab506cd3b4",
                               "45a647b1120ed9fe7f793e17585efb4b0efdf1a5"]
@@ -92,10 +94,10 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.setUpPreSession()
 
         self.config2 = self.config.copy()
-        self.config2.set_megacache(True)
-        self.config2.set_torrent_collecting(True)
+        self.config2.set_megacache_enabled(True)
+        self.config2.set_torrent_collecting_enabled(True)
 
-        self.session2_state_dir = self.session.get_state_dir() + u"2"
+        self.session2_state_dir = self.session.config.get_state_dir() + u"2"
         self.config2.set_state_dir(self.session2_state_dir)
 
         self.session2 = Session(self.config2, ignore_singleton=True)
@@ -133,7 +135,7 @@ class TestRemoteTorrentHandler(TestAsServer):
 
     def setup_metadata_downloader(self):
         self.download_event = Event()
-        self.session1_port = self.session.get_dispersy_port()
+        self.session1_port = self.session.config.get_dispersy_port()
 
         # load thumbnail, calculate hash, and save into the metadata_store
         infohash_str = "41aea20908363a80d44234e8fef07fab506cd3b4"
@@ -150,11 +152,11 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.setUpPreSession()
 
         self.config2 = self.config.copy()
-        self.config2.set_megacache(True)
-        self.config2.set_torrent_collecting(True)
-        self.config2.set_enable_metadata(True)
+        self.config2.set_megacache_enabled(True)
+        self.config2.set_torrent_collecting_enabled(True)
+        self.config2.set_metadata_enabled(True)
 
-        self.session2_state_dir = self.session.get_state_dir() + u"2"
+        self.session2_state_dir = self.session.config.get_state_dir() + u"2"
         self.config2.set_state_dir(self.session2_state_dir)
 
         self.session2 = Session(self.config2, ignore_singleton=True)
@@ -171,4 +173,4 @@ class TestRemoteTorrentHandler(TestAsServer):
 
         self._logger.info(u"Downloader's torrent_collect_dir = %s", u"")
         self._logger.info(u"Uploader port: %s, Downloader port: %s",
-                          self.session1_port, self.session2.get_dispersy_port())
+                          self.session1_port, self.session2.config.get_dispersy_port())

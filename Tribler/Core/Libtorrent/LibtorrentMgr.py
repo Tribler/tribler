@@ -86,7 +86,7 @@ class LibtorrentMgr(TaskManager):
         self.get_session().stop_upnp()
 
         # Save libtorrent state
-        ltstate_file = open(os.path.join(self.trsession.get_state_dir(), LTSTATE_FILENAME), 'w')
+        ltstate_file = open(os.path.join(self.trsession.config.get_state_dir(), LTSTATE_FILENAME), 'w')
         ltstate_file.write(lt.bencode(self.get_session().save_state()))
         ltstate_file.close()
 
@@ -114,7 +114,7 @@ class LibtorrentMgr(TaskManager):
             fingerprint = ['TL'] + map(int, version_id.split('-')[0].split('.')) + [0]
             # Workaround for libtorrent 0.16.3 segfault (see https://code.google.com/p/libtorrent/issues/detail?id=369)
             ltsession = lt.session(lt.fingerprint(*fingerprint), flags=1)
-            enable_utp = self.trsession.get_libtorrent_utp()
+            enable_utp = self.trsession.config.get_libtorrent_utp()
             settings['enable_outgoing_utp'] = enable_utp
             settings['enable_incoming_utp'] = enable_utp
 
@@ -142,21 +142,22 @@ class LibtorrentMgr(TaskManager):
 
         # Load proxy settings
         if hops == 0:
-            proxy_settings = self.trsession.get_libtorrent_proxy_settings()
+            proxy_settings = self.trsession.config.get_libtorrent_proxy_settings()
         else:
-            proxy_settings = list(self.trsession.get_anon_proxy_settings())
+            proxy_settings = list(self.trsession.config.get_anon_proxy_settings())
             proxy_host, proxy_ports = proxy_settings[1]
             proxy_settings[1] = (proxy_host, proxy_ports[hops - 1])
         self.set_proxy_settings(ltsession, *proxy_settings)
 
         # Set listen port & start the DHT
         if hops == 0:
-            listen_port = self.trsession.get_listen_port()
+            listen_port = self.trsession.config.get_libtorrent_port()
             ltsession.listen_on(listen_port, listen_port + 10)
             if listen_port != ltsession.listen_port():
-                self.trsession.set_listen_port_runtime(ltsession.listen_port())
+                self.trsession.config.set_libtorrent_port_runtime(ltsession.listen_port())
             try:
-                lt_state = lt.bdecode(open(os.path.join(self.trsession.get_state_dir(), LTSTATE_FILENAME)).read())
+                lt_state = lt.bdecode(
+                    open(os.path.join(self.trsession.config.get_state_dir(), LTSTATE_FILENAME)).read())
                 if lt_state is not None:
                     ltsession.load_state(lt_state)
                 else:
@@ -165,7 +166,8 @@ class LibtorrentMgr(TaskManager):
                 self._logger.info("could not load libtorrent state, got exception: %r. starting from scratch" % exc)
             ltsession.start_dht()
         else:
-            ltsession.listen_on(self.trsession.get_anon_listen_port(), self.trsession.get_anon_listen_port() + 20)
+            ltsession.listen_on(self.trsession.config.get_anon_listen_port(),
+                                self.trsession.config.get_anon_listen_port() + 20)
             ltsession.start_dht()
 
             # Elric: Copy the speed limits from the plain session until we come

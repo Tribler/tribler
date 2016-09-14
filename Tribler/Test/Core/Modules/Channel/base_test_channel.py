@@ -1,3 +1,4 @@
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 
 
@@ -10,7 +11,8 @@ class BaseTestChannel(TriblerCoreTest):
         super(BaseTestChannel, self).setUp(annotate=annotate)
 
         self.fake_session = MockObject()
-        self.fake_session.get_state_dir = lambda: self.session_base_dir
+        self.fake_session.config = TriblerConfig()
+        self.fake_session.config.get_state_dir = lambda: self.session_base_dir
         self.fake_session.add_observer = lambda a, b, c: False
 
         fake_notifier = MockObject()

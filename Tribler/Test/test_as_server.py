@@ -3,10 +3,9 @@
 # see LICENSE.txt for license information
 
 # Make sure the in thread reactor is installed.
-from Tribler.Core.Utilities.twisted_thread import reactor, deferred
+from Tribler.Core.Utilities.twisted_thread import reactor
 
 # importmagic: manage
-import threading
 import functools
 import inspect
 import logging
@@ -22,16 +21,15 @@ from traceback import print_exc
 from twisted.internet import interfaces
 from twisted.internet.base import BasePort
 from twisted.internet.defer import maybeDeferred, inlineCallbacks, Deferred, succeed
-from twisted.python.threadable import isInIOThread
 from twisted.web.server import Site
 from twisted.web.static import File
 
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING, UPLOAD
 from Tribler.Core import defaults
 from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Utilities.instrumentation import WatchDog
 from Tribler.Test.util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -40,11 +38,6 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 TESTS_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 TESTS_DATA_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"data"))
 TESTS_API_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"API"))
-
-defaults.sessdefaults['general']['minport'] = -1
-defaults.sessdefaults['general']['maxport'] = -1
-defaults.sessdefaults['dispersy']['dispersy_port'] = -1
-
 OUTPUT_DIR = os.path.abspath(os.environ.get('OUTPUT_DIR', 'output'))
 
 
@@ -223,6 +216,7 @@ class TestAsServer(AbstractServer):
         self.quitting = False
         self.seeding_deferred = Deferred()
         self.seeder_session = None
+        self.seed_config = None
 
         self.session = Session(self.config)
         upgrader = self.session.prestart()
@@ -233,34 +227,33 @@ class TestAsServer(AbstractServer):
 
         yield self.tribler_started_deferred
 
-        self.hisport = self.session.get_listen_port()
+        self.hisport = self.session.config.get_libtorrent_port()
 
         assert self.session.lm.initComplete
 
         self.annotate(self._testMethodName, start=True)
 
     def setUpPreSession(self):
-        """ Should set self.config_path and self.config """
-        self.config = SessionStartupConfig()
+        self.config = TriblerConfig()
+        self.config.set_dispersy_port(-1)
+        self.config.set_libtorrent_port(-1)
         self.config.set_state_dir(self.getStateDir())
-        self.config.set_torrent_checking(False)
-        self.config.set_multicast_local_peer_discovery(False)
-        self.config.set_megacache(False)
-        self.config.set_dispersy(False)
-        self.config.set_mainline_dht(False)
+        self.config.set_torrent_checking_enabled(False)
+        self.config.set_megacache_enabled(False)
+        self.config.set_dispersy_enabled(False)
+        self.config.set_mainline_dht_enabled(False)
         self.config.set_torrent_store(False)
-        self.config.set_enable_torrent_search(False)
-        self.config.set_enable_channel_search(False)
-        self.config.set_torrent_collecting(False)
-        self.config.set_libtorrent(False)
-        self.config.set_dht_torrent_collecting(False)
-        self.config.set_videoserver_enabled(False)
-        self.config.set_enable_metadata(False)
+        self.config.set_torrent_search_enabled(False)
+        self.config.set_channel_search_enabled(False)
+        self.config.set_torrent_collecting_enabled(False)
+        self.config.set_libtorrent_enabled(False)
+        self.config.set_video_server_enabled(False)
+        self.config.set_metadata_enabled(False)
         self.config.set_upgrader_enabled(False)
         self.config.set_http_api_enabled(False)
         self.config.set_tunnel_community_enabled(False)
-        self.config.set_creditmining_enable(False)
-        self.config.set_enable_multichain(False)
+        self.config.set_credit_mining_enabled(False)
+        self.config.set_multichain_enabled(False)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -295,26 +288,24 @@ class TestAsServer(AbstractServer):
         tdef.set_tracker("http://localhost/announce")
         tdef.finalize()
 
-        torrent_path = os.path.join(self.session.get_state_dir(), "seed.torrent")
+        torrent_path = os.path.join(self.session.config.get_state_dir(), "seed.torrent")
         tdef.save(torrent_path)
 
         return tdef, torrent_path
 
     def setup_seeder(self, tdef, seed_dir):
-        self.seed_config = SessionStartupConfig()
-        self.seed_config.set_torrent_checking(False)
-        self.seed_config.set_multicast_local_peer_discovery(False)
-        self.seed_config.set_megacache(False)
-        self.seed_config.set_dispersy(False)
-        self.seed_config.set_mainline_dht(False)
+        self.seed_config = TriblerConfig()
+        self.seed_config.set_torrent_checking_enabled(False)
+        self.seed_config.set_megacache_enabled(False)
+        self.seed_config.set_dispersy_enabled(False)
+        self.seed_config.set_mainline_dht_enabled(False)
         self.seed_config.set_torrent_store(False)
-        self.seed_config.set_enable_torrent_search(False)
-        self.seed_config.set_enable_channel_search(False)
-        self.seed_config.set_torrent_collecting(False)
-        self.seed_config.set_libtorrent(True)
-        self.seed_config.set_dht_torrent_collecting(False)
-        self.seed_config.set_videoserver_enabled(False)
-        self.seed_config.set_enable_metadata(False)
+        self.seed_config.set_torrent_search_enabled(False)
+        self.seed_config.set_channel_search_enabled(False)
+        self.seed_config.set_torrent_collecting_enabled(False)
+        self.seed_config.set_libtorrent_enabled(True)
+        self.seed_config.set_video_server_enabled(False)
+        self.seed_config.set_metadata_enabled(False)
         self.seed_config.set_upgrader_enabled(False)
         self.seed_config.set_tunnel_community_enabled(False)
         self.seed_config.set_state_dir(self.getStateDir(2))

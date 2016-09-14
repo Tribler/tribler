@@ -2555,7 +2555,7 @@ class ActivitiesList(List):
                      (3, ['Channels'], None, ActivityListItem),
                      (4, ['Downloads'], None, ActivityListItem)]
 
-        if self.utility.session.get_creditmining_enable():
+        if self.utility.session.config.get_credit_mining_enabled():
             data_list.append((5, ['Credit Mining'], None, ActivityListItem))
 
         if sys.platform != 'darwin':

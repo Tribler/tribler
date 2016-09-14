@@ -30,7 +30,7 @@ class TestProcessChecker(AbstractServer):
         """
         Testing whether the process checker returns false when there is no lock file
         """
-        process_checker = ProcessChecker()
+        process_checker = ProcessChecker(statedir=self.state_dir)
         self.assertTrue(os.path.exists(os.path.join(self.state_dir, LOCK_FILE_NAME)))
         self.assertFalse(process_checker.already_running)
 
@@ -39,7 +39,7 @@ class TestProcessChecker(AbstractServer):
         Testing whether the process checker returns false when it finds its own pid in the lock file
         """
         self.create_lock_file_with_pid(os.getpid())
-        process_checker = ProcessChecker()
+        process_checker = ProcessChecker(statedir=self.state_dir)
         self.assertFalse(process_checker.already_running)
 
     def test_other_instance_running(self):
@@ -50,7 +50,7 @@ class TestProcessChecker(AbstractServer):
         self.process.start()
 
         self.create_lock_file_with_pid(self.process.pid)
-        process_checker = ProcessChecker()
+        process_checker = ProcessChecker(statedir=self.state_dir)
         self.assertTrue(process_checker.is_pid_running(self.process.pid))
         self.assertTrue(process_checker.already_running)
 
@@ -60,6 +60,6 @@ class TestProcessChecker(AbstractServer):
         """
         dead_pid = 134824733
         self.create_lock_file_with_pid(dead_pid)
-        process_checker = ProcessChecker()
+        process_checker = ProcessChecker(statedir=self.state_dir)
         self.assertFalse(process_checker.is_pid_running(dead_pid))
         self.assertFalse(process_checker.already_running)

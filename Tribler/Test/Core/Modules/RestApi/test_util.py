@@ -1,4 +1,5 @@
 import struct
+from Tribler.Core.Config.tribler_config import TriblerConfig
 
 from Tribler.Core.Modules.restapi.util import convert_search_torrent_to_json, convert_db_channel_to_json, \
     relevance_score_remote_torrent, get_parameter, can_edit_channel
@@ -14,7 +15,11 @@ class TestRestApiUtil(TriblerCoreTest):
     """
     def setUp(self, annotate=True):
         super(TestRestApiUtil, self).setUp(annotate=annotate)
-        Session.get_instance().get_dispersy = lambda: False
+
+        config = TriblerConfig()
+        config.set_state_dir(self.getStateDir())
+        config.get_dispersy_enabled = lambda: False
+        self.session = Session(config)
 
     def tearDown(self, annotate=True):
         Session.del_instance()  # We are opening a session when assigning a relevance score to a remote torrent
@@ -26,7 +31,7 @@ class TestRestApiUtil(TriblerCoreTest):
         """
         mocked_db = MockObject()
         mocked_db.latest_matchinfo_torrent = None
-        Session.get_instance().open_dbhandler = lambda _: mocked_db
+        self.session.open_dbhandler = lambda _: mocked_db
 
         input = {'torrent_id': 42, 'infohash': 'a', 'name': 'test torrent', 'length': 43,
                  'category': 'other', 'num_seeders': 1, 'num_leechers': 2}
@@ -71,17 +76,17 @@ class TestRestApiUtil(TriblerCoreTest):
     def test_rel_score_remote_torrent(self):
         mocked_db = MockObject()
         mocked_db.latest_matchinfo_torrent = struct.pack("I" * 12, *([1] * 12)), "torrent"
-        Session.get_instance().open_dbhandler = lambda _: mocked_db
+        self.session.open_dbhandler = lambda _: mocked_db
         self.assertNotEqual(relevance_score_remote_torrent("my-torrent.iso"), 0.0)
 
     def test_can_edit_channel(self):
         """
         Testing whether we can edit a channel.
         """
-        Session.get_instance().get_dispersy = lambda: False
+        self.session.config.get_dispersy_enabled = lambda: False
         self.assertFalse(can_edit_channel("abcd", 0))
 
-        Session.get_instance().get_dispersy = lambda: True
+        self.session.config.get_dispersy_enabled = lambda: True
         mocked_dispersy = MockObject()
         mocked_community = MockObject()
         mocked_community.get_channel_mode = lambda: (ChannelCommunity.CHANNEL_CLOSED, True)
@@ -90,7 +95,7 @@ class TestRestApiUtil(TriblerCoreTest):
             raise CommunityNotFoundException("abcd")
 
         mocked_dispersy.get_community = throw_not_found_exception
-        Session.get_instance().get_dispersy_instance = lambda: mocked_dispersy
+        self.session.get_dispersy_instance = lambda: mocked_dispersy
 
         self.assertFalse(can_edit_channel("abcd", 0))
 

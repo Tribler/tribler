@@ -733,7 +733,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
             def cb(info_hash, peers, source):
                 self.tunnel_logger.info("Announced %s to the DHT", info_hash.encode('hex'))
 
-            port = self.trsession.get_dispersy_port()
+            port = self.trsession.config.get_dispersy_port()
             self.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
         else:
             self.tunnel_logger.error("Need a Tribler session to announce to the DHT")

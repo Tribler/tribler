@@ -22,6 +22,8 @@ from twisted.internet.task import LoopingCall
 # Laurens(23-05-2016): As of writing, Debian stable does not have
 # the globalLogPublisher in the current version of Twisted.
 # So we make it a conditional import.
+from Tribler.Core.Config.tribler_config import TriblerConfig
+
 try:
     global_log_publisher_available = True
 except:
@@ -33,7 +35,6 @@ from twisted.python.log import msg
 from zope.interface import implements
 
 from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.permid import read_keypair
 from Tribler.Core.simpledefs import dlstatus_strings
@@ -180,22 +181,19 @@ class Tunnel(object):
                                             (((stats[key] - stats_old[key]) / time_dif) / 1024) * 0.125
 
     def start_tribler(self):
-        config = SessionStartupConfig()
+        config = TriblerConfig()
         config.set_state_dir(os.path.join(config.get_state_dir(), "tunnel-%d") % self.settings.socks_listen_ports[0])
-        config.set_torrent_checking(False)
-        config.set_multicast_local_peer_discovery(False)
-        config.set_megacache(False)
-        config.set_dispersy(True)
-        config.set_mainline_dht(True)
-        config.set_torrent_collecting(False)
-        config.set_libtorrent(True)
-        config.set_dht_torrent_collecting(False)
-        config.set_enable_torrent_search(False)
-        config.set_videoserver_enabled(False)
+        config.set_torrent_checking_enabled(False)
+        config.set_megacache_enabled(False)
+        config.set_dispersy_enabled(True)
+        config.set_mainline_dht_enabled(True)
+        config.set_torrent_collecting_enabled(False)
+        config.set_libtorrent_enabled(True)
+        config.set_video_server_enabled(False)
         config.set_dispersy_port(self.dispersy_port)
-        config.set_enable_torrent_search(False)
-        config.set_enable_channel_search(False)
-        config.set_enable_multichain(self.settings.enable_multichain)
+        config.set_torrent_search_enabled(False)
+        config.set_channel_search_enabled(False)
+        config.set_multichain_enabled(self.settings.enable_multichain)
 
         # We do not want to load the TunnelCommunity in the session but instead our own community
         config.set_tunnel_community_enabled(False)
@@ -208,7 +206,7 @@ class Tunnel(object):
             self.session.shutdown()
             reactor.stop()
         self.session.start()
-        logger.info("Using port %d" % self.session.get_dispersy_port())
+        logger.info("Using port %d" % self.session.config.get_dispersy_port())
 
     def start(self, introduce_port):
         def start_community():
@@ -229,8 +227,8 @@ class Tunnel(object):
 
             self.community = self.dispersy.define_auto_load(cls, member, (self.session, self.settings), load=True)[0]
 
-            self.session.set_anon_proxy_settings(
-                2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
+            self.session.config.set_anon_proxy_settings(
+                2, ("127.0.0.1", self.session.config.get_tunnel_community_socks5_listen_ports()))
             if introduce_port:
                 self.community.add_discovered_candidate(Candidate(('127.0.0.1', introduce_port), tunnel=False))
 
@@ -359,7 +357,7 @@ class LineHandler(LineReceiver):
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
             dscfg.set_hops(1)
-            dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.get_dispersy_port()))
+            dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.config.get_dispersy_port()))
 
             def start_download():
                 def cb(ds):

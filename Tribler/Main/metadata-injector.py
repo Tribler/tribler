@@ -18,13 +18,13 @@ import logging.config
 from traceback import print_exc
 import binascii
 from ConfigParser import ConfigParser
+from Tribler.Core.Config.tribler_config import TriblerConfig
 
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.Core.Utilities.twisted_thread import reactor, stop_reactor
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED
 from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Utilities.misc_utils import compute_ratio
 from Tribler.Main.Utility.utility import eta_value, size_format
 
@@ -71,7 +71,7 @@ class MetadataInjector(TaskManager):
         self.channel_list = None
 
     def initialize(self):
-        sscfg = SessionStartupConfig()
+        sscfg = TriblerConfig()
         if self._opt.statedir:
             sscfg.set_state_dir(unicode(os.path.realpath(self._opt.statedir)))
         if self._opt.port:
@@ -84,11 +84,11 @@ class MetadataInjector(TaskManager):
             self._logger.error(u"rss_config unspecified")
         self.channel_list = parse_channel_config_file(self._opt.rss_config)
 
-        sscfg.set_megacache(True)
+        sscfg.set_megacache_enabled(True)
         sscfg.set_torrent_collecting(True)
-        sscfg.set_torrent_checking(True)
-        sscfg.set_enable_torrent_search(True)
-        sscfg.set_enable_channel_search(True)
+        sscfg.set_torrent_checking_enabled(True)
+        sscfg.set_torrent_search_enabled(True)
+        sscfg.set_channel_search_enabled(True)
 
         self._logger.info(u"Starting session...")
         self.session = Session(sscfg)

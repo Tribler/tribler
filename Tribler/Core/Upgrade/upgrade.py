@@ -35,7 +35,7 @@ class TriblerUpgrader(object):
 
     def run(self):
         self.current_status = u"Checking Tribler version..."
-        if self.session.get_current_startup_config_copy().get_upgrader_enabled():
+        if self.session.config.get_upgrader_enabled():
             failed, has_to_upgrade = self.check_should_upgrade()
             if has_to_upgrade and not failed:
                 self.notify_starting()
@@ -109,9 +109,9 @@ class TriblerUpgrader(object):
         """
         try:
             from Tribler.Core.leveldbstore import LevelDbStore
-            torrent_store = LevelDbStore(self.session.get_torrent_store_dir())
+            torrent_store = LevelDbStore(self.session.config.get_torrent_store_dir())
             torrent_migrator = TorrentMigrator65(
-                self.session.get_torrent_collecting_dir(), self.session.get_state_dir(),
+                self.session.config.get_torrent_collecting_dir(), self.session.config.get_state_dir(),
                 torrent_store=torrent_store, status_update_func=self.update_status)
             yield torrent_migrator.start_migrate()
 
