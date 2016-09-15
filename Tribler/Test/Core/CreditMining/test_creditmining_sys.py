@@ -7,7 +7,6 @@ Written by Ardhi Putra Pratama H
 import binascii
 import os
 import shutil
-from unittest import skip
 
 from twisted.internet import defer
 from twisted.web.server import Site
@@ -31,7 +30,6 @@ from Tribler.dispersy.member import DummyMember
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSys(TestAsServer):
     """
     base class to test base credit mining function
@@ -94,7 +92,7 @@ class TestBoostingManagerSys(TestAsServer):
             defer_param = defer.Deferred()
 
         src_obj = self.boosting_manager.get_source_object(src)
-        if len(src_obj.torrents) < target:
+        if src_obj is None or len(src_obj.torrents) < target:
             reactor.callLater(1, self.check_torrents, src, defer_param, target=target)
         else:
             # notify torrent (emulate scraping)
@@ -108,6 +106,7 @@ class TestBoostingManagerSys(TestAsServer):
                         'infohash': src_obj.torrents.keys()[0], 'length': 1150844928, 'last_tracker_check': 10001,
                         'myDownloadHistory': False, 'name': u'ubuntu-15.04-desktop-amd64.iso',
                         'num_leechers': 999, 'num_seeders': 123, 'status': u'unknown', 'tracker_check_retries': 0}
+
             self.boosting_manager.torrent_db.getTorrent = _get_tor_dummy
             self.session.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, src_obj.torrents.keys()[0])
 
@@ -136,7 +135,6 @@ class TestBoostingManagerSys(TestAsServer):
         return defer_param
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSysRSS(TestBoostingManagerSys):
     """
     testing class for RSS (dummy) source
@@ -220,7 +218,6 @@ class TestBoostingManagerSysRSS(TestBoostingManagerSys):
         return defer_err_rss
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSysDir(TestBoostingManagerSys):
     """
     testing class for directory source
@@ -269,7 +266,6 @@ class TestBoostingManagerSysDir(TestBoostingManagerSys):
         return d
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSysChannel(TestBoostingManagerSys):
     """
     testing class for channel source
@@ -473,7 +469,6 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
 
             chn_obj.kill_tasks()
 
-
         d = self.check_source(dispersy_cid)
         d.addCallback(clean_community)
         return d
@@ -538,7 +533,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
 
             src_obj = self.boosting_manager.get_source_object(src)
             success = True
-            if len(src_obj.unavail_torrent) == 0:
+            if src_obj is not None and len(src_obj.unavail_torrent) == 0:
                 self.assertLessEqual(len(src_obj.torrents), src_obj.max_torrents)
             else:
                 success = False
