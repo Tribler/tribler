@@ -59,7 +59,7 @@ class SearchCommunity(Community):
         super(SearchCommunity, self).__init__(*args, **kwargs)
         self.tribler_session = None
         self.integrate_with_tribler = None
-        self.log_incomming_searches = None
+        self.log_incoming_searches = None
         self.taste_buddies = []
 
         self._channelcast_db = None
@@ -74,10 +74,10 @@ class SearchCommunity(Community):
 
         self.torrent_cache = None
 
-    def initialize(self, tribler_session=None, log_incomming_searches=False):
+    def initialize(self, tribler_session=None, log_incoming_searches=False):
         self.tribler_session = tribler_session
         self.integrate_with_tribler = tribler_session is not None
-        self.log_incomming_searches = log_incomming_searches
+        self.log_incoming_searches = log_incoming_searches
 
         super(SearchCommunity, self).initialize()
         # To always connect to a peer uncomment/modify the following line
@@ -335,8 +335,8 @@ class SearchCommunity(Community):
             if DEBUG:
                 self._logger.debug(u"got search request for %s", keywords)
 
-            if self.log_incomming_searches:
-                self.log_incomming_searches(message.candidate.sock_addr, keywords)
+            if self.log_incoming_searches:
+                self.log_incoming_searches(message.candidate.sock_addr, keywords)
 
             results = []
             dbresults = self._torrent_db.searchNames(keywords, local=False, keys=['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category', 'T.creation_date', 'T.num_seeders', 'T.num_leechers'])
