@@ -16,7 +16,7 @@ class XXXFilter(object):
         super(XXXFilter, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        termfilename = os.path.join(install_dir, LIBRARYNAME, 'Category', 'filter_terms.filter')
+        termfilename = os.path.join(install_dir, LIBRARYNAME, 'Core', 'Category', 'filter_terms.filter')
         self.xxx_terms, self.xxx_searchterms = self.initTerms(termfilename)
 
     def initTerms(self, filename):

@@ -1,7 +1,8 @@
 from binascii import unhexlify
 import os
 from shutil import copy as copyfile
-from Tribler.Category.Category import Category
+
+from Tribler.Core.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, ChannelCastDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Core.TorrentDef import TorrentDef
@@ -9,7 +10,6 @@ from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-
 
 S_TORRENT_PATH_BACKUP = os.path.join(TESTS_DATA_DIR, 'bak_single.torrent')
 M_TORRENT_PATH_BACKUP = os.path.join(TESTS_DATA_DIR, 'bak_multiple.torrent')

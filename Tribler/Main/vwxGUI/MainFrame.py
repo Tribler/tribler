@@ -13,19 +13,16 @@ import os
 import sys
 import traceback
 import logging
-import wx
-
 import subprocess
 import atexit
-
 import threading
 import time
 from traceback import print_exc, print_stack
 from urllib import url2pathname
-import copy
 
-from Tribler.Category.Category import Category
+import wx
 
+from Tribler.Core.Category.Category import Category
 from Tribler.Core.version import version_id
 from Tribler.Core.simpledefs import (NTFY_ACT_NEW_VERSION, NTFY_ACT_NONE, NTFY_ACT_ACTIVE, NTFY_ACT_UPNP,
                                      NTFY_ACT_REACHABLE, NTFY_ACT_MEET, NTFY_ACT_GET_EXT_IP_FROM_PEERS,
@@ -35,14 +32,11 @@ from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
 from Tribler.Main.Dialogs.SaveAs import SaveAs
-
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-
 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
 from Tribler.Main.vwxGUI.CreditMiningPanel import CreditMiningPanel
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
@@ -54,7 +48,6 @@ from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel
 from Tribler.Main.vwxGUI.home import Home, Stats, NetworkGraphPanel
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, ManageChannel
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
-
 from Tribler.Core.Video.utils import videoextdefaults
 
 

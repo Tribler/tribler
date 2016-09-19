@@ -3,7 +3,6 @@ import copy
 import logging
 import re
 import sys
-
 from binascii import hexlify, unhexlify
 from colorsys import hsv_to_rgb, rgb_to_hsv
 from math import log
@@ -12,7 +11,7 @@ from time import time
 import wx
 from wx.lib.wordwrap import wordwrap
 
-from Tribler.Category.Category import Category
+from Tribler.Core.Category.Category import Category
 from Tribler.Core.exceptions import NotYetImplementedException
 from Tribler.Core.simpledefs import (DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR,
                                      DLSTATUS_WAITING4HASHCHECK, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING)

@@ -9,7 +9,7 @@ import sys
 
 import wx
 
-from Tribler.Category.Category import Category
+from Tribler.Core.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Video.utils import videoextdefaults
@@ -25,9 +25,8 @@ from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, TORRENT_REQ_COLUMNS,
                                  CHANNEL_REQ_COLUMNS, PLAYLIST_REQ_COLUMNS, MODIFICATION_REQ_COLUMNS,
                                  MODERATION_REQ_COLUMNS, MARKING_REQ_COLUMNS, COMMENT_REQ_COLUMNS)
-
 from Tribler.community.allchannel.community import AllChannelCommunity
-from Tribler.community.channel.community import (ChannelCommunity, warnIfNotDispersyThread)
+from Tribler.community.channel.community import (warnIfNotDispersyThread)
 from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.util import call_on_reactor_thread
 

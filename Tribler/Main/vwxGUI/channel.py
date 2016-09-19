@@ -1,6 +1,4 @@
 # Written by Niels Zeilemaker
-import wx
-
 import os
 import sys
 from time import time
@@ -10,13 +8,13 @@ from traceback import print_exc
 import re
 from binascii import hexlify
 
+import wx
+
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.widgets import _set_font, NotebookPanel, SimpleNotebook, EditText, BetterText
-
-from Tribler.Category.Category import Category
+from Tribler.Core.Category.Category import Category
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-
 from Tribler.Main.vwxGUI import (CHANNEL_MAX_NON_FAVORITE, warnWxThread, LIST_GREY, LIST_LIGHTBLUE, LIST_DESELECTED,
                                  DEFAULT_BACKGROUND, format_time, showError)
 from Tribler.Main.vwxGUI.list import BaseManager, GenericSearchList, SizeList, List
@@ -31,11 +29,9 @@ from Tribler.Main.vwxGUI.list_item import (PlaylistItem, ColumnsManager, DragIte
                                            ModificationItem, ModerationItem, ThumbnailListItem)
 from Tribler.Main.vwxGUI.list_details import (AbstractDetails, SelectedchannelInfoPanel, PlaylistDetails,
                                               PlaylistInfoPanel, TorrentDetails, MyChannelPlaylist)
-
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBTuples import Torrent, CollectedTorrent, ChannelTorrent
-
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 
 

@@ -123,7 +123,7 @@ class TriblerLaunchMany(TaskManager):
                 from Tribler.Core.CacheDB.SqliteCacheDBHandler import (PeerDBHandler, TorrentDBHandler,
                                                                        MyPreferenceDBHandler, VoteCastDBHandler,
                                                                        ChannelCastDBHandler)
-                from Tribler.Category.Category import Category
+                from Tribler.Core.Category.Category import Category
 
                 self._logger.debug('tlm: Reading Session state from %s', self.session.get_state_dir())
 
