@@ -20,9 +20,9 @@ class CreateTorrentEndpoint(resource.Resource):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.session = session
 
-    def render_GET(self, request):
+    def render_POST(self, request):
         """
-        .. http:get:: /createtorrent
+        .. http:post:: /createtorrent
 
         Create a torrent from local files and return it in base64 encoding.
         Description and trackers list are optional.
@@ -32,7 +32,7 @@ class CreateTorrentEndpoint(resource.Resource):
 
             .. sourcecode:: none
 
-                curl -X PUT http://localhost:8085/mychannel/createtorrent
+                curl -X POST http://localhost:8085/createtorrent
                         --data "files[]=path/to/file.txt
                         &files[]=path/to/another/file.mp4
                         &description=Video

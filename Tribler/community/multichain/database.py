@@ -258,9 +258,9 @@ class MultiChainDB(Database):
     def get_total(self, public_key):
         """
         Return the latest (total_up, total_down) known for this node.
-        if no block for the pk is know returns (-1,-1)
+        if no block for the pk is know returns (0,0)
         :param public_key: public_key of the node
-        :return: (total_up (int), total_down (int)) or (-1, -1) if no block is known.
+        :return: (total_up (int), total_down (int)) or (0, 0) if no block is known.
         """
         public_key = buffer(public_key)
         db_query = u"SELECT total_up, total_down FROM (" \
@@ -272,7 +272,7 @@ class MultiChainDB(Database):
                    u"ORDER BY sequence_number DESC LIMIT 1"
         db_result = self.execute(db_query, (public_key, public_key)).fetchone()
         return (db_result[0], db_result[1]) if db_result is not None and db_result[0] is not None \
-                                               and db_result[1] is not None else (-1, -1)
+                                               and db_result[1] is not None else (0, 0)
 
     def open(self, initial_statements=True, prepare_visioning=True):
         return super(MultiChainDB, self).open(initial_statements, prepare_visioning)

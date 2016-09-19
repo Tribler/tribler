@@ -31,10 +31,11 @@ class TestMultichainStartup(TestAsServer):
     def load_communities(self, session, dispersy, crawler=False):
         keypair = dispersy.crypto.generate_key(u"curve25519")
         dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
+        kwargs = {'tribler_session': session}
         if crawler:
-            dispersy.define_auto_load(MultiChainCommunityCrawler, dispersy_member, load=True)
+            dispersy.define_auto_load(MultiChainCommunityCrawler, dispersy_member, load=True, kargs=kwargs)
         else:
-            dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True)
+            dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True, kargs=kwargs)
 
     def setUp(self):
         super(TestMultichainStartup, self).setUp()

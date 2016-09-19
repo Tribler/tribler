@@ -253,13 +253,18 @@ class TriblerLaunchMany(TaskManager):
                     tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
 
                     if self.session.get_enable_multichain():
+                        multichain_kwargs = {'tribler_session': self.session}
+
                         # If the multichain is enabled, we use the permanent multichain keypair
                         # for both the multichain and the tunnel community
                         keypair = self.session.multichain_keypair
                         dispersy_member = self.dispersy.get_member(private_key=keypair.key_to_bin())
 
                         from Tribler.community.multichain.community import MultiChainCommunity
-                        self.dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True)
+                        self.dispersy.define_auto_load(MultiChainCommunity,
+                                                       dispersy_member,
+                                                       load=True,
+                                                       kargs=multichain_kwargs)
 
                         from Tribler.community.tunnel.hidden_community_multichain import HiddenTunnelCommunityMultichain
                         self.tunnel_community = self.dispersy.define_auto_load(

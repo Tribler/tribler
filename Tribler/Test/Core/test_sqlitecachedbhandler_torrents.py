@@ -239,7 +239,7 @@ class TestTorrentDBHandler(AbstractDB):
 
     @blocking_call_on_reactor_thread
     def test_get_search_suggestions(self):
-        self.assertEqual(self.tdb.getSearchSuggestion(["content", "cont"]), ["Content 1"])
+        self.assertEqual(self.tdb.getSearchSuggestion(["content", "cont"]), ["content 1"])
 
     @blocking_call_on_reactor_thread
     def test_get_autocomplete_terms(self):
@@ -283,3 +283,14 @@ class TestTorrentDBHandler(AbstractDB):
         results = self.tdb.searchNames(['content'], keys=columns)
         self.assertEqual(len(results), 4848)
         self.assertEqual(results[0][3], 493785)
+
+    @blocking_call_on_reactor_thread
+    def test_search_local_torrents(self):
+        """
+        Test the search procedure in the local database when searching for torrents
+        """
+        results = self.tdb.search_in_local_torrents_db('content', ['infohash'])
+        self.assertEqual(len(results), 4848)
+        self.assertNotEqual(results[0][-1], 0.0)  # Relevance score of result should not be zero
+        results = self.tdb.search_in_local_torrents_db('fdsafasfds', ['infohash'])
+        self.assertEqual(len(results), 0)
