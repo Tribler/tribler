@@ -37,8 +37,10 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
         self.should_check_equality = False
         channel_id = self.insert_channel_in_db('rand', 42, 'Test channel', 'Test description')
 
-        torrent_list = [[channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso",
-                         [['file1.txt', 42]], []]]
+        torrent_list = [
+            [channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso", [['file1.txt', 42]], []],
+            [channel_id, 1, 1, ('b' * 40).decode('hex'), 1460000000, "badterm", [['file1.txt', 42]], []]
+        ]
         self.insert_torrents_into_channel(torrent_list)
 
         return self.do_request('channels/discovered/%s/torrents' % 'rand'.encode('hex'), expected_code=200)\

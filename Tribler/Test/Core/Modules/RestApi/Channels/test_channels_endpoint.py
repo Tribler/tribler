@@ -92,6 +92,7 @@ class TestChannelsEndpoint(AbstractTestChannelsEndpoint):
         self.should_check_equality = False
         for i in xrange(0, 10):
             self.insert_channel_in_db('rand%d' % i, 42 + i, 'Test channel %d' % i, 'Test description %d' % i)
+        self.insert_channel_in_db('randbad', 100, 'badterm', 'Test description bad')
 
         def verify_channels(channels):
             channels_json = json.loads(channels)['channels']
