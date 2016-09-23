@@ -129,9 +129,9 @@ model {
             }
             ssl {
                 binaries.withType(SharedLibraryBinary) {
-                    // Android does not have regular versioning of .so files, but does have an
-                    // old version of openssl build in which prevents the loading libssl.so
-                    // included with the app, therefore a custom name with version was introduced
+                    // Android does not have regular versioning of .so files, but ships with an
+                    // old version of openssl which prevents the loading libssl.so bundled with
+                    // the app, therefore a custom name with version is introduced
                     sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libssl1.0.2h.so")
                 }
             }
