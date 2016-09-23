@@ -50,7 +50,7 @@ class TestTorrentDBHandler(AbstractDB):
         self.session.lm.tracker_manager.initialize()
         self.tdb = TorrentDBHandler(self.session)
         self.tdb.torrent_dir = TESTS_DATA_DIR
-        self.tdb.category = Category.getInstance()
+        self.tdb.category = Category()
         self.tdb.mypref_db = MyPreferenceDBHandler(self.session)
 
     def tearDown(self):
