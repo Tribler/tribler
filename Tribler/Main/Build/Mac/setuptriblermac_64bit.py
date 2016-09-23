@@ -220,7 +220,7 @@ setup(
         'plist': Plist.fromFile(LIBRARYNAME + '/Main/Build/Mac/Info.plist'),
         'optimize': 0 if __debug__ else 2,
         'resources':
-            [(LIBRARYNAME + "/Category", [LIBRARYNAME + "/Category/category.conf"]),
+            [(LIBRARYNAME + "/Core/Category", [LIBRARYNAME + "/Core/Category/category.conf"]),
              (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core",
               [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap_stable"]),
              (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core",

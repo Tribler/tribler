@@ -50,8 +50,8 @@ touch dist/installdir
 cp logger.conf dist/installdir/Tribler.app/Contents/Resources/
 
 # Copy family filter
-cp Tribler/Category/category.conf dist/installdir/Tribler.app/Contents/Resources/Tribler/Category/
-cp Tribler/Category/filter_terms.filter dist/installdir/Tribler.app/Contents/Resources/Tribler/Category/
+cp Tribler/Core/Category/category.conf dist/installdir/Tribler.app/Contents/Resources/Tribler/Core/Category/
+cp Tribler/Core/Category/filter_terms.filter dist/installdir/Tribler.app/Contents/Resources/Tribler/Core/Category/
 
 mkdir -p dist/temp
 
