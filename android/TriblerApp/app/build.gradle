@@ -243,7 +243,7 @@ dependencies {
     compile 'com.jakewharton:butterknife:8.4.0'
 
     compile 'io.reactivex:rxandroid:1.2.1'
-    compile 'io.reactivex:rxjava:1.1.9'
+    compile 'io.reactivex:rxjava:1.2.0'
     compile 'com.cantrowitz:rxbroadcast:1.0.0'
     compile 'com.jakewharton.rxbinding:rxbinding:0.4.0'
     compile 'com.jakewharton.rxbinding:rxbinding-support-v4:0.4.0'
@@ -257,10 +257,10 @@ dependencies {
     compile 'com.squareup.retrofit2:converter-gson:2.1.0'
 
     //DEBUG
-    compile 'com.facebook.stetho:stetho:1.3.1'
-    compile 'com.facebook.stetho:stetho-okhttp3:1.3.1'
-    compile 'com.squareup.leakcanary:leakcanary-android:1.4-beta2'
-    //compile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2'
+    compile 'com.facebook.stetho:stetho:1.4.1'
+    compile 'com.facebook.stetho:stetho-okhttp3:1.4.1'
+    compile 'com.squareup.leakcanary:leakcanary-android:1.4'
+    //compile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4'
 
     annotationProcessor 'com.jakewharton:butterknife-compiler:8.4.0'
 
@@ -272,5 +272,5 @@ dependencies {
 
     testCompile 'junit:junit:4.12'
     testCompile 'com.squareup.okhttp3:mockwebserver:3.4.1'
-    testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2'
+    testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4'
 }
