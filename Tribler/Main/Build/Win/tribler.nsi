@@ -162,10 +162,10 @@ Section "!Main EXE" SecMain
     File Tribler\Main\webUI\static\lang\*.*
 
     ; Categories
-    CreateDirectory "$INSTDIR\Tribler\Category"
-    SetOutPath "$INSTDIR\Tribler\Category"
-    File Tribler\Category\*.conf
-    File Tribler\Category\*.filter
+    CreateDirectory "$INSTDIR\Tribler\Core\Category"
+    SetOutPath "$INSTDIR\Tribler\Core\Category"
+    File Tribler\Core\Category\*.conf
+    File Tribler\Core\Category\*.filter
 
     ; Arno, 2012-05-25: data files for pymdht
     CreateDirectory "$INSTDIR\Tribler\Core\DecentralizedTracking"

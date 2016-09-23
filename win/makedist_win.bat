@@ -162,9 +162,9 @@ copy Tribler\Main\vwxGUI\images\flags\*.* dist\installdir\Tribler\Main\vwxGUI\im
 copy Tribler\Main\webUI\static\*.* dist\installdir\Tribler\Main\webUI\static
 copy Tribler\Main\webUI\static\images\*.* dist\installdir\Tribler\Main\webUI\static\images
 copy Tribler\Main\webUI\static\lang\*.* dist\installdir\Tribler\Main\webUI\static\lang
-mkdir dist\installdir\Tribler\Category
-copy Tribler\Category\category.conf dist\installdir\Tribler\Category
-copy Tribler\Category\filter_terms.filter dist\installdir\Tribler\Category
+mkdir dist\installdir\Tribler\Core\Category
+copy Tribler\Core\Category\category.conf dist\installdir\Tribler\Core\Category
+copy Tribler\Core\Category\filter_terms.filter dist\installdir\Tribler\Core\Category
 
 @echo Running NSIS
 cd dist\installdir
