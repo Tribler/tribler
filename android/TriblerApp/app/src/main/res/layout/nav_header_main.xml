@@ -6,7 +6,6 @@
     android:columnCount="2"
     android:fitsSystemWindows="true"
     android:orientation="vertical"
-    android:padding="@dimen/nav_header_padding"
     android:rowCount="2"
     android:theme="@style/AppTheme.AppBarOverlay">
 
@@ -16,7 +15,10 @@
         android:layout_height="wrap_content"
         android:layout_column="1"
         android:layout_gravity="end"
-        android:layout_marginTop="@dimen/nav_logo_margin_top"
+        android:layout_marginBottom="@dimen/activity_vertical_margin"
+        android:layout_marginEnd="@dimen/activity_horizontal_margin"
+        android:layout_marginRight="@dimen/activity_horizontal_margin"
+        android:layout_marginTop="@dimen/activity_vertical_margin"
         android:layout_row="0"
         android:layout_rowSpan="2"
         android:src="@mipmap/ic_launcher" />
@@ -26,6 +28,9 @@
         android:layout_height="wrap_content"
         android:layout_column="0"
         android:layout_gravity="bottom"
+        android:layout_marginLeft="@dimen/activity_horizontal_margin"
+        android:layout_marginStart="@dimen/activity_horizontal_margin"
+        android:layout_marginTop="@dimen/activity_vertical_margin"
         android:layout_row="0"
         android:text="@string/app_name"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
@@ -35,6 +40,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_column="0"
+        android:layout_marginBottom="@dimen/activity_vertical_margin"
+        android:layout_marginLeft="@dimen/activity_horizontal_margin"
+        android:layout_marginStart="@dimen/activity_horizontal_margin"
         android:layout_row="1"
         android:text="@string/app_website" />
 

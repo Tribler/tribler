@@ -10,7 +10,4 @@
     <dimen name="fancy_button_vertical_margin">50dp</dimen>
 
     <dimen name="label_padding">16dp</dimen>
-
-    <dimen name="nav_header_padding">16dp</dimen>
-    <dimen name="nav_logo_margin_top">16dp</dimen>
 </resources>
