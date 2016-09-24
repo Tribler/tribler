@@ -76,7 +76,7 @@ class TriblerLaunchMany(TaskManager):
         self.watch_folder = None
         self.version_check_manager = None
 
-        self.cat = None
+        self.category = None
         self.peer_db = None
         self.torrent_db = None
         self.mypref_db = None
@@ -127,7 +127,7 @@ class TriblerLaunchMany(TaskManager):
 
                 self._logger.debug('tlm: Reading Session state from %s', self.session.get_state_dir())
 
-                self.cat = Category.getInstance()
+                self.category = Category()
 
                 # create DBHandlers
                 self.peer_db = PeerDBHandler(self.session)

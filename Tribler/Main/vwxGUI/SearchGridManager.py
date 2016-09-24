@@ -56,7 +56,7 @@ class TorrentManager(object):
 
         self.filteredResults = 0
 
-        self.category = Category.getInstance()
+        self.category = self.guiUtility.utility.session.lm.category
 
     def downloadTorrentfileFromPeers(self, torrent, callback, duplicate=True, prio=0):
         """
@@ -911,14 +911,13 @@ class ChannelManager(object):
         self.channelcast_db = None
         self.votecastdb = None
         self.dispersy = None
+        self.category = None
 
         # For asking for a refresh when remote results came in
         self.gridmgr = None
 
         self.searchkeywords = []
         self.oldsearchkeywords = []
-
-        self.category = Category.getInstance()
 
     def getInstance(*args, **kw):
         if ChannelManager.__single is None:
@@ -934,6 +933,7 @@ class ChannelManager(object):
         if not self.connected:
             self.connected = True
             self.session = session
+            self.category = self.session.lm.category
             self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
             self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
             self.votecastdb = self.session.open_dbhandler(NTFY_VOTECAST)

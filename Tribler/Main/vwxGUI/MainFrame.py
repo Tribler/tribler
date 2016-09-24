@@ -124,7 +124,7 @@ class MainFrame(wx.Frame):
         self.params = self.guiUtility.params
         self.utility.frame = self
         self.videoframe = None
-        self.category = Category.getInstance()
+        self.category = self.utility.session.lm.category
         self.shutdown_and_upgrade_notes = None
 
         title = "Tribler %s" % version_id

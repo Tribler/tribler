@@ -644,7 +644,7 @@ class GUIUtility(object):
         if newState is None:
             newState = not self.getFamilyFilter()
 
-        Category.getInstance().set_family_filter(newState)
+        self.utility.session.lm.category.set_family_filter(newState)
         for l in self.lists:
             if getattr(l, 'GotFilter', False):
                 l.GotFilter(None)
@@ -661,7 +661,7 @@ class GUIUtility(object):
         self.utility.flush_config()
 
     def getFamilyFilter(self):
-        catobj = Category.getInstance()
+        catobj = self.utility.session.lm.category
         return catobj.family_filter_enabled()
 
     def set_firewall_restart(self, b):

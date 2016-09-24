@@ -252,7 +252,7 @@ class SelectedChannelList(GenericSearchList):
         ColumnsManager.getInstance().setColumns(PlaylistItem, columns)
 
         self.category_names = {}
-        for key, name in Category.getInstance().getCategoryNames(filter=False):
+        for key, name in self.session.lm.category.getCategoryNames(filter=False):
             self.category_names[key] = name
         self.category_names[None] = 'Unknown'
 

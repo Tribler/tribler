@@ -843,7 +843,7 @@ class PopularTorrentPanel(NewTorrentPanel):
 
     def RefreshList(self):
         def db_callback():
-            familyfilter_sql = Category.getInstance().get_family_filter_sql()
+            familyfilter_sql = self.utility.session.lm.category.get_family_filter_sql()
             if familyfilter_sql:
                 familyfilter_sql = familyfilter_sql[4:]
 

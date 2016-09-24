@@ -578,7 +578,7 @@ class List(wx.BoxSizer):
         self.cur_nr_filtered = 0
 
         self.guiutility = GUIUtility.getInstance()
-        self.category = Category.getInstance()
+        self.category = self.guiutility.utility.session.lm.category
 
         self.leftLine = self.rightLine = None
         self.parent = parent
@@ -1401,7 +1401,7 @@ class SearchList(GenericSearchList):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.session = self.guiutility.utility.session
-        self.category = Category.getInstance()
+        self.category = self.session.lm.category
 
         self.total_channels = None
         self.keywords = None

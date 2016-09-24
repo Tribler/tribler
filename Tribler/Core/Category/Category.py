@@ -16,8 +16,6 @@ CATEGORY_CONFIG_FILE = "category.conf"
 
 class Category(object):
 
-    # Code to make this a singleton
-    __single = None
     __size_change = 1024 * 1024
 
     def __init__(self, install_dir=determine_install_dir(), ffEnabled=False):
@@ -25,10 +23,7 @@ class Category(object):
 
         self.install_dir = install_dir
 
-        if Category.__single:
-            raise RuntimeError("Category is singleton")
         filename = os.path.join(self.install_dir, LIBRARYNAME, u'Core', u'Category', CATEGORY_CONFIG_FILE)
-        Category.__single = self
         try:
             self.category_info = getCategoryInfo(filename)
             self.category_info.sort(cmp_rank)
@@ -42,17 +37,6 @@ class Category(object):
 
         self.ffEnabled = ffEnabled
         self.set_family_filter(None)
-
-    # return Category instance
-    def getInstance(*args, **kw):
-        if Category.__single is None:
-            Category(*args, **kw)
-        return Category.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        Category.__single = None
-    delInstance = staticmethod(delInstance)
 
     def getCategoryNames(self, filter=True):
         if self.category_info is None:

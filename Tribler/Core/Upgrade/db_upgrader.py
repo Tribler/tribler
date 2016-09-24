@@ -543,7 +543,7 @@ CREATE VIRTUAL TABLE FullTextIndex USING fts4(swarmname, filenames, fileextensio
         self.status_update_func("Opening TorrentDBHandler...")
         # TODO(emilon): That's a freakishly ugly hack.
         torrent_db_handler = TorrentDBHandler(self.session)
-        torrent_db_handler.category = Category.getInstance()
+        torrent_db_handler.category = Category()
 
         # TODO(emilon): It would be nice to drop the corrupted torrent data from the store as a bonus.
         self.status_update_func("Registering recovered torrents...")
@@ -558,7 +558,6 @@ CREATE VIRTUAL TABLE FullTextIndex USING fts4(swarmname, filenames, fileextensio
                         torrent_db_handler._addTorrentToDB(torrentdef, extra_info={"filename": infoshash_str})
         finally:
             torrent_db_handler.close()
-            Category.delInstance()
             self.db.commit_now()
             return self.torrent_store.flush()
 
