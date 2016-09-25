@@ -12,6 +12,8 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Core.simpledefs import NTFY_VOTECAST
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, RemoteTorrent, NotCollectedTorrent, Channel, \
     ChannelTorrent
+from Tribler.Policies.BoostingPolicy import CreationDatePolicy
+from Tribler.Policies.BoostingPolicy import RandomPolicy, SeederRatioPolicy
 from Tribler.Policies.defs import SIMILARITY_TRESHOLD
 from Tribler.dispersy.taskmanager import TaskManager
 
@@ -21,6 +23,19 @@ def validate_source_string(source):
     Function to check whether a source string is a valid source or not
     """
     return unhexlify(source) if len(source) == 40 and not source.startswith("http") else source
+
+
+def string_policy_to_object(policy_str):
+    """
+    Function to convert policy in string format to its actual object
+    """
+    switch_policy = {
+        "random": RandomPolicy,
+        "creation": CreationDatePolicy,
+        "seederratio": SeederRatioPolicy
+    }
+
+    return switch_policy[policy_str]
 
 
 def levenshtein_dist(t1_fname, t2_fname):
