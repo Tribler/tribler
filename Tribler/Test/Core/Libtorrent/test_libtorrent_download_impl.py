@@ -52,7 +52,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         impl = LibtorrentDownloadImpl(self.session, None)
         impl.cew_scheduled = False
         self.session.lm.ltmgr.is_dht_ready = lambda: True
-        return impl.can_create_engine_wrapper()
+        return impl.can_create_handle()
 
     @deferred(timeout=15)
     def test_can_create_engine_wrapper_retry(self):
@@ -65,7 +65,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         # Simulate Tribler changing the cew, the calllater should have fired by now
         # and before it executed the cew is false, firing the deferred.
         reactor.callLater(2, set_cew_false)
-        return impl.can_create_engine_wrapper()
+        return impl.can_create_handle()
 
     def test_get_magnet_link_none(self):
         tdef = self.create_tdef()
@@ -106,7 +106,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         fake_status.share_mode = False
         # Create a dummy download config
         impl.dlconfig = DownloadStartupConfig().dlconfig.copy()
-        impl.session.lm.on_download_wrapper_created = lambda _: True
+        impl.session.lm.on_download_handle_created = lambda _: True
         impl.restart()
 
     @deferred(timeout=20)
@@ -143,7 +143,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         test_dict = dict()
         test_dict["a"] = "b"
         pstate.set("state", "engineresumedata", test_dict)
-        return impl.network_create_engine_wrapper(pstate)
+        return impl.create_download_handle(pstate)
 
     @deferred(timeout=10)
     def test_save_resume(self):
