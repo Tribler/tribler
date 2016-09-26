@@ -47,7 +47,15 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
                 }
         """
         all_channels_db = self.channel_db_handler.getAllChannels()
-        results_json = [convert_db_channel_to_json(channel) for channel in all_channels_db]
+        results_json = []
+        for channel in all_channels_db:
+            channel_json = convert_db_channel_to_json(channel)
+            if self.session.tribler_config.get_family_filter_enabled() and \
+                    self.session.lm.category.xxx_filter.isXXX(channel_json['name']):
+                continue
+
+            results_json.append(channel_json)
+
         return json.dumps({"channels": results_json})
 
     def render_PUT(self, request):

@@ -70,8 +70,15 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         results_local_torrents_channel = self.channel_db_handler\
             .getTorrentsFromChannelId(channel_info[0], True, torrent_db_columns)
 
-        results_json = [convert_db_torrent_to_json(torrent_result) for torrent_result in results_local_torrents_channel
-                        if torrent_result[2] is not None]
+        results_json = []
+        for torrent_result in results_local_torrents_channel:
+            torrent_json = convert_db_torrent_to_json(torrent_result)
+            if (self.session.tribler_config.get_family_filter_enabled() and
+                    self.session.lm.category.xxx_filter.isXXX(torrent_json['name'])) or torrent_json['name'] is None:
+                continue
+
+            results_json.append(torrent_json)
+
         return json.dumps({"torrents": results_json})
 
     def render_PUT(self, request):

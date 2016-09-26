@@ -79,6 +79,11 @@ class EventsEndpoint(resource.Resource):
 
         for channel in results['result_list']:
             channel_json = convert_db_channel_to_json(channel, include_rel_score=True)
+
+            if self.session.tribler_config.get_family_filter_enabled() and \
+                    self.session.lm.category.xxx_filter.isXXX(channel_json['name']):
+                continue
+
             if channel_json['dispersy_cid'] not in self.channel_cids_sent:
                 self.write_data(json.dumps({"type": "search_result_channel",
                                             "event": {"query": query, "result": channel_json}}) + '\n')
@@ -92,6 +97,10 @@ class EventsEndpoint(resource.Resource):
 
         for torrent in results['result_list']:
             torrent_json = convert_search_torrent_to_json(torrent)
+
+            if self.session.tribler_config.get_family_filter_enabled() and torrent_json['category'] == 'xxx':
+                continue
+
             if 'infohash' in torrent_json and torrent_json['infohash'] not in self.infohashes_sent:
                 self.write_data(json.dumps({"type": "search_result_torrent",
                                             "event": {"query": query, "result": torrent_json}}))

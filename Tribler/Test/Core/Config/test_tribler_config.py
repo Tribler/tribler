@@ -36,3 +36,7 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_conf.set_download_state("abc", "test1")
         self.tribler_conf.set_download_state("def", "test2")
         self.assertDictEqual(self.tribler_conf.get_download_states(), {"abc": "test1", "def": "test2"})
+
+    def test_set_family_filter(self):
+        self.tribler_conf.set_family_filter_enabled(False)
+        self.assertFalse(self.tribler_conf.get_family_filter_enabled())

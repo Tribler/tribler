@@ -67,7 +67,7 @@ class TestEventsEndpoint(AbstractApiTest):
         self.messages_to_wait_for = 1
         return self.events_deferred.addCallback(verify_delayed_message)
 
-    @deferred(timeout=10)
+    @deferred(timeout=20)
     def test_search_results(self):
         """
         Testing whether the event endpoint returns search results when we have search results available
@@ -110,3 +110,19 @@ class TestEventsEndpoint(AbstractApiTest):
         self.socket_open_deferred.addCallback(send_notifications)
 
         return self.events_deferred
+
+    def test_family_filter_search(self):
+        """
+        Testing the family filter when searching for torrents and channels
+        """
+        events_endpoint = self.session.lm.api_manager.root_endpoint.events_endpoint
+
+        channels = [['a', ] * 10, ['a', ] * 10]
+        channels[0][2] = 'badterm'
+        events_endpoint.on_search_results_channels(None, None, None, {"keywords": ["test"], "result_list": channels})
+        self.assertEqual(len(events_endpoint.channel_cids_sent), 1)
+
+        torrents = [['a', ] * 10, ['a', ] * 10]
+        torrents[0][4] = 'xxx'
+        events_endpoint.on_search_results_torrents(None, None, None, {"keywords": ["test"], "result_list": torrents})
+        self.assertEqual(len(events_endpoint.infohashes_sent), 1)

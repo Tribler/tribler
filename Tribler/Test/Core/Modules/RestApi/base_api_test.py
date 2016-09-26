@@ -29,6 +29,11 @@ class AbstractBaseApiTest(TestAsServer):
     """
     Tests for the Tribler HTTP API should create a subclass of this class.
     """
+    def setUp(self, autoload_discovery=True):
+        super(AbstractBaseApiTest, self).setUp(autoload_discovery=autoload_discovery)
+        terms = self.session.lm.category.xxx_filter.xxx_terms
+        terms.add("badterm")
+        self.session.lm.category.xxx_filter.xxx_terms = terms
 
     def setUpPreSession(self):
         super(AbstractBaseApiTest, self).setUpPreSession()
