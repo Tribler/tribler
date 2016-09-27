@@ -62,9 +62,10 @@ public abstract class ViewFragment extends BaseFragment {
             if (_snackbar != null && _snackbar.isShownOrQueued()) {
                 _snackbar.setText(question);
             } else {
-                _snackbar = Snackbar.make(rootView, question, Snackbar.LENGTH_INDEFINITE);
-                _snackbar.setAction(getText(resId), listener);
-                _snackbar.setActionTextColor(ContextCompat.getColor(context, R.color.yellow));
+                _snackbar = Snackbar
+                        .make(rootView, question, Snackbar.LENGTH_INDEFINITE)
+                        .setAction(resId, listener)
+                        .setActionTextColor(ContextCompat.getColor(context, R.color.yellow));
                 _snackbar.show();
             }
             return true;

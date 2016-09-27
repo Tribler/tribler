@@ -187,9 +187,12 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         } else {
                             Log.e("loadMyChannel", "getMyChannel", e);
                             MyUtils.onError(e, context);
-                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
-                                // Retry
-                                loadMyChannel();
+                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    // Retry
+                                    loadMyChannel();
+                                }
                             });
                         }
                     }
@@ -217,9 +220,12 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     public void onError(Throwable e) {
                         Log.e("loadMyChannelTorrents", "getTorrents", e);
                         MyUtils.onError(e, context);
-                        askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
-                            // Retry
-                            loadMyChannelTorrents();
+                        askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                // Retry
+                                loadMyChannelTorrents();
+                            }
                         });
                     }
                 });
@@ -257,9 +263,12 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         } else {
                             Log.e("createTorrent", "getAbsolutePath", e);
                             MyUtils.onError(e, context);
-                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
-                                // Retry
-                                createTorrent(file, delete);
+                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    // Retry
+                                    createTorrent(file, delete);
+                                }
                             });
                         }
                     }
@@ -293,9 +302,12 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         } else {
                             Log.e("addTorrent", "base64", e);
                             MyUtils.onError(e, context);
-                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
-                                // Retry
-                                addTorrent(torrent_b64);
+                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    // Retry
+                                    addTorrent(torrent_b64);
+                                }
                             });
                         }
                     }
@@ -329,9 +341,12 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         } else {
                             Log.e("addTorrent", "url", e);
                             MyUtils.onError(e, context);
-                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
-                                // Retry
-                                addTorrent(url);
+                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    // Retry
+                                    addTorrent(url);
+                                }
                             });
                         }
                     }
@@ -358,9 +373,12 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         } else {
                             Log.e("onSwipedLeft", "deleteTorrent", e);
                             MyUtils.onError(e, context);
-                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
-                                // Retry
-                                deleteTorrent(infohash, name);
+                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    // Retry
+                                    deleteTorrent(infohash, name);
+                                }
                             });
                         }
                     }

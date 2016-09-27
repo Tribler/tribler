@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import org.tribler.android.restapi.json.SubscribedAck;
@@ -98,9 +99,12 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                         } else {
                             Log.e("onSwipedRight", "subscribe", e);
                             MyUtils.onError(e, context);
-                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
-                                // Retry
-                                subscribe(dispersyCid, subscribed, name);
+                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    // Retry
+                                    subscribe(dispersyCid, subscribed, name);
+                                }
                             });
                         }
                     }
@@ -140,9 +144,12 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                         } else {
                             Log.e("onSwipedLeft", "unsubscribe", e);
                             MyUtils.onError(e, context);
-                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
-                                // Retry
-                                unsubscribe(dispersyCid, subscribed, name);
+                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    // Retry
+                                    unsubscribe(dispersyCid, subscribed, name);
+                                }
                             });
                         }
                     }
