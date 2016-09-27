@@ -12,6 +12,9 @@ import org.tribler.android.restapi.json.QueriedAck;
 import org.tribler.android.restapi.json.SearchResultChannelEvent;
 import org.tribler.android.restapi.json.SearchResultTorrentEvent;
 
+import java.util.concurrent.TimeUnit;
+
+import rx.Observable;
 import rx.Observer;
 import rx.schedulers.Schedulers;
 
@@ -109,6 +112,10 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
 
         // Start search
         loading = service.search(query)
+                .retryWhen(errors -> errors
+                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
+                )
                 .subscribeOn(Schedulers.io())
                 .subscribe(new Observer<QueriedAck>() {
 
@@ -122,10 +129,6 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
                     public void onError(Throwable e) {
                         Log.e("startSearch", "search", e);
                         MyUtils.onError(e, context);
-                        askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
-                            // Retry
-                            reload();
-                        });
                     }
                 });
         rxSubs.add(loading);

@@ -12,7 +12,10 @@ import org.tribler.android.restapi.json.TriblerChannel;
 import org.tribler.android.restapi.json.TriblerTorrent;
 import org.tribler.android.restapi.json.UnsubscribedAck;
 
+import java.util.concurrent.TimeUnit;
+
 import retrofit2.adapter.rxjava.HttpException;
+import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -82,6 +85,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
         }
 
         rxSubs.add(service.subscribe(dispersyCid)
+                .retryWhen(errors -> errors
+                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
+                )
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<SubscribedAck>() {
@@ -99,13 +106,6 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                         } else {
                             Log.e("onSwipedRight", "subscribe", e);
                             MyUtils.onError(e, context);
-                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
-                                @Override
-                                public void onClick(View view) {
-                                    // Retry
-                                    subscribe(dispersyCid, subscribed, name);
-                                }
-                            });
                         }
                     }
                 }));
@@ -127,6 +127,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
         }
 
         rxSubs.add(service.unsubscribe(dispersyCid)
+                .retryWhen(errors -> errors
+                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
+                )
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<UnsubscribedAck>() {
@@ -144,13 +148,6 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                         } else {
                             Log.e("onSwipedLeft", "unsubscribe", e);
                             MyUtils.onError(e, context);
-                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
-                                @Override
-                                public void onClick(View view) {
-                                    // Retry
-                                    unsubscribe(dispersyCid, subscribed, name);
-                                }
-                            });
                         }
                     }
                 }));

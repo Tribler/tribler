@@ -6,6 +6,8 @@ import android.view.View;
 
 import org.tribler.android.restapi.json.TriblerChannel;
 
+import java.util.concurrent.TimeUnit;
+
 import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
@@ -36,6 +38,10 @@ public class PopularFragment extends DefaultInteractionListFragment {
 
     private void loadPopularChannels() {
         loading = service.getPopularChannels(_limit)
+                .retryWhen(errors -> errors
+                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
+                )
                 .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getChannels()))
                 .observeOn(AndroidSchedulers.mainThread())
@@ -54,10 +60,6 @@ public class PopularFragment extends DefaultInteractionListFragment {
                     public void onError(Throwable e) {
                         Log.e("loadPopularChannels", "getChannels", e);
                         MyUtils.onError(e, context);
-                        askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
-                            // Retry
-                            reload();
-                        });
                     }
                 });
         rxSubs.add(loading);

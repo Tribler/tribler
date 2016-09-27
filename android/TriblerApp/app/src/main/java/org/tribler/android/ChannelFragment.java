@@ -13,6 +13,8 @@ import org.tribler.android.restapi.EventStream;
 import org.tribler.android.restapi.json.TorrentDiscoveredEvent;
 import org.tribler.android.restapi.json.TriblerTorrent;
 
+import java.util.concurrent.TimeUnit;
+
 import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
@@ -80,6 +82,10 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
 
     private void loadTorrents() {
         loading = service.getTorrents(_dispersyCid)
+                .retryWhen(errors -> errors
+                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
+                )
                 .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getTorrents()))
                 .observeOn(AndroidSchedulers.mainThread())
@@ -98,10 +104,6 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
                     public void onError(Throwable e) {
                         Log.e("loadTorrents", "getTorrents", e);
                         MyUtils.onError(e, context);
-                        askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
-                            // Retry
-                            reload();
-                        });
                     }
                 });
         rxSubs.add(loading);

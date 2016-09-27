@@ -44,6 +44,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.TimeUnit;
 
 import retrofit2.adapter.rxjava.HttpException;
 import rx.Observable;
@@ -159,6 +160,10 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
     private void loadMyChannel() {
         loading = service.getMyChannel()
+                .retryWhen(errors -> errors
+                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
+                )
                 .subscribeOn(Schedulers.io())
                 .map(MyChannelResponse::getMyChannel)
                 .observeOn(AndroidSchedulers.mainThread())
@@ -187,13 +192,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         } else {
                             Log.e("loadMyChannel", "getMyChannel", e);
                             MyUtils.onError(e, context);
-                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
-                                @Override
-                                public void onClick(View view) {
-                                    // Retry
-                                    loadMyChannel();
-                                }
-                            });
                         }
                     }
                 });
@@ -202,6 +200,10 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
     private void loadMyChannelTorrents() {
         loading = service.getTorrents(_dispersyCid)
+                .retryWhen(errors -> errors
+                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
+                )
                 .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getTorrents()))
                 .observeOn(AndroidSchedulers.mainThread())
@@ -220,13 +222,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     public void onError(Throwable e) {
                         Log.e("loadMyChannelTorrents", "getTorrents", e);
                         MyUtils.onError(e, context);
-                        askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                // Retry
-                                loadMyChannelTorrents();
-                            }
-                        });
                     }
                 });
         rxSubs.add(loading);
@@ -236,6 +231,10 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         // Workaround endpoint array parsing:
         String[] list = {"[\"" + file.getAbsolutePath() + "\"]"};
         loading = service.createTorrent(list)
+                .retryWhen(errors -> errors
+                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
+                )
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TorrentCreatedResponse>() {
@@ -263,13 +262,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         } else {
                             Log.e("createTorrent", "getAbsolutePath", e);
                             MyUtils.onError(e, context);
-                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
-                                @Override
-                                public void onClick(View view) {
-                                    // Retry
-                                    createTorrent(file, delete);
-                                }
-                            });
                         }
                     }
                 });
@@ -283,6 +275,10 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         statusBar.setText(getText(R.string.status_adding_torrent));
 
         loading = service.addTorrent(_dispersyCid, torrent_b64)
+                .retryWhen(errors -> errors
+                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
+                )
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<AddedAck>() {
@@ -302,13 +298,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         } else {
                             Log.e("addTorrent", "base64", e);
                             MyUtils.onError(e, context);
-                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
-                                @Override
-                                public void onClick(View view) {
-                                    // Retry
-                                    addTorrent(torrent_b64);
-                                }
-                            });
                         }
                     }
                 });
@@ -322,6 +311,10 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         statusBar.setText(getText(R.string.status_adding_torrent));
 
         loading = service.addTorrent(_dispersyCid, url)
+                .retryWhen(errors -> errors
+                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
+                )
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<AddedUrlAck>() {
@@ -341,13 +334,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         } else {
                             Log.e("addTorrent", "url", e);
                             MyUtils.onError(e, context);
-                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
-                                @Override
-                                public void onClick(View view) {
-                                    // Retry
-                                    addTorrent(url);
-                                }
-                            });
                         }
                     }
                 });
@@ -356,6 +342,10 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
     private void deleteTorrent(final String infohash, final String name) {
         rxSubs.add(service.deleteTorrent(_dispersyCid, infohash)
+                .retryWhen(errors -> errors
+                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
+                )
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<RemovedAck>() {
@@ -373,13 +363,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         } else {
                             Log.e("onSwipedLeft", "deleteTorrent", e);
                             MyUtils.onError(e, context);
-                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, new View.OnClickListener() {
-                                @Override
-                                public void onClick(View view) {
-                                    // Retry
-                                    deleteTorrent(infohash, name);
-                                }
-                            });
                         }
                     }
                 }));

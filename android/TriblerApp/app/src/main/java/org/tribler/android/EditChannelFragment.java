@@ -20,8 +20,11 @@ import com.jakewharton.rxbinding.widget.TextViewTextChangeEvent;
 import org.tribler.android.restapi.json.AddedChannelAck;
 import org.tribler.android.restapi.json.ModifiedAck;
 
+import java.util.concurrent.TimeUnit;
+
 import butterknife.BindView;
 import mehdi.sakout.fancybuttons.FancyButton;
+import rx.Observable;
 import rx.Observer;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
@@ -187,6 +190,10 @@ public class EditChannelFragment extends ViewFragment {
         final String description = descriptionInput.getText().toString();
 
         _loading = service.createChannel(name, description)
+                .retryWhen(errors -> errors
+                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
+                )
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<AddedChannelAck>() {
@@ -207,10 +214,6 @@ public class EditChannelFragment extends ViewFragment {
                     public void onError(Throwable e) {
                         Log.e("btnChannelCreateClicked", "createChannel", e);
                         MyUtils.onError(e, context);
-                        askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
-                            // Retry
-                            btnChannelCreateClicked();
-                        });
                     }
                 });
         rxSubs.add(_loading);
@@ -224,6 +227,10 @@ public class EditChannelFragment extends ViewFragment {
         final String description = descriptionInput.getText().toString();
 
         _loading = service.editMyChannel(name, description)
+                .retryWhen(errors -> errors
+                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
+                )
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ModifiedAck>() {
@@ -243,10 +250,6 @@ public class EditChannelFragment extends ViewFragment {
                     public void onError(Throwable e) {
                         Log.e("btnChannelSaveClicked", "editMyChannel", e);
                         MyUtils.onError(e, context);
-                        askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
-                            // Retry
-                            btnChannelSaveClicked();
-                        });
                     }
                 });
         rxSubs.add(_loading);
