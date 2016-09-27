@@ -10,6 +10,7 @@ import android.nfc.NfcManager;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.provider.Settings;
+import android.support.annotation.StringRes;
 import android.support.v7.app.AlertDialog;
 import android.text.TextUtils;
 import android.view.Menu;
@@ -162,10 +163,10 @@ public class BeamActivity extends BaseActivity {
         }
     }
 
-    private void askUser(int stringId, final String action) {
+    private void askUser(@StringRes int resId, final String action) {
         // Ask user to turn on NFC and/or Android Beam
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage(getText(stringId));
+        builder.setMessage(getText(resId));
         builder.setPositiveButton(getText(R.string.action_turn_on), (dialog, which) -> {
             handleIntent(new Intent(action));
         });

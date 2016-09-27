@@ -2,6 +2,9 @@ package org.tribler.android;
 
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.annotation.StringRes;
+import android.support.design.widget.Snackbar;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,6 +19,7 @@ import butterknife.Unbinder;
 public abstract class ViewFragment extends BaseFragment {
 
     private Unbinder _unbinder;
+    private Snackbar _snackbar;
 
     /**
      * {@inheritDoc}
@@ -42,7 +46,29 @@ public abstract class ViewFragment extends BaseFragment {
         super.onDestroyView();
         Log.v(this.getClass().getSimpleName(), "onDestroyView");
 
+        if (_snackbar != null && _snackbar.isShownOrQueued()) {
+            _snackbar.dismiss();
+        }
+        _snackbar = null;
+
         _unbinder.unbind();
         _unbinder = null;
+    }
+
+    protected boolean askUser(CharSequence question, @StringRes int resId, final View.OnClickListener listener) {
+        View rootView = getView();
+        if (rootView != null && rootView.isShown()) {
+
+            if (_snackbar != null && _snackbar.isShownOrQueued()) {
+                _snackbar.setText(question);
+            } else {
+                _snackbar = Snackbar.make(rootView, question, Snackbar.LENGTH_INDEFINITE);
+                _snackbar.setAction(getText(resId), listener);
+                _snackbar.setActionTextColor(ContextCompat.getColor(context, R.color.yellow));
+                _snackbar.show();
+            }
+            return true;
+        }
+        return false;
     }
 }

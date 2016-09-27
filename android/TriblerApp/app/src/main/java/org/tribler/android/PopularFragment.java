@@ -54,12 +54,10 @@ public class PopularFragment extends DefaultInteractionListFragment {
                     public void onError(Throwable e) {
                         Log.e("loadPopularChannels", "getChannels", e);
                         MyUtils.onError(e, context);
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException ex) {
-                        }
-                        // Retry
-                        reload();
+                        askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
+                            // Retry
+                            reload();
+                        });
                     }
                 });
         rxSubs.add(loading);

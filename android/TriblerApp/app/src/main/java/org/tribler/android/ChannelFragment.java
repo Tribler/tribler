@@ -22,7 +22,6 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
 
     private String _dispersyCid;
     private Handler _eventHandler;
-    private Snackbar _snackbar;
 
     /**
      * {@inheritDoc}
@@ -52,37 +51,18 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
      * {@inheritDoc}
      */
     @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        _snackbar = null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public boolean handleMessage(Message message) {
         if (message.obj instanceof TorrentDiscoveredEvent) {
             TorrentDiscoveredEvent torrent = (TorrentDiscoveredEvent) message.obj;
+
             // Check if torrent belongs to this channel
             if (_dispersyCid.equalsIgnoreCase(torrent.getDispersyCid())) {
-                View rootView = getView();
-                if (rootView != null) {
-                    // Notify user
-                    String text = String.format(getString(R.string.info_content_discovered), torrent.getName());
-                    if (_snackbar != null && _snackbar.isShownOrQueued()) {
-                        _snackbar.setText(text);
-                    } else {
-                        _snackbar = Snackbar
-                                .make(rootView, text, Snackbar.LENGTH_INDEFINITE)
-                                .setAction(getText(R.string.action_REFRESH), view -> {
-                                    // Update view
-                                    reload();
-                                });
-                        _snackbar.setActionTextColor(ContextCompat.getColor(context, R.color.yellow));
-                        _snackbar.show();
-                    }
-                }
+
+                String question = String.format(getString(R.string.info_content_discovered), torrent.getName());
+                askUser(question, R.string.action_REFRESH, view -> {
+                    // Update view
+                    reload();
+                });
             }
         }
         return true;
@@ -118,12 +98,10 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
                     public void onError(Throwable e) {
                         Log.e("loadTorrents", "getTorrents", e);
                         MyUtils.onError(e, context);
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException ex) {
-                        }
-                        // Retry
-                        reload();
+                        askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
+                            // Retry
+                            reload();
+                        });
                     }
                 });
         rxSubs.add(loading);

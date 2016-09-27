@@ -98,12 +98,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                         } else {
                             Log.e("onSwipedRight", "subscribe", e);
                             MyUtils.onError(e, context);
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException ex) {
-                            }
-                            // Retry
-                            subscribe(dispersyCid, subscribed, name);
+                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
+                                // Retry
+                                subscribe(dispersyCid, subscribed, name);
+                            });
                         }
                     }
                 }));
@@ -142,12 +140,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                         } else {
                             Log.e("onSwipedLeft", "unsubscribe", e);
                             MyUtils.onError(e, context);
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException ex) {
-                            }
-                            // Retry
-                            unsubscribe(dispersyCid, subscribed, name);
+                            askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
+                                // Retry
+                                unsubscribe(dispersyCid, subscribed, name);
+                            });
                         }
                     }
                 }));

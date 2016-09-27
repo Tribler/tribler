@@ -207,12 +207,10 @@ public class EditChannelFragment extends ViewFragment {
                     public void onError(Throwable e) {
                         Log.e("btnChannelCreateClicked", "createChannel", e);
                         MyUtils.onError(e, context);
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException ex) {
-                        }
-                        // Retry
-                        btnChannelCreateClicked();
+                        askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
+                            // Retry
+                            btnChannelCreateClicked();
+                        });
                     }
                 });
         rxSubs.add(_loading);
@@ -245,12 +243,10 @@ public class EditChannelFragment extends ViewFragment {
                     public void onError(Throwable e) {
                         Log.e("btnChannelSaveClicked", "editMyChannel", e);
                         MyUtils.onError(e, context);
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException ex) {
-                        }
-                        // Retry
-                        btnChannelSaveClicked();
+                        askUser(getText(R.string.info_loading_failed), R.string.action_RETRY, view -> {
+                            // Retry
+                            btnChannelSaveClicked();
+                        });
                     }
                 });
         rxSubs.add(_loading);

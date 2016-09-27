@@ -2,6 +2,8 @@ package org.tribler.android.restapi;
 
 import android.os.Handler;
 
+import com.facebook.stetho.okhttp3.StethoInterceptor;
+
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -63,7 +65,7 @@ public class EventStream {
                 .connectionPool(new ConnectionPool(1, 60, TimeUnit.MINUTES))
                 .readTimeout(60, TimeUnit.MINUTES)
                 .writeTimeout(30, TimeUnit.SECONDS)
-                //.addNetworkInterceptor(new StethoInterceptor()) //DEBUG
+                .addNetworkInterceptor(new StethoInterceptor()) //DEBUG
                 .retryOnConnectionFailure(true)
                 .followSslRedirects(false)
                 .followRedirects(false)
