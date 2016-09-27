@@ -147,9 +147,13 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     @Override
     public boolean handleMessage(Message message) {
         if (message.obj instanceof EventsStartEvent) {
+
             // Hide loading indicator
             progressView.setVisibility(View.GONE);
             statusBar.setText("");
+
+            // Stop listening to event stream
+            EventStream.removeHandler(_eventHandler);
         }
         return true;
     }
