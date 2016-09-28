@@ -50,6 +50,7 @@ import retrofit2.adapter.rxjava.HttpException;
 import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.exceptions.Exceptions;
 import rx.schedulers.Schedulers;
 
 public class MyChannelFragment extends DefaultInteractionListFragment {
@@ -160,11 +161,23 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
     private void loadMyChannel() {
         loading = service.getMyChannel()
+                .subscribeOn(Schedulers.io())
+                .doOnError(e -> {
+                    if (e instanceof HttpException && ((HttpException) e).code() == 404) {
+                        // My channel has not been created yet
+                        createChannel();
+
+                        // Hide loading indicator
+                        progressView.setVisibility(View.GONE);
+                        statusBar.setText("");
+                    } else {
+                        throw Exceptions.propagate(e);
+                    }
+                })
                 .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
                 )
-                .subscribeOn(Schedulers.io())
                 .map(MyChannelResponse::getMyChannel)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ChannelOverview>() {
@@ -182,17 +195,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        if (e instanceof HttpException && ((HttpException) e).code() == 404) {
-                            // My channel has not been created yet
-                            createChannel();
-
-                            // Hide loading indicator
-                            progressView.setVisibility(View.GONE);
-                            statusBar.setText("");
-                        } else {
-                            Log.e("loadMyChannel", "getMyChannel", e);
-                            MyUtils.onError(e, context);
-                        }
+                        Log.e("loadMyChannel", "getMyChannel", e);
+                        MyUtils.onError(e, context);
                     }
                 });
         rxSubs.add(loading);
@@ -200,11 +204,11 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
     private void loadMyChannelTorrents() {
         loading = service.getTorrents(_dispersyCid)
+                .subscribeOn(Schedulers.io())
                 .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
                 )
-                .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getTorrents()))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TriblerTorrent>() {
@@ -231,11 +235,23 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         // Workaround endpoint array parsing:
         String[] list = {"[\"" + file.getAbsolutePath() + "\"]"};
         loading = service.createTorrent(list)
+                .subscribeOn(Schedulers.io())
+                .doOnError(e -> {
+                    if (e instanceof HttpException && ((HttpException) e).code() == 500) {
+                        if (delete) {
+                            AssetExtract.recursiveDelete(new File(file.getParent()));
+                        }
+                        Toast.makeText(context, String.format(context.getString(R.string.info_created_failure), "Torrent"), Toast.LENGTH_SHORT).show();
+                        // Update view
+                        reload();
+                    } else {
+                        throw Exceptions.propagate(e);
+                    }
+                })
                 .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
                 )
-                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TorrentCreatedResponse>() {
 
@@ -252,17 +268,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        if (e instanceof HttpException && ((HttpException) e).code() == 500) {
-                            if (delete) {
-                                AssetExtract.recursiveDelete(new File(file.getParent()));
-                            }
-                            Toast.makeText(context, String.format(context.getString(R.string.info_created_failure), "Torrent"), Toast.LENGTH_SHORT).show();
-                            // Update view
-                            reload();
-                        } else {
-                            Log.e("createTorrent", "getAbsolutePath", e);
-                            MyUtils.onError(e, context);
-                        }
+                        Log.e("createTorrent", "getAbsolutePath", e);
+                        MyUtils.onError(e, context);
                     }
                 });
         rxSubs.add(loading);
@@ -275,11 +282,18 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         statusBar.setText(getText(R.string.status_adding_torrent));
 
         loading = service.addTorrent(_dispersyCid, torrent_b64)
+                .subscribeOn(Schedulers.io())
+                .doOnError(e -> {
+                    if (e instanceof HttpException && ((HttpException) e).code() == 500) {
+                        Toast.makeText(context, String.format(context.getString(R.string.info_added_failure), "Torrent"), Toast.LENGTH_SHORT).show();
+                    } else {
+                        throw Exceptions.propagate(e);
+                    }
+                })
                 .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
                 )
-                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<AddedAck>() {
 
@@ -293,12 +307,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        if (e instanceof HttpException && ((HttpException) e).code() == 500) {
-                            Toast.makeText(context, String.format(context.getString(R.string.info_added_failure), "Torrent"), Toast.LENGTH_SHORT).show();
-                        } else {
-                            Log.e("addTorrent", "base64", e);
-                            MyUtils.onError(e, context);
-                        }
+                        Log.e("addTorrent", "base64", e);
+                        MyUtils.onError(e, context);
                     }
                 });
         rxSubs.add(loading);
@@ -311,11 +321,18 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         statusBar.setText(getText(R.string.status_adding_torrent));
 
         loading = service.addTorrent(_dispersyCid, url)
+                .subscribeOn(Schedulers.io())
+                .doOnError(e -> {
+                    if (e instanceof HttpException && ((HttpException) e).code() == 500) {
+                        Toast.makeText(context, String.format(context.getString(R.string.info_added_already), "Torrent"), Toast.LENGTH_SHORT).show();
+                    } else {
+                        throw Exceptions.propagate(e);
+                    }
+                })
                 .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
                 )
-                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<AddedUrlAck>() {
 
@@ -329,12 +346,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        if (e instanceof HttpException && ((HttpException) e).code() == 500) {
-                            Toast.makeText(context, String.format(context.getString(R.string.info_added_already), "Torrent"), Toast.LENGTH_SHORT).show();
-                        } else {
-                            Log.e("addTorrent", "url", e);
-                            MyUtils.onError(e, context);
-                        }
+                        Log.e("addTorrent", "url", e);
+                        MyUtils.onError(e, context);
                     }
                 });
         rxSubs.add(loading);
@@ -342,11 +355,18 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
     private void deleteTorrent(final String infohash, final String name) {
         rxSubs.add(service.deleteTorrent(_dispersyCid, infohash)
+                .subscribeOn(Schedulers.io())
+                .doOnError(e -> {
+                    if (e instanceof HttpException && ((HttpException) e).code() == 404) {
+                        Toast.makeText(context, String.format(context.getString(R.string.info_removed_already), name), Toast.LENGTH_SHORT).show();
+                    } else {
+                        throw Exceptions.propagate(e);
+                    }
+                })
                 .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
                 )
-                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<RemovedAck>() {
 
@@ -358,12 +378,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        if (e instanceof HttpException && ((HttpException) e).code() == 404) {
-                            Toast.makeText(context, String.format(context.getString(R.string.info_removed_already), name), Toast.LENGTH_SHORT).show();
-                        } else {
-                            Log.e("onSwipedLeft", "deleteTorrent", e);
-                            MyUtils.onError(e, context);
-                        }
+                        Log.e("onSwipedLeft", "deleteTorrent", e);
+                        MyUtils.onError(e, context);
                     }
                 }));
     }

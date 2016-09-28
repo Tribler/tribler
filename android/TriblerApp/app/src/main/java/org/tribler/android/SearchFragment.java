@@ -112,11 +112,11 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
 
         // Start search
         loading = service.search(query)
+                .subscribeOn(Schedulers.io())
                 .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
                 )
-                .subscribeOn(Schedulers.io())
                 .subscribe(new Observer<QueriedAck>() {
 
                     public void onNext(QueriedAck response) {

@@ -18,6 +18,7 @@ import retrofit2.adapter.rxjava.HttpException;
 import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.exceptions.Exceptions;
 import rx.schedulers.Schedulers;
 
 public class DefaultInteractionListFragment extends ListFragment implements ListFragment.IListFragmentInteractionListener {
@@ -85,11 +86,18 @@ public class DefaultInteractionListFragment extends ListFragment implements List
         }
 
         rxSubs.add(service.subscribe(dispersyCid)
+                .subscribeOn(Schedulers.io())
+                .doOnError(e -> {
+                    if (e instanceof HttpException && ((HttpException) e).code() == 409) {
+                        Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_already), name), Toast.LENGTH_SHORT).show();
+                    } else {
+                        throw Exceptions.propagate(e);
+                    }
+                })
                 .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
                 )
-                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<SubscribedAck>() {
 
@@ -101,12 +109,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     }
 
                     public void onError(Throwable e) {
-                        if (e instanceof HttpException && ((HttpException) e).code() == 409) {
-                            Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_already), name), Toast.LENGTH_SHORT).show();
-                        } else {
-                            Log.e("onSwipedRight", "subscribe", e);
-                            MyUtils.onError(e, context);
-                        }
+                        Log.e("onSwipedRight", "subscribe", e);
+                        MyUtils.onError(e, context);
                     }
                 }));
     }
@@ -127,11 +131,18 @@ public class DefaultInteractionListFragment extends ListFragment implements List
         }
 
         rxSubs.add(service.unsubscribe(dispersyCid)
+                .subscribeOn(Schedulers.io())
+                .doOnError(e -> {
+                    if (e instanceof HttpException && ((HttpException) e).code() == 404) {
+                        Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_already), name), Toast.LENGTH_SHORT).show();
+                    } else {
+                        throw Exceptions.propagate(e);
+                    }
+                })
                 .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
                 )
-                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<UnsubscribedAck>() {
 
@@ -143,12 +154,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     }
 
                     public void onError(Throwable e) {
-                        if (e instanceof HttpException && ((HttpException) e).code() == 404) {
-                            Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_already), name), Toast.LENGTH_SHORT).show();
-                        } else {
-                            Log.e("onSwipedLeft", "unsubscribe", e);
-                            MyUtils.onError(e, context);
-                        }
+                        Log.e("onSwipedLeft", "unsubscribe", e);
+                        MyUtils.onError(e, context);
                     }
                 }));
     }

@@ -190,11 +190,11 @@ public class EditChannelFragment extends ViewFragment {
         final String description = descriptionInput.getText().toString();
 
         _loading = service.createChannel(name, description)
+                .subscribeOn(Schedulers.io())
                 .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
                 )
-                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<AddedChannelAck>() {
 
@@ -227,15 +227,16 @@ public class EditChannelFragment extends ViewFragment {
         final String description = descriptionInput.getText().toString();
 
         _loading = service.editMyChannel(name, description)
+                .subscribeOn(Schedulers.io())
                 .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
                 )
-                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ModifiedAck>() {
 
                     public void onNext(ModifiedAck response) {
+                        Log.d("editMyChannel", "modified = " + String.valueOf(response.isModified()));
                         if (response.isModified()) {
                             Intent intent = new Intent();
                             intent.putExtra(ChannelActivity.EXTRA_NAME, name);

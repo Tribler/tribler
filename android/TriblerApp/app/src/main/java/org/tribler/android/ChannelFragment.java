@@ -82,11 +82,11 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
 
     private void loadTorrents() {
         loading = service.getTorrents(_dispersyCid)
+                .subscribeOn(Schedulers.io())
                 .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (throwable, count) -> count)
+                        .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
                 )
-                .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getTorrents()))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TriblerTorrent>() {
