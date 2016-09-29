@@ -21,7 +21,7 @@ model {
             // Android Beam supports large payload transfers
             // over Bluetooth since api level 16
             minSdkVersion.apiLevel 16
-            targetSdkVersion.apiLevel 24
+            targetSdkVersion.apiLevel 23
             // Auto increment, see above
             versionCode code
             // Used for python files versioning
