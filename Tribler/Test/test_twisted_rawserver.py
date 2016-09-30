@@ -29,7 +29,7 @@ class TestThreadPoolManager(AbstractServer):
     def tearDown(self):
         self.threadpool.cancel_all_pending_tasks()
         self.clock.advance(len(self.exp))
-        # self.got.sort()
+        self.got.sort()
         self.assertEquals(self.exp, self.got)
 
         super(TestThreadPoolManager, self).tearDown()
