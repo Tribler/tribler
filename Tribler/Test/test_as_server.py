@@ -215,8 +215,8 @@ class TestAsServer(AbstractServer):
 
         self.hisport = self.session.get_listen_port()
 
-        while not self.session.lm.initComplete:
-            time.sleep(1)
+        while not self.session.lm.init_complete:
+            time.sleep(0.1)
 
         self.annotate(self._testMethodName, start=True)
 

@@ -440,7 +440,7 @@ class BoostingManager(TaskManager):
         self.session.set_cm_sources(flag_disabled_sources, CONFIG_KEY_DISABLEDLIST)
         self.session.set_cm_sources(archive_sources, CONFIG_KEY_ARCHIVELIST)
 
-        self.session.save_pstate_sessconfig()
+        self.session.save_session_config()
 
     def log_statistics(self):
         """Log transfer statistics"""
