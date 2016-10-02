@@ -1,14 +1,16 @@
 import json
+import os
 import urllib
 
 from zope.interface import implements
 
-from twisted.internet.defer import succeed
+from twisted.internet.defer import succeed, inlineCallbacks
 from twisted.python.threadable import isInIOThread
 from twisted.web.client import Agent, readBody
 from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
 
+from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.version import version_id
 from Tribler.Test.test_as_server import TestAsServer
@@ -34,8 +36,10 @@ class AbstractBaseApiTest(TestAsServer):
     """
     Tests for the Tribler HTTP API should create a subclass of this class.
     """
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(AbstractBaseApiTest, self).setUp(autoload_discovery=autoload_discovery)
+        yield super(AbstractBaseApiTest, self).setUp(autoload_discovery=autoload_discovery)
         terms = self.session.lm.category.xxx_filter.xxx_terms
         terms.add("badterm")
         self.session.lm.category.xxx_filter.xxx_terms = terms
@@ -45,6 +49,12 @@ class AbstractBaseApiTest(TestAsServer):
         super(AbstractBaseApiTest, self).setUpPreSession()
         self.config.set_http_api_enabled(True)
         self.config.set_megacache(True)
+        self.config.set_tunnel_community_enabled(False)
+
+        # Make sure we select a random port for the HTTP API
+        min_base_port = 1000 if not os.environ.get("TEST_BUCKET", None) \
+            else int(os.environ['TEST_BUCKET']) * 2000 + 2000
+        self.config.set_http_api_port(get_random_port(min_port=min_base_port, max_port=min_base_port + 2000))
 
     def do_request(self, endpoint, request_type, post_data):
         agent = Agent(reactor)
