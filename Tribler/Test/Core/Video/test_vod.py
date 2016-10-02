@@ -7,12 +7,15 @@ from tempfile import mkstemp
 from threading import Event
 
 from M2Crypto import Rand
+from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import dlstatus_strings, UPLOAD, DOWNLOAD, DLMODE_VOD
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestVideoOnDemand(TestAsServer):
@@ -25,11 +28,13 @@ class TestVideoOnDemand(TestAsServer):
     See BitTornado/BT1/Connecter.py
     """
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
+        yield TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
         self.content = None
         self.tdef = None
-        self.event = None
+        self.test_deferred = Deferred()
         self.contentlen = None
         self.piecelen = 0
 
@@ -100,7 +105,7 @@ class TestVideoOnDemand(TestAsServer):
             lastsize = 1
             self.stream_read(stream, lastoff, lastsize, self.piecelen)
 
-            self.event.set()
+            self.test_deferred.callback(None)
 
             return (0, False)
         return (1.0, False)
@@ -112,29 +117,29 @@ class TestVideoOnDemand(TestAsServer):
         self.assertEquals(len(data), size)
         self.assertEquals(data, self.content[off:off + size])
 
+    @deferred(timeout=10)
     def test_99(self):
-        self.event = Event()
         self.contentlen = 99
         self.piecelen = 16
         self.create_torrent()
 
         self._logger.debug("Letting network thread create Download, sleeping")
-        assert self.event.wait(5)
+        return self.test_deferred
 
+    @deferred(timeout=10)
     def test_100(self):
-        self.event = Event()
         self.contentlen = 100
         self.piecelen = 16
         self.create_torrent()
 
         self._logger.debug("Letting network thread create Download, sleeping")
-        assert self.event.wait(5)
+        return self.test_deferred
 
+    @deferred(timeout=10)
     def test_101(self):
-        self.event = Event()
         self.contentlen = 101
         self.piecelen = 16
         self.create_torrent()
 
         self._logger.debug("Letting network thread create Download, sleeping")
-        assert self.event.wait(5)
+        return self.test_deferred
