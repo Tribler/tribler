@@ -6,6 +6,7 @@ from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
@@ -33,6 +34,10 @@ class HiddenTunnelCommunityTests(HiddenTunnelCommunity):
 
 class TestTunnelBase(TestAsServer):
 
+    def __init__(self, *argv, **kwargs):
+        super(TestTunnelBase, self).__init__(*argv, **kwargs)
+        self.selected_socks5_ports = set()
+
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self, autoload_discovery=True):
@@ -55,6 +60,26 @@ class TestTunnelBase(TestAsServer):
         TestAsServer.setUpPreSession(self)
         self.config.set_dispersy(True)
         self.config.set_libtorrent(True)
+        self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
+
+    def get_socks5_ports(self, ):
+        """
+        Return five random, free socks5 ports.
+        This is here to make sure that tests in different buckets get assigned different SOCKS5 listen ports.
+        Also, make sure that we have no duplicates in selected socks5 ports.
+        """
+        min_base_port = 1000 if not os.environ.get("TEST_BUCKET", None) \
+            else int(os.environ['TEST_BUCKET']) * 2000 + 2000
+
+        socks5_ports = []
+        for _ in xrange(0, 5):
+            selected_port = get_random_port(min_port=min_base_port, max_port=min_base_port + 2000)
+            while selected_port in self.selected_socks5_ports:
+                selected_port = get_random_port(min_port=min_base_port, max_port=min_base_port + 2000)
+            self.selected_socks5_ports.add(selected_port)
+            socks5_ports.append(selected_port)
+
+        return socks5_ports
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -133,6 +158,7 @@ class TestTunnelBase(TestAsServer):
         config.set_libtorrent(True)
         config.set_dispersy(True)
         config.set_state_dir(self.getStateDir(index))
+        config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
         session = Session(config, ignore_singleton=True, autoload_discovery=False)
         session.prestart()
@@ -151,6 +177,7 @@ class TestTunnelBase(TestAsServer):
         self.seed_config = self.config.copy()
         self.seed_config.set_state_dir(self.getStateDir(2))
         self.seed_config.set_megacache(True)
+        self.seed_config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
         if self.session2 is None:
             self.session2 = Session(self.seed_config, ignore_singleton=True, autoload_discovery=False)
             self.session2.prestart()
