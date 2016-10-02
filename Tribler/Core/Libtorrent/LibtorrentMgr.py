@@ -12,6 +12,8 @@ from shutil import rmtree
 
 from twisted.internet import reactor, threads
 import libtorrent as lt
+from twisted.internet.defer import succeed
+
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 
@@ -503,12 +505,12 @@ class LibtorrentMgr(TaskManager):
         if uri.startswith("http"):
             return self.start_download_from_url(uri)
         if uri.startswith("magnet:"):
-            return self.start_download_from_magnet(uri)
+            return succeed(self.start_download_from_magnet(uri))
         if uri.startswith("file:"):
             argument = url2pathname(uri[5:])
-            return self.start_download(torrentfilename=argument)
+            return succeed(self.start_download(torrentfilename=argument))
 
-        return None
+        return succeed(None)
 
     @blocking_call_on_reactor_thread
     def start_download_from_url(self, url):
