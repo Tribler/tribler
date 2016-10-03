@@ -21,7 +21,7 @@ from traceback import print_exc
 
 from twisted.internet import interfaces
 from twisted.internet.base import BasePort
-from twisted.internet.defer import maybeDeferred, inlineCallbacks
+from twisted.internet.defer import maybeDeferred, inlineCallbacks, Deferred, succeed
 from twisted.python.threadable import isInIOThread
 from twisted.web.server import Site
 from twisted.web.static import File
@@ -96,6 +96,7 @@ class AbstractServer(BaseTestCase):
         self.annotate_dict = {}
 
         self.file_server = None
+        self.dscfg_seed = None
 
         if annotate:
             self.annotate(self._testMethodName, start=True)
@@ -220,7 +221,7 @@ class TestAsServer(AbstractServer):
         self.setUpPreSession()
 
         self.quitting = False
-        self.seeding_event = threading.Event()
+        self.seeding_deferred = Deferred()
         self.seeder_session = None
 
         self.session = Session(self.config)
@@ -318,27 +319,24 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_tunnel_community_enabled(False)
         self.seed_config.set_state_dir(self.getStateDir(2))
 
-        self.dscfg_seed = DownloadStartupConfig()
-        self.dscfg_seed.set_dest_dir(self.getDestDir(2))
+        def start_seed_download(_):
+            self.dscfg_seed = DownloadStartupConfig()
+            self.dscfg_seed.set_dest_dir(seed_dir)
+            d = self.seeder_session.start_download_from_tdef(tdef, self.dscfg_seed)
+            d.set_state_callback(self.seeder_state_callback)
+
+        self._logger.debug("starting to wait for download to reach seeding state")
 
         self.seeder_session = Session(self.seed_config, ignore_singleton=True)
         self.seeder_session.prestart()
-        self.seeder_session.start()
+        self.seeder_session.start().addCallback(start_seed_download)
 
-        time.sleep(2)
-
-        self.dscfg = DownloadStartupConfig()
-        self.dscfg.set_dest_dir(seed_dir)
-        self.dscfg.set_max_speed(UPLOAD, 3)
-        d = self.seeder_session.start_download_from_tdef(tdef, self.dscfg)
-        d.set_state_callback(self.seeder_state_callback)
-
-        self._logger.debug("starting to wait for download to reach seeding state")
-        assert self.seeding_event.wait(60)
+        return self.seeding_deferred
 
     def stop_seeder(self):
         if self.seeder_session is not None:
             return self.seeder_session.shutdown()
+        return succeed(None)
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
@@ -346,7 +344,8 @@ class TestAsServer(AbstractServer):
                            ds.get_progress())
 
         if ds.get_status() == DLSTATUS_SEEDING:
-            self.seeding_event.set()
+            self.seeding_deferred.callback(None)
+            return 0.0, False
 
         return 1.0, False
 
