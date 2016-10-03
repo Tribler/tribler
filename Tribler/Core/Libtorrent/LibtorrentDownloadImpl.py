@@ -132,6 +132,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.pause_after_next_hashcheck = False
         self.checkpoint_after_next_hashcheck = False
         self.tracker_status = {}  # {url: [num_peers, status_str]}
+        self.download_state_cb = None
 
         self.prebuffsize = 5 * 1024 * 1024
         self.endbuffsize = 0
@@ -942,13 +943,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         result['[PeX]'] = [pex_peers, 'Working' if not self.get_anon_mode() else 'Disabled']
         return result
 
-    def set_state_callback(self, usercallback, getpeerlist=False, delay=0.0):
-        """ Called by any thread """
-        with self.dllock:
-            network_get_state_lambda = lambda: self.network_get_state(usercallback, getpeerlist)
-            self.session.lm.threadpool.add_task(network_get_state_lambda, delay)
+    def set_state_callback(self, cb):
+        self.download_state_cb = cb
 
-    def network_get_state(self, usercallback, getpeerlist):
+    def network_get_state(self, getpeerlist=False):
         """ Called by network thread """
         with self.dllock:
             if self.handle is None:
@@ -966,21 +964,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                                    seeding_stats=seeding_stats, filepieceranges=self.filepieceranges, logmsgs=logmsgs)
                 self.progressbeforestop = ds.get_progress()
 
-            if usercallback:
-                # Invoke the usercallback function via a new thread.
-                # After the callback is invoked, the return values will be passed to the
-                # returncallback for post-callback processing.
-                if not self.done and self.session.lm.threadpool:
-                    # runs on the reactor
-                    def session_getstate_usercallback_target():
-                        when, getpeerlist = usercallback(ds)
-                        if when > 0.0 and self.session.lm.threadpool:
-                            # Schedule next invocation, either on general or DL specific
-                            self.session.lm.threadpool.add_task(lambda: self.network_get_state(usercallback, getpeerlist), when)
-
-                    self.session.lm.threadpool.add_task_in_thread(session_getstate_usercallback_target)
-            else:
-                return ds
+            return ds
 
     def stop(self):
         """ Called by any thread """
@@ -1125,7 +1109,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         if self.get_share_mode():
             pstate.set('state', 'share_mode', True)
 
-        ds = self.network_get_state(None, False)
+        ds = self.network_get_state()
         dlstate = {'status': ds.get_status(), 'progress': ds.get_progress(), 'swarmcache': None}
         pstate.set('state', 'dlstate', dlstate)
 

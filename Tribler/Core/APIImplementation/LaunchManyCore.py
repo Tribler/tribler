@@ -14,6 +14,7 @@ from traceback import print_exc
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred
 from twisted.internet.defer import inlineCallbacks
+from twisted.internet.task import LoopingCall
 
 from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -63,6 +64,8 @@ class TriblerLaunchMany(TaskManager):
         self.session = None
         self.sesslock = None
         self.sessdoneflag = Event()
+        self.download_states_lc = LoopingCall(self.invoke_download_states_cb)
+        self.download_states_cb = None
 
         self.shutdownstarttime = None
 
@@ -328,6 +331,7 @@ class TriblerLaunchMany(TaskManager):
             self.boosting_manager = BoostingManager(self.session)
 
         self.version_check_manager = VersionCheckManager(self.session)
+        self.download_states_lc.start(1)
 
         self.initComplete = True
 
@@ -474,41 +478,27 @@ class TriblerLaunchMany(TaskManager):
     #
     # State retrieval
     #
-    def set_download_states_callback(self, usercallback, getpeerlist, when=0.0):
-        """ Called by any thread """
-        for d in self.downloads.values():
-            # Arno, 2012-05-23: At Niels' request to get total transferred
-            # stats. Causes MOREINFO message to be sent from swift proc
-            # for every initiated dl.
-            # 2012-07-31: Turn MOREINFO on/off on demand for efficiency.
-            # 2013-04-17: Libtorrent now uses set_moreinfo_stats as well.
-            d.set_moreinfo_stats(True in getpeerlist or d.get_def().get_infohash() in getpeerlist)
+    def invoke_download_states_cb(self):
+        """
+        Call the download states callback. Also, for every download, invoke their individual callback if available.
+        """
+        def wrapper():
+            states_list = []
+            for download in self.downloads.values():
+                download_state = download.network_get_state(True)
+                states_list.append(download_state)
 
-        network_set_download_states_callback_lambda = lambda: self.network_set_download_states_callback(usercallback)
-        self.threadpool.add_task(network_set_download_states_callback_lambda, when)
+                # Call the download state callback of this download if it is set.
+                if download.download_state_cb:
+                    download.download_state_cb(download_state)
 
-    def network_set_download_states_callback(self, usercallback):
-        """ Called by network thread """
-        dslist = []
-        for d in self.downloads.values():
-            try:
-                ds = d.network_get_state(None, False)
-                dslist.append(ds)
-            except:
-                # Niels, 2012-10-18: If Swift connection is crashing, it will raise an exception
-                # We're catching it here to continue building the downloadstates
-                print_exc()
+            if self.download_states_cb:
+                self.download_states_cb(states_list)
 
-        # Invoke the usercallback function on a separate thread.
-        # After the callback is invoked, the return values will be passed to the
-        # returncallback for post-callback processing.
-        def session_getstate_usercallback_target():
-            when, newgetpeerlist = usercallback(dslist)
-            if when > 0.0:
-                # reschedule
-                self.set_download_states_callback(usercallback, newgetpeerlist, when=when)
+        reactor.callInThread(wrapper)
 
-        self.threadpool.add_task(session_getstate_usercallback_target)
+    def set_download_states_callback(self, cb):
+        self.download_states_cb = cb
 
     #
     # Persistence methods
@@ -680,6 +670,7 @@ class TriblerLaunchMany(TaskManager):
         """
         self._logger.info("tlm: early_shutdown")
 
+        self.download_states_lc.stop()
         self.cancel_all_pending_tasks()
 
         # Note: sesslock not held

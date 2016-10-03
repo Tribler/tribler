@@ -27,8 +27,6 @@ class TestTunnelCommunity(TestTunnelBase):
             download = ds.get_download()
             if download.get_progress() == 1.0 and ds.get_status() == DLSTATUS_SEEDING:
                 self.test_deferred.callback(None)
-                return 0.0, False
-            return 2.0, False
 
         download = self.start_anon_download()
         download.set_state_callback(download_state_callback)

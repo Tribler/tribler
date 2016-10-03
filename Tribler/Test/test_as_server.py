@@ -326,8 +326,6 @@ class TestAsServer(AbstractServer):
         if ds.get_status() == DLSTATUS_SEEDING:
             self.seeding_event.set()
 
-        return 1.0, False
-
     def _shutdown_session(self, session):
         session_shutdown_start = time.time()
         waittime = 60

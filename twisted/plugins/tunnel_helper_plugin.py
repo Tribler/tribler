@@ -236,15 +236,13 @@ class Tunnel(object):
 
         blockingCallFromThread(reactor, start_community)
 
-        self.session.set_download_states_callback(self.download_states_callback, False)
+        self.session.set_download_states_callback(self.download_states_callback)
 
     def download_states_callback(self, dslist):
         try:
             self.community.monitor_downloads(dslist)
         except:
             logger.error("Monitoring downloads failed")
-
-        return (4.0, [])
 
     def stop(self):
         if self.clean_messages_lc:
@@ -370,10 +368,9 @@ class LineHandler(LineReceiver):
                                  dlstatus_strings[ds.get_status()],
                                  sum(ds.get_num_seeds_peers()),
                                  sum(1 for _ in anon_tunnel.community.dispersy_yield_verified_candidates())))
-                    return 1.0, False
 
                 download = anon_tunnel.session.start_download_from_tdef(tdef, dscfg)
-                download.set_state_callback(cb, delay=1)
+                download.set_state_callback(cb)
 
             anon_tunnel.session.lm.threadpool.call(0, start_download)
 

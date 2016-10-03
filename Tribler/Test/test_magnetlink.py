@@ -297,7 +297,6 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         d = ds.get_download()
         self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()),
                            dlstatus_strings[ds.get_status()], ds.get_progress())
-        return 1.0, False
 
     def test_good_request(self):
         conn = BTConnection("localhost", self.session.get_listen_port(), user_infohash=self.tdef.get_infohash())

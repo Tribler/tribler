@@ -180,8 +180,6 @@ def _upgradeVersion(self, my_version, latest_version, info):
                 if state.get_status() == DLSTATUS_SEEDING:
                     self.shutdown_and_upgrade_notes = notes
                     wx.CallAfter(wxthread_upgrade)
-                    return (0.0, False)
-                return (1.0, False)
 
             download.set_state_callback(state_callback)
 

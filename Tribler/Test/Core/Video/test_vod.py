@@ -73,8 +73,6 @@ class TestVideoOnDemand(TestAsServer):
                            ds.get_current_speed(UPLOAD),
                            ds.get_current_speed(DOWNLOAD))
 
-        return (1.0, [])
-
     def state_callback(self, ds):
         download = ds.get_download()
         if ds.get_vod_prebuffering_progress() == 1.0:
@@ -101,9 +99,6 @@ class TestVideoOnDemand(TestAsServer):
             self.stream_read(stream, lastoff, lastsize, self.piecelen)
 
             self.event.set()
-
-            return (0, False)
-        return (1.0, False)
 
     def stream_read(self, stream, off, size, blocksize):
         stream.seek(off)
