@@ -217,8 +217,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
             if download.vod_seekpos is None or download != self.video_server.get_vod_download()\
                     or ds.get_vod_prebuffering_progress() == 1.0:
                 self.event.set()
-                return 0, False
-            return 1.0, False
+
         download.set_state_callback(wait_for_buffer)
         self.event.wait()
         self.event.clear()

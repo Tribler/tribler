@@ -669,15 +669,15 @@ class LibraryManager(object):
                 def wait_until_collected(ds):
                     # Try to kill callbacks from previous calls
                     if [infohash, selectedinfilename] != self.last_vod_torrent:
-                        return (0, False)
+                        return
                     # Wait until we know for sure that the download has metadata
                     elif ds.get_status() in wait_state:
                         if ds.get_status() == DLSTATUS_METADATA and sys.platform != 'darwin':
                             self.guiUtility.frame.actlist.expandedPanel_videoplayer.SetMessage(fetch_msg, True)
-                        return (1.0, False)
+                        return
                     # Play the download
                     self._playDownload(infohash, selectedinfilename)
-                    return (0, False)
+                    return
                 download.set_state_callback(wait_until_collected)
             else:
                 self._playDownload(infohash, selectedinfilename)

@@ -324,21 +324,11 @@ class Session(SessionConfigInterface):
 
         self.lm.remove_id(infohash)
 
-    def set_download_states_callback(self, usercallback, getpeerlist=None):
+    def set_download_states_callback(self, usercallback):
         """
-        See Download.set_state_callback. Calls usercallback with a list of
-        DownloadStates, one for each Download in the Session as first argument.
-        The usercallback must return a tuple (when,getpeerlist) that indicates
-        when to reinvoke the callback again (as a number of seconds from now,
-        or < 0.0 if not at all) and whether to also include the details of
-        the connected peers in the DownloadStates on that next call.
-
-        The callback will be called by a popup thread which can be used
-        indefinitely (within reason) by the higher level code.
-
-        @param usercallback A function adhering to the above spec.
+        Set the callback for download states. This is called every second.
         """
-        self.lm.set_download_states_callback(usercallback, getpeerlist or [])
+        self.lm.set_download_states_callback(usercallback)
 
     #
     # Config parameters that only exist at runtime

@@ -70,5 +70,3 @@ class TestDownload(TestAsServer):
 
         if ds.get_status() == DLSTATUS_DOWNLOADING:
             self.downloading_event.set()
-
-        return 1.0, False

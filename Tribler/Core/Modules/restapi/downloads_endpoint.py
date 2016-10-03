@@ -94,7 +94,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
             # Create files information of the download
             files_completion = dict((name, progress) for name, progress
-                                    in download.network_get_state(None, False).get_files_completion())
+                                    in download.network_get_state().get_files_completion())
             selected_files = download.get_selected_files()
             files_array = []
             for file, size in download.get_def().get_files_as_unicode_with_length():

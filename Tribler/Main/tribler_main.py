@@ -449,7 +449,7 @@ class ABCApp(object):
 
     def sesscb_states_callback(self, dslist):
         if not self.ready:
-            return 5.0, []
+            return
 
         # update tray icon
         total_download, total_upload = get_download_upload_speed(dslist)
@@ -555,8 +555,6 @@ class ABCApp(object):
 
         except:
             print_exc()
-
-        return 1.0, wantpeers
 
     def guiservthread_free_space_check(self):
         if not (self and self.frame and self.frame.SRstatusbar):

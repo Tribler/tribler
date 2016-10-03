@@ -89,8 +89,6 @@ class TestSeeding(TestAsServer):
         if ds.get_status() == DLSTATUS_SEEDING:
             self.seeding_event.set()
 
-        return 1.0, False
-
     def test_normal_torrent(self):
         self.setup_seeder()
         self.subtest_is_seeding()
