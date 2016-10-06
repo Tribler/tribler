@@ -1,8 +1,8 @@
 import json
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.protocol import Protocol
-from twisted.web.client import Agent
+from twisted.web.client import Agent, HTTPConnectionPool
 from twisted.web.http_headers import Headers
 from Tribler.Core.Modules.restapi import events_endpoint as events_endpoint_file
 from Tribler.Core.Utilities.twisted_thread import deferred
@@ -11,6 +11,7 @@ from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SI
     NTFY_CHANNEL, NTFY_DISCOVERED, NTFY_TORRENT
 from Tribler.Core.version import version_id
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class EventDataProtocol(Protocol):
@@ -27,27 +28,41 @@ class EventDataProtocol(Protocol):
         self.json_buffer.append(json.loads(data))
         self.messages_to_wait_for -= 1
         if self.messages_to_wait_for == 0:
-            self.finished.callback(self.json_buffer[1:])
-            self.response.connectionLost(self)
+            self.response.loseConnection()
+
+    def connectionLost(self, reason="done"):
+        self.finished.callback(self.json_buffer[1:])
 
 
 class TestEventsEndpoint(AbstractApiTest):
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestEventsEndpoint, self).setUp(autoload_discovery=autoload_discovery)
+        events_endpoint_file.MAX_EVENTS_BUFFER_SIZE = 100
+        yield super(TestEventsEndpoint, self).setUp(autoload_discovery=autoload_discovery)
         self.events_deferred = Deferred()
+        self.connection_pool = HTTPConnectionPool(reactor, False)
         self.socket_open_deferred = self.tribler_started_deferred.addCallback(self.open_events_socket)
         self.messages_to_wait_for = 0
-        events_endpoint_file.MAX_EVENTS_BUFFER_SIZE = 100
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self, annotate=True):
+        yield super(TestEventsEndpoint, self).tearDown(annotate=annotate)
+        yield self.close_connections()
 
     def on_event_socket_opened(self, response):
         response.deliverBody(EventDataProtocol(self.messages_to_wait_for, self.events_deferred, response))
 
     def open_events_socket(self, _):
-        agent = Agent(reactor)
+        agent = Agent(reactor, pool=self.connection_pool)
         return agent.request('GET', 'http://localhost:%s/events' % self.session.get_http_api_port(),
                              Headers({'User-Agent': ['Tribler ' + version_id]}), None)\
             .addCallback(self.on_event_socket_opened)
+
+    def close_connections(self):
+        return self.connection_pool.closeCachedConnections()
 
     @deferred(timeout=10)
     def test_events_buffer(self):
@@ -88,6 +103,7 @@ class TestEventsEndpoint(AbstractApiTest):
 
         return self.events_deferred.addCallback(verify_search_results)
 
+    @deferred(timeout=20)
     def test_events(self):
         """
         Testing whether various events are coming through the events endpoints
@@ -111,18 +127,28 @@ class TestEventsEndpoint(AbstractApiTest):
 
         return self.events_deferred
 
+    @deferred(timeout=20)
     def test_family_filter_search(self):
         """
         Testing the family filter when searching for torrents and channels
         """
-        events_endpoint = self.session.lm.api_manager.root_endpoint.events_endpoint
+        self.messages_to_wait_for = 4
 
-        channels = [['a', ] * 10, ['a', ] * 10]
-        channels[0][2] = 'badterm'
-        events_endpoint.on_search_results_channels(None, None, None, {"keywords": ["test"], "result_list": channels})
-        self.assertEqual(len(events_endpoint.channel_cids_sent), 1)
+        def send_searches(_):
+            events_endpoint = self.session.lm.api_manager.root_endpoint.events_endpoint
 
-        torrents = [['a', ] * 10, ['a', ] * 10]
-        torrents[0][4] = 'xxx'
-        events_endpoint.on_search_results_torrents(None, None, None, {"keywords": ["test"], "result_list": torrents})
-        self.assertEqual(len(events_endpoint.infohashes_sent), 1)
+            channels = [['a', ] * 10, ['a', ] * 10]
+            channels[0][2] = 'badterm'
+            events_endpoint.on_search_results_channels(None, None, None, {"keywords": ["test"],
+                                                                          "result_list": channels})
+            self.assertEqual(len(events_endpoint.channel_cids_sent), 1)
+
+            torrents = [['a', ] * 10, ['a', ] * 10]
+            torrents[0][4] = 'xxx'
+            events_endpoint.on_search_results_torrents(None, None, None, {"keywords": ["test"],
+                                                                          "result_list": torrents})
+            self.assertEqual(len(events_endpoint.infohashes_sent), 1)
+
+        self.socket_open_deferred.addCallback(send_searches)
+
+        return self.events_deferred

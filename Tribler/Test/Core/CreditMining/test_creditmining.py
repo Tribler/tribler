@@ -8,7 +8,8 @@ Written by Mihai Capotă and Ardhi Putra Pratama H
 import binascii
 import random
 import re
-from unittest import skip
+
+from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Policies.BoostingManager as bm
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
@@ -21,9 +22,9 @@ from Tribler.Policies.BoostingSource import ent2chr
 from Tribler.Policies.credit_mining_util import levenshtein_dist, source_to_string
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockMeta, MockLtPeer, MockLtSession, MockLtTorrent
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerPolicies(TestAsServer):
     """
     The class to test core function of credit mining policies
@@ -32,8 +33,10 @@ class TestBoostingManagerPolicies(TestAsServer):
     def __init__(self, *argv, **kwargs):
         super(TestBoostingManagerPolicies, self).__init__(*argv, **kwargs)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerPolicies, self).setUp()
+        yield super(TestBoostingManagerPolicies, self).setUp()
         self.session.get_download = lambda x: x % 2
         self.torrents = dict()
         for i in xrange(1, 11):
@@ -99,7 +102,6 @@ class TestBoostingManagerPolicies(TestAsServer):
         self.assertEqual(ids_stop, [5, 3, 1])
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerUtilities(TestAsServer):
     """
     Test several utilities used in credit mining
@@ -122,8 +124,10 @@ class TestBoostingManagerUtilities(TestAsServer):
         self.peer[5] = MockLtPeer(6, "ip6")
         self.peer[5].setvalue(False, False, False)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerUtilities, self).setUp()
+        yield super(TestBoostingManagerUtilities, self).setUp()
 
         self.session.get_libtorrent = lambda: True
 
@@ -348,13 +352,16 @@ class TestBoostingManagerUtilities(TestAsServer):
         boost_man.cancel_all_pending_tasks()
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerError(TestAsServer):
     """
     Class to test a bunch of credit mining error handle
+
     """
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerError, self).setUp()
+        yield super(TestBoostingManagerError, self).setUp()
 
         self.session.open_dbhandler = lambda _: True
         self.session.get_libtorrent = lambda: True

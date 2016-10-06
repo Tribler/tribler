@@ -12,8 +12,8 @@ class TestRestApiUtil(TriblerCoreTest):
     """
 
     def tearDown(self, annotate=True):
-        TriblerCoreTest.tearDown(self, annotate=annotate)
         Session.del_instance()  # We are opening a session when assigning a relevance score to a remote torrent
+        TriblerCoreTest.tearDown(self, annotate=annotate)
 
     def test_convert_torrent_to_json_dict(self):
         """

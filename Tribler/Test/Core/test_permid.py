@@ -4,16 +4,20 @@ from tempfile import mkdtemp
 import shutil
 
 from M2Crypto.EC import EC
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core import permid
 from Tribler.dispersy.crypto import LibNaCLSK
 from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TriblerCoreTestPermid(TriblerCoreTest):
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TriblerCoreTestPermid, self).setUp()
+        yield super(TriblerCoreTestPermid, self).setUp()
         # All the files are in self.session_base_dir, so they will automatically be cleaned on tearDown()
         self.pub_key_path = os.path.join(self.session_base_dir, 'pub_key.pem')
         self.key_pair_path = os.path.join(self.session_base_dir, 'pair.pem')
@@ -46,4 +50,3 @@ class TriblerCoreTestPermid(TriblerCoreTest):
         loaded_key = permid.read_keypair_multichain(self.key_pair_path_multichain)
         self.assertIsInstance(loaded_key, LibNaCLSK)
         self.assertEquals(key.key_to_bin(), loaded_key.key_to_bin())
-

@@ -1,24 +1,28 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
+from tempfile import mkdtemp
 import logging
 import os
 import shutil
-from tempfile import mkdtemp
-from nose.tools import raises
-from Tribler.Test.common import TORRENT_FILE
+
 from libtorrent import bdecode
+from nose.tools import raises
+
 from twisted.internet import reactor
 from twisted.web.server import Site
 from twisted.web.static import File
+from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.Utilities.utilities import isValidTorrentFile
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, HttpError
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
+from Tribler.Test.common import TORRENT_FILE
 from Tribler.Test.test_as_server import BaseTestCase, TESTS_DATA_DIR
-from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 TRACKER = 'http://www.tribler.org/announce'
@@ -34,13 +38,22 @@ class TestTorrentDef(BaseTestCase):
     def __init__(self, *argv, **kwargs):
         super(TestTorrentDef, self).__init__(*argv, **kwargs)
         self._logger = logging.getLogger(self.__class__.__name__)
+        self.file_server = None
 
+    @blocking_call_on_reactor_thread
     def setUpFileServer(self, port, path):
         # Create a local file server, can be used to serve local files. This is preferred over an external network
         # request in order to get files.
         resource = File(path)
         factory = Site(resource)
         self.file_server = reactor.listenTCP(port, factory)
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self):
+        super(TestTorrentDef, self).tearDown()
+        if self.file_server:
+            yield self.file_server.stopListening()
 
     def test_add_content_file_and_copy(self):
         """ Add a single file to a TorrentDef """

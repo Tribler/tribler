@@ -1,6 +1,6 @@
 import os
 
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION, LOWEST_SUPPORTED_DB_VERSION
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
@@ -12,8 +12,10 @@ from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_react
 
 class TestUpgrader(AbstractUpgrader):
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestUpgrader, self).setUp()
+        yield super(TestUpgrader, self).setUp()
         self.copy_and_initialize_upgrade_database('tribler_v17.sdb')
         self.upgrader = TriblerUpgrader(self.session, self.sqlitedb)
 
@@ -63,8 +65,10 @@ class TestUpgrader(AbstractUpgrader):
 
 class TestUpgraderDisabled(AbstractUpgrader):
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestUpgraderDisabled, self).setUp()
+        yield super(TestUpgraderDisabled, self).setUp()
         self.copy_and_initialize_upgrade_database('tribler_v17.sdb')
         self.upgrader = TriblerUpgrader(self.session, self.sqlitedb)
 

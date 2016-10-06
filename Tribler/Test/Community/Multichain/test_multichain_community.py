@@ -4,6 +4,7 @@ This file contains the tests for the community.py for MultiChain community.
 from unittest.case import skip
 
 from nose.tools import raises
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Session import Session
 from Tribler.community.multichain.community import (MultiChainCommunity, MultiChainCommunityCrawler, CRAWL_REQUEST,
@@ -18,6 +19,7 @@ from Tribler.dispersy.tests.debugcommunity.node import DebugNode
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.requestcache import IntroductionRequestCache
 
+
 class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
     """
     Class that tests the MultiChainCommunity on an integration level.
@@ -27,10 +29,12 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         def add_observer(self, func, subject, changeTypes=[], objectID=None, cache=0):
             pass
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
         Session.__single = self.MockSession()
         AbstractServer.setUp(self)
-        DispersyTestFunc.setUp(self)
+        yield DispersyTestFunc.setUp(self)
 
     def tearDown(self):
         Session.del_instance()

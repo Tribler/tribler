@@ -247,7 +247,7 @@ class TorrentChecker(TaskManager):
                 self._session.lm.tracker_manager.update_tracker_info(tracker_session.tracker_url, False)
 
         # Make the connection to the trackers and handle the response
-        deferred = tracker_session.connect_to_tracker()
+        deferred = self.register_task("tracker_session_%s" % tracker_session, tracker_session.connect_to_tracker())
         deferred.addCallbacks(self._on_result_from_session, on_error)
 
     def check_timed_out_udp_session(self, udp_sessions):

@@ -3,65 +3,36 @@
 
 import logging
 import os
-import socket
-import sys
-import threading
-import time
+from twisted.internet.defer import inlineCallbacks, Deferred
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
-from Tribler.Test.btconn import BTConnection
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
-
-CHOKE = chr(0)
-EXTEND = chr(20)
 
 class TestSeeding(TestAsServer):
-
     """
-    Testing seeding via new tribler API:
+    Test whether the seeding works correctly.
     """
 
-    def __init__(self, *argv, **kwargs):
-        super(TestSeeding, self).__init__(*argv, **kwargs)
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def setUp(self, autoload_discovery=True):
+        yield super(TestSeeding, self).setUp(autoload_discovery=autoload_discovery)
         self._logger = logging.getLogger(self.__class__.__name__)
-
-    def setUp(self):
-        """ override TestAsServer """
-        super(TestSeeding, self).setUp()
-
-        self.session2 = None
-        self.seeding_event = threading.Event()
-        self.downloading_event = threading.Event()
+        self.test_deferred = Deferred()
+        self.tdef = None
+        self.sourcefn = None
 
     def setUpPreSession(self):
-        """ override TestAsServer """
         super(TestSeeding, self).setUpPreSession()
-
         self.config.set_libtorrent(True)
 
-        self.config2 = self.config.copy()  # not really necess
-        self.config2.set_state_dir(self.getStateDir(2))
-
-        self.dscfg2 = DownloadStartupConfig()
-        self.dscfg2.set_dest_dir(self.getDestDir(2))
-
-    def setUpPostSession(self):
-        pass
-
-    def tearDown(self):
-        if self.session2:
-            self._shutdown_session(self.session2)
-            time.sleep(10)
-
-        super(TestSeeding, self).tearDown()
-
-    def setup_seeder(self, filename='video.avi'):
+    def generate_torrent(self):
         self.tdef = TorrentDef()
-        self.sourcefn = os.path.join(TESTS_DATA_DIR, filename)
+        self.sourcefn = os.path.join(TESTS_DATA_DIR, 'video.avi')
         self.tdef.add_content(self.sourcefn)
         self.tdef.set_tracker("http://localhost/announce")
         self.tdef.finalize()
@@ -69,69 +40,26 @@ class TestSeeding(TestAsServer):
         self.torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
         self.tdef.save(self.torrentfn)
 
-        self._logger.debug("name is %s", self.tdef.metainfo['info']['name'])
+    def start_download(self, dscfg):
+        download = self.session.start_download_from_tdef(self.tdef, dscfg)
+        download.set_state_callback(self.downloader_state_callback)
 
-        self.dscfg = DownloadStartupConfig()
-        self.dscfg.set_dest_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
-        d = self.session.start_download_from_tdef(self.tdef, self.dscfg)
-        d.set_state_callback(self.seeder_state_callback)
+        download.add_peer(("127.0.0.1", self.seeder_session.get_listen_port()))
 
-        self._logger.debug("starting to wait for download to reach seeding state")
-        assert self.seeding_event.wait(60)
+    @deferred(timeout=60)
+    def test_seeding(self):
+        """
+        Test whether a torrent is correctly seeded
+        """
+        self.generate_torrent()
 
-    def seeder_state_callback(self, ds):
-        d = ds.get_download()
-        self._logger.debug("seeder status: %s %s %s",
-                           repr(d.get_def().get_name()),
-                           dlstatus_strings[ds.get_status()],
-                           ds.get_progress())
+        def start_download(_):
+            dscfg = self.dscfg_seed.copy()
+            dscfg.set_dest_dir(self.getDestDir())
+            self.start_download(dscfg)
 
-        if ds.get_status() == DLSTATUS_SEEDING:
-            self.seeding_event.set()
-
-        return 1.0, False
-
-    def test_normal_torrent(self):
-        self.setup_seeder()
-        self.subtest_is_seeding()
-        self.subtest_download()
-
-    def subtest_is_seeding(self):
-        infohash = self.tdef.get_infohash()
-        s = BTConnection('localhost', self.session.get_listen_port(), user_infohash=infohash)
-        s.read_handshake_medium_rare()
-
-        s.send(CHOKE)
-        try:
-            s.s.settimeout(10.0)
-            resp = s.recv()
-            self.assert_(len(resp) > 0)
-            self.assert_(resp[0] == EXTEND)
-        except socket.timeout:
-            self._logger.error("Timeout, peer didn't reply")
-            self.assert_(False)
-        s.close()
-
-    def subtest_download(self):
-        """ Now download the file via another Session """
-        self.session2 = Session(self.config2, ignore_singleton=True)
-        upgrader = self.session2.prestart()
-        while not upgrader.is_done:
-            time.sleep(0.1)
-        self.session2.start()
-        time.sleep(1)
-
-        time.sleep(5)
-
-        tdef2 = TorrentDef.load(self.torrentfn)
-
-        d = self.session2.start_download_from_tdef(tdef2, self.dscfg2)
-        d.set_state_callback(self.downloader_state_callback)
-
-        time.sleep(5)
-
-        d.add_peer(("127.0.0.1", self.session.get_listen_port()))
-        assert self.downloading_event.wait(60)
+        self.setup_seeder(self.tdef, TESTS_DATA_DIR).addCallback(start_download)
+        return self.test_deferred
 
     def downloader_state_callback(self, ds):
         d = ds.get_download()
@@ -142,7 +70,7 @@ class TestSeeding(TestAsServer):
 
         if ds.get_status() == DLSTATUS_SEEDING:
             # File is in
-            destfn = os.path.join(self.getDestDir(2), "video.avi")
+            destfn = os.path.join(self.getDestDir(), "video.avi")
             f = open(destfn, "rb")
             realdata = f.read()
             f.close()
@@ -150,7 +78,7 @@ class TestSeeding(TestAsServer):
             expdata = f.read()
             f.close()
 
-            self.assert_(realdata == expdata)
-            self.downloading_event.set()
-            return 1.0, True
+            self.assertEqual(realdata, expdata)
+            self.test_deferred.callback(None)
+            return 0.0, False
         return 1.0, False

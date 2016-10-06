@@ -102,7 +102,7 @@ class TriblerUpgrader(object):
         return (self.failed, should_upgrade)
 
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def upgrade_database_to_current_version(self):
         """ Checks the database version and upgrade if it is not the latest version.

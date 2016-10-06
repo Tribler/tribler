@@ -1,10 +1,12 @@
 import os
 
 import shutil
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Test.test_as_server import AbstractServer
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class FakeTriblerSession:
@@ -31,21 +33,27 @@ class FakeTriblerSession:
     def get_state_dir(self):
         return self.state_dir
 
+    def set_listen_port_runtime(self, _):
+        pass
 
 class TestLibtorrentMgr(AbstractServer):
 
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     LIBTORRENT_FILES_DIR = os.path.abspath(os.path.join(FILE_DIR, u"../data/libtorrent/"))
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, annotate=True):
-        super(TestLibtorrentMgr, self).setUp(annotate)
+        yield super(TestLibtorrentMgr, self).setUp(annotate)
         self.tribler_session = FakeTriblerSession(self.session_base_dir)
         self.ltmgr = LibtorrentMgr(self.tribler_session)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self, annotate=True):
         self.ltmgr.shutdown()
         self.assertTrue(os.path.exists(os.path.join(self.session_base_dir, 'lt.state')))
-        super(TestLibtorrentMgr, self).tearDown(annotate)
+        yield super(TestLibtorrentMgr, self).tearDown(annotate)
 
     def test_get_session_zero_hops(self):
         self.ltmgr.initialize()

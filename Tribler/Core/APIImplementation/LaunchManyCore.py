@@ -12,8 +12,9 @@ from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import Deferred, inlineCallbacks
+from twisted.internet.task import deferLater
+from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -99,6 +100,7 @@ class TriblerLaunchMany(TaskManager):
         self.boosting_manager = None
 
     def register(self, session, sesslock):
+        assert isInIOThread()
         if not self.registered:
             self.registered = True
 
@@ -485,19 +487,16 @@ class TriblerLaunchMany(TaskManager):
             d.set_moreinfo_stats(True in getpeerlist or d.get_def().get_infohash() in getpeerlist)
 
         network_set_download_states_callback_lambda = lambda: self.network_set_download_states_callback(usercallback)
-        self.threadpool.add_task(network_set_download_states_callback_lambda, when)
+
+        self.register_task("download_states_callback",
+                           reactor.callLater(when, network_set_download_states_callback_lambda))
 
     def network_set_download_states_callback(self, usercallback):
         """ Called by network thread """
         dslist = []
         for d in self.downloads.values():
-            try:
-                ds = d.network_get_state(None, False)
-                dslist.append(ds)
-            except:
-                # Niels, 2012-10-18: If Swift connection is crashing, it will raise an exception
-                # We're catching it here to continue building the downloadstates
-                print_exc()
+            ds = d.network_get_state(None, False)
+            dslist.append(ds)
 
         # Invoke the usercallback function on a separate thread.
         # After the callback is invoked, the return values will be passed to the
@@ -508,7 +507,7 @@ class TriblerLaunchMany(TaskManager):
                 # reschedule
                 self.set_download_states_callback(usercallback, newgetpeerlist, when=when)
 
-        self.threadpool.add_task(session_getstate_usercallback_target)
+        self.register_task("session_getstate_cb_target", reactor.callLater(0, session_getstate_usercallback_target))
 
     #
     # Persistence methods
@@ -611,9 +610,7 @@ class TriblerLaunchMany(TaskManager):
         dllist = self.downloads.values()
         self._logger.debug("tlm: checkpointing %s stopping %s", len(dllist), stop)
 
-        network_checkpoint_callback_lambda = lambda: self.network_checkpoint_callback(dllist, stop, checkpoint,
-                                                                                      gracetime)
-        self.threadpool.add_task(network_checkpoint_callback_lambda, 0.0)
+        return deferLater(reactor, 0, self.network_checkpoint_callback, dllist, stop, checkpoint, gracetime)
 
     def network_checkpoint_callback(self, dllist, stop, checkpoint, gracetime):
         """ Called by network thread """
@@ -637,6 +634,7 @@ class TriblerLaunchMany(TaskManager):
                     self._logger.exception("Exception while checkpointing: %s", d.get_def().get_name())
 
         if stop:
+            delay = 0
             # Some grace time for early shutdown tasks
             if self.shutdownstarttime is not None:
                 now = timemod.time()
@@ -644,11 +642,7 @@ class TriblerLaunchMany(TaskManager):
                 if diff < gracetime:
                     self._logger.info("tlm: shutdown: delaying for early shutdown tasks %s", gracetime - diff)
                     delay = gracetime - diff
-                    network_shutdown_callback_lambda = lambda: self.network_shutdown()
-                    self.threadpool.add_task(network_shutdown_callback_lambda, delay)
-                    return
-
-            self.network_shutdown()
+            return deferLater(reactor, delay, self.network_shutdown)
 
     def remove_pstate(self, infohash):
         def do_remove():
@@ -731,48 +725,48 @@ class TriblerLaunchMany(TaskManager):
             else:
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
 
-        if self.metadata_store:
+        if self.metadata_store is not None:
             yield self.metadata_store.close()
         self.metadata_store = None
 
-        if self.tftp_handler:
+        if self.tftp_handler is not None:
             yield self.tftp_handler.shutdown()
         self.tftp_handler = None
 
-        if self.channelcast_db:
+        if self.channelcast_db is not None:
             yield self.channelcast_db.close()
         self.channelcast_db = None
 
-        if self.votecast_db:
+        if self.votecast_db is not None:
             yield self.votecast_db.close()
         self.votecast_db = None
 
-        if self.mypref_db:
+        if self.mypref_db is not None:
             yield self.mypref_db.close()
         self.mypref_db = None
 
-        if self.torrent_db:
+        if self.torrent_db is not None:
             yield self.torrent_db.close()
         self.torrent_db = None
 
-        if self.peer_db:
+        if self.peer_db is not None:
             yield self.peer_db.close()
         self.peer_db = None
 
-        if self.mainline_dht:
+        if self.mainline_dht is not None:
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             yield mainlineDHT.deinit(self.mainline_dht)
         self.mainline_dht = None
 
-        if self.torrent_store:
+        if self.torrent_store is not None:
             yield self.torrent_store.close()
         self.torrent_store = None
 
-        if self.api_manager:
+        if self.api_manager is not None:
             yield self.api_manager.stop()
         self.api_manager = None
 
-        if self.watch_folder:
+        if self.watch_folder is not None:
             yield self.watch_folder.stop()
         self.watch_folder = None
 
@@ -791,11 +785,11 @@ class TriblerLaunchMany(TaskManager):
         self.sessdoneflag.set()
 
         # Shutdown libtorrent session after checkpoints have been made
-        if self.ltmgr:
+        if self.ltmgr is not None:
             self.ltmgr.shutdown()
             self.ltmgr = None
 
-        if self.threadpool:
+        if self.threadpool is not None:
             self.threadpool.cancel_all_pending_tasks()
             self.threadpool = None
 

@@ -32,7 +32,12 @@ def create_torrent_file(file_path_list, params):
     else:
         piece_size = 0
 
-    flags = libtorrent.create_torrent_flags_t.optimize | libtorrent.create_torrent_flags_t.calculate_file_hashes
+    flags = libtorrent.create_torrent_flags_t.optimize
+
+    # This flag doesn't exist anymore in libtorrent V1.1.0
+    if hasattr(libtorrent.create_torrent_flags_t, 'calculate_file_hashes'):
+        flags |= libtorrent.create_torrent_flags_t.calculate_file_hashes
+
     torrent = libtorrent.create_torrent(fs, piece_size=piece_size, flags=flags)
     if params.get('comment'):
         torrent.set_comment(params['comment'])

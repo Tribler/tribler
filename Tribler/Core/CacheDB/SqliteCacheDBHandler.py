@@ -207,7 +207,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         self.keys = ['torrent_id', 'name', 'length', 'creation_date', 'num_files',
                      'insert_time', 'secret', 'relevance', 'category', 'status',
-                     'num_seeders', 'num_leechers', 'comment', 'last_tracker_check']
+                     'num_seeders', 'num_leechers', 'comment', 'last_tracker_check', 'is_collected']
         self.existed_torrents = set()
 
         self.value_name = ['C.torrent_id', 'category', 'status', 'name', 'creation_date', 'num_files',

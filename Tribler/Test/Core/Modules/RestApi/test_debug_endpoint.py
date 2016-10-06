@@ -25,6 +25,10 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.dispersy.get_communities = lambda: [self.tunnel_community]
         self.session.get_dispersy_instance = lambda: self.dispersy
 
+    def setUpPreSession(self):
+        super(TestCircuitDebugEndpoint, self).setUpPreSession()
+        self.config.set_tunnel_community_enabled(True)
+
     @deferred(timeout=10)
     def test_get_circuit_no_community(self):
         """

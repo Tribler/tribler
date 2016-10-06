@@ -1,4 +1,7 @@
 import time
+
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE, VOTE_UNSUBSCRIBE
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN_CHANNEL_RESPONSE_MSG
 from Tribler.Core.Modules.restapi.channels.channels_subscription_endpoint import ALREADY_SUBSCRIBED_RESPONSE_MSG, \
@@ -52,9 +55,11 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         fake_community.disp_create_votecast = self.on_dispersy_create_votecast
         self.session.lm.dispersy._communities = {"allchannel": fake_community}
 
-    def tearDown(self):
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self, annotate=True):
         self.session.lm.dispersy = None
-        super(TestChannelsSubscriptionEndpoint, self).tearDown()
+        yield super(TestChannelsSubscriptionEndpoint, self).tearDown(annotate=annotate)
 
     @deferred(timeout=10)
     def test_subscribe_channel_already_subscribed(self):
