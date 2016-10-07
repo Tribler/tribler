@@ -8,8 +8,6 @@ from TriblerGUI.tribler_request_manager import TriblerRequestManager
 class HomePage(QWidget):
 
     def initialize_home_page(self):
-        self.window().home_page_table_view.setRowCount(3)
-        self.window().home_page_table_view.setColumnCount(3)
         self.window().home_page_table_view.cellClicked.connect(self.on_home_page_item_clicked)
 
         self.window().home_tab.initialize()

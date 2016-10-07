@@ -47,9 +47,9 @@ def get_color(name):
     md5_hash.update(name.encode('utf-8'))
     md5_str_hash = md5_hash.hexdigest()
 
-    red = int(md5_str_hash[0:10], 16) % 128 + 127
-    green = int(md5_str_hash[10:20], 16) % 128 + 127
-    blue = int(md5_str_hash[20:30], 16) % 128 + 127
+    red = int(md5_str_hash[0:10], 16) % 128 + 100
+    green = int(md5_str_hash[10:20], 16) % 128 + 100
+    blue = int(md5_str_hash[20:30], 16) % 128 + 100
 
     return '#%02x%02x%02x' % (red, green, blue)
 

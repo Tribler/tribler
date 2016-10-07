@@ -185,7 +185,7 @@ font-size: 15px;
          </property>
          <property name="styleSheet">
           <string notr="true">QLabel {
-color: #eee;
+color: #B5B5B5;
 border: none;
 background-color: transparent;
 font-size: 15px;

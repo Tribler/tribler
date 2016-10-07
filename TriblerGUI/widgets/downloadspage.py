@@ -89,7 +89,6 @@ class DownloadsPage(QWidget):
             self.window().downloads_list.takeTopLevelItem(index)
             del self.download_widgets[infohash]
 
-        self.window().statusBar.set_speeds(total_download, total_upload)
         if QSystemTrayIcon.isSystemTrayAvailable():
             self.window().tray_icon.setToolTip(
                 "Down: %s, Up: %s" % (format_speed(total_download), format_speed(total_upload)))
