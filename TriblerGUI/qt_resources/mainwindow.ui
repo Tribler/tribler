@@ -52,7 +52,7 @@ border: 0px solid black;
   </property>
   <widget class="QWidget" name="central_widget">
    <property name="styleSheet">
-    <string notr="true">background-color: #666;</string>
+    <string notr="true">background-color: #202020;</string>
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <property name="leftMargin">
@@ -91,7 +91,8 @@ border: 0px solid black;
        </size>
       </property>
       <property name="styleSheet">
-       <string notr="true">background-color: #333;</string>
+       <string notr="true">background-color: #303030;
+border-bottom: 1px solid #242424;</string>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout">
        <property name="spacing">
@@ -210,13 +211,13 @@ font-family: &quot;Arial&quot;;</string>
          <property name="minimumSize">
           <size>
            <width>350</width>
-           <height>30</height>
+           <height>28</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
            <width>350</width>
-           <height>30</height>
+           <height>28</height>
           </size>
          </property>
          <property name="styleSheet">
@@ -224,47 +225,11 @@ font-family: &quot;Arial&quot;;</string>
 background-color: #eee;
 border: none;
 padding-left: 5px;
-border-top-left-radius: 2px;
-border-bottom-left-radius: 2px;
+border-radius: 14px;
 }</string>
          </property>
          <property name="placeholderText">
           <string>Search for your favorite content</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QToolButton" name="top_search_button">
-         <property name="minimumSize">
-          <size>
-           <width>30</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>30</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="cursor">
-          <cursorShape>PointingHandCursor</cursorShape>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">border: none;
-border-image: url(images/search.png) 0 0 0 0 stretch stretch;
-background-color: #999;
-border-top-right-radius: 2px;
-border-bottom-right-radius: 2px;</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>26</width>
-           <height>26</height>
-          </size>
          </property>
         </widget>
        </item>
@@ -302,7 +267,11 @@ border-bottom-right-radius: 2px;</string>
           <cursorShape>PointingHandCursor</cursorShape>
          </property>
          <property name="styleSheet">
-          <string notr="true">border: none; </string>
+          <string notr="true">QToolButton {
+border: 1px solid white;
+border-radius: 16px;
+padding: 7px;
+}</string>
          </property>
          <property name="text">
           <string/>
@@ -379,8 +348,28 @@ border-bottom-right-radius: 2px;</string>
          <bool>false</bool>
         </property>
         <property name="styleSheet">
-         <string notr="true">background-color: #999;
-border-right: 1px solid #555;</string>
+         <string notr="true">QWidget {
+background-color: #303030;
+}
+
+QPushButton {
+color: #B5B5B5;
+border: none;
+background: none;
+text-align: left;
+font-size: 14px;
+padding-left: 20px;
+border-left: 4px solid transparent;
+}
+
+QPushButton::hover {
+color: white;
+}
+
+QPushButton::checked {
+border-left: 4px solid #e67300;
+color: white;
+}</string>
         </property>
         <property name="locale">
          <locale language="Dutch" country="Netherlands"/>
@@ -389,12 +378,15 @@ border-right: 1px solid #555;</string>
          <property name="spacing">
           <number>10</number>
          </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
          <item>
           <widget class="QPushButton" name="left_menu_button_home">
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>30</height>
+             <height>26</height>
             </size>
            </property>
            <property name="maximumSize">
@@ -410,22 +402,7 @@ border-right: 1px solid #555;</string>
             <enum>Qt::NoFocus</enum>
            </property>
            <property name="styleSheet">
-            <string notr="true">QPushButton {
-border: none;
-background: none;
-text-align: left;
-font-size: 15px;
-color: white;
-padding-left: 8px;
-}
-
-QPushButton::hover {
-background-color: #666;
-}
-
-QPushButton::checked {
-background-color: #e67300;
-}</string>
+            <string notr="true"/>
            </property>
            <property name="text">
             <string> Home</string>
@@ -437,8 +414,8 @@ background-color: #e67300;
            </property>
            <property name="iconSize">
             <size>
-             <width>18</width>
-             <height>18</height>
+             <width>16</width>
+             <height>16</height>
             </size>
            </property>
            <property name="checkable">
@@ -457,10 +434,16 @@ background-color: #e67300;
          </item>
          <item>
           <widget class="QPushButton" name="left_menu_button_discovered">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>30</height>
+             <height>26</height>
             </size>
            </property>
            <property name="maximumSize">
@@ -476,22 +459,7 @@ background-color: #e67300;
             <enum>Qt::NoFocus</enum>
            </property>
            <property name="styleSheet">
-            <string notr="true">QPushButton {
-border: none;
-background: none;
-text-align: left;
-font-size: 15px;
-color: white;
-padding-left: 8px;
-}
-
-QPushButton::hover {
-background-color: #666;
-}
-
-QPushButton::checked {
-background-color: #e67300;
-}</string>
+            <string notr="true"/>
            </property>
            <property name="text">
             <string> Discovered</string>
@@ -504,8 +472,8 @@ background-color: #e67300;
            </property>
            <property name="iconSize">
             <size>
-             <width>18</width>
-             <height>18</height>
+             <width>16</width>
+             <height>16</height>
             </size>
            </property>
            <property name="checkable">
@@ -521,7 +489,7 @@ background-color: #e67300;
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>30</height>
+             <height>26</height>
             </size>
            </property>
            <property name="maximumSize">
@@ -537,22 +505,7 @@ background-color: #e67300;
             <enum>Qt::NoFocus</enum>
            </property>
            <property name="styleSheet">
-            <string notr="true">QPushButton {
-border: none;
-background: none;
-text-align: left;
-font-size: 15px;
-color: white;
-padding-left: 8px;
-}
-
-QPushButton::hover {
-background-color: #666;
-}
-
-QPushButton::checked {
-background-color: #e67300;
-}</string>
+            <string notr="true"/>
            </property>
            <property name="text">
             <string> My Channel</string>
@@ -564,8 +517,8 @@ background-color: #e67300;
            </property>
            <property name="iconSize">
             <size>
-             <width>18</width>
-             <height>18</height>
+             <width>16</width>
+             <height>16</height>
             </size>
            </property>
            <property name="checkable">
@@ -581,7 +534,7 @@ background-color: #e67300;
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>30</height>
+             <height>26</height>
             </size>
            </property>
            <property name="maximumSize">
@@ -597,22 +550,7 @@ background-color: #e67300;
             <enum>Qt::NoFocus</enum>
            </property>
            <property name="styleSheet">
-            <string notr="true">QPushButton {
-border: none;
-background: none;
-text-align: left;
-font-size: 15px;
-color: white;
-padding-left: 8px;
-}
-
-QPushButton::hover {
-background-color: #666;
-}
-
-QPushButton::checked {
-background-color: #e67300;
-}</string>
+            <string notr="true"/>
            </property>
            <property name="text">
             <string> Subscriptions</string>
@@ -624,8 +562,8 @@ background-color: #e67300;
            </property>
            <property name="iconSize">
             <size>
-             <width>18</width>
-             <height>18</height>
+             <width>16</width>
+             <height>16</height>
             </size>
            </property>
            <property name="checkable">
@@ -641,7 +579,7 @@ background-color: #e67300;
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>30</height>
+             <height>26</height>
             </size>
            </property>
            <property name="maximumSize">
@@ -657,22 +595,7 @@ background-color: #e67300;
             <enum>Qt::NoFocus</enum>
            </property>
            <property name="styleSheet">
-            <string notr="true">QPushButton {
-border: none;
-background: none;
-text-align: left;
-font-size: 15px;
-color: white;
-padding-left: 8px;
-}
-
-QPushButton::hover {
-background-color: #666;
-}
-
-QPushButton::checked {
-background-color: #e67300;
-}</string>
+            <string notr="true"/>
            </property>
            <property name="text">
             <string> Downloads</string>
@@ -684,8 +607,8 @@ background-color: #e67300;
            </property>
            <property name="iconSize">
             <size>
-             <width>18</width>
-             <height>18</height>
+             <width>16</width>
+             <height>16</height>
             </size>
            </property>
            <property name="checkable">
@@ -701,7 +624,7 @@ background-color: #e67300;
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>30</height>
+             <height>26</height>
             </size>
            </property>
            <property name="maximumSize">
@@ -717,22 +640,7 @@ background-color: #e67300;
             <enum>Qt::NoFocus</enum>
            </property>
            <property name="styleSheet">
-            <string notr="true">QPushButton {
-border: none;
-background: none;
-text-align: left;
-font-size: 15px;
-color: white;
-padding-left: 8px;
-}
-
-QPushButton::hover {
-background-color: #666;
-}
-
-QPushButton::checked {
-background-color: #e67300;
-}</string>
+            <string notr="true"/>
            </property>
            <property name="text">
             <string> Video Player</string>
@@ -744,8 +652,8 @@ background-color: #e67300;
            </property>
            <property name="iconSize">
             <size>
-             <width>18</width>
-             <height>18</height>
+             <width>16</width>
+             <height>16</height>
             </size>
            </property>
            <property name="checkable">
@@ -761,7 +669,7 @@ background-color: #e67300;
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>30</height>
+             <height>26</height>
             </size>
            </property>
            <property name="maximumSize">
@@ -777,22 +685,7 @@ background-color: #e67300;
             <enum>Qt::NoFocus</enum>
            </property>
            <property name="styleSheet">
-            <string notr="true">QPushButton {
-border: none;
-background: none;
-text-align: left;
-font-size: 15px;
-color: white;
-padding-left: 8px;
-}
-
-QPushButton::hover {
-background-color: #666;
-}
-
-QPushButton::checked {
-background-color: #e67300;
-}</string>
+            <string notr="true"/>
            </property>
            <property name="text">
             <string> Settings</string>
@@ -804,8 +697,8 @@ background-color: #e67300;
            </property>
            <property name="iconSize">
             <size>
-             <width>18</width>
-             <height>18</height>
+             <width>16</width>
+             <height>16</height>
             </size>
            </property>
            <property name="checkable">
@@ -821,7 +714,7 @@ background-color: #e67300;
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>30</height>
+             <height>26</height>
             </size>
            </property>
            <property name="maximumSize">
@@ -837,22 +730,7 @@ background-color: #e67300;
             <enum>Qt::NoFocus</enum>
            </property>
            <property name="styleSheet">
-            <string notr="true">QPushButton {
-border: none;
-background: none;
-text-align: left;
-font-size: 15px;
-color: white;
-padding-left: 8px;
-}
-
-QPushButton::hover {
-background-color: #666;
-}
-
-QPushButton::checked {
-background-color: #e67300;
-}</string>
+            <string notr="true"/>
            </property>
            <property name="text">
             <string> Debug</string>
@@ -864,8 +742,8 @@ background-color: #e67300;
            </property>
            <property name="iconSize">
             <size>
-             <width>20</width>
-             <height>20</height>
+             <width>16</width>
+             <height>16</height>
             </size>
            </property>
            <property name="checkable">
@@ -930,12 +808,12 @@ border-radius: 1px;</string>
              <widget class="QLabel" name="left_menu_playlist_label">
               <property name="styleSheet">
                <string notr="true">border: none;
-color: white;
-font-size: 15px;
+color: #A0A0A0;
+font-size: 14px;
 margin-left: 1px;</string>
               </property>
               <property name="text">
-               <string>Video playlist</string>
+               <string>VIDEO PLAYLIST</string>
               </property>
              </widget>
             </item>
@@ -970,7 +848,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>11</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -994,7 +872,7 @@ background-color: #e67300;
             <property name="styleSheet">
              <string notr="true">color: white;
 font-weight: bold;
-font-size: 16px;
+font-size: 20px;
 margin: 10px;</string>
             </property>
             <property name="text">
@@ -1131,8 +1009,8 @@ font-size: 14px;
 border: none;
 border-top: 1px solid #555;
 }
-QTableWidget::item:hover {
-background-color: #999;
+QTableWidget::item {
+margin: 10px;
 }</string>
             </property>
             <property name="selectionMode">
@@ -1144,12 +1022,24 @@ background-color: #999;
             <property name="showGrid">
              <bool>false</bool>
             </property>
+            <property name="rowCount">
+             <number>3</number>
+            </property>
+            <property name="columnCount">
+             <number>3</number>
+            </property>
             <attribute name="horizontalHeaderVisible">
              <bool>false</bool>
             </attribute>
             <attribute name="verticalHeaderVisible">
              <bool>false</bool>
             </attribute>
+            <row/>
+            <row/>
+            <row/>
+            <column/>
+            <column/>
+            <column/>
            </widget>
           </item>
          </layout>
@@ -7791,22 +7681,6 @@ font-size: 16px;</string>
               <number>0</number>
              </property>
              <item>
-              <spacer name="horizontalSpacer_61">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>10</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
               <widget class="QLabel" name="discovered_channels_header_label">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -7817,20 +7691,21 @@ font-size: 16px;</string>
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>50</height>
+                 <height>44</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>50</height>
+                 <height>44</height>
                 </size>
                </property>
                <property name="styleSheet">
                 <string notr="true">color: #eee;
 background-color: transparent;
 font-size: 20px;
-font-weight: bold;</string>
+font-weight: bold;
+margin: 10px;</string>
                </property>
                <property name="text">
                 <string>Discovered channels</string>
@@ -7893,10 +7768,10 @@ color: white;</string>
            <widget class="LazyLoadList" name="discovered_channels_list">
             <property name="styleSheet">
              <string notr="true">QListWidget::item:hover {
-background-color: #999;
+background-color: #303030;
 }
 QListWidget::item {
-border-bottom: 1px solid #555;
+border-bottom: 1px solid #303030;
 }
 QListWidget {
 border: none;
@@ -7916,19 +7791,9 @@ border-top: 1px solid #555;
     </item>
    </layout>
   </widget>
-  <widget class="TriblerStatusBar" name="statusBar">
-   <property name="styleSheet">
-    <string notr="true">background-color: #555;</string>
-   </property>
-  </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
-  <customwidget>
-   <class>TriblerStatusBar</class>
-   <extends>QStatusBar</extends>
-   <header>TriblerGUI.widgets.triblerstatusbar.h</header>
-  </customwidget>
   <customwidget>
    <class>VideoPlayerPage</class>
    <extends>QWidget</extends>
@@ -8060,22 +7925,6 @@ border-top: 1px solid #555;
  </customwidgets>
  <resources/>
  <connections>
-  <connection>
-   <sender>top_search_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_top_search_button_click()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>498</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
   <connection>
    <sender>top_search_bar</sender>
    <signal>returnPressed()</signal>
