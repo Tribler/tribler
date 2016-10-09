@@ -13,13 +13,18 @@ class HomePage(QWidget):
         self.window().home_tab.initialize()
         self.window().home_tab.clicked_tab_button.connect(self.clicked_tab_button)
 
+        for x in xrange(0, 3):
+            for y in xrange(0, 3):
+                widget_item = HomeRecommendedTorrentItem(self)
+                self.window().home_page_table_view.setCellWidget(x, y, widget_item)
+
     def load_popular_torrents(self):
         self.recommended_request_mgr = TriblerRequestManager()
         self.recommended_request_mgr.perform_request("torrents/random", self.received_popular_torrents)
 
     def clicked_tab_button(self, tab_button_name):
-        self.window().home_page_table_view.clear()
-        self.window().home_page_table_view.setCellWidget(0, 1, LoadingListItem(self))
+        #self.window().home_page_table_view.clear()
+        #self.window().home_page_table_view.setCellWidget(0, 1, LoadingListItem(self))
 
         if tab_button_name == "home_tab_channels_button":
             self.recommended_request_mgr = TriblerRequestManager()
@@ -32,6 +37,7 @@ class HomePage(QWidget):
         self.show_channels = True
 
         if len(result["channels"]) == 0:
+            print "WILL CLEAN"
             self.window().home_page_table_view.clear()
             self.window().home_page_table_view.setCellWidget(0, 1, LoadingListItem(self, label_text="No recommended channels"))
             return
@@ -39,12 +45,13 @@ class HomePage(QWidget):
         cur_ind = 0
         for channel in result["channels"]:
             widget_item = HomeRecommendedChannelItem(self, channel)
-            self.window().home_page_table_view.setCellWidget(cur_ind % 3, cur_ind / 3, widget_item)
+            #self.window().home_page_table_view.setCellWidget(cur_ind % 3, cur_ind / 3, widget_item)
             cur_ind += 1
+
+        self.window().resizeEvent(None)
 
     def received_popular_torrents(self, result):
         self.show_channels = False
-        self.window().resizeEvent(None)
 
         if len(result["torrents"]) == 0:
             self.window().home_page_table_view.clear()
@@ -52,10 +59,11 @@ class HomePage(QWidget):
             return
 
         cur_ind = 0
-        for torrent in result["torrents"]:
-            widget_item = HomeRecommendedTorrentItem(self, torrent)
-            self.window().home_page_table_view.setCellWidget(cur_ind % 3, cur_ind / 3, widget_item)
+        for torrent in result["torrents"][:8]:
+            self.window().home_page_table_view.cellWidget(cur_ind % 3, cur_ind / 3).update_with_torrent(torrent)
             cur_ind += 1
+
+        self.window().resizeEvent(None)
 
     def on_home_page_item_clicked(self, row, col):
         if self.show_channels:

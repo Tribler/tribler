@@ -14,7 +14,7 @@ class DownloadWidgetItem(QTreeWidgetItem):
         self.progress_slider = QProgressBar()
         self.progress_slider.setStyleSheet("""
         QProgressBar {
-            margin: 4px;
+            margin: 8px;
             background-color: white;
             color: #ddd;
             font-size: 12px;

@@ -69,6 +69,9 @@ border-radius: 2px;</string>
       </sizepolicy>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
+      <property name="spacing">
+       <number>0</number>
+      </property>
       <property name="sizeConstraint">
        <enum>QLayout::SetMinimumSize</enum>
       </property>
