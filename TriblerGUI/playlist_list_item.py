@@ -26,11 +26,20 @@ class PlaylistListItem(QWidget, fc_playlist_list_item):
 
         self.thumbnail_widget.initialize(playlist["name"], 24)
 
-        if not show_controls:
-            self.controls_container.setHidden(True)
+        self.controls_container.setHidden(True)
+        self.show_controls = show_controls
 
         if on_remove_clicked is not None:
             self.remove_playlist_button.clicked.connect(lambda: on_remove_clicked(self))
 
         if on_edit_clicked is not None:
             self.edit_playlist_button.clicked.connect(lambda: on_edit_clicked(self))
+
+    def enterEvent(self, event):
+        if self.show_controls:
+            self.controls_container.setHidden(False)
+            self.edit_playlist_button.setIcon(QIcon(get_image_path('edit_white.png')))
+            self.remove_playlist_button.setIcon(QIcon(get_image_path('delete.png')))
+
+    def leaveEvent(self, event):
+        self.controls_container.setHidden(True)

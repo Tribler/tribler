@@ -294,29 +294,21 @@ font-size: 15px;</string>
        <number>0</number>
       </property>
       <item>
-       <widget class="QToolButton" name="edit_playlist_button">
+       <widget class="CircleButton" name="edit_playlist_button">
         <property name="minimumSize">
          <size>
-          <width>24</width>
-          <height>24</height>
+          <width>28</width>
+          <height>28</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
-          <width>24</width>
-          <height>24</height>
+          <width>28</width>
+          <height>28</height>
          </size>
         </property>
-        <property name="cursor">
-         <cursorShape>PointingHandCursor</cursorShape>
-        </property>
         <property name="styleSheet">
-         <string notr="true">background: none;
-border: none;
-background-color: #e67300;
-border-radius: 2px;
-color: white;
-font-size: 12px;</string>
+         <string notr="true">border-radius: 14px;</string>
         </property>
         <property name="text">
          <string/>
@@ -327,8 +319,8 @@ font-size: 12px;</string>
         </property>
         <property name="iconSize">
          <size>
-          <width>14</width>
-          <height>14</height>
+          <width>12</width>
+          <height>12</height>
          </size>
         </property>
        </widget>
@@ -350,29 +342,24 @@ font-size: 12px;</string>
        </spacer>
       </item>
       <item>
-       <widget class="QToolButton" name="remove_playlist_button">
+       <widget class="CircleButton" name="remove_playlist_button">
         <property name="minimumSize">
          <size>
-          <width>24</width>
-          <height>24</height>
+          <width>28</width>
+          <height>28</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
-          <width>24</width>
-          <height>24</height>
+          <width>28</width>
+          <height>28</height>
          </size>
         </property>
         <property name="cursor">
          <cursorShape>PointingHandCursor</cursorShape>
         </property>
         <property name="styleSheet">
-         <string notr="true">background: none;
-border: none;
-background-color: #e67300;
-border-radius: 2px;
-color: white;
-font-size: 12px;</string>
+         <string notr="true">border-radius: 14px;</string>
         </property>
         <property name="text">
          <string/>
@@ -383,8 +370,8 @@ font-size: 12px;</string>
         </property>
         <property name="iconSize">
          <size>
-          <width>14</width>
-          <height>14</height>
+          <width>12</width>
+          <height>12</height>
          </size>
         </property>
        </widget>
@@ -399,7 +386,7 @@ font-size: 12px;</string>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>6</width>
+          <width>14</width>
           <height>20</height>
          </size>
         </property>
@@ -411,6 +398,11 @@ font-size: 12px;</string>
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>CircleButton</class>
+   <extends>QToolButton</extends>
+   <header>TriblerGUI.widgets.circlebutton.h</header>
+  </customwidget>
   <customwidget>
    <class>ThumbnailWidget</class>
    <extends>QLabel</extends>

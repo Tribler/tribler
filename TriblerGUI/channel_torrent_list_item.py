@@ -20,7 +20,8 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
 
         self.setupUi(self)
         self.show_controls = show_controls
-        self.enterEvent(None)  # to show/hide relevant buttons
+        self.remove_control_button_container.setHidden(True)
+        self.control_buttons_container.setHidden(True)
 
         self.channel_torrent_name.setText(torrent["name"])
         if torrent["size"] is None:

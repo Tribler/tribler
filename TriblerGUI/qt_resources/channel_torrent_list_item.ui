@@ -349,28 +349,21 @@ color: white;
        <number>0</number>
       </property>
       <item>
-       <widget class="QPushButton" name="remove_torrent_button">
+       <widget class="CircleButton" name="remove_torrent_button">
         <property name="minimumSize">
          <size>
-          <width>24</width>
-          <height>24</height>
+          <width>28</width>
+          <height>28</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
-          <width>24</width>
-          <height>24</height>
+          <width>28</width>
+          <height>28</height>
          </size>
         </property>
-        <property name="cursor">
-         <cursorShape>PointingHandCursor</cursorShape>
-        </property>
         <property name="styleSheet">
-         <string notr="true">background: none;
-border: none;
-background-color: #e67300;
-border-radius: 2px;
-color: white;
+         <string notr="true">border-radius: 14px;
 </string>
         </property>
         <property name="text">
@@ -382,11 +375,27 @@ color: white;
         </property>
         <property name="iconSize">
          <size>
-          <width>14</width>
-          <height>14</height>
+          <width>12</width>
+          <height>12</height>
          </size>
         </property>
        </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_7">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>10</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
       </item>
      </layout>
     </widget>

@@ -23,11 +23,12 @@ class HomeRecommendedChannelItem(QWidget, fc_home_recommended_item):
 
 class HomeRecommendedTorrentItem(QWidget, fc_home_recommended_item):
 
-    def __init__(self, parent, torrent):
+    def __init__(self, parent):
         super(QWidget, self).__init__(parent)
 
         self.setupUi(self)
 
+    def update_with_torrent(self, torrent):
         self.thumbnail_widget.initialize(torrent["name"], HOME_ITEM_FONT_SIZE)
 
         self.main_label.setText(torrent["name"])
