@@ -40,4 +40,5 @@ coll = COLLECT(exe,
 app = BUNDLE(coll,
              name='tribler.app',
              icon=None,
-             bundle_identifier=None)
+             bundle_identifier=None,
+             info_plist={'NSHighResolutionCapable': 'True'})
