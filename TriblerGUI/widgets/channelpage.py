@@ -1,9 +1,11 @@
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.loading_list_item import LoadingListItem
 from TriblerGUI.playlist_list_item import PlaylistListItem
 from TriblerGUI.text_list_item import TextListItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.utilities import get_image_path
 
 
 class ChannelPage(QWidget):
@@ -18,6 +20,7 @@ class ChannelPage(QWidget):
         self.channel_info = channel_info
 
         self.window().channel_preview_label.setHidden(channel_info['subscribed'])
+        self.window().channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
 
         self.get_torents_in_channel_manager = TriblerRequestManager()
         self.get_torents_in_channel_manager.perform_request("channels/discovered/%s/torrents" % channel_info['dispersy_cid'], self.received_torrents_in_channel)

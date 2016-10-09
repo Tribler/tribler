@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>538</width>
-    <height>146</height>
+    <height>180</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -38,7 +38,7 @@
    <bool>false</bool>
   </property>
   <property name="styleSheet">
-   <string notr="true">background-color: #ccc;
+   <string notr="true">background-color: #333333;
 border-radius: 2px;</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -105,12 +105,14 @@ border-radius: 2px;</string>
          </size>
         </property>
         <property name="styleSheet">
-         <string notr="true">font-size: 16px;
-font-weight: bold;
-color: #333;</string>
+         <string notr="true">font-size: 14px;
+color: white;</string>
         </property>
         <property name="text">
          <string>Title of the dialog</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
         </property>
        </widget>
       </item>
@@ -122,8 +124,14 @@ color: #333;</string>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="styleSheet">
+         <string notr="true">color: #B5B5B5;</string>
+        </property>
         <property name="text">
          <string>Here comes the main text of the dialog.</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
         </property>
         <property name="wordWrap">
          <bool>true</bool>
@@ -145,8 +153,7 @@ color: #333;</string>
          </size>
         </property>
         <property name="styleSheet">
-         <string notr="true">background-color: #eee;
-padding-left: 4px;</string>
+         <string notr="true">background-color: #444;</string>
         </property>
        </widget>
       </item>
@@ -174,7 +181,7 @@ padding-left: 4px;</string>
       </size>
      </property>
      <property name="styleSheet">
-      <string notr="true">background-color: #ababab;</string>
+      <string notr="true"/>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
       <property name="leftMargin">
@@ -189,19 +196,6 @@ padding-left: 4px;</string>
       <property name="bottomMargin">
        <number>12</number>
       </property>
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
      </layout>
     </widget>
    </item>
