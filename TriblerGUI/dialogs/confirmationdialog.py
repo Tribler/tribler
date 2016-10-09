@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QSizePolicy, QToolButton
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.utilities import get_ui_file_path
+from TriblerGUI.widgets.ellipsebutton import EllipseButton
 
 
 class ConfirmationDialog(DialogContainer):
@@ -33,17 +34,17 @@ class ConfirmationDialog(DialogContainer):
         self.on_main_window_resize()
 
     def create_button(self, index, button_text, button_type):
-        button = QToolButton(self.dialog_widget)
+        button = EllipseButton(self.dialog_widget)
         button.setText(button_text)
         button.setFixedHeight(24)
         button.setCursor(QCursor(Qt.PointingHandCursor))
         self.buttons.append(button)
 
-        stylesheet = "border: none; border-radius: 2px; font-size: 12px; "
-        if button_type == BUTTON_TYPE_NORMAL:
-            button.setStyleSheet(stylesheet + "background-color: #eee;")
-        elif button_type == BUTTON_TYPE_CONFIRM:
-            button.setStyleSheet(stylesheet + "color: white; background-color: #e67300")
+        # stylesheet = "border: none; border-radius: 2px; font-size: 12px; "
+        # if button_type == BUTTON_TYPE_NORMAL:
+        #     button.setStyleSheet(stylesheet + "background-color: #eee;")
+        # elif button_type == BUTTON_TYPE_CONFIRM:
+        #     button.setStyleSheet(stylesheet + "color: white; background-color: #e67300")
 
         self.dialog_widget.dialog_button_container.layout().addWidget(button)
         button.clicked.connect(lambda: self.button_clicked.emit(index))

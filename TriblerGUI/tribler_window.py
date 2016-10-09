@@ -8,7 +8,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QC
 from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
-    QCompleter, QApplication
+    QCompleter, QApplication, QStyledItemDelegate
 
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 from TriblerGUI.core_manager import CoreManager
@@ -62,6 +62,7 @@ class TriblerWindow(QMainWindow):
 
         QCoreApplication.setOrganizationName("TUDelft")
         QCoreApplication.setApplicationName("Tribler")
+        QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
         self.read_settings()
 
@@ -105,6 +106,21 @@ class TriblerWindow(QMainWindow):
         completer = QCompleter()
         completer.setModel(self.search_completion_model)
         completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        self.item_delegate = QStyledItemDelegate()
+        completer.popup().setItemDelegate(self.item_delegate)
+        completer.popup().setStyleSheet("""
+        QListView {
+        background-color: #404040;
+        }
+        QListView::item {
+        color: #D0D0D0;
+        padding-top: 5px;
+        padding-bottom: 5px;
+        }
+        QListView::item:hover {
+        background-color: #707070;
+        }
+        """)
         self.top_search_bar.setCompleter(completer)
 
         self.core_manager.start()
@@ -181,6 +197,7 @@ class TriblerWindow(QMainWindow):
         self.tribler_settings = settings['settings']
 
     def on_top_search_button_click(self):
+        self.deselect_all_menu_buttons()
         self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
         self.search_results_page.perform_search(self.top_search_bar.text())
         self.search_request_mgr = TriblerRequestManager()

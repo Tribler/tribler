@@ -1,8 +1,10 @@
 # coding=utf-8
 from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.utilities import get_image_path
 
 
 class SubscriptionsWidget(QWidget):
@@ -21,9 +23,9 @@ class SubscriptionsWidget(QWidget):
 
     def update_subscribe_button(self):
         if self.channel_info["subscribed"]:
-            self.subscribe_button.setText("✓ subscribed")
+            self.subscribe_button.setIcon(QIcon(QPixmap(get_image_path('subscribed_yes.png'))))
         else:
-            self.subscribe_button.setText("subscribe")
+            self.subscribe_button.setIcon(QIcon(QPixmap(get_image_path('subscribed_not.png'))))
 
         self.num_subs_label.setText(str(self.channel_info["votes"]))
 
