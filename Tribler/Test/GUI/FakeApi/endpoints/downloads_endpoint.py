@@ -10,7 +10,13 @@ class DownloadsEndpoint(resource.Resource):
         return DownloadEndpoint(path)
 
     def render_GET(self, request):
-        return json.dumps({"downloads": [download.get_json() for download in tribler_utils.tribler_data.downloads]})
+        get_peers = False
+        if 'get_peers' in request.args and len(request.args['get_peers']) > 0 \
+                and request.args['get_peers'][0] == "1":
+            get_peers = True
+
+        return json.dumps({"downloads": [download.get_json(get_peers=get_peers)
+                                         for download in tribler_utils.tribler_data.downloads]})
 
     def render_PUT(self, request):
         headers = request.getAllHeaders()
