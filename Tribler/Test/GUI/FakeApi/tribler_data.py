@@ -1,7 +1,6 @@
 from random import randint, sample
 from models.channel import Channel
 from models.download import Download
-from models.playlist import Playlist
 from models.torrent import Torrent
 
 
