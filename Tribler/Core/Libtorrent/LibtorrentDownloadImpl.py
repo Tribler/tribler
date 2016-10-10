@@ -867,7 +867,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         A function to convert peer_info libtorrent object into dictionary
         This data is used to identify peers with combination of several flags
         """
-        peer_dict = {'id': peer_info.pid,
+        peer_dict = {'id': peer_info.pid.to_string(),
                      'extended_version': peer_info.client,
                      'ip': peer_info.ip[0],
                      'port': peer_info.ip[1],
