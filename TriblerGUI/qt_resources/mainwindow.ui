@@ -3777,6 +3777,9 @@ color: #B5B5B5;</string>
              </item>
              <item>
               <widget class="UnderlineTabButton" name="search_results_all_button">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -3803,6 +3806,12 @@ color: #B5B5B5;</string>
                </property>
                <property name="text">
                 <string>ALL</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -3835,6 +3844,9 @@ color: #B5B5B5;</string>
                <property name="text">
                 <string>CHANNELS</string>
                </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
               </widget>
              </item>
              <item>
@@ -3865,6 +3877,9 @@ color: #B5B5B5;</string>
                </property>
                <property name="text">
                 <string>TORRENTS</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -4665,6 +4680,9 @@ margin: 10px;</string>
              </item>
              <item>
               <widget class="UnderlineTabButton" name="settings_general_button">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -4691,6 +4709,12 @@ margin: 10px;</string>
                </property>
                <property name="text">
                 <string>GENERAL</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -4723,6 +4747,9 @@ margin: 10px;</string>
                <property name="text">
                 <string>CONNECTION</string>
                </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
               </widget>
              </item>
              <item>
@@ -4754,6 +4781,9 @@ margin: 10px;</string>
                <property name="text">
                 <string>BANDWIDTH</string>
                </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
               </widget>
              </item>
              <item>
@@ -4778,6 +4808,9 @@ margin: 10px;</string>
                </property>
                <property name="text">
                 <string>SEEDING</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -4809,6 +4842,9 @@ margin: 10px;</string>
                </property>
                <property name="text">
                 <string>ANONYMITY</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -7021,9 +7057,11 @@ background-color: transparent;
 border: none;
 color: #B5B5B5;
 padding: 10px;
-padding-left: 20px;
 font-size: 14px;
 border-bottom: 1px solid #303030;
+}
+QHeaderView::drop-down {
+color: red;
 }
 QHeaderView::section:hover {
 color: white;
@@ -7114,7 +7152,7 @@ color: white;
 </string>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>2</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -7292,19 +7330,43 @@ color: white;
                      <string notr="true">QTreeWidget {
 border: none;
 font-size: 13px;
-alternate-background-color: #6e6e6e;
-background-color: #666666;
 }
 QTreeWidget::item {
 color: white;
+border-bottom: 1px solid #303030;
+}
+QTreeWidget::item:hover {
+background-color: #303030;
 }
 QTreeWidget::item::selected {
 background-color: #444;
 }
-</string>
+QHeaderView {
+background-color: transparent;
+}
+QHeaderView::section {
+background-color: transparent;
+border: none;
+color: #B5B5B5;
+padding: 10px;
+font-size: 14px;
+border-bottom: 1px solid #303030;
+}
+QHeaderView::drop-down {
+color: red;
+}
+QHeaderView::section:hover {
+color: white;
+}
+QTableCornerButton::section {
+background-color: transparent;
+}</string>
                     </property>
                     <property name="alternatingRowColors">
-                     <bool>true</bool>
+                     <bool>false</bool>
+                    </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::NoSelection</enum>
                     </property>
                     <property name="indentation">
                      <number>0</number>
@@ -7317,22 +7379,22 @@ background-color: #444;
                     </property>
                     <column>
                      <property name="text">
-                      <string>Path</string>
+                      <string>PATH</string>
                      </property>
                     </column>
                     <column>
                      <property name="text">
-                      <string>Size</string>
+                      <string>SIZE</string>
                      </property>
                     </column>
                     <column>
                      <property name="text">
-                      <string>% Done</string>
+                      <string>% DONE</string>
                      </property>
                     </column>
                     <column>
                      <property name="text">
-                      <string>Included?</string>
+                      <string>INCLUDED</string>
                      </property>
                     </column>
                    </widget>
@@ -7362,36 +7424,60 @@ background-color: #444;
                      <string notr="true">QTreeWidget {
 border: none;
 font-size: 13px;
-alternate-background-color: #6e6e6e;
-background-color: #666666;
 }
 QTreeWidget::item {
 color: white;
+border-bottom: 1px solid #303030;
+}
+QTreeWidget::item:hover {
+background-color: #303030;
 }
 QTreeWidget::item::selected {
 background-color: #444;
 }
-</string>
+QHeaderView {
+background-color: transparent;
+}
+QHeaderView::section {
+background-color: transparent;
+border: none;
+color: #B5B5B5;
+padding: 10px;
+font-size: 14px;
+border-bottom: 1px solid #303030;
+}
+QHeaderView::drop-down {
+color: red;
+}
+QHeaderView::section:hover {
+color: white;
+}
+QTableCornerButton::section {
+background-color: transparent;
+}</string>
                     </property>
                     <property name="alternatingRowColors">
-                     <bool>true</bool>
+                     <bool>false</bool>
+                    </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::NoSelection</enum>
                     </property>
                     <property name="indentation">
                      <number>0</number>
                     </property>
                     <column>
                      <property name="text">
-                      <string>Name</string>
+                      <string>NAME</string>
                      </property>
                     </column>
                     <column>
                      <property name="text">
-                      <string>Status</string>
+                      <string>STATUS</string>
                      </property>
                     </column>
                     <column>
                      <property name="text">
-                      <string>Peers</string>
+                      <string>PEERS</string>
                      </property>
                     </column>
                    </widget>
