@@ -21,11 +21,14 @@ class SearchEndpoint(resource.Resource):
         num_torrents = len(tribler_utils.tribler_data.torrents)
 
         picked_torrents = sample(range(0, num_torrents - 1), randint(20, num_channels - 1))
-        picked_channels = sample(range(0, num_channels - 1), randint(20, num_channels - 1))
+        picked_channels = sample(range(0, num_channels - 1), randint(5, min(20, num_channels - 1)))
 
         torrents_json = []
         for index in picked_torrents:
-            torrents_json.append(tribler_utils.tribler_data.torrents[index].get_json())
+            torrent_json = tribler_utils.tribler_data.torrents[index].get_json()
+            if tribler_utils.tribler_data.settings["settings"]["general"]["family_filter"] and torrent_json["category"] == 'xxx':
+                continue
+            torrents_json.append(torrent_json)
 
         self.events_endpoint.on_search_results_torrents(torrents_json)
 

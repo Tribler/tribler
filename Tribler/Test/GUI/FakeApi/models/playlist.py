@@ -1,3 +1,4 @@
+import tribler_utils
 
 
 class Playlist:
@@ -14,6 +15,9 @@ class Playlist:
     def get_json(self):
         torrents_json = []
         for torrent in self.torrents:
-            torrents_json.append(torrent.get_json())
+            torrent_json = torrent.get_json()
+            if tribler_utils.tribler_data.settings["settings"]["general"]["family_filter"] and torrent_json["category"] == 'xxx':
+                continue
+            torrents_json.append(torrent_json)
 
         return {"id": self.id, "name": self.name, "description": self.description, "torrents": torrents_json}

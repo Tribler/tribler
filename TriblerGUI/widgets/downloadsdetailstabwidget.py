@@ -5,17 +5,28 @@ from TriblerGUI.utilities import format_size, format_speed
 
 class DownloadsDetailsTabWidget(QTabWidget):
 
+    def __init__(self, parent):
+        super(DownloadsDetailsTabWidget, self).__init__(parent)
+        self.current_download = None
+
     def update_with_download(self, download):
-        self.window().download_detail_name_label.setText(download['name'])
-        self.window().download_detail_status_label.setText(DLSTATUS_STRINGS[eval(download["status"])])
-        self.window().download_detail_filesize_label.setText("%s in %d files" % (format_size(float(download["size"])), len(download["files"])))
-        self.window().download_detail_health_label.setText("%d seeders, %d leechers" % (download["num_seeds"], download["num_peers"]))
-        self.window().download_detail_infohash_label.setText(download['infohash'])
-        self.window().download_detail_availability_label.setText("%.2f" % download['availability'])
+        self.current_download = download
+        self.update_pages()
+
+    def update_pages(self):
+        if self.current_download is None:
+            return
+
+        self.window().download_detail_name_label.setText(self.current_download['name'])
+        self.window().download_detail_status_label.setText(DLSTATUS_STRINGS[eval(self.current_download["status"])])
+        self.window().download_detail_filesize_label.setText("%s in %d files" % (format_size(float(self.current_download["size"])), len(self.current_download["files"])))
+        self.window().download_detail_health_label.setText("%d seeders, %d leechers" % (self.current_download["num_seeds"], self.current_download["num_peers"]))
+        self.window().download_detail_infohash_label.setText(self.current_download['infohash'])
+        self.window().download_detail_availability_label.setText("%.2f" % self.current_download['availability'])
 
         # Populate the files list
         self.window().download_files_list.clear()
-        for file in download["files"]:
+        for file in self.current_download["files"]:
             item = QTreeWidgetItem(self.window().download_files_list)
             item.setText(0, file["name"])
             item.setText(1, format_size(float(file["size"])))
@@ -25,7 +36,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
         # Populate the trackers list
         self.window().download_trackers_list.clear()
-        for tracker in download["trackers"]:
+        for tracker in self.current_download["trackers"]:
             item = QTreeWidgetItem(self.window().download_trackers_list)
             item.setText(0, tracker["url"])
             item.setText(1, tracker["status"])
@@ -33,9 +44,18 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
         # Populate the peers list if the peer information is available
         self.window().download_peers_list.clear()
-        if "peers" in download:
-            for peer in download["peers"]:
+        if "peers" in self.current_download:
+            for peer in self.current_download["peers"]:
                 self.create_widget_with_peer_info(peer)
+
+    def clear_data(self):
+        self.setCurrentIndex(0)
+        self.window().download_detail_name_label.setText("")
+        self.window().download_detail_status_label.setText("")
+        self.window().download_detail_filesize_label.setText("")
+        self.window().download_detail_health_label.setText("")
+        self.window().download_detail_infohash_label.setText("")
+        self.window().download_detail_availability_label.setText("")
 
     def create_widget_with_peer_info(self, peer):
         item = QTreeWidgetItem(self.window().download_peers_list)

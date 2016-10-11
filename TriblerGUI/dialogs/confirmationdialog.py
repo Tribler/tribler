@@ -1,7 +1,7 @@
 from PyQt5 import uic
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QCursor
-from PyQt5.QtWidgets import QSizePolicy, QToolButton
+from PyQt5.QtWidgets import QSizePolicy, QToolButton, QSpacerItem
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.utilities import get_ui_file_path
@@ -27,18 +27,39 @@ class ConfirmationDialog(DialogContainer):
         if not show_input:
             self.dialog_widget.dialog_input.setHidden(True)
 
+        hspacer_left = QSpacerItem(1,1, QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.dialog_widget.dialog_button_container.layout().addSpacerItem(hspacer_left)
+
         self.buttons = []
         for index in range(len(buttons)):
             self.create_button(index, *buttons[index])
+
+        hspacer_right = QSpacerItem(1,1, QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.dialog_widget.dialog_button_container.layout().addSpacerItem(hspacer_right)
 
         self.on_main_window_resize()
 
     def create_button(self, index, button_text, button_type):
         button = EllipseButton(self.dialog_widget)
         button.setText(button_text)
-        button.setFixedHeight(24)
+        button.setFixedHeight(26)
         button.setCursor(QCursor(Qt.PointingHandCursor))
         self.buttons.append(button)
+
+        button.setStyleSheet("""
+        EllipseButton {
+        border: 1px solid #B5B5B5;
+        border-radius: 13px;
+        color: white;
+        padding-left: 4px;
+        padding-right: 4px;
+        }
+
+        EllipseButton::hover {
+        border: 1px solid white;
+        color: white;
+        }
+        """)
 
         # stylesheet = "border: none; border-radius: 2px; font-size: 12px; "
         # if button_type == BUTTON_TYPE_NORMAL:

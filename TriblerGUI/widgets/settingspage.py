@@ -37,6 +37,7 @@ class SettingsPage(QWidget):
         settings = settings["settings"]
 
         # General settings
+        self.window().family_filter_checkbox.setChecked(settings['general']['family_filter'])
         self.window().download_location_input.setText(settings['downloadconfig']['saveas'])
         self.window().always_ask_location_checkbox.setChecked(settings['Tribler']['showsaveas'])
         self.window().download_settings_anon_checkbox.setChecked(settings['Tribler']['default_anonymity_enabled'])
@@ -45,7 +46,7 @@ class SettingsPage(QWidget):
         self.window().watchfolder_location_input.setText(settings['watch_folder']['watch_folder_dir'])
 
         # Connection settings
-        self.window().firewall_current_port_input.setText(str(settings['general']['minport']))
+        self.window().firewall_current_port_input.setText(str(settings['libtorrent']['port']))
         self.window().lt_proxy_type_combobox.setCurrentIndex(settings['libtorrent']['lt_proxytype'])
         if settings['libtorrent']['lt_proxyserver']:
             self.window().lt_proxy_server_input = settings['libtorrent']['lt_proxyserver'][0]
