@@ -1,4 +1,5 @@
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtCore import QPoint
+from PyQt5.QtWidgets import QWidget, QLabel
 
 from TriblerGUI.tribler_window import fc_home_recommended_item
 from TriblerGUI.utilities import pretty_date
@@ -6,6 +7,7 @@ from TriblerGUI.utilities import pretty_date
 HOME_ITEM_FONT_SIZE = 44
 
 
+# TODO to be removed
 class HomeRecommendedChannelItem(QWidget, fc_home_recommended_item):
 
     def __init__(self, parent, channel):
@@ -21,7 +23,7 @@ class HomeRecommendedChannelItem(QWidget, fc_home_recommended_item):
         self.detail_label.setText("Updated " + pretty_date(channel["modified"]))
 
 
-class HomeRecommendedTorrentItem(QWidget, fc_home_recommended_item):
+class HomeRecommendedItem(QWidget, fc_home_recommended_item):
 
     def __init__(self, parent):
         super(QWidget, self).__init__(parent)

@@ -1,7 +1,9 @@
 from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QListWidgetItem
 from TriblerGUI.defs import PAGE_EDIT_CHANNEL_PLAYLIST_TORRENTS
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.utilities import get_image_path
 
 
 class ManagePlaylistPage(QWidget):
@@ -12,6 +14,7 @@ class ManagePlaylistPage(QWidget):
         self.channel_info = channel_info
         self.playlist_info = playlist_info
         self.window().edit_channel_details_manage_playlist_header.setText("Manage torrents in playlist '%s'" % playlist_info['name'])
+        self.window().manage_channel_playlist_torrents_back.setIcon(QIcon(get_image_path('page_back.png')))
 
         self.window().playlist_manage_add_to_playlist.clicked.connect(self.on_add_clicked)
         self.window().playlist_manage_remove_from_playlist.clicked.connect(self.on_remove_clicked)

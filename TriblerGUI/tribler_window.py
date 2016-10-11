@@ -350,9 +350,13 @@ class TriblerWindow(QMainWindow):
         self.channel_page.on_edit_channel_clicked()
 
     def resizeEvent(self, event):
+        # Resize home page cells
+        cell_width = self.home_page_table_view.width() / 3 - 3  # We have some padding to the right
+        cell_height = cell_width / 2
+
         for i in range(0, 3):
-            self.home_page_table_view.setColumnWidth(i, self.home_page_table_view.width() / 3)
-            self.home_page_table_view.setRowHeight(i, 200)
+            self.home_page_table_view.setColumnWidth(i, cell_width)
+            self.home_page_table_view.setRowHeight(i, cell_height)
 
         self.resize_event.emit()
 

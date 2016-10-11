@@ -900,7 +900,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>7</number>
+         <number>4</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1756,7 +1756,7 @@ font-size: 14px;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>4</number>
+                 <number>8</number>
                 </property>
                 <widget class="QWidget" name="edit_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -2620,7 +2620,7 @@ padding-right: 4px;</string>
                      <item row="0" column="0">
                       <widget class="QLabel" name="playlist_edit_name_label">
                        <property name="styleSheet">
-                        <string notr="true">color: #eee;</string>
+                        <string notr="true">color: #B5B5B5;</string>
                        </property>
                        <property name="text">
                         <string>Playlist name</string>
@@ -2630,38 +2630,34 @@ padding-right: 4px;</string>
                      <item row="0" column="1">
                       <widget class="QLineEdit" name="playlist_edit_name">
                        <property name="styleSheet">
-                        <string notr="true">border: 1px solid #555;
-background-color: #ccc;
-border-radius: 4px;</string>
+                        <string notr="true"/>
                        </property>
                        <property name="placeholderText">
                         <string>Playlist name</string>
                        </property>
                       </widget>
                      </item>
-                     <item row="1" column="0">
+                     <item row="2" column="0">
                       <widget class="QLabel" name="playlist_edit_description_label">
                        <property name="styleSheet">
-                        <string notr="true">color: #eee;</string>
+                        <string notr="true">color: #B5B5B5;</string>
                        </property>
                        <property name="text">
                         <string>Playlist description</string>
                        </property>
                       </widget>
                      </item>
-                     <item row="1" column="1">
+                     <item row="2" column="1">
                       <widget class="QTextEdit" name="playlist_edit_description">
                        <property name="styleSheet">
-                        <string notr="true">border: 1px solid #555;
-background-color: #ccc;
-border-radius: 4px;</string>
+                        <string notr="true"/>
                        </property>
                        <property name="placeholderText">
                         <string>Playlist description</string>
                        </property>
                       </widget>
                      </item>
-                     <item row="2" column="1">
+                     <item row="4" column="1">
                       <widget class="QWidget" name="widget_12" native="true">
                        <layout class="QHBoxLayout" name="horizontalLayout_30">
                         <property name="spacing">
@@ -2680,20 +2676,20 @@ border-radius: 4px;</string>
                          <number>0</number>
                         </property>
                         <item>
-                         <spacer name="horizontalSpacer_49">
+                         <spacer name="horizontalSpacer_30">
                           <property name="orientation">
                            <enum>Qt::Horizontal</enum>
                           </property>
                           <property name="sizeHint" stdset="0">
                            <size>
-                            <width>440</width>
+                            <width>40</width>
                             <height>20</height>
                            </size>
                           </property>
                          </spacer>
                         </item>
                         <item>
-                         <widget class="QToolButton" name="playlist_edit_cancel_button">
+                         <widget class="EllipseButton" name="playlist_edit_cancel_button">
                           <property name="minimumSize">
                            <size>
                             <width>0</width>
@@ -2709,8 +2705,12 @@ border-radius: 4px;</string>
                           <property name="cursor">
                            <cursorShape>PointingHandCursor</cursorShape>
                           </property>
+                          <property name="styleSheet">
+                           <string notr="true">border-radius: 13px;
+font-size: 14px;</string>
+                          </property>
                           <property name="text">
-                           <string>Cancel</string>
+                           <string>CANCEL</string>
                           </property>
                          </widget>
                         </item>
@@ -2731,16 +2731,22 @@ border-radius: 4px;</string>
                          </spacer>
                         </item>
                         <item>
-                         <widget class="QToolButton" name="playlist_edit_save_button">
+                         <widget class="EllipseButton" name="playlist_edit_save_button">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
                           <property name="minimumSize">
                            <size>
-                            <width>54</width>
+                            <width>0</width>
                             <height>26</height>
                            </size>
                           </property>
                           <property name="maximumSize">
                            <size>
-                            <width>54</width>
+                            <width>6000</width>
                             <height>26</height>
                            </size>
                           </property>
@@ -2748,15 +2754,63 @@ border-radius: 4px;</string>
                            <cursorShape>PointingHandCursor</cursorShape>
                           </property>
                           <property name="styleSheet">
-                           <string notr="true"/>
+                           <string notr="true">border-radius: 13px;
+font-size: 14px;
+padding-left: 4px;
+padding-right: 4px;</string>
                           </property>
                           <property name="text">
-                           <string>Save</string>
+                           <string>SAVE</string>
                           </property>
                          </widget>
                         </item>
+                        <item>
+                         <spacer name="horizontalSpacer_31">
+                          <property name="orientation">
+                           <enum>Qt::Horizontal</enum>
+                          </property>
+                          <property name="sizeHint" stdset="0">
+                           <size>
+                            <width>40</width>
+                            <height>20</height>
+                           </size>
+                          </property>
+                         </spacer>
+                        </item>
                        </layout>
                       </widget>
+                     </item>
+                     <item row="1" column="0">
+                      <spacer name="verticalSpacer_11">
+                       <property name="orientation">
+                        <enum>Qt::Vertical</enum>
+                       </property>
+                       <property name="sizeType">
+                        <enum>QSizePolicy::Minimum</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>20</width>
+                         <height>2</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item row="3" column="1">
+                      <spacer name="verticalSpacer_12">
+                       <property name="orientation">
+                        <enum>Qt::Vertical</enum>
+                       </property>
+                       <property name="sizeType">
+                        <enum>QSizePolicy::Fixed</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>20</width>
+                         <height>10</height>
+                        </size>
+                       </property>
+                      </spacer>
                      </item>
                     </layout>
                    </widget>
@@ -2857,8 +2911,11 @@ background: none;</string>
                      <item>
                       <widget class="QLabel" name="edit_channel_details_playlist_torrents_header">
                        <property name="styleSheet">
-                        <string notr="true">margin: 10px; font-size: 15px; font-weight: bold;
-margin-left: 5px;</string>
+                        <string notr="true">margin: 10px;
+font-size: 15px;
+font-weight: bold;
+margin-left: 5px;
+color: white;</string>
                        </property>
                        <property name="text">
                         <string>Torrents in playlist 'bla'</string>
@@ -2872,13 +2929,13 @@ margin-left: 5px;</string>
                    <widget class="LazyLoadList" name="edit_channel_playlist_torrents_list">
                     <property name="styleSheet">
                      <string notr="true">QListWidget::item:hover {
-background-color: #999;
+background-color: #303030;
 }
 QListWidget::item:selected {
-background-color: #444;
+background-color: #404040;
 }
 QListWidget::item {
-border-bottom: 1px solid #555;
+border-bottom: 1px solid #303030;
 }
 QListWidget {
 border: none;
@@ -2918,7 +2975,7 @@ border: none;
                       </spacer>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="edit_channel_playlist_manage_torrents_button">
+                      <widget class="EllipseButton" name="edit_channel_playlist_manage_torrents_button">
                        <property name="minimumSize">
                         <size>
                          <width>0</width>
@@ -2935,10 +2992,12 @@ border: none;
                         <cursorShape>PointingHandCursor</cursorShape>
                        </property>
                        <property name="styleSheet">
-                        <string notr="true"/>
+                        <string notr="true">border-radius: 12px;
+padding-left: 4px;
+padding-right: 4px;</string>
                        </property>
                        <property name="text">
-                        <string>Manage torrents</string>
+                        <string>MANAGE TORRENTS</string>
                        </property>
                       </widget>
                      </item>
@@ -3028,8 +3087,11 @@ background: none;</string>
                      <item>
                       <widget class="QLabel" name="edit_channel_details_manage_playlist_header">
                        <property name="styleSheet">
-                        <string notr="true">margin: 10px; font-size: 15px; font-weight: bold;
-margin-left: 5px;</string>
+                        <string notr="true">margin: 10px;
+font-size: 15px;
+font-weight: bold;
+margin-left: 5px;
+color: white;</string>
                        </property>
                        <property name="text">
                         <string>Manage torrents in playlist 'bla'</string>
@@ -3042,7 +3104,16 @@ margin-left: 5px;</string>
                   <item>
                    <widget class="QWidget" name="widget_15" native="true">
                     <property name="styleSheet">
-                     <string notr="true">QListWidget::item {
+                     <string notr="true">QListWidget {
+background-color: #303030;
+border: none;
+}
+QListWidget::item {
+color: white;
+}
+QToolButton {
+font-size: 16px;
+border-radius: 13px;
 color: white;
 }</string>
                     </property>
@@ -3079,9 +3150,24 @@ color: white;
                          </spacer>
                         </item>
                         <item>
-                         <widget class="QToolButton" name="playlist_manage_add_to_playlist">
+                         <widget class="CircleButton" name="playlist_manage_add_to_playlist">
+                          <property name="minimumSize">
+                           <size>
+                            <width>26</width>
+                            <height>26</height>
+                           </size>
+                          </property>
+                          <property name="maximumSize">
+                           <size>
+                            <width>26</width>
+                            <height>26</height>
+                           </size>
+                          </property>
                           <property name="cursor">
                            <cursorShape>PointingHandCursor</cursorShape>
+                          </property>
+                          <property name="styleSheet">
+                           <string notr="true"/>
                           </property>
                           <property name="text">
                            <string>&lt;</string>
@@ -3089,9 +3175,40 @@ color: white;
                          </widget>
                         </item>
                         <item>
-                         <widget class="QToolButton" name="playlist_manage_remove_from_playlist">
+                         <spacer name="verticalSpacer_13">
+                          <property name="orientation">
+                           <enum>Qt::Vertical</enum>
+                          </property>
+                          <property name="sizeType">
+                           <enum>QSizePolicy::Fixed</enum>
+                          </property>
+                          <property name="sizeHint" stdset="0">
+                           <size>
+                            <width>20</width>
+                            <height>10</height>
+                           </size>
+                          </property>
+                         </spacer>
+                        </item>
+                        <item>
+                         <widget class="CircleButton" name="playlist_manage_remove_from_playlist">
+                          <property name="minimumSize">
+                           <size>
+                            <width>26</width>
+                            <height>26</height>
+                           </size>
+                          </property>
+                          <property name="maximumSize">
+                           <size>
+                            <width>26</width>
+                            <height>26</height>
+                           </size>
+                          </property>
                           <property name="cursor">
                            <cursorShape>PointingHandCursor</cursorShape>
+                          </property>
+                          <property name="styleSheet">
+                           <string notr="true"/>
                           </property>
                           <property name="text">
                            <string>&gt;</string>
@@ -3296,8 +3413,11 @@ background: none;</string>
                      <item>
                       <widget class="QLabel" name="edit_channel_details_create_torrent_header">
                        <property name="styleSheet">
-                        <string notr="true">margin: 10px; font-size: 15px; font-weight: bold;
-margin-left: 5px;</string>
+                        <string notr="true">margin: 10px;
+font-size: 15px;
+font-weight: bold;
+margin-left: 5px;
+color: white;</string>
                        </property>
                        <property name="text">
                         <string>Create a new torrent</string>
@@ -3322,7 +3442,7 @@ margin-left: 5px;</string>
                      <item row="0" column="0">
                       <widget class="QLabel" name="create_torrent_name_label">
                        <property name="styleSheet">
-                        <string notr="true">color: #eee;</string>
+                        <string notr="true"/>
                        </property>
                        <property name="text">
                         <string>Name (optional)</string>
@@ -3332,9 +3452,7 @@ margin-left: 5px;</string>
                      <item row="0" column="1">
                       <widget class="QLineEdit" name="create_torrent_name_field">
                        <property name="styleSheet">
-                        <string notr="true">border: 1px solid #555;
-background-color: #ccc;
-border-radius: 4px;</string>
+                        <string notr="true"/>
                        </property>
                        <property name="placeholderText">
                         <string>Torrent name</string>
@@ -3344,7 +3462,7 @@ border-radius: 4px;</string>
                      <item row="1" column="0">
                       <widget class="QLabel" name="create_torrent_description_label">
                        <property name="styleSheet">
-                        <string notr="true">color: #eee;</string>
+                        <string notr="true"/>
                        </property>
                        <property name="text">
                         <string>Description (optional)</string>
@@ -3372,9 +3490,7 @@ border-radius: 4px;</string>
                         </size>
                        </property>
                        <property name="styleSheet">
-                        <string notr="true">border: 1px solid #555;
-background-color: #ccc;
-border-radius: 4px;</string>
+                        <string notr="true"/>
                        </property>
                        <property name="placeholderText">
                         <string>Torrent description</string>
@@ -3384,7 +3500,7 @@ border-radius: 4px;</string>
                      <item row="2" column="0">
                       <widget class="QLabel" name="label_33">
                        <property name="styleSheet">
-                        <string notr="true">color: #eee;</string>
+                        <string notr="true"/>
                        </property>
                        <property name="text">
                         <string>Files in .torrent</string>
@@ -3412,13 +3528,9 @@ border-radius: 4px;</string>
                         </size>
                        </property>
                        <property name="styleSheet">
-                        <string notr="true">QListWidget {
-border: 1px solid #aaa; 
-border-radius: 4px;
-}
-QListWidget::item {
-color: #eee;
-}</string>
+                        <string notr="true">background-color: #303030;
+border: none;
+color: #C0C0C0;</string>
                        </property>
                        <item>
                         <property name="text">
@@ -3476,7 +3588,7 @@ color: #eee;
                          </spacer>
                         </item>
                         <item>
-                         <widget class="QToolButton" name="create_torrent_choose_dir_button">
+                         <widget class="EllipseButton" name="create_torrent_choose_dir_button">
                           <property name="minimumSize">
                            <size>
                             <width>0</width>
@@ -3492,8 +3604,13 @@ color: #eee;
                           <property name="cursor">
                            <cursorShape>PointingHandCursor</cursorShape>
                           </property>
+                          <property name="styleSheet">
+                           <string notr="true">border-radius: 13px;
+padding-left: 4px;
+padding-right: 4px;</string>
+                          </property>
                           <property name="text">
-                           <string>Choose directory</string>
+                           <string>CHOOSE DIRECTORY</string>
                           </property>
                          </widget>
                         </item>
@@ -3514,7 +3631,7 @@ color: #eee;
                          </spacer>
                         </item>
                         <item>
-                         <widget class="QToolButton" name="create_torrent_choose_files_button">
+                         <widget class="EllipseButton" name="create_torrent_choose_files_button">
                           <property name="sizePolicy">
                            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                             <horstretch>0</horstretch>
@@ -3537,10 +3654,12 @@ color: #eee;
                            <cursorShape>PointingHandCursor</cursorShape>
                           </property>
                           <property name="styleSheet">
-                           <string notr="true"/>
+                           <string notr="true">border-radius: 13px;
+padding-left: 4px;
+padding-right: 4px;</string>
                           </property>
                           <property name="text">
-                           <string>Choose files</string>
+                           <string>CHOOSE FILES</string>
                           </property>
                          </widget>
                         </item>
@@ -3579,7 +3698,7 @@ color: #eee;
                       </spacer>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="edit_channel_create_torrent_button">
+                      <widget class="EllipseButton" name="edit_channel_create_torrent_button">
                        <property name="minimumSize">
                         <size>
                          <width>0</width>
@@ -3588,7 +3707,7 @@ color: #eee;
                        </property>
                        <property name="maximumSize">
                         <size>
-                         <width>16777215</width>
+                         <width>16777212</width>
                          <height>24</height>
                         </size>
                        </property>
@@ -3596,10 +3715,12 @@ color: #eee;
                         <cursorShape>PointingHandCursor</cursorShape>
                        </property>
                        <property name="styleSheet">
-                        <string notr="true"/>
+                        <string notr="true">border-radius: 12px;
+padding-left: 4px;
+padding-right: 4px;</string>
                        </property>
                        <property name="text">
-                        <string>Create</string>
+                        <string>CREATE</string>
                        </property>
                       </widget>
                      </item>
@@ -4893,17 +5014,18 @@ border: 0px;
               <property name="formAlignment">
                <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
               </property>
-              <item row="0" column="0">
+              <item row="2" column="0">
                <widget class="QLabel" name="label_4">
                 <property name="styleSheet">
-                 <string notr="true">font-weight: bold;</string>
+                 <string notr="true">font-weight: bold;
+color: white;</string>
                 </property>
                 <property name="text">
                  <string>Download location</string>
                 </property>
                </widget>
               </item>
-              <item row="1" column="0">
+              <item row="3" column="0">
                <widget class="QLabel" name="label_5">
                 <property name="styleSheet">
                  <string notr="true"/>
@@ -4913,7 +5035,7 @@ border: 0px;
                 </property>
                </widget>
               </item>
-              <item row="1" column="1">
+              <item row="3" column="1">
                <widget class="QLineEdit" name="download_location_input">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -4941,7 +5063,7 @@ border: 0px;
                 </property>
                </widget>
               </item>
-              <item row="2" column="0">
+              <item row="4" column="0">
                <widget class="QLabel" name="label_6">
                 <property name="styleSheet">
                  <string notr="true"/>
@@ -4951,7 +5073,7 @@ border: 0px;
                 </property>
                </widget>
               </item>
-              <item row="2" column="1">
+              <item row="4" column="1">
                <widget class="QCheckBox" name="always_ask_location_checkbox">
                 <property name="styleSheet">
                  <string notr="true">margin-top: 2px;</string>
@@ -4961,17 +5083,18 @@ border: 0px;
                 </property>
                </widget>
               </item>
-              <item row="3" column="0">
+              <item row="5" column="0">
                <widget class="QLabel" name="default_download_settings_header">
                 <property name="styleSheet">
-                 <string notr="true">font-weight: bold;</string>
+                 <string notr="true">font-weight: bold;
+color: white;</string>
                 </property>
                 <property name="text">
                  <string>Default download settings</string>
                 </property>
                </widget>
               </item>
-              <item row="4" column="0">
+              <item row="6" column="0">
                <widget class="QLabel" name="download_settings_anon_label">
                 <property name="text">
                  <string>Download anonymously
@@ -4979,7 +5102,7 @@ using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="4" column="1">
+              <item row="6" column="1">
                <widget class="QCheckBox" name="download_settings_anon_checkbox">
                 <property name="styleSheet">
                  <string notr="true">margin-top: 10px;</string>
@@ -4989,7 +5112,7 @@ using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="5" column="0">
+              <item row="7" column="0">
                <widget class="QLabel" name="download_settings_anon_seeding_label">
                 <property name="text">
                  <string>Encrypted anonymous
@@ -4997,7 +5120,7 @@ seeding using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="5" column="1">
+              <item row="7" column="1">
                <widget class="QCheckBox" name="download_settings_anon_seeding_checkbox">
                 <property name="styleSheet">
                  <string notr="true">margin-top: 10px;</string>
@@ -5007,17 +5130,18 @@ seeding using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="6" column="0">
+              <item row="8" column="0">
                <widget class="QLabel" name="label_22">
                 <property name="styleSheet">
-                 <string notr="true">font-weight: bold;</string>
+                 <string notr="true">font-weight: bold;
+color: white;</string>
                 </property>
                 <property name="text">
                  <string>Watch Folder</string>
                 </property>
                </widget>
               </item>
-              <item row="7" column="0">
+              <item row="9" column="0">
                <widget class="QLabel" name="label_23">
                 <property name="styleSheet">
                  <string notr="true"/>
@@ -5027,7 +5151,7 @@ seeding using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="7" column="1">
+              <item row="9" column="1">
                <widget class="QCheckBox" name="watchfolder_enabled_checkbox">
                 <property name="styleSheet">
                  <string notr="true">margin-top: 2px;</string>
@@ -5037,7 +5161,7 @@ seeding using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="8" column="0">
+              <item row="10" column="0">
                <widget class="QLabel" name="label_24">
                 <property name="styleSheet">
                  <string notr="true"/>
@@ -5047,7 +5171,7 @@ seeding using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="8" column="1">
+              <item row="10" column="1">
                <widget class="QLineEdit" name="watchfolder_location_input">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -5075,28 +5199,54 @@ seeding using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="9" column="0">
+              <item row="11" column="0">
                <widget class="QLabel" name="label_31">
                 <property name="styleSheet">
-                 <string notr="true">font-weight: bold;</string>
+                 <string notr="true">font-weight: bold;
+color: white;</string>
                 </property>
                 <property name="text">
                  <string>Developer mode</string>
                 </property>
                </widget>
               </item>
-              <item row="10" column="0">
+              <item row="12" column="0">
                <widget class="QLabel" name="label_32">
                 <property name="text">
                  <string>Enable developer mode?</string>
                 </property>
                </widget>
               </item>
-              <item row="10" column="1">
+              <item row="12" column="1">
                <widget class="QCheckBox" name="developer_mode_enabled_checkbox">
                 <property name="styleSheet">
                  <string notr="true">margin-top: 2px;</string>
                 </property>
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="0">
+               <widget class="QLabel" name="label_35">
+                <property name="styleSheet">
+                 <string notr="true">font-weight: bold;
+color: white;</string>
+                </property>
+                <property name="text">
+                 <string>Family filter</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_37">
+                <property name="text">
+                 <string>Family filter enabled?</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QCheckBox" name="family_filter_checkbox">
                 <property name="text">
                  <string/>
                 </property>
@@ -7046,6 +7196,9 @@ color: white;
 height: 40px;
 border-bottom: 1px solid #303030;
 }
+QTreeWidget::item:hover {
+background-color: #303030;
+}
 QTreeWidget::item::selected {
 background-color: #444;
 }
@@ -7522,16 +7675,16 @@ background-color: transparent;
                    <widget class="QTreeWidget" name="download_peers_list">
                     <property name="styleSheet">
                      <string notr="true">QTreeWidget {
-                                     border: none;
-                                     font-size: 13px;
-                                     }
-                                     QTreeWidget::item {
-                                     color: white;
-                                     border-bottom: 1px solid #303030;
-                                     }
-                                     QTreeWidget::item:hover {
-                                     background-color: #303030;
-                                     }
+border: none;
+font-size: 13px;
+}
+QTreeWidget::item {
+color: white;
+border-bottom: 1px solid #303030;
+}
+QTreeWidget::item:hover {
+background-color: #303030;
+}
                                      QTreeWidget::item::selected {
                                      background-color: #444;
                                      }

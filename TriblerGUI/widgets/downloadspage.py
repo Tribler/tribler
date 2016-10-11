@@ -82,6 +82,11 @@ class DownloadsPage(QWidget):
 
             download_infohashes.add(download["infohash"])
 
+            if self.window().download_details_widget.current_download is not None and \
+                    self.window().download_details_widget.current_download["infohash"] == download["infohash"]:
+                self.window().download_details_widget.current_download = download
+                self.window().download_details_widget.update_pages()
+
         # Check whether there are download that should be removed
         toremove = set()
         for infohash, item in self.download_widgets.iteritems():
@@ -115,6 +120,7 @@ class DownloadsPage(QWidget):
         elif button_name == "downloads_inactive_button":
             self.filter = DOWNLOADS_FILTER_INACTIVE
 
+        self.window().download_details_widget.clear_data()
         self.update_download_visibility()
 
     @staticmethod

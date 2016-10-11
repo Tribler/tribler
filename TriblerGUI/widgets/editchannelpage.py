@@ -2,6 +2,7 @@ import base64
 import urllib
 
 from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QAction, QTreeWidgetItem, QFileDialog
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
@@ -14,6 +15,7 @@ from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.loading_list_item import LoadingListItem
 from TriblerGUI.playlist_list_item import PlaylistListItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.utilities import get_image_path
 
 
 class EditChannelPage(QWidget):
@@ -242,6 +244,7 @@ class EditChannelPage(QWidget):
         playlist_info = item.data(Qt.UserRole)
         self.window().edit_channel_playlist_torrents_list.set_data_items([])
         self.window().edit_channel_details_playlist_torrents_header.setText("Torrents in '%s'" % playlist_info['name'])
+        self.window().edit_channel_playlist_torrents_back.setIcon(QIcon(get_image_path('page_back.png')))
 
         self.viewing_playlist = playlist_info
         self.update_playlist_torrent_list()
@@ -339,7 +342,7 @@ class EditChannelPage(QWidget):
 
     def on_playlist_created_clicked(self):
         self.editing_playlist = None
-        self.window().playlist_edit_save_button.setText("Create")
+        self.window().playlist_edit_save_button.setText("CREATE")
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_PLAYLIST_EDIT)
 
     def on_playlist_remove_clicked(self, item):
@@ -361,7 +364,7 @@ class EditChannelPage(QWidget):
 
     def on_playlist_edit_clicked(self, item):
         self.editing_playlist = item.playlist_info
-        self.window().playlist_edit_save_button.setText("Create")
+        self.window().playlist_edit_save_button.setText("CREATE")
         self.window().playlist_edit_name.setText(item.playlist_info["name"])
         self.window().playlist_edit_description.setText(item.playlist_info["description"])
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_PLAYLIST_EDIT)

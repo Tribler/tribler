@@ -116,7 +116,10 @@ class ChannelTorrentsEndpoint(BaseChannelsEndpoint):
 
         results_json = []
         for torrent in channel.torrents:
-            results_json.append(torrent.get_json())
+            torrent_json = torrent.get_json()
+            if tribler_utils.tribler_data.settings["settings"]["general"]["family_filter"] and torrent_json["category"] == 'xxx':
+                continue
+            results_json.append(torrent_json)
 
         return json.dumps({"torrents": results_json})
 

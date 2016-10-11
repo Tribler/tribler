@@ -156,7 +156,10 @@ color: white;</string>
          </size>
         </property>
         <property name="styleSheet">
-         <string notr="true">background-color: #444;</string>
+         <string notr="true">background-color: #444;
+border: none;
+color: #C0C0C0;
+padding: 4px;</string>
         </property>
        </widget>
       </item>

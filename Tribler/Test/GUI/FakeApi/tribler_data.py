@@ -17,6 +17,7 @@ class TriblerData:
         self.downloads = []
         self.my_channel = -1
         self.rss_feeds = []
+        self.settings = {}
 
     def generate(self):
         self.read_torrent_files()
@@ -25,6 +26,50 @@ class TriblerData:
         self.assign_subscribed_channels()
         self.generate_downloads()
         self.generate_rss_feeds()
+
+        # Create settings
+        self.settings = {"settings": {
+            "general": {
+                "family_filter": True,
+            },
+            "video": {
+                "enabled": True,
+                "port": "-1",
+            },
+            "libtorrent": {
+                "enabled": True,
+                "port": 1234,
+                "lt_proxytype": 0,
+                "lt_proxyserver": None,
+                "lt_proxyauth": None,
+                "utp": True,
+            },
+            "Tribler": {
+                "saveas": "/Users/tribleruser/downloads",
+                "showsaveas": 1,
+                "default_number_hops": 1,
+                "default_anonymity_enabled": True,
+                "default_safeseeding_enabled": True,
+                "maxuploadrate": 0,
+                "maxdownloadrate": 0,
+            },
+            "watch_folder": {
+                "enabled": True,
+                "watch_folder_dir": "/Users/tribleruser/watchfolder",
+            },
+            "downloadconfig": {
+                "seeding_mode": "ratio",
+                "seeding_time": 60,
+                "seeding_ratio": 2.0,
+                "saveas": "bla",
+            },
+            "multichain": {
+                "enabled": True,
+            },
+            "tunnel_community": {
+                "exitnode_enabled": True,
+            },
+        }}
 
     # Generate channels from the random_channels file
     def generate_channels(self):
