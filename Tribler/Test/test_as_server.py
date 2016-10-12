@@ -353,7 +353,9 @@ class TestAsServer(AbstractServer):
         if not boolean:
             # print statistics if needed
             if tribler_session and dump_statistics:
-                self._print_statistics(tribler_session.get_statistics())
+                self._print_statistics(tribler_session.get_tribler_statistics())
+                self._print_statistics(tribler_session.get_dispersy_statistics())
+                self._print_statistics(tribler_session.get_community_statistics())
 
             self.quit()
             assert boolean, reason
