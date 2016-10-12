@@ -449,6 +449,12 @@ class Session(SessionConfigInterface):
         """
         return TriblerStatistics(self).get_tribler_statistics()
 
+    def get_dispersy_statistics(self):
+        """
+        Return a dictionary with general Dispersy statistics.
+        """
+        return TriblerStatistics(self).get_dispersy_statistics()
+
     #
     # Persistence and shutdown
     #

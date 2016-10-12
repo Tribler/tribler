@@ -67,6 +67,36 @@ class TriblerStatistics(object):
 
         return stats_dict
 
+    def get_dispersy_statistics(self):
+        """
+        Return a dictionary with some general Dispersy statistics.
+        """
+        dispersy = self.session.get_dispersy_instance()
+        dispersy.statistics.update()
+        stats = dispersy.statistics
+        return {
+            "wan_address": "%s:%d" % stats.wan_address,
+            "lan_address": "%s:%d" % stats.lan_address,
+            "connection": unicode(stats.connection_type),
+            "runtime": stats.timestamp - stats.start,
+            "total_downloaded": stats.total_down,
+            "total_uploaded": stats.total_up,
+            "packets_sent": stats.total_send,
+            "packets_received": stats.total_received,
+            "packets_success": stats.msg_statistics.success_count,
+            "packets_dropped": stats.msg_statistics.drop_count,
+            "packets_delayed_sent": stats.msg_statistics.delay_send_count,
+            "packets_delayed_received": stats.msg_statistics.delay_received_count,
+            "packets_delayed_success": stats.msg_statistics.delay_success_count,
+            "packets_delayed_timeout": stats.msg_statistics.delay_timeout_count,
+            "total_walk_attempts": stats.walk_attempt_count,
+            "total_walk_success": stats.walk_success_count,
+            "sync_messages_created": stats.msg_statistics.created_count,
+            "bloom_new": sum(c.sync_bloom_new for c in stats.communities),
+            "bloom_reused": sum(c.sync_bloom_reuse for c in stats.communities),
+            "bloom_skipped": sum(c.sync_bloom_skip for c in stats.communities),
+        }
+
     def _create_community_data(self, dispersy):
         """
         Creates a dictionary of community statistics data.
