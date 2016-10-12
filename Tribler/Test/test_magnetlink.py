@@ -64,8 +64,8 @@ class MagnetHelpers(object):
 
     def read_extend_handshake(self, conn):
         response = conn.recv()
-        self.assert_(len(response) > 0)
-        self.assert_(response[0] == EXTEND)
+        assert len(response) > 0
+        assert response[0] == EXTEND
         return self.metadata_id_from_extend_handshake(response[1:])
 
     def read_extend_metadata_request(self, conn):
