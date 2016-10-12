@@ -2,7 +2,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
-from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
+from Tribler.Test.Core.CacheDB.test_sqlitecachedbhandler import AbstractDB
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
