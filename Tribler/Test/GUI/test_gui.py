@@ -13,6 +13,7 @@ from Tribler.Core.Utilities.network_utils import get_random_port
 
 import TriblerGUI.core_manager as core_manager
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
+from TriblerGUI.home_recommended_item import HomeRecommendedItem
 
 rand_port = get_random_port()
 core_manager.START_FAKE_API = True
@@ -23,7 +24,6 @@ request_mgr.API_PORT = rand_port
 
 import TriblerGUI
 
-from TriblerGUI.home_recommended_item import HomeRecommendedChannelItem, HomeRecommendedTorrentItem
 from TriblerGUI.loading_list_item import LoadingListItem
 from TriblerGUI.tribler_window import TriblerWindow
 
@@ -92,8 +92,7 @@ class AbstractTriblerGUITest(unittest.TestCase):
     def wait_for_home_page_table_populated(self, timeout=10):
         for _ in range(0, timeout * 1000, 100):
             QTest.qWait(100)
-            if isinstance(window.home_page_table_view.cellWidget(0, 0),
-                          (HomeRecommendedChannelItem, HomeRecommendedTorrentItem)):
+            if isinstance(window.home_page_table_view.cellWidget(0, 0), HomeRecommendedItem):
                 return
 
         # List was not populated in time, fail the test
