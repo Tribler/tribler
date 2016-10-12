@@ -27,6 +27,7 @@ from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT,
                                      NTFY_PEERS, NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
                                      STATEDIR_METADATA_STORE_DIR, STATEDIR_PEERICON_DIR, STATEDIR_TORRENT_STORE_DIR,
                                      DLSTATUS_STOPPED)
+from Tribler.Core.statistics import TriblerStatistics
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
@@ -440,8 +441,13 @@ class Session(SessionConfigInterface):
         dbhandler.close()
 
     def get_statistics(self):
-        from Tribler.Core.statistics import TriblerStatistics
         return TriblerStatistics(self).dump_statistics()
+
+    def get_tribler_statistics(self):
+        """
+        Return a dictionary with general Tribler statistics.
+        """
+        return TriblerStatistics(self).get_tribler_statistics()
 
     #
     # Persistence and shutdown

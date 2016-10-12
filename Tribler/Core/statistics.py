@@ -1,6 +1,9 @@
 import logging
 import binascii
+import os
 
+from Tribler.Core.CacheDB.sqlitecachedb import DB_FILE_RELATIVE_PATH
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_CHANNELCAST
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 from Tribler.Core.Utilities.misc_utils import compute_ratio
@@ -17,7 +20,7 @@ class TriblerStatistics(object):
         :param session: The Tribler session.
         """
         self._logger = logging.getLogger(self.__class__.__name__)
-        self._session = session
+        self.session = session
 
     @blocking_call_on_reactor_thread
     def dump_statistics(self):
@@ -25,7 +28,7 @@ class TriblerStatistics(object):
         Dumps all statistics.
         :return: A dictionary of data.
         """
-        dispersy = self._session.get_dispersy_instance()
+        dispersy = self.session.get_dispersy_instance()
         if dispersy is None:
             # we use critical here because whoever calls this function wants to get statistics, so it
             # should be at least an error if we can't get dispersy.
@@ -35,6 +38,34 @@ class TriblerStatistics(object):
 
         data_dict = {u'communities': self._create_community_data(dispersy)}
         return data_dict
+
+    def get_tribler_statistics(self):
+        """
+        Return a dictionary with some general Tribler statistics.
+        """
+        torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)
+        channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
+
+        torrent_stats = torrent_db_handler.getTorrentsStats()
+        torrent_total_size = 0 if torrent_stats[1] is None else torrent_stats[1]
+
+        stats_dict = {"torrents": {"num_collected": torrent_stats[0], "total_size": torrent_total_size,
+                                   "num_files": torrent_stats[2]},
+
+                      "num_channels": channel_db_handler.getNrChannels(),
+                      "database_size": os.path.getsize(
+                          os.path.join(self.session.get_state_dir(), DB_FILE_RELATIVE_PATH))}
+
+        if self.session.lm.rtorrent_handler:
+            torrent_queue_stats = self.session.lm.rtorrent_handler.get_queue_stats()
+            torrent_queue_size_stats = self.session.lm.rtorrent_handler.get_queue_size_stats()
+            torrent_queue_bandwidth_stats = self.session.lm.rtorrent_handler.get_bandwidth_stats()
+
+            stats_dict["torrent_queue_stats"] = torrent_queue_stats
+            stats_dict["torrent_queue_size_stats"] = torrent_queue_size_stats
+            stats_dict["torrent_queue_bandwidth_stats"] = torrent_queue_bandwidth_stats
+
+        return stats_dict
 
     def _create_community_data(self, dispersy):
         """
