@@ -164,7 +164,7 @@ class BoostingManager(TaskManager):
 
                 # pause torrent download from disabled source
                 if not mining_bool:
-                    self.stop_download(ihash)
+                    self.stop_download(ihash, reason="disabling source")
 
         self.boosting_sources[string_to_source(source)].enabled = mining_bool
 
@@ -216,7 +216,7 @@ class BoostingManager(TaskManager):
                            if torrent['source'] == source_to_string(source_key)]
 
             for torrent in rm_torrents:
-                self.stop_download(torrent["metainfo"].get_infohash(), remove_torrent=True)
+                self.stop_download(torrent["metainfo"].get_infohash(), remove_torrent=True, reason="removing source")
 
             self._logger.info("Torrents download stopped and removed")
 
@@ -360,7 +360,7 @@ class BoostingManager(TaskManager):
                 is_duplicate = healthiest_torrent != duplicate
                 duplicate['is_duplicate'] = is_duplicate
                 if is_duplicate and duplicate.get('download', None):
-                    self.stop_download(duplicate["metainfo"].get_infohash())
+                    self.stop_download(duplicate["metainfo"].get_infohash(), reason="duplicate")
 
         torrent['time'] = {}
         torrent['time']['all_download'] = 0
@@ -509,15 +509,19 @@ class BoostingManager(TaskManager):
         # assume last activity when start downloading
         torrent['time']['last_activity'] = time.time()
 
-    def stop_download(self, infohash, remove_torrent=False):
+        # if it's paused
+        if torrent['download'].handle:
+            torrent['download'].handle.resume()
+
+    def stop_download(self, infohash, remove_torrent=False, reason="N/A"):
         """
         Stopping torrent that currently downloading
         """
         torrent = self.torrents[infohash]
         infohash = hexlify(infohash)
 
-        self._logger.info("Stopping %s", str(infohash))
-        download = torrent.pop('download', False)
+        self._logger.info("Stopping %s, reason : %s", str(infohash), reason)
+        download = torrent.get('download', None)
         if download:
             handle = download.handle
             if not handle.is_valid():
@@ -562,7 +566,7 @@ class BoostingManager(TaskManager):
                 if 'download' not in torrent:
                     self.start_download(infohash)
                 elif torrent['download'].get_status() == DLSTATUS_SEEDING:
-                    self.stop_download(infohash)
+                    self.stop_download(infohash, reason="archive mode")
             elif not torrent.get('is_duplicate', False):
                 if torrent.get('enabled', True):
                     torrents[infohash] = torrent
@@ -571,7 +575,7 @@ class BoostingManager(TaskManager):
             # Determine which torrent to start and which to stop.
             torrents_start, torrents_stop = self.settings.policy.apply(torrents, self.settings.max_torrents_active)
             for torrent in torrents_stop:
-                self.stop_download(torrent["metainfo"].get_infohash())
+                self.stop_download(torrent["metainfo"].get_infohash(), reason="by policy")
             for torrent in torrents_start:
                 self.start_download(torrent["metainfo"].get_infohash())
 

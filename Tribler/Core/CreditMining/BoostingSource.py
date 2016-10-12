@@ -160,7 +160,8 @@ class BoostingSource(TaskManager):
 
                 if infohash in self.session.lm.boosting_manager.torrents \
                         and 'download' in self.session.lm.boosting_manager.torrents[infohash]:
-                    self.session.lm.boosting_manager.stop_download(infohash, remove_torrent=True)
+                    self.session.lm.boosting_manager.stop_download(infohash, remove_torrent=True,
+                                                                   reason="idle torrent deletion")
                 else:
                     # also remove from boostingmanager
                     self.session.lm.boosting_manager.torrents.pop(infohash)
