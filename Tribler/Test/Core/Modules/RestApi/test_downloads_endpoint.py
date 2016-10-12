@@ -21,7 +21,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns an empty list when downloads are fetched but no downloads are active
         """
-        return self.do_request('downloads', expected_code=200, expected_json={"downloads": []})
+        return self.do_request('downloads?get_peers=1', expected_code=200, expected_json={"downloads": []})
 
     @deferred(timeout=20)
     def test_get_downloads(self):
@@ -38,7 +38,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
 
         self.should_check_equality = False
-        return self.do_request('downloads', expected_code=200).addCallback(verify_download)
+        return self.do_request('downloads?get_peers=1', expected_code=200).addCallback(verify_download)
 
     @deferred(timeout=10)
     def test_remove_download_no_remove_data_param(self):

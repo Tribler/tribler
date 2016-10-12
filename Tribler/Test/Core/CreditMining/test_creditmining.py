@@ -20,7 +20,8 @@ from Tribler.Core.defaults import sessdefaults
 from Tribler.Policies.BoostingPolicy import CreationDatePolicy, SeederRatioPolicy, RandomPolicy
 from Tribler.Policies.BoostingSource import ent2chr
 from Tribler.Policies.credit_mining_util import levenshtein_dist, source_to_string
-from Tribler.Test.Core.CreditMining.mock_creditmining import MockMeta, MockLtPeer, MockLtSession, MockLtTorrent
+from Tribler.Test.Core.CreditMining.mock_creditmining import MockMeta, MockLtPeer, MockLtSession, MockLtTorrent, \
+    MockPeerId
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -111,17 +112,17 @@ class TestBoostingManagerUtilities(TestAsServer):
         super(TestBoostingManagerUtilities, self).__init__(*argv, **kwargs)
 
         self.peer = [None] * 6
-        self.peer[0] = MockLtPeer(1, "ip1")
+        self.peer[0] = MockLtPeer(MockPeerId("1"), "ip1")
         self.peer[0].setvalue(True, True, True)
-        self.peer[1] = MockLtPeer(2, "ip2")
+        self.peer[1] = MockLtPeer(MockPeerId("2"), "ip2")
         self.peer[1].setvalue(False, False, True)
-        self.peer[2] = MockLtPeer(3, "ip3")
+        self.peer[2] = MockLtPeer(MockPeerId("3"), "ip3")
         self.peer[2].setvalue(True, False, True)
-        self.peer[3] = MockLtPeer(4, "ip4")
+        self.peer[3] = MockLtPeer(MockPeerId("4"), "ip4")
         self.peer[3].setvalue(False, True, False)
-        self.peer[4] = MockLtPeer(5, "ip5")
+        self.peer[4] = MockLtPeer(MockPeerId("5"), "ip5")
         self.peer[4].setvalue(False, True, True)
-        self.peer[5] = MockLtPeer(6, "ip6")
+        self.peer[5] = MockLtPeer(MockPeerId("6"), "ip6")
         self.peer[5].setvalue(False, False, False)
 
     @blocking_call_on_reactor_thread
