@@ -1,12 +1,13 @@
 import os
 from Tribler.Core.Utilities.torrent_utils import create_torrent_file
 from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.Test.test_as_server import TESTS_CORE_DATA_DIR
 
 
 class TriblerCoreTestTorrentUtils(TriblerCoreTest):
 
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-    TORRENT_DATA_DIR = os.path.abspath(os.path.join(FILE_DIR, u"data/torrent_creation_files/"))
+    TORRENT_DATA_DIR = os.path.abspath(os.path.join(TESTS_CORE_DATA_DIR, u"torrent_creation_files/"))
     FILE1_NAME = "file1.txt"
     FILE2_NAME = "file2.txt"
 

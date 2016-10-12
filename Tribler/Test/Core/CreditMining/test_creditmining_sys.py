@@ -349,7 +349,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
 
         self.insert_torrents_into_channel(torrent_list)
 
-    @deferred(timeout=20)
+    @deferred(timeout=30)
     def test_chn_lookup(self):
         """
         testing channel source.
@@ -484,7 +484,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         d.addCallback(clean_community)
         return d
 
-    @deferred(timeout=20)
+    @deferred(timeout=30)
     def test_chn_max_torrents(self):
         """
         Test the restriction of max_torrents in a source.

@@ -1,7 +1,7 @@
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import VoteCastDBHandler, ChannelCastDBHandler
-from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
+from Tribler.Test.Core.CacheDB.test_sqlitecachedbhandler import AbstractDB
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 

@@ -87,7 +87,7 @@ class TestSessionAsServer(TestAsServer):
         super(TestSessionAsServer, self).setUp(autoload_discovery=autoload_discovery)
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
 
-    @deferred(timeout=10)
+    @deferred(timeout=20)
     def test_add_torrent_def_to_channel(self):
         """
         Test whether adding a torrent def to a channel works
@@ -108,7 +108,7 @@ class TestSessionAsServer(TestAsServer):
 
         return test_deferred
 
-    @deferred(timeout=10)
+    @deferred(timeout=20)
     def test_add_torrent_def_to_channel_duplicate(self):
         """
         Test whether adding a torrent def twice to a channel raises an exception

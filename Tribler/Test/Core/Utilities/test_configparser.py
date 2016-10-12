@@ -5,12 +5,13 @@ from nose.tools import raises
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.Test.test_as_server import TESTS_CORE_DATA_DIR
 
 
 class TestConfigParser(TriblerCoreTest):
 
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-    CONFIG_FILES_DIR = os.path.abspath(os.path.join(FILE_DIR, u"data/config_files/"))
+    CONFIG_FILES_DIR = os.path.abspath(os.path.join(TESTS_CORE_DATA_DIR, u"config_files"))
 
     def test_configparser_config1(self):
         ccp = CallbackConfigParser()
