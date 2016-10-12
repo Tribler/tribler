@@ -160,17 +160,17 @@ class TestVideoServerSession(TestAsServer):
             if len(line) == 0:
                 if DEBUG:
                     self._logger.debug("server closed conn")
-                self.assert_(False)
+                self.assertTrue(False)
                 return
 
             if line.startswith("HTTP"):
                 if not setset:
                     # Python returns "HTTP/1.0 206 Partial Content\r\n" HTTP 1.0???
-                    self.assert_(line.startswith("HTTP/1."))
-                    self.assert_(line.find("206") != -1)  # Partial content
+                    self.assertTrue(line.startswith("HTTP/1."))
+                    self.assertTrue(line.find("206") != -1)  # Partial content
                 else:
-                    self.assert_(line.startswith("HTTP/1."))
-                    self.assert_(line.find("416") != -1)  # Requested Range Not Satisfiable
+                    self.assertTrue(line.startswith("HTTP/1."))
+                    self.assertTrue(line.find("416") != -1)  # Requested Range Not Satisfiable
                     return
 
             elif line.startswith("Content-Range:"):
@@ -193,7 +193,7 @@ class TestVideoServerSession(TestAsServer):
         if len(data) == 0:
             if DEBUG:
                 self._logger.debug("server closed conn2")
-            self.assert_(False)
+            self.assertTrue(False)
             return
         else:
             f = open(self.sourcefn, "rb")
@@ -204,12 +204,12 @@ class TestVideoServerSession(TestAsServer):
 
             expdata = f.read(expsize)
             f.close()
-            self.assert_(data, expdata)
+            self.assertTrue(data, expdata)
 
             try:
                 # Read body, reading more should EOF (we disabled persist conn)
                 data = s.recv(10240)
-                self.assert_(len(data) == 0)
+                self.assertTrue(len(data) == 0)
 
             except socket.timeout:
                 if DEBUG:

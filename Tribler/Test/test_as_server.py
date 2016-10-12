@@ -7,7 +7,6 @@ from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.twisted_thread import reactor, deferred
 
 # importmagic: manage
-import threading
 import functools
 import inspect
 import logging
@@ -18,18 +17,16 @@ import time
 import unittest
 from tempfile import mkdtemp
 from threading import enumerate as enumerate_threads
-from traceback import print_exc
 
 from twisted.internet import interfaces
 from twisted.internet.base import BasePort
 from twisted.internet.defer import maybeDeferred, inlineCallbacks, Deferred, succeed
-from twisted.python.threadable import isInIOThread
 from twisted.web.server import Site
 from twisted.web.static import File
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING, UPLOAD
+from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
 from Tribler.Core import defaults
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
@@ -382,83 +379,3 @@ class TestAsServer(AbstractServer):
             return 0.0, False
 
         return 1.0, False
-
-    def assert_(self, boolean, reason=None, do_assert=True, tribler_session=None, dump_statistics=False):
-        if not boolean:
-            # print statistics if needed
-            if tribler_session and dump_statistics:
-                self._print_statistics(tribler_session.get_tribler_statistics())
-                self._print_statistics(tribler_session.get_dispersy_statistics())
-                self._print_statistics(tribler_session.get_community_statistics())
-
-            self.quit()
-            assert boolean, reason
-
-    @blocking_call_on_reactor_thread
-    def _print_statistics(self, statistics_dict):
-        def _print_data_dict(data_dict, level):
-            for k, v in data_dict.iteritems():
-                indents = u'-' + u'-' * 2 * level
-
-                if isinstance(v, basestring):
-                    self._logger.debug(u"%s %s: %s", indents, k, v)
-                elif isinstance(v, dict):
-                    self._logger.debug(u"%s %s:", indents, k)
-                    _print_data_dict(v, level + 1)
-                else:
-                    # ignore other types for the moment
-                    continue
-        self._logger.debug(u"========== Tribler Statistics BEGIN ==========")
-        _print_data_dict(statistics_dict, 0)
-        self._logger.debug(u"========== Tribler Statistics END ==========")
-
-    def startTest(self, callback):
-        self.quitting = False
-        callback()
-
-    def callLater(self, seconds, callback):
-        if not self.quitting:
-            if seconds:
-                time.sleep(seconds)
-            callback()
-
-    def CallConditional(self, timeout, condition, callback, assert_message=None, assert_callback=None,
-                        tribler_session=None, dump_statistics=False):
-        t = time.time()
-
-        def DoCheck():
-            if not self.quitting:
-                # only use the last two parts as the ID because the full name is too long
-                test_id = self.id()
-                test_id = '.'.join(test_id.split('.')[-2:])
-
-                if time.time() - t < timeout:
-                    try:
-                        if condition():
-                            self._logger.debug("%s - condition satisfied after %d seconds, calling callback '%s'",
-                                               test_id, time.time() - t, callback.__name__)
-                            callback()
-                        else:
-                            self.callLater(0.5, DoCheck)
-
-                    except:
-                        print_exc()
-                        self.assert_(False, '%s - Condition or callback raised an exception, quitting (%s)' %
-                                     (test_id, assert_message or "no-assert-msg"), do_assert=False)
-                else:
-                    self._logger.debug("%s - %s, condition was not satisfied in %d seconds (%s)",
-                                       test_id,
-                                       ('calling callback' if assert_callback else 'quitting'),
-                                       timeout,
-                                       assert_message or "no-assert-msg")
-                    assertcall = assert_callback if assert_callback else self.assert_
-                    kwargs = {}
-                    if assertcall == self.assert_:
-                        kwargs = {'tribler_session': tribler_session, 'dump_statistics': dump_statistics}
-
-                    assertcall(False, "%s - %s - Condition was not satisfied in %d seconds" %
-                               (test_id, assert_message, timeout), do_assert=False, **kwargs)
-        self.callLater(0, DoCheck)
-
-    def quit(self):
-        self.quitting = True
