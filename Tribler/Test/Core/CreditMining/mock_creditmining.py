@@ -32,17 +32,17 @@ class MockLtTorrent(object):
         class returning peer info for a particular handle
         """
         peer = [None] * 6
-        peer[0] = MockLtPeer(1, "ip1")
+        peer[0] = MockLtPeer(MockPeerId("1"), "ip1")
         peer[0].setvalue(True, True, True)
-        peer[1] = MockLtPeer(2, "ip2")
+        peer[1] = MockLtPeer(MockPeerId("2"), "ip2")
         peer[1].setvalue(False, False, True)
-        peer[2] = MockLtPeer(3, "ip3")
+        peer[2] = MockLtPeer(MockPeerId("3"), "ip3")
         peer[2].setvalue(True, False, True)
-        peer[3] = MockLtPeer(4, "ip4")
+        peer[3] = MockLtPeer(MockPeerId("4"), "ip4")
         peer[3].setvalue(False, True, False)
-        peer[4] = MockLtPeer(5, "ip5")
+        peer[4] = MockLtPeer(MockPeerId("5"), "ip5")
         peer[4].setvalue(False, True, True)
-        peer[5] = MockLtPeer(6, "ip6")
+        peer[5] = MockLtPeer(MockPeerId("6"), "ip6")
         peer[5].setvalue(False, False, False)
         return peer
 
@@ -89,6 +89,17 @@ class MockLtPeer(object):
         self.upload_only = upload_only
         self.remote_interested = uinterested
         self.progress = 1 if completed else 0
+
+
+class MockPeerId(object):
+    """
+    This class is used to mock a peer id in libtorrent.
+    """
+    def __init__(self, peer_id):
+        self.peer_id = peer_id
+
+    def to_string(self):
+        return self.peer_id
 
 
 class MockMeta(object):
