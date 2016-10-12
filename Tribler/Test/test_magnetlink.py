@@ -6,9 +6,11 @@ import socket
 import os
 import threading
 
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, Deferred
 
 import libtorrent as lt
+
+from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from libtorrent import bencode, bdecode
 
@@ -148,17 +150,20 @@ class TestMagnet(TestAsServer):
         TestAsServer.setUpPreSession(self)
         self.config.set_libtorrent(True)
 
+    @deferred(timeout=120)
     def test_good_transfer(self):
-        def do_transfer():
-            def torrentdef_retrieved(tdef):
-                event.set()
+        """
+        Testing whether a lookup in the DHT is successful
+        """
+        test_deferred = Deferred()
 
-            event = threading.Event()
-            magnet_link = 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH)
-            self.session.lm.ltmgr.get_metainfo(magnet_link, torrentdef_retrieved, timeout=120)
-            assert event.wait(120)
+        def torrentdef_retrieved(_):
+            test_deferred.callback(None)
 
-        self.startTest(do_transfer)
+        magnet_link = 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH)
+        self.session.lm.ltmgr.get_metainfo(magnet_link, torrentdef_retrieved, timeout=120)
+
+        return test_deferred
 
 
 class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
@@ -251,22 +256,17 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
 class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
 
     """
-    Once we are downloading a torrent, our client should respond to
-    the ut_metadata extention message.  This allows other clients to
-    obtain the info part of the metadata from us.
+    Once we are downloading a torrent, our client should respond to the ut_metadata extention message.
+    This allows other clients to obtain the info part of the metadata from us.
     """
 
-    def setUp(self):
-        TestAsServer.setUp(self)
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def setUp(self, autoload_discovery=True):
+        super(TestMetadataFakePeer, self).setUp(autoload_discovery=autoload_discovery)
 
-        # the metadata that we want to transfer
-        self.tdef = TorrentDef()
-        self.tdef.add_content(os.path.join(TESTS_DATA_DIR, "file.wmv"))
-        self.tdef.set_tracker("http://localhost/announce")
-        # we use a small piece length to obtain multiple pieces
-        self.tdef.set_piece_length(1)
-        self.tdef.finalize()
-        self.setup_seeder()
+        self.seed_deferred = Deferred()
+        yield self.start_seeding()
 
         MagnetHelpers.__init__(self, self.tdef)
 
@@ -274,28 +274,26 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         TestAsServer.setUpPreSession(self)
         self.config.set_libtorrent(True)
 
-        self.config2 = self.config.copy()
-        self.config2.set_state_dir(self.getStateDir(2))
-
-    @blocking_call_on_reactor_thread
-    @inlineCallbacks
-    def tearDown(self, annotate=True):
-        self.session.remove_download(self.download)
-        yield super(TestMetadataFakePeer, self).tearDown(annotate=annotate)
-
-    def setup_seeder(self):
-        self.seeder_setup_complete = threading.Event()
+    def start_seeding(self):
+        # the metadata that we want to transfer
+        self.tdef = TorrentDef()
+        self.tdef.add_content(os.path.join(TESTS_DATA_DIR, "file.wmv"))
+        self.tdef.set_tracker("http://localhost/announce")
+        # we use a small piece length to obtain multiple pieces
+        self.tdef.set_piece_length(1)
+        self.tdef.finalize()
 
         self.dscfg = DownloadStartupConfig()
         self.dscfg.set_dest_dir(TESTS_DATA_DIR)
         self.download = self.session.start_download_from_tdef(self.tdef, self.dscfg)
         self.download.set_state_callback(self.seeder_state_callback)
 
-        assert self.seeder_setup_complete.wait(30)
+        return self.seed_deferred
 
     def seeder_state_callback(self, ds):
         if ds.get_status() == DLSTATUS_SEEDING:
-            self.seeder_setup_complete.set()
+            self.seed_deferred.callback(None)
+            return 0.0, False
 
         d = ds.get_download()
         self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()),
