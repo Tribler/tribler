@@ -3,7 +3,7 @@ from time import localtime, strftime
 from PyQt5 import uic
 from PyQt5.QtWidgets import QMainWindow, QTreeWidgetItem
 
-from TriblerGUI.utilities import get_ui_file_path
+from TriblerGUI.utilities import get_ui_file_path, format_size
 from TriblerGUI.tribler_request_manager import performed_requests as tribler_performed_requests, TriblerRequestManager
 
 
@@ -17,12 +17,38 @@ class DebugWindow(QMainWindow):
 
         self.window().debug_tab_widget.setCurrentIndex(0)
         self.window().debug_tab_widget.currentChanged.connect(self.tab_changed)
+        self.load_general_tab()
 
     def tab_changed(self, index):
-        if index == 1:
+        if index == 0:
+            self.load_general_tab()
+        elif index == 1:
             self.load_requests_tab()
         elif index == 2:
             self.load_multichain_tab()
+
+    def create_and_add_widget_item(self, key, value, widget):
+        item = QTreeWidgetItem(widget)
+        item.setText(0, key)
+        item.setText(1, "%s" % value)
+        widget.addTopLevelItem(item)
+
+    def load_general_tab(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("statistics/tribler", self.on_tribler_statistics)
+
+    def on_tribler_statistics(self, data):
+        data = data["tribler_statistics"]
+        self.window().general_tree_widget.clear()
+        self.create_and_add_widget_item("Number of channels", data["num_channels"], self.window().general_tree_widget)
+        self.create_and_add_widget_item("Database size", format_size(data["database_size"]),
+                                        self.window().general_tree_widget)
+        self.create_and_add_widget_item("Number of collected torrents", data["torrents"]["num_collected"],
+                                        self.window().general_tree_widget)
+        self.create_and_add_widget_item("Number of torrent files", data["torrents"]["num_files"],
+                                        self.window().general_tree_widget)
+        self.create_and_add_widget_item("Total size of torrent files", format_size(data["torrents"]["total_size"]),
+                                        self.window().general_tree_widget)
 
     def load_requests_tab(self):
         self.window().requests_tree_widget.clear()
@@ -40,7 +66,4 @@ class DebugWindow(QMainWindow):
     def on_multichain_statistics(self, data):
         self.window().multichain_tree_widget.clear()
         for key, value in data["statistics"].iteritems():
-            item = QTreeWidgetItem(self.window().multichain_tree_widget)
-            item.setText(0, key)
-            item.setText(1, "%s" % value)
-            self.window().multichain_tree_widget.addTopLevelItem(item)
+            self.create_and_add_widget_item(key, value, self.window().multichain_tree_widget)
