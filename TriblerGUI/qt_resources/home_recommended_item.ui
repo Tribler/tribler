@@ -29,7 +29,7 @@
    </size>
   </property>
   <property name="cursor">
-   <cursorShape>PointingHandCursor</cursorShape>
+   <cursorShape>ArrowCursor</cursorShape>
   </property>
   <property name="windowTitle">
    <string>Form</string>
@@ -39,7 +39,7 @@
   </property>
   <property name="styleSheet">
    <string notr="true">QWidget {
-background-color: #282828;
+background-color: #393939;
 }</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">

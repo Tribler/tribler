@@ -42,9 +42,8 @@ class HomePage(QWidget):
             return
 
         cur_ind = 0
-        for channel in result["channels"]:
-            #widget_item = HomeRecommendedChannelItem(self, channel)
-            #self.window().home_page_table_view.setCellWidget(cur_ind % 3, cur_ind / 3, widget_item)
+        for channel in result["channels"][:9]:
+            self.window().home_page_table_view.cellWidget(cur_ind % 3, cur_ind / 3).update_with_channel(channel)
             cur_ind += 1
 
         self.window().resizeEvent(None)
@@ -58,7 +57,7 @@ class HomePage(QWidget):
             return
 
         cur_ind = 0
-        for torrent in result["torrents"][:8]:
+        for torrent in result["torrents"][:9]:
             self.window().home_page_table_view.cellWidget(cur_ind % 3, cur_ind / 3).update_with_torrent(torrent)
             cur_ind += 1
 

@@ -1,11 +1,16 @@
 import json
 import logging
 import mimetypes
+import random
+import string
+from time import time
+
 from PyQt5.QtCore import QUrl, pyqtSignal, QFile, QIODevice, QByteArray, QFileInfo, QBuffer
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 
 API_PORT = 8085
+performed_requests = {}
 
 
 class TriblerRequestManager(QNetworkAccessManager):
@@ -17,6 +22,7 @@ class TriblerRequestManager(QNetworkAccessManager):
 
     def __init__(self):
         QNetworkAccessManager.__init__(self)
+        self.request_id = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
         self.base_url = "http://localhost:%d/" % API_PORT
 
     def send_file(self, endpoint, read_callback, file):
@@ -55,6 +61,7 @@ class TriblerRequestManager(QNetworkAccessManager):
         self.finished.connect(self.on_finished)
 
     def perform_request(self, endpoint, read_callback, data="", method='GET'):
+        performed_requests[self.request_id] = [endpoint, method, data, time(), -1]
         url = self.base_url + endpoint
 
         if method == 'GET':
@@ -81,6 +88,8 @@ class TriblerRequestManager(QNetworkAccessManager):
         self.finished.connect(self.on_finished)
 
     def on_finished(self, reply):
+        performed_requests[self.request_id][4] = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+
         data = reply.readAll()
         try:
             json_result = json.loads(str(data))
