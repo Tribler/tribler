@@ -9,13 +9,14 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_SCRIPT_NAME, CorruptedDatabaseError
+from Tribler.Test.test_as_server import TESTS_CORE_DATA_DIR
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestSqliteCacheDB(TriblerCoreTest):
 
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-    SQLITE_SCRIPTS_DIR = os.path.abspath(os.path.join(FILE_DIR, u"data/sqlite_scripts/"))
+    SQLITE_SCRIPTS_DIR = os.path.abspath(os.path.join(TESTS_CORE_DATA_DIR, u"sqlite_scripts"))
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks

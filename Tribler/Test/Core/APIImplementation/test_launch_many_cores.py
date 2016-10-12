@@ -8,7 +8,7 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.test_as_server import TestAsServer, TESTS_CORE_DATA_DIR
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.bartercast4.community import BarterCommunity
 from Tribler.community.multichain.community import MultiChainCommunity
@@ -21,8 +21,6 @@ class TestLaunchManyCore(TriblerCoreTest):
     """
     This class contains various small unit tests for the LaunchManyCore class.
     """
-    DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'data')
-
     def setUp(self, annotate=True):
         TriblerCoreTest.setUp(self, annotate=annotate)
         self.lm = TriblerLaunchMany()
@@ -50,7 +48,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         """
         Testing whether a pstate is successfully loaded
         """
-        config_file_path = os.path.abspath(os.path.join(self.DATA_DIR, u"config_files", u"config1.conf"))
+        config_file_path = os.path.abspath(os.path.join(TESTS_CORE_DATA_DIR, u"config_files", u"config1.conf"))
         config = self.lm.load_download_pstate(config_file_path)
         self.assertIsInstance(config, CallbackConfigParser)
         self.assertEqual(config.get('general', 'version'), 11)

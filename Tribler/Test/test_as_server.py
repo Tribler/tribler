@@ -36,6 +36,7 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 TESTS_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 TESTS_DATA_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"data"))
+TESTS_CORE_DATA_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"Core", u"data"))
 TESTS_API_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"API"))
 
 defaults.sessdefaults['general']['minport'] = -1
