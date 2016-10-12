@@ -97,6 +97,48 @@ class TriblerStatistics(object):
             "bloom_skipped": sum(c.sync_bloom_skip for c in stats.communities),
         }
 
+    def get_community_statistics(self):
+        """
+        Return a dictionary with general statistics of the active Dispersy communities.
+        """
+        communities_stats = []
+        dispersy = self.session.get_dispersy_instance()
+        dispersy.statistics.update()
+
+        for community in dispersy.statistics.communities:
+            if community.dispersy_enable_candidate_walker or community.dispersy_enable_candidate_walker_responses or \
+                    community.candidates:
+                candidate_count = "%s" % len(community.candidates)
+            else:
+                candidate_count = "-"
+
+            communities_stats.append({
+                "identifier": community.hex_cid,
+                "member": community.hex_mid,
+                "classification": community.classification,
+                "global_time": community.global_time,
+                "median_global_time": community.acceptable_global_time -
+                                      community.dispersy_acceptable_global_time_range,
+                "acceptable_global_time_range": community.dispersy_acceptable_global_time_range,
+                "walk_attempts": community.msg_statistics.walk_attempt_count,
+                "walk_success": community.msg_statistics.walk_success_count,
+                "sync_bloom_created": community.sync_bloom_new,
+                "sync_bloom_reused": community.sync_bloom_reuse,
+                "sync_bloom_skipped": community.sync_bloom_skip,
+                "sync_messages_created": community.msg_statistics.created_count,
+                "packets_sent": community.msg_statistics.outgoing_count,
+                "packets_received": community.msg_statistics.total_received_count,
+                "packets_success": community.msg_statistics.success_count,
+                "packets_dropped": community.msg_statistics.drop_count,
+                "packets_delayed_sent": community.msg_statistics.delay_send_count,
+                "packets_delayed_received": community.msg_statistics.delay_received_count,
+                "packets_delayed_success": community.msg_statistics.delay_success_count,
+                "packets_delayed_timeout": community.msg_statistics.delay_timeout_count,
+                "candidates": candidate_count
+            })
+
+        return communities_stats
+
     def _create_community_data(self, dispersy):
         """
         Creates a dictionary of community statistics data.

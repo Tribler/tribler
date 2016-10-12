@@ -455,6 +455,12 @@ class Session(SessionConfigInterface):
         """
         return TriblerStatistics(self).get_dispersy_statistics()
 
+    def get_community_statistics(self):
+        """
+        Return a dictionary with general communities statistics.
+        """
+        return TriblerStatistics(self).get_community_statistics()
+
     #
     # Persistence and shutdown
     #

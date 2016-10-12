@@ -11,7 +11,8 @@ class StatisticsEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
 
-        child_handler_dict = {"tribler": StatisticsTriblerEndpoint, "dispersy": StatisticsDispersyEndpoint}
+        child_handler_dict = {"tribler": StatisticsTriblerEndpoint, "dispersy": StatisticsDispersyEndpoint,
+                              "communities": StatisticsCommunitiesEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
@@ -102,3 +103,44 @@ class StatisticsDispersyEndpoint(resource.Resource):
                 }
         """
         return json.dumps({'dispersy_statistics': self.session.get_dispersy_statistics()})
+
+
+class StatisticsCommunitiesEndpoint(resource.Resource):
+    """
+    This class handles requests regarding Dispersy communities statistics.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /statistics/communities
+
+        A GET request to this endpoint returns general statistics of active Dispersy communities.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/statistics/communities
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "community_statistics": [{
+                        "identifier": "48d04e922dec4430daf22400c9d4cc5a3a53b27d",
+                        "member": "a66ebac9d88a239ef348a030d5ed3837868fc06d",
+                        "candidates": 43,
+                        "global_time": 42,
+                        "classification", "ChannelCommunity",
+                        "packets_sent": 43,
+                        "packets_received": 89,
+                        ...
+                    }, { ... }]
+                }
+        """
+        return json.dumps({'community_statistics': self.session.get_community_statistics()})
