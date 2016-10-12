@@ -6,6 +6,7 @@ from endpoints.events_endpoint import EventsEndpoint
 from endpoints.multichain_endpoint import MultichainEndpoint
 from endpoints.mychannel_endpoint import MyChannelEndpoint
 from endpoints.search_endpoint import SearchEndpoint
+from endpoints.statistics_endpoint import StatisticsEndpoint
 from endpoints.torrents_endpoint import TorrentsEndpoint
 from endpoints.variables_endpoint import VariablesEndpoint
 from settings_endpoint import SettingsEndpoint
@@ -25,7 +26,7 @@ class RootEndpoint(resource.Resource):
         child_handler_dict = {"channels": ChannelsEndpoint, "mychannel": MyChannelEndpoint,
                               "settings": SettingsEndpoint, "variables": VariablesEndpoint,
                               "downloads": DownloadsEndpoint, "torrents": TorrentsEndpoint,
-                              "multichain": MultichainEndpoint}
+                              "multichain": MultichainEndpoint, "statistics": StatisticsEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls())
