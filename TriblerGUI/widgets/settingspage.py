@@ -22,6 +22,7 @@ class SettingsPage(QWidget):
         self.settings = None
 
     def on_developer_mode_checkbox_changed(self, event):
+        self.window().gui_settings.setValue("debug", self.window().developer_mode_enabled_checkbox.isChecked())
         self.window().left_menu_button_debug.setHidden(not self.window().developer_mode_enabled_checkbox.isChecked())
 
     def on_always_ask_location_checkbox_changed(self, event):
@@ -37,6 +38,7 @@ class SettingsPage(QWidget):
         settings = settings["settings"]
 
         # General settings
+        self.window().developer_mode_enabled_checkbox.setChecked(self.window().gui_settings.value("debug", False))
         self.window().family_filter_checkbox.setChecked(settings['general']['family_filter'])
         self.window().download_location_input.setText(settings['downloadconfig']['saveas'])
         self.window().always_ask_location_checkbox.setChecked(settings['Tribler']['showsaveas'])

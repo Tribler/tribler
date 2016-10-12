@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QTreeWidget, QSys
 
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 from TriblerGUI.core_manager import CoreManager
+from TriblerGUI.debug_window import DebugWindow
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
     PAGE_HOME, PAGE_EDIT_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
     PAGE_CHANNEL_DETAILS, PAGE_PLAYLIST_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, PAGE_LOADING, PAGE_DISCOVERING, \
@@ -54,6 +55,7 @@ class TriblerWindow(QMainWindow):
         self.feedback_dialog_is_open = False
         self.tribler_started = False
         self.tribler_settings = None
+        self.debug_window = None
         self.core_manager = CoreManager(self.api_port)
 
         sys.excepthook = self.on_exception
@@ -122,6 +124,9 @@ class TriblerWindow(QMainWindow):
         }
         """)
         self.top_search_bar.setCompleter(completer)
+
+        # Toggle debug if developer mode is enabled
+        self.window().left_menu_button_debug.setHidden(not self.gui_settings.value("debug", False))
 
         self.core_manager.start()
 
@@ -311,6 +316,10 @@ class TriblerWindow(QMainWindow):
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
+    def clicked_menu_button_debug(self):
+        self.debug_window = DebugWindow()
+        self.debug_window.show()
+
     def clicked_menu_button_subscriptions(self):
         self.deselect_all_menu_buttons(self.left_menu_button_subscriptions)
         self.subscribed_channels_page.load_subscribed_channels()
@@ -352,7 +361,7 @@ class TriblerWindow(QMainWindow):
     def resizeEvent(self, event):
         # Resize home page cells
         cell_width = self.home_page_table_view.width() / 3 - 3  # We have some padding to the right
-        cell_height = cell_width / 2
+        cell_height = cell_width / 2 + 60
 
         for i in range(0, 3):
             self.home_page_table_view.setColumnWidth(i, cell_width)
@@ -363,7 +372,6 @@ class TriblerWindow(QMainWindow):
     def exit_full_screen(self):
         self.top_bar.show()
         self.left_menu.show()
-        self.statusBar.show()
         self.showNormal()
 
     def closeEvent(self, close_event):

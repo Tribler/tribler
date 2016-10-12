@@ -799,7 +799,7 @@ color: white;
             </size>
            </property>
            <property name="checkable">
-            <bool>true</bool>
+            <bool>false</bool>
            </property>
            <property name="flat">
             <bool>true</bool>
@@ -900,7 +900,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>4</number>
+         <number>7</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -7305,7 +7305,7 @@ color: white;
 </string>
                 </property>
                 <property name="currentIndex">
-                 <number>3</number>
+                 <number>0</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -8646,6 +8646,22 @@ border-top: 1px solid #555;
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>left_menu_button_debug</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_debug()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>94</x>
+     <y>327</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>on_top_search_button_click()</slot>
@@ -8663,5 +8679,6 @@ border-top: 1px solid #555;
   <slot>on_playlist_item_click(QListWidgetItem*)</slot>
   <slot>on_edit_channel_clicked()</slot>
   <slot>clicked_menu_button_discovered()</slot>
+  <slot>clicked_menu_button_debug()</slot>
  </slots>
 </ui>
