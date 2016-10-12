@@ -89,3 +89,4 @@ Endpoints
    settings
    events
    debug
+   statistics
