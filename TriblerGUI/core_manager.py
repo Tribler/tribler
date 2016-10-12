@@ -31,10 +31,10 @@ class CoreManager(object):
         self.shutting_down = False
 
     def start(self):
-        core_script_path = os.path.join(get_base_path(), 'scripts', 'start_core.py')
+        core_script_path = os.path.join(get_base_path(), 'scripts',
+                                        'start_fake_core.py' if START_FAKE_API else 'start_core.py')
         if START_FAKE_API:
-            self.core_process.start("python %s/scripts/start_fake_core.py %d" %
-                                    (os.path.dirname(TriblerGUI.__file__), self.api_port))
+            self.core_process.start("python %s %d" % (core_script_path, self.api_port))
         else:
             self.core_process.start("python %s -n tribler" % core_script_path)
 
