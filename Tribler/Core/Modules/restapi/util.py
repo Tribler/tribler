@@ -9,6 +9,8 @@ from twisted.web import http
 
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE
 from Tribler.Core.simpledefs import NTFY_TORRENTS
+from Tribler.community.channel.community import ChannelCommunity
+from Tribler.dispersy.exception import CommunityNotFoundException
 
 
 def return_handled_exception(request, exception):
@@ -43,12 +45,30 @@ def convert_db_channel_to_json(channel, include_rel_score=False):
     """
     res_json = {"id": channel[0], "dispersy_cid": channel[1].encode('hex'), "name": channel[2],
                 "description": channel[3], "votes": channel[5], "torrents": channel[4], "spam": channel[6],
-                "modified": channel[8], "subscribed": (channel[7] == VOTE_SUBSCRIBE)}
+                "modified": channel[8], "subscribed": (channel[7] == VOTE_SUBSCRIBE),
+                "can_edit": can_edit_channel(channel[1], channel[7])}
 
     if include_rel_score:
         res_json["relevance_score"] = channel[9]
 
     return res_json
+
+
+def can_edit_channel(channel_id, channel_vote):
+    """
+    This method returns whether the channel can be edited or not.
+    """
+    from Tribler.Core.Session import Session
+    if Session.get_instance().get_dispersy():
+        dispersy = Session.get_instance().get_dispersy_instance()
+        try:
+            cmty = dispersy.get_community(channel_id)
+            channel_type, is_mod = cmty.get_channel_mode()
+            if is_mod or channel_vote == VOTE_SUBSCRIBE and channel_type == ChannelCommunity.CHANNEL_OPEN:
+                return True
+        except CommunityNotFoundException:
+            return False
+    return False
 
 
 def convert_db_torrent_to_json(torrent, include_rel_score=False):
