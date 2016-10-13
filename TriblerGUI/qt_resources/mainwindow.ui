@@ -862,7 +862,7 @@ border-radius: 1px;</string>
                <string notr="true">border: none;
 color: #A0A0A0;
 font-size: 14px;
-margin-left: 1px;</string>
+padding-left: 16px;</string>
               </property>
               <property name="text">
                <string>VIDEO PLAYLIST</string>
@@ -900,7 +900,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>7</number>
+         <number>5</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1756,7 +1756,7 @@ font-size: 14px;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>8</number>
+                 <number>7</number>
                 </property>
                 <widget class="QWidget" name="edit_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -3303,7 +3303,13 @@ color: white;
                       </spacer>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="edit_channel_manage_playlist_save_button">
+                      <widget class="EllipseButton" name="edit_channel_manage_playlist_save_button">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
                        <property name="minimumSize">
                         <size>
                          <width>0</width>
@@ -3320,10 +3326,12 @@ color: white;
                         <cursorShape>PointingHandCursor</cursorShape>
                        </property>
                        <property name="styleSheet">
-                        <string notr="true"/>
+                        <string notr="true">border-radius: 12px;
+padding-left: 4px;
+padding-right: 4px;</string>
                        </property>
                        <property name="text">
-                        <string>Save</string>
+                        <string>SAVE</string>
                        </property>
                       </widget>
                      </item>
@@ -6509,10 +6517,6 @@ font-size: 12px;</string>
                        <property name="text">
                         <string>...</string>
                        </property>
-                       <property name="icon">
-                        <iconset>
-                         <normaloff>../images/full_screen.png</normaloff>../images/full_screen.png</iconset>
-                       </property>
                        <property name="iconSize">
                         <size>
                          <width>24</width>
@@ -7157,7 +7161,7 @@ padding-left: 2px;</string>
            </widget>
           </item>
           <item>
-           <widget class="QWidget" name="widget_10" native="true">
+           <widget class="QWidget" name="downloads_splitter_container" native="true">
             <layout class="QGridLayout" name="gridLayout_3">
              <property name="leftMargin">
               <number>0</number>
@@ -7175,7 +7179,7 @@ padding-left: 2px;</string>
               <number>-1</number>
              </property>
              <item row="0" column="0">
-              <widget class="QSplitter" name="splitter">
+              <widget class="QSplitter" name="downloads_splitter">
                <property name="orientation">
                 <enum>Qt::Vertical</enum>
                </property>
@@ -7379,7 +7383,7 @@ color: white;
                       <item row="0" column="1">
                        <widget class="QLabel" name="download_detail_name_label">
                         <property name="text">
-                         <string>Ubuntu-test</string>
+                         <string/>
                         </property>
                        </widget>
                       </item>
@@ -7396,7 +7400,7 @@ color: white;
                       <item row="1" column="1">
                        <widget class="QLabel" name="download_detail_status_label">
                         <property name="text">
-                         <string>Checking</string>
+                         <string/>
                         </property>
                        </widget>
                       </item>
@@ -7413,7 +7417,7 @@ color: white;
                       <item row="2" column="1">
                        <widget class="QLabel" name="download_detail_filesize_label">
                         <property name="text">
-                         <string>2.3GB in 3 file(s)</string>
+                         <string/>
                         </property>
                        </widget>
                       </item>
@@ -7430,7 +7434,7 @@ color: white;
                       <item row="3" column="1">
                        <widget class="QLabel" name="download_detail_health_label">
                         <property name="text">
-                         <string>0 seeders, 0 leechers (current)</string>
+                         <string/>
                         </property>
                        </widget>
                       </item>
@@ -7447,7 +7451,7 @@ color: white;
                       <item row="4" column="1">
                        <widget class="QLabel" name="download_detail_infohash_label">
                         <property name="text">
-                         <string>aabbccddee</string>
+                         <string/>
                         </property>
                        </widget>
                       </item>
@@ -7464,7 +7468,7 @@ color: white;
                       <item row="5" column="1">
                        <widget class="QLabel" name="download_detail_availability_label">
                         <property name="text">
-                         <string>0.00</string>
+                         <string/>
                         </property>
                        </widget>
                       </item>

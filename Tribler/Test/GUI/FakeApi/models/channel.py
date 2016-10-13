@@ -33,7 +33,7 @@ class Channel:
         playlist = Playlist(len(self.playlists) + 1, name, description)
 
         if add_random_torrents:
-            picked_torrents = sample(self.torrents, randint(0, min(20, len(self.torrents))))
+            picked_torrents = sample(self.torrents, randint(1, min(20, len(self.torrents))))
             for torrent in picked_torrents:
                 playlist.add_torrent(torrent)
 
@@ -55,4 +55,10 @@ class Channel:
             if playlist.id == int(pid):
                 return playlist
 
+        return None
+
+    def get_torrent_with_infohash(self, infohash):
+        for torrent in self.torrents:
+            if torrent.infohash == infohash:
+                return torrent
         return None

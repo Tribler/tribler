@@ -1,14 +1,17 @@
 import os
+from PyQt5.QtGui import QIcon
 
 from PyQt5.QtWidgets import QWidget, QFileDialog
 from TriblerGUI.defs import PAGE_EDIT_CHANNEL_TORRENTS
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.utilities import get_image_path
 
 
 class CreateTorrentPage(QWidget):
 
     def initialize(self, identifier):
         self.channel_identifier = identifier
+        self.window().manage_channel_create_torrent_back.setIcon(QIcon(get_image_path('page_back.png')))
 
         self.window().create_torrent_name_field.setText('')
         self.window().create_torrent_description_field.setText('')

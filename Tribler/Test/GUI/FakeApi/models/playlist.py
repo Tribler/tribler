@@ -12,6 +12,14 @@ class Playlist:
     def add_torrent(self, torrent):
         self.torrents.add(torrent)
 
+    def remove_torrent(self, infohash):
+        torrent_to_delete = None
+        for torrent in self.torrents:
+            if torrent.infohash == infohash:
+                torrent_to_delete = torrent
+                break
+        self.torrents.remove(torrent_to_delete)
+
     def get_json(self):
         torrents_json = []
         for torrent in self.torrents:

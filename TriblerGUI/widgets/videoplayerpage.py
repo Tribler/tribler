@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget
 from Tribler import vlc
 from TriblerGUI.defs import *
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
-from TriblerGUI.utilities import is_video_file, seconds_to_string
+from TriblerGUI.utilities import is_video_file, seconds_to_string, get_image_path
 
 
 class VideoPlayerPage(QWidget):
@@ -38,13 +38,13 @@ class VideoPlayerPage(QWidget):
         self.window().video_player_full_screen_button.clicked.connect(self.on_full_screen_button_click)
 
         # Create play/pause and volume button images
-        self.play_icon = QIcon(QPixmap("images/play.png"))
-        self.pause_icon = QIcon(QPixmap("images/pause.png"))
-        self.menu_icon = QIcon(QPixmap("images/menu_white.png"))
-        self.volume_on_icon = QIcon(QPixmap("images/volume_on.png"))
-        self.volume_off_icon = QIcon(QPixmap("images/volume_off.png"))
+        self.play_icon = QIcon(QPixmap(get_image_path("play.png")))
+        self.pause_icon = QIcon(QPixmap(get_image_path("pause.png")))
+        self.volume_on_icon = QIcon(QPixmap(get_image_path("volume_on.png")))
+        self.volume_off_icon = QIcon(QPixmap(get_image_path("volume_off.png")))
         self.window().video_player_play_pause_button.setIcon(self.play_icon)
         self.window().video_player_volume_button.setIcon(self.volume_on_icon)
+        self.window().video_player_full_screen_button.setIcon(QIcon(QPixmap(get_image_path("full_screen.png"))))
 
         if sys.platform.startswith('linux'):
             self.mediaplayer.set_xwindow(self.window().video_player_widget.winId())
