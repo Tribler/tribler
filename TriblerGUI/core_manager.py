@@ -1,6 +1,6 @@
 import os
 import sys
-from PyQt5.QtCore import QProcess, QProcessEnvironment
+from PyQt5.QtCore import QProcess, QProcessEnvironment, QTimer
 from PyQt5.QtWidgets import QApplication
 import TriblerGUI
 
@@ -29,6 +29,7 @@ class CoreManager(object):
         self.events_manager = EventRequestManager(api_port)
 
         self.shutting_down = False
+        self.recorded_stderr = ""
 
     def start(self):
         core_script_path = os.path.join(get_base_path(), 'scripts',
@@ -49,8 +50,27 @@ class CoreManager(object):
     def on_ready_read_stdout(self):
         print("Tribler core: %s" % str(self.core_process.readAllStandardOutput()).rstrip())
 
+    def throw_core_exception(self):
+        raise RuntimeError(self.recorded_stderr)
+
     def on_ready_read_stderr(self):
-        sys.stderr.write(self.core_process.readAllStandardError())
+        std_output = self.core_process.readAllStandardError()
+        self.recorded_stderr += std_output
+
+        # Check whether we have an exception
+        has_exception = False
+        for err_line in std_output.split('\n'):
+            if "Traceback" in err_line:
+                has_exception =True
+                break
+
+        if has_exception:
+            self.timer = QTimer()
+            self.timer.setSingleShot(True)
+            self.timer.timeout.connect(self.throw_core_exception)
+            self.timer.start(1000)
+
+        sys.stderr.write(std_output)
         sys.stderr.flush()
 
     def on_finished(self):
