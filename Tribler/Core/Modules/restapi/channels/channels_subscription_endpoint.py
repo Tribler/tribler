@@ -43,6 +43,7 @@ class ChannelsSubscribedEndpoint(BaseChannelsEndpoint):
                         "torrents": 3,
                         "spam": 5,
                         "modified": 14598395,
+                        "can_edit": True,
                     }, ...]
                 }
         """

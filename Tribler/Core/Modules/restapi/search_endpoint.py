@@ -55,6 +55,7 @@ class SearchEndpoint(resource.Resource):
                         "torrents": 3,
                         "spam": 5,
                         "modified": 14598395,
+                        "can_edit": False
                     }
                 }
         """

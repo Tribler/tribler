@@ -123,7 +123,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
                                           u'dispersy_cid': unicode('rand'.encode('hex')),
                                           u'modified': int(time.time()),
                                           u'name': u'Test Channel', u'spam': 0,
-                                          u'subscribed': True, u'torrents': 0, u'votes': 0}]}
+                                          u'subscribed': True, u'torrents': 0, u'votes': 0, u'can_edit': False}]}
 
         cid = self.insert_channel_in_db('rand', 42, expected_json[u'subscribed'][0][u'name'],
                                         expected_json[u'subscribed'][0][u'description'])
