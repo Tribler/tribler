@@ -232,22 +232,21 @@ class RemoteTorrentHandler(TaskManager):
 
         del self.torrent_callbacks[infohash]
 
-    def getQueueSize(self):
-        def getQueueSize(qname, requesters):
+    def get_queue_size_stats(self):
+        def get_queue_size_stats(qname, requesters):
             qsize = {}
             for requester in requesters.itervalues():
                 qsize[requester.priority] = requester.pending_request_queue_size
             items = qsize.items()
-            if items:
-                items.sort()
-                return "%s: " % qname + ",".join(map(lambda a: "%d/%d" % a, items))
-            return ''
-        return ", ".join([qstring for qstring in [getQueueSize("TFTP", self.torrent_requesters),
-                                                  getQueueSize("DHY", self.magnet_requesters),
-                                                  getQueueSize("Msg", self.torrent_message_requesters)] if qstring])
+            items.sort()
+            return {"type": qname, "size_stats": [{"priority": prio, "size": size} for prio, size in items]}
 
-    def getQueueSuccess(self):
-        def getQueueSuccess(qname, requesters):
+        return [stats_dict for stats_dict in get_queue_size_stats("TFTP", self.torrent_requesters),
+                get_queue_size_stats("DHT", self.magnet_requesters),
+                get_queue_size_stats("Msg", self.torrent_message_requesters)]
+
+    def get_queue_stats(self):
+        def get_queue_stats(qname, requesters):
             pending_requests = success = failed = 0
             for requester in requesters.itervalues():
                 pending_requests += requester.pending_request_queue_size
@@ -255,22 +254,21 @@ class RemoteTorrentHandler(TaskManager):
                 failed += requester.requests_failed
             total_requests = pending_requests + success + failed
 
-            return "%s: %d/%d" % (qname, success, total_requests), \
-                   "%s: pending %d, success %d, failed %d, total %d" % (
-                       qname, pending_requests, success, failed, total_requests)
-        return [(qstring, qtooltip) for qstring, qtooltip in [getQueueSuccess("TFTP", self.torrent_requesters),
-                                                              getQueueSuccess("DHT", self.magnet_requesters),
-                                                              getQueueSuccess("Msg", self.torrent_message_requesters)] if qstring]
+            return {"type": qname, "total": total_requests, "success": success,
+                    "pending": pending_requests, "failed": failed}
 
-    def getBandwidthSpent(self):
-        def getQueueBW(qname, requesters):
+        return [stats_dict for stats_dict in [get_queue_stats("TFTP", self.torrent_requesters),
+                                              get_queue_stats("DHT", self.magnet_requesters),
+                                              get_queue_stats("Msg", self.torrent_message_requesters)]]
+
+    def get_bandwidth_stats(self):
+        def get_bandwidth_stats(qname, requesters):
             bw = 0
             for requester in requesters.itervalues():
                 bw += requester.total_bandwidth
-            if bw:
-                return "%s: " % qname + "%.1f KB" % (bw / 1024.0)
-            return ''
-        return ", ".join([qstring for qstring in [getQueueBW("TQueue", self.torrent_requesters), getQueueBW("DQueue", self.magnet_requesters)] if qstring])
+            return {"type": qname, "bandwidth": bw}
+        return [stats_dict for stats_dict in [get_bandwidth_stats("TQueue", self.torrent_requesters),
+                                              get_bandwidth_stats("DQueue", self.magnet_requesters)]]
 
 
 class Requester(object):
