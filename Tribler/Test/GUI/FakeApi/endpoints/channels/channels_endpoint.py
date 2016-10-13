@@ -171,6 +171,9 @@ class ChannelsModifyPlaylistEndpoint(BaseChannelsEndpoint):
         self.cid = cid
         self.playlist_id = playlist_id
 
+    def getChild(self, path, request):
+        return ChannelsModifyPlaylistTorrentsEndpoint(self.cid, self.playlist_id, path)
+
     def render_DELETE(self, request):
         channel = tribler_utils.tribler_data.get_channel_with_cid(self.cid)
         if channel is None:
@@ -208,6 +211,28 @@ class ChannelsModifyPlaylistEndpoint(BaseChannelsEndpoint):
 
         return json.dumps({"modified": True})
 
+
+class ChannelsModifyPlaylistTorrentsEndpoint(BaseChannelsEndpoint):
+
+    def __init__(self, cid, playlist_id, infohash):
+        BaseChannelsEndpoint.__init__(self)
+        self.cid = cid
+        self.playlist_id = playlist_id
+        self.infohash = infohash
+
+    def render_PUT(self, request):
+        channel = tribler_utils.tribler_data.get_channel_with_cid(self.cid)
+        playlist = channel.get_playlist_with_id(self.playlist_id)
+        playlist.add_torrent(channel.get_torrent_with_infohash(self.infohash))
+
+        return json.dumps({"added": True})
+
+    def render_DELETE(self, request):
+        channel = tribler_utils.tribler_data.get_channel_with_cid(self.cid)
+        playlist = channel.get_playlist_with_id(self.playlist_id)
+        playlist.remove_torrent(self.infohash)
+
+        return json.dumps({"removed": True})
 
 
 class ChannelsPopularEndpoint(BaseChannelsEndpoint):

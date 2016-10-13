@@ -409,5 +409,66 @@ class TriblerGUITest(AbstractTriblerGUITest):
         first_widget = window.discovered_channels_list.itemWidget(window.discovered_channels_list.item(0))
         QTest.mouseClick(first_widget, Qt.LeftButton)
 
+    def test_debug_pane(self):
+        QTest.mouseClick(window.left_menu_button_settings, Qt.LeftButton)
+        QTest.mouseClick(window.settings_general_button, Qt.LeftButton)
+        self.wait_for_settings()
+        if not window.developer_mode_enabled_checkbox.isChecked():
+            QTest.mouseClick(window.developer_mode_enabled_checkbox, Qt.LeftButton)
+
+        QTest.mouseClick(window.left_menu_button_debug, Qt.LeftButton)
+        self.screenshot(window.debug_window, name="debug_panel_just_opened")
+        self.wait_for_list_populated(window.debug_window.general_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_general_tab")
+
+        window.debug_window.debug_tab_widget.setCurrentIndex(1)
+        self.wait_for_list_populated(window.debug_window.requests_tree_widget)
+        self.screenshot(window.debug_window, name="requests_panel_general_tab")
+
+        window.debug_window.debug_tab_widget.setCurrentIndex(2)
+        self.wait_for_list_populated(window.debug_window.multichain_tree_widget)
+        self.screenshot(window.debug_window, name="requests_panel_multichain_tab")
+
+        window.debug_window.debug_tab_widget.setCurrentIndex(3)
+        self.wait_for_list_populated(window.debug_window.dispersy_general_tree_widget)
+        self.screenshot(window.debug_window, name="requests_panel_dispersy_tab")
+
+        window.debug_window.dispersy_tab_widget.setCurrentIndex(1)
+        self.wait_for_list_populated(window.debug_window.communities_tree_widget)
+        self.screenshot(window.debug_window, name="requests_panel_communities_tab")
+
+        window.debug_window.close()
+
+    def test_create_torrent(self):
+        QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
+        self.wait_for_variable("edit_channel_page.channel_overview")
+        QTest.mouseClick(window.edit_channel_torrents_button, Qt.LeftButton)
+        self.wait_for_list_populated(window.edit_channel_torrents_list)
+        window.edit_channel_page.on_create_torrent_from_files()
+        self.screenshot(window, name="create_torrent_page")
+        QTest.mouseClick(window.manage_channel_create_torrent_back, Qt.LeftButton)
+
+    def test_manage_playlist(self):
+        QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
+        self.wait_for_variable("edit_channel_page.channel_overview")
+        QTest.mouseClick(window.edit_channel_playlists_button, Qt.LeftButton)
+        self.wait_for_list_populated(window.edit_channel_playlists_list)
+        first_widget = window.edit_channel_playlists_list.itemWidget(window.edit_channel_playlists_list.item(0))
+        QTest.mouseClick(first_widget, Qt.LeftButton)
+        QTest.mouseClick(window.edit_channel_playlist_manage_torrents_button, Qt.LeftButton)
+        self.wait_for_list_populated(window.playlist_manage_in_playlist_list)
+        self.screenshot(window, name="manage_playlist_before")
+
+        # Swap the first item of the lists around
+        window.playlist_manage_in_playlist_list.setCurrentRow(0)
+        QTest.mouseClick(window.playlist_manage_remove_from_playlist, Qt.LeftButton)
+
+        window.playlist_manage_in_channel_list.setCurrentRow(0)
+        QTest.mouseClick(window.playlist_manage_add_to_playlist, Qt.LeftButton)
+
+        self.screenshot(window, name="manage_playlist_after")
+
+        QTest.mouseClick(window.edit_channel_manage_playlist_save_button, Qt.LeftButton)
+
 if __name__ == "__main__":
     unittest.main()
