@@ -33,6 +33,8 @@ class ChannelPage(QWidget):
         self.window().num_subs_label.setText(str(channel_info['votes']))
         self.window().subscription_widget.initialize_with_channel(channel_info)
 
+        self.window().edit_channel_button.setHidden(not channel_info['can_edit'])
+
     def update_result_list(self):
         if self.loaded_channels and self.loaded_playlists:
             self.window().channel_torrents_list.set_data_items(self.playlists + self.torrents)

@@ -47,7 +47,8 @@ class Channel:
     def get_json(self):
         return {"id": self.id, "name": self.name, "description": self.description, "votes": self.votes,
                 "torrents": len(self.torrents), "spam": self.spam_votes, "modified": self.modified,
-                "subscribed": self.subscribed, "dispersy_cid": self.cid, "relevance_score": self.relevance_score}
+                "subscribed": self.subscribed, "dispersy_cid": self.cid, "relevance_score": self.relevance_score,
+                "can_edit": self.subscribed}
 
     def get_playlist_with_id(self, pid):
         for playlist in self.playlists:
