@@ -16,7 +16,9 @@ class DebugWindow(QMainWindow):
         self.setWindowTitle("Tribler debug pane")
 
         self.window().debug_tab_widget.setCurrentIndex(0)
+        self.window().dispersy_tab_widget.setCurrentIndex(0)
         self.window().debug_tab_widget.currentChanged.connect(self.tab_changed)
+        self.window().dispersy_tab_widget.currentChanged.connect(self.dispersy_tab_changed)
         self.load_general_tab()
 
     def tab_changed(self, index):
@@ -26,6 +28,14 @@ class DebugWindow(QMainWindow):
             self.load_requests_tab()
         elif index == 2:
             self.load_multichain_tab()
+        elif index == 3:
+            self.dispersy_tab_changed(self.window().dispersy_tab_widget.currentIndex())
+
+    def dispersy_tab_changed(self, index):
+        if index == 0:
+            self.load_dispersy_general_tab()
+        elif index == 1:
+            self.load_dispersy_communities_tab()
 
     def create_and_add_widget_item(self, key, value, widget):
         item = QTreeWidgetItem(widget)
@@ -67,3 +77,26 @@ class DebugWindow(QMainWindow):
         self.window().multichain_tree_widget.clear()
         for key, value in data["statistics"].iteritems():
             self.create_and_add_widget_item(key, value, self.window().multichain_tree_widget)
+
+    def load_dispersy_general_tab(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("statistics/dispersy", self.on_dispersy_general_stats)
+
+    def on_dispersy_general_stats(self, data):
+        self.window().dispersy_general_tree_widget.clear()
+        for key, value in data["dispersy_statistics"].iteritems():
+            self.create_and_add_widget_item(key, value, self.window().dispersy_general_tree_widget)
+
+    def load_dispersy_communities_tab(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("statistics/communities", self.on_dispersy_community_stats)
+
+    def on_dispersy_community_stats(self, data):
+        self.window().communities_tree_widget.clear()
+        for community in data["community_statistics"]:
+            item = QTreeWidgetItem(self.window().communities_tree_widget)
+            item.setText(0, community["classification"])
+            item.setText(1, community["identifier"][:6])
+            item.setText(2, community["member"][:6])
+            item.setText(3, "%s" % community["candidates"])
+            self.window().communities_tree_widget.addTopLevelItem(item)
