@@ -403,7 +403,7 @@ class RSSFeedSource(BoostingSource):
         failure.trap(CancelledError, Error)
         self._logger.error("Aborting load on : %s. Reason : %s.", rss_feed, failure.getErrorMessage())
 
-        if "503" in failure.getErrorMessage():
+        if "503" in failure.getErrorMessage() or "200" in failure.getErrorMessage():
             self.register_task(str(self.source)+"_load_delay", reactor.callLater(10, self._load, rss_feed))
             return
 
