@@ -10,6 +10,7 @@ from time import strftime, time
 from traceback import print_exc
 
 # pylint complaining if wx imported before those three
+from twisted.internet import reactor
 import wx
 
 from Tribler.Core.Category.Category import Category
@@ -38,6 +39,8 @@ from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.routing import Hop
 
 # width size of channel grid
+from Tribler.dispersy.taskmanager import TaskManager
+
 COLUMN_SIZE = 3
 # how long the string before it cut
 CHANNEL_STRING_LENGTH = 35
@@ -47,10 +50,11 @@ TORRENT_FETCHED = 5
 MAX_CHANNEL_SHOW = 9
 
 
-class Home(wx.Panel):
+class Home(wx.Panel, TaskManager):
 
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
+        TaskManager.__init__(self)
         self.guiutility = GUIUtility.getInstance()
         self.gui_image_manager = GuiImageManager.getInstance()
         self.session = self.guiutility.utility.session
@@ -341,8 +345,11 @@ class Home(wx.Panel):
         self.channel_list_ready = not repeat
 
         # try to update the popular channel once in a while
-        self.session.lm.threadpool.add_task_in_thread(self.refresh_channels_home, 10,
-                                                      task_name=str(self.__class__)+"_refreshchannel")
+        def schedule_call():
+            delayed_call = reactor.callLater(10, reactor.callInThread, self.refresh_channels_home)
+            self.register_task(str(self.__class__) + "_refreshchannel", delayed_call)
+
+        reactor.callFromThread(schedule_call)
 
     def on_check_channels_cm(self, evt):
         """
