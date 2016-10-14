@@ -315,7 +315,7 @@ class Home(wx.Panel):
                 if not dict_channels.get(d) or not len(self.chn_torrents.get(d)):
                     continue
 
-                if self.session.get_creditmining_enable():
+                if self.session.config.get_credit_mining_enabled():
                     self.chn_sizer.Add(
                         self.create_channel_item(self.channel_panel, dict_channels.get(d), self.chn_torrents.get(d),
                                                  max_favourite), 0, wx.ALL | wx.EXPAND)
@@ -409,7 +409,7 @@ class Stats(wx.Panel):
         vSizer.Add(hSizer, 1, wx.EXPAND)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        if self.guiutility.utility.session.get_enable_multichain():
+        if self.guiutility.utility.session.config.get_multichain_enabled():
             hSizer.Add(MultichainPanel(self), 1, wx.EXPAND | wx.RIGHT, 7)
         hSizer.Add(NewTorrentPanel(self), 1, wx.EXPAND | wx.RIGHT, 7)
         hSizer.Add(PopularTorrentPanel(self), 1, wx.EXPAND, 7)

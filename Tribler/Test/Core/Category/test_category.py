@@ -54,3 +54,8 @@ class TriblerCategoryTest(AbstractServer):
         test_category = Category()
         self.assertEqual(test_category.category_info, [])
 
+    def tearDown(self, annotate=True):
+        super(TriblerCategoryTest, self).tearDown(annotate=annotate)
+
+        import Tribler.Core.Category.Category as category_file
+        category_file.CATEGORY_CONFIG_FILE = "category.conf"

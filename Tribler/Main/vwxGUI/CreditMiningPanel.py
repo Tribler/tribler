@@ -257,7 +257,7 @@ class CreditMiningPanel(FancyPanel):
         self.SetBorderColour(SEPARATOR_GREY)
         self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
 
-        if not self.utility.session.get_creditmining_enable():
+        if not self.utility.session.config.get_credit_mining_enabled():
             wx.StaticText(self, -1, 'Credit mining inactive')
             return
 

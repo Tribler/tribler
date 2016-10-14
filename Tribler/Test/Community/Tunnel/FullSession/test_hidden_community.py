@@ -51,8 +51,8 @@ class TestHiddenTunnelCommunity(TestTunnelBase):
 
         self.tunnel_community_seeder.settings.min_circuits = 0
         self.tunnel_community_seeder.settings.max_circuits = 0
-        self.session2.set_anon_proxy_settings(
-            2, ("127.0.0.1", self.session2.get_tunnel_community_socks5_listen_ports()))
+        self.session2.config.set_anon_proxy_settings(
+            2, ("127.0.0.1", self.session2.config.get_tunnel_community_socks5_listen_ports()))
         self.session2.set_download_states_callback(download_states_callback, False)
 
         # Wait for the introduction point to announce itself to the DHT
@@ -60,7 +60,7 @@ class TestHiddenTunnelCommunity(TestTunnelBase):
             def cb_dht(info_hash, peers, source):
                 self._logger.debug("announced %s to the DHT", info_hash.encode('hex'))
                 self.dht_deferred.callback(None)
-            port = community.trsession.get_dispersy_port()
+            port = community.trsession.config.get_dispersy_port()
             community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
 
         for community in self.tunnel_communities:

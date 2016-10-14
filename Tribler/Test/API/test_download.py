@@ -34,8 +34,8 @@ class TestDownload(TestAsServer):
         """ override TestAsServer """
         super(TestDownload, self).setUpPreSession()
 
-        self.config.set_libtorrent(True)
-        self.config.set_dispersy(False)
+        self.config.set_libtorrent_enabled(True)
+        self.config.set_dispersy_enabled(False)
 
     def on_download(self, download):
         self._logger.debug("Download started: %s", download)

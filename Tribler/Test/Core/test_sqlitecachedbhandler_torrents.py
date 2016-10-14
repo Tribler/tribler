@@ -20,7 +20,7 @@ class TestTorrentFullSessionDBHandler(AbstractDB):
 
     def setUpPreSession(self):
         super(TestTorrentFullSessionDBHandler, self).setUpPreSession()
-        self.config.set_megacache(True)
+        self.config.set_megacache_enabled(True)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -40,7 +40,7 @@ class TestTorrentDBHandler(AbstractDB):
 
     def setUpPreSession(self):
         super(TestTorrentDBHandler, self).setUpPreSession()
-        self.config.set_megacache(True)
+        self.config.set_megacache_enabled(True)
         self.config.set_torrent_store(True)
 
     @blocking_call_on_reactor_thread
@@ -237,7 +237,7 @@ class TestTorrentDBHandler(AbstractDB):
     @blocking_call_on_reactor_thread
     def test_freeSpace(self):
         # Manually set the torrent store because register is not called.
-        self.session.lm.torrent_store = LevelDbStore(self.session.get_torrent_store_dir())
+        self.session.lm.torrent_store = LevelDbStore(self.session.config.get_torrent_store_dir())
         old_res = self.tdb.getNumberCollectedTorrents()
         self.tdb.freeSpace(20)
         res = self.tdb.getNumberCollectedTorrents()

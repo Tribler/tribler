@@ -58,10 +58,10 @@ class RemoteTorrentHandler(TaskManager):
 
     def initialize(self):
         self.dispersy = self.session.get_dispersy_instance()
-        self.max_num_torrents = self.session.get_torrent_collecting_max_torrents()
+        self.max_num_torrents = self.session.config.get_torrent_collecting_max_torrents()
 
         self.torrent_db = None
-        if self.session.get_megacache():
+        if self.session.config.get_megacache_enabled():
             self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
             self.__check_overflow()
 

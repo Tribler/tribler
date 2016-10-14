@@ -1,10 +1,10 @@
 from binascii import hexlify
 
 from nose.tools import raises
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
+from Tribler.Core.Config.tribler_config import TriblerConfig
 
 from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException, DuplicateTorrentFileError
 from Tribler.Core.leveldbstore import LevelDbStore
@@ -20,17 +20,19 @@ class TestSession(TriblerCoreTest):
 
     @raises(OperationNotEnabledByConfigurationException)
     def test_torrent_store_not_enabled(self):
-        config = SessionStartupConfig()
+        config = TriblerConfig()
+        config.set_state_dir(self.getStateDir())
         config.set_torrent_store(False)
         session = Session(config, ignore_singleton=True)
         session.delete_collected_torrent(None)
 
     def test_torrent_store_delete(self):
-        config = SessionStartupConfig()
+        config = TriblerConfig()
+        config.set_state_dir(self.getStateDir())
         config.set_torrent_store(True)
         session = Session(config, ignore_singleton=True)
         # Manually set the torrent store as we don't want to start the session.
-        session.lm.torrent_store = LevelDbStore(session.get_torrent_store_dir())
+        session.lm.torrent_store = LevelDbStore(session.config.get_torrent_store_dir())
         session.lm.torrent_store[hexlify("fakehash")] = "Something"
         self.assertEqual("Something", session.lm.torrent_store[hexlify("fakehash")])
         session.delete_collected_torrent("fakehash")
@@ -65,7 +67,8 @@ class TestSession(TriblerCoreTest):
 
             channel_manager = ChannelManager()
 
-        config = SessionStartupConfig()
+        config = TriblerConfig()
+        config.set_state_dir(self.getStateDir())
         session = Session(config, ignore_singleton=True)
         session.lm = LmMock()
         session.create_channel("name", "description", "open")
@@ -78,13 +81,15 @@ class TestSessionAsServer(TestAsServer):
 
     def setUpPreSession(self):
         super(TestSessionAsServer, self).setUpPreSession()
-        self.config.set_megacache(True)
-        self.config.set_torrent_collecting(True)
-        self.config.set_enable_channel_search(True)
-        self.config.set_dispersy(True)
+        self.config.set_megacache_enabled(True)
+        self.config.set_torrent_collecting_enabled(True)
+        self.config.set_channel_search_enabled(True)
+        self.config.set_dispersy_enabled(True)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestSessionAsServer, self).setUp(autoload_discovery=autoload_discovery)
+        yield super(TestSessionAsServer, self).setUp(autoload_discovery=autoload_discovery)
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
 
     @deferred(timeout=10)
@@ -132,7 +137,7 @@ class TestSessionAsServer(TestAsServer):
         return test_deferred
 
     def test_load_checkpoint(self):
-        self.session.tribler_config.set_download_state("abc", "stop")
+        self.session.config.set_download_state("abc", "stop")
         self.load_checkpoint_called = False
 
         def verify_load_checkpoint_call(initialdlstatus_dict={}):

@@ -5,36 +5,10 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
-
-class FakeTriblerSession:
-
-    def __init__(self, state_dir):
-        self.notifier = Notifier(False)
-        self.state_dir = state_dir
-
-    def get_libtorrent_utp(self):
-        return True
-
-    def get_libtorrent_proxy_settings(self):
-        return (0, None, None)
-
-    def get_anon_proxy_settings(self):
-        return (2, ('127.0.0.1', [1338]), None)
-
-    def get_listen_port(self):
-        return 1337
-
-    def get_anon_listen_port(self):
-        return 1338
-
-    def get_state_dir(self):
-        return self.state_dir
-
-    def set_listen_port_runtime(self, _):
-        pass
 
 class TestLibtorrentMgr(AbstractServer):
 
@@ -45,7 +19,20 @@ class TestLibtorrentMgr(AbstractServer):
     @inlineCallbacks
     def setUp(self, annotate=True):
         yield super(TestLibtorrentMgr, self).setUp(annotate)
-        self.tribler_session = FakeTriblerSession(self.session_base_dir)
+
+        self.tribler_session = MockObject()
+        self.tribler_session.notifier = Notifier(False)
+        self.tribler_session.state_dir = self.session_base_dir
+
+        self.tribler_session.config = MockObject()
+        self.tribler_session.config.get_libtorrent_utp = lambda: True
+        self.tribler_session.config.get_libtorrent_proxy_settings = lambda: (0, None, None)
+        self.tribler_session.config.get_anon_proxy_settings = lambda: (2, ('127.0.0.1', [1338]), None)
+        self.tribler_session.config.get_libtorrent_port = lambda: 1337
+        self.tribler_session.config.get_anon_listen_port = lambda: 1338
+        self.tribler_session.config.get_state_dir = lambda: self.session_base_dir
+        self.tribler_session.config.set_listen_port_runtime = lambda: None
+
         self.ltmgr = LibtorrentMgr(self.tribler_session)
 
     @blocking_call_on_reactor_thread

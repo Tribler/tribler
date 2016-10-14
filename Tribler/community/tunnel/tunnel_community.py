@@ -228,8 +228,8 @@ class TunnelSettings(object):
         self.dht_lookup_interval = 30
 
         if tribler_session:
-            self.become_exitnode = tribler_session.get_tunnel_community_exitnode_enabled()
-            self.enable_multichain = tribler_session.get_enable_multichain()
+            self.become_exitnode = tribler_session.config.get_tunnel_community_exitnode_enabled()
+            self.enable_multichain = tribler_session.config.get_multichain_enabled()
         else:
             self.become_exitnode = False
             self.enable_multichain = False
@@ -312,7 +312,7 @@ class TunnelCommunity(Community):
         self.register_task("do_circuits", LoopingCall(self.do_circuits)).start(5, now=True)
         self.register_task("do_ping", LoopingCall(self.do_ping)).start(PING_INTERVAL)
 
-        self.socks_server = Socks5Server(self, tribler_session.get_tunnel_community_socks5_listen_ports()
+        self.socks_server = Socks5Server(self, tribler_session.config.get_tunnel_community_socks5_listen_ports()
                                          if tribler_session else self.settings.socks_listen_ports)
         self.socks_server.start()
 
@@ -592,7 +592,8 @@ class TunnelCommunity(Community):
             circuit.destroy()
 
             affected_peers = self.socks_server.circuit_dead(circuit)
-            ltmgr = self.trsession.lm.ltmgr if self.trsession and self.trsession.get_libtorrent() else None
+            ltmgr = self.trsession.lm.ltmgr \
+                if self.trsession and self.trsession.config.get_libtorrent_enabled() else None
             if ltmgr:
                 affected_torrents = {d: affected_peers.intersection(peer.ip for peer in d.handle.get_peer_info())
                                      for d, s in ltmgr.torrents.values() if s == ltmgr.get_session(d.get_hops())}

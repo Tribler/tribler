@@ -107,27 +107,27 @@ class TriblerLaunchMany(TaskManager):
             self.session = session
             self.sesslock = sesslock
 
-            if self.session.get_torrent_store():
+            if self.session.config.get_torrent_store():
                 from Tribler.Core.leveldbstore import LevelDbStore
-                self.torrent_store = LevelDbStore(self.session.get_torrent_store_dir())
+                self.torrent_store = LevelDbStore(self.session.config.get_torrent_store_dir())
 
-            if self.session.get_enable_metadata():
+            if self.session.config.get_metadata_enabled():
                 from Tribler.Core.leveldbstore import LevelDbStore
-                self.metadata_store = LevelDbStore(self.session.get_metadata_store_dir())
+                self.metadata_store = LevelDbStore(self.session.config.get_metadata_store_dir())
 
             # torrent collecting: RemoteTorrentHandler
-            if self.session.get_torrent_collecting():
+            if self.session.config.get_torrent_collecting_enabled():
                 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
                 self.rtorrent_handler = RemoteTorrentHandler(self.session)
 
             # TODO(emilon): move this to a megacache component or smth
-            if self.session.get_megacache():
+            if self.session.config.get_megacache_enabled():
                 from Tribler.Core.CacheDB.SqliteCacheDBHandler import (PeerDBHandler, TorrentDBHandler,
                                                                        MyPreferenceDBHandler, VoteCastDBHandler,
                                                                        ChannelCastDBHandler)
                 from Tribler.Core.Category.Category import Category
 
-                self._logger.debug('tlm: Reading Session state from %s', self.session.get_state_dir())
+                self._logger.debug('tlm: Reading Session state from %s', self.session.config.get_state_dir())
 
                 self.category = Category()
 
@@ -149,20 +149,20 @@ class TriblerLaunchMany(TaskManager):
                 self.tracker_manager = TrackerManager(self.session)
                 self.tracker_manager.initialize()
 
-            if self.session.get_videoserver_enabled():
-                self.video_server = VideoServer(self.session.get_videoserver_port(), self.session)
+            if self.session.config.get_video_server_enabled():
+                self.video_server = VideoServer(self.session.config.get_video_server_port(), self.session)
                 self.video_server.start()
 
             # Dispersy
             self.tftp_handler = None
-            if self.session.get_dispersy():
+            if self.session.config.get_dispersy_enabled():
                 from Tribler.dispersy.dispersy import Dispersy
                 from Tribler.dispersy.endpoint import StandaloneEndpoint
 
                 # set communication endpoint
-                endpoint = StandaloneEndpoint(self.session.get_dispersy_port(), ip=self.session.get_ip())
+                endpoint = StandaloneEndpoint(self.session.config.get_dispersy_port())
 
-                working_directory = unicode(self.session.get_state_dir())
+                working_directory = unicode(self.session.config.get_state_dir())
                 self.dispersy = Dispersy(endpoint, working_directory)
 
                 # register TFTP service
@@ -170,7 +170,7 @@ class TriblerLaunchMany(TaskManager):
                 self.tftp_handler = TftpHandler(self.session, endpoint, "fffffffd".decode('hex'), block_size=1024)
                 self.tftp_handler.initialize()
 
-            if self.session.get_enable_torrent_search() or self.session.get_enable_channel_search():
+            if self.session.config.get_torrent_search_enabled() or self.session.config.get_channel_search_enabled():
                 self.search_manager = SearchManager(self.session)
                 self.search_manager.initialize()
 
@@ -203,13 +203,15 @@ class TriblerLaunchMany(TaskManager):
             self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
 
             from Tribler.dispersy.crypto import M2CryptoSK
+            private_key = self.dispersy.crypto.key_to_bin(
+                M2CryptoSK(filename=self.session.config.get_permid_keypair_filename()))
             self.session.dispersy_member = blockingCallFromThread(reactor, self.dispersy.get_member,
-                                                                  private_key=self.dispersy.crypto.key_to_bin(M2CryptoSK(filename=self.session.get_permid_keypair_filename())))
+                                                                  private_key=private_key)
 
             blockingCallFromThread(reactor, self.dispersy.define_auto_load, HardKilledCommunity,
                                    self.session.dispersy_member, load=True)
 
-            if self.session.get_megacache():
+            if self.session.config.get_megacache_enabled():
                 self.dispersy.database.attach_commit_callback(self.session.sqlite_db.commit_now)
 
             # notify dispersy finished loading
@@ -222,39 +224,39 @@ class TriblerLaunchMany(TaskManager):
                 default_kwargs = {'tribler_session': self.session}
 
                 # Search Community
-                if self.session.get_enable_torrent_search():
+                if self.session.config.get_torrent_search_enabled():
                     from Tribler.community.search.community import SearchCommunity
                     self.dispersy.define_auto_load(SearchCommunity, self.session.dispersy_member, load=True,
                                                    kargs=default_kwargs)
 
                 # AllChannel Community
-                if self.session.get_enable_channel_search():
+                if self.session.config.get_channel_search_enabled():
                     from Tribler.community.allchannel.community import AllChannelCommunity
                     self.dispersy.define_auto_load(AllChannelCommunity, self.session.dispersy_member, load=True,
                                                    kargs=default_kwargs)
 
                 # Bartercast Community
-                if self.session.get_barter_community_enabled():
+                if self.session.config.get_barter_community_enabled():
                     from Tribler.community.bartercast4.community import BarterCommunity
                     self.dispersy.define_auto_load(BarterCommunity, self.session.dispersy_member, load=True)
 
                 # Channel Community
-                if self.session.get_channel_community_enabled():
+                if self.session.config.get_channel_community_enabled():
                     from Tribler.community.channel.community import ChannelCommunity
                     self.dispersy.define_auto_load(ChannelCommunity,
                                                    self.session.dispersy_member, load=True, kargs=default_kwargs)
 
                 # PreviewChannel Community
-                if self.session.get_preview_channel_community_enabled():
+                if self.session.config.get_preview_channel_community_enabled():
                     from Tribler.community.channel.preview import PreviewChannelCommunity
                     self.dispersy.define_auto_load(PreviewChannelCommunity,
                                                    self.session.dispersy_member, kargs=default_kwargs)
 
-                if self.session.get_tunnel_community_enabled():
+                if self.session.config.get_tunnel_community_enabled():
                     tunnel_settings = TunnelSettings(tribler_session=self.session)
                     tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
 
-                    if self.session.get_enable_multichain():
+                    if self.session.config.get_multichain_enabled():
                         multichain_kwargs = {'tribler_session': self.session}
 
                         # If the multichain is enabled, we use the permanent multichain keypair
@@ -279,27 +281,28 @@ class TriblerLaunchMany(TaskManager):
                         self.tunnel_community = self.dispersy.define_auto_load(
                             HiddenTunnelCommunity, dispersy_member, load=True, kargs=tunnel_kwargs)[0]
 
-                self.session.set_anon_proxy_settings(2, ("127.0.0.1",
-                                                         self.session.get_tunnel_community_socks5_listen_ports()))
+                self.session.config.set_anon_proxy_settings(
+                    2, ("127.0.0.1", self.session.config.get_tunnel_community_socks5_listen_ports()))
 
                 self._logger.info("tribler: communities are ready in %.2f seconds", timemod.time() - now_time)
 
             load_communities()
 
-            if self.session.get_enable_channel_search():
+            if self.session.config.get_channel_search_enabled():
                 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
                 self.channel_manager = ChannelManager(self.session)
                 self.channel_manager.initialize()
 
-        from Tribler.Core.DecentralizedTracking import mainlineDHT
-        try:
-            self.mainline_dht = mainlineDHT.init(('127.0.0.1', self.session.get_mainline_dht_listen_port()),
-                                                 self.session.get_state_dir())
-            self.upnp_ports.append((self.session.get_mainline_dht_listen_port(), 'UDP'))
-        except:
-            print_exc()
+        if self.session.config.get_mainline_dht_enabled():
+            from Tribler.Core.DecentralizedTracking import mainlineDHT
+            try:
+                self.mainline_dht = mainlineDHT.init(('127.0.0.1', self.session.config.get_mainline_dht_port()),
+                                                     self.session.config.get_state_dir())
+                self.upnp_ports.append((self.session.config.get_mainline_dht_port(), 'UDP'))
+            except:
+                print_exc()
 
-        if self.session.get_libtorrent():
+        if self.session.config.get_libtorrent_enabled():
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
             self.ltmgr = LibtorrentMgr(self.session)
             self.ltmgr.initialize()
@@ -307,7 +310,7 @@ class TriblerLaunchMany(TaskManager):
                 self.ltmgr.add_upnp_mapping(port, protocol)
 
         # add task for tracker checking
-        if self.session.get_torrent_checking():
+        if self.session.config.get_torrent_checking_enabled():
             try:
                 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
                 self.torrent_checker = TorrentChecker(self.session)
@@ -321,11 +324,11 @@ class TriblerLaunchMany(TaskManager):
         if self.api_manager:
             self.api_manager.root_endpoint.start_endpoints()
 
-        if self.session.get_watch_folder_enabled():
+        if self.session.config.get_watch_folder_enabled():
             self.watch_folder = WatchFolder(self.session)
             self.watch_folder.start()
 
-        if self.session.get_creditmining_enable():
+        if self.session.config.get_credit_mining_enabled():
             from Tribler.Policies.BoostingManager import BoostingManager
             self.boosting_manager = BoostingManager(self.session)
 
@@ -362,7 +365,7 @@ class TriblerLaunchMany(TaskManager):
                                      share_mode=share_mode, checkpoint_disabled=checkpoint_disabled)
             setup_deferred.addCallback(self.on_download_wrapper_created)
 
-        if d and not hidden and self.session.get_megacache():
+        if d and not hidden and self.session.config.get_megacache_enabled():
             @forceDBThread
             def write_my_pref():
                 torrent_id = self.torrent_db.getTorrentID(infohash)
@@ -409,7 +412,7 @@ class TriblerLaunchMany(TaskManager):
             if torrent_id:
                 self.mypref_db.deletePreference(torrent_id)
 
-        if self.session.get_megacache():
+        if self.session.config.get_megacache_enabled():
             do_db()
 
     def get_downloads(self):
@@ -466,7 +469,7 @@ class TriblerLaunchMany(TaskManager):
                             self.torrent_db.addTorrentTrackerMappingInBatch(torrent_id, new_trackers)
                             self.session.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
 
-                    if self.session.get_megacache():
+                    if self.session.config.get_megacache_enabled():
                         update_trackers_db(infohash, new_trackers)
 
                 elif not isinstance(old_def, TorrentDefNoMetainfo) and self.rtorrent_handler:
@@ -806,29 +809,3 @@ class TriblerLaunchMany(TaskManager):
         pstate = CallbackConfigParser()
         pstate.read_file(filename)
         return pstate
-
-    # Events from core meant for API user
-    #
-    def sessconfig_changed_callback(self, section, name, new_value, old_value):
-        value_changed = new_value != old_value
-        if section == 'libtorrent' and name == 'utp':
-            if self.ltmgr and value_changed:
-                self.ltmgr.set_utp(new_value)
-        elif section == 'libtorrent' and name == 'lt_proxyauth':
-            if self.ltmgr:
-                self.ltmgr.set_proxy_settings(None, *self.session.get_libtorrent_proxy_settings())
-        # Return True/False, depending on whether or not the config value can be changed at runtime.
-        elif (section == 'general' and name in ['nickname', 'mugshot', 'videoanalyserpath']) or \
-             (section == 'libtorrent' and name in ['lt_proxytype', 'lt_proxyserver',
-                                                   'anon_proxyserver', 'anon_proxytype', 'anon_proxyauth',
-                                                   'anon_listen_port']) or \
-             (section == 'torrent_collecting' and name in ['stop_collecting_threshold']) or \
-             (section == 'watch_folder') or \
-             (section == 'tunnel_community' and name in ['socks5_listen_port']) or \
-             (section == 'credit_mining' and name in ['max_torrents_per_source', 'max_torrents_active',
-                                                      'source_interval', 'swarm_interval', 'boosting_sources',
-                                                      'boosting_enabled', 'boosting_disabled', 'archive_sources']):
-            return True
-        else:
-            return False
-        return True

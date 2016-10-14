@@ -48,7 +48,7 @@ class AbstractBaseApiTest(TestAsServer):
     def setUpPreSession(self):
         super(AbstractBaseApiTest, self).setUpPreSession()
         self.config.set_http_api_enabled(True)
-        self.config.set_megacache(True)
+        self.config.set_megacache_enabled(True)
         self.config.set_tunnel_community_enabled(False)
 
         # Make sure we select a random port for the HTTP API
@@ -58,7 +58,8 @@ class AbstractBaseApiTest(TestAsServer):
 
     def do_request(self, endpoint, request_type, post_data):
         agent = Agent(reactor)
-        return agent.request(request_type, 'http://localhost:%s/%s' % (self.session.get_http_api_port(), endpoint),
+        return agent.request(request_type,
+                             'http://localhost:%s/%s' % (self.session.config.get_http_api_port(), endpoint),
                              Headers({'User-Agent': ['Tribler ' + version_id]}), POSTDataProducer(post_data))
 
 

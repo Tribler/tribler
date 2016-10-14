@@ -40,14 +40,12 @@ For details see API.py
 """
 
 STATEDIR_DLPSTATE_DIR = u'dlcheckpoints'
-STATEDIR_PEERICON_DIR = u'icons'
-STATEDIR_TORRENT_STORE_DIR = u'collected_torrents'
-STATEDIR_METADATA_STORE_DIR = u'collected_metadata'
 
 STATEDIR_SESSCONFIG = 'libtribler.conf'
 STATEDIR_DLCONFIG = 'tribler.conf'
 STATEDIR_GUICONFIG = 'tribler.conf'
 STATEDIR_CONFIG = 'triblerd.conf'
+STATEDIR_CONFIGSPEC = 'config.spec'
 
 # For observer/callback mechanism, see Session.add_observer()
 

@@ -69,7 +69,7 @@ class ChannelsPlaylistsEndpoint(BaseChannelsEndpoint):
             torrents = []
             for torrent_result in playlist_torrents:
                 torrent = convert_db_torrent_to_json(torrent_result)
-                if (self.session.tribler_config.get_family_filter_enabled() and torrent['category'] == 'xxx') or \
+                if (self.session.config.get_family_filter_enabled() and torrent['category'] == 'xxx') or \
                         torrent['name'] is None:
                     continue
                 torrents.append(torrent)

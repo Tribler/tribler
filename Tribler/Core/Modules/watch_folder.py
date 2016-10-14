@@ -27,10 +27,10 @@ class WatchFolder(TaskManager):
         self.cancel_all_pending_tasks()
 
     def check_watch_folder(self):
-        if not os.path.isdir(self.session.get_watch_folder_path()):
+        if not os.path.isdir(self.session.config.get_watch_folder_path()):
             return
 
-        for root, _, files in os.walk(self.session.get_watch_folder_path()):
+        for root, _, files in os.walk(self.session.config.get_watch_folder_path()):
             for name in files:
                 if not name.endswith(u".torrent"):
                     continue

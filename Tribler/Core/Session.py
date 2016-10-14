@@ -4,7 +4,6 @@
 import copy
 import logging
 import os
-import socket
 from binascii import hexlify
 import time
 
@@ -19,13 +18,11 @@ from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_FILE_RELATIVE_PATH, DB_SCRIPT_RELATIVE_PATH
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.restapi.rest_manager import RESTManager
-from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
     DuplicateTorrentFileError
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_METADATA, NTFY_MYPREFERENCES,
                                      NTFY_PEERS, NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
-                                     STATEDIR_METADATA_STORE_DIR, STATEDIR_PEERICON_DIR, STATEDIR_TORRENT_STORE_DIR,
                                      DLSTATUS_STOPPED)
 from Tribler.Core.statistics import TriblerStatistics
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -41,7 +38,7 @@ except ImportError:
     pass
 
 
-class Session(SessionConfigInterface):
+class Session(object):
     """
 
     A Session is a running instance of the Tribler Core and the Core's central
@@ -52,14 +49,13 @@ class Session(SessionConfigInterface):
     """
     __single = None
 
-    def __init__(self, scfg=None, ignore_singleton=False, autoload_discovery=True):
+    def __init__(self, config=None, ignore_singleton=False, autoload_discovery=True):
         """
-        A Session object is created which is configured following a copy of the
-        SessionStartupConfig scfg. (copy constructor used internally)
+        A Session object is created which is configured with Tribler configuration object.
 
-        @param scfg SessionStartupConfig object or None, in which case we
+        @param config TriblerConfig object or None, in which case we
         look for a saved session in the default location (state dir). If
-        we can't find it, we create a new SessionStartupConfig() object to
+        we can't find it, we create a new TriblerConfig() object to
         serve as startup config. Next, the config is saved in the directory
         indicated by its 'state_dir' attribute.
 
@@ -77,45 +73,21 @@ class Session(SessionConfigInterface):
         self.sesslock = NoDispersyRLock()
 
         # Determine startup config to use
-        if scfg is None:  # If no override
-            scfg = SessionStartupConfig.load()
-        else:  # overrides any saved config
-            # Work from copy
-            scfg = SessionStartupConfig(copy.copy(scfg.sessconfig))
+        if config is None:
+            config = TriblerConfig.load()
 
         def create_dir(fullpath):
             if not os.path.isdir(fullpath):
                 os.makedirs(fullpath)
 
-        def set_and_create_dir(dirname, setter, default_dir):
-            if dirname is None:
-                setter(default_dir)
-            create_dir(dirname or default_dir)
-
-        state_dir = scfg.get_state_dir()
-        set_and_create_dir(state_dir, scfg.set_state_dir, state_dir)
-
-        set_and_create_dir(scfg.get_torrent_store_dir(),
-                           scfg.set_torrent_store_dir,
-                           os.path.join(scfg.get_state_dir(), STATEDIR_TORRENT_STORE_DIR))
-
-        # metadata store
-        set_and_create_dir(scfg.get_metadata_store_dir(),
-                           scfg.set_metadata_store_dir,
-                           os.path.join(scfg.get_state_dir(), STATEDIR_METADATA_STORE_DIR))
-
-        set_and_create_dir(scfg.get_peer_icon_path(), scfg.set_peer_icon_path,
-                           os.path.join(scfg.get_state_dir(), STATEDIR_PEERICON_DIR))
-
-        create_dir(os.path.join(scfg.get_state_dir(), u"sqlite"))
-
-        create_dir(os.path.join(scfg.get_state_dir(), STATEDIR_DLPSTATE_DIR))
-
-        # Reset the nickname to something not related to the host name, it was
-        # really silly to have this default on the first place.
-        # TODO: Maybe move this to the upgrader?
-        if socket.gethostname().decode('utf-8', 'replace') in scfg.get_nickname():
-            scfg.set_nickname("Tribler user")
+        # Create directory structure of the state directory
+        create_dir(config.get_state_dir())
+        config.set_torrent_store_dir(os.path.join(config.get_state_dir(), u"collected_torrents"))
+        create_dir(os.path.join(config.get_state_dir(), config.get_torrent_store_dir()))
+        config.set_metadata_store_dir(os.path.join(config.get_state_dir(), u"collected_metadata"))
+        create_dir(os.path.join(config.get_state_dir(), config.get_metadata_store_dir()))
+        create_dir(os.path.join(config.get_state_dir(), u"sqlite"))
+        create_dir(os.path.join(config.get_state_dir(), STATEDIR_DLPSTATE_DIR))
 
         if GOTM2CRYPTO:
             permidmod.init()
@@ -123,7 +95,7 @@ class Session(SessionConfigInterface):
             #
             # 1. keypair
             #
-            pairfilename = scfg.get_permid_keypair_filename()
+            pairfilename = config.get_permid_keypair_filename()
 
             if os.path.exists(pairfilename):
                 self.keypair = permidmod.read_keypair(pairfilename)
@@ -131,11 +103,11 @@ class Session(SessionConfigInterface):
                 self.keypair = permidmod.generate_keypair()
 
                 # Save keypair
-                pubfilename = os.path.join(scfg.get_state_dir(), 'ecpub.pem')
+                pubfilename = os.path.join(config.get_state_dir(), 'ecpub.pem')
                 permidmod.save_keypair(self.keypair, pairfilename)
                 permidmod.save_pub_key(self.keypair, pubfilename)
 
-            multichain_pairfilename = scfg.get_multichain_permid_keypair_filename()
+            multichain_pairfilename = config.get_multichain_permid_keypair_filename()
 
             if os.path.exists(multichain_pairfilename):
                 self.multichain_keypair = permidmod.read_keypair_multichain(multichain_pairfilename)
@@ -143,40 +115,34 @@ class Session(SessionConfigInterface):
                 self.multichain_keypair = permidmod.generate_keypair_multichain()
 
                 # Save keypair
-                multichain_pubfilename = os.path.join(scfg.get_state_dir(), 'ecpub_multichain.pem')
+                multichain_pubfilename = os.path.join(config.get_state_dir(), 'ecpub_multichain.pem')
                 permidmod.save_keypair_multichain(self.multichain_keypair, multichain_pairfilename)
                 permidmod.save_pub_key_multichain(self.multichain_keypair, multichain_pubfilename)
 
-        if not scfg.get_megacache():
-            scfg.set_torrent_checking(0)
+        if not config.get_megacache_enabled():
+            config.set_torrent_checking_enabled(False)
 
-        self.sessconfig = scfg.sessconfig
-        self.sessconfig.lock = self.sesslock
+        self.selected_ports = config.selected_ports
 
-        self.selected_ports = scfg.selected_ports
+        self.config = config
 
-        # Claim all random ports
-        self.get_listen_port()
-        self.get_dispersy_port()
-        self.get_mainline_dht_listen_port()
-        self.get_videoserver_port()
+        # Claim all required random ports
+        self.config.get_libtorrent_port()
+        self.config.get_dispersy_port()
+        self.config.get_mainline_dht_port()
+        self.config.get_video_server_port()
 
-        self.get_anon_listen_port()
-        self.get_tunnel_community_socks5_listen_ports()
+        self.config.get_anon_listen_port()
+        self.config.get_tunnel_community_socks5_listen_ports()
 
         # Create handler for calling back the user via separate threads
         self.lm = TriblerLaunchMany()
         self.notifier = Notifier(use_pool=True)
 
-        # Checkpoint startup config
-        self.save_pstate_sessconfig()
-
         self.sqlite_db = None
         self.dispersy_member = None
 
         self.autoload_discovery = autoload_discovery
-
-        self.tribler_config = TriblerConfig(self)
 
     @blocking_call_on_reactor_thread
     def prestart(self):
@@ -185,15 +151,16 @@ class Session(SessionConfigInterface):
 -        before we start everything else.
         """
         assert isInIOThread()
-        db_path = os.path.join(self.get_state_dir(), DB_FILE_RELATIVE_PATH)
-        db_script_path = os.path.join(self.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
+
+        db_path = os.path.join(self.config.get_state_dir(), DB_FILE_RELATIVE_PATH)
+        db_script_path = os.path.join(self.config.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
 
         self.sqlite_db = SQLiteCacheDB(db_path, db_script_path)
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
 
         # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
-        if self.get_http_api_enabled():
+        if self.config.get_http_api_enabled():
             self.lm.api_manager = RESTManager(self)
             self.lm.api_manager.start()
 
@@ -235,7 +202,7 @@ class Session(SessionConfigInterface):
         :return: A LibtorrentDownloadImpl object that represents the new download. Can return none
         if an error occurred during the start of the download.
         """
-        if self.get_libtorrent():
+        if self.config.get_libtorrent_enabled():
             return self.lm.ltmgr.start_download_from_uri(uri)
         raise OperationNotEnabledByConfigurationException()
 
@@ -259,7 +226,7 @@ class Session(SessionConfigInterface):
         @return Download
         """
         # locking by lm
-        if self.get_libtorrent():
+        if self.config.get_libtorrent_enabled():
             return self.lm.add(tdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
         raise OperationNotEnabledByConfigurationException()
 
@@ -325,7 +292,7 @@ class Session(SessionConfigInterface):
         for download in downloadList:
             if download.get_def().get_infohash() == infohash:
                 self.remove_download(download, removecontent, removestate)
-                self.tribler_config.remove_download_state(infohash)
+                self.config.remove_download_state(infohash)
                 return
 
         self.lm.remove_id(infohash)
@@ -354,17 +321,6 @@ class Session(SessionConfigInterface):
         SessionConfig.set_permid() parameter. A PermID is a public key
         @return The PermID encoded in a string in DER format. """
         return str(self.keypair.pub().get_der())
-
-    def get_current_startup_config_copy(self):
-        """ Returns a SessionStartupConfig that is a copy of the current runtime
-        SessionConfig.
-        @return SessionStartupConfig
-        """
-        # Called by any thread
-        with self.sesslock:
-            sessconfig = copy.copy(self.sessconfig)
-            sessconfig.set_callback(None)
-            return SessionStartupConfig(sessconfig=sessconfig)
 
     #
     # Notification of events in the Session
@@ -417,7 +373,7 @@ class Session(SessionConfigInterface):
         NTFY_CHANNELCAST -> ChannelCastDBHandler
         </pre>
         """
-        if not self.get_megacache():
+        if not self.config.get_megacache_enabled():
             raise OperationNotEnabledByConfigurationException()
 
         # Called by any thread
@@ -471,7 +427,7 @@ class Session(SessionConfigInterface):
         resumed immediately when being loaded by libtorrent.
         """
         initialdlstatus_dict = {}
-        for infohash, state in self.tribler_config.get_download_states().iteritems():
+        for infohash, state in self.config.get_download_states().iteritems():
             if state == 'stop':
                 initialdlstatus_dict[infohash] = DLSTATUS_STOPPED
 
@@ -480,7 +436,7 @@ class Session(SessionConfigInterface):
     def checkpoint(self):
         """ Saves the internal session state to the Session's state dir. """
         # Called by any thread
-        self.checkpoint_shutdown(stop=False, checkpoint=True, gracetime=None, hacksessconfcheckpoint=False)
+        self.checkpoint_shutdown(stop=False, checkpoint=True, gracetime=None)
 
     @blocking_call_on_reactor_thread
     def start(self):
@@ -489,10 +445,8 @@ class Session(SessionConfigInterface):
         # Create engine with network thread
         startup_deferred = self.lm.register(self, self.sesslock)
 
-        if self.get_libtorrent():
+        if self.config.get_libtorrent_enabled():
             self.load_checkpoint()
-
-        self.sessconfig.set_callback(self.lm.sessconfig_changed_callback)
 
         return startup_deferred
 
@@ -512,8 +466,8 @@ class Session(SessionConfigInterface):
             Continues the shutdown procedure that is dependant on the early shutdown.
             :param _: ignored parameter of the Deferred
             """
-            yield self.checkpoint_shutdown(stop=True, checkpoint=checkpoint,
-                                 gracetime=gracetime, hacksessconfcheckpoint=hacksessconfcheckpoint)
+            self.config.write()
+            yield self.checkpoint_shutdown(stop=True, checkpoint=checkpoint, gracetime=gracetime)
             if self.sqlite_db:
                 self.sqlite_db.close()
             self.sqlite_db = None
@@ -532,7 +486,7 @@ class Session(SessionConfigInterface):
         """ Returns the directory in which to checkpoint the Downloads in this
         Session. """
         # Called by network thread
-        return os.path.join(self.get_state_dir(), STATEDIR_DLPSTATE_DIR)
+        return os.path.join(self.config.get_state_dir(), STATEDIR_DLPSTATE_DIR)
 
     def download_torrentfile(self, infohash=None, usercallback=None, prio=0):
         """ Try to download the torrentfile without a known source.
@@ -588,13 +542,13 @@ class Session(SessionConfigInterface):
         self.lm.rtorrent_handler.download_torrentmessage(candidate, infohash, usercallback, prio)
 
     def get_dispersy_instance(self):
-        if not self.get_dispersy():
+        if not self.config.get_dispersy_enabled():
             raise OperationNotEnabledByConfigurationException()
 
         return self.lm.dispersy
 
     def get_libtorrent_process(self):
-        if not self.get_libtorrent():
+        if not self.config.get_libtorrent_enabled():
             raise OperationNotEnabledByConfigurationException()
 
         return self.lm.ltmgr
@@ -602,7 +556,7 @@ class Session(SessionConfigInterface):
     #
     # Internal persistence methods
     #
-    def checkpoint_shutdown(self, stop, checkpoint, gracetime, hacksessconfcheckpoint):
+    def checkpoint_shutdown(self, stop, checkpoint, gracetime):
         """ Checkpoints the Session and optionally shuts down the Session.
         @param stop Whether to shutdown the Session as well.
         @param checkpoint Whether to checkpoint at all, or just to stop.
@@ -615,23 +569,11 @@ class Session(SessionConfigInterface):
             # so this has little use, and interferes with our way of
             # changing the startup config, which is to write a new
             # config to disk that will be read at start up.
-            if hacksessconfcheckpoint:
-                try:
-                    self.save_pstate_sessconfig()
-                except Exception as e:
-                    self._logger.error("save_pstate_sessconfig() failed with error: %s", e)
 
             # Checkpoint all Downloads and stop NetworkThread
             if stop:
                 self._logger.debug("Session: checkpoint_shutdown")
             return self.lm.checkpoint(stop=stop, checkpoint=checkpoint, gracetime=gracetime)
-
-    def save_pstate_sessconfig(self):
-        """ Save the runtime SessionConfig to disk """
-        # Called by any thread
-        sscfg = self.get_current_startup_config_copy()
-        cfgfilename = Session.get_default_config_filename(sscfg.get_state_dir())
-        sscfg.save(cfgfilename)
 
     def update_trackers(self, infohash, trackers):
         """ Updates the trackers of a torrent.
@@ -647,7 +589,7 @@ class Session(SessionConfigInterface):
         :param infohash: The given infohash binary.
         :return: True or False indicating if we have the torrent.
         """
-        if not self.get_torrent_store():
+        if not self.config.get_torrent_store():
             raise OperationNotEnabledByConfigurationException("torrent_store is not enabled")
         return hexlify(infohash) in self.lm.torrent_store
 
@@ -657,7 +599,7 @@ class Session(SessionConfigInterface):
         :param infohash: The given infohash binary.
         :return: The torrent data if exists, None otherwise.
         """
-        if not self.get_torrent_store():
+        if not self.config.get_torrent_store():
             raise OperationNotEnabledByConfigurationException("torrent_store is not enabled")
         return self.lm.torrent_store.get(hexlify(infohash))
 
@@ -667,7 +609,7 @@ class Session(SessionConfigInterface):
         :param infohash: The given infohash binary.
         :param data: The torrent file data.
         """
-        if not self.get_torrent_store():
+        if not self.config.get_torrent_store():
             raise OperationNotEnabledByConfigurationException("torrent_store is not enabled")
         self.lm.torrent_store.put(hexlify(infohash), data)
 
@@ -676,7 +618,7 @@ class Session(SessionConfigInterface):
         Deletes the given torrent from the torrent_store database.
         :param infohash: The given infohash binary.
         """
-        if not self.get_torrent_store():
+        if not self.config.get_torrent_store():
             raise OperationNotEnabledByConfigurationException("torrent_store is not enabled")
 
         del self.lm.torrent_store[hexlify(infohash)]
@@ -687,7 +629,7 @@ class Session(SessionConfigInterface):
         :param keywords: The given keywords.
         :return: The number of requests made.
         """
-        if not self.get_enable_torrent_search():
+        if not self.config.get_torrent_search_enabled():
             raise OperationNotEnabledByConfigurationException("torrent_search is not enabled")
         return self.lm.search_manager.search_for_torrents(keywords)
 
@@ -696,7 +638,7 @@ class Session(SessionConfigInterface):
         Searches for remote channels through AllChannelCommunity with the given keywords.
         :param keywords: The given keywords.
         """
-        if not self.get_enable_channel_search():
+        if not self.config.get_channel_search_enabled():
             raise OperationNotEnabledByConfigurationException("channel_search is not enabled")
         self.lm.search_manager.search_for_channels(keywords)
 
@@ -766,7 +708,7 @@ class Session(SessionConfigInterface):
         Sets the maximum upload rate (kB/s).
         :param rate: The upload rate (kB/s).
         """
-        if not self.get_libtorrent():
+        if not self.config.get_libtorrent_enabled():
             raise OperationNotEnabledByConfigurationException("libtorrent is not enabled")
         self.lm.ltmgr.set_upload_rate_limit(rate)
 

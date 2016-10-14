@@ -27,7 +27,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         self.expected_votecast_vote = None
         self.create_votecast_called = False
 
-        self.session.get_dispersy = lambda: True
+        self.session.config.get_dispersy_enabled = lambda: True
         self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
         self.create_fake_allchannel_community()
 

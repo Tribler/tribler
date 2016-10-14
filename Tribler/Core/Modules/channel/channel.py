@@ -26,7 +26,7 @@ class ChannelObject(TaskManager):
         self._rss_feed_dict = collections.OrderedDict()
 
         rss_name = u"channel_rss_%s.json" % hexlify(self._channel_community.cid)
-        self._rss_file_path = os.path.join(self._session.get_state_dir(), rss_name)
+        self._rss_file_path = os.path.join(self._session.config.get_state_dir(), rss_name)
 
     @property
     def channel_id(self):

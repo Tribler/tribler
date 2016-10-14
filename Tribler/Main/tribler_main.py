@@ -8,6 +8,7 @@
 #
 # see LICENSE.txt for license information
 #
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Main.Dialogs.NewVersionDialog import NewVersionDialog
 
@@ -35,7 +36,6 @@ from twisted.python.threadable import isInIOThread
 from Tribler.Core.Category.Category import Category
 from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_filename, DefaultDownloadStartupConfig
 from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.osutils import get_free_space, get_home_dir
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, NTFY_ACTIVITIES, NTFY_CHANNELCAST,
                                      NTFY_COMMENTS, NTFY_CREATE, NTFY_DELETE, NTFY_FINISHED, NTFY_INSERT,
@@ -113,7 +113,7 @@ class ABCApp(object):
 
             # Stage 2: show the splash window and start the session
 
-            self.utility = Utility(self.installdir, session.get_state_dir())
+            self.utility = Utility(self.installdir, session.config.get_state_dir())
 
             if self.utility.read_config(u'saveas', u'downloadconfig'):
                 DefaultDownloadStartupConfig.getInstance().set_dest_dir(self.utility.read_config(u'saveas', u'downloadconfig'))
@@ -258,19 +258,14 @@ class ABCApp(object):
         self.gui_image_manager = GuiImageManager.getInstance(installdir)
 
         # Start Tribler Session
-        defaultConfig = SessionStartupConfig()
-        state_dir = defaultConfig.get_state_dir()
+        self.sconfig = TriblerConfig()
+        state_dir = self.sconfig.get_state_dir()
 
         # Switch to the state dir so relative paths can be used (IE, in LevelDB store paths)
         if not os.path.exists(state_dir):
             os.makedirs(state_dir)
         os.chdir(state_dir)
 
-        cfgfilename = Session.get_default_config_filename(state_dir)
-
-        self._logger.debug(u"Session config %s", cfgfilename)
-
-        self.sconfig = SessionStartupConfig.load(cfgfilename)
         self.sconfig.set_install_dir(self.installdir)
 
         if not self.sconfig.get_watch_folder_path():
@@ -308,7 +303,6 @@ class ABCApp(object):
                     new_dest_dir = dlg.GetPath()
                     defaultDLConfig.set_dest_dir(new_dest_dir)
                     defaultDLConfig.save(dlcfgfilename)
-                    self.sconfig.save(cfgfilename)
                 else:
                     # Quit
                     self.onError = lambda e: self._logger.error(
@@ -316,9 +310,9 @@ class ABCApp(object):
                     raise Exception()
 
         if not use_torrent_search:
-            self.sconfig.set_enable_torrent_search(False)
+            self.sconfig.set_torrent_search_enabled(False)
         if not use_channel_search:
-            self.sconfig.set_enable_channel_search(False)
+            self.sconfig.set_channel_search_enabled(False)
 
         session = Session(self.sconfig, autoload_discovery=autoload_discovery)
         session.add_observer(self.show_upgrade_dialog, NTFY_UPGRADER, [NTFY_STARTED])
@@ -543,7 +537,7 @@ class ABCApp(object):
             if self.utility.read_config(u'seeding_mode') == 'never':
                 for data in seeding_download_list:
                     data[u'download'].stop()
-                    self.utility.session.tribler_config.set_download_state(data[u'infohash'], "stop")
+                    self.utility.session.config.set_download_state(data[u'infohash'], "stop")
 
             # Adjust speeds and call TunnelCommunity.monitor_downloads once every 4 seconds
             adjustspeeds = False
@@ -663,7 +657,7 @@ class ABCApp(object):
                 manager = self.frame.librarylist.GetManager()
                 manager.torrentsUpdated(infohashes)
 
-                if self.utility.session.get_creditmining_enable():
+                if self.utility.session.config.get_credit_mining_enabled():
                     manager = self.frame.creditminingpanel.cmlist.GetManager()
                     manager.torrents_updated(infohashes)
 

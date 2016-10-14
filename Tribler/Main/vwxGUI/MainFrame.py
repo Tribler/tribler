@@ -656,7 +656,7 @@ class MainFrame(wx.Frame):
             import win32api
             executable = win32api.FindExecutable(u'tribler.exe')[1]
         elif sys.platform == "linux2":
-            executable = os.path.join(self.utility.session.get_install_dir(), 'Tribler', 'Main', "tribler.py")
+            executable = os.path.join(self.utility.session.config.get_install_dir(), 'Tribler', 'Main', "tribler.py")
         elif sys.platform == "darwin":
             executable = "?"
 

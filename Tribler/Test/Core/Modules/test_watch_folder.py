@@ -8,7 +8,7 @@ class TestWatchFolder(TestAsServer):
 
     def setUpPreSession(self):
         super(TestWatchFolder, self).setUpPreSession()
-        self.config.set_libtorrent(True)
+        self.config.set_libtorrent_enabled(True)
         self.config.set_watch_folder_enabled(True)
 
         self.watch_dir = os.path.join(self.session_base_dir, 'watch')
@@ -27,7 +27,7 @@ class TestWatchFolder(TestAsServer):
 
     def test_watchfolder_invalid_dir(self):
         shutil.copyfile(TORRENT_FILE, os.path.join(self.watch_dir, "test.txt"))
-        self.session.set_watch_folder_path(os.path.join(self.watch_dir, "test.txt"))
+        self.session.config.set_watch_folder_path(os.path.join(self.watch_dir, "test.txt"))
         self.session.lm.watch_folder.check_watch_folder()
         self.assertEqual(len(self.session.get_downloads()), 0)
 

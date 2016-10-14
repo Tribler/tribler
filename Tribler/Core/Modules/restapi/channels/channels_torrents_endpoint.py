@@ -73,7 +73,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         results_json = []
         for torrent_result in results_local_torrents_channel:
             torrent_json = convert_db_torrent_to_json(torrent_result)
-            if (self.session.tribler_config.get_family_filter_enabled() and
+            if (self.session.config.get_family_filter_enabled() and
                     self.session.lm.category.xxx_filter.isXXX(torrent_json['name'])) or torrent_json['name'] is None:
                 continue
 
