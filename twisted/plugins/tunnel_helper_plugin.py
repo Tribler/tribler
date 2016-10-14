@@ -340,7 +340,7 @@ class LineHandler(LineReceiver):
             dscfg.set_hops(1)
             dscfg.set_dest_dir(cur_path)
 
-            anon_tunnel.session.lm.threadpool.call(0, anon_tunnel.session.start_download_from_tdef, tdef, dscfg)
+            reactor.callFromThread(anon_tunnel.session.start_download_from_tdef, tdef, dscfg)
         elif line.startswith('i'):
             # Introduce dispersy port from other main peer to this peer
             line_split = line.split(' ')
@@ -375,7 +375,7 @@ class LineHandler(LineReceiver):
                 download = anon_tunnel.session.start_download_from_tdef(tdef, dscfg)
                 download.set_state_callback(cb)
 
-            anon_tunnel.session.lm.threadpool.call(0, start_download)
+            reactor.callFromThread(start_download)
 
         elif line == 'q':
             anon_tunnel.should_run = False

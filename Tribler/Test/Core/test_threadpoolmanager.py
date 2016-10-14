@@ -21,8 +21,3 @@ class TriblerCoreTestThreadpoolManager(TriblerCoreTest):
     def test_check_task_name(self):
         self.assertEqual(self.tpm._check_task_name("test"), "test")
         self.assertEqual(self.tpm._check_task_name(None), "threadpool_manager 1")
-
-    @deferred(timeout=1)
-    def test_call(self):
-        self.tpm.call(0.0, self.callback_func)
-        return self.callback_deferred

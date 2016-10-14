@@ -536,10 +536,14 @@ class ABCApp(TaskManager):
 
                         # TODO(emilon): That's a hack to work around the fact
                         # that removing a torrent is racy.
-                        self.utility.session.lm.threadpool.call(0.5,
-                                                                reactor.callInThread,
-                                                                self.utility.session.start_download_from_tdef,
-                                                                tdef, dscfg)
+                        def schedule_download():
+                            self.register_task(
+                                "reschedule_dowload", reactor.callLater(5,
+                                                                        reactor.callInThread,
+                                                                        self.utility.session.start_download_from_tdef,
+                                                                        tdef, dscfg))
+
+                        reactor.callFromThread(schedule_download)
 
             self.prevActiveDownloads = newActiveDownloads
             if doCheckpoint:
