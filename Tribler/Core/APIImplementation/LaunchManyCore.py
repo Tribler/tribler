@@ -663,7 +663,7 @@ class TriblerLaunchMany(TaskManager):
             else:
                 self._logger.warning("remove pstate: download is back, restarted? Canceling removal! %s",
                                       repr(infohash))
-        self.threadpool.add_task(do_remove)
+        reactor.callFromThread(do_remove)
 
     @inlineCallbacks
     def early_shutdown(self):

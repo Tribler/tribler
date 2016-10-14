@@ -329,8 +329,13 @@ class LibtorrentMgr(TaskManager):
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, timeout_callback=None, notify=True):
         if not self.is_dht_ready() and timeout > 5:
             self._logger.info("DHT not ready, rescheduling get_metainfo")
-            self.trsession.lm.threadpool.add_task(lambda i=infohash_or_magnet, c=callback, t=timeout - 5,
-                                                  tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n), 5)
+
+            def schedule_call():
+                self.register_task("schedule_metainfo_lookup",
+                                   reactor.callLater(5, lambda i=infohash_or_magnet, c=callback, t=timeout - 5,
+                                                  tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n)))
+
+            reactor.callFromThread(schedule_call)
             return
 
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
@@ -373,8 +378,12 @@ class LibtorrentMgr(TaskManager):
                                                     'callbacks': [callback],
                                                     'timeout_callbacks': [timeout_callback] if timeout_callback else [],
                                                     'notify': notify}
-                self.trsession.lm.threadpool.add_task(lambda: self.got_metainfo(infohash, timeout=True), timeout)
 
+                def schedule_call():
+                    self.register_task("schedule_got_metainfo_lookup",
+                                       reactor.callLater(timeout, lambda: self.got_metainfo(infohash, timeout=True)))
+
+                reactor.callFromThread(schedule_call)
             else:
                 self.metainfo_requests[infohash]['notify'] = self.metainfo_requests[infohash]['notify'] and notify
                 callbacks = self.metainfo_requests[infohash]['callbacks']

@@ -160,12 +160,13 @@ class GUIDBProducer(TaskManager):
         # Have in mind that setting workerType to "ThreadPool" means that the
         # task wants to be executed OUT of the GUI thread, nothing more.
         if delay or not (isInIOThread() or isInThreadPool()):
+            random_id = ''.join(choice('0123456789abcdef') for _ in xrange(10))
             if workerType == "dbThread":
                 # Schedule the task to be called later in the reactor thread.
-                self.utility.session.lm.threadpool.add_task(wrapper, delay)
+                delayed_call = reactor.callLater(delay, reactor.callFromThread, wrapper)
+                self.register_task(str(self.__class__) + random_id, delayed_call)
             elif workerType == "ThreadPool":
                 def schedule_call():
-                    random_id = ''.join(choice('0123456789abcdef') for _ in xrange(10))
                     delayed_call = reactor.callLater(delay, reactor.callInThread, wrapper)
                     self.register_task(str(self.__class__) + random_id, delayed_call)
 
@@ -189,7 +190,7 @@ class GUIDBProducer(TaskManager):
                 if __debug__:
                     self.nrCallbacks[uId] = self.nrCallbacks.get(uId, 0) - 1
 
-            self.utility.session.lm.threadpool.cancel_pending_task(uId)
+            self.cancel_pending_task(uId)
 
 # Wrapping Senders for new delayedResult impl
 

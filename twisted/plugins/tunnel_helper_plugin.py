@@ -373,7 +373,7 @@ class LineHandler(LineReceiver):
                     return 1.0, False
 
                 download = anon_tunnel.session.start_download_from_tdef(tdef, dscfg)
-                download.set_state_callback(cb, delay=1)
+                download.set_state_callback(cb)
 
             anon_tunnel.session.lm.threadpool.call(0, start_download)
 

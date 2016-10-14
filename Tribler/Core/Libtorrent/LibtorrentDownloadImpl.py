@@ -206,11 +206,13 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                         self.pstate_for_restart, initialdlstatus, share_mode=share_mode)
                     create_engine_wrapper_deferred.chainDeferred(deferred)
 
+                def schedule_create_engine_call(_):
+                    self.register_task("schedule_create_engine",
+                                       reactor.callLater(wrapperDelay, schedule_create_engine))
 
-                can_create_engine_deferred = self.can_create_engine_wrapper()
                 # Add a lambda callback that ignored the parameter of the callback which schedules
                 # a task using the taskamanger with wrapperDelay as delay.
-                can_create_engine_deferred.addCallback(lambda _: self.session.lm.threadpool.add_task(schedule_create_engine, wrapperDelay))
+                self.can_create_engine_wrapper().addCallback(schedule_create_engine_call)
 
             self.pstate_for_restart = pstate
             return deferred
@@ -245,12 +247,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                             self.dlstate = DLSTATUS_METADATA
 
                         # Schedule this function call to be called again in 5 seconds
-                        self.session.lm.threadpool.add_task(do_check, 5)
+                        self.register_task("check_create_wrapper", reactor.callLater(5, do_check))
                     else:
                         can_create_deferred.callback(True)
                 else:
                     # Schedule this function call to be called again in 5 seconds
-                    self.session.lm.threadpool.add_task(do_check, 5)
+                    self.register_task("check_create_wrapper", reactor.callLater(5, do_check))
 
         do_check()
         return can_create_deferred
@@ -600,7 +602,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                         return
                     if self.handle.status().progress == 1.0:
                         self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
-                self.session.lm.threadpool.add_task(reset_priorities, 5)
+                self.register_task("reset_priorities", reactor.callLater(5, reset_priorities))
 
             if self.endbuffsize:
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
@@ -943,11 +945,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         result['[PeX]'] = [pex_peers, 'Working' if not self.get_anon_mode() else 'Disabled']
         return result
 
-    def set_state_callback(self, usercallback, getpeerlist=False, delay=0.0):
+    def set_state_callback(self, usercallback, getpeerlist=False):
         """ Called by any thread """
         with self.dllock:
-            network_get_state_lambda = lambda: self.network_get_state(usercallback, getpeerlist)
-            self.session.lm.threadpool.add_task(network_get_state_lambda, delay)
+            reactor.callFromThread(lambda: self.network_get_state(usercallback, getpeerlist))
 
     def network_get_state(self, usercallback, getpeerlist):
         """ Called by network thread """
@@ -1093,8 +1094,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             self._logger.warning("Ignoring checkpoint() call as is checkpointing disabled for this download.")
         else:
             infohash, pstate = self.network_checkpoint()
-            checkpoint = lambda: self.session.lm.save_download_pstate(infohash, pstate)
-            self.session.lm.threadpool.add_task(checkpoint, 0)
+            reactor.callFromThread(self.session.lm.save_download_pstate, infohash, pstate)
 
     def network_checkpoint(self):
         """ Called by network thread """

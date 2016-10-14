@@ -161,8 +161,7 @@ class Home(wx.Panel, TaskManager):
         self.channel_list_ready = False
 
         if self.boosting_manager:
-            self.session.lm.threadpool.add_task(self.refresh_channels_home, 10,
-                                                task_name=str(self.__class__)+"_refreshchannel")
+            self.schedule_refresh_channels_home()
 
     def OnRightClick(self, event):
         menu = wx.Menu()
@@ -345,6 +344,9 @@ class Home(wx.Panel, TaskManager):
         self.channel_list_ready = not repeat
 
         # try to update the popular channel once in a while
+        self.schedule_refresh_channels_home()
+
+    def schedule_refresh_channels_home(self):
         def schedule_call():
             delayed_call = reactor.callLater(10, reactor.callInThread, self.refresh_channels_home)
             self.register_task(str(self.__class__) + "_refreshchannel", delayed_call)
