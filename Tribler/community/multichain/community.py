@@ -213,7 +213,8 @@ class MultiChainCommunity(Community):
                         pend.add(blk.down, blk.up)
                         # Make sure we get called again after a while. Note that the cleanup task on pend will prevent
                         # us from waiting on the peer forever
-                        self.register_task("crawl_%s" % blk.hash, reactor.callLater(5.0, self.received_half_block,
+                        if not self.is_pending_task_active("crawl_%s" % blk.hash):
+                            self.register_task("crawl_%s" % blk.hash, reactor.callLater(5.0, self.received_half_block,
                                                                                     [message]))
                     else:
                         self.sign_block(message.candidate, None, None, blk)
