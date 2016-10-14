@@ -238,6 +238,13 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
         rxSubs.add(_service.subscribe(dispersyCid)
                 .subscribeOn(Schedulers.io())
+                .doOnError(e -> {
+                    if (e instanceof HttpException && ((HttpException) e).code() == 409) {
+                        Toast.makeText(MainActivity.this, String.format(getString(R.string.info_subscribe_already), name), Toast.LENGTH_SHORT).show();
+                    } else {
+                        MyUtils.onError("askUserToSubscribe", this, e);
+                    }
+                })
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<SubscribedAck>() {
 
@@ -249,12 +256,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                     }
 
                     public void onError(Throwable e) {
-                        if (e instanceof HttpException && ((HttpException) e).code() == 409) {
-                            Toast.makeText(MainActivity.this, String.format(getString(R.string.info_subscribe_already), name), Toast.LENGTH_SHORT).show();
-                        } else {
-                            Log.e("askUserToSubscribe", "subscribe", e);
-                            Toast.makeText(MainActivity.this, String.format(getString(R.string.info_subscribe_failure), name), Toast.LENGTH_SHORT).show();
-                        }
+                        Toast.makeText(MainActivity.this, String.format(getString(R.string.info_subscribe_failure), name), Toast.LENGTH_SHORT).show();
                     }
                 }));
     }

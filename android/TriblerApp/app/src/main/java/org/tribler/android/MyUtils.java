@@ -14,6 +14,7 @@ import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -33,6 +34,7 @@ import okio.BufferedSource;
 import retrofit2.adapter.rxjava.HttpException;
 import rx.Observable;
 import rx.Subscriber;
+import rx.exceptions.Exceptions;
 
 public class MyUtils {
 
@@ -273,9 +275,13 @@ public class MyUtils {
         }
     }
 
-    public static void onError(Throwable e, Context context) {
+    public static void onError(String tag, Context context, Throwable e) {
+        Log.e(tag, context.getClass().getSimpleName(), e);
+        // Inform user of internal exception
         if (e instanceof HttpException && ((HttpException) e).code() == 500) {
             Toast.makeText(context, context.getText(R.string.exception_http_500), Toast.LENGTH_SHORT).show();
+        } else {
+            throw Exceptions.propagate(e);
         }
     }
 

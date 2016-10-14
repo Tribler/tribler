@@ -171,7 +171,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         progressView.setVisibility(View.GONE);
                         statusBar.setText("");
                     } else {
-                        throw Exceptions.propagate(e);
+                        MyUtils.onError("loadMyChannel", context, e);
                     }
                 })
                 .retryWhen(errors -> errors
@@ -195,8 +195,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("loadMyChannel", "getMyChannel", e);
-                        MyUtils.onError(e, context);
                     }
                 });
         rxSubs.add(loading);
@@ -205,6 +203,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     private void loadMyChannelTorrents() {
         loading = service.getTorrents(_dispersyCid)
                 .subscribeOn(Schedulers.io())
+                .doOnError(e -> MyUtils.onError("loadMyChannelTorrents", context, e))
                 .retryWhen(errors -> errors
                         .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
@@ -224,8 +223,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("loadMyChannelTorrents", "getTorrents", e);
-                        MyUtils.onError(e, context);
+                        onCompleted();
                     }
                 });
         rxSubs.add(loading);
@@ -238,14 +236,11 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 .subscribeOn(Schedulers.io())
                 .doOnError(e -> {
                     if (e instanceof HttpException && ((HttpException) e).code() == 500) {
-                        if (delete) {
-                            AssetExtract.recursiveDelete(new File(file.getParent()));
-                        }
-                        Toast.makeText(context, String.format(context.getString(R.string.info_created_failure), "Torrent"), Toast.LENGTH_SHORT).show();
-                        // Update view
-                        reload();
-                    } else {
+                        Log.e("createTorrent", ((HttpException) e).message(), e);
+                        // Call downstream onError
                         throw Exceptions.propagate(e);
+                    } else {
+                        MyUtils.onError("createTorrent", context, e);
                     }
                 })
                 .retryWhen(errors -> errors
@@ -265,11 +260,14 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         if (delete) {
                             AssetExtract.recursiveDelete(new File(file.getParent()));
                         }
+                        // Update view
+                        reload();
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("createTorrent", "getAbsolutePath", e);
-                        MyUtils.onError(e, context);
+                        Toast.makeText(context, String.format(context.getString(R.string.info_created_failure), "Torrent"), Toast.LENGTH_SHORT).show();
+
+                        onCompleted();
                     }
                 });
         rxSubs.add(loading);
@@ -285,9 +283,11 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 .subscribeOn(Schedulers.io())
                 .doOnError(e -> {
                     if (e instanceof HttpException && ((HttpException) e).code() == 500) {
-                        Toast.makeText(context, String.format(context.getString(R.string.info_added_failure), "Torrent"), Toast.LENGTH_SHORT).show();
-                    } else {
+                        Log.e("addTorrentFile", ((HttpException) e).message(), e);
+                        // Call downstream onError
                         throw Exceptions.propagate(e);
+                    } else {
+                        MyUtils.onError("addTorrentFile", context, e);
                     }
                 })
                 .retryWhen(errors -> errors
@@ -307,8 +307,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("addTorrent", "base64", e);
-                        MyUtils.onError(e, context);
+                        Toast.makeText(context, String.format(context.getString(R.string.info_added_failure), "Torrent"), Toast.LENGTH_SHORT).show();
                     }
                 });
         rxSubs.add(loading);
@@ -324,9 +323,11 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 .subscribeOn(Schedulers.io())
                 .doOnError(e -> {
                     if (e instanceof HttpException && ((HttpException) e).code() == 500) {
-                        Toast.makeText(context, String.format(context.getString(R.string.info_added_already), "Torrent"), Toast.LENGTH_SHORT).show();
-                    } else {
+                        Log.e("addTorrentUrl", ((HttpException) e).message(), e);
+                        // Call downstream onError
                         throw Exceptions.propagate(e);
+                    } else {
+                        MyUtils.onError("addTorrentUrl", context, e);
                     }
                 })
                 .retryWhen(errors -> errors
@@ -346,8 +347,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("addTorrent", "url", e);
-                        MyUtils.onError(e, context);
+                        Toast.makeText(context, String.format(context.getString(R.string.info_added_failure), "Torrent"), Toast.LENGTH_SHORT).show();
                     }
                 });
         rxSubs.add(loading);
@@ -360,7 +360,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     if (e instanceof HttpException && ((HttpException) e).code() == 404) {
                         Toast.makeText(context, String.format(context.getString(R.string.info_removed_already), name), Toast.LENGTH_SHORT).show();
                     } else {
-                        throw Exceptions.propagate(e);
+                        MyUtils.onError("deleteTorrent", context, e);
                     }
                 })
                 .retryWhen(errors -> errors
@@ -378,8 +378,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("onSwipedLeft", "deleteTorrent", e);
-                        MyUtils.onError(e, context);
+                        Toast.makeText(context, String.format(context.getString(R.string.info_removed_failure), name), Toast.LENGTH_SHORT).show();
                     }
                 }));
     }

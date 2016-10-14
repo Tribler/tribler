@@ -1,7 +1,6 @@
 package org.tribler.android;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 
 import org.tribler.android.restapi.json.TriblerChannel;
@@ -37,6 +36,7 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
     private void loadSubscribedChannels() {
         loading = service.getSubscribedChannels()
                 .subscribeOn(Schedulers.io())
+                .doOnError(e -> MyUtils.onError("loadSubscribedChannels", context, e))
                 .retryWhen(errors -> errors
                         .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
@@ -56,8 +56,7 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("loadSubscribedChannels", "getSubscribed", e);
-                        MyUtils.onError(e, context);
+                        onCompleted();
                     }
                 });
         rxSubs.add(loading);

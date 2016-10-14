@@ -4,9 +4,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.support.design.widget.Snackbar;
-import android.support.v4.content.ContextCompat;
-import android.util.Log;
 import android.view.View;
 
 import org.tribler.android.restapi.EventStream;
@@ -83,6 +80,7 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
     private void loadTorrents() {
         loading = service.getTorrents(_dispersyCid)
                 .subscribeOn(Schedulers.io())
+                .doOnError(e -> MyUtils.onError("loadTorrents", context, e))
                 .retryWhen(errors -> errors
                         .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
@@ -102,8 +100,7 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("loadTorrents", "getTorrents", e);
-                        MyUtils.onError(e, context);
+                        onCompleted();
                     }
                 });
         rxSubs.add(loading);

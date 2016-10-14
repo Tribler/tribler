@@ -3,8 +3,6 @@ package org.tribler.android;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
-import android.view.View;
 import android.widget.Toast;
 
 import org.tribler.android.restapi.json.SubscribedAck;
@@ -18,7 +16,6 @@ import retrofit2.adapter.rxjava.HttpException;
 import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
-import rx.exceptions.Exceptions;
 import rx.schedulers.Schedulers;
 
 public class DefaultInteractionListFragment extends ListFragment implements ListFragment.IListFragmentInteractionListener {
@@ -91,7 +88,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     if (e instanceof HttpException && ((HttpException) e).code() == 409) {
                         Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_already), name), Toast.LENGTH_SHORT).show();
                     } else {
-                        throw Exceptions.propagate(e);
+                        MyUtils.onError("onSwipedRight", context, e);
                     }
                 })
                 .retryWhen(errors -> errors
@@ -109,8 +106,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("onSwipedRight", "subscribe", e);
-                        MyUtils.onError(e, context);
+                        Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_failure), name), Toast.LENGTH_SHORT).show();
                     }
                 }));
     }
@@ -136,7 +132,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     if (e instanceof HttpException && ((HttpException) e).code() == 404) {
                         Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_already), name), Toast.LENGTH_SHORT).show();
                     } else {
-                        throw Exceptions.propagate(e);
+                        MyUtils.onError("onSwipeLeft", context, e);
                     }
                 })
                 .retryWhen(errors -> errors
@@ -154,8 +150,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("onSwipedLeft", "unsubscribe", e);
-                        MyUtils.onError(e, context);
+                        Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_failure), name), Toast.LENGTH_SHORT).show();
                     }
                 }));
     }

@@ -113,6 +113,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
         // Start search
         loading = service.search(query)
                 .subscribeOn(Schedulers.io())
+                .doOnError(e -> MyUtils.onError("startSearch", context, e))
                 .retryWhen(errors -> errors
                         .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
@@ -127,8 +128,9 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("startSearch", "search", e);
-                        MyUtils.onError(e, context);
+                        // Hide loading indicator
+                        progressView.setVisibility(View.GONE);
+                        statusBar.setText("");
                     }
                 });
         rxSubs.add(loading);

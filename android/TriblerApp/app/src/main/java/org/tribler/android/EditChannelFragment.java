@@ -212,8 +212,7 @@ public class EditChannelFragment extends ViewFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("btnChannelCreateClicked", "createChannel", e);
-                        MyUtils.onError(e, context);
+                        MyUtils.onError("btnChannelCreateClicked", context, e);
                     }
                 });
         rxSubs.add(_loading);
@@ -228,6 +227,7 @@ public class EditChannelFragment extends ViewFragment {
 
         _loading = service.editMyChannel(name, description)
                 .subscribeOn(Schedulers.io())
+                .doOnError(e -> MyUtils.onError("btnChannelSaveClicked", context, e))
                 .retryWhen(errors -> errors
                         .zipWith(Observable.range(1, 3), (e, count) -> count)
                         .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
@@ -249,8 +249,6 @@ public class EditChannelFragment extends ViewFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("btnChannelSaveClicked", "editMyChannel", e);
-                        MyUtils.onError(e, context);
                     }
                 });
         rxSubs.add(_loading);
