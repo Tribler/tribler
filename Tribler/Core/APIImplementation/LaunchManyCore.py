@@ -16,7 +16,6 @@ from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.task import deferLater
 from twisted.python.threadable import isInIOThread
 
-from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
 from Tribler.Core.Modules.search_manager import SearchManager
@@ -68,7 +67,6 @@ class TriblerLaunchMany(TaskManager):
         self.shutdownstarttime = None
 
         # modules
-        self.threadpool = ThreadPoolManager()
         self.torrent_store = None
         self.metadata_store = None
         self.rtorrent_handler = None
@@ -788,10 +786,6 @@ class TriblerLaunchMany(TaskManager):
         if self.ltmgr is not None:
             self.ltmgr.shutdown()
             self.ltmgr = None
-
-        if self.threadpool is not None:
-            self.threadpool.cancel_all_pending_tasks()
-            self.threadpool = None
 
     def save_download_pstate(self, infohash, pstate):
         """ Called by network thread """
