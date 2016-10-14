@@ -30,9 +30,10 @@ from random import randint
 from traceback import print_exc
 
 import wx
+from twisted.internet.task import LoopingCall
+from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
 
-from Tribler.Core.Category.Category import Category
 from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_filename, DefaultDownloadStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
@@ -55,7 +56,8 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainFrame import MainFrame
 from Tribler.Main.vwxGUI.TriblerApp import TriblerApp
 from Tribler.Main.vwxGUI.TriblerUpgradeDialog import TriblerUpgradeDialog
-from Tribler.dispersy.util import attach_profiler
+from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.dispersy.util import attach_profiler, blockingCallFromThread
 
 logger = logging.getLogger(__name__)
 
@@ -77,10 +79,11 @@ ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "t
 #
 
 
-class ABCApp(object):
+class ABCApp(TaskManager):
 
     def __init__(self, params, installdir, autoload_discovery=True,
                  use_torrent_search=True, use_channel_search=True):
+        super(ABCApp, self).__init__()
         assert not isInIOThread(), "isInIOThread() seems to not be working correctly"
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -177,7 +180,8 @@ class ABCApp(object):
 
             # Schedule task for checkpointing Session, to avoid hash checks after
             # crashes.
-            startWorker(consumer=None, workerFn=self.guiservthread_checkpoint_timer, delay=SESSION_CHECKPOINT_INTERVAL)
+            self.register_task("checkpoint_loop", LoopingCall(self.guiservthread_checkpoint_timer))\
+                .start(SESSION_CHECKPOINT_INTERVAL, now=False)
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'GUIUtility register')
             wx.Yield()
@@ -217,7 +221,8 @@ class ABCApp(object):
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_DELETE, None, None)
             wx.Yield()
             self.frame.Show(True)
-            session.lm.threadpool.call_in_thread(0, self.guiservthread_free_space_check)
+            self.register_task('free_space_check', LoopingCall(self.guiservthread_free_space_check))\
+                .start(FREE_SPACE_CHECK_INTERVAL)
 
             self.webUI = None
             if self.utility.read_config('use_webui'):
@@ -558,10 +563,8 @@ class ABCApp(object):
 
         return 1.0, wantpeers
 
+    @forceWxThread
     def guiservthread_free_space_check(self):
-        if not (self and self.frame and self.frame.SRstatusbar):
-            return
-
         free_space = get_free_space(DefaultDownloadStartupConfig.getInstance().get_dest_dir())
         self.frame.SRstatusbar.RefreshFreeSpace(free_space)
 
@@ -585,19 +588,10 @@ class ABCApp(object):
             wx.CallAfter(wx.MessageBox, "Tribler has detected low disk space. Related downloads have been stopped.",
                          "Error")
 
-        self.utility.session.lm.threadpool.call_in_thread(FREE_SPACE_CHECK_INTERVAL, self.guiservthread_free_space_check)
-
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
-        if self.done:
-            return
-        try:
-            self._logger.info("main: Checkpointing Session")
-            self.utility.session.checkpoint()
-
-            self.utility.session.lm.threadpool.call_in_thread(SESSION_CHECKPOINT_INTERVAL, self.guiservthread_checkpoint_timer)
-        except:
-            print_exc()
+        self._logger.info("main: Checkpointing Session")
+        return deferToThread(self.utility.session.checkpoint)
 
     @forceWxThread
     def sesscb_ntfy_activities(self, events):
@@ -786,6 +780,8 @@ class ABCApp(object):
     @forceWxThread
     def OnExit(self):
         self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_CREATE, None, None)
+
+        blockingCallFromThread(reactor, self.cancel_all_pending_tasks)
 
         if self.i2i_server:
             self.i2i_server.stop()

@@ -219,7 +219,7 @@ class RemoteTorrentHandler(TaskManager):
         # notify about the new metadata
         if thumb_hash in self.metadata_callbacks:
             for callback in self.metadata_callbacks[thumb_hash]:
-                self.session.lm.threadpool.call_in_thread(0, callback, hexlify(thumb_hash))
+                reactor.callInThread(callback, hexlify(thumb_hash))
 
             del self.metadata_callbacks[thumb_hash]
 
@@ -228,7 +228,7 @@ class RemoteTorrentHandler(TaskManager):
             return
 
         for callback in self.torrent_callbacks[infohash]:
-            self.session.lm.threadpool.call_in_thread(0, callback, hexlify(infohash))
+            reactor.callInThread(callback, hexlify(infohash))
 
         del self.torrent_callbacks[infohash]
 

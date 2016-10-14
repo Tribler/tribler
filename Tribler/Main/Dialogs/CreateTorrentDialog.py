@@ -4,6 +4,7 @@
 import os
 from threading import Event
 from traceback import print_exc
+from twisted.internet import reactor
 
 import wx
 
@@ -273,7 +274,7 @@ class CreateTorrentDialog(wx.Dialog):
                 self.progressDlg.Pulse()
                 self.progressDlg.cur = 0
 
-                GUIUtility.getInstance().utility.session.lm.threadpool.call_in_thread(0, create_torrents)
+                reactor.callInThread(create_torrents)
 
             if params['piece length']:
                 total_size = 0
