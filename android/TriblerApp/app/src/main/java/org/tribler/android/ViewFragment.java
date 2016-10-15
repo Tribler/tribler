@@ -46,10 +46,7 @@ public abstract class ViewFragment extends BaseFragment {
         super.onDestroyView();
         Log.v(this.getClass().getSimpleName(), "onDestroyView");
 
-        if (_snackbar != null && _snackbar.isShownOrQueued()) {
-            _snackbar.dismiss();
-        }
-        _snackbar = null;
+        dismissQuestion();
 
         _unbinder.unbind();
         _unbinder = null;
@@ -72,4 +69,13 @@ public abstract class ViewFragment extends BaseFragment {
         }
         return false;
     }
+
+    protected void dismissQuestion() {
+        if (_snackbar != null) {
+            _snackbar.setAction("", null);
+            _snackbar.dismiss();
+        }
+        _snackbar = null;
+    }
+
 }
