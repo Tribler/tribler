@@ -163,21 +163,29 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         loading = service.getMyChannel()
                 .subscribeOn(Schedulers.io())
                 .doOnError(e -> {
-                    if (e instanceof HttpException && ((HttpException) e).code() == 404) {
-                        // My channel has not been created yet
-                        createChannel();
+                    Log.e("loadMyChannel", e.getMessage(), e);
 
-                        // Hide loading indicator
-                        progressView.setVisibility(View.GONE);
-                        statusBar.setText("");
+                    if (e instanceof HttpException) {
+                        switch (((HttpException) e).code()) {
+                            case 404:
+                                // My channel has not been created yet
+                                createChannel();
+                                break;
+
+                            default:
+                                Toast.makeText(context, e.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                        cancel();
+                        dismissQuestion();
                     } else {
-                        MyUtils.onError("loadMyChannel", context, e);
+                        // Cancel?
+                        CharSequence question = context.getText(R.string.info_loading_failed);
+                        askUser(question, R.string.action_CANCEL, view -> cancel());
+                        // Retry
+                        throw Exceptions.propagate(e);
                     }
                 })
-                .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (e, count) -> count)
-                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
-                )
+                .retryWhen(errors -> errors.flatMap(error -> Observable.timer(1, TimeUnit.SECONDS)))
                 .map(MyChannelResponse::getMyChannel)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ChannelOverview>() {
@@ -195,6 +203,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
+                        Log.e("getMyChannel", e.getMessage(), e);
                     }
                 });
         rxSubs.add(loading);
@@ -277,7 +286,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         adapter.clear();
         // Show loading indicator
         progressView.setVisibility(View.VISIBLE);
-        statusBar.setText(getText(R.string.status_adding_torrent));
+        statusBar.setText(R.string.status_adding_torrent);
 
         loading = service.addTorrent(_dispersyCid, torrent_b64)
                 .subscribeOn(Schedulers.io())
@@ -317,7 +326,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         adapter.clear();
         // Show loading indicator
         progressView.setVisibility(View.VISIBLE);
-        statusBar.setText(getText(R.string.status_adding_torrent));
+        statusBar.setText(R.string.status_adding_torrent);
 
         loading = service.addTorrent(_dispersyCid, url)
                 .subscribeOn(Schedulers.io())
@@ -385,11 +394,11 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
     private void askUserToCreateMyChannel() {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setMessage(getText(R.string.dialog_create_my_channel));
-        builder.setPositiveButton(getText(R.string.action_create), (dialog, which) -> {
+        builder.setMessage(R.string.dialog_create_my_channel);
+        builder.setPositiveButton(R.string.action_create, (dialog, which) -> {
             createChannel();
         });
-        builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
+        builder.setNegativeButton(R.string.action_cancel, (dialog, which) -> {
             // Do nothing
         });
         AlertDialog dialog = builder.create();
@@ -398,25 +407,25 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
     void askUserToAddTorrent() {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setMessage(getText(R.string.dialog_add_torrent));
+        builder.setMessage(R.string.dialog_add_torrent);
 
         EditText input = new EditText(context);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        input.setHint(getText(R.string.hint_add_torrent));
+        input.setHint(R.string.hint_add_torrent);
         builder.setView(input);
 
-        builder.setPositiveButton(getText(R.string.action_add), (dialog, which) -> {
+        builder.setPositiveButton(R.string.action_add, (dialog, which) -> {
             CharSequence text = input.getText();
             if (!TextUtils.isEmpty(text)) {
                 Uri uri = Uri.parse(text.toString());
                 addTorrent(uri);
             }
         });
-        builder.setNeutralButton(getText(R.string.action_browse), (dialog, which) -> {
+        builder.setNeutralButton(R.string.action_browse, (dialog, which) -> {
             // Browse file to create torrent
             askUserToSelectFile();
         });
-        builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
+        builder.setNegativeButton(R.string.action_cancel, (dialog, which) -> {
             // Do nothing
         });
         AlertDialog dialog = builder.create();
@@ -426,11 +435,11 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     private void askUserToDeleteTorrent(TriblerTorrent torrent) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setMessage(String.format(getString(R.string.dialog_delete_torrent), torrent.getName()));
-        builder.setPositiveButton(getText(R.string.action_delete), (dialog, which) -> {
+        builder.setPositiveButton(R.string.action_delete, (dialog, which) -> {
             adapter.removeObject(torrent);
             deleteTorrent(torrent.getInfohash(), torrent.getName());
         });
-        builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
+        builder.setNegativeButton(R.string.action_cancel, (dialog, which) -> {
             // Revert swipe
             adapter.notifyObjectChanged(torrent);
         });
@@ -526,7 +535,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         adapter.clear();
                         // Show loading indicator
                         progressView.setVisibility(View.VISIBLE);
-                        statusBar.setText(getText(R.string.status_creating_torrent));
+                        statusBar.setText(R.string.status_creating_torrent);
 
                         rxSubs.add(Observable.fromCallable(() -> resolveUri(data.getData()))
                                 .subscribeOn(Schedulers.io())
