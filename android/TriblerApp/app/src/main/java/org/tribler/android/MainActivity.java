@@ -115,7 +115,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         if (!EventStream.isReady()) {
             // Show loading indicator
             progressView.setVisibility(View.VISIBLE);
-            statusBar.setText(getText(R.string.status_opening_eventstream));
+            statusBar.setText(R.string.status_opening_eventstream);
 
             EventStream.openEventStream();
         }
@@ -221,11 +221,11 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     private void askUserToSubscribe(String dispersyCid) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage(getText(R.string.dialog_received_channel));
-        builder.setPositiveButton(getText(R.string.action_subscribe), (dialog, which) -> {
+        builder.setMessage(R.string.dialog_received_channel);
+        builder.setPositiveButton(R.string.action_subscribe, (dialog, which) -> {
             subscribeToChannel(dispersyCid);
         });
-        builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
+        builder.setNegativeButton(R.string.action_cancel, (dialog, which) -> {
             // Do nothing
         });
         AlertDialog dialog = builder.create();
@@ -439,7 +439,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
             // Set title
             ActionBar actionBar = getSupportActionBar();
             if (actionBar != null) {
-                actionBar.setTitle(getText(R.string.action_subscriptions));
+                actionBar.setTitle(R.string.action_subscriptions);
             }
         }
     }
@@ -450,7 +450,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
             // Set title
             ActionBar actionBar = getSupportActionBar();
             if (actionBar != null) {
-                actionBar.setTitle(getText(R.string.action_my_channel));
+                actionBar.setTitle(R.string.action_my_channel);
             }
         }
     }
@@ -464,7 +464,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
             // Set title
             ActionBar actionBar = getSupportActionBar();
             if (actionBar != null) {
-                actionBar.setTitle(getText(R.string.action_popular_channels));
+                actionBar.setTitle(R.string.action_popular_channels);
             }
         }
     }
@@ -502,10 +502,10 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         // Ask user to open url
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(url);
-        builder.setPositiveButton(getText(R.string.action_go), (dialog, which) -> {
+        builder.setPositiveButton(R.string.action_go, (dialog, which) -> {
             startActivity(browse);
         });
-        builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
+        builder.setNegativeButton(R.string.action_cancel, (dialog, which) -> {
             // Do nothing
         });
         AlertDialog dialog = builder.create();
@@ -517,11 +517,11 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         Intent shutdown = new Intent(Intent.ACTION_SHUTDOWN);
         // Ask user to confirm shutdown
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage(getText(R.string.dialog_shutdown));
-        builder.setPositiveButton(getText(R.string.action_shutdown_short), (dialog, which) -> {
+        builder.setMessage(R.string.dialog_shutdown);
+        builder.setPositiveButton(R.string.action_shutdown_short, (dialog, which) -> {
             onNewIntent(shutdown);
         });
-        builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
+        builder.setNegativeButton(R.string.action_cancel, (dialog, which) -> {
             // Do nothing
         });
         AlertDialog dialog = builder.create();
@@ -558,7 +558,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
         // Show loading indicator
         progressView.setVisibility(View.VISIBLE);
-        statusBar.setText(getText(R.string.status_shutting_down));
+        statusBar.setText(R.string.status_shutting_down);
 
         EventStream.closeEventStream();
 

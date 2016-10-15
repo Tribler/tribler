@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.annotation.StringRes;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -62,8 +63,9 @@ public class EditChannelFragment extends ViewFragment {
     @BindView(R.id.channel_progress_status)
     TextView statusBar;
 
-    private Subscription _loading;
+    @StringRes
     private int _status;
+    private Subscription _loading;
     private Intent _result;
 
     private Intent getResult() {
@@ -179,7 +181,7 @@ public class EditChannelFragment extends ViewFragment {
 
         // Show loading indicator
         progressView.setVisibility(enabled ? View.GONE : View.VISIBLE);
-        statusBar.setText(getText(_status));
+        statusBar.setText(_status);
     }
 
     void btnChannelCreateClicked() {

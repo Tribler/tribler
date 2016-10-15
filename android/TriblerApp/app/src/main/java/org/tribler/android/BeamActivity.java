@@ -166,11 +166,11 @@ public class BeamActivity extends BaseActivity {
     private void askUser(@StringRes int resId, final String action) {
         // Ask user to turn on NFC and/or Android Beam
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage(getText(resId));
-        builder.setPositiveButton(getText(R.string.action_turn_on), (dialog, which) -> {
+        builder.setMessage(resId);
+        builder.setPositiveButton(R.string.action_turn_on, (dialog, which) -> {
             handleIntent(new Intent(action));
         });
-        builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
+        builder.setNegativeButton(R.string.action_cancel, (dialog, which) -> {
             // Pretend NFC is not available
             _nfcAdapter = null;
             // Proceed with original intent

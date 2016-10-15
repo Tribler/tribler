@@ -154,6 +154,7 @@ public class ListFragment extends ViewFragment {
         }
         // Hide loading indicator
         progressView.setVisibility(View.GONE);
+        statusBar.setText("");
     }
 
     public void reload() {
