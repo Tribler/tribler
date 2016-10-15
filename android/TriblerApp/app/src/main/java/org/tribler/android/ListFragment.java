@@ -147,7 +147,17 @@ public class ListFragment extends ViewFragment {
         super.onDestroyView();
     }
 
+    protected void cancel() {
+        if (loading != null && !loading.isUnsubscribed()) {
+            loading.unsubscribe();
+            rxSubs.remove(loading);
+        }
+        // Hide loading indicator
+        progressView.setVisibility(View.GONE);
+    }
+
     public void reload() {
+        cancel();
         // Show loading indicator
         progressView.setVisibility(View.VISIBLE);
     }

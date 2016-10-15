@@ -100,10 +100,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
         _query = query;
 
         // Cancel previous search
-        if (loading != null && !loading.isUnsubscribed()) {
-            loading.unsubscribe();
-            rxSubs.remove(loading);
-        }
+        cancel();
         adapter.clear();
 
         // Show loading indicator
