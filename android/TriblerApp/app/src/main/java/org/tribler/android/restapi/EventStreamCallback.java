@@ -21,6 +21,7 @@ import org.tribler.android.restapi.json.UpgraderFinishedEvent;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.ArrayList;
 
 import okhttp3.Call;
@@ -52,7 +53,11 @@ public class EventStreamCallback implements Callback {
     @Override
     public void onFailure(Call call, IOException e) {
         _ready = false;
-        Log.v("onFailure", "Service events stream not ready. Retrying in 1s...", e);
+        if (e instanceof ConnectException) {
+            Log.v("onFailure", "Service events stream not ready. Retrying in 1s...");
+        } else {
+            Log.e("onFailure", "Retrying in 1s...", e);
+        }
         try {
             Thread.sleep(1000);
         } catch (InterruptedException ex) {
