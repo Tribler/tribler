@@ -1,4 +1,5 @@
 # Written by Niels Zeilemaker, Egbert Bouman
+from twisted.internet import reactor
 import wx
 import os
 import sys
@@ -691,8 +692,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         # If libtorrent hasn't moved the files yet, move them now
         if not storage_moved:
             self._logger.info("Moving from %s to %s newdir %s", old, new, new_dir)
-            movelambda = lambda: rename_or_merge(old, new)
-            self.guiutility.utility.session.lm.threadpool.add_task(movelambda, 0.0)
+            reactor.callFromThread(rename_or_merge, old, new)
 
     def OnDClick(self, event):
         self.guiutility.frame.top_bg.OnDownload(None, [self.original_data])

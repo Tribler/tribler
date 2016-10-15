@@ -329,8 +329,13 @@ class LibtorrentMgr(TaskManager):
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, timeout_callback=None, notify=True):
         if not self.is_dht_ready() and timeout > 5:
             self._logger.info("DHT not ready, rescheduling get_metainfo")
-            self.trsession.lm.threadpool.add_task(lambda i=infohash_or_magnet, c=callback, t=timeout - 5,
-                                                  tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n), 5)
+
+            def schedule_call():
+                self.register_task("schedule_metainfo_lookup",
+                                   reactor.callLater(5, lambda i=infohash_or_magnet, c=callback, t=timeout - 5,
+                                                  tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n)))
+
+            reactor.callFromThread(schedule_call)
             return
 
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
@@ -345,7 +350,7 @@ class LibtorrentMgr(TaskManager):
 
             cache_result = self._get_cached_metainfo(infohash)
             if cache_result:
-                self.trsession.lm.threadpool.call_in_thread(0, callback, deepcopy(cache_result))
+                reactor.callInThread(callback, deepcopy(cache_result))
 
             elif infohash not in self.metainfo_requests:
                 # Flags = 4 (upload mode), should prevent libtorrent from creating files
@@ -373,8 +378,12 @@ class LibtorrentMgr(TaskManager):
                                                     'callbacks': [callback],
                                                     'timeout_callbacks': [timeout_callback] if timeout_callback else [],
                                                     'notify': notify}
-                self.trsession.lm.threadpool.add_task(lambda: self.got_metainfo(infohash, timeout=True), timeout)
 
+                def schedule_call():
+                    self.register_task("schedule_got_metainfo_lookup",
+                                       reactor.callLater(timeout, lambda: self.got_metainfo(infohash, timeout=True)))
+
+                reactor.callFromThread(schedule_call)
             else:
                 self.metainfo_requests[infohash]['notify'] = self.metainfo_requests[infohash]['notify'] and notify
                 callbacks = self.metainfo_requests[infohash]['callbacks']
@@ -426,7 +435,7 @@ class LibtorrentMgr(TaskManager):
                         self._add_cached_metainfo(infohash, metainfo)
 
                         for callback in callbacks:
-                            self.trsession.lm.threadpool.call_in_thread(0, callback, deepcopy(metainfo))
+                            reactor.callInThread(callback, deepcopy(metainfo))
 
                         # let's not print the hashes of the pieces
                         debuginfo = deepcopy(metainfo)
@@ -435,7 +444,7 @@ class LibtorrentMgr(TaskManager):
 
                     elif timeout_callbacks and timeout:
                         for callback in timeout_callbacks:
-                            self.trsession.lm.threadpool.call_in_thread(0, callback, infohash_bin)
+                            reactor.callInThread(callback, infohash_bin)
 
                 if handle:
                     self.get_session().remove_torrent(handle, 1)

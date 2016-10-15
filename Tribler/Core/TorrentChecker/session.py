@@ -259,8 +259,7 @@ class HttpTrackerSession(TrackerSession):
             return
 
         # All ok, parse the body
-        d = readBody(response)
-        d.addCallbacks(self._process_scrape_response, self.on_error)
+        self.register_task("parse_body", readBody(response).addCallbacks(self._process_scrape_response, self.on_error))
 
     def _on_cancel(self, a):
         """

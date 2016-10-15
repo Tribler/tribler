@@ -8,6 +8,7 @@ import logging
 from binascii import hexlify
 
 # pylint complaining if wx imported before binascii
+from twisted.internet import reactor
 import wx
 
 from wx.lib.agw import ultimatelistctrl as ULC
@@ -18,22 +19,24 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Main.Dialogs.BoostingDialogs import RemoveBoostingSource, AddBoostingSource
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import Channel
-from Tribler.Main.vwxGUI import SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY, format_time
+from Tribler.Main.vwxGUI import SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY, format_time, forceWxThread
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.list import CreditMiningList
 from Tribler.Main.vwxGUI.widgets import FancyPanel, LinkStaticText, _set_font
 from Tribler.Policies.BoostingSource import RSSFeedSource, DirectorySource, ChannelSource, BoostingSource
+from Tribler.dispersy.taskmanager import TaskManager
 
 RETURNED_CHANNELS = 30
 
 
-class CpanelCheckListCtrl(wx.ScrolledWindow, ULC.UltimateListCtrl):
+class CpanelCheckListCtrl(wx.ScrolledWindow, ULC.UltimateListCtrl, TaskManager):
     """
     The checklist of credit mining sources. Check to enable, uncheck to disable.
     It is grouped by type : RSS, directory, and Channels
     """
     def __init__(self, parent, wxid=wx.ID_ANY, style=0, agwStyle=0):
         ULC.UltimateListCtrl.__init__(self, parent, wxid, wx.DefaultPosition, wx.DefaultSize, style, agwStyle)
+        TaskManager.__init__(self)
 
         self.guiutility = GUIUtility.getInstance()
         self.boosting_manager = self.guiutility.utility.session.lm.boosting_manager
@@ -96,6 +99,7 @@ class CpanelCheckListCtrl(wx.ScrolledWindow, ULC.UltimateListCtrl):
 
         evt.Skip()
 
+    @forceWxThread
     def load_more(self):
         """
         load more channels to the list
@@ -196,6 +200,7 @@ class CpanelCheckListCtrl(wx.ScrolledWindow, ULC.UltimateListCtrl):
             item.SetData(channel_src)
             self.SetItem(item)
 
+    @forceWxThread
     def refresh_sourcelist_data(self, rerun=True):
         """
         delete all the source in the list and adding a new one
@@ -214,10 +219,8 @@ class CpanelCheckListCtrl(wx.ScrolledWindow, ULC.UltimateListCtrl):
                     item.SetText(data.get_source_text() or "Loading..")
                     self.SetItem(item)
 
-        if rerun and not self.guiutility.utility.session.lm.threadpool.is_pending_task_active(
-                str(self) + "_refresh_data_ULC"):
-            self.guiutility.utility.session.lm.threadpool.add_task(self.refresh_sourcelist_data, 30,
-                                                                   task_name=str(self) + "_refresh_data_ULC")
+        if rerun and not self.is_pending_task_active(str(self) + "_refresh_data_ULC"):
+            self.register_task(str(self) + "_refresh_data_ULC", reactor.callLater(30, self.refresh_sourcelist_data))
 
     def fix_channel_position(self, source):
         """
@@ -239,7 +242,7 @@ class CpanelCheckListCtrl(wx.ScrolledWindow, ULC.UltimateListCtrl):
         self.channel_list[source] = chn_source
 
 
-class CreditMiningPanel(FancyPanel):
+class CreditMiningPanel(FancyPanel, TaskManager):
     """
     A class representing panel control for credit mining
     """
@@ -253,6 +256,7 @@ class CreditMiningPanel(FancyPanel):
         self.installdir = self.utility.getPath()
 
         FancyPanel.__init__(self, parent, border=wx.BOTTOM)
+        TaskManager.__init__(self)
 
         self.SetBorderColour(SEPARATOR_GREY)
         self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
@@ -280,8 +284,7 @@ class CreditMiningPanel(FancyPanel):
         self.add_components(self.main_splitter)
         self.SetSizer(self.main_sizer)
 
-        self.guiutility.utility.session.lm.threadpool.add_task(self._post_init, 2,
-                                                               task_name=str(self) + "_post_init")
+        self.register_task(str(self) + "_post_init", reactor.callLater(2, self._post_init))
 
     def add_components(self, parent):
         """
@@ -509,6 +512,7 @@ class CreditMiningPanel(FancyPanel):
 
         return header
 
+    @forceWxThread
     def _post_init(self):
         if GUIUtility.getInstance().utility.abcquitting:
             return
@@ -517,8 +521,7 @@ class CreditMiningPanel(FancyPanel):
 
         # if none are ready, keep waiting or If no source available
         if not some_ready and len(self.boosting_manager.boosting_sources.values()):
-            self.guiutility.utility.session.lm.threadpool.add_task(self._post_init, 2,
-                                                                   task_name=str(self) + "_post_init")
+            self.register_task(str(self) + "_post_init", reactor.callLater(2, self._post_init))
             return
 
         for _, source_obj in self.boosting_manager.boosting_sources.items():
@@ -530,6 +533,5 @@ class CreditMiningPanel(FancyPanel):
 
         self.Bind(ULC.EVT_LIST_ITEM_SELECTED, self.on_sourceitem_selected, self.sourcelist)
 
-        self.guiutility.utility.session.lm.threadpool.add_task(self.sourcelist.load_more, 2,
-                                                               task_name=str(self) + "load_more")
+        self.register_task(str(self) + "_load_more", reactor.callLater(2, self.sourcelist.load_more))
         self.Layout()

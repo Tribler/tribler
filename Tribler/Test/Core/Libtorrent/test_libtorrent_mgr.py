@@ -1,10 +1,12 @@
 import os
 
 import shutil
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+from Tribler.Core.Utilities.twisted_thread import deferred
+from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -35,6 +37,7 @@ class FakeTriblerSession:
 
     def set_listen_port_runtime(self, _):
         pass
+
 
 class TestLibtorrentMgr(AbstractServer):
 
@@ -80,3 +83,51 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.initialize()
         ltsession = self.ltmgr.get_session(0)
         self.assertTrue(ltsession)
+
+    def test_get_metainfo_not_ready(self):
+        """
+        Testing the metainfo fetching method when the DHT is not ready
+        """
+        self.ltmgr.initialize()
+        self.assertFalse(self.ltmgr.get_metainfo("a" * 20, None))
+
+    @deferred(timeout=20)
+    def test_get_metainfo(self):
+        """
+        Testing the metainfo fetching method
+        """
+        test_deferred = Deferred()
+
+        def metainfo_cb(metainfo):
+            self.assertEqual(metainfo, "test")
+            test_deferred.callback(None)
+
+        self.ltmgr.initialize()
+        self.ltmgr.is_dht_ready = lambda: True
+        self.ltmgr.metainfo_cache[("a" * 20).encode('hex')] = {'meta_info': 'test'}
+        self.ltmgr.get_metainfo("a" * 20, metainfo_cb)
+
+        return test_deferred
+
+    @deferred(timeout=20)
+    def test_got_metainfo_timeout(self):
+        """
+        Testing whether the callback is correctly invoked when we received metainfo after timeout
+        """
+        test_deferred = Deferred()
+
+        def metainfo_timeout_cb(metainfo):
+            self.assertEqual(metainfo, 'a' * 20)
+            test_deferred.callback(None)
+
+        fake_handle = MockObject()
+
+        self.ltmgr.initialize()
+        self.ltmgr.metainfo_requests[('a' * 20).encode('hex')] = {'handle': fake_handle,
+                                                                  'timeout_callbacks': [metainfo_timeout_cb],
+                                                                  'callbacks': [],
+                                                                  'notify': True}
+        self.ltmgr.get_session().remove_torrent = lambda _dummy1, _dummy2: None
+        self.ltmgr.got_metainfo(('a' * 20).encode('hex'), timeout=True)
+
+        return test_deferred

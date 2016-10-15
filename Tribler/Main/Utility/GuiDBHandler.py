@@ -5,7 +5,7 @@ import logging
 import os
 from collections import namedtuple
 from inspect import isgeneratorfunction
-from random import randint
+from random import randint, choice
 from threading import Event, Lock, RLock
 from time import time
 from traceback import extract_stack, format_exc, print_exc, print_stack
@@ -19,13 +19,15 @@ from Tribler.Core.Utilities.twisted_utils import isInThreadPool
 
 
 # Arno, 2012-07-18: Priority for real user visible GUI tasks (e.g. list update)
+from Tribler.dispersy.taskmanager import TaskManager
+
 GUI_PRI_DISPERSY = 99
 DEFAULT_PRI_DISPERSY = 0
 
 logger = logging.getLogger(__name__)
 
 
-class GUIDBProducer(object):
+class GUIDBProducer(TaskManager):
     # Code to make this a singleton
     __single = None
     __singleton_lock = RLock()
@@ -62,6 +64,8 @@ class GUIDBProducer(object):
 
     @classmethod
     def delInstance(cls, *args, **kw):
+        if GUIDBProducer.hasInstance():
+            GUIDBProducer.__single.cancel_all_pending_tasks()
         with cls.__singleton_lock:
             GUIDBProducer.__single = None
 
@@ -156,11 +160,17 @@ class GUIDBProducer(object):
         # Have in mind that setting workerType to "ThreadPool" means that the
         # task wants to be executed OUT of the GUI thread, nothing more.
         if delay or not (isInIOThread() or isInThreadPool()):
+            random_id = ''.join(choice('0123456789abcdef') for _ in xrange(10))
             if workerType == "dbThread":
                 # Schedule the task to be called later in the reactor thread.
-                self.utility.session.lm.threadpool.add_task(wrapper, delay)
+                delayed_call = reactor.callLater(delay, reactor.callFromThread, wrapper)
+                self.register_task(str(self.__class__) + random_id, delayed_call)
             elif workerType == "ThreadPool":
-                self.utility.session.lm.threadpool.add_task_in_thread(wrapper, delay)
+                def schedule_call():
+                    delayed_call = reactor.callLater(delay, reactor.callInThread, wrapper)
+                    self.register_task(str(self.__class__) + random_id, delayed_call)
+
+                reactor.callFromThread(schedule_call)
             else:
                 raise RuntimeError("Asked to schedule a task with unknown workerType: %s", workerType)
         elif workerType == "dbThread" and not isInIOThread():
@@ -180,7 +190,7 @@ class GUIDBProducer(object):
                 if __debug__:
                     self.nrCallbacks[uId] = self.nrCallbacks.get(uId, 0) - 1
 
-            self.utility.session.lm.threadpool.cancel_pending_task(uId)
+            self.cancel_pending_task(uId)
 
 # Wrapping Senders for new delayedResult impl
 

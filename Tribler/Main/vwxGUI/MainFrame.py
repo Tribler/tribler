@@ -843,6 +843,10 @@ class MainFrame(wx.Frame):
                 print_exc()
 
         self._logger.info('GUI closing')
+        self.home.cancel_all_pending_tasks()
+        if self.utility.session.get_creditmining_enable():
+            self.creditminingpanel.cancel_all_pending_tasks()
+            self.creditminingpanel.sourcelist.cancel_all_pending_tasks()
         self.utility.abcquitting = True
         self.GUIupdate = False
 

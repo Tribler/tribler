@@ -5,6 +5,7 @@ from binascii import hexlify
 import socket
 import os
 import threading
+from twisted.internet import reactor
 
 from twisted.internet.defer import inlineCallbacks
 
@@ -221,7 +222,7 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
             for infohash in ltmgr.metainfo_requests:
                 handle = ltmgr.ltsession.find_torrent(lt.big_number(infohash.decode('hex')))
                 handle.connect_peer(("127.0.0.1", self.session.get_listen_port()), 0)
-        self.session.lm.threadpool.add_task(do_supply, delay=5.0)
+        reactor.callFromThread(reactor.callLater(5, do_supply))
 
         # accept incoming connection
         # self.server.settimeout(10.0)
