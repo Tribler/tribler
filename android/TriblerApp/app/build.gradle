@@ -14,7 +14,7 @@ model {
     android {
         // Use latest and greatest version
         compileSdkVersion 24
-        buildToolsVersion "24.0.2"
+        buildToolsVersion "24.0.3"
 
         defaultConfig {
             applicationId "org.tribler.android"
