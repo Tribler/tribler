@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.annotation.StringRes;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -21,13 +20,9 @@ import com.jakewharton.rxbinding.widget.TextViewTextChangeEvent;
 import org.tribler.android.restapi.json.AddedChannelAck;
 import org.tribler.android.restapi.json.ModifiedAck;
 
-import java.util.concurrent.TimeUnit;
-
 import butterknife.BindView;
 import mehdi.sakout.fancybuttons.FancyButton;
-import rx.Observable;
 import rx.Observer;
-import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
@@ -63,9 +58,8 @@ public class EditChannelFragment extends ViewFragment {
     @BindView(R.id.channel_progress_status)
     TextView statusBar;
 
-    @StringRes
-    private int _status;
-    private Subscription _loading;
+    private CharSequence _statusMsg;
+
     private Intent _result;
 
     private Intent getResult() {
@@ -80,15 +74,6 @@ public class EditChannelFragment extends ViewFragment {
             activity.setResult(Activity.RESULT_OK, result);
             activity.finish();
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        _loading = null;
     }
 
     /**
@@ -115,29 +100,31 @@ public class EditChannelFragment extends ViewFragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        if (_loading == null) {
-            rxSubs.add(RxTextView.textChangeEvents(nameInput)
-                    .subscribe(new Observer<TextViewTextChangeEvent>() {
-
-                        public void onNext(TextViewTextChangeEvent event) {
-                            CharSequence name = event.text();
-                            // Prevent submitting empty channel name
-                            boolean enabled = !TextUtils.isEmpty(name);
-                            btnCreate.setEnabled(enabled);
-                            btnSave.setEnabled(enabled);
-
-                            // Update icon view
-                            nameCapital.setText(MyUtils.getCapitals(name, 2));
-                        }
-
-                        public void onCompleted() {
-                        }
-
-                        public void onError(Throwable e) {
-                            Log.e("onViewCreated", "textChangeEvents", e);
-                        }
-                    }));
+        // Saving?
+        if (_statusMsg != null) {
+            return;
         }
+        // Update interface while typing
+        rxSubs.add(RxTextView.textChangeEvents(nameInput).subscribe(new Observer<TextViewTextChangeEvent>() {
+
+            public void onNext(TextViewTextChangeEvent event) {
+                CharSequence name = event.text();
+                // Prevent submitting empty channel name
+                boolean enabled = !TextUtils.isEmpty(name);
+                btnCreate.setEnabled(enabled);
+                btnSave.setEnabled(enabled);
+
+                // Update icon view
+                nameCapital.setText(MyUtils.getCapitals(name, 2));
+            }
+
+            public void onCompleted() {
+            }
+
+            public void onError(Throwable e) {
+                Log.e("onViewCreated", "textChangeEvents", e);
+            }
+        }));
     }
 
     /**
@@ -146,7 +133,8 @@ public class EditChannelFragment extends ViewFragment {
     @Override
     public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
         super.onViewStateRestored(savedInstanceState);
-        if (_loading != null) {
+        // Saving?
+        if (_statusMsg != null) {
             setInputEnabled(false);
         }
     }
@@ -179,24 +167,34 @@ public class EditChannelFragment extends ViewFragment {
         btnCreate.setVisibility(enabled ? View.VISIBLE : View.GONE);
         btnSave.setVisibility(enabled ? View.VISIBLE : View.GONE);
 
-        // Show loading indicator
-        progressView.setVisibility(enabled ? View.GONE : View.VISIBLE);
-        statusBar.setText(_status);
+        showLoading(!enabled, _statusMsg);
+    }
+
+    protected void showLoading(boolean show, @Nullable CharSequence text) {
+        if (show) {
+            // Show loading indicator and status
+            progressView.setVisibility(View.VISIBLE);
+            if (TextUtils.isEmpty(text)) {
+                text = "";
+            }
+            statusBar.setText(text);
+        } else {
+            // Hide loading indicator and status
+            progressView.setVisibility(View.GONE);
+        }
     }
 
     void btnChannelCreateClicked() {
-        _status = R.string.status_creating_channel;
+        _statusMsg = getText(R.string.status_creating_channel);
         setInputEnabled(false);
 
         final String name = nameInput.getText().toString();
         final String description = descriptionInput.getText().toString();
 
-        _loading = service.createChannel(name, description)
+        rxSubs.add(service.createChannel(name, description)
                 .subscribeOn(Schedulers.io())
-                .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (e, count) -> count)
-                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
-                )
+                .doOnError(e -> MyUtils.onError(e, this, null))
+                .retryWhen(MyUtils::oneSecondDelay)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<AddedChannelAck>() {
 
@@ -214,26 +212,23 @@ public class EditChannelFragment extends ViewFragment {
                     }
 
                     public void onError(Throwable e) {
-                        MyUtils.onError("btnChannelCreateClicked", context, e);
+                        Log.e("createChannel", e.getMessage(), e);
+                        cancel();
                     }
-                });
-        rxSubs.add(_loading);
+                }));
     }
 
     void btnChannelSaveClicked() {
-        _status = R.string.status_saving_changes;
+        _statusMsg = getText(R.string.status_saving_changes);
         setInputEnabled(false);
 
         final String name = nameInput.getText().toString();
         final String description = descriptionInput.getText().toString();
 
-        _loading = service.editMyChannel(name, description)
+        rxSubs.add(service.editMyChannel(name, description)
                 .subscribeOn(Schedulers.io())
-                .doOnError(e -> MyUtils.onError("btnChannelSaveClicked", context, e))
-                .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (e, count) -> count)
-                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
-                )
+                .doOnError(e -> MyUtils.onError(e, this, null))
+                .retryWhen(MyUtils::oneSecondDelay)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ModifiedAck>() {
 
@@ -251,8 +246,9 @@ public class EditChannelFragment extends ViewFragment {
                     }
 
                     public void onError(Throwable e) {
+                        Log.e("editMyChannel", e.getMessage(), e);
+                        cancel();
                     }
-                });
-        rxSubs.add(_loading);
+                }));
     }
 }

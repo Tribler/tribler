@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,7 +16,6 @@ import org.tribler.android.restapi.json.TriblerTorrent;
 import java.util.ArrayList;
 
 import butterknife.BindView;
-import rx.Subscription;
 import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
 /**
@@ -37,7 +37,6 @@ public class ListFragment extends ViewFragment {
     @BindView(R.id.list_progress_status)
     TextView statusBar;
 
-    protected Subscription loading;
     protected TriblerViewAdapter adapter;
     protected IListFragmentInteractionListener interactionListener;
 
@@ -82,7 +81,6 @@ public class ListFragment extends ViewFragment {
 
         setListInteractionListener(null);
 
-        loading = null;
         adapter = null;
     }
 
@@ -131,11 +129,6 @@ public class ListFragment extends ViewFragment {
         fastScroller.setRecyclerView(recyclerView);
         // Let the recycler view scroll the scroller's handle
         recyclerView.addOnScrollListener(fastScroller.getOnScrollListener());
-
-        if (loading != null && !loading.isUnsubscribed()) {
-            // Show loading indicator
-            progressView.setVisibility(View.VISIBLE);
-        }
     }
 
     /**
@@ -147,20 +140,22 @@ public class ListFragment extends ViewFragment {
         super.onDestroyView();
     }
 
-    protected void cancel() {
-        if (loading != null && !loading.isUnsubscribed()) {
-            loading.unsubscribe();
-            rxSubs.remove(loading);
-        }
-        // Hide loading indicator
-        progressView.setVisibility(View.GONE);
-        statusBar.setText("");
+    protected void reload() {
+        cancel();
+        adapter.clear();
+        showLoading(true);
     }
 
-    public void reload() {
-        cancel();
-        // Show loading indicator
-        progressView.setVisibility(View.VISIBLE);
+    protected void showLoading(boolean show, @Nullable CharSequence text) {
+        if (show) {
+            progressView.setVisibility(View.VISIBLE);
+        } else {
+            progressView.setVisibility(View.GONE);
+        }
+        if (TextUtils.isEmpty(text)) {
+            text = "";
+        }
+        statusBar.setText(text);
     }
 
     /**

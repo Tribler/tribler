@@ -80,7 +80,6 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     public void invalidateOptionsMenu() {
         super.invalidateOptionsMenu();
-        rxMenuSubs.unsubscribe();
         rxMenuSubs.clear();
     }
 

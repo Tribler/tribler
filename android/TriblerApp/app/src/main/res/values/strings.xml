@@ -64,15 +64,16 @@
     <string name="action_shutdown_short">Shutdown</string>
     <string name="dialog_shutdown">Tribler will exit and stop all running tasks if you shutdown the service.\n\nShutdown Tribler service now?</string>
 
+    <string name="exception_http_500">Tribler encountered an internal exception</string>
     <string name="warning_lost_connection">WARNING: Wi-Fi connection lost!</string>
     <string name="info_no_connection">No Wi-Fi connection detected</string>
     <string name="info_loading_failed">Loading is taking too long</string>
 
     <string name="info_content_discovered">New content discovered!\n\"%s\"</string>
     <string name="info_received_channel">Received channel</string>
-    <string name="dialog_received_channel">Do you want to add the received channel to your favorites now?</string>
+    <string name="dialog_received_channel">Do you want to add the received channel your favorites now?</string>
 
-    <string name="status_subscribing">Adding %s to favorites now…</string>
+    <string name="status_subscribing">Adding to favorites now…</string>
     <string name="info_subscribe_already">%s is already a favorite!</string>
     <string name="info_subscribe_success">%s is now a favorite!</string>
     <string name="info_subscribe_failure">%s is still not a favorite…</string>

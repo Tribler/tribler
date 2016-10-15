@@ -36,6 +36,10 @@ public abstract class ViewFragment extends BaseFragment {
         Log.v(this.getClass().getSimpleName(), "onViewCreated");
 
         _unbinder = ButterKnife.bind(this, view);
+
+        if (loading != null && !loading.isUnsubscribed()) {
+            showLoading(true);
+        }
     }
 
     /**
@@ -52,22 +56,44 @@ public abstract class ViewFragment extends BaseFragment {
         _unbinder = null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void cancel() {
+        super.cancel();
+
+        if (_unbinder != null) {
+            showLoading(false);
+        }
+    }
+
+    protected abstract void showLoading(boolean show, @Nullable CharSequence text);
+
+    protected void showLoading(boolean show) {
+        showLoading(show, null);
+    }
+
+    protected void showLoading(@StringRes int resId) {
+        showLoading(true, getText(resId));
+    }
+
     protected boolean askUser(CharSequence question, @StringRes int resId, final View.OnClickListener listener) {
         View rootView = getView();
-        if (rootView != null && rootView.isShown()) {
-
-            if (_snackbar != null && _snackbar.isShownOrQueued()) {
-                _snackbar.setText(question);
-            } else {
-                _snackbar = Snackbar
-                        .make(rootView, question, Snackbar.LENGTH_INDEFINITE)
-                        .setAction(resId, listener)
-                        .setActionTextColor(ContextCompat.getColor(context, R.color.yellow));
-                _snackbar.show();
-            }
-            return true;
+        if (rootView == null) {
+            Log.w("askUser", "rootView == null", new NullPointerException());
+            return false;
         }
-        return false;
+        if (_snackbar != null) {
+            _snackbar.setText(question);
+        } else {
+            _snackbar = Snackbar
+                    .make(rootView, question, Snackbar.LENGTH_INDEFINITE)
+                    .setAction(resId, listener)
+                    .setActionTextColor(ContextCompat.getColor(context, R.color.yellow));
+        }
+        _snackbar.show();
+        return true;
     }
 
     protected void dismissQuestion() {

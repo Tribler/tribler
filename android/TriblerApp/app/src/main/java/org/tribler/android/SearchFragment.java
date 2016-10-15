@@ -5,16 +5,12 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
-import android.view.View;
 
 import org.tribler.android.restapi.EventStream;
 import org.tribler.android.restapi.json.QueriedAck;
 import org.tribler.android.restapi.json.SearchResultChannelEvent;
 import org.tribler.android.restapi.json.SearchResultTorrentEvent;
 
-import java.util.concurrent.TimeUnit;
-
-import rx.Observable;
 import rx.Observer;
 import rx.schedulers.Schedulers;
 
@@ -55,10 +51,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
 
             // Check if query is current
             if (_query.equalsIgnoreCase(result.getQuery())) {
-
-                // Hide loading indicator
-                progressView.setVisibility(View.GONE);
-                statusBar.setText("");
+                showLoading(false);
 
                 // Show search result
                 adapter.addObject(result.getResult());
@@ -70,10 +63,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
 
             // Check if query is current
             if (_query.equalsIgnoreCase(result.getQuery())) {
-
-                // Hide loading indicator
-                progressView.setVisibility(View.GONE);
-                statusBar.setText("");
+                showLoading(false);
 
                 // Show search result
                 adapter.addObject(result.getResult());
@@ -82,14 +72,6 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
             }
         }
         return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void reload() {
-        startSearch(_query);
     }
 
     public void startSearch(final String query) {
@@ -103,18 +85,13 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
         cancel();
         adapter.clear();
 
-        // Show loading indicator
-        progressView.setVisibility(View.VISIBLE);
-        statusBar.setText(R.string.status_searching);
+        showLoading(R.string.status_searching);
 
         // Start search
-        loading = service.search(query)
+        rxSubs.add(loading = service.search(query)
                 .subscribeOn(Schedulers.io())
-                .doOnError(e -> MyUtils.onError("startSearch", context, e))
-                .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (e, count) -> count)
-                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
-                )
+                .doOnError(e -> MyUtils.onError(e, this, null))
+                .retryWhen(MyUtils::oneSecondDelay)
                 .subscribe(new Observer<QueriedAck>() {
 
                     public void onNext(QueriedAck response) {
@@ -125,11 +102,9 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
                     }
 
                     public void onError(Throwable e) {
-                        // Hide loading indicator
-                        progressView.setVisibility(View.GONE);
-                        statusBar.setText("");
+                        Log.e("search", e.getMessage(), e);
+                        cancel();
                     }
-                });
-        rxSubs.add(loading);
+                }));
     }
 }

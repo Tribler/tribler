@@ -20,6 +20,7 @@ import android.os.Parcelable;
 import android.os.Process;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.StringRes;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -45,14 +46,12 @@ import org.tribler.android.restapi.IRestApi;
 import org.tribler.android.restapi.TriblerService;
 import org.tribler.android.restapi.json.EventsStartEvent;
 import org.tribler.android.restapi.json.ShutdownAck;
-import org.tribler.android.restapi.json.SubscribedAck;
 import org.tribler.android.service.Triblerd;
 
 import java.io.File;
 import java.io.IOException;
 
 import butterknife.BindView;
-import retrofit2.adapter.rxjava.HttpException;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -113,9 +112,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         EventStream.addHandler(_eventHandler);
 
         if (!EventStream.isReady()) {
-            // Show loading indicator
-            progressView.setVisibility(View.VISIBLE);
-            statusBar.setText(R.string.status_opening_eventstream);
+            showLoading(R.string.status_opening_eventstream);
 
             EventStream.openEventStream();
         }
@@ -147,10 +144,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     @Override
     public boolean handleMessage(Message message) {
         if (message.obj instanceof EventsStartEvent) {
-
-            // Hide loading indicator
-            progressView.setVisibility(View.GONE);
-            statusBar.setText("");
+            showLoading(false);
 
             // Stop listening to event stream
             EventStream.removeHandler(_eventHandler);
@@ -164,15 +158,16 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     @Override
     protected void handleIntent(Intent intent) {
         String action = intent.getAction();
-        if (TextUtils.isEmpty(action)) {
+        // Handle intent only once
+        if (!TextUtils.isEmpty(action)) {
+            intent.setAction(null);
+        } else {
             return;
         }
         switch (action) {
 
             case Intent.ACTION_MAIN:
                 drawer.openDrawer(GravityCompat.START);
-                // Open drawer only once
-                intent.setAction(null);
                 return;
 
             case ConnectivityManager.CONNECTIVITY_ACTION:
@@ -198,9 +193,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                         NdefRecord[] records = ((NdefMessage) rawMsg).getRecords();
                         String dispersyCid = new String(records[0].getPayload());
 
-                        askUserToSubscribe(dispersyCid);
-                        // Ask user only once
-                        onNewIntent(new Intent());
+                        askUserToSubscribe(dispersyCid, getString(R.string.info_received_channel));
                     }
                 }
                 return;
@@ -219,46 +212,19 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         Triblerd.stop(this);
     }
 
-    private void askUserToSubscribe(String dispersyCid) {
+    private void askUserToSubscribe(String dispersyCid, String name) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(R.string.dialog_received_channel);
         builder.setPositiveButton(R.string.action_subscribe, (dialog, which) -> {
-            subscribeToChannel(dispersyCid);
+            Intent intent = MyUtils.viewChannelIntent(dispersyCid, name, false);
+            intent.setAction(ChannelActivity.ACTION_SUBSCRIBE);
+            startActivity(intent);
         });
         builder.setNegativeButton(R.string.action_cancel, (dialog, which) -> {
             // Do nothing
         });
         AlertDialog dialog = builder.create();
         dialog.show();
-    }
-
-    private void subscribeToChannel(String dispersyCid) {
-        final String name = getString(R.string.info_received_channel);
-        Toast.makeText(this, String.format(getString(R.string.status_subscribing), name), Toast.LENGTH_LONG).show();
-
-        rxSubs.add(_service.subscribe(dispersyCid)
-                .subscribeOn(Schedulers.io())
-                .doOnError(e -> {
-                    if (e instanceof HttpException && ((HttpException) e).code() == 409) {
-                        Toast.makeText(MainActivity.this, String.format(getString(R.string.info_subscribe_already), name), Toast.LENGTH_SHORT).show();
-                    } else {
-                        MyUtils.onError("askUserToSubscribe", this, e);
-                    }
-                })
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<SubscribedAck>() {
-
-                    public void onNext(SubscribedAck response) {
-                        Toast.makeText(MainActivity.this, String.format(getString(R.string.info_subscribe_success), name), Toast.LENGTH_SHORT).show();
-                    }
-
-                    public void onCompleted() {
-                    }
-
-                    public void onError(Throwable e) {
-                        Toast.makeText(MainActivity.this, String.format(getString(R.string.info_subscribe_failure), name), Toast.LENGTH_SHORT).show();
-                    }
-                }));
     }
 
     /**
@@ -345,6 +311,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
             }
 
             public void onError(Throwable e) {
+                Log.v("connectivityMgr", e.getMessage(), e);
             }
         };
 
@@ -379,6 +346,28 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         // Listen for Wi-Fi direct device changes
         rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION))
                 .subscribe(observer));
+    }
+
+    protected void showLoading(boolean show, @Nullable CharSequence text) {
+        if (show) {
+            // Show loading indicator and status
+            progressView.setVisibility(View.VISIBLE);
+            if (TextUtils.isEmpty(text)) {
+                text = "";
+            }
+            statusBar.setText(text);
+        } else {
+            // Hide loading indicator and status
+            progressView.setVisibility(View.GONE);
+        }
+    }
+
+    protected void showLoading(boolean show) {
+        showLoading(show, null);
+    }
+
+    protected void showLoading(@StringRes int resId) {
+        showLoading(true, getText(resId));
     }
 
     /**
@@ -556,9 +545,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         // Clear view
         removeFragment();
 
-        // Show loading indicator
-        progressView.setVisibility(View.VISIBLE);
-        statusBar.setText(R.string.status_shutting_down);
+        showLoading(R.string.status_shutting_down);
 
         EventStream.closeEventStream();
 
@@ -578,6 +565,8 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                     }
 
                     public void onError(Throwable e) {
+                        Log.v("shutdown", e.getMessage(), e);
+
                         // Kill process
                         killService();
 

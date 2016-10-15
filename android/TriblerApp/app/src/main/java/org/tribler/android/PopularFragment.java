@@ -1,11 +1,9 @@
 package org.tribler.android;
 
 import android.os.Bundle;
-import android.view.View;
+import android.util.Log;
 
 import org.tribler.android.restapi.json.TriblerChannel;
-
-import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
 import rx.Observer;
@@ -29,20 +27,16 @@ public class PopularFragment extends DefaultInteractionListFragment {
      * {@inheritDoc}
      */
     @Override
-    public void reload() {
+    protected void reload() {
         super.reload();
-        adapter.clear();
         loadPopularChannels();
     }
 
     private void loadPopularChannels() {
-        loading = service.getPopularChannels(_limit)
+        rxSubs.add(loading = service.getPopularChannels(_limit)
                 .subscribeOn(Schedulers.io())
-                .doOnError(e -> MyUtils.onError("loadPopularChannels", context, e))
-                .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (e, count) -> count)
-                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
-                )
+                .doOnError(e -> MyUtils.onError(e, this, null))
+                .retryWhen(MyUtils::oneSecondDelay)
                 .flatMap(response -> Observable.from(response.getChannels()))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TriblerChannel>() {
@@ -52,15 +46,13 @@ public class PopularFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onCompleted() {
-                        // Hide loading indicator
-                        progressView.setVisibility(View.GONE);
-                        statusBar.setText("");
+                        showLoading(false);
                     }
 
                     public void onError(Throwable e) {
-                        onCompleted();
+                        Log.e("getPopularChannels", e.getMessage(), e);
+                        cancel();
                     }
-                });
-        rxSubs.add(loading);
+                }));
     }
 }

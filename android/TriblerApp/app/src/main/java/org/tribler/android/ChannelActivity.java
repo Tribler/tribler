@@ -17,6 +17,7 @@ import rx.Observer;
 public class ChannelActivity extends BaseActivity {
 
     public static final String ACTION_TOGGLE_SUBSCRIBED = "org.tribler.android.channel.TOGGLE_SUBSCRIBED";
+    public static final String ACTION_SUBSCRIBE = "org.tribler.android.channel.SUBSCRIBE";
 
     public static final String EXTRA_DISPERSY_CID = "org.tribler.android.channel.dispersy.CID";
     public static final String EXTRA_NAME = "org.tribler.android.channel.NAME";
@@ -133,9 +134,9 @@ public class ChannelActivity extends BaseActivity {
 
             case ACTION_TOGGLE_SUBSCRIBED:
                 if (subscribed) {
-                    _fragment.unsubscribe(dispersyCid, subscribed, name);
+                    _fragment.unsubscribe(dispersyCid, subscribed, name, null);
                 } else {
-                    _fragment.subscribe(dispersyCid, subscribed, name);
+                    _fragment.subscribe(dispersyCid, subscribed, name, null);
                 }
                 // Update view
                 intent.putExtra(EXTRA_SUBSCRIBED, !subscribed);
@@ -143,6 +144,11 @@ public class ChannelActivity extends BaseActivity {
 
                 // Flag modification
                 setResult(RESULT_FIRST_USER, intent);
+                return;
+
+            case ACTION_SUBSCRIBE:
+                _fragment.showLoading(R.string.status_subscribing);
+                _fragment.subscribe(dispersyCid, false, getString(R.string.info_received_channel), this::finish);
                 return;
         }
     }

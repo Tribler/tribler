@@ -3,6 +3,8 @@ package org.tribler.android;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.support.annotation.Nullable;
+import android.util.Log;
 import android.widget.Toast;
 
 import org.tribler.android.restapi.json.SubscribedAck;
@@ -10,12 +12,10 @@ import org.tribler.android.restapi.json.TriblerChannel;
 import org.tribler.android.restapi.json.TriblerTorrent;
 import org.tribler.android.restapi.json.UnsubscribedAck;
 
-import java.util.concurrent.TimeUnit;
-
-import retrofit2.adapter.rxjava.HttpException;
-import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.exceptions.Exceptions;
+import rx.functions.Action0;
 import rx.schedulers.Schedulers;
 
 public class DefaultInteractionListFragment extends ListFragment implements ListFragment.IListFragmentInteractionListener {
@@ -73,10 +73,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     @Override
     public void onSwipedRight(final TriblerChannel channel) {
         adapter.removeObject(channel);
-        subscribe(channel.getDispersyCid(), channel.isSubscribed(), channel.getName());
+        subscribe(channel.getDispersyCid(), channel.isSubscribed(), channel.getName(), null);
     }
 
-    void subscribe(final String dispersyCid, final boolean subscribed, final String name) {
+    void subscribe(final String dispersyCid, final boolean subscribed, final String name, @Nullable final Action0 onCompleted) {
         if (subscribed) {
             Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_already), name), Toast.LENGTH_SHORT).show();
             return;
@@ -84,17 +84,15 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
         rxSubs.add(service.subscribe(dispersyCid)
                 .subscribeOn(Schedulers.io())
-                .doOnError(e -> {
-                    if (e instanceof HttpException && ((HttpException) e).code() == 409) {
+                .doOnError(e -> MyUtils.onError(e, this, http -> {
+                    if (409 == http.code()) {
+                        // Already subscribed
                         Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_already), name), Toast.LENGTH_SHORT).show();
                     } else {
-                        MyUtils.onError("onSwipedRight", context, e);
+                        Exceptions.propagate(e);
                     }
-                })
-                .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (e, count) -> count)
-                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
-                )
+                }))
+                .retryWhen(MyUtils::oneSecondDelay)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<SubscribedAck>() {
 
@@ -103,9 +101,14 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     }
 
                     public void onCompleted() {
+                        if (onCompleted != null) {
+                            onCompleted.call();
+                        }
                     }
 
                     public void onError(Throwable e) {
+                        Log.e("subscribe", e.getMessage(), e);
+                        cancel();
                         Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_failure), name), Toast.LENGTH_SHORT).show();
                     }
                 }));
@@ -117,10 +120,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     @Override
     public void onSwipedLeft(final TriblerChannel channel) {
         adapter.removeObject(channel);
-        unsubscribe(channel.getDispersyCid(), channel.isSubscribed(), channel.getName());
+        unsubscribe(channel.getDispersyCid(), channel.isSubscribed(), channel.getName(), null);
     }
 
-    void unsubscribe(final String dispersyCid, final boolean subscribed, final String name) {
+    void unsubscribe(final String dispersyCid, final boolean subscribed, final String name, @Nullable final Action0 onCompleted) {
         if (!subscribed) {
             Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_already), name), Toast.LENGTH_SHORT).show();
             return;
@@ -128,17 +131,15 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
         rxSubs.add(service.unsubscribe(dispersyCid)
                 .subscribeOn(Schedulers.io())
-                .doOnError(e -> {
-                    if (e instanceof HttpException && ((HttpException) e).code() == 404) {
+                .doOnError(e -> MyUtils.onError(e, this, http -> {
+                    if (404 == http.code()) {
+                        // Already un-subscribed
                         Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_already), name), Toast.LENGTH_SHORT).show();
                     } else {
-                        MyUtils.onError("onSwipeLeft", context, e);
+                        Exceptions.propagate(e);
                     }
-                })
-                .retryWhen(errors -> errors
-                        .zipWith(Observable.range(1, 3), (e, count) -> count)
-                        .flatMap(retryCount -> Observable.timer((long) retryCount, TimeUnit.SECONDS))
-                )
+                }))
+                .retryWhen(MyUtils::oneSecondDelay)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<UnsubscribedAck>() {
 
@@ -147,9 +148,14 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     }
 
                     public void onCompleted() {
+                        if (onCompleted != null) {
+                            onCompleted.call();
+                        }
                     }
 
                     public void onError(Throwable e) {
+                        Log.e("unsubscribe", e.getMessage(), e);
+                        cancel();
                         Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_failure), name), Toast.LENGTH_SHORT).show();
                     }
                 }));

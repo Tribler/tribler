@@ -14,6 +14,7 @@ import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.annotation.Nullable;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
@@ -29,12 +30,14 @@ import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import okio.BufferedSource;
 import retrofit2.adapter.rxjava.HttpException;
 import rx.Observable;
 import rx.Subscriber;
 import rx.exceptions.Exceptions;
+import rx.functions.Action1;
 
 public class MyUtils {
 
@@ -275,14 +278,31 @@ public class MyUtils {
         }
     }
 
-    public static void onError(String tag, Context context, Throwable e) {
-        Log.e(tag, context.getClass().getSimpleName(), e);
-        // Inform user of internal exception
-        if (e instanceof HttpException && ((HttpException) e).code() == 500) {
-            Toast.makeText(context, context.getText(R.string.exception_http_500), Toast.LENGTH_SHORT).show();
+    public static void onError(final Throwable e, final ViewFragment f, @Nullable final Action1<HttpException> onHttpException) {
+        Log.e(f.getClass().getSimpleName(), e.getMessage(), e);
+        // non-2xx HTTP response?
+        if (e instanceof HttpException) {
+            // Cancel loading
+            f.dismissQuestion();
+            f.cancel();
+            try {
+                // Trap certain HTTP exceptions
+                onHttpException.call((HttpException) e);
+            } catch (Throwable t) {
+                // Notify user of internal exception
+                Toast.makeText(f.getContext(), R.string.exception_http_500, Toast.LENGTH_SHORT).show();
+            }
         } else {
-            throw Exceptions.propagate(e);
+            // Ask to cancel loading
+            CharSequence question = f.getText(R.string.info_loading_failed);
+            f.askUser(question, R.string.action_CANCEL, view -> f.cancel());
+            // Retry
+            Exceptions.propagate(e);
         }
+    }
+
+    public static Observable<?> oneSecondDelay(Observable<? extends Throwable> errors) {
+        return errors.flatMap(error -> Observable.timer(1, TimeUnit.SECONDS));
     }
 
 }
