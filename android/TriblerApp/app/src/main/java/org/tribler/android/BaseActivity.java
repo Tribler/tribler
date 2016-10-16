@@ -63,6 +63,8 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     public void setContentView(@LayoutRes int layoutResID) {
         super.setContentView(layoutResID);
+        Log.v(getClass().getSimpleName(), "setContentView");
+
         ButterKnife.bind(this);
 
         // The action bar will automatically handle clicks on the Home/Up button,
@@ -80,6 +82,8 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     public void invalidateOptionsMenu() {
         super.invalidateOptionsMenu();
+        Log.v(getClass().getSimpleName(), "invalidateOptionsMenu");
+
         rxMenuSubs.clear();
     }
 
@@ -88,6 +92,8 @@ public abstract class BaseActivity extends AppCompatActivity {
      */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        Log.v(getClass().getSimpleName(), "onOptionsItemSelected");
+
         // Respond to the action bar's Up/Home button
         if (android.R.id.home == item.getItemId() && NavUtils.getParentActivityName(this) == null) {
             // Redirect SupportActionBar back button to regular back button

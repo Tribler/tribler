@@ -7,21 +7,28 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
+import rx.subscriptions.CompositeSubscription;
 
 /**
  * Use ButterKnife to automatically bind and unbind fields.
+ * Use RxJava CompositeSubscription to automatically un-subscribe on invalidateOptionsMenu.
  */
 public abstract class ViewFragment extends BaseFragment {
 
     private Unbinder _unbinder;
     private Snackbar _snackbar;
+
     @Nullable
     private CharSequence _statusMsg;
+
+    protected CompositeSubscription rxMenuSubs;
 
     /**
      * {@inheritDoc}
@@ -54,6 +61,38 @@ public abstract class ViewFragment extends BaseFragment {
 
         _unbinder.unbind();
         _unbinder = null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        Log.v(getClass().getSimpleName(), "onCreateOptionsMenu");
+
+        rxMenuSubs = new CompositeSubscription();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onDestroyOptionsMenu() {
+        super.onDestroyOptionsMenu();
+        Log.v(getClass().getSimpleName(), "onDestroyOptionsMenu");
+
+        rxMenuSubs.unsubscribe();
+        rxMenuSubs = null;
+    }
+
+    public void invalidateOptionsMenu() {
+        Log.v(getClass().getSimpleName(), "invalidateOptionsMenu");
+
+        rxMenuSubs.clear();
+        if (isAdded()) {
+            getActivity().invalidateOptionsMenu();
+        }
     }
 
     protected void showLoading(@Nullable CharSequence text) {

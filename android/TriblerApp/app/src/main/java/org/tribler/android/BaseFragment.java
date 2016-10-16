@@ -11,13 +11,12 @@ import org.tribler.android.restapi.TriblerService;
 import rx.subscriptions.CompositeSubscription;
 
 /**
- * Use RxJava CompositeSubscription to automatically un-subscribe onDestroy and invalidateOptionsMenu.
+ * Use RxJava CompositeSubscription to automatically un-subscribe onDestroy.
  */
 public class BaseFragment extends Fragment {
 
     protected Context context;
     protected CompositeSubscription rxSubs;
-    protected CompositeSubscription rxMenuSubs;
     protected IRestApi service;
 
     /**
@@ -33,7 +32,6 @@ public class BaseFragment extends Fragment {
         service = TriblerService.createService(baseUrl, authToken);
 
         rxSubs = new CompositeSubscription();
-        rxMenuSubs = new CompositeSubscription();
     }
 
     /**
@@ -47,8 +45,6 @@ public class BaseFragment extends Fragment {
         // Memory leak detection
         MyUtils.getRefWatcher(getActivity()).watch(this);
 
-        rxMenuSubs.unsubscribe();
-        rxMenuSubs = null;
         rxSubs.unsubscribe();
         rxSubs = null;
 
@@ -75,13 +71,6 @@ public class BaseFragment extends Fragment {
         Log.v(getClass().getSimpleName(), "onDetach");
 
         context = null;
-    }
-
-    public void invalidateOptionsMenu() {
-        rxMenuSubs.clear();
-        if (isAdded()) {
-            getActivity().invalidateOptionsMenu();
-        }
     }
 
 }

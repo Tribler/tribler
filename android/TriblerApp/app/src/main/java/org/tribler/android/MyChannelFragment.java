@@ -455,9 +455,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         _name = data.getStringExtra(ChannelActivity.EXTRA_NAME);
                         _description = data.getStringExtra(ChannelActivity.EXTRA_DESCRIPTION);
                         // Update view
-                        if (isAdded()) {
-                            getActivity().invalidateOptionsMenu();
-                        }
+                        invalidateOptionsMenu();
                         return;
 
                     case Activity.RESULT_CANCELED:
