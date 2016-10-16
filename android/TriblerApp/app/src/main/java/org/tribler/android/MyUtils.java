@@ -29,11 +29,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import okio.BufferedSource;
 import retrofit2.adapter.rxjava.HttpException;
@@ -313,21 +314,25 @@ public class MyUtils {
     public static void onError(ViewFragment f, String msg, Throwable e) {
         Log.e(f.getClass().getSimpleName(), msg, e);
         f.cancel();
-        if (e instanceof TimeoutException) {
+        if (e instanceof SocketTimeoutException) {
             Toast.makeText(f.getContext(), R.string.info_loading_failed, Toast.LENGTH_SHORT).show();
         } else {
             Toast.makeText(f.getContext(), R.string.exception_http_500, Toast.LENGTH_SHORT).show();
         }
     }
 
-    public static Observable<?> oneSecondDelay(Observable<? extends Throwable> errors) {
-        return errors.flatMap(error -> {
-            if (error instanceof HttpException) {
-                return Observable.error(error);
+    public static Observable<?> twoSecondsDelay(Observable<? extends Throwable> errors) {
+        return errors.flatMap(e -> {
+            if (e instanceof HttpException) {
+                return Observable.error(e);
             }
-            Log.v("oneSecondDelay", error.getMessage());
+            if (e instanceof ConnectException) {
+                Log.v("twoSecDelay", e.getClass().getSimpleName() + ". " + e.getMessage());
+            } else {
+                Log.e("twoSecDelay", e.getClass().getSimpleName() + ". " + e.getMessage(), e);
+            }
             // Retry
-            return Observable.timer(1, TimeUnit.SECONDS);
+            return Observable.timer(2, TimeUnit.SECONDS);
         });
     }
 

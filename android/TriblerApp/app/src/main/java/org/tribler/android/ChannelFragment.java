@@ -76,7 +76,7 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
     private void loadTorrents() {
         rxSubs.add(loading = service.getTorrents(_dispersyCid)
                 .subscribeOn(Schedulers.io())
-                .retryWhen(MyUtils::oneSecondDelay)
+                .retryWhen(MyUtils::twoSecondsDelay)
                 .flatMap(response -> Observable.from(response.getTorrents()))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TriblerTorrent>() {

@@ -32,7 +32,7 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
     private void loadSubscribedChannels() {
         rxSubs.add(loading = service.getSubscribedChannels()
                 .subscribeOn(Schedulers.io())
-                .retryWhen(MyUtils::oneSecondDelay)
+                .retryWhen(MyUtils::twoSecondsDelay)
                 .flatMap(response -> Observable.from(response.getSubscribed()))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TriblerChannel>() {

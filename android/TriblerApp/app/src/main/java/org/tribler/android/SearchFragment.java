@@ -90,7 +90,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
         // Start search
         rxSubs.add(loading = service.search(query)
                 .subscribeOn(Schedulers.io())
-                .retryWhen(MyUtils::oneSecondDelay)
+                .retryWhen(MyUtils::twoSecondsDelay)
                 .subscribe(new Observer<QueriedAck>() {
 
                     public void onNext(QueriedAck response) {

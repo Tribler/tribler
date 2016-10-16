@@ -151,7 +151,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     private void loadMyChannel() {
         rxSubs.add(loading = service.getMyChannel()
                 .subscribeOn(Schedulers.io())
-                .retryWhen(MyUtils::oneSecondDelay)
+                .retryWhen(MyUtils::twoSecondsDelay)
                 .map(MyChannelResponse::getMyChannel)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ChannelOverview>() {
@@ -183,7 +183,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     private void loadMyChannelTorrents() {
         rxSubs.add(loading = service.getTorrents(_dispersyCid)
                 .subscribeOn(Schedulers.io())
-                .retryWhen(MyUtils::oneSecondDelay)
+                .retryWhen(MyUtils::twoSecondsDelay)
                 .flatMap(response -> Observable.from(response.getTorrents()))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TriblerTorrent>() {
@@ -207,7 +207,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         String[] list = {"[\"" + file.getAbsolutePath() + "\"]"};
         rxSubs.add(loading = service.createTorrent(list)
                 .subscribeOn(Schedulers.io())
-                .retryWhen(MyUtils::oneSecondDelay)
+                .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TorrentCreatedResponse>() {
 
@@ -243,7 +243,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
         rxSubs.add(loading = service.addTorrent(_dispersyCid, torrent_b64)
                 .subscribeOn(Schedulers.io())
-                .retryWhen(MyUtils::oneSecondDelay)
+                .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<AddedAck>() {
 
@@ -274,7 +274,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
         rxSubs.add(loading = service.addTorrent(_dispersyCid, url)
                 .subscribeOn(Schedulers.io())
-                .retryWhen(MyUtils::oneSecondDelay)
+                .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<AddedUrlAck>() {
 
@@ -302,7 +302,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     private void deleteTorrent(final String infohash, final String name) {
         rxSubs.add(service.deleteTorrent(_dispersyCid, infohash)
                 .subscribeOn(Schedulers.io())
-                .retryWhen(MyUtils::oneSecondDelay)
+                .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<RemovedAck>() {
 

@@ -34,7 +34,7 @@ public class PopularFragment extends DefaultInteractionListFragment {
     private void loadPopularChannels() {
         rxSubs.add(loading = service.getPopularChannels(_limit)
                 .subscribeOn(Schedulers.io())
-                .retryWhen(MyUtils::oneSecondDelay)
+                .retryWhen(MyUtils::twoSecondsDelay)
                 .flatMap(response -> Observable.from(response.getChannels()))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TriblerChannel>() {

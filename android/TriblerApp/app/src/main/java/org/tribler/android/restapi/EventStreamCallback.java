@@ -54,9 +54,9 @@ public class EventStreamCallback implements Callback {
     public void onFailure(Call call, IOException e) {
         _ready = false;
         if (e instanceof ConnectException) {
-            Log.v("onFailure", "Service events stream not ready. Retrying in 1s...");
+            Log.v("eventStream", e.getClass().getSimpleName() + ". " + e.getMessage());
         } else {
-            Log.e("onFailure", "Retrying in 1s...", e);
+            Log.e("eventStream", e.getClass().getSimpleName() + ". " + e.getMessage(), e);
         }
         try {
             Thread.sleep(1000);

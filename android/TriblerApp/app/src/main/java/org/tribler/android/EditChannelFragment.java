@@ -193,7 +193,7 @@ public class EditChannelFragment extends ViewFragment {
 
         rxSubs.add(service.createChannel(name, description)
                 .subscribeOn(Schedulers.io())
-                .retryWhen(MyUtils::oneSecondDelay)
+                .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<AddedChannelAck>() {
 
@@ -225,7 +225,7 @@ public class EditChannelFragment extends ViewFragment {
 
         rxSubs.add(service.editMyChannel(name, description)
                 .subscribeOn(Schedulers.io())
-                .retryWhen(MyUtils::oneSecondDelay)
+                .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ModifiedAck>() {
 

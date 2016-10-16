@@ -83,7 +83,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
         rxSubs.add(service.subscribe(dispersyCid)
                 .subscribeOn(Schedulers.io())
-                .retryWhen(MyUtils::oneSecondDelay)
+                .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<SubscribedAck>() {
 
@@ -125,7 +125,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
         rxSubs.add(service.unsubscribe(dispersyCid)
                 .subscribeOn(Schedulers.io())
-                .retryWhen(MyUtils::oneSecondDelay)
+                .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<UnsubscribedAck>() {
 
