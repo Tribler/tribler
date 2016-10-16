@@ -5,6 +5,7 @@ import binascii
 import errno
 import logging
 import os
+import random
 import sys
 import time as timemod
 from glob import iglob
@@ -492,8 +493,9 @@ class TriblerLaunchMany(TaskManager):
 
         network_set_download_states_callback_lambda = lambda: self.network_set_download_states_callback(usercallback)
 
-        self.register_task("download_states_callback",
-                           reactor.callLater(when, network_set_download_states_callback_lambda))
+        random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
+        self.register_task("download_states_callback_%s" % random_id,
+                           reactor.callLater(when, reactor.callInThread, network_set_download_states_callback_lambda))
 
     def sesscb_states_callback(self, states_list):
         """
