@@ -24,8 +24,11 @@ from Tribler.Core.Modules.watch_folder import WatchFolder
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Video.VideoServer import VideoServer
+from Tribler.Core.defaults import tribler_defaults
 from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER
+from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,
+                                     NTFY_FINISHED, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
+                                     DLSTATUS_SEEDING)
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
@@ -54,6 +57,8 @@ class TriblerLaunchMany(TaskManager):
         self.initComplete = False
         self.registered = False
         self.dispersy = None
+        self.state_cb_count = 0
+        self.previous_active_downloads = []
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -328,6 +333,7 @@ class TriblerLaunchMany(TaskManager):
             self.boosting_manager = BoostingManager(self.session)
 
         self.version_check_manager = VersionCheckManager(self.session)
+        self.session.set_download_states_callback(self.sesscb_states_callback)
 
         self.initComplete = True
 
@@ -488,6 +494,67 @@ class TriblerLaunchMany(TaskManager):
 
         self.register_task("download_states_callback",
                            reactor.callLater(when, network_set_download_states_callback_lambda))
+
+    def sesscb_states_callback(self, states_list):
+        """
+        This method is periodically (every second) called with a list of the download states of the active downloads.
+        """
+        wantpeers = []
+        self.state_cb_count += 1
+
+        # Check to see if a download has finished
+        new_active_downloads = []
+        do_checkpoint = False
+        seeding_download_list = []
+
+        for ds in states_list:
+            state = ds.get_status()
+            download = ds.get_download()
+            tdef = download.get_def()
+            safename = tdef.get_name_as_unicode()
+
+            if state == DLSTATUS_DOWNLOADING:
+                new_active_downloads.append(safename)
+            elif state == DLSTATUS_STOPPED_ON_ERROR:
+                self._logger.error("Error during download: %s", repr(ds.get_error()))
+                self.downloads.get(ds.get_infohash()).stop()
+                self.session.notifier.notify(NTFY_TORRENTS, NTFY_ERROR, tdef.get_infohash(), repr(ds.get_error()))
+            elif state == DLSTATUS_SEEDING:
+                seeding_download_list.append({u'infohash': tdef.get_infohash(),
+                                              u'download': download})
+
+                if safename in self.previous_active_downloads:
+                    self.session.notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, tdef.get_infohash(), safename)
+                    do_checkpoint = True
+
+                elif download.get_hops() == 0 and download.get_safe_seeding():
+                    hops = tribler_defaults.get('Tribler', {}).get('default_number_hops', 1)
+                    self._logger.info("Moving completed torrent to tunneled session %d for hidden seeding %r",
+                                      hops, download)
+                    self.session.remove_download(download)
+
+                    # copy the old download_config and change the hop count
+                    dscfg = download.copy()
+                    dscfg.set_hops(hops)
+
+                    # TODO(emilon): That's a hack to work around the fact that removing a torrent is racy.
+                    def schedule_download():
+                        self.register_task(
+                            "reschedule_download", reactor.callLater(5,
+                                                                     reactor.callInThread,
+                                                                     self.session.start_download_from_tdef,
+                                                                     tdef, dscfg))
+
+                    reactor.callFromThread(schedule_download)
+
+        self.previous_active_downloads = new_active_downloads
+        if do_checkpoint:
+            self.session.checkpoint()
+
+        if self.state_cb_count % 4 == 0 and self.tunnel_community:
+            self.tunnel_community.monitor_downloads(states_list)
+
+        return 1.0, wantpeers
 
     def network_set_download_states_callback(self, usercallback):
         """ Called by network thread """
