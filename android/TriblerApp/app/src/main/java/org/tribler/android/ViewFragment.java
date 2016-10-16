@@ -33,7 +33,7 @@ public abstract class ViewFragment extends BaseFragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        Log.v(this.getClass().getSimpleName(), "onViewCreated");
+        Log.v(getClass().getSimpleName(), "onViewCreated");
 
         _unbinder = ButterKnife.bind(this, view);
 
@@ -48,7 +48,7 @@ public abstract class ViewFragment extends BaseFragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        Log.v(this.getClass().getSimpleName(), "onDestroyView");
+        Log.v(getClass().getSimpleName(), "onDestroyView");
 
         dismissQuestion();
 

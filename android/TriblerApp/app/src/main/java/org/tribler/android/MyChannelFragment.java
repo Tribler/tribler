@@ -95,6 +95,18 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         Log.e("onCreateOptionsMenu", "queryTextChangeEvents", e);
                     }
                 }));
+
+        // Set title
+        if (context instanceof AppCompatActivity) {
+            ActionBar actionBar = ((AppCompatActivity) context).getSupportActionBar();
+            if (actionBar != null) {
+                if (_name != null) {
+                    actionBar.setTitle(_name);
+                } else {
+                    actionBar.setTitle(R.string.action_my_channel);
+                }
+            }
+        }
     }
 
     /**
@@ -112,14 +124,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         menu.findItem(R.id.btn_beam_my_channel).setVisible(created);
         menu.findItem(R.id.btn_edit_my_channel).setVisible(created);
         menu.findItem(R.id.btn_filter_my_channel).setVisible(created);
-
-        // Set title
-        if (created && context instanceof AppCompatActivity) {
-            ActionBar actionBar = ((AppCompatActivity) context).getSupportActionBar();
-            if (actionBar != null) {
-                actionBar.setTitle(_name);
-            }
-        }
     }
 
     /**

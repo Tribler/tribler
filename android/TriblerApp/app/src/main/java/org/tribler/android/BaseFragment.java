@@ -28,7 +28,7 @@ public class BaseFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.v(this.getClass().getSimpleName(), "onCreate");
+        Log.v(getClass().getSimpleName(), "onCreate");
 
         String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
         String authToken = getString(R.string.service_auth_token);
@@ -44,7 +44,7 @@ public class BaseFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.v(this.getClass().getSimpleName(), "onDestroy");
+        Log.v(getClass().getSimpleName(), "onDestroy");
 
         // Memory leak detection
         MyUtils.getRefWatcher(getActivity()).watch(this);
@@ -63,11 +63,11 @@ public class BaseFragment extends Fragment {
      * {@inheritDoc}
      */
     @Override
-    public void onAttach(Context ctx) {
-        super.onAttach(ctx);
-        Log.v(this.getClass().getSimpleName(), "onAttach");
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        Log.v(getClass().getSimpleName(), "onAttach");
 
-        context = ctx;
+        this.context = context;
     }
 
     /**
@@ -76,7 +76,7 @@ public class BaseFragment extends Fragment {
     @Override
     public void onDetach() {
         super.onDetach();
-        Log.v(this.getClass().getSimpleName(), "onDetach");
+        Log.v(getClass().getSimpleName(), "onDetach");
 
         context = null;
     }

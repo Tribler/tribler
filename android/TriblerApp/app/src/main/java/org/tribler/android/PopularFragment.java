@@ -1,6 +1,9 @@
 package org.tribler.android;
 
 import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
 
 import org.tribler.android.restapi.json.TriblerChannel;
 
@@ -12,6 +15,22 @@ import rx.schedulers.Schedulers;
 public class PopularFragment extends DefaultInteractionListFragment {
 
     private int _limit = 50000;
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+
+        // Set title
+        if (context instanceof AppCompatActivity) {
+            ActionBar actionBar = ((AppCompatActivity) context).getSupportActionBar();
+            if (actionBar != null) {
+                actionBar.setTitle(R.string.action_popular_channels);
+            }
+        }
+    }
 
     /**
      * {@inheritDoc}

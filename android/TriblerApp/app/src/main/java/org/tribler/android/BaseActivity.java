@@ -34,7 +34,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.v(this.getClass().getSimpleName(), "onCreate");
+        Log.v(getClass().getSimpleName(), "onCreate");
 
         rxSubs = new CompositeSubscription();
         rxMenuSubs = new CompositeSubscription();
@@ -46,7 +46,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.v(this.getClass().getSimpleName(), "onDestroy");
+        Log.v(getClass().getSimpleName(), "onDestroy");
 
         // Memory leak detection
         MyUtils.getRefWatcher(this).watch(this);
@@ -104,7 +104,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         for (String permission : permissions) {
-            Log.v(this.getClass().getSimpleName(), "onRequestPermissionsResult " + permission);
+            Log.v(getClass().getSimpleName(), "onRequestPermissionsResult " + permission);
         }
     }
 
@@ -114,7 +114,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        Log.v(this.getClass().getSimpleName(), String.format("onNewIntent: %s", intent.getAction()));
+        Log.v(getClass().getSimpleName(), String.format("onNewIntent: %s", intent.getAction()));
 
         setIntent(intent);
         handleIntent(intent);

@@ -26,7 +26,6 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatDelegate;
@@ -424,24 +423,12 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     public void navSubscriptionsClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
-        if (switchFragment(SubscribedFragment.class)) {
-            // Set title
-            ActionBar actionBar = getSupportActionBar();
-            if (actionBar != null) {
-                actionBar.setTitle(R.string.action_subscriptions);
-            }
-        }
+        switchFragment(SubscribedFragment.class);
     }
 
     public void navMyChannelClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
-        if (switchFragment(MyChannelFragment.class)) {
-            // Set title
-            ActionBar actionBar = getSupportActionBar();
-            if (actionBar != null) {
-                actionBar.setTitle(R.string.action_my_channel);
-            }
-        }
+        switchFragment(MyChannelFragment.class);
     }
 
     public void navMyPlaylistsClicked(MenuItem item) {
@@ -449,13 +436,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     public void navPopularClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
-        if (switchFragment(PopularFragment.class)) {
-            // Set title
-            ActionBar actionBar = getSupportActionBar();
-            if (actionBar != null) {
-                actionBar.setTitle(R.string.action_popular_channels);
-            }
-        }
+        switchFragment(PopularFragment.class);
     }
 
     public void navCaptureVideoClicked(MenuItem item) {
@@ -476,7 +457,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     public void navBeamClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
-        File apk = new File(this.getPackageResourcePath());
+        File apk = new File(getPackageResourcePath());
         Intent beamIntent = MyUtils.beamIntent(Uri.fromFile(apk));
         startActivity(beamIntent);
     }
