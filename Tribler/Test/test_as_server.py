@@ -45,6 +45,9 @@ defaults.sessdefaults['general']['minport'] = -1
 defaults.sessdefaults['general']['maxport'] = -1
 defaults.sessdefaults['dispersy']['dispersy_port'] = -1
 
+# We disable safe seeding by default
+defaults.dldefaults['downloadconfig']['safe_seeding'] = False
+
 OUTPUT_DIR = os.path.abspath(os.environ.get('OUTPUT_DIR', 'output'))
 
 
