@@ -1,3 +1,4 @@
+import random
 import socket
 
 from Tribler.Core.Utilities.twisted_thread import reactor, deferred
@@ -17,9 +18,10 @@ class TriblerCoreTestNetworkUtils(TriblerCoreTest):
 
     @deferred(timeout=5)
     def test_get_random_port_tcp(self):
-        listenport = reactor.listenTCP(9283, Factory())
-        random_port = get_random_port(socket_type='tcp', min_port=9283, max_port=9283)
-        self.assertEqual(random_port, 9284)
+        rand_port_num = random.randint(*self.get_bucket_range_port())
+        listenport = reactor.listenTCP(rand_port_num, Factory())
+        random_port = get_random_port(socket_type='tcp', min_port=rand_port_num, max_port=rand_port_num)
+        self.assertEqual(random_port, rand_port_num+1)
         return listenport.stopListening()
 
     def test_get_random_port_udp(self):

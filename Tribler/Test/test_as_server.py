@@ -3,6 +3,7 @@
 # see LICENSE.txt for license information
 
 # Make sure the in thread reactor is installed.
+from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.twisted_thread import reactor, deferred
 
 # importmagic: manage
@@ -45,6 +46,9 @@ defaults.sessdefaults['general']['minport'] = -1
 defaults.sessdefaults['general']['maxport'] = -1
 defaults.sessdefaults['dispersy']['dispersy_port'] = -1
 
+# We disable safe seeding by default
+defaults.dldefaults['downloadconfig']['safe_seeding'] = False
+
 OUTPUT_DIR = os.path.abspath(os.environ.get('OUTPUT_DIR', 'output'))
 
 
@@ -78,6 +82,7 @@ class AbstractServer(BaseTestCase):
         super(AbstractServer, self).__init__(*args, **kwargs)
 
         self.watchdog = WatchDog()
+        self.selected_socks5_ports = set()
 
     def setUp(self, annotate=True):
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -206,6 +211,31 @@ class AbstractServer(BaseTestCase):
 
             print >> f, _annotation, self.annotate_dict[annotation], time.time()
             f.close()
+
+    def get_bucket_range_port(self):
+        """
+        Return the port range of the test bucket assigned.
+        """
+        min_base_port = 1000 if not os.environ.get("TEST_BUCKET", None) \
+            else int(os.environ['TEST_BUCKET']) * 2000 + 2000
+        return min_base_port, min_base_port + 2000
+
+    def get_socks5_ports(self):
+        """
+        Return five random, free socks5 ports.
+        This is here to make sure that tests in different buckets get assigned different SOCKS5 listen ports.
+        Also, make sure that we have no duplicates in selected socks5 ports.
+        """
+        socks5_ports = []
+        for _ in xrange(0, 5):
+            min_base_port, max_base_port = self.get_bucket_range_port()
+            selected_port = get_random_port(min_port=min_base_port, max_port=max_base_port)
+            while selected_port in self.selected_socks5_ports:
+                selected_port = get_random_port(min_port=min_base_port, max_port=max_base_port)
+            self.selected_socks5_ports.add(selected_port)
+            socks5_ports.append(selected_port)
+
+        return socks5_ports
 
 
 class TestAsServer(AbstractServer):
