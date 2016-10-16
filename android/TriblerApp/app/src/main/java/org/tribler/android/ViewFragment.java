@@ -83,6 +83,12 @@ public abstract class ViewFragment extends BaseFragment {
         showLoading(true, getText(resId));
     }
 
+    /**
+     * @param question The question to ask the user
+     * @param resId    Action button text
+     * @param listener Action listener
+     * @return True if question is asked, false otherwise
+     */
     protected boolean askUser(CharSequence question, @StringRes int resId, final View.OnClickListener listener) {
         View rootView = getView();
         if (rootView == null) {
