@@ -325,6 +325,7 @@ public class MyUtils {
             if (error instanceof HttpException) {
                 return Observable.error(error);
             }
+            Log.v("oneSecondDelay", error.getMessage());
             // Retry
             return Observable.timer(1, TimeUnit.SECONDS);
         });
