@@ -28,6 +28,7 @@ public abstract class ViewFragment extends BaseFragment {
     @Nullable
     private CharSequence _statusMsg;
 
+    protected CompositeSubscription rxViewSubs;
     protected CompositeSubscription rxMenuSubs;
 
     /**
@@ -46,6 +47,8 @@ public abstract class ViewFragment extends BaseFragment {
 
         _unbinder = ButterKnife.bind(this, view);
 
+        rxViewSubs = new CompositeSubscription();
+
         showLoading(_statusMsg);
     }
 
@@ -58,6 +61,9 @@ public abstract class ViewFragment extends BaseFragment {
         Log.v(getClass().getSimpleName(), "onDestroyView");
 
         dismissQuestion();
+
+        rxViewSubs.unsubscribe();
+        rxViewSubs = null;
 
         _unbinder.unbind();
         _unbinder = null;

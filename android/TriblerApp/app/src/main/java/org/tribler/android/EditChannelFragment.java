@@ -100,7 +100,7 @@ public class EditChannelFragment extends ViewFragment {
         super.onViewCreated(view, savedInstanceState);
 
         // Update interface while typing
-        rxSubs.add(RxTextView.textChangeEvents(nameInput).subscribe(new Observer<TextViewTextChangeEvent>() {
+        rxViewSubs.add(RxTextView.textChangeEvents(nameInput).subscribe(new Observer<TextViewTextChangeEvent>() {
 
             public void onNext(TextViewTextChangeEvent event) {
                 CharSequence name = event.text();
