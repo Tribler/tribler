@@ -28,6 +28,8 @@ import rx.schedulers.Schedulers;
 
 public class EditChannelFragment extends ViewFragment {
 
+    public static final String ACTION_INPUT_DISABLED = "org.tribler.android.channel.INPUT_DISABLED";
+
     @BindView(R.id.channel_icon_wrapper)
     View iconWrapper;
 
@@ -58,13 +60,19 @@ public class EditChannelFragment extends ViewFragment {
     @BindView(R.id.channel_progress_status)
     TextView statusBar;
 
+    private String _action;
+
+    private int _color;
+
+    @Nullable
     private Intent _result;
 
+    @Nullable
     private Intent getResult() {
         return _result;
     }
 
-    private void setResult(Intent result) {
+    private void setResult(@Nullable Intent result) {
         _result = result;
         // result can be set while activity is not attached
         if (result != null && isAdded()) {
@@ -98,6 +106,8 @@ public class EditChannelFragment extends ViewFragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        enableInput();
 
         // Update interface while typing
         rxViewSubs.add(RxTextView.textChangeEvents(nameInput).subscribe(new Observer<TextViewTextChangeEvent>() {
@@ -146,25 +156,49 @@ public class EditChannelFragment extends ViewFragment {
     }
 
     void createChannel() {
-        explanation.setVisibility(View.VISIBLE);
-        btnCreate.setVisibility(View.VISIBLE);
-        nameInput.setEnabled(true);
-        descriptionInput.setEnabled(true);
+        _action = EditChannelActivity.ACTION_CREATE_CHANNEL;
+        enableInput();
     }
 
     void editChannel(String dispersyCid, String name, String description) {
+        _action = EditChannelActivity.ACTION_EDIT_CHANNEL;
+        _color = MyUtils.getColor(dispersyCid.hashCode());
         nameCapital.setText(MyUtils.getCapitals(name, 2));
         nameInput.setText(name);
         descriptionInput.setText(description);
-        int color = MyUtils.getColor(dispersyCid.hashCode());
-        MyUtils.setCicleBackground(icon, color);
-        iconWrapper.setVisibility(View.VISIBLE);
-        btnSave.setVisibility(View.VISIBLE);
-        nameInput.setEnabled(true);
-        descriptionInput.setEnabled(true);
+        enableInput();
+    }
+
+    private void enableInput() {
+        if (_action == null) {
+            return;
+        }
+        switch (_action) {
+
+            case EditChannelActivity.ACTION_CREATE_CHANNEL:
+                explanation.setVisibility(View.VISIBLE);
+                btnCreate.setVisibility(View.VISIBLE);
+                nameInput.setEnabled(true);
+                descriptionInput.setEnabled(true);
+                break;
+
+            case EditChannelActivity.ACTION_EDIT_CHANNEL:
+                MyUtils.setCicleBackground(icon, _color);
+                iconWrapper.setVisibility(View.VISIBLE);
+                btnSave.setVisibility(View.VISIBLE);
+                nameInput.setEnabled(true);
+                descriptionInput.setEnabled(true);
+                break;
+
+            case ACTION_INPUT_DISABLED:
+                disableInput();
+                return;
+        }
     }
 
     private void disableInput() {
+        _action = ACTION_INPUT_DISABLED;
+
         // Lock input fields
         nameInput.setEnabled(false);
         descriptionInput.setEnabled(false);

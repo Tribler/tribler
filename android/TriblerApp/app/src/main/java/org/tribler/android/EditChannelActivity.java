@@ -42,7 +42,10 @@ public class EditChannelActivity extends BaseActivity {
     @Override
     protected void handleIntent(Intent intent) {
         String action = intent.getAction();
-        if (TextUtils.isEmpty(action)) {
+        // Handle intent only once
+        if (!TextUtils.isEmpty(action)) {
+            intent.setAction(null);
+        } else {
             return;
         }
         switch (action) {
