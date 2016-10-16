@@ -464,6 +464,7 @@ class BoostingManager(TaskManager):
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(self.settings.credit_mining_path)
         dscfg.set_safe_seeding(False)
+        dscfg.dlconfig.set('downloadconfig', 'seeding_mode', 'forever')
 
         if not infohash:
             self._logger.error("None Infohash %s", infohash)
