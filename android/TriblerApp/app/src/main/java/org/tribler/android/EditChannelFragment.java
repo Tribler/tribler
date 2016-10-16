@@ -58,8 +58,6 @@ public class EditChannelFragment extends ViewFragment {
     @BindView(R.id.channel_progress_status)
     TextView statusBar;
 
-    private CharSequence _statusMsg;
-
     private Intent _result;
 
     private Intent getResult() {
@@ -101,7 +99,8 @@ public class EditChannelFragment extends ViewFragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         // Saving?
-        if (_statusMsg != null) {
+        if (loading != null) {
+            setInputEnabled(false);
             return;
         }
         // Update interface while typing
@@ -131,11 +130,13 @@ public class EditChannelFragment extends ViewFragment {
      * {@inheritDoc}
      */
     @Override
-    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
-        super.onViewStateRestored(savedInstanceState);
-        // Saving?
-        if (_statusMsg != null) {
-            setInputEnabled(false);
+    protected void showLoading(@Nullable CharSequence text) {
+        super.showLoading(text);
+        if (text == null) {
+            progressView.setVisibility(View.GONE);
+        } else {
+            statusBar.setText(text);
+            progressView.setVisibility(View.VISIBLE);
         }
     }
 
@@ -166,32 +167,16 @@ public class EditChannelFragment extends ViewFragment {
         // Hide buttons
         btnCreate.setVisibility(enabled ? View.VISIBLE : View.GONE);
         btnSave.setVisibility(enabled ? View.VISIBLE : View.GONE);
-
-        showLoading(!enabled, _statusMsg);
-    }
-
-    protected void showLoading(boolean show, @Nullable CharSequence text) {
-        if (show) {
-            // Show loading indicator and status
-            progressView.setVisibility(View.VISIBLE);
-            if (TextUtils.isEmpty(text)) {
-                text = "";
-            }
-            statusBar.setText(text);
-        } else {
-            // Hide loading indicator and status
-            progressView.setVisibility(View.GONE);
-        }
     }
 
     void btnChannelCreateClicked() {
-        _statusMsg = getText(R.string.status_creating_channel);
         setInputEnabled(false);
+        showLoading(R.string.status_creating_channel);
 
         final String name = nameInput.getText().toString();
         final String description = descriptionInput.getText().toString();
 
-        rxSubs.add(service.createChannel(name, description)
+        rxSubs.add(loading = service.createChannel(name, description)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())
@@ -217,13 +202,13 @@ public class EditChannelFragment extends ViewFragment {
     }
 
     void btnChannelSaveClicked() {
-        _statusMsg = getText(R.string.status_saving_changes);
         setInputEnabled(false);
+        showLoading(R.string.status_saving_changes);
 
         final String name = nameInput.getText().toString();
         final String description = descriptionInput.getText().toString();
 
-        rxSubs.add(service.editMyChannel(name, description)
+        rxSubs.add(loading = service.editMyChannel(name, description)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())

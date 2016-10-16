@@ -296,6 +296,23 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         }
     }
 
+    protected void showLoading(@Nullable CharSequence text) {
+        if (text == null) {
+            progressView.setVisibility(View.GONE);
+        } else {
+            statusBar.setText(text);
+            progressView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    protected void showLoading(boolean show) {
+        showLoading(show ? "" : null);
+    }
+
+    protected void showLoading(@StringRes int resId) {
+        showLoading(getText(resId));
+    }
+
     private void initConnectivityManager() {
         _connectivityManager =
                 (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -345,28 +362,6 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         // Listen for Wi-Fi direct device changes
         rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION))
                 .subscribe(observer));
-    }
-
-    protected void showLoading(boolean show, @Nullable CharSequence text) {
-        if (show) {
-            // Show loading indicator and status
-            progressView.setVisibility(View.VISIBLE);
-            if (TextUtils.isEmpty(text)) {
-                text = "";
-            }
-            statusBar.setText(text);
-        } else {
-            // Hide loading indicator and status
-            progressView.setVisibility(View.GONE);
-        }
-    }
-
-    protected void showLoading(boolean show) {
-        showLoading(show, null);
-    }
-
-    protected void showLoading(@StringRes int resId) {
-        showLoading(true, getText(resId));
     }
 
     /**

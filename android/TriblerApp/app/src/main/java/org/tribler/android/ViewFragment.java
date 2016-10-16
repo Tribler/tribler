@@ -20,6 +20,8 @@ public abstract class ViewFragment extends BaseFragment {
 
     private Unbinder _unbinder;
     private Snackbar _snackbar;
+    @Nullable
+    private CharSequence _statusMsg;
 
     /**
      * {@inheritDoc}
@@ -37,9 +39,7 @@ public abstract class ViewFragment extends BaseFragment {
 
         _unbinder = ButterKnife.bind(this, view);
 
-        if (loading != null && !loading.isUnsubscribed()) {
-            showLoading(true);
-        }
+        showLoading(_statusMsg);
     }
 
     /**
@@ -73,14 +73,16 @@ public abstract class ViewFragment extends BaseFragment {
         showLoading(true);
     }
 
-    protected abstract void showLoading(boolean show, @Nullable CharSequence text);
+    protected void showLoading(@Nullable CharSequence text) {
+        _statusMsg = text;
+    }
 
     protected void showLoading(boolean show) {
-        showLoading(show, null);
+        showLoading(show ? "" : null);
     }
 
     protected void showLoading(@StringRes int resId) {
-        showLoading(true, getText(resId));
+        showLoading(getText(resId));
     }
 
     /**
