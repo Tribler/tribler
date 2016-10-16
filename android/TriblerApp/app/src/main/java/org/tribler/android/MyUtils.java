@@ -1,9 +1,11 @@
 package org.tribler.android;
 
 import android.app.Application;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
@@ -24,6 +26,7 @@ import com.squareup.leakcanary.LeakCanary;
 import com.squareup.leakcanary.RefWatcher;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -276,6 +279,37 @@ public class MyUtils {
             default:
                 return false;
         }
+    }
+
+    public static File resolveUri(Uri uri, Context context) throws IOException {
+        ContentResolver resolver = context.getContentResolver();
+        String filename = uri.getLastPathSegment();
+
+        // Get meta-data
+        Cursor cursor = resolver.query(uri, null, null, null, null);
+        if (cursor != null && cursor.moveToFirst()) {
+            for (int i = 0, j = cursor.getColumnCount(); i < j; i++) {
+                Log.v(cursor.getColumnName(i), cursor.getString(i)); //DEBUG
+            }
+            try {
+                int i = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME);
+                filename = cursor.getString(i);
+            } catch (IllegalArgumentException ex) {
+            }
+            cursor.close();
+        }
+
+        // Make file accessible to service by copying to cache dir
+        InputStream input = resolver.openInputStream(uri);
+
+        // The name of the dir the file is in becomes the name of the .torrent file
+        File dir = new File(context.getCacheDir(), filename);
+        File file = new File(dir, filename);
+        dir.mkdirs();
+        OutputStream output = new FileOutputStream(file, false);
+
+        MyUtils.copy(input, output);
+        return file;
     }
 
     public static void onError(final Throwable e, final ViewFragment f, @Nullable final Action1<HttpException> onHttpException) {

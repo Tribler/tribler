@@ -2,14 +2,11 @@ package org.tribler.android;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.net.Uri;
 import android.nfc.NdefRecord;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -39,10 +36,6 @@ import org.tribler.android.restapi.json.TorrentCreatedResponse;
 import org.tribler.android.restapi.json.TriblerTorrent;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
 import rx.Observable;
 import rx.Observer;
@@ -159,6 +152,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         rxSubs.add(loading = service.getMyChannel()
                 .subscribeOn(Schedulers.io())
                 .doOnError(e -> MyUtils.onError(e, this, http -> {
+                    Log.d("http", http.message(), http);
+
                     if (404 == http.code()) {
                         // My channel has not been created yet
                         createChannel();
@@ -493,7 +488,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         adapter.clear();
                         showLoading(R.string.status_creating_torrent);
 
-                        rxSubs.add(loading = Observable.fromCallable(() -> resolveUri(data.getData()))
+                        rxSubs.add(loading = Observable.fromCallable(() -> MyUtils.resolveUri(data.getData(), context))
                                 .subscribeOn(Schedulers.io())
                                 .observeOn(AndroidSchedulers.mainThread())
                                 .subscribe(new Observer<File>() {
@@ -520,37 +515,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 }
                 return;
         }
-    }
-
-    private File resolveUri(Uri uri) throws IOException {
-        ContentResolver resolver = context.getContentResolver();
-        String filename = uri.getLastPathSegment();
-
-        // Get meta-data
-        Cursor cursor = resolver.query(uri, null, null, null, null);
-        if (cursor != null && cursor.moveToFirst()) {
-            for (int i = 0, j = cursor.getColumnCount(); i < j; i++) {
-                Log.v(cursor.getColumnName(i), cursor.getString(i)); //DEBUG
-            }
-            try {
-                int i = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME);
-                filename = cursor.getString(i);
-            } catch (IllegalArgumentException ex) {
-            }
-            cursor.close();
-        }
-
-        // Make file accessible to service by copying to cache dir
-        InputStream input = resolver.openInputStream(uri);
-
-        // The name of the dir the file is in becomes the name of the .torrent file
-        File dir = new File(context.getCacheDir(), filename);
-        File file = new File(dir, filename);
-        dir.mkdirs();
-        OutputStream output = new FileOutputStream(file, false);
-
-        MyUtils.copy(input, output);
-        return file;
     }
 
 }
