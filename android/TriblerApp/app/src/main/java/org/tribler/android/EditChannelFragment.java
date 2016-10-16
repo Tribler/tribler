@@ -99,33 +99,36 @@ public class EditChannelFragment extends ViewFragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        if (btnCreate.isShown() || btnSave.isShown()) {
+        // Update interface while typing
+        rxSubs.add(RxTextView.textChangeEvents(nameInput).subscribe(new Observer<TextViewTextChangeEvent>() {
 
-            // Update interface while typing
-            rxSubs.add(RxTextView.textChangeEvents(nameInput).subscribe(new Observer<TextViewTextChangeEvent>() {
+            public void onNext(TextViewTextChangeEvent event) {
+                CharSequence name = event.text();
 
-                public void onNext(TextViewTextChangeEvent event) {
-                    CharSequence name = event.text();
-
-                    // Prevent submitting empty channel name
-                    boolean enabled = !TextUtils.isEmpty(name);
-                    btnCreate.setEnabled(enabled);
-                    btnSave.setEnabled(enabled);
-
-                    // Update icon view
-                    nameCapital.setText(MyUtils.getCapitals(name, 2));
+                // Prevent submitting empty channel name
+                if (TextUtils.isEmpty(name)) {
+                    btnCreate.setEnabled(false);
+                    btnSave.setEnabled(false);
+                    btnCreate.setAlpha(0.2f);
+                    btnSave.setAlpha(0.2f);
+                } else {
+                    btnCreate.setEnabled(true);
+                    btnSave.setEnabled(true);
+                    btnCreate.setAlpha(1f);
+                    btnSave.setAlpha(1f);
                 }
 
-                public void onCompleted() {
-                }
+                // Update icon view
+                nameCapital.setText(MyUtils.getCapitals(name, 2));
+            }
 
-                public void onError(Throwable e) {
-                    Log.e("onViewCreated", "textChangeEvents", e);
-                }
-            }));
-        } else {
-            setInputEnabled(false);
-        }
+            public void onCompleted() {
+            }
+
+            public void onError(Throwable e) {
+                Log.e("onViewCreated", "textChangeEvents", e);
+            }
+        }));
     }
 
     /**
@@ -145,6 +148,8 @@ public class EditChannelFragment extends ViewFragment {
     void createChannel() {
         explanation.setVisibility(View.VISIBLE);
         btnCreate.setVisibility(View.VISIBLE);
+        nameInput.setEnabled(true);
+        descriptionInput.setEnabled(true);
     }
 
     void editChannel(String dispersyCid, String name, String description) {
@@ -155,24 +160,26 @@ public class EditChannelFragment extends ViewFragment {
         MyUtils.setCicleBackground(icon, color);
         iconWrapper.setVisibility(View.VISIBLE);
         btnSave.setVisibility(View.VISIBLE);
+        nameInput.setEnabled(true);
+        descriptionInput.setEnabled(true);
     }
 
-    private void setInputEnabled(boolean enabled) {
+    private void disableInput() {
         // Lock input fields
-        nameInput.setEnabled(enabled);
-        descriptionInput.setEnabled(enabled);
+        nameInput.setEnabled(false);
+        descriptionInput.setEnabled(false);
 
         // Lock buttons
-        btnCreate.setEnabled(enabled);
-        btnSave.setEnabled(enabled);
+        btnCreate.setEnabled(false);
+        btnSave.setEnabled(false);
 
         // Hide buttons
-        btnCreate.setVisibility(enabled ? View.VISIBLE : View.GONE);
-        btnSave.setVisibility(enabled ? View.VISIBLE : View.GONE);
+        btnCreate.setVisibility(View.GONE);
+        btnSave.setVisibility(View.GONE);
     }
 
     void btnChannelCreateClicked() {
-        setInputEnabled(false);
+        disableInput();
         showLoading(R.string.status_creating_channel);
 
         final String name = nameInput.getText().toString();
@@ -204,7 +211,7 @@ public class EditChannelFragment extends ViewFragment {
     }
 
     void btnChannelSaveClicked() {
-        setInputEnabled(false);
+        disableInput();
         showLoading(R.string.status_saving_changes);
 
         final String name = nameInput.getText().toString();
