@@ -68,6 +68,11 @@ public abstract class ViewFragment extends BaseFragment {
         }
     }
 
+    protected void reload() {
+        cancel();
+        showLoading(true);
+    }
+
     protected abstract void showLoading(boolean show, @Nullable CharSequence text);
 
     protected void showLoading(boolean show) {

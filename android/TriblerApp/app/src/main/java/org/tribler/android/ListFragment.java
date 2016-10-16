@@ -140,10 +140,13 @@ public class ListFragment extends ViewFragment {
         super.onDestroyView();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     protected void reload() {
-        cancel();
+        super.reload();
         adapter.clear();
-        showLoading(true);
     }
 
     protected void showLoading(boolean show, @Nullable CharSequence text) {

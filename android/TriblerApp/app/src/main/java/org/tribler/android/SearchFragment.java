@@ -90,7 +90,6 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
         // Start search
         rxSubs.add(loading = service.search(query)
                 .subscribeOn(Schedulers.io())
-                .doOnError(e -> MyUtils.onError(e, this, null))
                 .retryWhen(MyUtils::oneSecondDelay)
                 .subscribe(new Observer<QueriedAck>() {
 
@@ -102,8 +101,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("search", e.getMessage(), e);
-                        cancel();
+                        MyUtils.onError(SearchFragment.this, "search", e);
                     }
                 }));
     }

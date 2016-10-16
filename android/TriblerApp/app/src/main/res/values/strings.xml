@@ -31,6 +31,7 @@
     <string name="action_delete">Delete</string>
     <string name="action_refresh">Refresh</string>
     <string name="action_REFRESH">REFRESH</string>
+    <string name="action_RETRY">RETRY</string>
 
     <string name="action_search">Search videos and channels</string>
     <string name="action_search_in_channel">Search in this channel</string>

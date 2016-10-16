@@ -4,7 +4,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.util.Log;
 
 import org.tribler.android.restapi.EventStream;
 import org.tribler.android.restapi.json.TorrentDiscoveredEvent;
@@ -77,7 +76,6 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
     private void loadTorrents() {
         rxSubs.add(loading = service.getTorrents(_dispersyCid)
                 .subscribeOn(Schedulers.io())
-                .doOnError(e -> MyUtils.onError(e, this, null))
                 .retryWhen(MyUtils::oneSecondDelay)
                 .flatMap(response -> Observable.from(response.getTorrents()))
                 .observeOn(AndroidSchedulers.mainThread())
@@ -92,8 +90,7 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("loadTorrents", e.getMessage(), e);
-                        cancel();
+                        MyUtils.onError(ChannelFragment.this, "loadTorrents", e);
                     }
                 }));
     }

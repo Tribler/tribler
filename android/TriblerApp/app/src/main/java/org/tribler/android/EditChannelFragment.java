@@ -193,7 +193,6 @@ public class EditChannelFragment extends ViewFragment {
 
         rxSubs.add(service.createChannel(name, description)
                 .subscribeOn(Schedulers.io())
-                .doOnError(e -> MyUtils.onError(e, this, null))
                 .retryWhen(MyUtils::oneSecondDelay)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<AddedChannelAck>() {
@@ -212,8 +211,7 @@ public class EditChannelFragment extends ViewFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("createChannel", e.getMessage(), e);
-                        cancel();
+                        MyUtils.onError(EditChannelFragment.this, "createChannel", e);
                     }
                 }));
     }
@@ -227,7 +225,6 @@ public class EditChannelFragment extends ViewFragment {
 
         rxSubs.add(service.editMyChannel(name, description)
                 .subscribeOn(Schedulers.io())
-                .doOnError(e -> MyUtils.onError(e, this, null))
                 .retryWhen(MyUtils::oneSecondDelay)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ModifiedAck>() {
@@ -246,8 +243,7 @@ public class EditChannelFragment extends ViewFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("editMyChannel", e.getMessage(), e);
-                        cancel();
+                        MyUtils.onError(EditChannelFragment.this, "editMyChannel", e);
                     }
                 }));
     }
