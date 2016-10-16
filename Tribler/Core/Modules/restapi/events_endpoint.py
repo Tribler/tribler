@@ -4,7 +4,7 @@ from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, conver
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT,
                                      NTFY_UPGRADER, NTFY_STARTED, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT,
                                      NTFY_NEW_VERSION, NTFY_FINISHED, NTFY_TRIBLER, NTFY_UPGRADER_TICK, NTFY_CHANNEL,
-                                     NTFY_DISCOVERED, NTFY_TORRENT)
+                                     NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR)
 
 MAX_EVENTS_BUFFER_SIZE = 100
 
@@ -32,6 +32,10 @@ class EventsEndpoint(resource.Resource):
       description and dispersy community id of the discovered channel.
     - torrent_discovered: An indicator that Tribler has discovered a new torrent. The event contains the name and the
       dispersy community id of the discovered torrent.
+    - torrent_finished: A specific torrent has finished downloading. The event includes the infohash and name of the
+      torrent that has finished downloading.
+    - torrent_error: An error has occurred during the download process of a specific torrent. The event includes the
+      infohash and a readable string of the error message.
     """
 
     def __init__(self, session):
@@ -55,6 +59,8 @@ class EventsEndpoint(resource.Resource):
         self.session.add_observer(self.on_tribler_started, NTFY_TRIBLER, [NTFY_STARTED])
         self.session.add_observer(self.on_channel_discovered, NTFY_CHANNEL, [NTFY_DISCOVERED])
         self.session.add_observer(self.on_torrent_discovered, NTFY_TORRENT, [NTFY_DISCOVERED])
+        self.session.add_observer(self.on_torrent_finished, NTFY_TORRENT, [NTFY_FINISHED])
+        self.session.add_observer(self.on_torrent_error, NTFY_TORRENT, [NTFY_ERROR])
 
     def write_data(self, message):
         """
@@ -129,6 +135,14 @@ class EventsEndpoint(resource.Resource):
 
     def on_torrent_discovered(self, subject, changetype, objectID, *args):
         self.write_data(json.dumps({"type": "torrent_discovered", "event": args[0]}))
+
+    def on_torrent_finished(self, subject, changetype, objectID, *args):
+        self.write_data(json.dumps({"type": "torrent_finished", "event": {"infohash": objectID.encode('hex'),
+                                                                          "name": args[0]}}))
+
+    def on_torrent_error(self, subject, changetype, objectID, *args):
+        self.write_data(json.dumps({"type": "torrent_error", "event": {"infohash": objectID.encode('hex'),
+                                                                       "error": args[0]}}))
 
     def render_GET(self, request):
         """
