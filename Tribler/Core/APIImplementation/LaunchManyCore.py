@@ -574,7 +574,9 @@ class TriblerLaunchMany(TaskManager):
                 # reschedule
                 self.set_download_states_callback(usercallback, newgetpeerlist, when=when)
 
-        self.register_task("session_getstate_cb_target", reactor.callLater(0, session_getstate_usercallback_target))
+        random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
+        self.register_task("session_getstate_cb_target_%s" % random_id,
+                           reactor.callLater(0, session_getstate_usercallback_target))
 
     #
     # Persistence methods
