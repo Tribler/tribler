@@ -49,7 +49,9 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
     }
 
     private void loadSubscribedChannels() {
-        rxSubs.add(loading = service.getSubscribedChannels()
+        showLoading(true);
+
+        rxSubs.add(service.getSubscribedChannels()
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .flatMap(response -> Observable.from(response.getSubscribed()))

@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import org.tribler.android.restapi.EventStream;
@@ -12,12 +13,15 @@ import org.tribler.android.restapi.json.SearchResultChannelEvent;
 import org.tribler.android.restapi.json.SearchResultTorrentEvent;
 
 import rx.Observer;
+import rx.Subscription;
 import rx.schedulers.Schedulers;
 
 public class SearchFragment extends DefaultInteractionListFragment implements Handler.Callback {
 
     private String _query = "";
     private Handler _eventHandler;
+    @Nullable
+    private Subscription _search;
 
     /**
      * {@inheritDoc}
@@ -82,13 +86,15 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
         _query = query;
 
         // Cancel previous search
-        cancel();
+        if (_search != null) {
+            _search.unsubscribe();
+        }
         adapter.clear();
 
         showLoading(R.string.status_searching);
 
         // Start search
-        rxSubs.add(loading = service.search(query)
+        rxSubs.add(_search = service.search(query)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .subscribe(new Observer<QueriedAck>() {

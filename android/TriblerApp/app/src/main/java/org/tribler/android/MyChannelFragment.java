@@ -95,18 +95,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         Log.e("onCreateOptionsMenu", "queryTextChangeEvents", e);
                     }
                 }));
-
-        // Set title
-        if (context instanceof AppCompatActivity) {
-            ActionBar actionBar = ((AppCompatActivity) context).getSupportActionBar();
-            if (actionBar != null) {
-                if (_name != null) {
-                    actionBar.setTitle(_name);
-                } else {
-                    actionBar.setTitle(R.string.action_my_channel);
-                }
-            }
-        }
     }
 
     /**
@@ -124,6 +112,18 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         menu.findItem(R.id.btn_beam_my_channel).setVisible(created);
         menu.findItem(R.id.btn_edit_my_channel).setVisible(created);
         menu.findItem(R.id.btn_filter_my_channel).setVisible(created);
+
+        // Set title
+        if (context instanceof AppCompatActivity) {
+            ActionBar actionBar = ((AppCompatActivity) context).getSupportActionBar();
+            if (actionBar != null) {
+                if (_name != null) {
+                    actionBar.setTitle(_name);
+                } else {
+                    actionBar.setTitle(R.string.action_my_channel);
+                }
+            }
+        }
     }
 
     /**
@@ -153,7 +153,9 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     }
 
     private void loadMyChannel() {
-        rxSubs.add(loading = service.getMyChannel()
+        showLoading(true);
+
+        rxSubs.add(service.getMyChannel()
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .map(MyChannelResponse::getMyChannel)
@@ -185,7 +187,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     }
 
     private void loadMyChannelTorrents() {
-        rxSubs.add(loading = service.getTorrents(_dispersyCid)
+        rxSubs.add(service.getTorrents(_dispersyCid)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .flatMap(response -> Observable.from(response.getTorrents()))
@@ -209,7 +211,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     private void createTorrent(final File file, final boolean delete) {
         // Workaround endpoint array parsing:
         String[] list = {"[\"" + file.getAbsolutePath() + "\"]"};
-        rxSubs.add(loading = service.createTorrent(list)
+        rxSubs.add(service.createTorrent(list)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())
@@ -245,7 +247,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         adapter.clear();
         showLoading(R.string.status_adding_torrent);
 
-        rxSubs.add(loading = service.addTorrent(_dispersyCid, torrent_b64)
+        rxSubs.add(service.addTorrent(_dispersyCid, torrent_b64)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())
@@ -276,7 +278,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         adapter.clear();
         showLoading(R.string.status_adding_torrent);
 
-        rxSubs.add(loading = service.addTorrent(_dispersyCid, url)
+        rxSubs.add(service.addTorrent(_dispersyCid, url)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())
@@ -471,7 +473,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         adapter.clear();
                         showLoading(R.string.status_creating_torrent);
 
-                        rxSubs.add(loading = Observable.fromCallable(() -> MyUtils.resolveUri(data.getData(), context))
+                        rxSubs.add(Observable.fromCallable(() -> MyUtils.resolveUri(data.getData(), context))
                                 .subscribeOn(Schedulers.io())
                                 .observeOn(AndroidSchedulers.mainThread())
                                 .subscribe(new Observer<File>() {

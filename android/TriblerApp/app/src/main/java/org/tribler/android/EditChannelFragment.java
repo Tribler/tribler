@@ -98,32 +98,34 @@ public class EditChannelFragment extends ViewFragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        // Saving?
-        if (loading != null) {
+
+        if (btnCreate.isShown() || btnSave.isShown()) {
+
+            // Update interface while typing
+            rxSubs.add(RxTextView.textChangeEvents(nameInput).subscribe(new Observer<TextViewTextChangeEvent>() {
+
+                public void onNext(TextViewTextChangeEvent event) {
+                    CharSequence name = event.text();
+
+                    // Prevent submitting empty channel name
+                    boolean enabled = !TextUtils.isEmpty(name);
+                    btnCreate.setEnabled(enabled);
+                    btnSave.setEnabled(enabled);
+
+                    // Update icon view
+                    nameCapital.setText(MyUtils.getCapitals(name, 2));
+                }
+
+                public void onCompleted() {
+                }
+
+                public void onError(Throwable e) {
+                    Log.e("onViewCreated", "textChangeEvents", e);
+                }
+            }));
+        } else {
             setInputEnabled(false);
-            return;
         }
-        // Update interface while typing
-        rxSubs.add(RxTextView.textChangeEvents(nameInput).subscribe(new Observer<TextViewTextChangeEvent>() {
-
-            public void onNext(TextViewTextChangeEvent event) {
-                CharSequence name = event.text();
-                // Prevent submitting empty channel name
-                boolean enabled = !TextUtils.isEmpty(name);
-                btnCreate.setEnabled(enabled);
-                btnSave.setEnabled(enabled);
-
-                // Update icon view
-                nameCapital.setText(MyUtils.getCapitals(name, 2));
-            }
-
-            public void onCompleted() {
-            }
-
-            public void onError(Throwable e) {
-                Log.e("onViewCreated", "textChangeEvents", e);
-            }
-        }));
     }
 
     /**
@@ -176,7 +178,7 @@ public class EditChannelFragment extends ViewFragment {
         final String name = nameInput.getText().toString();
         final String description = descriptionInput.getText().toString();
 
-        rxSubs.add(loading = service.createChannel(name, description)
+        rxSubs.add(service.createChannel(name, description)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())
@@ -208,7 +210,7 @@ public class EditChannelFragment extends ViewFragment {
         final String name = nameInput.getText().toString();
         final String description = descriptionInput.getText().toString();
 
-        rxSubs.add(loading = service.editMyChannel(name, description)
+        rxSubs.add(service.editMyChannel(name, description)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())

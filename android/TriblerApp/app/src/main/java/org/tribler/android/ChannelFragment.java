@@ -74,7 +74,9 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
     }
 
     private void loadTorrents() {
-        rxSubs.add(loading = service.getTorrents(_dispersyCid)
+        showLoading(true);
+
+        rxSubs.add(service.getTorrents(_dispersyCid)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .flatMap(response -> Observable.from(response.getTorrents()))

@@ -311,9 +311,8 @@ public class MyUtils {
         return file;
     }
 
-    public static void onError(ViewFragment f, String msg, Throwable e) {
+    public static void onError(BaseFragment f, String msg, Throwable e) {
         Log.e(f.getClass().getSimpleName(), msg, e);
-        f.cancel();
         if (e instanceof SocketTimeoutException) {
             Toast.makeText(f.getContext(), R.string.info_loading_failed, Toast.LENGTH_SHORT).show();
         } else {

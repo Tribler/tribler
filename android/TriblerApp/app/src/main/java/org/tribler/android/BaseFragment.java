@@ -8,7 +8,6 @@ import android.util.Log;
 import org.tribler.android.restapi.IRestApi;
 import org.tribler.android.restapi.TriblerService;
 
-import rx.Subscription;
 import rx.subscriptions.CompositeSubscription;
 
 /**
@@ -17,7 +16,6 @@ import rx.subscriptions.CompositeSubscription;
 public class BaseFragment extends Fragment {
 
     protected Context context;
-    protected Subscription loading;
     protected CompositeSubscription rxSubs;
     protected CompositeSubscription rxMenuSubs;
     protected IRestApi service;
@@ -48,8 +46,6 @@ public class BaseFragment extends Fragment {
 
         // Memory leak detection
         MyUtils.getRefWatcher(getActivity()).watch(this);
-
-        cancel();
 
         rxMenuSubs.unsubscribe();
         rxMenuSubs = null;
@@ -85,13 +81,6 @@ public class BaseFragment extends Fragment {
         rxMenuSubs.clear();
         if (isAdded()) {
             getActivity().invalidateOptionsMenu();
-        }
-    }
-
-    protected void cancel() {
-        if (loading != null) {
-            loading.unsubscribe();
-            loading = null;
         }
     }
 

@@ -139,13 +139,9 @@ public class ListFragment extends ViewFragment {
         super.onDestroyView();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     protected void reload() {
-        super.reload();
         adapter.clear();
+        showLoading(true);
     }
 
     /**
@@ -154,6 +150,11 @@ public class ListFragment extends ViewFragment {
     @Override
     protected void showLoading(@Nullable CharSequence text) {
         super.showLoading(text);
+        if (progressView == null) {
+            /** @see super.onViewCreated
+             */
+            return;
+        }
         if (text == null) {
             progressView.setVisibility(View.GONE);
         } else {

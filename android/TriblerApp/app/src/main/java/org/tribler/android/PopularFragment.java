@@ -51,7 +51,9 @@ public class PopularFragment extends DefaultInteractionListFragment {
     }
 
     private void loadPopularChannels() {
-        rxSubs.add(loading = service.getPopularChannels(_limit)
+        showLoading(true);
+
+        rxSubs.add(service.getPopularChannels(_limit)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .flatMap(response -> Observable.from(response.getChannels()))

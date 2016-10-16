@@ -56,23 +56,6 @@ public abstract class ViewFragment extends BaseFragment {
         _unbinder = null;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void cancel() {
-        super.cancel();
-
-        if (_unbinder != null) {
-            showLoading(false);
-        }
-    }
-
-    protected void reload() {
-        cancel();
-        showLoading(true);
-    }
-
     protected void showLoading(@Nullable CharSequence text) {
         _statusMsg = text;
     }
