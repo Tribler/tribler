@@ -1,11 +1,14 @@
+from binascii import hexlify
 import json
 import os
-from urllib import pathname2url
+from urllib import pathname2url, quote_plus
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.common import UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
 
 
@@ -39,6 +42,69 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         self.should_check_equality = False
         return self.do_request('downloads?get_peers=1', expected_code=200).addCallback(verify_download)
+
+    @deferred(timeout=10)
+    def test_start_download_no_uri(self):
+        """
+        Testing whether an error is returned when we start a torrent download and do not pass any URI
+        """
+        self.should_check_equality = False
+        return self.do_request('downloads', expected_code=400, request_type='PUT')
+
+    @deferred(timeout=10)
+    def test_start_download_bad_params(self):
+        """
+        Testing whether an error is returned when we start a torrent download and pass wrong data
+        """
+        self.should_check_equality = False
+        post_data = {'anon_hops': 0, 'safe_seeding': 1, 'uri': 'abcd'}
+        return self.do_request('downloads', expected_code=400, request_type='PUT', post_data=post_data)
+
+    @deferred(timeout=10)
+    def test_start_download_bad_uri(self):
+        """
+        Testing whether an error is returned when we start a download from a bad URI
+        """
+        post_data = {'uri': 'abcd'}
+        return self.do_request('downloads', expected_code=500, request_type='PUT', post_data=post_data,
+                               expected_json={'error': 'invalid uri'})
+
+    @deferred(timeout=10)
+    def test_start_download_from_file(self):
+        """
+        Testing whether we can start a download from a file
+        """
+        def verify_download(_):
+            self.assertGreaterEqual(len(self.session.get_downloads()), 1)
+
+        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
+        expected_json = {'started': True, 'infohash': '42bb0a78d8a10bef4a5aee3a7d9f1edf9941cee4'}
+        return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
+                               expected_json=expected_json).addCallback(verify_download)
+
+    @deferred(timeout=10)
+    def test_start_download_from_magnet(self):
+        """
+        Testing whether we can start a download from a magnet
+        """
+        def verify_download(_):
+            self.assertGreaterEqual(len(self.session.get_downloads()), 1)
+            self.assertEqual(self.session.get_downloads()[0].get_def().get_name(), 'test torrent')
+
+        post_data = {'uri': 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH),
+                                                              quote_plus('test torrent'))}
+        expected_json = {'started': True, 'infohash': 'fc8a15a2faf2734dbb1dc5f7afdc5c9beaeb1f59'}
+        return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
+                               expected_json=expected_json).addCallback(verify_download)
+
+    @deferred(timeout=10)
+    def test_start_download_from_bad_url(self):
+        """
+        Testing whether starting a download from a unexisting URL gives an error
+        """
+        post_data = {'uri': 'http://localhost:%d/test.torrent' % get_random_port()}
+        self.should_check_equality = False
+        return self.do_request('downloads', expected_code=500, request_type='PUT', post_data=post_data)
 
     @deferred(timeout=10)
     def test_remove_download_no_remove_data_param(self):
