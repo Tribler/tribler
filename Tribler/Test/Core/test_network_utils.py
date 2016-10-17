@@ -21,7 +21,7 @@ class TriblerCoreTestNetworkUtils(TriblerCoreTest):
         rand_port_num = random.randint(*self.get_bucket_range_port())
         listenport = reactor.listenTCP(rand_port_num, Factory())
         random_port = get_random_port(socket_type='tcp', min_port=rand_port_num, max_port=rand_port_num)
-        self.assertEqual(random_port, rand_port_num+1)
+        self.assertGreaterEqual(random_port, rand_port_num+1)
         return listenport.stopListening()
 
     def test_get_random_port_udp(self):
