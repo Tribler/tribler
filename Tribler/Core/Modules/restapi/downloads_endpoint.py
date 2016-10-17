@@ -167,7 +167,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             for url, url_info in download.network_tracker_status().iteritems():
                 tracker_info.append({"url": url, "peers": url_info[0], "status": url_info[1]})
 
-            download_json = {"name": download.correctedinfoname, "progress": download.get_progress(),
+            download_json = {"name": download.get_def().get_name(), "progress": download.get_progress(),
                              "infohash": download.get_def().get_infohash().encode('hex'),
                              "speed_down": download.get_current_speed(DOWNLOAD),
                              "speed_up": download.get_current_speed(UPLOAD),
