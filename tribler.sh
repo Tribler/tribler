@@ -5,7 +5,7 @@
 UNAME="$(uname -s)"
 
 if [ -z "$PROFILE_TRIBLER" ]; then
-    TRIBLER_SCRIPT=Tribler/Main/tribler.py
+    TRIBLER_SCRIPT=run_tribler.py
 else
     TRIBLER_SCRIPT=Tribler/Main/tribler_profiler.py
 fi
