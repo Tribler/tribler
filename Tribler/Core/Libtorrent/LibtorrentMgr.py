@@ -11,14 +11,13 @@ from copy import deepcopy
 from shutil import rmtree
 
 from twisted.internet import reactor, threads
-import libtorrent as lt
-from twisted.internet.defer import succeed
+from twisted.internet.defer import succeed, fail
+from twisted.python.failure import Failure
 
+import libtorrent as lt
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
-from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
                                      NTFY_REACHABLE, NTFY_TORRENTS)
@@ -26,7 +25,6 @@ from Tribler.Core.version import version_id
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.dispersy.taskmanager import LoopingCall, TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
-
 
 LTSTATE_FILENAME = "lt.state"
 METAINFO_CACHE_PERIOD = 5 * 60
@@ -510,39 +508,38 @@ class LibtorrentMgr(TaskManager):
         else:
             getattr(self.get_session(hops), funcname)(*args, **kwargs)
 
-    def start_download_from_uri(self, uri):
+    def start_download_from_uri(self, uri, dconfig=None):
         if uri.startswith("http"):
-            return self.start_download_from_url(uri)
+            return self.start_download_from_url(uri, dconfig=dconfig)
         if uri.startswith("magnet:"):
-            return succeed(self.start_download_from_magnet(uri))
+            return succeed(self.start_download_from_magnet(uri, dconfig=dconfig))
         if uri.startswith("file:"):
             argument = url2pathname(uri[5:])
-            return succeed(self.start_download(torrentfilename=argument))
+            return succeed(self.start_download(torrentfilename=argument, dconfig=dconfig))
 
-        return succeed(None)
+        return fail(Failure(Exception("invalid uri")))
 
     @blocking_call_on_reactor_thread
-    def start_download_from_url(self, url):
+    def start_download_from_url(self, url, dconfig=None):
 
         def _on_loaded(tdef):
-            return self.start_download(torrentfilename=None, destdir=None, infohash=None, tdef=tdef)
+            return self.start_download(torrentfilename=None, infohash=None, tdef=tdef, dconfig=dconfig)
 
         deferred = TorrentDef.load_from_url(url)
         deferred.addCallback(_on_loaded)
         return deferred
 
-    def start_download_from_magnet(self, url):
+    def start_download_from_magnet(self, url, dconfig=None):
         name, infohash, _ = parse_magnetlink(url)
         if name is None:
             name = ""
         if infohash is None:
             raise RuntimeError("Missing infohash")
         tdef = TorrentDefNoMetainfo(infohash, name, url=url)
-        return self.start_download(tdef=tdef)
+        return self.start_download(tdef=tdef, dconfig=dconfig)
 
-    def start_download(self, torrentfilename=None, destdir=None, infohash=None, tdef=None):
-        self._logger.debug(u"starting download: filename: %s, dest dir: %s, torrent def: %s",
-                           torrentfilename, destdir, tdef)
+    def start_download(self, torrentfilename=None, infohash=None, tdef=None, dconfig=None):
+        self._logger.debug(u"starting download: filename: %s, torrent def: %s", torrentfilename, tdef)
 
         if infohash is not None:
             assert isinstance(infohash, str), "infohash type: %s" % type(infohash)
@@ -580,16 +577,11 @@ class LibtorrentMgr(TaskManager):
                 self.trsession.update_trackers(tdef.get_infohash(), new_trackers)
             return
 
-        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-        dscfg = defaultDLConfig.copy()
+        default_dl_config = DefaultDownloadStartupConfig.getInstance()
+        dscfg = default_dl_config.copy()
 
-        # TODO martijn: for now, we are always using the default settings, which means that we bypass
-        # the screen to select torrent files/adjust the anonymity level.
-        dscfg.set_hops(0) # TODO martijn: hard-coded for now
-        dscfg.set_safe_seeding(False) # TODO martijn: hard-coded for now
-
-        if destdir is not None:
-            dscfg.set_dest_dir(destdir)
+        if dconfig is not None:
+            dscfg = dconfig
 
         self._logger.info('start_download: Starting in VOD mode')
         result = self.trsession.start_download_from_tdef(tdef, dscfg)
