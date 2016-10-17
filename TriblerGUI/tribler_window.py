@@ -36,6 +36,9 @@ class TriblerWindow(QMainWindow):
     received_search_completions = pyqtSignal(object)
 
     def on_exception(self, *exc_info):
+        # Stop the download loop
+        self.downloads_page.stop_loading_downloads()
+
         self.core_manager.kill()
         self.setHidden(True)
 
@@ -338,6 +341,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu_playlist.setHidden(False)
 
     def on_channel_item_click(self, channel_list_item):
+        print channel_list_item
         channel_info = channel_list_item.data(Qt.UserRole)
         self.channel_page.initialize_with_channel(channel_info)
         self.navigation_stack.append(self.stackedWidget.currentIndex())

@@ -123,7 +123,6 @@ class VideoPlayerPage(QWidget):
         if not self.is_full_screen:
             self.window().top_bar.hide()
             self.window().left_menu.hide()
-            self.window().statusBar.hide()
             self.window().showFullScreen()
         else:
             self.window().exit_full_screen()
