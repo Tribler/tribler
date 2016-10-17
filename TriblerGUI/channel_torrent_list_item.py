@@ -29,7 +29,10 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         else:
             self.channel_torrent_description.setText("Size: %s" % format_size(float(torrent["size"])))
 
-        self.channel_torrent_category.setText(torrent["category"])
+        if torrent["category"]:
+            self.channel_torrent_category.setText(torrent["category"])
+        else:
+            self.channel_torrent_category.setText("Unknown")
         self.thumbnail_widget.initialize(torrent["name"], 24)
 
         self.torrent_play_button.clicked.connect(self.on_play_button_clicked)
