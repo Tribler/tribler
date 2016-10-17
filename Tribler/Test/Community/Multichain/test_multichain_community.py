@@ -98,7 +98,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
 
     def test_sign_block(self):
         """
-        Test the community to publish a signature request message.
+        Test the community to send a signature request message.
         """
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
@@ -122,6 +122,20 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node.community.dispersy.store_update_forward = mocked_publish_sig
         # Act
         node.call(node.community.sign_block, target_other, 10, 10)
+
+    def test_sign_invalid_block(self):
+        """
+        Test the community to publish a signature request message.
+        """
+        node, other = self.create_nodes(2)
+        target_other = self._create_target(node, other)
+        # Act
+        node.call(node.community.sign_block, target_other, 0, 0)
+        # Assert
+
+        with self.assertRaises(StopIteration):
+            # No signature requests
+            other.receive_message(names=[HALF_BLOCK]).next()
 
     def test_schedule_block_invalid_candidate(self):
         """

@@ -162,9 +162,14 @@ class MultiChainCommunity(Community):
             else:
                 block = MultiChainBlock.create(self.persistence, self.my_member.public_key, linked)
             block.sign(self.my_member.private_key)
-            self.logger.info("Signed block to %s (%s)", candidate.get_member().public_key.encode("hex")[-8:], block)
-            self.persistence.add_block(block)
-            self.send_block(candidate, block)
+            validation = block.validate(self.persistence)
+            self.logger.info("Signed block to %s (%s) validation result %s",
+                             candidate.get_member().public_key.encode("hex")[-8:], block, validation)
+            if validation[0] != ValidationResult.partial_next and validation[0] != ValidationResult.valid:
+                self.logger.error("Signed block did not validate?!")
+            else:
+                self.persistence.add_block(block)
+                self.send_block(candidate, block)
         else:
             self.logger.warn("Candidate %s has no associated member?! Unable to sign block.", candidate)
 
