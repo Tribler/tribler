@@ -34,6 +34,8 @@ class DownloadsPage(QWidget):
 
         self.window().downloads_list.customContextMenuRequested.connect(self.on_right_click_item)
 
+        self.window().download_details_widget.hide()
+
         self.downloads = None
         self.can_update_items = True
         self.downloads_timer = QTimer()
@@ -138,6 +140,7 @@ class DownloadsPage(QWidget):
         return status != DLSTATUS_METADATA and status != DLSTATUS_HASHCHECKING and status != DLSTATUS_WAITING4HASHCHECK
 
     def on_download_item_clicked(self):
+        self.window().download_details_widget.show()
         self.selected_item = self.window().downloads_list.selectedItems()[0]
         self.window().remove_download_button.setEnabled(True)
         self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_item))

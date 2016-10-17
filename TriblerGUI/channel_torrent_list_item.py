@@ -48,11 +48,15 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
 
     def on_start_download_action(self, action):
         if action == 1:
-            pass
-            # TODO start download
+            self.request_mgr = TriblerRequestManager()
+            self.request_mgr.perform_request("downloads/%s" % self.torrent_info["infohash"],
+                                             self.on_play_request_done, method='PUT')
 
         self.dialog.setParent(None)
         self.dialog = None
+
+    def on_start_download_request_done(self, result, response_code):
+        self.window().clicked_menu_button_downloads()
 
     def on_play_button_clicked(self):
         self.request_mgr = TriblerRequestManager()
