@@ -111,13 +111,13 @@ class TriblerServiceMaker(object):
             self.session.start()
             msg("Tribler started")
 
-        if options["auto-join-channel"]:
+        if "auto-join-channel" in options and options["auto-join-channel"]:
             msg("Enabling auto-joining of channels")
             for community in self.session.get_dispersy_instance().get_communities():
                 if isinstance(community, AllChannelCommunity):
                     community.auto_join_channel = True
 
-        if options["log-incoming-searches"]:
+        if "log-incoming-searches" in options and options["log-incoming-searches"]:
             msg("Logging incoming remote searches")
             for community in self.session.get_dispersy_instance().get_communities():
                 if isinstance(community, SearchCommunity):
