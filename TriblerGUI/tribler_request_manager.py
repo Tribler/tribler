@@ -29,6 +29,8 @@ class TriblerRequestManager(QNetworkAccessManager):
         """
         From http://stackoverflow.com/questions/7922015/qnetworkaccessmanager-posting-files-via-http
         """
+        performed_requests[self.request_id] = [endpoint, 'POST', '<torrent file>', time(), -1]
+
         url = QUrl(self.base_url + endpoint)
         self.request = QNetworkRequest(url)
 

@@ -7,7 +7,7 @@ import TriblerGUI
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.utilities import get_base_path, is_frozen
 
-START_FAKE_API = True
+START_FAKE_API = False
 
 
 class CoreManager(object):
