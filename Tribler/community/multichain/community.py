@@ -27,6 +27,7 @@ from Tribler.community.multichain.conversion import MultiChainConversion
 
 HALF_BLOCK = u"half_block"
 CRAWL = u"crawl"
+MIN_TRANSACTION_SIZE = 1024*1024
 
 
 class PendingBytes(object):
@@ -61,7 +62,7 @@ class MultiChainCommunity(Community):
 
         # We store the bytes send and received in the tunnel community in a dictionary.
         # The key is the public key of the peer being interacted with, the value a tuple of the up and down bytes
-        # This data is not used to create outgoing requests, but to verify incoming requests
+        # This data is not used to create outgoing requests, but _only_ to verify incoming requests
         self.pending_bytes = dict()
 
         self.logger.debug("The multichain community started with Public Key: %s",
@@ -302,18 +303,21 @@ class MultiChainCommunity(Community):
         up = tunnel.bytes_up
         down = tunnel.bytes_down
         pk = candidate.get_member().public_key
-        # Tie breaker to prevent both parties from requesting
-        if up > down or up == down and self.my_member.public_key > pk:
-            self.register_task("sign_%s" % tunnel.circuit_id,
-                               reactor.callLater(5, self.sign_block, candidate, tunnel.bytes_up, tunnel.bytes_down))
-        else:
-            pend = self.pending_bytes.get(pk)
-            if not pend:
-                self.pending_bytes[pk] = PendingBytes(up,
-                                                      down,
-                                                      reactor.callLater(2 * 60, self.cleanup_pending, pk))
+
+        # If the transaction is not big enough we discard the bytes up and down.
+        if up + down >= MIN_TRANSACTION_SIZE:
+            # Tie breaker to prevent both parties from requesting
+            if up > down or (up == down and self.my_member.public_key > pk):
+                self.register_task("sign_%s" % tunnel.circuit_id,
+                                   reactor.callLater(5, self.sign_block, candidate, tunnel.bytes_up, tunnel.bytes_down))
             else:
-                pend.add(up, down)
+                pend = self.pending_bytes.get(pk)
+                if not pend:
+                    self.pending_bytes[pk] = PendingBytes(up,
+                                                          down,
+                                                          reactor.callLater(2 * 60, self.cleanup_pending, pk))
+                else:
+                    pend.add(up, down)
 
     def cleanup_pending(self, public_key):
         self.pending_bytes.pop(public_key, None)
