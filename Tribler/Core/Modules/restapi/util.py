@@ -45,8 +45,7 @@ def convert_db_channel_to_json(channel, include_rel_score=False):
     """
     res_json = {"id": channel[0], "dispersy_cid": channel[1].encode('hex'), "name": channel[2],
                 "description": channel[3], "votes": channel[5], "torrents": channel[4], "spam": channel[6],
-                "modified": channel[8], "subscribed": (channel[7] == VOTE_SUBSCRIBE),
-                "can_edit": can_edit_channel(channel[1], channel[7])}
+                "modified": channel[8], "subscribed": (channel[7] == VOTE_SUBSCRIBE)}
 
     if include_rel_score:
         res_json["relevance_score"] = channel[9]
