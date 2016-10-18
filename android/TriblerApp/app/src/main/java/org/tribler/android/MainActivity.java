@@ -252,7 +252,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
             case SEARCH_ACTIVITY_REQUEST_CODE:
                 // Update view
-                Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
+                Fragment fragment = getCurrentFragment();
                 if (fragment instanceof ListFragment) {
                     ((ListFragment) fragment).reload();
                 }
@@ -267,7 +267,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         // Propagate results
-        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
+        Fragment fragment = getCurrentFragment();
         if (fragment != null) {
             fragment.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
@@ -364,31 +364,36 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                 .subscribe(observer));
     }
 
+    @Nullable
+    private Fragment getCurrentFragment() {
+        return getSupportFragmentManager().findFragmentById(R.id.fragment_main);
+    }
+
     /**
      * @param newFragmentClass The desired fragment class
      * @return True if fragment is switched, false otherwise
      */
     private boolean switchFragment(Class newFragmentClass) {
-        FragmentManager fragmentManager = getSupportFragmentManager();
         // Check if current fragment is desired fragment
-        Fragment current = fragmentManager.findFragmentById(R.id.fragment_main);
-        if (!newFragmentClass.isInstance(current)) {
-            String tag = newFragmentClass.getName();
+        if (!newFragmentClass.isInstance(getCurrentFragment())) {
+            FragmentManager fragmentManager = getSupportFragmentManager();
+
             // Check if desired fragment is already instantiated
-            Fragment fragment = fragmentManager.findFragmentByTag(tag);
+            String className = newFragmentClass.getName();
+            Fragment fragment = fragmentManager.findFragmentByTag(className);
             if (fragment == null) {
                 try {
                     fragment = (Fragment) newFragmentClass.newInstance();
                     fragment.setRetainInstance(true);
                 } catch (InstantiationException ex) {
-                    Log.e("switchFragment", newFragmentClass.getName(), ex);
+                    Log.e("switchFragment", className, ex);
                 } catch (IllegalAccessException ex) {
-                    Log.e("switchFragment", newFragmentClass.getName(), ex);
+                    Log.e("switchFragment", className, ex);
                 }
             }
             fragmentManager
                     .beginTransaction()
-                    .replace(R.id.fragment_main, fragment, tag)
+                    .replace(R.id.fragment_main, fragment, className)
                     .commit();
             return true;
         }
@@ -400,10 +405,9 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
      */
     @Nullable
     private Fragment removeFragment() {
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        Fragment fragment = fragmentManager.findFragmentById(R.id.fragment_main);
+        Fragment fragment = getCurrentFragment();
         if (fragment != null) {
-            fragmentManager
+            getSupportFragmentManager()
                     .beginTransaction()
                     .remove(fragment)
                     .commit();
@@ -494,7 +498,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     }
 
     public void btnMyChannelAddClicked(MenuItem item) {
-        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
+        Fragment fragment = getCurrentFragment();
         if (fragment instanceof MyChannelFragment) {
             MyChannelFragment mychannel = (MyChannelFragment) fragment;
             mychannel.askUserToAddTorrent();
@@ -502,7 +506,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     }
 
     public void btnMyChannelBeamClicked(MenuItem item) {
-        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
+        Fragment fragment = getCurrentFragment();
         if (fragment instanceof MyChannelFragment) {
             MyChannelFragment mychannel = (MyChannelFragment) fragment;
             mychannel.askUserToBeamChannelId();
@@ -510,7 +514,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     }
 
     public void btnMyChannelEditClicked(MenuItem item) {
-        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
+        Fragment fragment = getCurrentFragment();
         if (fragment instanceof MyChannelFragment) {
             MyChannelFragment mychannel = (MyChannelFragment) fragment;
             mychannel.editChannel();
