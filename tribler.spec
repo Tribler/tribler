@@ -3,13 +3,20 @@
 block_cipher = None
 
 import os
+import sys
+
+sys.path.insert(0, os.getcwdu())
+
+from Tribler.Core.version import version_id
+
+version_str = version_id.split('-')[0]
 
 widget_files = []
 for file in os.listdir("TriblerGUI/widgets"):
     if file.endswith(".py"):
         widget_files.append('TriblerGUI.widgets.%s' % file[:-3])
 
-a = Analysis(['run_gui.py'],
+a = Analysis(['run_tribler.py'],
              pathex=['/Users/martijndevos/Documents/tribler'],
              binaries=None,
 datas=[('Tribler/dispersy/libnacl/libnacl', 'libnacl'), ('TriblerGUI/qt_resources', 'qt_resources'), ('TriblerGUI/images', 'images'), ('TriblerGUI/scripts', 'scripts'), ('twisted', 'twisted'), ('Tribler', 'tribler_source/Tribler')],
@@ -29,7 +36,8 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=False )
+          console=True,
+          icon=None)
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
@@ -39,6 +47,7 @@ coll = COLLECT(exe,
                name='tribler')
 app = BUNDLE(coll,
              name='tribler.app',
-             icon=None,
-             bundle_identifier=None,
-             info_plist={'NSHighResolutionCapable': 'True'})
+             icon='Tribler/Main/Build/Mac/tribler.icns',
+             bundle_identifier='nl.tudelft.tribler',
+             info_plist={'NSHighResolutionCapable': 'True', 'CFBundleInfoDictionaryVersion': 1.0, 'CFBundleVersion': version_str, 'CFBundleShortVersionString': version_str},
+             console=True)
