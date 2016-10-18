@@ -2,6 +2,7 @@ import json
 import os
 
 from twisted.web import http, resource
+from twisted.web.server import NOT_DONE_YET
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
@@ -25,6 +26,42 @@ class DownloadBaseEndpoint(resource.Resource):
         """
         request.setResponseCode(http.NOT_FOUND)
         return json.dumps({"error": message})
+
+    @staticmethod
+    def create_dconfig_from_params(parameters):
+        """
+        Create a download configuration based on some given parameters. Possible parameters are:
+        - anon_hops: the number of hops for the anonymous download. 0 hops is equivalent to a plain download
+        - safe_seeding: whether the seeding of the download should be anonymous or not (0 = off, 1 = on)
+        - destination: the destination path of the torrent (where it is saved on disk)
+        """
+        download_config = DownloadStartupConfig()
+
+        anon_hops = 0
+        if 'anon_hops' in parameters and len(parameters['anon_hops']) > 0:
+            if parameters['anon_hops'][0].isdigit():
+                anon_hops = int(parameters['anon_hops'][0])
+
+        safe_seeding = False
+        if 'safe_seeding' in parameters and len(parameters['safe_seeding']) > 0 \
+                and parameters['safe_seeding'][0] == "1":
+            safe_seeding = True
+
+        if anon_hops <= 0 and safe_seeding:
+            return None, "Cannot set safe_seeding without anonymous download enabled"
+
+        if anon_hops > 0:
+            download_config.set_hops(anon_hops)
+
+        if safe_seeding:
+            download_config.set_safe_seeding(True)
+
+        if 'destination' in parameters and len(parameters['destination']) > 0:
+            if not os.path.isdir(parameters['destination'][0]):
+                return None, "Invalid destination directory specified"
+            download_config.set_dest_dir(parameters['destination'][0])
+
+        return download_config, None
 
 
 class DownloadsEndpoint(DownloadBaseEndpoint):
@@ -130,7 +167,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             for url, url_info in download.network_tracker_status().iteritems():
                 tracker_info.append({"url": url, "peers": url_info[0], "status": url_info[1]})
 
-            download_json = {"name": download.correctedinfoname, "progress": download.get_progress(),
+            download_json = {"name": download.get_def().get_name(), "progress": download.get_progress(),
                              "infohash": download.get_def().get_infohash().encode('hex'),
                              "speed_down": download.get_current_speed(DOWNLOAD),
                              "speed_up": download.get_current_speed(UPLOAD),
@@ -156,6 +193,57 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             downloads_json.append(download_json)
         return json.dumps({"downloads": downloads_json})
 
+    def render_PUT(self, request):
+        """
+        .. http:put:: /downloads
+
+        A PUT request to this endpoint will start a download from a provided URI. This URI can either represent a file
+        location, a magnet link or a HTTP(S) url.
+        - anon_hops: the number of hops for the anonymous download. 0 hops is equivalent to a plain download
+        - safe_seeding: whether the seeding of the download should be anonymous or not (0 = off, 1 = on)
+        - destination: the download destination path of the torrent
+        - torrent: the URI of the torrent file that should be downloaded. This parameter is required.
+
+            **Example request**:
+
+                .. sourcecode:: none
+
+                    curl -X PUT http://localhost:8085/downloads
+                    --data "anon_hops=2&safe_seeding=1&destination=/my/dest/on/disk/&uri=file:/home/me/test.torrent
+
+            **Example response**:
+
+                .. sourcecode:: javascript
+
+                    {"started": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
+        """
+        parameters = http.parse_qs(request.content.read(), 1)
+
+        if 'uri' not in parameters or len(parameters['uri']) == 0:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "uri parameter missing"})
+
+        download_config, error = DownloadsEndpoint.create_dconfig_from_params(parameters)
+        if error:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": error})
+
+        def download_added(download):
+            request.write(json.dumps({"started": True,
+                                      "infohash": download.get_def().get_infohash().encode('hex')}))
+            request.finish()
+
+        def on_error(error):
+            request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+            request.write(json.dumps({"error": error.getErrorMessage()}))
+            request.finish()
+
+        download_deferred = self.session.start_download_from_uri(parameters['uri'][0], download_config)
+        download_deferred.addCallback(download_added)
+        download_deferred.addErrback(on_error)
+
+        return NOT_DONE_YET
+
 
 class DownloadSpecificEndpoint(DownloadBaseEndpoint):
     """
@@ -167,45 +255,9 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
         self.infohash = bytes(infohash.decode('hex'))
         self.putChild("torrent", DownloadExportTorrentEndpoint(session, self.infohash))
 
-    @staticmethod
-    def create_dconfig_from_params(parameters):
-        """
-        Create a download configuration based on some given parameters. Possible parameters are:
-        - anon_hops: the number of hops for the anonymous download. 0 hops is equivalent to a plain download
-        - safe_seeding: whether the seeding of the download should be anonymous or not (0 = off, 1 = on)
-        - destination: the destination path of the torrent (where it is saved on disk)
-        """
-        download_config = DownloadStartupConfig()
-
-        anon_hops = 0
-        if 'anon_hops' in parameters and len(parameters['anon_hops']) > 0:
-            if parameters['anon_hops'][0].isdigit():
-                anon_hops = int(parameters['anon_hops'][0])
-
-        safe_seeding = False
-        if 'safe_seeding' in parameters and len(parameters['safe_seeding']) > 0 \
-                and parameters['safe_seeding'][0] == "1":
-            safe_seeding = True
-
-        if anon_hops <= 0 and safe_seeding:
-            return None, "Cannot set safe_seeding without anonymous download enabled"
-
-        if anon_hops > 0:
-            download_config.set_hops(anon_hops)
-
-        if safe_seeding:
-            download_config.set_safe_seeding(True)
-
-        if 'destination' in parameters and len(parameters['destination']) > 0:
-            if not os.path.isdir(parameters['destination'][0]):
-                return None, "Invalid destination directory specified"
-            download_config.set_dest_dir(parameters['destination'][0])
-
-        return download_config, None
-
     def render_DELETE(self, request):
         """
-        .. http:delete:: /download/(string: infohash)
+        .. http:delete:: /downloads/(string: infohash)
 
         A DELETE request to this endpoint removes a specific download from Tribler. You can specify whether you only
         want to remove the download or the download and the downloaded data using the remove_data parameter.
@@ -252,7 +304,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
 
                 .. sourcecode:: none
 
-                    curl -X PUT http://localhost:8085/download/4344503b7e797ebf31582327a5baae35b11bda01
+                    curl -X PUT http://localhost:8085/downloads/4344503b7e797ebf31582327a5baae35b11bda01
                     --data "anon_hops=2&safe_seeding=1&destination=/my/dest/on/disk/"
 
             **Example response**:
@@ -297,7 +349,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
 
                 .. sourcecode:: none
 
-                    curl -X PATCH http://localhost:8085/download/4344503b7e797ebf31582327a5baae35b11bda01
+                    curl -X PATCH http://localhost:8085/downloads/4344503b7e797ebf31582327a5baae35b11bda01
                     --data "state=resume"
 
             **Example response**:
@@ -346,7 +398,7 @@ class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):
 
                 .. sourcecode:: none
 
-                    curl -X GET http://localhost:8085/download/4344503b7e797ebf31582327a5baae35b11bda01/torrent
+                    curl -X GET http://localhost:8085/downloads/4344503b7e797ebf31582327a5baae35b11bda01/torrent
 
             **Example response**:
 
