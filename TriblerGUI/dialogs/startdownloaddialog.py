@@ -9,7 +9,7 @@ class StartDownloadDialog(DialogContainer):
 
     button_clicked = pyqtSignal(int)
 
-    def __init__(self, parent, torrent):
+    def __init__(self, parent, torrent_name):
         super(StartDownloadDialog, self).__init__(parent)
 
         uic.loadUi(get_ui_file_path('startdownloaddialog.ui'), self.dialog_widget)
@@ -23,7 +23,7 @@ class StartDownloadDialog(DialogContainer):
         if self.window().tribler_settings:
             self.dialog_widget.destination_input.setText(self.window().tribler_settings['downloadconfig']['saveas'])
 
-        self.dialog_widget.torrent_name_label.setText(torrent['name'])
+        self.dialog_widget.torrent_name_label.setText(torrent_name)
         self.dialog_widget.safe_seed_checkbox.setEnabled(self.dialog_widget.anon_download_checkbox.isChecked())
         self.dialog_widget.anon_download_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
 

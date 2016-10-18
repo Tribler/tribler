@@ -1,3 +1,4 @@
+from urllib import quote_plus
 from PyQt5 import uic
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
@@ -48,9 +49,14 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
 
     def on_start_download_action(self, action):
         if action == 1:
+            magnet_link = quote_plus("magnet:?xt=urn:btih:%s&dn=%s" %
+                                     (self.torrent_info["infohash"], self.torrent_info["name"]))
+            anon_hops = 1 if self.dialog.dialog_widget.anon_download_checkbox.isChecked() else 0
+            safe_seeding = 1 if self.dialog.dialog_widget.safe_seed_checkbox.isChecked() else 0
+            post_data = str("uri=%s&anon_hops=%d&safe_seeding=%d" % (magnet_link, anon_hops, safe_seeding))
             self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("downloads/%s" % self.torrent_info["infohash"],
-                                             self.on_play_request_done, method='PUT')
+            self.request_mgr.perform_request("downloads", self.on_start_download_request_done,
+                                             method='PUT', data=post_data)
 
         self.dialog.setParent(None)
         self.dialog = None

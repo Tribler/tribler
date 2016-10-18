@@ -151,10 +151,11 @@ class DownloadsPage(QWidget):
     def on_start_download_clicked(self):
         infohash = self.selected_item.download_info["infohash"]
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("downloads/%s/resume" % infohash, self.on_download_resumed, method='POST')
+        self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_resumed,
+                                         method='PATCH', data="state=resume")
 
     def on_download_resumed(self, json_result):
-        if json_result["resumed"]:
+        if json_result["modified"]:
             self.selected_item.download_info['status'] = "DLSTATUS_DOWNLOADING"
             self.selected_item.update_item()
             self.on_download_item_clicked()
@@ -162,10 +163,11 @@ class DownloadsPage(QWidget):
     def on_stop_download_clicked(self):
         infohash = self.selected_item.download_info["infohash"]
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("downloads/%s/stop" % infohash, self.on_download_stopped, method='POST')
+        self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_stopped,
+                                         method='PATCH', data="state=stop")
 
     def on_download_stopped(self, json_result):
-        if json_result["stopped"]:
+        if json_result["modified"]:
             self.selected_item.download_info['status'] = "DLSTATUS_STOPPED"
             self.selected_item.update_item()
             self.on_download_item_clicked()
@@ -179,7 +181,8 @@ class DownloadsPage(QWidget):
         if action != 2:
             infohash = self.selected_item.download_info["infohash"]
             self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("downloads/%s/remove?remove_data=%d" % (infohash, action == 1), self.on_download_removed, method='DELETE')
+            self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_removed,
+                                             method='DELETE', data="remove_data=%d" % action)
 
         self.dialog.setParent(None)
         self.dialog = None
@@ -194,10 +197,11 @@ class DownloadsPage(QWidget):
     def on_force_recheck_download(self):
         infohash = self.selected_item.download_info["infohash"]
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("downloads/%s/forcerecheck" % infohash, self.on_forced_recheck, method='POST')
+        self.request_mgr.perform_request("downloads/%s" % infohash, self.on_forced_recheck,
+                                         method='PATCH', data='state=recheck')
 
     def on_forced_recheck(self, result):
-        if result['forced_recheck']:
+        if result['modified']:
             self.selected_item.download_info['status'] = "DLSTATUS_HASHCHECKING"
             self.selected_item.update_item()
             self.on_download_item_clicked()

@@ -12,20 +12,21 @@ class HomePage(QWidget):
 
         self.window().home_tab.initialize()
         self.window().home_tab.clicked_tab_button.connect(self.clicked_tab_button)
+        self.has_loaded_cells = False
 
+    def load_cells(self):
+        self.window().home_page_table_view.clear()
         for x in xrange(0, 3):
             for y in xrange(0, 3):
                 widget_item = HomeRecommendedItem(self)
                 self.window().home_page_table_view.setCellWidget(x, y, widget_item)
+        self.has_loaded_cells = True
 
     def load_popular_torrents(self):
         self.recommended_request_mgr = TriblerRequestManager()
         self.recommended_request_mgr.perform_request("torrents/random", self.received_popular_torrents)
 
     def clicked_tab_button(self, tab_button_name):
-        #self.window().home_page_table_view.clear()
-        #self.window().home_page_table_view.setCellWidget(0, 1, LoadingListItem(self))
-
         if tab_button_name == "home_tab_channels_button":
             self.recommended_request_mgr = TriblerRequestManager()
             self.recommended_request_mgr.perform_request("channels/popular", self.received_popular_channels)
@@ -35,8 +36,11 @@ class HomePage(QWidget):
 
     def received_popular_channels(self, result):
         self.show_channels = True
+        if not self.has_loaded_cells:
+            self.load_cells()
 
         if len(result["channels"]) == 0:
+            self.has_loaded_cells = False
             self.window().home_page_table_view.clear()
             self.window().home_page_table_view.setCellWidget(0, 1, LoadingListItem(self, label_text="No recommended channels"))
             return
@@ -50,8 +54,11 @@ class HomePage(QWidget):
 
     def received_popular_torrents(self, result):
         self.show_channels = False
+        if not self.has_loaded_cells:
+            self.load_cells()
 
         if len(result["torrents"]) == 0:
+            self.has_loaded_cells = False
             self.window().home_page_table_view.clear()
             self.window().home_page_table_view.setCellWidget(0, 1, LoadingListItem(self, label_text="No recommended torrents"))
             return

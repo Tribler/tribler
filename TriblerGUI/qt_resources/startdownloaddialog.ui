@@ -74,7 +74,7 @@ color: white;
     <number>0</number>
    </property>
    <item>
-    <widget class="QWidget" name="widget_2" native="true">
+    <widget class="QWidget" name="dialog_main_container" native="true">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
        <horstretch>0</horstretch>

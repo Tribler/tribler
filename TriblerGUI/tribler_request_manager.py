@@ -73,12 +73,24 @@ class TriblerRequestManager(QNetworkAccessManager):
             get_request = QNetworkRequest(QUrl(url))
             self.reply = self.sendCustomRequest(get_request, "GET", buf)
             buf.setParent(self.reply)
+        elif method == 'PATCH':
+            buf = QBuffer()
+            buf.setData(data)
+            buf.open(QIODevice.ReadOnly)
+            patch_request = QNetworkRequest(QUrl(url))
+            self.reply = self.sendCustomRequest(patch_request, "PATCH", buf)
+            buf.setParent(self.reply)
         elif method == 'PUT':
             request = QNetworkRequest(QUrl(url))
             request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
             self.reply = self.put(request, data)
         elif method == 'DELETE':
-            self.reply = self.deleteResource(QNetworkRequest(QUrl(url)))
+            buf = QBuffer()
+            buf.setData(data)
+            buf.open(QIODevice.ReadOnly)
+            delete_request = QNetworkRequest(QUrl(url))
+            self.reply = self.sendCustomRequest(delete_request, "DELETE", buf)
+            buf.setParent(self.reply)
         elif method == 'POST':
             request = QNetworkRequest(QUrl(url))
             request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
