@@ -134,9 +134,9 @@ public class ChannelActivity extends BaseActivity {
 
             case ACTION_TOGGLE_SUBSCRIBED:
                 if (subscribed) {
-                    _fragment.unsubscribe(dispersyCid, subscribed, name, null);
+                    _fragment.unsubscribe(dispersyCid, subscribed, name);
                 } else {
-                    _fragment.subscribe(dispersyCid, subscribed, name, null);
+                    _fragment.subscribe(dispersyCid, subscribed, name);
                 }
                 // Update view
                 intent.putExtra(EXTRA_SUBSCRIBED, !subscribed);
@@ -148,7 +148,7 @@ public class ChannelActivity extends BaseActivity {
 
             case ACTION_SUBSCRIBE:
                 _fragment.showLoading(R.string.status_subscribing);
-                _fragment.subscribe(dispersyCid, false, getString(R.string.info_received_channel), this::finish);
+                _fragment.subscribe(dispersyCid, false, getString(R.string.info_received_channel));
                 return;
         }
     }

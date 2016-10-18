@@ -243,10 +243,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                         return;
 
                     case Activity.RESULT_CANCELED:
-                        return;
-
-                    default:
-                        Toast.makeText(this, R.string.error_capture_video, Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, R.string.info_cancel_capture_video, Toast.LENGTH_SHORT).show();
                         return;
                 }
 

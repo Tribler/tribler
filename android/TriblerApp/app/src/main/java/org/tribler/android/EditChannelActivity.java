@@ -95,8 +95,7 @@ public class EditChannelActivity extends BaseActivity {
             case ACTION_CREATE_CHANNEL:
                 btnSave.setText(getString(R.string.action_CREATE));
                 explanation.setVisibility(View.VISIBLE);
-
-                break;
+                return;
 
             case ACTION_EDIT_CHANNEL:
                 String dispersyCid = intent.getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
@@ -110,8 +109,7 @@ public class EditChannelActivity extends BaseActivity {
                 int color = MyUtils.getColor(dispersyCid.hashCode());
                 MyUtils.setCicleBackground(icon, color);
                 iconWrapper.setVisibility(View.VISIBLE);
-
-                break;
+                return;
         }
     }
 

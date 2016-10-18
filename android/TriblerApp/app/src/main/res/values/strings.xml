@@ -91,9 +91,8 @@
     <string name="info_removed_failure">%s is still not removed…</string>
     <string name="info_created_success">%s is now created!</string>
     <string name="info_created_failure">%s failed to be created…</string>
-
+    <string name="info_cancel_capture_video">No video was captured</string>
     <string name="error_output_file">failed to obtain output file</string>
-    <string name="error_capture_video">failed to capture video</string>
 
     <string name="status_opening_eventstream">Starting service…</string>
     <string name="status_searching">Searching…</string>

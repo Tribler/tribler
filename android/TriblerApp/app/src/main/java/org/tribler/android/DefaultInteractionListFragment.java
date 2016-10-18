@@ -3,7 +3,6 @@ package org.tribler.android;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.support.annotation.Nullable;
 import android.widget.Toast;
 
 import org.tribler.android.restapi.json.SubscribedAck;
@@ -14,7 +13,6 @@ import org.tribler.android.restapi.json.UnsubscribedAck;
 import retrofit2.adapter.rxjava.HttpException;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action0;
 import rx.schedulers.Schedulers;
 
 public class DefaultInteractionListFragment extends ListFragment implements ListFragment.IListFragmentInteractionListener {
@@ -72,10 +70,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     @Override
     public void onSwipedRight(final TriblerChannel channel) {
         adapter.removeObject(channel);
-        subscribe(channel.getDispersyCid(), channel.isSubscribed(), channel.getName(), null);
+        subscribe(channel.getDispersyCid(), channel.isSubscribed(), channel.getName());
     }
 
-    void subscribe(final String dispersyCid, final boolean subscribed, final String name, @Nullable final Action0 onCompleted) {
+    void subscribe(final String dispersyCid, final boolean subscribed, final String name) {
         if (subscribed) {
             Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_already), name), Toast.LENGTH_SHORT).show();
             return;
@@ -92,9 +90,6 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     }
 
                     public void onCompleted() {
-                        if (onCompleted != null) {
-                            onCompleted.call();
-                        }
                     }
 
                     public void onError(Throwable e) {
@@ -114,10 +109,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     @Override
     public void onSwipedLeft(final TriblerChannel channel) {
         adapter.removeObject(channel);
-        unsubscribe(channel.getDispersyCid(), channel.isSubscribed(), channel.getName(), null);
+        unsubscribe(channel.getDispersyCid(), channel.isSubscribed(), channel.getName());
     }
 
-    void unsubscribe(final String dispersyCid, final boolean subscribed, final String name, @Nullable final Action0 onCompleted) {
+    void unsubscribe(final String dispersyCid, final boolean subscribed, final String name) {
         if (!subscribed) {
             Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_already), name), Toast.LENGTH_SHORT).show();
             return;
@@ -134,9 +129,6 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     }
 
                     public void onCompleted() {
-                        if (onCompleted != null) {
-                            onCompleted.call();
-                        }
                     }
 
                     public void onError(Throwable e) {
