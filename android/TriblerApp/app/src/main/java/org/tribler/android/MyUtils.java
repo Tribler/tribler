@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ConnectException;
-import java.net.SocketTimeoutException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
@@ -313,10 +312,9 @@ public class MyUtils {
 
     public static void onError(BaseFragment f, String msg, Throwable e) {
         Log.e(f.getClass().getSimpleName(), msg, e);
-        if (e instanceof SocketTimeoutException) {
-            Toast.makeText(f.getContext(), R.string.info_loading_failed, Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(f.getContext(), R.string.exception_http_500, Toast.LENGTH_SHORT).show();
+        Toast.makeText(f.getContext(), R.string.exception_http_500, Toast.LENGTH_SHORT).show();
+        if (f instanceof ViewFragment) {
+            ((ViewFragment) f).showLoading(false);
         }
     }
 
