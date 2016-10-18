@@ -59,6 +59,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 101;
     public static final int SEARCH_ACTIVITY_REQUEST_CODE = 102;
+    public static final int SUBSCRIBE_TO_CHANNEL_ACTIVITY_REQUEST_CODE = 103;
 
     static {
         // Backwards compatibility for vector graphics
@@ -217,7 +218,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         builder.setPositiveButton(R.string.action_subscribe, (dialog, which) -> {
             Intent intent = MyUtils.viewChannelIntent(dispersyCid, name, false);
             intent.setAction(ChannelActivity.ACTION_SUBSCRIBE);
-            startActivity(intent);
+            startActivityForResult(intent, SUBSCRIBE_TO_CHANNEL_ACTIVITY_REQUEST_CODE);
         });
         builder.setNegativeButton(R.string.action_cancel, (dialog, which) -> {
             // Do nothing
@@ -252,6 +253,19 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                 Fragment fragment = getCurrentFragment();
                 if (fragment instanceof ListFragment) {
                     ((ListFragment) fragment).reload();
+                }
+                return;
+
+            case SUBSCRIBE_TO_CHANNEL_ACTIVITY_REQUEST_CODE:
+                switch (resultCode) {
+
+                    case Activity.RESULT_OK:
+                        // TODO: inform user
+                        return;
+
+                    case Activity.RESULT_CANCELED:
+                        // TODO: inform user
+                        return;
                 }
                 return;
         }
