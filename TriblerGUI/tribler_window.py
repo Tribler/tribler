@@ -2,6 +2,7 @@ import glob
 import logging
 import sys
 import traceback
+from urllib import quote_plus
 
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication
@@ -19,6 +20,7 @@ from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
     PAGE_DISCOVERED
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
+from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_ui_file_path, get_image_path
 
@@ -230,13 +232,30 @@ class TriblerWindow(QMainWindow):
 
     def on_add_torrent_browse_file(self):
         filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
+        self.download_uri = "file:%s" % filename[0]
+
+        self.dialog = StartDownloadDialog(self.window().stackedWidget, filename[0])
+        self.dialog.button_clicked.connect(self.on_start_download_action)
+        self.dialog.show()
 
         if filename[0] != u'':
             self.file_request_mgr = TriblerRequestManager()
             self.file_request_mgr.send_file("downloads", self.on_download_added, filename[0])
 
-    def on_add_torrent_browse_dir(self):
+    def on_start_download_action(self, action):
+        if action == 1:
+            escaped_uri = quote_plus(self.download_uri)
+            anon_hops = 1 if self.dialog.dialog_widget.anon_download_checkbox.isChecked() else 0
+            safe_seeding = 1 if self.dialog.dialog_widget.safe_seed_checkbox.isChecked() else 0
+            post_data = str("uri=%s&anon_hops=%d&safe_seeding=%d" % (escaped_uri, anon_hops, safe_seeding))
+            self.request_mgr = TriblerRequestManager()
+            self.request_mgr.perform_request("downloads", self.on_download_added,
+                                             method='PUT', data=post_data)
 
+        self.dialog.setParent(None)
+        self.dialog = None
+
+    def on_add_torrent_browse_dir(self):
         dir = QFileDialog.getExistingDirectory(self, "Please select the directory containing the .torrent files", "",
                                                QFileDialog.ShowDirsOnly)
 
@@ -252,16 +271,19 @@ class TriblerWindow(QMainWindow):
         self.dialog.show()
 
     def on_torrent_from_url_dialog_done(self, action):
-        if action == 0:
-            url = self.dialog.dialog_widget.dialog_input.text()
-            self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("downloads", self.on_download_added, data=str("source=url&url=%s" % url), method='PUT')
+        self.download_uri = self.dialog.dialog_widget.dialog_input.text()
 
+        # Remove first dialog
         self.dialog.setParent(None)
         self.dialog = None
 
+        if action == 0:
+            self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri)
+            self.dialog.button_clicked.connect(self.on_start_download_action)
+            self.dialog.show()
+
     def on_download_added(self, result):
-        if 'added' in result:
+        if 'started' in result:
             self.deselect_all_menu_buttons()
             self.left_menu_button_downloads.setChecked(True)
             self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
