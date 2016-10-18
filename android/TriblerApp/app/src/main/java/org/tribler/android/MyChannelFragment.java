@@ -28,8 +28,10 @@ import com.jakewharton.rxbinding.support.v7.widget.SearchViewQueryTextEvent;
 
 import org.kivy.android.AssetExtract;
 import org.tribler.android.restapi.json.AddedAck;
+import org.tribler.android.restapi.json.AddedChannelAck;
 import org.tribler.android.restapi.json.AddedUrlAck;
 import org.tribler.android.restapi.json.ChannelOverview;
+import org.tribler.android.restapi.json.ModifiedAck;
 import org.tribler.android.restapi.json.MyChannelResponse;
 import org.tribler.android.restapi.json.RemovedAck;
 import org.tribler.android.restapi.json.TorrentCreatedResponse;
@@ -107,7 +109,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         menu.findItem(R.id.btn_search).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
 
         // Is my channel created?
-        boolean created = _dispersyCid != null;
+        boolean created = (_dispersyCid != null);
         menu.findItem(R.id.btn_add_my_channel).setVisible(created);
         menu.findItem(R.id.btn_beam_my_channel).setVisible(created);
         menu.findItem(R.id.btn_edit_my_channel).setVisible(created);
@@ -152,6 +154,58 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         askUserToDeleteTorrent(torrent);
     }
 
+    private void createMyChannel() {
+        showLoading(R.string.status_creating_channel);
+
+        rxSubs.add(service.createChannel(_name, _description)
+                .subscribeOn(Schedulers.io())
+                .retryWhen(MyUtils::twoSecondsDelay)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<AddedChannelAck>() {
+
+                    public void onNext(AddedChannelAck response) {
+                        Log.d("createChannel", "channel_id = " + response.getAdded());
+                        // Added?
+                        if (response.getAdded() > 0) {
+                            loadMyChannel();
+                        } else {
+                            throw new Error("Channel not added");
+                        }
+                    }
+
+                    public void onCompleted() {
+                    }
+
+                    public void onError(Throwable e) {
+                        MyUtils.onError(MyChannelFragment.this, "createChannel", e);
+                    }
+                }));
+    }
+
+    private void editMyChannel() {
+        rxSubs.add(service.editMyChannel(_name, _description)
+                .subscribeOn(Schedulers.io())
+                .retryWhen(MyUtils::twoSecondsDelay)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<ModifiedAck>() {
+
+                    public void onNext(ModifiedAck response) {
+                        Log.d("editMyChannel", "modified = " + String.valueOf(response.isModified()));
+                        // Modified?
+                        if (!response.isModified()) {
+                            throw new Error("Channel not modified");
+                        }
+                    }
+
+                    public void onCompleted() {
+                    }
+
+                    public void onError(Throwable e) {
+                        MyUtils.onError(MyChannelFragment.this, "editMyChannel", e);
+                    }
+                }));
+    }
+
     private void loadMyChannel() {
         showLoading(true);
 
@@ -168,10 +222,10 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         _description = overview.getDescription();
                         // Update view
                         invalidateOptionsMenu();
-                        loadMyChannelTorrents();
                     }
 
                     public void onCompleted() {
+                        loadMyChannelTorrents();
                     }
 
                     public void onError(Throwable e) {
@@ -407,8 +461,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     }
 
     void editChannel() {
-        Intent createIntent = MyUtils.editChannelIntent(_dispersyCid, _name, _description);
-        startActivityForResult(createIntent, EDIT_CHANNEL_ACTIVITY_REQUEST_CODE);
+        Intent editIntent = MyUtils.editChannelIntent(_dispersyCid, _name, _description);
+        startActivityForResult(editIntent, EDIT_CHANNEL_ACTIVITY_REQUEST_CODE);
     }
 
     /**
@@ -438,8 +492,13 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
             case CREATE_CHANNEL_ACTIVITY_REQUEST_CODE:
                 switch (resultCode) {
 
-                    case Activity.RESULT_OK:
-                        loadMyChannel();
+                    case Activity.RESULT_FIRST_USER:
+                        _name = data.getStringExtra(ChannelActivity.EXTRA_NAME);
+                        _description = data.getStringExtra(ChannelActivity.EXTRA_DESCRIPTION);
+                        // Update view
+                        invalidateOptionsMenu();
+
+                        createMyChannel();
                         return;
 
                     case Activity.RESULT_CANCELED:
@@ -451,11 +510,13 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
             case EDIT_CHANNEL_ACTIVITY_REQUEST_CODE:
                 switch (resultCode) {
 
-                    case Activity.RESULT_OK:
+                    case Activity.RESULT_FIRST_USER:
                         _name = data.getStringExtra(ChannelActivity.EXTRA_NAME);
                         _description = data.getStringExtra(ChannelActivity.EXTRA_DESCRIPTION);
                         // Update view
                         invalidateOptionsMenu();
+
+                        editMyChannel();
                         return;
 
                     case Activity.RESULT_CANCELED:

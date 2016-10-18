@@ -59,6 +59,7 @@
     <string name="action_mychannel_edit">Edit my channel</string>
     <string name="action_mychannel_beam">Send to nearby phone</string>
 
+    <string name="action_edit_channel">Edit channel</string>
     <string name="action_settings">Change settings</string>
     <string name="action_feedback">Send feedback</string>
     <string name="action_shutdown">Shutdown service</string>
@@ -105,6 +106,7 @@
     <string name="channel_name_label">Channel name</string>
     <string name="channel_description_label">Description</string>
     <string name="status_creating_channel">Creating channel…</string>
+    <string name="status_loading_channel">Loading channel…</string>
     <string name="my_channel_explanation">Create your own channel to publish your content!\n\nOthers can add your channel to their favorites to keep up to date and boost your channel\'s popularity!</string>
 
     <string name="dialog_add_torrent">Add a torrent to your channel by url or browse:</string>

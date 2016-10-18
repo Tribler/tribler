@@ -131,7 +131,7 @@
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".EditChannelActivity"
-            android:label="@string/action_my_channel"
+            android:label="@string/action_edit_channel"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".ExperimentActivity"

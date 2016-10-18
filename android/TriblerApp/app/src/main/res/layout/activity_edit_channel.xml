@@ -22,12 +22,6 @@
 
     </android.support.design.widget.AppBarLayout>
 
-    <fragment xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/fragment_edit_channel"
-        android:name="org.tribler.android.EditChannelFragment"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+    <include layout="@layout/activity_edit_channel_form" />
 
 </android.support.design.widget.CoordinatorLayout>
