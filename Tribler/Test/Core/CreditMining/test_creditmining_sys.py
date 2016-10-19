@@ -7,6 +7,7 @@ Written by Ardhi Putra Pratama H
 import binascii
 import os
 import shutil
+from twisted.internet.task import LoopingCall
 
 from twisted.internet import defer
 from twisted.web.server import Site
@@ -16,7 +17,6 @@ from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
-from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
 from Tribler.Policies.BoostingManager import BoostingManager, BoostingSettings
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockLtTorrent, ResourceFailClass
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
@@ -323,6 +323,12 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         # we use dummy dispersy here
         self.config.set_dispersy(False)
 
+    def _load(self, _):
+        """
+        Dummy method to download the torrent
+        """
+        return defer.succeed(self.tdef)
+
     @blocking_call_on_reactor_thread
     def create_torrents_in_channel(self, dispersy_cid_hex):
         """
@@ -358,20 +364,6 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         self.boosting_manager.add_source(dispersy_cid)
         chn_obj = self.boosting_manager.get_source_object(dispersy_cid)
 
-        def _load(torrent, callback=None):
-            if not isinstance(torrent, CollectedTorrent):
-                torrent_id = 0
-                if torrent.torrent_id <= 0:
-                    torrent_id = self.session.lm.torrent_db.getTorrentID(torrent.infohash)
-                if torrent_id:
-                    torrent.update_torrent_id(torrent_id)
-
-                torrent = CollectedTorrent(torrent, self.tdef)
-            if callback is not None:
-                callback(torrent)
-            else:
-                return torrent
-
         def check_torrents_channel(src, defer_param=None, target=1):
             """
             check if a torrent already in channel and ready to download
@@ -396,11 +388,13 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
                 if src_obj.community:
                     src_obj.community.cancel_all_pending_tasks()
 
+                self.assertEqual(src_obj.get_source_text(), 'Simple Channel')
+
                 defer_param.callback(src)
 
             return defer_param
 
-        chn_obj.torrent_mgr.load_torrent = _load
+        chn_obj._load_torrent = self._load
 
         d = self.check_source(dispersy_cid)
         d.addCallback(check_torrents_channel, target=1)
@@ -444,21 +438,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         self.boosting_manager.add_source(dispersy_cid)
         chn_obj = self.boosting_manager.get_source_object(dispersy_cid)
 
-        def _load(torrent, callback=None):
-            if not isinstance(torrent, CollectedTorrent):
-                torrent_id = 0
-                if torrent.torrent_id <= 0:
-                    torrent_id = self.session.lm.torrent_db.getTorrentID(torrent.infohash)
-                if torrent_id:
-                    torrent.update_torrent_id(torrent_id)
-
-                torrent = CollectedTorrent(torrent, self.tdef)
-            if callback is not None:
-                callback(torrent)
-            else:
-                return torrent
-
-        chn_obj.torrent_mgr.load_torrent = _load
+        chn_obj._load_torrent = self._load
 
         def clean_community(_):
             """
@@ -498,29 +478,19 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         self.boosting_manager.add_source(dispersy_cid)
         chn_obj = self.boosting_manager.get_source_object(dispersy_cid)
         chn_obj.max_torrents = 2
-        chn_obj.torrent_mgr.load_torrent = lambda dummy_1, dummy_2: None
+        chn_obj._load_torrent = lambda _: defer.Deferred()
 
-        def _load(torrent, callback=None):
-            if not isinstance(torrent, CollectedTorrent):
-                torrent_id = 0
-                if torrent.torrent_id <= 0:
-                    torrent_id = self.session.lm.torrent_db.getTorrentID(torrent.infohash)
-                if torrent_id:
-                    torrent.update_torrent_id(torrent_id)
-
-                infohash_str = binascii.hexlify(torrent.infohash)
-                torrent = CollectedTorrent(torrent, self.tdef if infohash_str.startswith("fc") else pioneer_tdef)
-            if callback is not None:
-                callback(torrent)
-            else:
-                return torrent
+        def _load(infohash):
+            defer_ret = defer.Deferred()
+            defer_ret.callback(self.tdef if binascii.hexlify(infohash).startswith("fc") else pioneer_tdef)
+            return defer_ret
 
         def activate_mgr():
             """
             activate ltmgr and adjust max torrents to emulate overflow torrents
             """
             chn_obj.max_torrents = 1
-            chn_obj.torrent_mgr.load_torrent = _load
+            chn_obj._load_torrent = _load
 
         reactor.callLater(5, activate_mgr)
 
@@ -549,6 +519,58 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         d = self.check_source(dispersy_cid)
         d.addCallback(check_torrents_channel)
         return d
+
+    @deferred(timeout=40)
+    def test_chn_native_load(self):
+        self.session.get_dispersy = lambda: True
+        self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
+        dispersy_cid_hex = "abcd" * 9 + "0012"
+        dispersy_cid = binascii.unhexlify(dispersy_cid_hex)
+
+        # create channel and insert torrent
+        self.create_fake_allchannel_community()
+        self.create_torrents_in_channel(dispersy_cid_hex)
+
+        self.session.download_torrentfile = \
+            lambda dummy_ihash, function, _: function(binascii.hexlify(TORRENT_FILE_INFOHASH))
+
+        def get_bin_torrent(_):
+            """
+            get binary data of a torrent
+            """
+            f = open(TORRENT_FILE, "rb")
+            bdata = f.read()
+            f.close()
+            return bdata
+
+        self.session.get_collected_torrent = get_bin_torrent
+
+        self.boosting_manager.add_source(dispersy_cid)
+
+        def _loop_check(_):
+            defer_param = defer.Deferred()
+
+            def check_loaded(src):
+                """
+                check if a torrent has been loaded
+                """
+                src_obj = self.boosting_manager.get_source_object(src)
+                if src_obj.loaded_torrent[TORRENT_FILE_INFOHASH] is not None:
+                    src_obj.community.cancel_all_pending_tasks()
+                    src_obj.kill_tasks()
+                    self.check_loaded_lc.stop()
+                    self.check_loaded_lc = None
+                    defer_param.callback(src)
+
+            self.check_loaded_lc = LoopingCall(check_loaded, dispersy_cid)
+            self.check_loaded_lc.start(1, now=True)
+
+            return defer_param
+
+        defer_ret = self.check_source(dispersy_cid)
+        defer_ret.addCallback(_loop_check)
+
+        return defer_ret
 
     def tearDown(self):
         self.session.lm.dispersy._communities['allchannel'].cancel_all_pending_tasks()
