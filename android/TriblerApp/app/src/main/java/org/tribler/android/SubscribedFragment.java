@@ -18,6 +18,15 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
      * {@inheritDoc}
      */
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        loadSubscribedChannels();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
@@ -28,15 +37,6 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
                 actionBar.setTitle(R.string.action_subscriptions);
             }
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        loadSubscribedChannels();
     }
 
     /**

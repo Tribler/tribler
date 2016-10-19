@@ -73,7 +73,11 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
+        // Add items to the action bar (if it is present)
         inflater.inflate(R.menu.fragment_my_channel_menu, menu);
+
+        // Hide main search button
+        menu.findItem(R.id.btn_search).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
 
         // Search button
         MenuItem btnFilter = menu.findItem(R.id.btn_filter_my_channel);
@@ -105,8 +109,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     @Override
     public void onPrepareOptionsMenu(Menu menu) {
         super.onPrepareOptionsMenu(menu);
-        // Hide main search button
-        menu.findItem(R.id.btn_search).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
 
         // Is my channel created?
         boolean created = (_dispersyCid != null);
@@ -264,7 +266,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
     private void createTorrent(final File file, final boolean delete) {
         // Workaround endpoint array parsing:
-        String[] list = {"[\"" + file.getAbsolutePath() + "\"]"};
+        String[] list = {String.format("[\"%s\"]", file.getAbsolutePath())};
         rxSubs.add(service.createTorrent(list)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
@@ -281,8 +283,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         if (delete) {
                             AssetExtract.recursiveDelete(new File(file.getParent()));
                         }
-                        // Update view
-                        reload();
                     }
 
                     public void onError(Throwable e) {
@@ -308,7 +308,12 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 .subscribe(new Observer<AddedAck>() {
 
                     public void onNext(AddedAck response) {
-                        Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Torrent"), Toast.LENGTH_SHORT).show();
+                        // Added?
+                        if (response.isAdded()) {
+                            Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Torrent"), Toast.LENGTH_SHORT).show();
+                        } else {
+                            throw new Error("Torrent not added");
+                        }
                     }
 
                     public void onCompleted() {
@@ -339,7 +344,12 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 .subscribe(new Observer<AddedUrlAck>() {
 
                     public void onNext(AddedUrlAck response) {
-                        Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Torrent"), Toast.LENGTH_SHORT).show();
+                        // Added?
+                        if (url.equals(response.getAdded())) {
+                            Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Torrent"), Toast.LENGTH_SHORT).show();
+                        } else {
+                            throw new Error(String.format("Torrent url not added: %s != %s", url.toString(), response.getAdded()));
+                        }
                     }
 
                     public void onCompleted() {
@@ -367,7 +377,12 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 .subscribe(new Observer<RemovedAck>() {
 
                     public void onNext(RemovedAck response) {
-                        Toast.makeText(context, String.format(context.getString(R.string.info_removed_success), name), Toast.LENGTH_SHORT).show();
+                        // Removed?
+                        if (response.isRemoved()) {
+                            Toast.makeText(context, String.format(context.getString(R.string.info_removed_success), name), Toast.LENGTH_SHORT).show();
+                        } else {
+                            throw new Error(String.format("Torrent not removed: %s \"%s\"", infohash, name));
+                        }
                     }
 
                     public void onCompleted() {

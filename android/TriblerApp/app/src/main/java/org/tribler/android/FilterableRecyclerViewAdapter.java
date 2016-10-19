@@ -30,6 +30,10 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
         return _filteredDataList.size();
     }
 
+    public boolean isEmpty() {
+        return _dataSet.isEmpty();
+    }
+
     /**
      * Replace filtered data list with results
      *

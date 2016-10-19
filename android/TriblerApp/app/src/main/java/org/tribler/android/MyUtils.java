@@ -170,7 +170,7 @@ public class MyUtils {
         }
         // Create a media file name
         String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH_mm_ss").format(new Date());
-        return new File(videoDir, "VID_" + timeStamp + ".mp4");
+        return new File(videoDir, String.format("VID_%s.mp4", timeStamp));
     }
 
     public static void copy(InputStream input, OutputStream output) throws IOException {
@@ -324,9 +324,9 @@ public class MyUtils {
                 return Observable.error(e);
             }
             if (e instanceof ConnectException) {
-                Log.v("twoSecDelay", e.getClass().getSimpleName() + ". " + e.getMessage());
+                Log.v("twoSecDelay", String.format("%s. %s", e.getClass().getSimpleName(), e.getMessage()));
             } else {
-                Log.e("twoSecDelay", e.getClass().getSimpleName() + ". " + e.getMessage(), e);
+                Log.e("twoSecDelay", String.format("%s. %s", e.getClass().getSimpleName(), e.getMessage()), e);
             }
             // Retry
             return Observable.timer(2, TimeUnit.SECONDS);

@@ -1,6 +1,5 @@
 package org.tribler.android;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -128,7 +127,7 @@ public class EditChannelActivity extends BaseActivity {
         result.putExtra(ChannelActivity.EXTRA_DESCRIPTION, description);
 
         // Flag modification
-        setResult(Activity.RESULT_FIRST_USER, result);
+        setResult(RESULT_FIRST_USER, result);
         finish();
     }
 

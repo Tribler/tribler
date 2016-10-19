@@ -11,6 +11,7 @@ import org.tribler.android.restapi.json.TriblerTorrent;
 import org.tribler.android.restapi.json.UnsubscribedAck;
 
 import retrofit2.adapter.rxjava.HttpException;
+import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -70,23 +71,32 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     @Override
     public void onSwipedRight(final TriblerChannel channel) {
         adapter.removeObject(channel);
-        subscribe(channel.getDispersyCid(), channel.isSubscribed(), channel.getName());
+        // Is already subscribed?
+        if (channel.isSubscribed()) {
+            Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_already), channel.getName()), Toast.LENGTH_SHORT).show();
+        } else {
+            subscribe(channel.getDispersyCid(), channel.getName());
+        }
     }
 
-    void subscribe(final String dispersyCid, final boolean subscribed, final String name) {
-        if (subscribed) {
-            Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_already), name), Toast.LENGTH_SHORT).show();
-            return;
-        }
+    Observable<SubscribedAck> subscribe(final String dispersyCid, final String name) {
 
-        rxSubs.add(service.subscribe(dispersyCid)
+        Observable<SubscribedAck> observable = service.subscribe(dispersyCid)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
+                .share();
+
+        rxSubs.add(observable
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<SubscribedAck>() {
 
                     public void onNext(SubscribedAck response) {
-                        Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_success), name), Toast.LENGTH_SHORT).show();
+                        // Subscribed?
+                        if (response.isSubscribed()) {
+                            Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_success), name), Toast.LENGTH_SHORT).show();
+                        } else {
+                            throw new Error(String.format("Not subscribed to channel: %s \"%s\"", dispersyCid, name));
+                        }
                     }
 
                     public void onCompleted() {
@@ -101,6 +111,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                         }
                     }
                 }));
+
+        return observable;
     }
 
     /**
@@ -109,23 +121,32 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     @Override
     public void onSwipedLeft(final TriblerChannel channel) {
         adapter.removeObject(channel);
-        unsubscribe(channel.getDispersyCid(), channel.isSubscribed(), channel.getName());
+        // Is already un-subscribed?
+        if (!channel.isSubscribed()) {
+            Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_already), channel.getName()), Toast.LENGTH_SHORT).show();
+        } else {
+            unsubscribe(channel.getDispersyCid(), channel.getName());
+        }
     }
 
-    void unsubscribe(final String dispersyCid, final boolean subscribed, final String name) {
-        if (!subscribed) {
-            Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_already), name), Toast.LENGTH_SHORT).show();
-            return;
-        }
+    Observable<UnsubscribedAck> unsubscribe(final String dispersyCid, final String name) {
 
-        rxSubs.add(service.unsubscribe(dispersyCid)
+        Observable<UnsubscribedAck> observable = service.unsubscribe(dispersyCid)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
+                .share();
+
+        rxSubs.add(observable
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<UnsubscribedAck>() {
 
                     public void onNext(UnsubscribedAck response) {
-                        Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_success), name), Toast.LENGTH_SHORT).show();
+                        // Un-subscribed?
+                        if (response.isUnsubscribed()) {
+                            Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_success), name), Toast.LENGTH_SHORT).show();
+                        } else {
+                            throw new Error(String.format("Not unsubscribed form channel: %s \"%s\"", dispersyCid, name));
+                        }
                     }
 
                     public void onCompleted() {
@@ -140,6 +161,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                         }
                     }
                 }));
+
+        return observable;
     }
 
     /**

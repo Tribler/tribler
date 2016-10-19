@@ -35,6 +35,7 @@
 
     <string name="action_search">Search videos and channels</string>
     <string name="action_search_in_channel">Search in this channel</string>
+    <string name="action_filter_local">Filter list</string>
 
     <string name="action_capture_video">Record a new video</string>
     <string name="action_create_torrent">Create a new torrent</string>
