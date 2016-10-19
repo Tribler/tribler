@@ -30,6 +30,7 @@ fc_channel_torrent_list_item, _ = uic.loadUiType(get_ui_file_path('channel_torre
 fc_channel_list_item, _ = uic.loadUiType(get_ui_file_path('channel_list_item.ui'))
 fc_playlist_list_item, _ = uic.loadUiType(get_ui_file_path('playlist_list_item.ui'))
 fc_home_recommended_item, _ = uic.loadUiType(get_ui_file_path('home_recommended_item.ui'))
+fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
 
 
 class TriblerWindow(QMainWindow):

@@ -1,15 +1,13 @@
-from PyQt5 import uic
 from PyQt5.QtWidgets import QWidget
+from TriblerGUI.tribler_window import fc_loading_list_item
 
-from TriblerGUI.utilities import get_ui_file_path
 
-
-class LoadingListItem(QWidget):
+class LoadingListItem(QWidget, fc_loading_list_item):
 
     def __init__(self, parent, label_text=None):
         super(QWidget, self).__init__(parent)
 
-        uic.loadUi(get_ui_file_path('loading_list_item.ui'), self)
+        self.setupUi(self)
 
         if label_text is not None:
             self.textlabel.setText(label_text)
