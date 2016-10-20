@@ -114,45 +114,48 @@ def find_lib():
             dll = ctypes.CDLL('libvlc.so.5')
     elif sys.platform.startswith('win'):
         # emilon: WORKAROUND! don't try to look for libvlc.dll in silly places, it breaks.
-        p = None
-        if p is None:
-            try:  # some registry settings
-                # leaner than win32api, win32con
-                if PYTHON3:
-                    import winreg as w
-                else:
-                    import _winreg as w
-                for r in w.HKEY_LOCAL_MACHINE, w.HKEY_CURRENT_USER:
-                    try:
-                        r = w.OpenKey(r, 'Software\\VideoLAN\\VLC')
-                        plugin_path, _ = w.QueryValueEx(r, 'InstallDir')
-                        w.CloseKey(r)
-                        break
-                    except w.error:
-                        pass
-            except ImportError:  # no PyWin32
-                pass
-            if plugin_path is None:
-                 # try some standard locations.
-                for p in ('Program Files\\VideoLan\\', 'VideoLan\\',
-                          'Program Files\\',           ''):
-                    p = 'C:\\' + p + 'VLC\\libvlc.dll'
-                    if os.path.exists(p):
-                        plugin_path = os.path.dirname(p)
-                        break
-            if plugin_path is not None:  # try loading
-                p = os.getcwd()
-                os.chdir(plugin_path)
-                 # if chdir failed, this will raise an exception
-                dll = ctypes.CDLL('libvlc.dll')
-                 # restore cwd after dll has been loaded
-                os.chdir(p)
-            else:  # may fail
-                dll = ctypes.CDLL('libvlc.dll')
-        else:
-            plugin_path = os.path.dirname(p)
-            dll = ctypes.CDLL(p)
-
+        # Martijn: On Windows we need to blank SetDllDirectoryW to allow loading of the VLC DLL.
+        # We restore this settings after we're done for security reasons.
+        buffer_size = 1024
+        dll_directory = ctypes.create_unicode_buffer(buffer_size)
+        new_buffer_size = ctypes.windll.kernel32.GetDllDirectoryW(buffer_size, dll_directory)
+        dll_directory = ''.join(dll_directory[:new_buffer_size]).replace('\0', '')
+        ctypes.windll.kernel32.SetDllDirectoryW(None)
+        
+        try:  # some registry settings
+            # leaner than win32api, win32con
+            if PYTHON3:
+                import winreg as w
+            else:
+                import _winreg as w
+            for r in w.HKEY_LOCAL_MACHINE, w.HKEY_CURRENT_USER:
+                try:
+                    r = w.OpenKey(r, 'Software\\VideoLAN\\VLC')
+                    plugin_path, _ = w.QueryValueEx(r, 'InstallDir')
+                    w.CloseKey(r)
+                    break
+                except w.error:
+                    pass
+        except ImportError:  # no PyWin32
+            pass
+        if plugin_path is None:
+             # try some standard locations.
+            for p in ('Program Files\\VideoLan\\', 'VideoLan\\',
+                      'Program Files\\',           ''):
+                p = 'C:\\' + p + 'VLC\\libvlc.dll'
+                if os.path.exists(p):
+                    plugin_path = os.path.dirname(p)
+                    break
+        if plugin_path is not None:  # try loading
+            p = os.getcwd()
+            os.chdir(plugin_path)
+             # if chdir failed, this will raise an exception
+            dll = ctypes.CDLL('libvlc.dll')
+             # restore cwd after dll has been loaded
+            os.chdir(p)
+        else:  # may fail
+            dll = ctypes.CDLL('libvlc.dll')
+        ctypes.windll.kernel32.SetDllDirectoryW(dll_directory)
     elif sys.platform.startswith('darwin'):
         # FIXME: should find a means to configure path
         d = '/Applications/VLC.app/Contents/MacOS/'
