@@ -83,7 +83,7 @@ model {
                         library "torrent_rasterbar"
                         library "leveldb"
                         library "sqlite3"
-                        // VLC
+                        /*/ VLC
                         library "cpp_shared"
                         library "anw10"
                         library "anw13"
@@ -95,7 +95,7 @@ model {
                         library "iomx13"
                         library "iomx14"
                         library "vlc"
-                        library "vlc_jni"
+                        library "vlc_jni"*/
                     }
                 }
             }
@@ -165,7 +165,7 @@ model {
                     sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libsqlite3.so")
                 }
             }
-            // VLC binaries
+            /*/ VLC binaries
             cpp_shared {
                 binaries.withType(SharedLibraryBinary) {
                     sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libc++_shared.so")
@@ -225,7 +225,7 @@ model {
                 binaries.withType(SharedLibraryBinary) {
                     sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libvlcjni.so")
                 }
-            }
+            }*/
         }
     }
 }

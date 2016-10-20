@@ -22,8 +22,10 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.design.widget.NavigationView;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -51,6 +53,7 @@ import java.io.File;
 import java.io.IOException;
 
 import butterknife.BindView;
+import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -60,6 +63,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 101;
     public static final int SEARCH_ACTIVITY_REQUEST_CODE = 102;
     public static final int SUBSCRIBE_TO_CHANNEL_ACTIVITY_REQUEST_CODE = 103;
+    public static final int INSTALL_VLC_REQUEST_CODE = 104;
 
     static {
         // Backwards compatibility for vector graphics
@@ -98,24 +102,17 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
         Stetho.initializeWithDefaults(getApplicationContext()); //DEBUG
 
-        initConnectivityManager();
-
-        // Check network connection before starting service
-        if (MyUtils.isNetworkConnected(_connectivityManager)) {
-            initService();
-        } else {
-            Toast.makeText(this, R.string.info_no_connection, Toast.LENGTH_LONG).show();
+        // VLC installed?
+        if (!MyUtils.isPackageInstalled(getString(R.string.vlc_package_name), this)) {
+            askUserToInstallVlc();
         }
 
         // Start listening to events on the main thread so the gui can be updated
         _eventHandler = new Handler(Looper.getMainLooper(), this);
         EventStream.addHandler(_eventHandler);
 
-        if (!EventStream.isReady()) {
-            showLoading(R.string.status_opening_eventstream);
-
-            EventStream.openEventStream();
-        }
+        initConnectivityManager();
+        initEventStream();
 
         String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
         String authToken = getString(R.string.service_auth_token);
@@ -181,7 +178,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
                 // Warn user if connection is lost
                 if (!MyUtils.isNetworkConnected(_connectivityManager)) {
-                    Toast.makeText(MainActivity.this, R.string.warning_lost_connection, Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, R.string.warning_lost_connection, Toast.LENGTH_SHORT).show();
                 }
                 return;
 
@@ -204,14 +201,6 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         }
     }
 
-    protected void initService() {
-        Triblerd.start(this); // Run normally
-    }
-
-    protected void killService() {
-        Triblerd.stop(this);
-    }
-
     private void askUserToSubscribe(String dispersyCid, String name) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(R.string.dialog_received_channel);
@@ -225,6 +214,33 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         });
         AlertDialog dialog = builder.create();
         dialog.show();
+    }
+
+    private void askUserToInstallVlc() {
+        Snackbar.make(findViewById(R.id.activity_main_view), R.string.dialog_install_vlc, Snackbar.LENGTH_INDEFINITE)
+                .setAction(R.string.action_INSTALL, v ->
+                        rxSubs.add(Observable.fromCallable(() -> MyUtils.resolveAsset(getString(R.string.vlc_asset), this))
+                                .subscribeOn(Schedulers.io())
+                                .observeOn(AndroidSchedulers.mainThread())
+                                .subscribe(new Observer<File>() {
+
+                                    public void onNext(File file) {
+                                        Intent intent = MyUtils.viewFileIntent(Uri.fromFile(file));
+                                        startActivityForResult(intent, INSTALL_VLC_REQUEST_CODE);
+                                        file.deleteOnExit();
+                                    }
+
+                                    public void onCompleted() {
+                                    }
+
+                                    public void onError(Throwable e) {
+                                        Log.e("askUserToInstallVlc", "failed to resolve asset", e);
+                                        // Retry
+                                        askUserToInstallVlc();
+                                    }
+                                })))
+                .setActionTextColor(ContextCompat.getColor(this, R.color.yellow))
+                .show();
     }
 
     /**
@@ -267,6 +283,10 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                         // TODO: inform user
                         return;
                 }
+                return;
+
+            case INSTALL_VLC_REQUEST_CODE:
+                // Do nothing
                 return;
         }
     }
@@ -322,6 +342,17 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     protected void showLoading(@StringRes int resId) {
         showLoading(getText(resId));
+    }
+
+    private void initEventStream() {
+
+        if (!EventStream.isReady()) {
+            showLoading(R.string.status_opening_eventstream);
+
+            Triblerd.start(this); // Run normally
+
+            EventStream.openEventStream();
+        }
     }
 
     private void initConnectivityManager() {
@@ -478,7 +509,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     public void navFeedbackClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         String url = getString(R.string.app_feedback_url);
-        Intent browse = MyUtils.viewIntent(Uri.parse(url));
+        Intent browse = MyUtils.viewUriIntent(Uri.parse(url));
         // Ask user to open url
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(url);
@@ -559,7 +590,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                         Log.v("shutdown", e.getMessage(), e);
 
                         // Kill process
-                        killService();
+                        Triblerd.stop(MainActivity.this);
 
                         // Stop MainActivity
                         finish();

@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -64,6 +65,16 @@ public class MyUtils {
         return MyUtils.class.getPackage().getName();
     }
 
+    public static boolean isPackageInstalled(String packageName, Context context) {
+        try {
+            PackageManager pm = context.getPackageManager();
+            pm.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES);
+            return true;
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
+    }
+
     /**
      * Helper method to determine if the device has an extra-large screen. For
      * example, 10" tablets are extra-large.
@@ -82,8 +93,14 @@ public class MyUtils {
         return type;
     }
 
-    public static Intent viewIntent(Uri uri) {
+    public static Intent viewUriIntent(Uri uri) {
         return new Intent(Intent.ACTION_VIEW, uri);
+    }
+
+    public static Intent viewFileIntent(Uri file) {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(file, getMimeType(file));
+        return intent;
     }
 
     public static Intent viewChannelIntent(String dispersyCid, String name, boolean subscribed) {
@@ -281,7 +298,7 @@ public class MyUtils {
 
     public static File resolveUri(Uri uri, Context context) throws IOException {
         ContentResolver resolver = context.getContentResolver();
-        String filename = uri.getLastPathSegment();
+        String fileName = uri.getLastPathSegment();
 
         // Get meta-data
         Cursor cursor = resolver.query(uri, null, null, null, null);
@@ -291,21 +308,29 @@ public class MyUtils {
             }
             try {
                 int i = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME);
-                filename = cursor.getString(i);
+                fileName = cursor.getString(i);
             } catch (IllegalArgumentException ex) {
             }
             cursor.close();
         }
 
-        // Make file accessible to service by copying to cache dir
-        InputStream input = resolver.openInputStream(uri);
-
         // The name of the dir the file is in becomes the name of the .torrent file
-        File dir = new File(context.getCacheDir(), filename);
-        File file = new File(dir, filename);
+        File dir = new File(context.getCacheDir(), fileName);
+        File file = new File(dir, fileName);
         dir.mkdirs();
-        OutputStream output = new FileOutputStream(file, false);
 
+        // Make file accessible to service by copying to app cache dir
+        InputStream input = resolver.openInputStream(uri);
+        OutputStream output = new FileOutputStream(file, false);
+        MyUtils.copy(input, output);
+        return file;
+    }
+
+    public static File resolveAsset(String fileName, Context context) throws IOException {
+        // Make file accessible by copying to external cache dir
+        File file = new File(context.getExternalCacheDir(), fileName);
+        InputStream input = context.getAssets().open(fileName);
+        OutputStream output = new FileOutputStream(file, false);
         MyUtils.copy(input, output);
         return file;
     }

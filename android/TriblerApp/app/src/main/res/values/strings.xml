@@ -6,6 +6,10 @@
     <string name="service_port_number">8085</string>
     <string name="service_auth_token"></string>
 
+    <string name="vlc_package_name">org.videolan.vlc</string>
+    <string name="vlc_asset">VLC-Android-2.0.6-ARMv7.apk</string>
+    <string name="dialog_install_vlc">To watch videos you need a video player, like VLC that comes with Tribler. Do you want to install VLC now?</string>
+
     <string name="title_app">Application</string>
     <string name="title_create_content">Create new content</string>
     <string name="title_channel_preview">Preview of</string>
@@ -32,6 +36,7 @@
     <string name="action_refresh">Refresh</string>
     <string name="action_REFRESH">REFRESH</string>
     <string name="action_RETRY">RETRY</string>
+    <string name="action_INSTALL">INSTALL</string>
 
     <string name="action_search">Search videos and channels</string>
     <string name="action_search_in_channel">Search in this channel</string>
