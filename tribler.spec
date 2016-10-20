@@ -37,7 +37,7 @@ exe = EXE(pyz,
           strip=False,
           upx=True,
           console=True,
-          icon=None)
+          icon='Tribler/Main/Build/Win/tribler.ico')
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
