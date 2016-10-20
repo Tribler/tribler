@@ -784,9 +784,11 @@ class TriblerLaunchMany(TaskManager):
         """ Called by network thread """
 
         self.downloads[infohash].pstate_for_restart = pstate
+        save_resume_data = self.downloads[infohash].save_resume_data()
 
-        self.register_task("save_pstate %f" % timemod.clock(),
-                           self.downloads[infohash].save_resume_data())
+        if save_resume_data:
+            self.register_task("save_pstate %f" % timemod.clock(),
+                               save_resume_data)
 
     def load_download_pstate(self, filename):
         """ Called by any thread """
