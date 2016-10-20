@@ -52,7 +52,7 @@
             android:layout_height="wrap_content"
             android:layout_alignLeft="@+id/torrent_name"
             android:layout_alignStart="@+id/torrent_name"
-            android:layout_alignTop="@+id/torrent_category"
+            android:layout_below="@+id/torrent_name"
             android:layout_marginTop="6dp"
             android:text="Torrent size" />
 
@@ -64,7 +64,8 @@
             android:layout_alignParentRight="true"
             android:layout_below="@+id/torrent_name"
             android:text="Torrent category"
-            android:textColor="@color/blue" />
+            android:textColor="@color/blue"
+            android:visibility="gone" />
 
     </RelativeLayout>
 
