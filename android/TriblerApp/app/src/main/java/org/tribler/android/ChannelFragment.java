@@ -188,12 +188,22 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
     }
 
     Observable<SubscribedAck> subscribe() {
-        _btnFav.setActionView(R.layout.action_view_loading);
+        // null if original intent of ChannelActivity was to subscribe only
+        if (_btnFav != null) {
+            _btnFav.setActionView(R.layout.action_view_loading);
+        } else {
+            showLoading(R.string.status_subscribing);
+        }
         return super.subscribe(_dispersyCid, _name).doOnCompleted(() -> _subscribed = true);
     }
 
     Observable<UnsubscribedAck> unsubscribe() {
-        _btnFav.setActionView(R.layout.action_view_loading);
+        // null if original intent of ChannelActivity was to un-subscribe only
+        if (_btnFav != null) {
+            _btnFav.setActionView(R.layout.action_view_loading);
+        } else {
+            showLoading(R.string.status_unsubscribing);
+        }
         return super.unsubscribe(_dispersyCid, _name).doOnCompleted(() -> _subscribed = false);
     }
 }
