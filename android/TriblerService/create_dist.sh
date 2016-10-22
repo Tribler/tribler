@@ -10,8 +10,8 @@ p4a create \
 --release \
 --sdk_dir=/opt/android-sdk \
 --ndk_dir=/opt/android-ndk \
---ndk_version=12b \
---android_api=16 \
+--ndk_version=13 \
+--android_api=18 \
 --arch=armeabi-v7a \
 --package=org.tribler.android \
 --service=Triblerd:Triblerd.py \

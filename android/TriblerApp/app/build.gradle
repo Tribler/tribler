@@ -20,7 +20,8 @@ model {
             applicationId "org.tribler.android"
             // Android Beam supports large payload transfers
             // over Bluetooth since api level 16
-            minSdkVersion.apiLevel 16
+            // Dynamic linker works properly since api level 18
+            minSdkVersion.apiLevel 18
             // Compatible up to api level 23
             // Avoid new strict file security measures of api level 24
             targetSdkVersion.apiLevel 23
@@ -50,7 +51,7 @@ model {
             moduleName = "main"
             toolchain = "gcc"
             toolchainVersion = "4.9"
-            platformVersion = 16
+            platformVersion = 18
             stl = "gnustl_shared"
             renderscriptNdkMode = false
             CFlags.add("-I" + file("src/main/jni/include/python2.7"))
