@@ -11,6 +11,7 @@ from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.dispersy.exception import CommunityNotFoundException
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 def return_handled_exception(request, exception):
@@ -53,6 +54,7 @@ def convert_db_channel_to_json(channel, include_rel_score=False):
     return res_json
 
 
+@blocking_call_on_reactor_thread
 def can_edit_channel(channel_id, channel_vote):
     """
     This method returns whether the channel can be edited or not.
