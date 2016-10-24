@@ -117,7 +117,7 @@ There are some additional packages which should be installed. They can easily be
 
 .. code-block:: none
 
-    pip install twisted requests pillow cherrypy cryptography decorator netifaces feedparser
+    pip install cherrypy chardet configobj cryptography decorator feedparser netifaces pillow twisted
 
 Running Tribler
 ---------------
