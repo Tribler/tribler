@@ -39,17 +39,38 @@
   </property>
   <property name="styleSheet">
    <string notr="true">QWidget {
-background-color: #ccc;
+background-color: #202020;
 border: none;
 }
 
-QPlainTextEdit, QTreeWidget {
-background-color: #eee;
-border-radius: 2px;
+QLabel {
+color: #B5B5B5;
 }
 
-QPlainTextEdit {
-padding-left: 4px;
+EllipseButton {
+border: 1px solid #B5B5B5;
+border-radius: 13px;
+color: white;
+}
+
+EllipseButton::hover {
+border: 1px solid white;
+color: white;
+}
+
+QLineEdit, QPlainTextEdit {
+background-color: #303030;
+border: none;
+color: #C0C0C0;
+padding: 4px;
+}
+
+QTreeWidget::item {
+color: #C0C0C0;
+}
+
+QTreeWidget {
+background-color: #303030;
 }</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -152,6 +173,19 @@ padding-left: 4px;
         <property name="styleSheet">
          <string notr="true"/>
         </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>The following information about your environment will be sent to us. You can remove entries by right-clicking them.</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
        </widget>
       </item>
       <item>
@@ -173,6 +207,9 @@ padding-left: 4px;
           <width>16777215</width>
           <height>16777215</height>
          </size>
+        </property>
+        <property name="contextMenuPolicy">
+         <enum>Qt::CustomContextMenu</enum>
         </property>
         <property name="styleSheet">
          <string notr="true"/>
@@ -269,7 +306,7 @@ padding-left: 4px;
       </size>
      </property>
      <property name="styleSheet">
-      <string notr="true">background-color: #ababab;</string>
+      <string notr="true"/>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
       <property name="leftMargin">
@@ -298,28 +335,24 @@ padding-left: 4px;
        </spacer>
       </item>
       <item>
-       <widget class="QToolButton" name="send_report_button">
+       <widget class="EllipseButton" name="send_report_button">
         <property name="minimumSize">
          <size>
           <width>0</width>
-          <height>24</height>
+          <height>26</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
           <width>16777215</width>
-          <height>24</height>
+          <height>26</height>
          </size>
         </property>
         <property name="cursor">
          <cursorShape>PointingHandCursor</cursorShape>
         </property>
         <property name="styleSheet">
-         <string notr="true">border: none;
-border-radius: 2px;
-background-color: #fff;
-font-size: 12px;
-</string>
+         <string notr="true"/>
         </property>
         <property name="text">
          <string>send report</string>
@@ -327,39 +360,55 @@ font-size: 12px;
        </widget>
       </item>
       <item>
-       <widget class="QToolButton" name="cancel_button">
+       <widget class="EllipseButton" name="cancel_button">
         <property name="minimumSize">
          <size>
           <width>0</width>
-          <height>24</height>
+          <height>26</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
           <width>16777215</width>
-          <height>24</height>
+          <height>26</height>
          </size>
         </property>
         <property name="cursor">
          <cursorShape>PointingHandCursor</cursorShape>
         </property>
         <property name="styleSheet">
-         <string notr="true">border: none;
-border-radius: 2px;
-background-color: #fff;
-font-size: 12px;
-</string>
+         <string notr="true"/>
         </property>
         <property name="text">
          <string>Cancel</string>
         </property>
        </widget>
       </item>
+      <item>
+       <spacer name="horizontalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
      </layout>
     </widget>
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>EllipseButton</class>
+   <extends>QToolButton</extends>
+   <header>TriblerGUI.widgets.ellipsebutton.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

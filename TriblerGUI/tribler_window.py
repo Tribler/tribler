@@ -239,10 +239,6 @@ class TriblerWindow(QMainWindow):
         self.dialog.button_clicked.connect(self.on_start_download_action)
         self.dialog.show()
 
-        if filename[0] != u'':
-            self.file_request_mgr = TriblerRequestManager()
-            self.file_request_mgr.send_file("downloads", self.on_download_added, filename[0])
-
     def on_start_download_action(self, action):
         if action == 1:
             escaped_uri = quote_plus(self.download_uri)

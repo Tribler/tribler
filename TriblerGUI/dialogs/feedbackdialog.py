@@ -1,9 +1,13 @@
 import os
+from urllib import quote_plus
 from PyQt5 import uic
 from PyQt5.QtCore import QCoreApplication
-from PyQt5.QtWidgets import QDialog, QTreeWidgetItem
+from PyQt5.QtWidgets import QDialog, QTreeWidgetItem, QAction
 import sys
 import platform
+import time
+from TriblerGUI.TriblerActionMenu import TriblerActionMenu
+from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_ui_file_path
 
 
@@ -15,15 +19,17 @@ class FeedbackDialog(QDialog):
         uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
 
         self.setWindowTitle("Unexpected error")
+        self.selected_item_index = 0
 
         def add_item_to_info_widget(key, value):
             item = QTreeWidgetItem(self.env_variables_list)
             item.setText(0, key)
             item.setText(1, value)
 
-        self.error_text_edit.setPlainText(exception_text)
+        self.error_text_edit.setPlainText(exception_text.rstrip())
 
-        self.cancel_button.clicked.connect(FeedbackDialog.on_cancel_clicked)
+        self.cancel_button.clicked.connect(self.on_cancel_clicked)
+        self.send_report_button.clicked.connect(self.on_send_clicked)
 
         # Add machine information to the tree widget
         add_item_to_info_widget('os.getcwd', '%s' % os.getcwd())
@@ -45,6 +51,46 @@ class FeedbackDialog(QDialog):
         for key in os.environ.keys():
             add_item_to_info_widget('os.environ', '%s: %s' % (key, os.environ[key]))
 
-    @staticmethod
-    def on_cancel_clicked():
+        # Users can remove specific lines in the report
+        self.env_variables_list.customContextMenuRequested.connect(self.on_right_click_item)
+
+    def on_remove_entry(self):
+        self.env_variables_list.takeTopLevelItem(self.selected_item_index)
+
+    def on_right_click_item(self, pos):
+        selected_item = self.env_variables_list.selectedItems()[0]
+        self.selected_item_index = self.env_variables_list.indexOfTopLevelItem(selected_item)
+
+        menu = TriblerActionMenu(self)
+
+        remove_action = QAction('Remove entry', self)
+        remove_action.triggered.connect(self.on_remove_entry)
+        menu.addAction(remove_action)
+        menu.exec_(self.env_variables_list.mapToGlobal(pos))
+
+    def on_cancel_clicked(self):
         QCoreApplication.instance().quit()
+
+    def on_report_sent(self, _):
+        QCoreApplication.instance().quit()
+
+    def on_send_clicked(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.base_url = 'http://reporter.tribler.org/'
+
+        sys_info = ""
+        for ind in xrange(self.env_variables_list.topLevelItemCount() - 1):
+            item = self.env_variables_list.topLevelItem(ind)
+            sys_info += "%s\t%s\n" % (quote_plus(item.text(0)), quote_plus(item.text(1)))
+
+        comments = self.comments_text_edit.toPlainText()
+        if len(comments) == 0:
+            comments = "Not provided"
+        comments = quote_plus(comments)
+
+        stack = quote_plus(self.error_text_edit.toPlainText())
+
+        post_data = "version=6.5.2&machine=%s&os=%s&timestamp=%s&sysinfo=%s&comments=%s&stack=%s" % \
+                    (platform.machine(), platform.platform(), int(time.time()), sys_info, comments, stack)
+
+        self.request_mgr.perform_request("report", self.on_report_sent, data=str(post_data), method='POST')
