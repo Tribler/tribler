@@ -63,6 +63,8 @@ class EventRequestManager(QNetworkAccessManager):
                     self.discovered_torrent.emit(json_dict["event"])
                 elif json_dict["type"] == "events_start":
                     self.tribler_version = json_dict["event"]["version"]
+                    if json_dict["event"]["tribler_started"]:
+                        self.tribler_started.emit()
             self.current_event_string = ""
 
     def connect(self):

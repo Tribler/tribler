@@ -30,8 +30,21 @@ class CoreManager(object):
 
         self.shutting_down = False
         self.recorded_stderr = ""
+        self.use_existing_core = True
 
     def start(self):
+        """
+        First test whether we already have a Tribler process listening on port 8085. If so, use that one and don't
+        start a new, fresh session.
+        """
+        def on_request_error(_):
+            self.use_existing_core = False
+            self.start_tribler_core()
+
+        self.events_manager.connect()
+        self.events_manager.reply.error.connect(on_request_error)
+
+    def start_tribler_core(self):
         core_script_path = os.path.join(get_base_path(), 'scripts',
                                         'start_fake_core.py' if START_FAKE_API else 'start_core.py')
         if START_FAKE_API:
