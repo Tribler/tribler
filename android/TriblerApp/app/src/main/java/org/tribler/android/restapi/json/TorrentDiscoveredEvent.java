@@ -7,7 +7,8 @@ public class TorrentDiscoveredEvent {
     public static final String TYPE = "torrent_discovered";
 
     private String infohash, name, dispersy_cid;
-    private List files, trackers;
+    private List<List> files;
+    private List<String> trackers;
     private int timestamp;
 
     TorrentDiscoveredEvent() {
@@ -21,11 +22,11 @@ public class TorrentDiscoveredEvent {
         return name;
     }
 
-    public List getFiles() {
+    public List<List> getFiles() {
         return files;
     }
 
-    public List getTrackers() {
+    public List<String> getTrackers() {
         return trackers;
     }
 
