@@ -142,13 +142,9 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
             TorrentDiscoveredEvent torrent = (TorrentDiscoveredEvent) message.obj;
 
             // Check if torrent belongs to this channel
-            if (_dispersyCid != null && _dispersyCid.equalsIgnoreCase(torrent.getDispersyCid())) {
-
-                String question = String.format(getString(R.string.info_content_discovered), torrent.getName());
-                askUser(question, R.string.action_REFRESH, view -> {
-                    // Update view
-                    reload();
-                });
+            if (_dispersyCid != null && _dispersyCid.equals(torrent.getDispersyCid())) {
+                // Add to list
+                adapter.addObject(new TriblerTorrent(torrent));
             }
         }
         return true;
