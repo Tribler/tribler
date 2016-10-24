@@ -49,7 +49,7 @@ class TriblerWindow(QMainWindow):
         logging.error(exception_text)
 
         if not self.feedback_dialog_is_open:
-            dialog = FeedbackDialog(self, exception_text)
+            dialog = FeedbackDialog(self, exception_text, self.core_manager.events_manager.tribler_version)
             self.feedback_dialog_is_open = True
             result = dialog.exec_()
 

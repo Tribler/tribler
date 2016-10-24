@@ -13,13 +13,14 @@ from TriblerGUI.utilities import get_ui_file_path
 
 class FeedbackDialog(QDialog):
 
-    def __init__(self,  parent, exception_text):
+    def __init__(self,  parent, exception_text, tribler_version):
         super(FeedbackDialog, self).__init__(parent)
 
         uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
 
         self.setWindowTitle("Unexpected error")
         self.selected_item_index = 0
+        self.tribler_version = tribler_version
 
         def add_item_to_info_widget(key, value):
             item = QTreeWidgetItem(self.env_variables_list)
@@ -90,7 +91,8 @@ class FeedbackDialog(QDialog):
 
         stack = quote_plus(self.error_text_edit.toPlainText())
 
-        post_data = "version=6.5.2&machine=%s&os=%s&timestamp=%s&sysinfo=%s&comments=%s&stack=%s" % \
-                    (platform.machine(), platform.platform(), int(time.time()), sys_info, comments, stack)
+        post_data = "version=%s&machine=%s&os=%s&timestamp=%s&sysinfo=%s&comments=%s&stack=%s" % \
+                    (self.tribler_version, platform.machine(), platform.platform(),
+                     int(time.time()), sys_info, comments, stack)
 
         self.request_mgr.perform_request("report", self.on_report_sent, data=str(post_data), method='POST')

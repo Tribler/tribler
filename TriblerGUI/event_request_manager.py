@@ -23,6 +23,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.failed_attempts = 0
         self.connect_timer = QTimer()
         self.current_event_string = ""
+        self.tribler_version = "Unknown"
 
     def on_error(self, error):
         if error == QNetworkReply.ConnectionRefusedError:
@@ -60,6 +61,8 @@ class EventRequestManager(QNetworkAccessManager):
                     self.discovered_channel.emit(json_dict["event"])
                 elif json_dict["type"] == "torrent_discovered":
                     self.discovered_torrent.emit(json_dict["event"])
+                elif json_dict["type"] == "events_start":
+                    self.tribler_version = json_dict["event"]["version"]
             self.current_event_string = ""
 
     def connect(self):
