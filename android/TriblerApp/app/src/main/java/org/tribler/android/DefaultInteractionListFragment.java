@@ -172,24 +172,24 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     public void onClick(final TriblerTorrent torrent) {
         switch (torrent.getCategory()) {
             case "Video":
-                //TODO: watch later
+                //TODO: watch now
                 Toast.makeText(context, "watch now", Toast.LENGTH_SHORT).show();
                 break;
 
             case "Audio":
-                //TODO: listen later
+                //TODO: listen now
                 Toast.makeText(context, "listen now", Toast.LENGTH_SHORT).show();
                 break;
 
             case "Document":
-                //TODO: read later
+                //TODO: read now
                 Toast.makeText(context, "read now", Toast.LENGTH_SHORT).show();
                 break;
 
             case "Compressed":
             case "xxx":
             case "other":
-                //TODO: download
+                //TODO: download now
                 Toast.makeText(context, "download now", Toast.LENGTH_SHORT).show();
                 break;
         }
@@ -221,8 +221,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
             case "Compressed":
             case "xxx":
             case "other":
-                //TODO: download
-                Toast.makeText(context, "queue download", Toast.LENGTH_SHORT).show();
+                //TODO: download later
+                Toast.makeText(context, "download later", Toast.LENGTH_SHORT).show();
                 break;
         }
     }
