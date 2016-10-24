@@ -71,5 +71,6 @@ class SettingsEndpoint(resource.Resource):
         # Merge the configuration of libtribler and the Tribler configuration
         settings_dict = libtribler_settings.copy()
         settings_dict.update(tribler_settings)
+        settings_dict["general"]["family_filter"] = self.session.tribler_config.config["general"]["family_filter"]
 
         return json.dumps({"settings": settings_dict})

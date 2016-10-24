@@ -5,6 +5,7 @@ from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON
                                      NTFY_UPGRADER, NTFY_STARTED, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT,
                                      NTFY_NEW_VERSION, NTFY_FINISHED, NTFY_TRIBLER, NTFY_UPGRADER_TICK, NTFY_CHANNEL,
                                      NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR)
+from Tribler.Core.version import version_id
 
 MAX_EVENTS_BUFFER_SIZE = 100
 
@@ -17,7 +18,8 @@ class EventsEndpoint(resource.Resource):
 
     Currently, the following events are implemented:
 
-    - events_start: An indication that the event socket is opened and that the server is ready to push events.
+    - events_start: An indication that the event socket is opened and that the server is ready to push events. This
+      includes information about whether Tribler has started already or not and the version of Tribler used.
     - search_result_channel: This event dictionary contains a search result with a channel that has been found.
     - search_result_torrent: This event dictionary contains a search result with a torrent that has been found.
     - upgrader_started: An indication that the Tribler upgrader has started.
@@ -42,7 +44,7 @@ class EventsEndpoint(resource.Resource):
         resource.Resource.__init__(self)
         self.session = session
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
-        self.events_request = None
+        self.events_requests = []
         self.buffer = []
 
         self.infohashes_sent = set()
@@ -66,12 +68,12 @@ class EventsEndpoint(resource.Resource):
         """
         Write data over the event socket. If the event socket is not open, add the message to the buffer instead.
         """
-        if not self.events_request:
+        if len(self.events_requests) == 0:
             if len(self.buffer) >= MAX_EVENTS_BUFFER_SIZE:
                 self.buffer.pop(0)
             self.buffer.append(message)
         else:
-            self.events_request.write(message + '\n')
+            [request.write(message + '\n') for request in self.events_requests]
 
     def start_new_query(self):
         self.infohashes_sent = set()
@@ -156,9 +158,14 @@ class EventsEndpoint(resource.Resource):
 
                     curl -X GET http://localhost:8085/events
         """
-        self.events_request = request
+        def on_request_finished(_):
+            self.events_requests.remove(request)
 
-        request.write(json.dumps({"type": "events_start"}) + '\n')
+        self.events_requests.append(request)
+        request.notifyFinish().addCallbacks(on_request_finished, on_request_finished)
+
+        request.write(json.dumps({"type": "events_start", "event": {
+            "tribler_started": self.session.lm.initComplete, "version": version_id}}) + '\n')
 
         while not len(self.buffer) == 0:
             request.write(self.buffer.pop(0) + '\n')

@@ -73,7 +73,7 @@ On Windows, you can use the following command to run Tribler:
 Packaging Tribler
 =================
 
-We have written guides on how to package Tribler for distribution on various systems. Please take a look `here <http://tribler.readthedocs.io/en/devel/building.html>`_.
+We have written guides on how to package Tribler for distribution on various systems. Please take a look `here <http://tribler.readthedocs.io/en/devel/building/building.html>`_.
 
 Submodule notes
 ===============

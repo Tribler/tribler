@@ -11,6 +11,7 @@ from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.dispersy.exception import CommunityNotFoundException
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 def return_handled_exception(request, exception):
@@ -45,8 +46,7 @@ def convert_db_channel_to_json(channel, include_rel_score=False):
     """
     res_json = {"id": channel[0], "dispersy_cid": channel[1].encode('hex'), "name": channel[2],
                 "description": channel[3], "votes": channel[5], "torrents": channel[4], "spam": channel[6],
-                "modified": channel[8], "subscribed": (channel[7] == VOTE_SUBSCRIBE),
-                "can_edit": can_edit_channel(channel[1], channel[7])}
+                "modified": channel[8], "subscribed": (channel[7] == VOTE_SUBSCRIBE)}
 
     if include_rel_score:
         res_json["relevance_score"] = channel[9]
@@ -54,6 +54,7 @@ def convert_db_channel_to_json(channel, include_rel_score=False):
     return res_json
 
 
+@blocking_call_on_reactor_thread
 def can_edit_channel(channel_id, channel_vote):
     """
     This method returns whether the channel can be edited or not.

@@ -66,6 +66,17 @@ class TorrentsRandomEndpoint(resource.Resource):
 
         torrent_db_columns = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
                               'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.inserted']
+
         popular_torrents = self.channel_db_handler.get_random_channel_torrents(torrent_db_columns, limit=limit_torrents)
-        results_json = [convert_db_torrent_to_json(popular_torrent) for popular_torrent in popular_torrents]
+
+        results_json = []
+        for popular_torrent in popular_torrents:
+            torrent_json = convert_db_torrent_to_json(popular_torrent)
+            if (self.session.tribler_config.get_family_filter_enabled() and
+                    self.session.lm.category.xxx_filter.isXXX(torrent_json['category'])) \
+                    or torrent_json['name'] is None:
+                continue
+
+            results_json.append(torrent_json)
+
         return json.dumps({"torrents": results_json})

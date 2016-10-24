@@ -64,8 +64,7 @@ class TestRestApiUtil(TriblerCoreTest):
         """
         input_tuple = (1, 'aaaa'.decode('hex'), 'test', 'desc', 42, 43, 44, 2, 1234, 0.123)
         output = {'id': 1, 'dispersy_cid': 'aaaa', 'name': 'test', 'description': 'desc', 'torrents': 42, 'votes': 43,
-                  'spam': 44, 'subscribed': True, 'modified': 1234, 'relevance_score': 0.123,
-                  'can_edit': False}
+                  'spam': 44, 'subscribed': True, 'modified': 1234, 'relevance_score': 0.123}
         self.assertEqual(convert_db_channel_to_json(input_tuple, include_rel_score=True), output)
 
     def test_rel_score_remote_torrent(self):
