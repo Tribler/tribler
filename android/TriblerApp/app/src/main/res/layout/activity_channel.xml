@@ -22,8 +22,7 @@
 
     </android.support.design.widget.AppBarLayout>
 
-    <fragment xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
+    <fragment
         android:id="@+id/fragment_channel"
         android:name="org.tribler.android.ChannelFragment"
         android:layout_width="match_parent"

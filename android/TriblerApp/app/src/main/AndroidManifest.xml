@@ -145,6 +145,14 @@
             android:name=".TwistdActivity"
             android:exported="true"
             android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".TorrentActivity"
+            android:parentActivityName=".ChannelActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="org.tribler.android.ChannelActivity" />
+        </activity>
     </application>
 
 </manifest>

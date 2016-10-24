@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
     android:orientation="vertical"
-    tools:context=".SearchActivity">
+    tools:context=".TorrentActivity">
 
     <android.support.design.widget.AppBarLayout
         android:layout_width="match_parent"
@@ -23,10 +23,11 @@
     </android.support.design.widget.AppBarLayout>
 
     <fragment
-        android:id="@+id/fragment_search"
-        android:name="org.tribler.android.SearchFragment"
+        android:id="@+id/fragment_torrent"
+        android:name="org.tribler.android.TorrentFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        tools:layout="@layout/fragment_torrent" />
 
 </android.support.design.widget.CoordinatorLayout>

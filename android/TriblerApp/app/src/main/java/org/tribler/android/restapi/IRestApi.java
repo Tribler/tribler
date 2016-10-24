@@ -15,6 +15,7 @@ import org.tribler.android.restapi.json.SubscribedAck;
 import org.tribler.android.restapi.json.SubscribedChannelsResponse;
 import org.tribler.android.restapi.json.TorrentCreatedResponse;
 import org.tribler.android.restapi.json.TorrentsResponse;
+import org.tribler.android.restapi.json.TriblerTorrent;
 import org.tribler.android.restapi.json.UnsubscribedAck;
 
 import java.io.Serializable;
@@ -147,6 +148,12 @@ public interface IRestApi {
             @Path("dispersy_cid") String dispersyCid,
             @Path("url") Uri url,
             @Field("description") String description
+    );
+
+    @GET("/channels/discovered/{dispersy_cid}/torrents/{infohash}")
+    Observable<TriblerTorrent> getTorrent(
+            @Path("dispersy_cid") String dispersyCid,
+            @Path("infohash") String infohash
     );
 
     @DELETE("/channels/discovered/{dispersy_cid}/torrents/{infohash}")
