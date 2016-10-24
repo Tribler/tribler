@@ -9,6 +9,11 @@ public class TriblerTorrent {
     TriblerTorrent() {
     }
 
+    public TriblerTorrent(TorrentDiscoveredEvent event) {
+        name = event.getName();
+        infohash = event.getInfohash();
+    }
+
     public int getId() {
         return id;
     }
