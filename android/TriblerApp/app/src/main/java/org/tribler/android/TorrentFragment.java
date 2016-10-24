@@ -16,7 +16,7 @@ import rx.schedulers.Schedulers;
 public class TorrentFragment extends ViewFragment {
 
     private String _dispersyCid;
-    private String _infoHash;
+    private String _infohash;
 
     /**
      * {@inheritDoc}
@@ -27,7 +27,7 @@ public class TorrentFragment extends ViewFragment {
 
         Intent intent = getActivity().getIntent();
         _dispersyCid = intent.getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
-        _infoHash = intent.getStringExtra(TorrentActivity.EXTRA_TORRENT_INFOHASH);
+        _infohash = intent.getStringExtra(TorrentActivity.EXTRA_TORRENT_INFOHASH);
 
         loadTorrent();
     }
@@ -41,7 +41,7 @@ public class TorrentFragment extends ViewFragment {
     }
 
     private void loadTorrent() {
-        rxSubs.add(service.getTorrent(_dispersyCid, _infoHash)
+        rxSubs.add(service.getTorrent(_dispersyCid, _infohash)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())

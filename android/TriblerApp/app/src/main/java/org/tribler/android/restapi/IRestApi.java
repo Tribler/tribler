@@ -6,11 +6,13 @@ import org.tribler.android.restapi.json.AddedAck;
 import org.tribler.android.restapi.json.AddedChannelAck;
 import org.tribler.android.restapi.json.AddedUrlAck;
 import org.tribler.android.restapi.json.ChannelsResponse;
+import org.tribler.android.restapi.json.DownloadsResponse;
 import org.tribler.android.restapi.json.ModifiedAck;
 import org.tribler.android.restapi.json.MyChannelResponse;
 import org.tribler.android.restapi.json.QueriedAck;
 import org.tribler.android.restapi.json.RemovedAck;
 import org.tribler.android.restapi.json.ShutdownAck;
+import org.tribler.android.restapi.json.StartedAck;
 import org.tribler.android.restapi.json.SubscribedAck;
 import org.tribler.android.restapi.json.SubscribedChannelsResponse;
 import org.tribler.android.restapi.json.TorrentCreatedResponse;
@@ -24,6 +26,7 @@ import retrofit2.http.DELETE;
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
+import retrofit2.http.PATCH;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
@@ -160,6 +163,29 @@ public interface IRestApi {
     Observable<RemovedAck> deleteTorrent(
             @Path("dispersy_cid") String dispersyCid,
             @Path("infohash") String infohash
+    );
+
+    @GET("/downloads")
+    Observable<DownloadsResponse> getDownloads();
+
+    @PUT("/downloads/{infohash}")
+    Observable<StartedAck> startDownload(
+            @Path("infohash") String infohash,
+            @Field("anon_hops") int anonHops,
+            @Field("safe_seeding") boolean safeSeeding,
+            @Field("destination") String destination
+    );
+
+    @PATCH("/downloads/{infohash}")
+    Observable<StartedAck> modifyDownload(
+            @Path("infohash") String infohash,
+            @Field("state") String state
+    );
+
+    @DELETE("/downloads/{infohash}")
+    Observable<StartedAck> removeDownload(
+            @Path("infohash") String infohash,
+            @Field("remove_data") boolean removeData
     );
 
 }
