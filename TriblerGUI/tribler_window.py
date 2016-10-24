@@ -10,6 +10,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
     QCompleter, QApplication, QStyledItemDelegate
+import signal
 
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 from TriblerGUI.core_manager import CoreManager
@@ -141,6 +142,12 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.received_search_result_torrent.connect(self.search_results_page.received_search_result_torrent)
         self.core_manager.events_manager.new_version_available.connect(self.on_new_version_available)
         self.core_manager.events_manager.tribler_started.connect(self.on_tribler_started)
+
+        # Install signal handler for ctrl+c events
+        def sigint_handler(*args):
+            self.close_tribler()
+
+        signal.signal(signal.SIGINT, sigint_handler)
 
         self.show()
 
@@ -399,7 +406,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu.show()
         self.showNormal()
 
-    def closeEvent(self, close_event):
+    def close_tribler(self):
         if not self.core_manager.shutting_down:
             self.gui_settings.setValue("pos", self.pos())
             self.gui_settings.setValue("size", self.size())
@@ -411,6 +418,9 @@ class TriblerWindow(QMainWindow):
             self.core_manager.stop()
             self.core_manager.shutting_down = True
             self.downloads_page.stop_loading_downloads()
+
+    def closeEvent(self, close_event):
+        self.close_tribler()
         close_event.ignore()
 
     def keyReleaseEvent(self, event):
