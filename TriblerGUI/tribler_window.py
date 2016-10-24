@@ -106,6 +106,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_debug.setHidden(True)
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
+        self.add_torrent_button.setHidden(True)
 
         # Set various icons
         self.top_menu_button.setIcon(QIcon(get_image_path('menu.png')))
@@ -148,6 +149,7 @@ class TriblerWindow(QMainWindow):
 
         self.top_menu_button.setHidden(False)
         self.left_menu.setHidden(False)
+        self.add_torrent_button.setHidden(False)
 
         # fetch the variables, needed for the video player port
         self.variables_request_mgr = TriblerRequestManager()
