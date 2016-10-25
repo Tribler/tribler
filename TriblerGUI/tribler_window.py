@@ -170,7 +170,7 @@ class TriblerWindow(QMainWindow):
             self.discovering_page.is_discovering = True
             self.stackedWidget.setCurrentIndex(PAGE_DISCOVERING)
         else:
-            self.stackedWidget.setCurrentIndex(PAGE_HOME)
+            self.clicked_menu_button_home()
 
     def on_new_version_available(self, version):
         if version == str(self.gui_settings.value('last_reported_version')):

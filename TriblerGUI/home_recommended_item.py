@@ -3,7 +3,7 @@ from PyQt5.QtGui import QIcon, QCursor
 from PyQt5.QtWidgets import QWidget, QLabel, QSizePolicy, QToolButton
 
 from TriblerGUI.tribler_window import fc_home_recommended_item
-from TriblerGUI.utilities import pretty_date, get_image_path
+from TriblerGUI.utilities import pretty_date, get_image_path, format_size
 
 HOME_ITEM_FONT_SIZE = 44
 
@@ -41,19 +41,19 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.dark_overlay.hide()
 
         self.download_button = QToolButton(self)
-        self.download_button.setFixedSize(QSize(50, 50))
+        self.download_button.setFixedSize(QSize(40, 40))
         self.download_button.setStyleSheet("""
         QToolButton {
         background-color: transparent;
         border: 2px solid white;
-        border-radius: 25px;
+        border-radius: 20px;
         }
         QToolButton::hover {
         border: 2px solid #B5B5B5;
         }
         """)
         self.download_button.setIcon(QIcon(get_image_path('downloads.png')))
-        self.download_button.setIconSize(QSize(24, 24))
+        self.download_button.setIconSize(QSize(18, 18))
         self.download_button.hide()
 
     def update_with_torrent(self, torrent):
@@ -65,7 +65,7 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.category_label.adjustSize()
         self.category_label.setHidden(False)
         self.setCursor(Qt.ArrowCursor)
-        #self.detail_label.setText("Added " + pretty_date(torrent["added"]))
+        self.detail_label.setText("Size: " + format_size(torrent["size"]))
 
     def update_with_channel(self, channel):
         self.show_torrent = False
