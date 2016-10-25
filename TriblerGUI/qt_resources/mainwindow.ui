@@ -7284,9 +7284,6 @@ padding: 10px;
 font-size: 14px;
 border-bottom: 1px solid #303030;
 }
-QHeaderView::drop-down {
-color: red;
-}
 QHeaderView::section:hover {
 color: white;
 }
@@ -7376,7 +7373,7 @@ color: white;
 </string>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>1</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -7611,6 +7608,9 @@ background-color: transparent;
                     </property>
                     <property name="indentation">
                      <number>0</number>
+                    </property>
+                    <property name="sortingEnabled">
+                     <bool>true</bool>
                     </property>
                     <property name="allColumnsShowFocus">
                      <bool>false</bool>
