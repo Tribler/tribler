@@ -260,25 +260,75 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
                    .addCallback(verify_error_message)
 
     @deferred(timeout=10)
-    def test_remove_tor_unknown_channel(self):
+    def test_info_torrent_unknown_channel(self):
         """
-        Testing whether the API returns an error 500 if a torrent is removed from an unknown channel
+        Testing whether the API returns an error 404 if a torrent is requested from an unknown channel
+        """
+        return self.do_request('channels/discovered/abcd/torrents/abcd', expected_code=404)
+
+    @deferred(timeout=10)
+    def test_info_torrent_unknown_infohash(self):
+        """
+        Testing whether the API returns an error 404 if an unknown torrent is requested
+        """
+        self.create_fake_channel("channel", "")
+        url = 'channels/discovered/%s/torrents/abcd' % 'fakedispersyid'.encode('hex')
+        return self.do_request(url, expected_code=404)
+
+    @deferred(timeout=10)
+    def test_info_torrent(self):
+        """
+        Testing whether the API returns the right information for a request of a specific torrent from a channel
+        """
+        mock_channel_community = MockObject()
+
+        channel_id = self.create_fake_channel("channel", "")
+        dispersy_id = 'fakedispersyid'
+        peer_id = 1
+        infohash = ('a' * 40)
+        timestamp = 1460000000
+        name = u"ubuntu-torrent.iso"
+        files = [['file1.txt', 42]]
+        trackers = []
+        torrent_list = [[channel_id, dispersy_id, peer_id, infohash.decode('hex'), timestamp, name, files, trackers]]
+        self.insert_torrents_into_channel(torrent_list)
+
+        mock_dispersy = MockObject()
+        mock_dispersy.get_community = lambda _: mock_channel_community
+        self.session.get_dispersy_instance = lambda: mock_dispersy
+
+        url = 'channels/discovered/%s/torrents/%s' % (dispersy_id.encode('hex'), infohash)
+        return self.do_request(url, expected_json={
+            u"id": 1,
+            u"infohash": unicode(infohash),
+            u"name": name,
+            u"size": 42,
+            u"category": "Compressed",
+            u"num_seeders": 0,
+            u"num_leechers": 0,
+            u"last_tracker_check": 0
+        })
+
+    @deferred(timeout=10)
+    def test_remove_torrent_unknown_channel(self):
+        """
+        Testing whether the API returns an error 404 if a torrent is removed from an unknown channel
         """
         return self.do_request('channels/discovered/abcd/torrents/abcd', expected_code=404, request_type='DELETE')
 
     @deferred(timeout=10)
-    def test_remove_tor_unknown_infohash(self):
+    def test_remove_torrent_unknown_infohash(self):
         """
-        Testing whether the API returns an error 500 if an unknown torrent is removed from a channel
+        Testing whether the API returns an error 404 if an unknown torrent is removed from a channel
         """
         self.create_fake_channel("channel", "")
         url = 'channels/discovered/%s/torrents/abcd' % 'fakedispersyid'.encode('hex')
         return self.do_request(url, expected_code=404, request_type='DELETE')
 
     @deferred(timeout=10)
-    def test_remove_tor_unknown_cmty(self):
+    def test_remove_torrent_unknown_community(self):
         """
-        Testing whether the API returns an error 500 if torrent is removed from a channel without community
+        Testing whether the API returns an error 404 if torrent is removed from a channel without community
         """
         channel_id = self.create_fake_channel("channel", "")
         torrent_list = [[channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso",
