@@ -377,17 +377,22 @@ class TriblerWindow(QMainWindow):
         self.left_menu_playlist.setHidden(False)
 
     def on_channel_item_click(self, channel_list_item):
-        print channel_list_item
-        channel_info = channel_list_item.data(Qt.UserRole)
-        self.channel_page.initialize_with_channel(channel_info)
-        self.navigation_stack.append(self.stackedWidget.currentIndex())
-        self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
+        list_widget = channel_list_item.listWidget()
+        from TriblerGUI.channel_list_item import ChannelListItem
+        if isinstance(list_widget.itemWidget(channel_list_item), ChannelListItem):
+            channel_info = channel_list_item.data(Qt.UserRole)
+            self.channel_page.initialize_with_channel(channel_info)
+            self.navigation_stack.append(self.stackedWidget.currentIndex())
+            self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
 
     def on_playlist_item_click(self, playlist_list_item):
-        playlist_info = playlist_list_item.data(Qt.UserRole)
-        self.playlist_page.initialize_with_playlist(playlist_info)
-        self.navigation_stack.append(self.stackedWidget.currentIndex())
-        self.stackedWidget.setCurrentIndex(PAGE_PLAYLIST_DETAILS)
+        list_widget = playlist_list_item.listWidget()
+        from TriblerGUI.playlist_list_item import PlaylistListItem
+        if isinstance(list_widget.itemWidget(playlist_list_item), PlaylistListItem):
+            playlist_info = playlist_list_item.data(Qt.UserRole)
+            self.playlist_page.initialize_with_playlist(playlist_info)
+            self.navigation_stack.append(self.stackedWidget.currentIndex())
+            self.stackedWidget.setCurrentIndex(PAGE_PLAYLIST_DETAILS)
 
     def on_page_back_clicked(self):
         prev_page = self.navigation_stack.pop()
