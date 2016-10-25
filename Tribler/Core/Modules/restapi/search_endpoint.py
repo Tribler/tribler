@@ -67,7 +67,7 @@ class SearchEndpoint(resource.Resource):
         self.events_endpoint.start_new_query()
 
         # We first search the local database for torrents and channels
-        query = unicode(request.args['q'][0])
+        query = unicode(request.args['q'][0], 'utf-8')
         keywords = split_into_keywords(query)
         results_local_channels = self.channel_db_handler.search_in_local_channels_db(query)
         results_dict = {"keywords": keywords, "result_list": results_local_channels}
@@ -125,6 +125,6 @@ class SearchCompletionsEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "query parameter missing"})
 
-        keywords = unicode(request.args['q'][0]).lower()
+        keywords = unicode(request.args['q'][0], 'utf-8').lower()
         results = self.torrent_db_handler.getAutoCompleteTerms(keywords, max_terms=5)
         return json.dumps({"completions": results})
