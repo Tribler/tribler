@@ -66,6 +66,13 @@ class EventRequestManager(QNetworkAccessManager):
                         self.tribler_started.emit()
             self.current_event_string = ""
 
+    def on_finished(self):
+        """
+        Somehow, the events connection dropped. Try to reconnect.
+        """
+        self.failed_attempts = 0
+        self.connect()
+
     def connect(self):
         self.reply = self.get(self.request)
 

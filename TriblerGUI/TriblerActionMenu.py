@@ -17,4 +17,7 @@ class TriblerActionMenu(QMenu):
         QMenu::item:selected {
         background-color: #707070;
         }
+        QMenu::item:disabled {
+        color: #999999;
+        }
         """)

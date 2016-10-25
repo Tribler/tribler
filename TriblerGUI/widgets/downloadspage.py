@@ -147,6 +147,12 @@ class DownloadsPage(QWidget):
 
     def on_download_item_clicked(self):
         self.window().download_details_widget.show()
+        if len(self.window().downloads_list.selectedItems()) == 0:
+            self.window().remove_download_button.setEnabled(False)
+            self.window().start_download_button.setEnabled(False)
+            self.window().stop_download_button.setEnabled(False)
+            return
+
         self.selected_item = self.window().downloads_list.selectedItems()[0]
         self.window().remove_download_button.setEnabled(True)
         self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_item))
@@ -238,7 +244,6 @@ class DownloadsPage(QWidget):
         start_action = QAction('Start', self)
         stop_action = QAction('Stop', self)
         remove_download_action = QAction('Remove download', self)
-        remove_download_data_action = QAction('Remove download + data', self)
         force_recheck_action = QAction('Force recheck', self)
         export_download_action = QAction('Export .torrent file', self)
         explore_files_action = QAction('Explore files', self)
@@ -247,8 +252,7 @@ class DownloadsPage(QWidget):
         start_action.setEnabled(DownloadsPage.start_download_enabled(self.selected_item))
         stop_action.triggered.connect(self.on_stop_download_clicked)
         stop_action.setEnabled(DownloadsPage.stop_download_enabled(self.selected_item))
-        remove_download_action.triggered.connect(lambda: self.on_remove_download_dialog(0))
-        remove_download_data_action.triggered.connect(lambda: self.on_remove_download_dialog(1))
+        remove_download_action.triggered.connect(self.on_remove_download_clicked)
         force_recheck_action.triggered.connect(self.on_force_recheck_download)
         force_recheck_action.setEnabled(DownloadsPage.force_recheck_download_enabled(self.selected_item))
         export_download_action.triggered.connect(self.on_export_download)
@@ -258,7 +262,6 @@ class DownloadsPage(QWidget):
         menu.addAction(stop_action)
         menu.addSeparator()
         menu.addAction(remove_download_action)
-        menu.addAction(remove_download_data_action)
         menu.addSeparator()
         menu.addAction(force_recheck_action)
         menu.addSeparator()

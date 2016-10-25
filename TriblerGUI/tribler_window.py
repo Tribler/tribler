@@ -109,6 +109,7 @@ class TriblerWindow(QMainWindow):
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
         self.add_torrent_button.setHidden(True)
+        self.top_search_bar.setHidden(True)
 
         # Set various icons
         self.top_menu_button.setIcon(QIcon(get_image_path('menu.png')))
@@ -158,6 +159,7 @@ class TriblerWindow(QMainWindow):
         self.top_menu_button.setHidden(False)
         self.left_menu.setHidden(False)
         self.add_torrent_button.setHidden(False)
+        self.top_search_bar.setHidden(False)
 
         # fetch the variables, needed for the video player port
         self.variables_request_mgr = TriblerRequestManager()
@@ -167,6 +169,7 @@ class TriblerWindow(QMainWindow):
         self.home_page.load_popular_torrents()
         self.discovered_page.load_discovered_channels()
         if not self.gui_settings.value("first_discover", False) and not self.core_manager.use_existing_core:
+            self.window().gui_settings.setValue("first_discover", True)
             self.discovering_page.is_discovering = True
             self.stackedWidget.setCurrentIndex(PAGE_DISCOVERING)
         else:
