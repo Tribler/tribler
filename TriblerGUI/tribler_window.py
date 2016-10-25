@@ -142,6 +142,7 @@ class TriblerWindow(QMainWindow):
 
         self.core_manager.events_manager.received_search_result_channel.connect(self.search_results_page.received_search_result_channel)
         self.core_manager.events_manager.received_search_result_torrent.connect(self.search_results_page.received_search_result_torrent)
+        self.core_manager.events_manager.torrent_finished.connect(self.on_torrent_finished)
         self.core_manager.events_manager.new_version_available.connect(self.on_new_version_available)
         self.core_manager.events_manager.tribler_started.connect(self.on_tribler_started)
 
@@ -152,6 +153,9 @@ class TriblerWindow(QMainWindow):
         signal.signal(signal.SIGINT, sigint_handler)
 
         self.show()
+
+    def on_torrent_finished(self, torrent_info):
+        self.window().tray_icon.showMessage("Download finished", "Download of %s has finished." % torrent_info["name"])
 
     def on_tribler_started(self):
         self.tribler_started = True

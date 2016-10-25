@@ -15,6 +15,7 @@ class EventRequestManager(QNetworkAccessManager):
     new_version_available = pyqtSignal(str)
     discovered_channel = pyqtSignal(object)
     discovered_torrent = pyqtSignal(object)
+    torrent_finished = pyqtSignal(object)
 
     def __init__(self, api_port):
         QNetworkAccessManager.__init__(self)
@@ -64,6 +65,8 @@ class EventRequestManager(QNetworkAccessManager):
                     self.tribler_version = json_dict["event"]["version"]
                     if json_dict["event"]["tribler_started"]:
                         self.tribler_started.emit()
+                elif json_dict["type"] == "torrent_finished":
+                    self.torrent_finished.emit(json_dict["event"])
             self.current_event_string = ""
 
     def on_finished(self):
