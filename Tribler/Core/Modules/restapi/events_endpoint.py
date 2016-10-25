@@ -32,8 +32,8 @@ class EventsEndpoint(resource.Resource):
     - tribler_started: An indicator that Tribler has completed the startup procedure and is ready to use.
     - channel_discovered: An indicator that Tribler has discovered a new channel. The event contains the name,
       description and dispersy community id of the discovered channel.
-    - torrent_discovered: An indicator that Tribler has discovered a new torrent. The event contains the name and the
-      dispersy community id of the discovered torrent.
+    - torrent_discovered: An indicator that Tribler has discovered a new torrent. The event contains the infohash, name,
+      list of trackers, list of files with name and size, and the dispersy community id of the discovered torrent.
     - torrent_finished: A specific torrent has finished downloading. The event includes the infohash and name of the
       torrent that has finished downloading.
     - torrent_error: An error has occurred during the download process of a specific torrent. The event includes the

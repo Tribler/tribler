@@ -415,7 +415,11 @@ class ChannelCommunity(Community):
                 self._logger.debug("torrent received: %s on channel: %s", hexlify(message.payload.infohash), self._master_member)
 
                 self.tribler_session.notifier.notify(NTFY_TORRENT, NTFY_DISCOVERED, None,
-                                                     {"name": message.payload.name,
+                                                     {"infohash": hexlify(message.payload.infohash),
+                                                      "timestamp": message.payload.timestamp,
+                                                      "name": message.payload.name,
+                                                      "files": message.payload.files,
+                                                      "trackers": message.payload.trackers,
                                                       "dispersy_cid": self._cid.encode("hex")})
 
                 if message.candidate and message.candidate.sock_addr:
