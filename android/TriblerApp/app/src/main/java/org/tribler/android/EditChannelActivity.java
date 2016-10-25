@@ -2,6 +2,7 @@ package org.tribler.android;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.app.ActionBar;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -94,6 +95,12 @@ public class EditChannelActivity extends BaseActivity {
             case ACTION_CREATE_CHANNEL:
                 btnSave.setText(getString(R.string.action_CREATE));
                 explanation.setVisibility(View.VISIBLE);
+
+                // Set title
+                ActionBar actionBar = getSupportActionBar();
+                if (actionBar != null) {
+                    actionBar.setTitle(R.string.action_create_channel);
+                }
                 return;
 
             case ACTION_EDIT_CHANNEL:

@@ -42,9 +42,6 @@
     <string name="action_search_in_channel">Search in this channel</string>
     <string name="action_filter_local">Filter list</string>
 
-    <string name="action_capture_video">Record a new video</string>
-    <string name="action_create_torrent">Create a new torrent</string>
-
     <string name="checkbox_show_channels">Show channels</string>
     <string name="checkbox_show_torrents">Show videos</string>
 
@@ -52,6 +49,15 @@
     <string name="action_my_channel">My channel</string>
     <string name="action_my_playlists">My playlists</string>
     <string name="action_popular_channels">Popular channels</string>
+    <string name="action_capture_video">Record a new video</string>
+    <string name="action_create_torrent">Create a new torrent</string>
+    <string name="action_create_channel">Create channel</string>
+    <string name="action_edit_channel">Edit channel</string>
+    <string name="action_settings">Change settings</string>
+    <string name="action_feedback">Send feedback</string>
+    <string name="action_shutdown">Shutdown service</string>
+    <string name="action_shutdown_short">Shutdown</string>
+    <string name="dialog_shutdown">Tribler will exit and stop all running tasks if you shutdown the service.\n\nShutdown Tribler service now?</string>
 
     <string name="action_send_app">Send to nearby phone</string>
     <string name="dialog_send_chooser">Send via</string>
@@ -64,13 +70,6 @@
     <string name="action_mychannel_remove">Remove from my channel</string>
     <string name="action_mychannel_edit">Edit my channel</string>
     <string name="action_mychannel_beam">Send to nearby phone</string>
-
-    <string name="action_edit_channel">Edit channel</string>
-    <string name="action_settings">Change settings</string>
-    <string name="action_feedback">Send feedback</string>
-    <string name="action_shutdown">Shutdown service</string>
-    <string name="action_shutdown_short">Shutdown</string>
-    <string name="dialog_shutdown">Tribler will exit and stop all running tasks if you shutdown the service.\n\nShutdown Tribler service now?</string>
 
     <string name="exception_http_500">Tribler encountered an internal exception</string>
     <string name="warning_lost_connection">WARNING: Wi-Fi connection lost!</string>
@@ -92,12 +91,12 @@
 
     <string name="info_added_already">%s is already added!</string>
     <string name="info_added_success">%s is now added!</string>
-    <string name="info_added_failure">%s is still not added…</string>
+    <string name="info_added_failure">Failed to add %s</string>
     <string name="info_removed_already">%s is already removed!</string>
     <string name="info_removed_success">%s is now removed!</string>
-    <string name="info_removed_failure">%s is still not removed…</string>
+    <string name="info_removed_failure">Failed to remove %s</string>
     <string name="info_created_success">%s is now created!</string>
-    <string name="info_created_failure">%s failed to be created…</string>
+    <string name="info_created_failure">Failed to create %s</string>
     <string name="info_cancel_capture_video">No video was captured</string>
     <string name="error_output_file">failed to obtain output file</string>
 
@@ -109,11 +108,14 @@
     <string name="status_experiment">Running experiment: %s</string>
 
     <string name="dialog_create_my_channel">Your own channel is not created yet.\n\nCreate your own channel now?</string>
-    <string name="channel_name_label">Channel name</string>
-    <string name="channel_description_label">Description</string>
+    <string name="label_channel_name">Channel name</string>
+    <string name="label_channel_description">Description</string>
     <string name="status_creating_channel">Creating channel…</string>
     <string name="status_loading_channel">Loading channel…</string>
-    <string name="my_channel_explanation">Create your own channel to publish your content!\n\nOthers can add your channel to their favorites to keep up to date and boost your channel\'s popularity!</string>
+    <string name="explain_create_channel">Create your own channel to publish your content!\n\nOthers can add your channel to their favorites to keep up to date and boost your channel\'s popularity!</string>
+    <string name="explain_create_torrent">Share your content by creating a torrent!\n\nOthers can download torrents from your channel and share them with their friends!</string>
+    <string name="label_torrent_name">Torrent name</string>
+    <string name="label_torrent_description">Description</string>
 
     <string name="dialog_add_torrent">Add a torrent to your channel by url or browse:</string>
     <string name="dialog_delete_torrent">Deleting \"%s\" from your channel.\n\nAre you sure?</string>

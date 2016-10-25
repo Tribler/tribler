@@ -14,10 +14,13 @@ public class TriblerTorrent {
     public TriblerTorrent(TorrentDiscoveredEvent event) {
         name = event.getName();
         infohash = event.getInfohash();
-        for (List file : event.getFiles()) {
-            Object i = file.get(1);
-            if (i instanceof Double) {
-                size += (Double) i;
+        List<List> files = event.getFiles();
+        if (files != null) {
+            for (List file : files) {
+                Object i = file.get(1);
+                if (i instanceof Double) {
+                    size += (Double) i;
+                }
             }
         }
     }

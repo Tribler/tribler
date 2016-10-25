@@ -146,16 +146,24 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
 
             // Check if torrent belongs to this channel
             if (_dispersyCid != null && _dispersyCid.equals(event.getDispersyCid())) {
-                // Add to list
-                adapter.addObject(new TriblerTorrent(event));
+
+                if (event.getInfohash() != null) {
+                    adapter.addObject(new TriblerTorrent(event));
+                } else {
+                    Log.e("TorrentDiscovered", "infohash is null");
+                }
             }
         } else if (message.obj instanceof TorrentRemovedFromChannelEvent) {
             TorrentRemovedFromChannelEvent event = (TorrentRemovedFromChannelEvent) message.obj;
 
             // Check if torrent belongs to this channel
             if (_channelId != -1 && _channelId == event.getChannelId()) {
-                // Remove from list
-                adapter.removeObject(new TriblerTorrent(event));
+
+                if (event.getInfohash() != null) {
+                    adapter.removeObject(new TriblerTorrent(event));
+                } else {
+                    Log.e("RemovedFromChannel", "infohash is null");
+                }
             }
         }
         return true;
@@ -181,7 +189,11 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
                 .subscribe(new Observer<TriblerTorrent>() {
 
                     public void onNext(TriblerTorrent torrent) {
-                        adapter.addObject(torrent);
+                        if (torrent.getInfohash() != null && torrent.getSize() > 0) {
+                            adapter.addObject(torrent);
+                        } else {
+                            Log.v("ChannelTorrent", String.format("%s size: %d (%s)", torrent.getName(), torrent.getSize(), torrent.getInfohash()));
+                        }
                     }
 
                     public void onCompleted() {

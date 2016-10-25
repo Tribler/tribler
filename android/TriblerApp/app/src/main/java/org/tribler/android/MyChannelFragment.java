@@ -251,7 +251,11 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 .subscribe(new Observer<TriblerTorrent>() {
 
                     public void onNext(TriblerTorrent torrent) {
-                        adapter.addObject(torrent);
+                        if (torrent.getInfohash() != null && torrent.getSize() > 0) {
+                            adapter.addObject(torrent);
+                        } else {
+                            Log.v("MyChannelTorrent", String.format("%s size: %d (%s)", torrent.getName(), torrent.getSize(), torrent.getInfohash()));
+                        }
                     }
 
                     public void onCompleted() {
@@ -288,7 +292,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     public void onError(Throwable e) {
                         if (e instanceof HttpException && ((HttpException) e).code() == 500) {
                             // Torrent has not been created
-                            String question = String.format(context.getString(R.string.info_created_failure), "Torrent");
+                            String question = String.format(context.getString(R.string.info_created_failure), "torrent");
                             askUser(question, R.string.action_RETRY, v -> askUserToAddTorrent());
                         } else {
                             MyUtils.onError(MyChannelFragment.this, "createTorrent", e);
@@ -324,7 +328,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     public void onError(Throwable e) {
                         if (e instanceof HttpException && ((HttpException) e).code() == 500) {
                             // Torrent has not been added
-                            String question = String.format(context.getString(R.string.info_added_failure), "Torrent");
+                            String question = String.format(context.getString(R.string.info_added_failure), "torrent");
                             askUser(question, R.string.action_RETRY, v -> askUserToAddTorrent());
                         } else {
                             MyUtils.onError(MyChannelFragment.this, "addTorrent64", e);
@@ -346,7 +350,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     public void onNext(AddedUrlAck response) {
                         // Added?
                         if (url.equals(response.getAdded())) {
-                            Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Torrent"), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Url"), Toast.LENGTH_SHORT).show();
                         } else {
                             throw new Error(String.format("Torrent url not added: %s != %s", url.toString(), response.getAdded()));
                         }
@@ -360,7 +364,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     public void onError(Throwable e) {
                         if (e instanceof HttpException && ((HttpException) e).code() == 500) {
                             // Torrent has not been added
-                            String question = String.format(context.getString(R.string.info_added_failure), "Torrent");
+                            String question = String.format(context.getString(R.string.info_added_failure), "url");
                             askUser(question, R.string.action_RETRY, v -> askUserToAddTorrent());
                         } else {
                             MyUtils.onError(MyChannelFragment.this, "addTorrentUrl", e);

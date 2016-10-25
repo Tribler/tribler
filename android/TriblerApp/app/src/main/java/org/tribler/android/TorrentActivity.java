@@ -3,7 +3,6 @@ package org.tribler.android;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
-import android.view.Menu;
 
 public class TorrentActivity extends BaseActivity {
 
@@ -22,6 +21,12 @@ public class TorrentActivity extends BaseActivity {
 
         _fragment = (TorrentFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_torrent);
         _fragment.setRetainInstance(true);
+
+        // Set title
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setTitle(getIntent().getStringExtra(EXTRA_NAME));
+        }
     }
 
     /**
@@ -41,16 +46,4 @@ public class TorrentActivity extends BaseActivity {
         // TorrentFragment loads onCreate
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        // Set title
-        ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setTitle(getIntent().getStringExtra(EXTRA_NAME));
-        }
-        return super.onPrepareOptionsMenu(menu);
-    }
 }

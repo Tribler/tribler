@@ -199,15 +199,15 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
             holder.name.setText(holder.torrent.getName());
             holder.size.setText(MyUtils.humanReadableByteCount(holder.torrent.getSize(), true));
             String category = holder.torrent.getCategory();
-            if (category == null) {
-                category = "";
-            }
             holder.category.setText(category);
             String url = holder.torrent.getThumbnailUrl();
             File thumbnail;
             if (url != null && (thumbnail = new File(url)).exists()) {
                 holder.thumbnail.setImageURI(Uri.fromFile(thumbnail));
             } else {
+                if (category == null) {
+                    category = "";
+                }
                 switch (category) {
                     case "Video":
                         holder.thumbnail.setBackgroundResource(R.drawable.ic_list_movie);

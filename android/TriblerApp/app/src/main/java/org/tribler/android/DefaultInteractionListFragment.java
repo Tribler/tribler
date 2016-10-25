@@ -170,7 +170,11 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onClick(final TriblerTorrent torrent) {
-        switch (torrent.getCategory()) {
+        String category = torrent.getCategory();
+        if (category == null) {
+            category = "";
+        }
+        switch (category) {
             case "Video":
                 //TODO: watch now
                 Toast.makeText(context, "watch now", Toast.LENGTH_SHORT).show();
@@ -202,29 +206,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     public void onSwipedRight(final TriblerTorrent torrent) {
         adapter.removeObject(torrent);
 
-        switch (torrent.getCategory()) {
-            case "Video":
-                //TODO: watch later
-                Toast.makeText(context, "watch later", Toast.LENGTH_SHORT).show();
-                break;
-
-            case "Audio":
-                //TODO: listen later
-                Toast.makeText(context, "listen later", Toast.LENGTH_SHORT).show();
-                break;
-
-            case "Document":
-                //TODO: read later
-                Toast.makeText(context, "read later", Toast.LENGTH_SHORT).show();
-                break;
-
-            case "Compressed":
-            case "xxx":
-            case "other":
-                //TODO: download later
-                Toast.makeText(context, "download later", Toast.LENGTH_SHORT).show();
-                break;
-        }
+        // watch later?
     }
 
     /**
@@ -234,7 +216,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     public void onSwipedLeft(final TriblerTorrent torrent) {
         adapter.removeObject(torrent);
 
-        //TODO: not interested never see again
+        // not interested, never see again?
     }
 
 }
