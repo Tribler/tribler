@@ -17,6 +17,7 @@ public class ChannelActivity extends BaseActivity {
     public static final String ACTION_UNSUBSCRIBE = "org.tribler.android.channel.UNSUBSCRIBE";
 
     public static final String EXTRA_DISPERSY_CID = "org.tribler.android.channel.dispersy.CID";
+    public static final String EXTRA_CHANNEL_ID = "org.tribler.android.channel.ID";
     public static final String EXTRA_NAME = "org.tribler.android.channel.NAME";
     public static final String EXTRA_DESCRIPTION = "org.tribler.android.channel.DESCRIPTION";
     public static final String EXTRA_SUBSCRIBED = "org.tribler.android.channel.SUBSCRIBED";

@@ -19,6 +19,7 @@ import com.jakewharton.rxbinding.support.v7.widget.SearchViewQueryTextEvent;
 import org.tribler.android.restapi.EventStream;
 import org.tribler.android.restapi.json.SubscribedAck;
 import org.tribler.android.restapi.json.TorrentDiscoveredEvent;
+import org.tribler.android.restapi.json.TorrentRemovedFromChannelEvent;
 import org.tribler.android.restapi.json.TriblerTorrent;
 import org.tribler.android.restapi.json.UnsubscribedAck;
 
@@ -33,6 +34,7 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
     private Handler _eventHandler;
 
     private String _dispersyCid;
+    private int _channelId;
     private String _name;
     private boolean _subscribed;
 
@@ -46,6 +48,7 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
 
         Intent intent = getActivity().getIntent();
         _dispersyCid = intent.getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
+        _channelId = intent.getIntExtra(ChannelActivity.EXTRA_CHANNEL_ID, -1);
         _name = intent.getStringExtra(ChannelActivity.EXTRA_NAME);
         _subscribed = intent.getBooleanExtra(ChannelActivity.EXTRA_SUBSCRIBED, false);
 
@@ -139,12 +142,20 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
     @Override
     public boolean handleMessage(Message message) {
         if (message.obj instanceof TorrentDiscoveredEvent) {
-            TorrentDiscoveredEvent torrent = (TorrentDiscoveredEvent) message.obj;
+            TorrentDiscoveredEvent event = (TorrentDiscoveredEvent) message.obj;
 
             // Check if torrent belongs to this channel
-            if (_dispersyCid != null && _dispersyCid.equals(torrent.getDispersyCid())) {
+            if (_dispersyCid != null && _dispersyCid.equals(event.getDispersyCid())) {
                 // Add to list
-                adapter.addObject(new TriblerTorrent(torrent));
+                adapter.addObject(new TriblerTorrent(event));
+            }
+        } else if (message.obj instanceof TorrentRemovedFromChannelEvent) {
+            TorrentRemovedFromChannelEvent event = (TorrentRemovedFromChannelEvent) message.obj;
+
+            // Check if torrent belongs to this channel
+            if (_channelId != -1 && _channelId == event.getChannelId()) {
+                // Remove from list
+                adapter.removeObject(new TriblerTorrent(event));
             }
         }
         return true;

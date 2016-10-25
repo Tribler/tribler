@@ -205,7 +205,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(R.string.dialog_received_channel);
         builder.setPositiveButton(R.string.action_subscribe, (dialog, which) -> {
-            Intent intent = MyUtils.viewChannelIntent(dispersyCid, name, false);
+            Intent intent = MyUtils.viewChannelIntent(dispersyCid, -1, name, false);
             intent.setAction(ChannelActivity.ACTION_SUBSCRIBE);
             startActivityForResult(intent, SUBSCRIBE_TO_CHANNEL_ACTIVITY_REQUEST_CODE);
         });

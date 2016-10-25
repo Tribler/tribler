@@ -51,28 +51,28 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
     @Override
     public boolean handleMessage(Message message) {
         if (message.obj instanceof SearchResultChannelEvent) {
-            SearchResultChannelEvent result = (SearchResultChannelEvent) message.obj;
+            SearchResultChannelEvent event = (SearchResultChannelEvent) message.obj;
 
             // Check if query is current
-            if (_query.equalsIgnoreCase(result.getQuery())) {
+            if (_query.equalsIgnoreCase(event.getQuery())) {
                 showLoading(false);
 
                 // Show search result
-                adapter.addObject(result.getResult());
+                adapter.addObject(event.getResult());
             } else {
-                Log.w("ChannelSearchResult", _query + " != " + result.getQuery());
+                Log.w("ChannelSearchResult", _query + " != " + event.getQuery());
             }
         } else if (message.obj instanceof SearchResultTorrentEvent) {
-            SearchResultTorrentEvent result = (SearchResultTorrentEvent) message.obj;
+            SearchResultTorrentEvent event = (SearchResultTorrentEvent) message.obj;
 
             // Check if query is current
-            if (_query.equalsIgnoreCase(result.getQuery())) {
+            if (_query.equalsIgnoreCase(event.getQuery())) {
                 showLoading(false);
 
                 // Show search result
-                adapter.addObject(result.getResult());
+                adapter.addObject(event.getResult());
             } else {
-                Log.w("TorrentSearchResult", _query + " != " + result.getQuery());
+                Log.w("TorrentSearchResult", _query + " != " + event.getQuery());
             }
         }
         return true;

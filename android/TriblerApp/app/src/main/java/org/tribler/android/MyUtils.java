@@ -103,10 +103,11 @@ public class MyUtils {
         return intent;
     }
 
-    public static Intent viewChannelIntent(String dispersyCid, String name, boolean subscribed) {
+    public static Intent viewChannelIntent(String dispersyCid, int channelId, String name, boolean subscribed) {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setClassName(getPackageName(), ChannelActivity.class.getName());
         intent.putExtra(ChannelActivity.EXTRA_DISPERSY_CID, dispersyCid);
+        intent.putExtra(ChannelActivity.EXTRA_CHANNEL_ID, channelId);
         intent.putExtra(ChannelActivity.EXTRA_NAME, name);
         intent.putExtra(ChannelActivity.EXTRA_SUBSCRIBED, subscribed);
         return intent;

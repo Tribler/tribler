@@ -16,6 +16,7 @@ import org.tribler.android.restapi.json.EventsStartEvent;
 import org.tribler.android.restapi.json.SearchResultChannelEvent;
 import org.tribler.android.restapi.json.SearchResultTorrentEvent;
 import org.tribler.android.restapi.json.TorrentDiscoveredEvent;
+import org.tribler.android.restapi.json.TorrentRemovedFromChannelEvent;
 import org.tribler.android.restapi.json.TriblerStartedEvent;
 import org.tribler.android.restapi.json.UpgraderFinishedEvent;
 
@@ -153,6 +154,9 @@ public class EventStreamCallback implements Callback {
 
             case TorrentDiscoveredEvent.TYPE:
                 return _gson.fromJson(event, TorrentDiscoveredEvent.class);
+
+            case TorrentRemovedFromChannelEvent.TYPE:
+                return _gson.fromJson(event, TorrentRemovedFromChannelEvent.class);
 
             default:
                 Log.e("parseEvent", String.format("Unknown event type: %s", container.getType()));

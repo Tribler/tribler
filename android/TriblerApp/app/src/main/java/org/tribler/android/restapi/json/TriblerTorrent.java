@@ -22,6 +22,10 @@ public class TriblerTorrent {
         }
     }
 
+    public TriblerTorrent(TorrentRemovedFromChannelEvent event) {
+        infohash = event.getInfohash();
+    }
+
     public int getId() {
         return id;
     }
