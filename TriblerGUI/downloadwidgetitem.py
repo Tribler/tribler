@@ -58,3 +58,21 @@ class DownloadWidgetItem(QTreeWidgetItem):
         if self.get_raw_download_status() == DLSTATUS_DOWNLOADING:
             eta_text = str(self.download_info["eta"])
         self.setText(10, eta_text)
+
+    def __lt__(self, other):
+        column = self.treeWidget().sortColumn()
+        if column == 1:
+            return float(self.download_info["size"]) > float(other.download_info["size"])
+        elif column == 2:
+            return int(self.download_info["progress"] * 100) > int(other.download_info["progress"] * 100)
+        elif column == 4:
+            return self.download_info["num_seeds"] > other.download_info["num_seeds"]
+        elif column == 5:
+            return self.download_info["num_peers"] > other.download_info["num_peers"]
+        elif column == 6:
+            return float(self.download_info["speed_down"]) > float(other.download_info["speed_down"])
+        elif column == 7:
+            return float(self.download_info["speed_up"]) > float(other.download_info["speed_up"])
+        elif column == 10:
+            return float(self.download_info["eta"]) > float(other.download_info["eta"])
+        return self.text(column) > other.text(column)
