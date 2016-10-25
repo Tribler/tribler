@@ -69,6 +69,7 @@ class TriblerWindow(QMainWindow):
 
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
 
+        QCoreApplication.setOrganizationDomain("nl")
         QCoreApplication.setOrganizationName("TUDelft")
         QCoreApplication.setApplicationName("Tribler")
         QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
@@ -165,7 +166,7 @@ class TriblerWindow(QMainWindow):
         self.downloads_page.start_loading_downloads()
         self.home_page.load_popular_torrents()
         self.discovered_page.load_discovered_channels()
-        if not self.gui_settings.value("first_discover", False):
+        if not self.gui_settings.value("first_discover", False) and not self.core_manager.use_existing_core:
             self.discovering_page.is_discovering = True
             self.stackedWidget.setCurrentIndex(PAGE_DISCOVERING)
         else:
