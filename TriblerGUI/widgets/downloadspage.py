@@ -36,9 +36,14 @@ class DownloadsPage(QWidget):
 
         self.window().download_details_widget.hide()
 
+        self.window().downloads_filter_input.textChanged.connect(self.on_filter_text_changed)
+
         self.downloads = None
         self.can_update_items = True
         self.downloads_timer = QTimer()
+
+    def on_filter_text_changed(self, text):
+        self.update_download_visibility()
 
     def start_loading_downloads(self):
         self.load_downloads()
@@ -108,7 +113,8 @@ class DownloadsPage(QWidget):
     def update_download_visibility(self):
         for i in range(self.window().downloads_list.topLevelItemCount()):
             item = self.window().downloads_list.topLevelItem(i)
-            item.setHidden(not item.get_raw_download_status() in DOWNLOADS_FILTER_DEFINITION[self.filter])
+            filter_match = self.window().downloads_filter_input.text().lower() in item.download_info["name"].lower()
+            item.setHidden(not item.get_raw_download_status() in DOWNLOADS_FILTER_DEFINITION[self.filter] or not filter_match)
 
     def on_downloads_tab_button_clicked(self, button_name):
         if button_name == "downloads_all_button":

@@ -1,5 +1,6 @@
 import json
 from twisted.web import server, resource
+from Tribler.Core.version import version_id
 
 
 class EventsEndpoint(resource.Resource):
@@ -21,7 +22,8 @@ class EventsEndpoint(resource.Resource):
     def render_GET(self, request):
         self.event_request = request
 
-        request.write(json.dumps({"type": "events_start"}) + '\n')
+        request.write(json.dumps({"type": "events_start", "event": {"tribler_started": True,
+                                                                    "version": version_id}}) + '\n')
         request.write(json.dumps({"type": "tribler_started"}) + '\n')
 
         return server.NOT_DONE_YET

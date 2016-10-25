@@ -40,7 +40,6 @@ class EventRequestManager(QNetworkAccessManager):
     def on_read_data(self):
         self.connect_timer.stop()
         data = self.reply.readAll()
-        print data
         self.current_event_string += data
         if len(self.current_event_string) > 0 and self.current_event_string[-1] == '\n':
             for event in self.current_event_string.split('\n'):
