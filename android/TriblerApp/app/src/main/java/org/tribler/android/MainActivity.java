@@ -109,16 +109,16 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
         initConnectivityManager();
 
-        // Start listening to events on the main thread so the gui can be updated
-        _eventHandler = new Handler(Looper.getMainLooper(), this);
-        EventStream.addHandler(_eventHandler);
-
         if (!EventStream.isReady()) {
             showLoading(R.string.status_opening_eventstream);
 
             startService();
 
             EventStream.openEventStream();
+
+            // Start listening to events on the main thread so the gui can be updated
+            _eventHandler = new Handler(Looper.getMainLooper(), this);
+            EventStream.addHandler(_eventHandler);
         } else {
             showLoading(false);
         }
