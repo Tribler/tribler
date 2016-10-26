@@ -47,7 +47,7 @@ import org.tribler.android.restapi.IRestApi;
 import org.tribler.android.restapi.TriblerService;
 import org.tribler.android.restapi.json.EventsStartEvent;
 import org.tribler.android.restapi.json.ShutdownAck;
-import org.tribler.android.service.Triblerd;
+import org.tribler.android.service.TriblerdService;
 
 import java.io.File;
 import java.io.IOException;
@@ -107,12 +107,21 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
             askUserToInstallVlc();
         }
 
+        initConnectivityManager();
+
         // Start listening to events on the main thread so the gui can be updated
         _eventHandler = new Handler(Looper.getMainLooper(), this);
         EventStream.addHandler(_eventHandler);
 
-        initConnectivityManager();
-        initEventStream();
+        if (!EventStream.isReady()) {
+            showLoading(R.string.status_opening_eventstream);
+
+            startService();
+
+            EventStream.openEventStream();
+        } else {
+            showLoading(false);
+        }
 
         String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
         String authToken = getString(R.string.service_auth_token);
@@ -342,17 +351,6 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     protected void showLoading(@StringRes int resId) {
         showLoading(getText(resId));
-    }
-
-    private void initEventStream() {
-
-        if (!EventStream.isReady()) {
-            showLoading(R.string.status_opening_eventstream);
-
-            Triblerd.start(this); // Run normally
-
-            EventStream.openEventStream();
-        }
     }
 
     private void initConnectivityManager() {
@@ -590,13 +588,21 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                         Log.v("shutdown", e.getMessage(), e);
 
                         // Kill process
-                        Triblerd.stop(MainActivity.this);
+                        killService();
 
                         // Stop MainActivity
                         finish();
                         Process.killProcess(Process.myPid());
                     }
                 }));
+    }
+
+    protected void startService() {
+        TriblerdService.start(this); // Run normally
+    }
+
+    protected void killService() {
+        TriblerdService.stop(this);
     }
 
 }

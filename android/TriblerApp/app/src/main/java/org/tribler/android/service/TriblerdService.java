@@ -10,14 +10,14 @@ import android.support.annotation.Nullable;
 import org.kivy.android.PythonService;
 import org.tribler.android.R;
 
-public class Triblerd extends PythonService {
+public class TriblerdService extends PythonService {
 
     public static void start(Context ctx) {
         String argument = ctx.getFilesDir().getAbsolutePath();
-        Intent intent = new Intent(ctx, Triblerd.class);
+        Intent intent = new Intent(ctx, TriblerdService.class);
         intent.putExtra("androidPrivate", argument);
         intent.putExtra("androidArgument", argument);
-        intent.putExtra("pythonName", "Triblerd");
+        intent.putExtra("pythonName", "TriblerdService");
         intent.putExtra("pythonHome", argument);
         intent.putExtra("pythonPath", argument + ":" + argument + "/lib");
         intent.putExtra("pythonServiceArgument", "-p " + ctx.getString(R.string.service_port_number));
@@ -30,7 +30,7 @@ public class Triblerd extends PythonService {
     }
 
     public static void stop(Context ctx) {
-        Intent intent = new Intent(ctx, Triblerd.class);
+        Intent intent = new Intent(ctx, TriblerdService.class);
         ctx.stopService(intent);
     }
 

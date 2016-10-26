@@ -2,15 +2,12 @@ package org.tribler.android.service;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.IBinder;
-import android.support.annotation.Nullable;
 
-import org.kivy.android.PythonService;
 import org.tribler.android.R;
 
 import java.io.File;
 
-public class NoseTestService extends Triblerd {
+public class NoseTestService extends TriblerdService {
 
     public static void start(Context ctx) {
         String argument = ctx.getFilesDir().getAbsolutePath();

@@ -30,6 +30,7 @@ class ExperimentMultiChainScale(DispersyTestFunc):
         """
 
         # Arrange
+        blocks_in_thousands = int(blocks_in_thousands)
         node, other = self.create_nodes(2)
         other.send_identity(node)
         target_other = self._create_target(node, other)
@@ -38,22 +39,24 @@ class ExperimentMultiChainScale(DispersyTestFunc):
         # Act
         up_values = []
         down_values = []
-        for i in range(blocks_in_thousands*1000):
+        for i in range(blocks_in_thousands * 1000):
             up_values.append(random_generator.randint(0, 5000))
             down_values.append(random_generator.randint(0, 5000))
 
+        str_time = "BLOCKS TIME\n"
         start_time = time.time()
-        with open("ExperimentMultiChainScale.dat", 'w') as data_file:
-            for k in range(blocks_in_thousands):
-                for i in range(1000):
-                    index = k*1000 + i
-                    node.call(node.community.schedule_block, target_other, up_values[index] * 1024 * 1024,
-                              down_values[index] * 1024 * 1024 + 42000)
-                run_time = time.time() - start_time
+        for k in range(blocks_in_thousands):
+            for i in range(1000):
+                index = k * 1000 + i
+                node.call(node.community.schedule_block, target_other, up_values[index] * 1024 * 1024,
+                          down_values[index] * 1024 * 1024 + 42000)
+            run_time = time.time() - start_time
 
-                # Output
-                print "\n" + str(run_time) + " " + str(index+1) + "\n"
-                data_file.write(str(run_time) + " " + str(index+1) + "\n")
+            # Output
+            str_time += str(index + 1) + " " + str(run_time) + "\n"
+            print "\n" + str_time
+        with open("ExperimentMultiChainScale.dat", 'w') as data_file:
+            data_file.write(str_time)
 
         # Assert
 

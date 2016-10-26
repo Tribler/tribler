@@ -150,7 +150,7 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
                 if (event.getInfohash() != null) {
                     adapter.addObject(new TriblerTorrent(event));
                 } else {
-                    Log.e("TorrentDiscovered", "infohash is null");
+                    Log.v("TorrentDiscovered", String.format("%s dispersy_cid: %s (%s)", event.getName(), event.getDispersyCid(), event.getInfohash()));
                 }
             }
         } else if (message.obj instanceof TorrentRemovedFromChannelEvent) {
@@ -162,7 +162,7 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
                 if (event.getInfohash() != null) {
                     adapter.removeObject(new TriblerTorrent(event));
                 } else {
-                    Log.e("RemovedFromChannel", "infohash is null");
+                    Log.v("RemovedFromChannel", String.format("channel_id: %s (%s)", event.getChannelId(), event.getInfohash()));
                 }
             }
         }

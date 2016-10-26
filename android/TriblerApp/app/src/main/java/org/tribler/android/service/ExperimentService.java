@@ -2,17 +2,14 @@ package org.tribler.android.service;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.IBinder;
-import android.support.annotation.Nullable;
 
 import com.google.gson.Gson;
 
-import org.kivy.android.PythonService;
 import org.tribler.android.R;
 
 import java.util.HashMap;
 
-public class ExperimentService extends Triblerd {
+public class ExperimentService extends TriblerdService {
 
     public static void start(Context ctx, String experiment, HashMap args) {
         String json = new Gson().toJson(args);

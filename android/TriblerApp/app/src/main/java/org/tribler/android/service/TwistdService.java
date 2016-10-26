@@ -7,14 +7,14 @@ import org.tribler.android.R;
 
 import java.io.File;
 
-public class Twistd extends Triblerd {
+public class TwistdService extends TriblerdService {
 
     public static void start(Context ctx) {
         String argument = ctx.getFilesDir().getAbsolutePath();
-        Intent intent = new Intent(ctx, Twistd.class);
+        Intent intent = new Intent(ctx, TwistdService.class);
         intent.putExtra("androidPrivate", argument);
         intent.putExtra("androidArgument", argument);
-        intent.putExtra("pythonName", "Twistd");
+        intent.putExtra("pythonName", "TwistdService");
         intent.putExtra("pythonHome", argument);
         intent.putExtra("pythonPath", argument + ":" + argument + "/lib");
         intent.putExtra("pythonEggCache", argument + "/.egg_cache");
@@ -34,7 +34,7 @@ public class Twistd extends Triblerd {
     }
 
     public static void stop(Context ctx) {
-        Intent intent = new Intent(ctx, Twistd.class);
+        Intent intent = new Intent(ctx, TwistdService.class);
         ctx.stopService(intent);
     }
 

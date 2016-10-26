@@ -59,11 +59,11 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <service
-            android:name=".service.Triblerd"
+            android:name=".service.TriblerdService"
             android:label="Tribler service"
             android:process=":service_Triblerd" />
         <service
-            android:name=".service.Twistd"
+            android:name=".service.TwistdService"
             android:label="Tribler profiler"
             android:process=":service_Twistd" />
         <service
@@ -142,7 +142,7 @@
             android:exported="true"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
-            android:name=".TwistdActivity"
+            android:name=".ProfilerActivity"
             android:exported="true"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
