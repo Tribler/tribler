@@ -34,7 +34,8 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
 
         A GET request to this endpoint returns all discovered torrents in a specific channel. The size of the torrent is
         in number of bytes. The last_tracker_check value will be 0 if we did not check the tracker state of the torrent
-        yet.
+        yet. Optionally, we can disable the family filter for this particular request by passing the following flag:
+        - disable_filter: whether the family filter should be disabled for this request (1 = disabled)
 
             **Example request**:
 
@@ -70,11 +71,15 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         results_local_torrents_channel = self.channel_db_handler\
             .getTorrentsFromChannelId(channel_info[0], True, torrent_db_columns)
 
+        should_filter = self.session.tribler_config.get_family_filter_enabled()
+        if 'disable_filter' in request.args and len(request.args['disable_filter']) > 0 \
+                and request.args['disable_filter'][0] == "1":
+            should_filter = False
+
         results_json = []
         for torrent_result in results_local_torrents_channel:
             torrent_json = convert_db_torrent_to_json(torrent_result)
-            if (self.session.tribler_config.get_family_filter_enabled() and
-                    self.session.lm.category.xxx_filter.isXXX(torrent_json['name'])) or torrent_json['name'] is None:
+            if (should_filter and torrent_json['category'] == 'xxx') or torrent_json['name'] is None:
                 continue
 
             results_json.append(torrent_json)
