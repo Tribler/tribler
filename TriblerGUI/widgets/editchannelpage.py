@@ -104,7 +104,7 @@ class EditChannelPage(QWidget):
     def load_channel_torrents(self):
         self.window().edit_channel_torrents_list.set_data_items([(LoadingListItem, None)])
         self.editchannel_request_mgr = TriblerRequestManager()
-        self.editchannel_request_mgr.perform_request("channels/discovered/%s/torrents" % self.channel_overview["identifier"], self.initialize_with_torrents)
+        self.editchannel_request_mgr.perform_request("channels/discovered/%s/torrents?disable_filter=1" % self.channel_overview["identifier"], self.initialize_with_torrents)
 
     def initialize_with_torrents(self, torrents):
         self.window().edit_channel_torrents_list.set_data_items([])
