@@ -57,6 +57,9 @@ class LibtorrentMgr(TaskManager):
         self.metainfo_lock = threading.RLock()
         self.metainfo_cache = {}
 
+        self.process_alerts_lc = self.register_task("process_alerts", LoopingCall(self._task_process_alerts))
+        self.check_reachability_lc = self.register_task("check_reachability", LoopingCall(self._check_reachability))
+
     @blocking_call_on_reactor_thread
     def initialize(self):
         # start upnp
@@ -66,8 +69,8 @@ class LibtorrentMgr(TaskManager):
         self.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
 
         # register tasks
-        self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
-        self.register_task(u'check_reachability', reactor.callLater(1, self._task_check_reachability))
+        self.process_alerts_lc.start(1, now=False)
+        self.check_reachability_lc.start(5, now=True)
         self._schedule_next_check(5, DHT_CHECK_RETRIES)
 
         self.register_task(u'task_cleanup_metacache',
@@ -474,14 +477,10 @@ class LibtorrentMgr(TaskManager):
                 for alert in ltsession.pop_alerts():
                     self.process_alert(alert)
 
-        self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
-
-    def _task_check_reachability(self):
+    def _check_reachability(self):
         if self.get_session() and self.get_session().status().has_incoming_connections:
-            notify_reachability = lambda: self.notifier.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
-            self.register_task(u'notify_reachability', reactor.callLater(3, notify_reachability))
-        else:
-            self.register_task(u'check_reachability', reactor.callLater(10, self._task_check_reachability))
+            self.notifier.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
+            self.check_reachability_lc.stop()
 
     @call_on_reactor_thread
     def _schedule_next_check(self, delay, retries_left):

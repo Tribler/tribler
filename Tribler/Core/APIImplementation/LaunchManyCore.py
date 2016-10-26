@@ -13,7 +13,7 @@ from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred, inlineCallbacks
+from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList
 from twisted.internet.task import deferLater, LoopingCall
 from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
@@ -368,7 +368,7 @@ class TriblerLaunchMany(TaskManager):
             self.downloads[infohash] = d
             setup_deferred = d.setup(dscfg, pstate, initialdlstatus, wrapperDelay=setupDelay,
                                      share_mode=share_mode, checkpoint_disabled=checkpoint_disabled)
-            setup_deferred.addCallback(self.on_download_wrapper_created)
+            setup_deferred.addCallback(self.on_download_handle_created)
 
         if d and not hidden and self.session.get_megacache():
             @forceDBThread
@@ -389,15 +389,12 @@ class TriblerLaunchMany(TaskManager):
 
         return d
 
-    def on_download_wrapper_created(self, (d, pstate)):
-        """ Called by network thread """
-        try:
-            if pstate is None and not d.get_checkpoint_disabled():
-                # Checkpoint at startup
-                (infohash, pstate) = d.network_checkpoint()
-                self.save_download_pstate(infohash, pstate)
-        except:
-            print_exc()
+    def on_download_handle_created(self, download):
+        """
+        This method is called when the download handle has been created.
+        Immediately checkpoint the download and write the resume data.
+        """
+        return download.checkpoint()
 
     def remove(self, d, removecontent=False, removestate=True, hidden=False):
         """ Called by any thread """
@@ -570,7 +567,7 @@ class TriblerLaunchMany(TaskManager):
 
         self.previous_active_downloads = new_active_downloads
         if do_checkpoint:
-            self.session.checkpoint()
+            self.session.checkpoint_downloads()
 
         if self.state_cb_count % 4 == 0 and self.tunnel_community:
             self.tunnel_community.monitor_downloads(states_list)
@@ -668,49 +665,27 @@ class TriblerLaunchMany(TaskManager):
         else:
             self._logger.info("tlm: could not resume checkpoint %s %s %s", filename, tdef, dscfg)
 
-    def checkpoint(self, stop=False, checkpoint=True, gracetime=2.0):
-        """ Called by any thread, assume sesslock already held """
-        # Even if the list of Downloads changes in the mean time this is
-        # no problem. For removals, dllist will still hold a pointer to the
-        # Download, and additions are no problem (just won't be included
-        # in list of states returned via callback.
-        #
-        dllist = self.downloads.values()
-        self._logger.debug("tlm: checkpointing %s stopping %s", len(dllist), stop)
+    def checkpoint_downloads(self):
+        """
+        Checkpoints all running downloads in Tribler.
+        Even if the list of Downloads changes in the mean time this is no problem.
+        For removals, dllist will still hold a pointer to the download, and additions are no problem
+        (just won't be included in list of states returned via callback).
+        """
+        downloads = self.downloads.values()
+        deferred_list = []
+        self._logger.debug("tlm: checkpointing %s downloads", len(downloads))
+        for download in downloads:
+            deferred_list.append(download.checkpoint())
 
-        return deferLater(reactor, 0, self.network_checkpoint_callback, dllist, stop, checkpoint, gracetime)
+        return DeferredList(deferred_list)
 
-    def network_checkpoint_callback(self, dllist, stop, checkpoint, gracetime):
-        """ Called by network thread """
-        if checkpoint:
-            for d in dllist:
-                try:
-                    # Tell all downloads to stop, and save their persistent state
-                    # in a infohash -> pstate dict which is then passed to the user
-                    # for storage.
-                    #
-                    if stop:
-                        (infohash, pstate) = d.network_stop(False, False)
-                    else:
-                        (infohash, pstate) = d.network_checkpoint()
-
-                    self._logger.debug("tlm: network checkpointing: %s %s", d.get_def().get_name(), pstate)
-
-                    self.save_download_pstate(infohash, pstate)
-
-                except Exception as e:
-                    self._logger.exception("Exception while checkpointing: %s", d.get_def().get_name())
-
-        if stop:
-            delay = 0
-            # Some grace time for early shutdown tasks
-            if self.shutdownstarttime is not None:
-                now = timemod.time()
-                diff = now - self.shutdownstarttime
-                if diff < gracetime:
-                    self._logger.info("tlm: shutdown: delaying for early shutdown tasks %s", gracetime - diff)
-                    delay = gracetime - diff
-            return deferLater(reactor, delay, self.network_shutdown)
+    def shutdown_downloads(self):
+        """
+        Shutdown all downloads in Tribler.
+        """
+        for download in self.downloads.values():
+            download.stop()
 
     def remove_pstate(self, infohash):
         def do_remove():
