@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:fancy="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context=".CreateTorrentActivity"
+    tools:showIn="@layout/activity_create_torrent">
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:columnCount="2"
+        android:rowCount="5">
+
+        <TextView
+            android:id="@+id/torrent_explanation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_column="0"
+            android:layout_columnSpan="2"
+            android:layout_row="0"
+            android:padding="@dimen/label_padding"
+            android:text="@string/explain_create_torrent" />
+
+        <RelativeLayout
+            android:id="@+id/torrent_thumbnail_wrapper"
+            android:layout_width="320dp"
+            android:layout_height="240dp"
+            android:layout_column="0"
+            android:layout_columnSpan="2"
+            android:layout_gravity="center"
+            android:layout_margin="25dp"
+            android:layout_row="1">
+
+            <ImageView
+                android:id="@+id/torrent_thumbnail"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <FrameLayout
+                android:id="@+id/torrent_thumbnail_progress_wrapper"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <ProgressBar
+                    android:id="@+id/torrent_progress_bar"
+                    style="?android:attr/progressBarStyle"
+                    android:layout_width="75dp"
+                    android:layout_height="75dp"
+                    android:layout_gravity="center"
+                    android:indeterminate="true" />
+
+            </FrameLayout>
+
+        </RelativeLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_column="0"
+            android:layout_row="2"
+            android:padding="@dimen/label_padding"
+            android:text="@string/label_torrent_name"
+            android:textColor="@color/black"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/torrent_name_input"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_column="1"
+            android:layout_gravity="fill_horizontal"
+            android:layout_marginEnd="@dimen/activity_horizontal_margin"
+            android:layout_marginRight="@dimen/activity_horizontal_margin"
+            android:layout_row="2"
+            android:inputType="text" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_column="0"
+            android:layout_row="3"
+            android:padding="@dimen/label_padding"
+            android:text="@string/label_torrent_description"
+            android:textColor="@color/black"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/torrent_description_input"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_column="1"
+            android:layout_gravity="fill_horizontal"
+            android:layout_marginEnd="@dimen/activity_horizontal_margin"
+            android:layout_marginRight="@dimen/activity_horizontal_margin"
+            android:layout_row="3"
+            android:inputType="textMultiLine" />
+
+        <mehdi.sakout.fancybuttons.FancyButton
+            android:id="@+id/btn_torrent_create"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_column="0"
+            android:layout_columnSpan="2"
+            android:layout_gravity="center"
+            android:layout_marginBottom="@dimen/fancy_button_vertical_margin"
+            android:layout_marginTop="@dimen/fancy_button_vertical_margin"
+            android:layout_row="4"
+            android:onClick="btnChannelSaveClicked"
+            android:paddingBottom="@dimen/fancy_button_vertical_padding"
+            android:paddingEnd="@dimen/fancy_button_horizontal_padding"
+            android:paddingStart="@dimen/fancy_button_horizontal_padding"
+            android:paddingTop="@dimen/fancy_button_vertical_padding"
+            fancy:fb_borderColor="@color/red"
+            fancy:fb_borderWidth="2dp"
+            fancy:fb_defaultColor="@color/transparent"
+            fancy:fb_radius="30dp"
+            fancy:fb_text="@string/action_CREATE"
+            fancy:fb_textColor="@color/red" />
+
+    </GridLayout>
+
+</ScrollView>

@@ -153,6 +153,10 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="org.tribler.android.ChannelActivity" />
         </activity>
+        <activity
+            android:name=".CreateTorrentActivity"
+            android:label="@string/action_create_torrent"
+            android:theme="@style/AppTheme.NoActionBar" />
     </application>
 
 </manifest>
