@@ -157,6 +157,10 @@
             android:name=".CreateTorrentActivity"
             android:label="@string/action_create_torrent"
             android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".CopyFilesActivity"
+            android:exported="true"
+            android:theme="@style/AppTheme.NoActionBar" />
     </application>
 
 </manifest>
