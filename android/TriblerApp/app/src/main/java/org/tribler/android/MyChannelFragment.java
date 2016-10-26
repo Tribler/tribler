@@ -243,7 +243,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     }
 
     private void loadMyChannelTorrents() {
-        rxSubs.add(service.getTorrents(_dispersyCid)
+        rxSubs.add(service.getTorrents(_dispersyCid, 1)
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .flatMap(response -> Observable.from(response.getTorrents()))
