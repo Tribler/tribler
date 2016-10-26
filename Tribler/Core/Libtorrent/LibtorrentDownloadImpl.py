@@ -16,7 +16,7 @@ from twisted.internet.task import LoopingCall
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
 from Tribler.Core.DownloadState import DownloadState
-from Tribler.Core.Libtorrent import checkHandleAndSynchronize, waitForHandleAndSynchronize
+from Tribler.Core.Libtorrent import checkHandleAndSynchronize
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
@@ -1187,23 +1187,20 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
     #
     # External addresses
     #
-    @waitForHandleAndSynchronize()
     def add_peer(self, addr):
         """ Add a peer address from 3rd source (not tracker, not DHT) to this download.
         @param (hostname_ip,port) tuple
         """
-        self.handle.connect_peer(addr, 0)
+        self.get_handle().addCallback(lambda handle: handle.connect_peer(addr, 0))
 
-    @waitForHandleAndSynchronize()
     def set_priority(self, prio):
-        self.handle.set_priority(prio)
+        self.get_handle().addCallback(lambda handle: handle.set_priority(prio))
 
-    @waitForHandleAndSynchronize(True)
     def dlconfig_changed_callback(self, section, name, new_value, old_value):
         if section == 'downloadconfig' and name == 'max_upload_rate':
-            self.handle.set_upload_limit(int(new_value * 1024))
+            self.get_handle().addCallback(lambda handle: handle.set_upload_limit(int(new_value * 1024)))
         elif section == 'downloadconfig' and name == 'max_download_rate':
-            self.handle.set_download_limit(int(new_value * 1024))
+            self.get_handle().addCallback(lambda handle: handle.set_download_limit(int(new_value * 1024)))
         elif section == 'downloadconfig' and name in ['correctedfilename', 'super_seeder']:
             return False
         return True
@@ -1212,9 +1209,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
     def get_share_mode(self):
         return self.handle.status().share_mode
 
-    @waitForHandleAndSynchronize(True)
     def set_share_mode(self, share_mode):
-        self.handle.set_share_mode(share_mode)
+        self.get_handle().addCallback(lambda handle: handle.set_share_mode(share_mode))
 
 
 class LibtorrentStatisticsResponse:
