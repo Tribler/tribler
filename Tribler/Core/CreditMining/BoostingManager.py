@@ -83,6 +83,8 @@ class BoostingManager(TaskManager):
 
         self.session = session
 
+        self.finish_pre_dl = {}
+
         # use provided settings or a default one
         self.settings = settings or BoostingSettings(policy=SeederRatioPolicy(session), load_config=True)
 
@@ -290,7 +292,7 @@ class BoostingManager(TaskManager):
         deferred_handle.addCallback(_on_finish)
         deferred_handle.addErrback(logging.error)
 
-        self.finish_pre_dl[infohash] = False
+        self.finish_pre_dl[infohash] = 0.0
 
         def _check_swarm_peers(thandle, started_time):
             for p in thandle.get_peer_info():
@@ -301,8 +303,8 @@ class BoostingManager(TaskManager):
             elapsed_time = time.time() - started_time
 
             # maximal waiting time : after 3600 seconds (1 hour)
-            if elapsed_time > 3600:
-                self.cancel_pending_task("pre_download_%s" % hexlify(infohash))
+            if elapsed_time > 3600 and not self.finish_pre_dl[infohash]:
+                self.cancel_pending_task("pre_download_%s" %hexlify(infohash))
                 if status.progress < 1.0:
                     self._logger.debug("%s timeout pre-downloading with %f", hexlify(infohash), status.progress)
 
@@ -313,7 +315,7 @@ class BoostingManager(TaskManager):
             # just finished prospecting, set the flags
             if status.progress == 1.0 and not self.finish_pre_dl[infohash]:
                 self._logger.debug("%s finish pre-downloading by %s", hexlify(infohash), time.time() - started_time)
-                self.finish_pre_dl[infohash] = True
+                self.finish_pre_dl[infohash] = time.time()
 
                 self.cancel_pending_task("pre_download_%s" % hexlify(infohash))
                 thandle.pause()
