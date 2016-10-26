@@ -9,6 +9,7 @@ import os
 import re
 import urllib
 from binascii import hexlify, unhexlify
+from collections import deque
 from hashlib import sha1
 
 import feedparser
@@ -519,6 +520,12 @@ class DirectorySource(BoostingSource):
     The directory must exist.
     """
 
+    def __init__(self, session, dirsource, boost_settings, torrent_insert_cb):
+        BoostingSource.__init__(self, session, dirsource, boost_settings, torrent_insert_cb)
+        self.torrent_queue = deque()
+
+        self.torrent_ihash_name = {}
+
     def _load(self, directory):
         if os.path.isdir(directory):
             # Wait for __init__ to finish so the source is registered with the
@@ -539,24 +546,43 @@ class DirectorySource(BoostingSource):
         if not self.ready:
             return
 
+        # periodically check directory
         for torrent_filename in glob.glob(self.source + '/*.torrent'):
-            if torrent_filename not in self.torrents and len(self.torrents) < self.max_torrents:
-                try:
-                    tdef = TorrentDef.load(torrent_filename)
-                except ValueError, verr:
-                    self._logger.error("Could not load %s. Reason %s", torrent_filename, verr)
-                    continue
+            try:
+                ihash = "%s" % lt.torrent_info(torrent_filename).info_hash()
+                # add new-valid torrent in directory
+                if ihash and ihash not in self.torrent_queue and ihash not in self.torrents:
+                    self.torrent_queue.append(ihash)
+                    self.torrent_ihash_name[ihash] = torrent_filename
+            except RuntimeError:
+                self._logger.error("Invalid torrent. Cannot load %s", torrent_filename)
+                os.remove(torrent_filename)
 
-                infohash = tdef.get_infohash()
+        self._logger.debug("Update torrent list #%d out of %d", len(self.torrents), self.max_torrents)
 
-                if infohash in self.blacklist_torrent:
-                    self._logger.debug("Torrents blacklisted. Not adding %s", hexlify(infohash))
-                    return
+        # if #torrent served below max torrents
+        while len(self.torrents) < self.max_torrents and len(self.torrent_queue):
 
-                # Create a torrent dict.
-                torrent_values = [tdef.get_name_as_unicode(), tdef, tdef.get_creation_date(), tdef.get_length(),
-                                  len(tdef.get_files()), -1, -1, self.enabled, {}]
-                self.torrents[infohash] = dict(zip(torrent_keys, torrent_values))
-                # Notify the BoostingManager.
-                if self.torrent_insert_callback:
-                    self.torrent_insert_callback(self.source, tdef.get_infohash(), self.torrents[infohash])
+            # add the oldest seen torrent
+            infohash = self.torrent_queue.popleft()
+            torrent_filename = self.torrent_ihash_name[infohash]
+
+            infohash = unhexlify(infohash)
+            try:
+                tdef = TorrentDef.load(torrent_filename)
+            except ValueError, verr:
+                self._logger.error("Could not load %s. Reason %s", torrent_filename, verr)
+                continue
+
+            if infohash in self.blacklist_torrent:
+                self._logger.debug("Torrents blacklisted. Not adding %s", hexlify(infohash))
+                return
+
+            # Create a torrent dict.
+            torrent_values = [tdef.get_name_as_unicode(), tdef, tdef.get_creation_date(), tdef.get_length(),
+                              len(tdef.get_files()), -1, -1, self.enabled, {}]
+            self.torrents[infohash] = dict(zip(torrent_keys, torrent_values))
+
+            # Notify the BoostingManager.
+            if self.torrent_insert_callback:
+                self.torrent_insert_callback(self.source, tdef.get_infohash(), self.torrents[infohash])
