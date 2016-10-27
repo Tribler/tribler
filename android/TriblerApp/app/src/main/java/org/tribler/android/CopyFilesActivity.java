@@ -2,6 +2,7 @@ package org.tribler.android;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Process;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.util.Log;
@@ -110,6 +111,7 @@ public class CopyFilesActivity extends BaseActivity {
 
                     public void onCompleted() {
                         CopyFilesActivity.this.finish();
+                        Process.killProcess(Process.myPid());
                     }
 
                     public void onError(Throwable e) {
