@@ -87,8 +87,9 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         tdef = self.create_tdef()
 
         impl = LibtorrentDownloadImpl(self.session, tdef)
-        def callback((ignored, ignored2)):
-            pass
+
+        def callback(_):
+            impl.cancel_all_pending_tasks()
 
         deferred = impl.setup(None, None, None, 0)
         deferred.addCallback(callback)

@@ -155,9 +155,11 @@ class TestDownloadsEndpoint(AbstractApiTest):
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
         download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
         infohash = video_tdef.get_infohash().encode('hex')
+        original_stop = download.stop
 
         def mocked_stop():
             download.should_stop = True
+            download.stop = original_stop
 
         def verify_removed(_):
             self.assertEqual(len(self.session.get_downloads()), 1)
