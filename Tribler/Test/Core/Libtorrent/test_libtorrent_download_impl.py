@@ -480,3 +480,13 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.on_torrent_finished_alert(None)
 
         self.assertTrue(self.libtorrent_download_impl.is_pending_task_active("reset_priorities"))
+
+    def test_get_pieces_bitmask(self):
+        """
+        Testing whether a correct pieces bitmask is returned when requested
+        """
+        self.libtorrent_download_impl.handle.status().pieces = [True, False, True, False, False]
+        self.assertEqual(self.libtorrent_download_impl.get_pieces_base64(), "oA==")
+
+        self.libtorrent_download_impl.handle.status().pieces = [True * 16]
+        self.assertEqual(self.libtorrent_download_impl.get_pieces_base64(), "gA==")

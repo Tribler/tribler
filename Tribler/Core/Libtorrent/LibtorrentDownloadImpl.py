@@ -1,4 +1,5 @@
 # Based on SwiftDownloadImpl.py by Arno Bakker, modified by Egbert Bouman for the use with libtorrent
+import base64
 import logging
 import os
 import sys
@@ -395,6 +396,27 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     break
             return float(pieces_have) / pieces_all
         return 0.0
+
+    @checkHandleAndSynchronize('')
+    def get_pieces_base64(self):
+        """
+        Returns a base64 encoded bitmask of the pieces that we have.
+        """
+        bitstr = ""
+        for bit in self.handle.status().pieces:
+            bitstr += '1' if bit else '0'
+
+        encoded_str = ""
+        for i in range(0, len(bitstr), 8):
+            encoded_str += chr(int(bitstr[i:i+8].ljust(8, '0'), 2))
+        return base64.b64encode(encoded_str)
+
+    @checkHandleAndSynchronize(0)
+    def get_num_pieces(self):
+        """
+        Return the total number of pieces
+        """
+        return get_info_from_handle(self.handle).num_pieces()
 
     @checkHandleAndSynchronize(0.0)
     def get_byte_progress(self, byteranges, consecutive=False):

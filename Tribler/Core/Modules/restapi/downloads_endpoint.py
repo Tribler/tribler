@@ -75,21 +75,22 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
     def render_GET(self, request):
         """
-        .. http:get:: /downloads?get_peers=(boolean: peers)
+        .. http:get:: /downloads?get_peers=(boolean: get_peers)&get_pieces=(boolean: get_pieces)
 
         A GET request to this endpoint returns all downloads in Tribler, both active and inactive. The progress is a
         number ranging from 0 to 1, indicating the progress of the specific state (downloading, checking etc). The
         download speeds have the unit bytes/sec. The size of the torrent is given in bytes. The estimated time assumed
         is given in seconds. A description of the possible download statuses can be found in the REST API documentation.
 
-        Detailed information about peers is only requested when the get_peers flag is set. Note that setting this flag
-        has a negative impact on performance and should only be used when displaying peers data.
+        Detailed information about peers and pieces is only requested when the get_peers and/or get_pieces flag is set.
+        Note that setting this flag has a negative impact on performance and should only be used in situations
+        where this data is required.
 
             **Example request**:
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/downloads?get_peers=1
+                curl -X GET http://localhost:8085/downloads?get_peers=1&get_pieces=1
 
             **Example response**:
 
@@ -143,6 +144,11 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                 and request.args['get_peers'][0] == "1":
             get_peers = True
 
+        get_pieces = False
+        if 'get_pieces' in request.args and len(request.args['get_pieces']) > 0 \
+                and request.args['get_pieces'][0] == "1":
+            get_pieces = True
+
         downloads_json = []
         downloads = self.session.get_downloads()
         for download in downloads:
@@ -179,7 +185,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                              "max_upload_speed": download.get_max_speed(UPLOAD),
                              "max_download_speed": download.get_max_speed(DOWNLOAD),
                              "destination": download.get_dest_dir(), "availability": state.get_availability(),
-                             "total_pieces": state.get_pieces_total_complete()[0]}
+                             "total_pieces": download.get_num_pieces()}
 
             # Add peers information if requested
             if get_peers:
@@ -187,8 +193,11 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                 for peer_info in peer_list:  # Remove have field since it is very large to transmit.
                     del peer_info['have']
 
-                print state.get_peerlist()
                 download_json["peers"] = state.get_peerlist()
+
+            # Add piece information if requested
+            if get_pieces:
+                download_json["pieces"] = download.get_pieces_base64()
 
             downloads_json.append(download_json)
         return json.dumps({"downloads": downloads_json})
