@@ -186,7 +186,7 @@ class TriblerLaunchMany(TaskManager):
         return self.startup_deferred
 
     def on_tribler_started(self, subject, changetype, objectID, *args):
-        self.startup_deferred.callback(None)
+        reactor.callFromThread(self.startup_deferred.callback, None)
 
     def init(self):
         if self.dispersy:

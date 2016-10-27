@@ -50,14 +50,16 @@ class TestBoostingManagerPolicies(TestAsServer):
         """
         testing random policy
         """
-        random.seed(0)
+        rdrwh = random.WichmannHill(0)
         policy = RandomPolicy(self.session)
+        policy.key = lambda _: rdrwh.random()
+
         torrents_start, torrents_stop = policy.apply(self.torrents, 6, force=True)
         ids_start = [torrent["metainfo"].get_infohash() for torrent in
                      torrents_start]
-        self.assertEqual(3, len(ids_start), "Start failed %s vs %s" % (ids_start, torrents_start))
+        self.assertEqual(1, len(ids_start), "Start failed %s vs %s" % (ids_start, torrents_start))
         ids_stop = [torrent["metainfo"].get_infohash() for torrent in torrents_stop]
-        self.assertEqual(2, len(ids_stop), "Stop failed %s vs %s" % (ids_stop, torrents_stop))
+        self.assertEqual(0, len(ids_stop), "Stop failed %s vs %s" % (ids_stop, torrents_stop))
 
     def test_seederratio_policy(self):
         """
