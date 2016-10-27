@@ -40,21 +40,21 @@ class AdbPush():
         nr_args = len(argv)
 
         if nr_args > 1:
-            self._input_file = argv[1]
+            self._input_file = os.path.realpath(argv[1])
             print ' Input file:', self._input_file
-
-            if not os.path.exists(self._input_file):
-                print 'Input file does not exist!'
-                exit()
         else:
-            print 'No input file specified!'
+            print 'Error: No input file specified!'
+            exit()
+
+        if not os.path.exists(self._input_file):
+            print 'Error: Input file does not exist!'
+            exit()
+
+        if os.path.isdir(self._input_file):
+            print 'Error: Cannot copy directories!'
             exit()
 
         file_name = os.path.basename(self._input_file)
-        if not file_name:
-            print 'Cannot copy directories!'
-            exit()
-
         self._temp_file = '/sdcard/' + str(time.time()) + file_name
         print '  Temp file:', self._temp_file
 
@@ -63,23 +63,12 @@ class AdbPush():
         else:
             self._output_file = file_name
 
-        if self._output_file.startswith('/'):
-            # Android copies to given dir
-            pass
-        elif self._output_file.startswith('.'):
-            # Android copies relative to private files dir
-            pass
-        else:
-            # Android copies relative to private files dir
-            self._output_file = './' + self._output_file
-
         print 'Output file:', self._output_file
         self._adb = adb
 
         if nr_args > 3:
             device = argv[3]
-            print 'Device:', device
-            self_adb += ' -s ' + device
+            self._adb += ' -s ' + device
 
 
     def run(self):
@@ -88,6 +77,12 @@ class AdbPush():
         print cmd_push
         push = subprocess.Popen(cmd_push.split())
         push.wait()
+
+        # Clear logcat
+        cmd_clear = self._adb + ' logcat -c'
+        print cmd_clear
+        clear = subprocess.Popen(cmd_clear.split())
+        clear.wait()
 
         # Start reading logcat
         cmd_logcat = self._adb + ' logcat -v time tag long'
@@ -102,37 +97,47 @@ class AdbPush():
         print cmd_copy
         copy = subprocess.Popen(cmd_copy.split())
 
-        if self._output_file.startswith('../'):
-            rel_path = self._output_file[2:]
-        elif self._output_file.startswith('./'):
-            rel_path = self._output_file[1:]
-        elif self._output_file.startswith('/'):
-            rel_path = self._output_file
-        else:
-            rel_path = os.path.basename(self._output_file)
+        started = False
 
         # Read until nothing more to read
         while not stdout_reader.eof():
             while not stdout_queue.empty():
                 line = stdout_queue.get().strip()
-                date, time, log = line.split(' ', 2)
 
-                if log.startswith('E/CopyFile'):
+                if line.startswith('-'):
+                    break;
+
+                date, time, log = line.split(' ', 2)
+                tag, file = log.split(': ', 1)
+
+                if tag.startswith('E/CopyFile'):
                     print log
                     break
 
-                if log.startswith('I/CopyFileStart'):
-                    tag, file = log.split(': ', 1)
-                    print 'Start copying file:', file
+                if tag.startswith('I/CopyFileStartIn'):
+                    if file == self._temp_file:
+                        started = True
+                        print log
+
                     break
 
-                if log.startswith('I/CopyFileDone'):
-                    tag, file = log.split(': ', 1)
-                    print ' Done copying file:', file
+                if tag.startswith('I/CopyFileStartOut'):
+                    if started and file.endswith(self._output_file):
+                        print log
 
-                    if not file.endswith(rel_path):
-                        print '  Skip copied file:', file
+                    break
+
+                if tag.startswith('I/CopyFileDoneIn'):
+                    if started:
+                        print log
+
+                    break
+
+                if tag.startswith('I/CopyFileDoneOut'):
+                    if not started or not file.endswith(self._output_file):
                         break
+
+                    print log
 
                     # Cleanup
                     cmd_remove = self._adb + ' shell rm "' + self._temp_file + '"'

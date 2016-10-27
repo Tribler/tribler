@@ -43,36 +43,42 @@ class AdbPull():
             self._input_file = argv[1]
             print ' Input file:', self._input_file
         else:
-            print 'No input file specified!'
+            print 'Error: No input file specified!'
+            exit()
+
+        if self._input_file.endswith('/'):
+            print 'Error: Cannot copy directories!'
             exit()
 
         file_name = os.path.basename(self._input_file)
-        if not file_name:
-            print 'Cannot copy directories!'
-            exit()
-
-        self._temp_file = str(time.time()) + file_name
-        print '  Temp file:', self._temp_file
 
         if nr_args > 2:
-            self._output_file = argv[2]
+            self._output_file = os.path.realpath(argv[2])
+
+            if os.path.isdir(self._output_file):
+                self._output_file = os.path.join(self._output_file, file_name)
         else:
             self._output_file = file_name
 
         print 'Output file:', self._output_file
+
         if os.path.exists(self._output_file):
-            print 'Output file already exists!'
-            exit()
+            print 'Warning: Overwriting output file!'
 
         self._adb = adb
 
         if nr_args > 3:
             device = argv[3]
-            print 'Device:', device
-            self_adb += ' -s ' + device
+            self._adb += ' -s ' + device
 
 
     def run(self):
+        # Clear logcat
+        cmd_clear = self._adb + ' logcat -c'
+        print cmd_clear
+        clear = subprocess.Popen(cmd_clear.split())
+        clear.wait()
+
         # Start reading logcat
         cmd_logcat = self._adb + ' logcat -v time tag long'
         logcat = subprocess.Popen(cmd_logcat.split(), stdout=subprocess.PIPE)
@@ -82,32 +88,53 @@ class AdbPull():
         stdout_reader.start()
 
         # Start copy file
-        cmd_copy = self._adb + ' shell am start -n org.tribler.android/.CopyFilesActivity -e "' + self._input_file + '" "' + self._temp_file + '"'
+        cmd_copy = self._adb + ' shell am start -n org.tribler.android/.CopyFilesActivity -e "' + self._input_file + '" ""'
         print cmd_copy
         copy = subprocess.Popen(cmd_copy.split())
+
+        temp_name = None
+        started = False
 
         # Read until nothing more to read
         while not stdout_reader.eof():
             while not stdout_queue.empty():
                 line = stdout_queue.get().strip()
-                date, time, log = line.split(' ', 2)
 
-                if log.startswith('E/CopyFile'):
+                if line.startswith('-'):
+                    break;
+
+                date, time, log = line.split(' ', 2)
+                tag, file = log.split(': ', 1)
+
+                if tag.startswith('E/CopyFile'):
                     print log
                     break
 
-                if log.startswith('I/CopyFileStart'):
-                    tag, file = log.split(': ', 1)
-                    print 'Start copying file:', file
+                if tag.startswith('I/CopyFileStartIn'):
+                    if file.endswith(self._input_file):
+                        started = True
+                        print log
+
                     break
 
-                if log.startswith('I/CopyFileDone'):
-                    tag, file = log.split(': ', 1)
-                    print ' Done copying file:', file
+                if tag.startswith('I/CopyFileStartOut'):
+                    if started:
+                        temp_name = file
+                        print log
 
-                    if not file.endswith(self._temp_file):
-                        print '  Skip copied file:', file
+                    break
+
+                if tag.startswith('I/CopyFileDoneIn'):
+                    if started:
+                        print log
+
+                    break
+
+                if tag.startswith('I/CopyFileDoneOut'):
+                    if not started or file != temp_name:
                         break
+
+                    print log
 
                     # Pull file
                     cmd_pull = self._adb + ' pull ' + file + ' ' + self._output_file

@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.os.Process;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -92,17 +93,15 @@ public class CopyFilesActivity extends BaseActivity {
                                 from = new File(getFilesDir(), key);
                             }
 
-                            if (value == null) {
-                                to = new File(getFilesDir(), key);
-                            } else if (value.startsWith(".")) {
-                                to = new File(getFilesDir(), value);
+                            if (TextUtils.isEmpty(value)) {
+                                to = new File(getExternalCacheDir(), String.valueOf(System.currentTimeMillis()) + from.getName());
                             } else if (value.startsWith("/")) {
                                 to = new File(value);
                             } else {
-                                to = new File(getExternalCacheDir(), value);
+                                to = new File(getFilesDir(), value);
                             }
 
-                            copy(from.getCanonicalFile(), to.getCanonicalFile());
+                            copy(from, to);
 
                         } catch (Exception ex) {
                             onError(ex);
@@ -123,14 +122,16 @@ public class CopyFilesActivity extends BaseActivity {
     private void copy(File in, File out) throws IOException {
         runOnUiThread(() -> showLoading(in.getPath() + "\n\n" + out.getPath()));
 
-        InputStream input = new FileInputStream(in);
-        OutputStream output = new FileOutputStream(out);
+        InputStream input = new FileInputStream(in.getCanonicalFile());
+        OutputStream output = new FileOutputStream(out.getCanonicalFile());
 
-        Log.i("CopyFileStart", in.getPath());
+        Log.i("CopyFileStartIn", in.getPath());
+        Log.i("CopyFileStartOut", out.getPath());
 
         MyUtils.copy(input, output);
 
-        Log.i("CopyFileDone", out.getPath());
+        Log.i("CopyFileDoneIn", in.getPath());
+        Log.i("CopyFileDoneOut", out.getPath());
     }
 
 }
