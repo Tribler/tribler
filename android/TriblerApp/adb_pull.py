@@ -1,11 +1,9 @@
-#!/usr/bin/python
-
 import sys
-import getopt
 import os
 import Queue
 import subprocess
 import threading
+import time
 
 
 class AsynchronousFileReader(threading.Thread):
@@ -35,83 +33,101 @@ class AsynchronousFileReader(threading.Thread):
 
 class AdbPull():
     '''
-    Helper class to pull a file from the private app dir of tribler on Android.
+    Helper class to pull a file from the private files dir of Tribler on Android.
     '''
 
-    def __init__(self, argv):
-        self.inputfile = ''
-        self.outputfile = ''
-        try:
-            opts, args = getopt.getopt(argv, 'hi:o:', ['ifile=', 'ofile='])
-        except getopt.GetoptError:
-            print 'adb_pull.py -i <inputfile> -o <outputfile>'
-            sys.exit(2)
+    def __init__(self, argv, adb):
+        nr_args = len(argv)
 
-        for opt, arg in opts:
-            if opt == '-h':
-                print 'adb_pull.py -i <inputfile> -o <outputfile>'
-                sys.exit()
-            elif opt in ('-i', '--ifile'):
-                self.inputfile = arg
-            elif opt in ('-o', '--ofile'):
-                self.outputfile = arg
+        if nr_args > 1:
+            self._input_file = argv[1]
+            print ' Input file:', self._input_file
+        else:
+            print 'No input file specified!'
+            exit()
 
-        print 'Input file is: ', self.inputfile
-        print 'Output file is: ', self.outputfile
+        file_name = os.path.basename(self._input_file)
+        if not file_name:
+            print 'Cannot copy directories!'
+            exit()
+
+        self._temp_file = str(time.time()) + file_name
+        print '  Temp file:', self._temp_file
+
+        if nr_args > 2:
+            self._output_file = argv[2]
+        else:
+            self._output_file = file_name
+
+        print 'Output file:', self._output_file
+        if os.path.exists(self._output_file):
+            print 'Output file already exists!'
+            exit()
+
+        self._adb = adb
+
+        if nr_args > 3:
+            device = argv[3]
+            print 'Device:', device
+            self_adb += ' -s ' + device
 
 
-    def run(self, adb, tmp_dir):
-        # Start copy file to temp dir
-        cmd_mkdir= adb + ' shell mkdir "' + tmp_dir + '"'
-        subprocess.Popen(cmd_mkdir.split())
-
+    def run(self):
         # Start reading logcat
-        cmd_logcat = adb + ' logcat -v tag long'
+        cmd_logcat = self._adb + ' logcat -v time tag long'
         logcat = subprocess.Popen(cmd_logcat.split(), stdout=subprocess.PIPE)
 
         stdout_queue = Queue.Queue()
         stdout_reader = AsynchronousFileReader(logcat.stdout, stdout_queue)
         stdout_reader.start()
 
-        # Start copy file to temp dir
-        cmd_copy = adb + ' shell am start -n org.tribler.android/.CopyFilesActivity -e "' + self.inputfile + '" "' + tmp_dir + '"'
-        subprocess.Popen(cmd_copy.split())
-
-        tag = 'I/CopyFileDone'
-        tag_error = 'E/CopyFile'
+        # Start copy file
+        cmd_copy = self._adb + ' shell am start -n org.tribler.android/.CopyFilesActivity -e "' + self._input_file + '" "' + self._temp_file + '"'
+        print cmd_copy
+        copy = subprocess.Popen(cmd_copy.split())
 
         # Read until nothing more to read
         while not stdout_reader.eof():
             while not stdout_queue.empty():
-                line = stdout_queue.get()
+                line = stdout_queue.get().strip()
+                date, time, log = line.split(' ', 2)
 
-                if (line.startswith(tag_error)):
-                    print line.rstrip('\n')
+                if log.startswith('E/CopyFile'):
+                    print log
+                    break
 
-                if line.startswith(tag):
-                    # Pull file from temp_dir onCopyFileDone
-                    file = line.split(tag, 1)
-                    print file
-                    pull = subprocess.Popen([adb, 'pull', file, self.outputfile])
+                if log.startswith('I/CopyFileStart'):
+                    tag, file = log.split(': ', 1)
+                    print 'Start copying file:', file
+                    break
+
+                if log.startswith('I/CopyFileDone'):
+                    tag, file = log.split(': ', 1)
+                    print ' Done copying file:', file
+
+                    if not file.endswith(self._temp_file):
+                        print '  Skip copied file:', file
+                        break
+
+                    # Pull file
+                    cmd_pull = self._adb + ' pull ' + file + ' ' + self._output_file
+                    print cmd_pull
+                    pull = subprocess.Popen(cmd_pull.split())
                     pull.wait()
-                    return
 
+                    # Cleanup
+                    cmd_remove = self._adb + ' shell rm "' + file + '"'
+                    print cmd_remove
+                    remove = subprocess.Popen(cmd_remove.split())
+                    remove.wait()
 
-    def cleanup(self, adb, tmp_dir):
-        # Delete temp dir
-        cmd_rm_rf = adb + ' shell rm -rf "' + tmp_dir + '"'
-        subprocess.Popen(cmd_rm_rf.split())
+                    print 'Finished!'
+                    logcat.kill()
+                    exit()
 
 
 
 if __name__ == '__main__':
-    adb_pull = AdbPull(sys.argv[1:])
-
-    adb = os.getenv('ADB', 'adb')
-    temp_dir = '/sdcard/.Tribler'
-
-    adb_pull.cleanup(adb, temp_dir)
-    adb_pull.run(adb, temp_dir)
-    adb_pull.cleanup(adb, temp_dir)
+    AdbPull(sys.argv, os.getenv('ADB', 'adb')).run()
 
 
