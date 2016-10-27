@@ -5,6 +5,10 @@ Written by Ardhi Putra Pratama H
 """
 from twisted.web.resource import Resource
 
+from Tribler.Core.SessionConfig import SessionConfigInterface
+from Tribler.Policies.BoostingPolicy import SeederRatioPolicy
+from Tribler.Test.Core.base_test import MockObject
+
 
 class MockLtTorrent(object):
     """
@@ -122,7 +126,26 @@ class MockLtSession(object):
     Mock for session and LibTorrentMgr
     """
     def __init__(self):
-        pass
+        self.lm = MockObject()
+        self.lm.ltmgr = MockObject()
+        self.lm.boosting_manager = MockObject()
+        self.lm.download_exists = MockObject()
+        self.lm.channelcast_db = MockObject()
+        self.lm.torrent_store = MockObject()
+
+        sessconfig = SessionConfigInterface()
+
+        self.get_cm_policy = lambda _: SeederRatioPolicy
+        self.get_cm_max_torrents_per_source = sessconfig.get_cm_max_torrents_per_source
+        self.get_cm_max_torrents_active = sessconfig.get_cm_max_torrents_active
+        self.get_cm_source_interval = sessconfig.get_cm_source_interval
+        self.get_cm_swarm_interval = sessconfig.get_cm_swarm_interval
+        self.get_cm_share_mode_target = sessconfig.get_cm_share_mode_target
+        self.get_cm_tracker_interval = sessconfig.get_cm_tracker_interval
+        self.get_cm_logging_interval = sessconfig.get_cm_logging_interval
+        self.get_cm_sources = sessconfig.get_cm_sources
+
+        self.add_observer = lambda *_: None
 
     def get_session(self):
         """
@@ -141,6 +164,12 @@ class MockLtSession(object):
         obligatory shutdown function
         """
         pass
+
+    def get_download(self, x):
+        """
+        mocked function to get a download
+        """
+        return x % 2
 
 
 class ResourceFailClass(Resource):

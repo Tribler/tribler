@@ -22,23 +22,23 @@ from Tribler.Policies.BoostingSource import ent2chr
 from Tribler.Policies.credit_mining_util import levenshtein_dist, source_to_string
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockMeta, MockLtPeer, MockLtSession, MockLtTorrent, \
     MockPeerId
-from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-class TestBoostingManagerPolicies(TestAsServer):
+class TestBoostingManagerPolicies(TriblerCoreTest):
     """
     The class to test core function of credit mining policies
     """
 
     def __init__(self, *argv, **kwargs):
         super(TestBoostingManagerPolicies, self).__init__(*argv, **kwargs)
+        self.session = MockLtSession()
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self, autoload_discovery=True):
         yield super(TestBoostingManagerPolicies, self).setUp()
-        self.session.get_download = lambda x: x % 2
         self.torrents = dict()
         for i in xrange(1, 11):
             mock_metainfo = MockMeta(i)
@@ -105,7 +105,7 @@ class TestBoostingManagerPolicies(TestAsServer):
         self.assertEqual(ids_stop, [5, 3, 1])
 
 
-class TestBoostingManagerUtilities(TestAsServer):
+class TestBoostingManagerUtilities(TriblerCoreTest):
     """
     Test several utilities used in credit mining
     """
@@ -127,6 +127,8 @@ class TestBoostingManagerUtilities(TestAsServer):
         self.peer[5] = MockLtPeer(MockPeerId("6"), "ip6")
         self.peer[5].setvalue(False, False, False)
 
+        self.session = MockLtSession()
+
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self, autoload_discovery=True):
@@ -140,7 +142,7 @@ class TestBoostingManagerUtilities(TestAsServer):
         self.bsettings.check_dependencies = False
         self.bsettings.initial_logging_interval = 900
 
-    def tearDown(self):
+    def tearDown(self, annotate=True):
         # TODO(ardhi) : remove it when Tribler free of singleton
         # and 1 below
         DefaultDownloadStartupConfig.delInstance()
@@ -355,11 +357,14 @@ class TestBoostingManagerUtilities(TestAsServer):
         boost_man.cancel_all_pending_tasks()
 
 
-class TestBoostingManagerError(TestAsServer):
+class TestBoostingManagerError(TriblerCoreTest):
     """
     Class to test a bunch of credit mining error handle
 
     """
+    def __init__(self, *argv, **kwargs):
+        super(TestBoostingManagerError, self).__init__(*argv, **kwargs)
+        self.session = MockLtSession()
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -377,8 +382,9 @@ class TestBoostingManagerError(TestAsServer):
         self.boosting_manager = bm.BoostingManager(self.session, self.boost_setting)
         self.session.lm.boosting_manager = self.boosting_manager
 
-    def tearDown(self):
+    def tearDown(self, annotate=True):
         DefaultDownloadStartupConfig.delInstance()
+        self.session.lm.boosting_manager.cancel_all_pending_tasks()
         super(TestBoostingManagerError, self).tearDown()
 
     def test_insert_torrent_unknown_source(self):
