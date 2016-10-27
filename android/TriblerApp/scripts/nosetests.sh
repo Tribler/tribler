@@ -2,7 +2,14 @@
 
 set -e
 
-export ADB=/opt/android-sdk/platform-tools/adb
+DEVICE=model:Nexus_6
 
 echo Start nosetests
-$ADB shell am start -n org.tribler.android/.NoseTestActivity
+adb -s $DEVICE shell am start -n org.tribler.android/.NoseTestActivity
+
+echo Waiting on tests to finish
+python wait_for_process_death.py "org.tribler.android:service_NoseTestService" $DEVICE
+
+echo Fetching results
+python adb_pull.py "nosetests.xml" "" $DEVICE
+python adb_pull.py "coverage.xml" "" $DEVICE
