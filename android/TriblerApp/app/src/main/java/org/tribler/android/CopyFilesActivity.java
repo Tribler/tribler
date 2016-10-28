@@ -94,6 +94,7 @@ public class CopyFilesActivity extends BaseActivity {
                             }
 
                             if (TextUtils.isEmpty(value)) {
+                                getExternalCacheDir().mkdirs();
                                 to = new File(getExternalCacheDir(), String.valueOf(System.currentTimeMillis()) + from.getName());
                             } else if (value.startsWith("/")) {
                                 to = new File(value);
@@ -120,7 +121,6 @@ public class CopyFilesActivity extends BaseActivity {
     }
 
     private void copy(File in, File out) throws IOException {
-        out.mkdirs();
         if (!in.exists()) {
             throw new IOException("Input file does not exist: " + in.getPath());
         }
