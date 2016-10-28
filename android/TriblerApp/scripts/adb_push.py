@@ -78,7 +78,7 @@ class AdbPush():
                 line = stdout_queue.get().strip()
 
                 if line.startswith('-'):
-                    break;
+                    break
 
                 device_date, device_time, log = line.split(' ', 2)
                 tag, path = log.split(': ', 1)
