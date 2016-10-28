@@ -41,6 +41,7 @@ class WaitForProcessDeath():
 
         msg_start = 'Process ' + self._process_name + ' '
         msg_end = ' has died'
+        msg_end_ += '.'
 
         # Read until nothing more to read
         while not stdout_reader.eof():
@@ -54,7 +55,7 @@ class WaitForProcessDeath():
                 device_date, device_time, log = line.split(' ', 2)
                 tag, msg = log.split(': ', 1)
 
-                if tag.startswith('I/ActivityManager') and msg.startswith(msg_start) and msg.endswith(msg_end):
+                if tag.startswith('I/ActivityManager') and msg.startswith(msg_start) and (msg.endswith(msg_end) or msg.endswith(msg_end_)):
                     logcat.kill()
                     exit()
 
