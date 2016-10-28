@@ -1,5 +1,6 @@
 package org.tribler.android;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -23,6 +24,7 @@ import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.content.ContextCompat;
@@ -64,6 +66,8 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     public static final int SEARCH_ACTIVITY_REQUEST_CODE = 102;
     public static final int SUBSCRIBE_TO_CHANNEL_ACTIVITY_REQUEST_CODE = 103;
     public static final int INSTALL_VLC_REQUEST_CODE = 104;
+
+    public static final int WRITE_STORAGE_PERMISSION_REQUEST_CODE = 110;
 
     static {
         // Backwards compatibility for vector graphics
@@ -306,6 +310,17 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+
+            case WRITE_STORAGE_PERMISSION_REQUEST_CODE:
+                // If request is cancelled, the result arrays are empty
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    startService();
+                } else {
+                    finish();
+                }
+                return;
+        }
         // Propagate results
         Fragment fragment = getCurrentFragment();
         if (fragment != null) {
@@ -598,7 +613,11 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     }
 
     protected void startService() {
-        TriblerdService.start(this); // Run normally
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, WRITE_STORAGE_PERMISSION_REQUEST_CODE);
+        } else {
+            TriblerdService.start(this); // Run normally
+        }
     }
 
     protected void killService() {
