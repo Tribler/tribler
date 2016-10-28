@@ -23,6 +23,5 @@ class TorrentsRandomEndpoint(resource.Resource):
             if tribler_utils.tribler_data.settings["settings"]["general"]["family_filter"] and torrent_json["category"] == 'xxx':
                 continue
 
-            torrent_json['added'] = randint(1065904348, 1465904348)
             response_torrents.append(torrent_json)
         return json.dumps({"torrents": response_torrents})

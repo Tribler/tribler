@@ -9,7 +9,7 @@ class Torrent:
         self.id = id
         self.infohash = binascii.a2b_base64(infohash).encode('hex')
         self.name = name
-        self.length = length
+        self.length = int(length)
         self.category = category
         self.files = []
         self.time_added = randint(1200000000, 1460000000)

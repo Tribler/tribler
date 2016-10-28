@@ -55,9 +55,9 @@ class DownloadsPage(QWidget):
         self.downloads_timer.stop()
 
     def load_downloads(self):
-        url = "downloads"
+        url = "downloads?get_pieces=1"
         if self.window().download_details_widget.currentIndex() == 3:
-            url = "downloads?get_peers=1"
+            url = "downloads?get_peers=1&get_pieces=1"
 
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(url, self.on_received_downloads)

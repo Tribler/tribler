@@ -25,7 +25,7 @@ class Channel:
 
     def add_random_torrents(self):
         all_torrents = tribler_utils.tribler_data.torrents
-        num_torrents_in_channel = randint(0, len(all_torrents) - 1)
+        num_torrents_in_channel = randint(1, len(all_torrents) - 1)
         for i in range(0, num_torrents_in_channel):
             self.torrents.add(tribler_utils.tribler_data.torrents[randint(0, len(all_torrents) - 1)])
 

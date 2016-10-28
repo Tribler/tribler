@@ -15,7 +15,12 @@ class DownloadsEndpoint(resource.Resource):
                 and request.args['get_peers'][0] == "1":
             get_peers = True
 
-        return json.dumps({"downloads": [download.get_json(get_peers=get_peers)
+        get_pieces = False
+        if 'get_pieces' in request.args and len(request.args['get_pieces']) > 0 \
+                and request.args['get_pieces'][0] == "1":
+            get_pieces = True
+
+        return json.dumps({"downloads": [download.get_json(get_peers=get_peers, get_pieces=get_pieces)
                                          for download in tribler_utils.tribler_data.downloads]})
 
     def render_PUT(self, request):

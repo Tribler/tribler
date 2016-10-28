@@ -7373,7 +7373,7 @@ color: white;
 </string>
                 </property>
                 <property name="currentIndex">
-                 <number>1</number>
+                 <number>0</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -7416,6 +7416,9 @@ color: white;
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
+                      <property name="fieldGrowthPolicy">
+                       <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                      </property>
                       <property name="labelAlignment">
                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                       </property>
@@ -7434,7 +7437,7 @@ color: white;
                       <property name="bottomMargin">
                        <number>12</number>
                       </property>
-                      <item row="0" column="0">
+                      <item row="2" column="0">
                        <widget class="QLabel" name="label_28">
                         <property name="styleSheet">
                          <string notr="true">font-weight: bold;</string>
@@ -7444,14 +7447,14 @@ color: white;
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item row="2" column="1">
                        <widget class="QLabel" name="download_detail_name_label">
                         <property name="text">
                          <string/>
                         </property>
                        </widget>
                       </item>
-                      <item row="1" column="0">
+                      <item row="3" column="0">
                        <widget class="QLabel" name="label_30">
                         <property name="styleSheet">
                          <string notr="true">font-weight: bold;</string>
@@ -7461,14 +7464,14 @@ color: white;
                         </property>
                        </widget>
                       </item>
-                      <item row="1" column="1">
+                      <item row="3" column="1">
                        <widget class="QLabel" name="download_detail_status_label">
                         <property name="text">
                          <string/>
                         </property>
                        </widget>
                       </item>
-                      <item row="2" column="0">
+                      <item row="4" column="0">
                        <widget class="QLabel" name="label_36">
                         <property name="styleSheet">
                          <string notr="true">font-weight: bold;</string>
@@ -7478,14 +7481,14 @@ color: white;
                         </property>
                        </widget>
                       </item>
-                      <item row="2" column="1">
+                      <item row="4" column="1">
                        <widget class="QLabel" name="download_detail_filesize_label">
                         <property name="text">
                          <string/>
                         </property>
                        </widget>
                       </item>
-                      <item row="3" column="0">
+                      <item row="5" column="0">
                        <widget class="QLabel" name="label_38">
                         <property name="styleSheet">
                          <string notr="true">font-weight: bold;</string>
@@ -7495,14 +7498,14 @@ color: white;
                         </property>
                        </widget>
                       </item>
-                      <item row="3" column="1">
+                      <item row="5" column="1">
                        <widget class="QLabel" name="download_detail_health_label">
                         <property name="text">
                          <string/>
                         </property>
                        </widget>
                       </item>
-                      <item row="4" column="0">
+                      <item row="6" column="0">
                        <widget class="QLabel" name="label_40">
                         <property name="styleSheet">
                          <string notr="true">font-weight: bold;</string>
@@ -7512,14 +7515,14 @@ color: white;
                         </property>
                        </widget>
                       </item>
-                      <item row="4" column="1">
+                      <item row="6" column="1">
                        <widget class="QLabel" name="download_detail_infohash_label">
                         <property name="text">
                          <string/>
                         </property>
                        </widget>
                       </item>
-                      <item row="5" column="0">
+                      <item row="7" column="0">
                        <widget class="QLabel" name="label_26">
                         <property name="styleSheet">
                          <string notr="true">font-weight: bold;</string>
@@ -7529,12 +7532,65 @@ color: white;
                         </property>
                        </widget>
                       </item>
-                      <item row="5" column="1">
+                      <item row="7" column="1">
                        <widget class="QLabel" name="download_detail_availability_label">
                         <property name="text">
                          <string/>
                         </property>
                        </widget>
+                      </item>
+                      <item row="0" column="1">
+                       <widget class="DownloadProgressBar" name="download_progress_bar" native="true">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="minimumSize">
+                         <size>
+                          <width>0</width>
+                          <height>30</height>
+                         </size>
+                        </property>
+                        <property name="maximumSize">
+                         <size>
+                          <width>600000</width>
+                          <height>30</height>
+                         </size>
+                        </property>
+                        <property name="styleSheet">
+                         <string notr="true">background-color: white;
+margin-right: 10px;</string>
+                        </property>
+                        <layout class="QHBoxLayout" name="horizontalLayout_36"/>
+                       </widget>
+                      </item>
+                      <item row="0" column="0">
+                       <widget class="QLabel" name="label_39">
+                        <property name="styleSheet">
+                         <string notr="true">font-weight: bold;</string>
+                        </property>
+                        <property name="text">
+                         <string>Progress</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="1" column="0">
+                       <spacer name="verticalSpacer_14">
+                        <property name="orientation">
+                         <enum>Qt::Vertical</enum>
+                        </property>
+                        <property name="sizeType">
+                         <enum>QSizePolicy::Fixed</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>6</height>
+                         </size>
+                        </property>
+                       </spacer>
                       </item>
                      </layout>
                     </widget>
@@ -8425,6 +8481,12 @@ border-top: 1px solid #555;
    <class>EllipseButton</class>
    <extends>QToolButton</extends>
    <header>TriblerGUI.widgets.ellipsebutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>DownloadProgressBar</class>
+   <extends>QWidget</extends>
+   <header>TriblerGUI.widgets.downloadprogressbar.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>
