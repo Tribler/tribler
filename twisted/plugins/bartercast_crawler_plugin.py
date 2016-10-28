@@ -135,11 +135,7 @@ class BartercastCrawlerServiceMaker(object):
                 msg("Received signal '%s' in %s (shutting down)" % (sig, frame))
                 if not self._stopping:
                     self._stopping = True
-                    try:
-                        dispersy.stop()
-                    except Exception, e:
-                        msg("Got exception when stopping dispersy: %s" % e)
-                    reactor.stop()
+                    dispersy.stop().addCallback(lambda _: reactor.stop)
             signal.signal(signal.SIGINT, signal_handler)
             signal.signal(signal.SIGTERM, signal_handler)
 

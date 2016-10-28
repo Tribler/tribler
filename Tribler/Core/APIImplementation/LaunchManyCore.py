@@ -783,7 +783,7 @@ class TriblerLaunchMany(TaskManager):
             self._logger.info("lmc: Shutting down Dispersy...")
             now = timemod.time()
             try:
-                success = self.dispersy.stop()
+                success = yield self.dispersy.stop()
             except:
                 print_exc()
                 success = False
