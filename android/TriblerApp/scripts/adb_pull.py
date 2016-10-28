@@ -72,7 +72,7 @@ class AdbPull():
             while not stdout_queue.empty():
                 line = stdout_queue.get().strip()
 
-                if line.startswith('-'):
+                if ': ' not in line: 
                     break
 
                 device_date, device_time, log = line.split(' ', 2)
