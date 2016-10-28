@@ -43,7 +43,7 @@ class ExperimentMultiChainScale(DispersyTestFunc):
             up_values.append(random_generator.randint(0, 5000))
             down_values.append(random_generator.randint(0, 5000))
 
-        str_time = "\n"
+        str_time = "0 0\n"
         start_time = time.time()
         for k in range(blocks_in_thousands):
             for i in range(1000):
@@ -54,7 +54,7 @@ class ExperimentMultiChainScale(DispersyTestFunc):
 
             # Output
             str_time += str(index + 1) + " " + str(run_time) + "\n"
-            print "\n" + str_time
+            print str_time
 
         with open("ExperimentMultiChainScale.dat", 'w') as data_file:
             data_file.write(str_time)
