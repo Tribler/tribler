@@ -1,4 +1,5 @@
 # Written by Cor-Paul Bezemer
+from twisted.internet.defer import inlineCallbacks
 from conversion import StatisticsConversion
 from payload import StatisticsRequestPayload, StatisticsResponsePayload
 
@@ -135,6 +136,7 @@ class BarterCommunity(Community):
         self._logger.debug("merging bartercast statistics")
         _barter_statistics.persist(self._dispersy)
 
+    @inlineCallbacks
     def unload_community(self):
         self._logger.debug("unloading the Barter4 community")
         # store last cached statistics
@@ -144,7 +146,7 @@ class BarterCommunity(Community):
 
         # close database
         _barter_statistics.close()
-        super(BarterCommunity, self).unload_community()
+        yield super(BarterCommunity, self).unload_community()
 
 
 class BarterCommunityCrawler(BarterCommunity):

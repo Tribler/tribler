@@ -1,5 +1,6 @@
 from random import sample
 from time import time
+from twisted.internet.defer import inlineCallbacks
 
 from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
@@ -492,6 +493,7 @@ class AllChannelCommunity(Community):
                 return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid),
                                                               self._my_member, tribler_session=self.tribler_session)
 
+    @inlineCallbacks
     def unload_preview(self):
         cleanpoint = time() - 300
         inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(
@@ -499,7 +501,7 @@ class AllChannelCommunity(Community):
         self._logger.debug("cleaning %d/%d previewchannel communities", len(inactive), len(self.dispersy._communities))
 
         for community in inactive:
-            community.unload_community()
+            yield community.unload_community()
 
     def _get_channel_id(self, cid):
         assert isinstance(cid, str)

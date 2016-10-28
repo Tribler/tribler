@@ -1,6 +1,7 @@
 import logging
 
 from twisted.internet import reactor
+from twisted.internet.defer import DeferredList, maybeDeferred
 from twisted.internet.protocol import Protocol, DatagramProtocol, connectionDone, Factory
 
 from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, CIRCUIT_ID_PORT
@@ -310,14 +311,18 @@ class Socks5Server(object):
             self.twisted_ports.append(reactor.listenTCP(port, factory))
 
     def stop(self):
+        deferred_list = []
+
         if self.twisted_ports:
             for session in self.sessions:
                 session.close('stopping')
             self.sessions = []
 
             for twisted_port in self.twisted_ports:
-                twisted_port.stopListening()
+                deferred_list.append(maybeDeferred(twisted_port.stopListening))
             self.twisted_ports = []
+
+        return DeferredList(deferred_list)
 
     def buildProtocol(self, addr, hops):
         socks5connection = Socks5Connection(self, self.community.selection_strategy, hops)

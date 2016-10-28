@@ -8,6 +8,7 @@ Full documentation will be available at http://repository.tudelft.nl/.
 
 import logging
 import base64
+from twisted.internet.defer import inlineCallbacks
 
 from twisted.internet.task import LoopingCall
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -384,11 +385,12 @@ class MultiChainCommunity(Community):
         previous_hash = self.persistence.get_latest_hash(self._public_key)
         return previous_hash if previous_hash else GENESIS_ID
 
+    @inlineCallbacks
     def unload_community(self):
         self.logger.debug("Unloading the MultiChain Community.")
         if self.notifier:
             self.notifier.remove_observer(self.on_tunnel_remove)
-        super(MultiChainCommunity, self).unload_community()
+        yield super(MultiChainCommunity, self).unload_community()
         # Close the persistence layer
         self.persistence.close()
 
