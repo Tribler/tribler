@@ -9,7 +9,7 @@ import os
 import shutil
 
 from twisted.internet import defer
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, succeed
 from twisted.internet.task import LoopingCall
 from twisted.web.server import Site
 from twisted.web.static import File
@@ -306,6 +306,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         self.assertEqual(cid, self.expected_votecast_cid)
         self.assertEqual(vote, self.expected_votecast_vote)
         self.create_votecast_called = True
+        return succeed(None)
 
     @blocking_call_on_reactor_thread
     def create_fake_allchannel_community(self):
