@@ -136,7 +136,7 @@ elif is_android():
         return os.path.realpath(unicode(os.environ['EXTERNAL_STORAGE']))
 
     def get_appstate_dir():
-        return os.path.realpath(os.path.join(unicode(os.environ['ANDROID_PRIVATE']), u'../.Tribler'))
+        return os.path.join(get_home_dir(), u'.Tribler')
 
     def get_picture_dir():
         return os.path.join(get_home_dir(), u'DCIM')
