@@ -120,6 +120,10 @@ public class CopyFilesActivity extends BaseActivity {
     }
 
     private void copy(File in, File out) throws IOException {
+        out.mkdirs();
+        if (!in.exists()) {
+            throw new IOException("Input file does not exist: " + in.getPath());
+        }
         runOnUiThread(() -> showLoading(in.getPath() + "\n\n" + out.getPath()));
 
         InputStream input = new FileInputStream(in.getCanonicalFile());
