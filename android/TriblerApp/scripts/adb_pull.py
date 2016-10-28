@@ -1,6 +1,5 @@
 import sys
 import os
-import threading
 import subprocess
 import time
 import Queue
@@ -77,14 +76,14 @@ class AdbPull():
                     break;
 
                 device_date, device_time, log = line.split(' ', 2)
-                tag, file = log.split(': ', 1)
+                tag, path = log.split(': ', 1)
 
                 if tag.startswith('E/CopyFile'):
                     print log
                     break
 
                 if tag.startswith('I/CopyFileStartIn'):
-                    if file.endswith(self._input_file):
+                    if path.endswith(self._input_file):
                         started = True
                         print log
 
@@ -92,7 +91,7 @@ class AdbPull():
 
                 if tag.startswith('I/CopyFileStartOut'):
                     if started:
-                        temp_name = file
+                        temp_name = path
                         print log
 
                     break
@@ -104,19 +103,19 @@ class AdbPull():
                     break
 
                 if tag.startswith('I/CopyFileDoneOut'):
-                    if not started or file != temp_name:
+                    if not started or path != temp_name:
                         break
 
                     print log
 
                     # Pull file
-                    cmd_pull = self._adb + ' pull ' + file + ' ' + self._output_file
+                    cmd_pull = self._adb + ' pull ' + path + ' ' + self._output_file
                     print cmd_pull
                     pull = subprocess.Popen(cmd_pull.split())
                     pull.wait()
 
                     # Cleanup
-                    cmd_remove = self._adb + ' shell rm "' + file + '"'
+                    cmd_remove = self._adb + ' shell rm "' + path + '"'
                     print cmd_remove
                     remove = subprocess.Popen(cmd_remove.split())
                     remove.wait()

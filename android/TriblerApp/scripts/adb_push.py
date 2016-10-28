@@ -1,6 +1,5 @@
 import sys
 import os
-import threading
 import subprocess
 import time
 import Queue
@@ -82,21 +81,21 @@ class AdbPush():
                     break;
 
                 device_date, device_time, log = line.split(' ', 2)
-                tag, file = log.split(': ', 1)
+                tag, path = log.split(': ', 1)
 
                 if tag.startswith('E/CopyFile'):
                     print log
                     break
 
                 if tag.startswith('I/CopyFileStartIn'):
-                    if file == self._temp_file:
+                    if path == self._temp_file:
                         started = True
                         print log
 
                     break
 
                 if tag.startswith('I/CopyFileStartOut'):
-                    if started and file.endswith(self._output_file):
+                    if started and path.endswith(self._output_file):
                         print log
 
                     break
@@ -108,7 +107,7 @@ class AdbPush():
                     break
 
                 if tag.startswith('I/CopyFileDoneOut'):
-                    if not started or not file.endswith(self._output_file):
+                    if not started or not path.endswith(self._output_file):
                         break
 
                     print log

@@ -1,6 +1,5 @@
 import sys
 import os
-import threading
 import subprocess
 import time
 import Queue
