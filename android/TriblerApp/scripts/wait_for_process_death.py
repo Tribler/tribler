@@ -41,7 +41,7 @@ class WaitForProcessDeath():
 
         msg_start = 'Process ' + self._process_name + ' '
         msg_end = ' has died'
-        msg_end_ += '.'
+        msg_end_ = msg_end + '.'
 
         # Read until nothing more to read
         while not stdout_reader.eof():
