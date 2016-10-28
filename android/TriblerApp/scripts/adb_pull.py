@@ -60,7 +60,7 @@ class AdbPull():
         stdout_reader.start()
 
         # Start copy file
-        cmd_copy = self._adb + ' shell am start -n org.tribler.android/.CopyFilesActivity --es "' + self._input_file + '"'
+        cmd_copy = self._adb + ' shell am start -n org.tribler.android/.CopyFilesActivity --es "' + self._input_file + '" ""'
         print cmd_copy
         copy = subprocess.Popen(cmd_copy.split())
 
