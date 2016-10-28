@@ -2,7 +2,9 @@
 
 set -e
 
-export ADB=/opt/android-sdk/platform-tools/adb
+export ADB="adb -s $DEVICE"
 
-echo Make screenshot, saving to screen.png...
-$ADB shell screencap -p | sed 's/\r$//' > screen.png
+timestamp=$(date +%s)
+
+echo Making screenshot
+$ADB shell screencap -p | sed 's/\r$//' > $DEVICE.$timestamp.png

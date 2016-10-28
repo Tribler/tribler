@@ -2,13 +2,15 @@
 
 set -e
 
-DEVICE=model:Nexus_6
+export ADB="adb -s $DEVICE"
+
+timestamp=$(date +%s)
 
 echo Start experiment
-adb -s $DEVICE shell am start -n org.tribler.android/.ExperimentActivity --es "experiment" "ExperimentMultiChainScale" --ei "blocks_in_thousands" 10
+$ADB shell am start -n org.tribler.android/.ExperimentActivity --es "experiment" "ExperimentMultiChainScale" --ei "blocks_in_thousands" 10
 
 echo Waiting on experiment to finish
-python wait_for_process_death.py "org.tribler.android:service_ExperimentService" $DEVICE
+python wait_for_process_death.py "org.tribler.android:service_ExperimentService"
 
 echo Fetching results
-python adb_pull.py "ExperimentMultiChainScale.dat" "" $DEVICE
+python adb_pull.py "ExperimentMultiChainScale.dat" "$DEVICE.$timestamp.ExperimentMultiChainScale.dat"

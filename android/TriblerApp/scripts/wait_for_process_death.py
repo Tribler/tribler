@@ -1,34 +1,11 @@
 import sys
 import os
-import Queue
-import subprocess
 import threading
+import subprocess
 import time
+import Queue
 
-
-class AsynchronousFileReader(threading.Thread):
-    '''
-    Helper class to implement asynchronous reading of a file
-    in a separate thread. Pushes read lines on a queue to
-    be consumed in another thread.
-    '''
-
-    def __init__(self, fd, queue):
-        assert isinstance(queue, Queue.Queue)
-        assert callable(fd.readline)
-        threading.Thread.__init__(self)
-        self._fd = fd
-        self._queue = queue
-
-    def run(self):
-        '''The body of the tread: read lines and put them on the queue.'''
-        for line in iter(self._fd.readline, ''):
-            self._queue.put(line)
-
-    def eof(self):
-        '''Check whether there is no more content to expect.'''
-        return not self.is_alive() and self._queue.empty()
-
+from async_file_reader import AsynchronousFileReader
 
 
 class WaitForProcessDeath():
@@ -37,6 +14,7 @@ class WaitForProcessDeath():
     '''
 
     def __init__(self, argv, adb):
+        self._adb = adb
         nr_args = len(argv)
 
         if nr_args > 1:
@@ -45,12 +23,6 @@ class WaitForProcessDeath():
         else:
             print 'Error: No process name specified!'
             exit()
-
-        self._adb = adb
-
-        if nr_args > 2:
-            device = argv[2]
-            self._adb += ' -s ' + device
 
 
     def run(self):
@@ -73,13 +45,14 @@ class WaitForProcessDeath():
 
         # Read until nothing more to read
         while not stdout_reader.eof():
+            time.sleep(1)
             while not stdout_queue.empty():
                 line = stdout_queue.get().strip()
 
                 if line.startswith('-'):
                     break;
 
-                date, time, log = line.split(' ', 2)
+                device_date, device_time, log = line.split(' ', 2)
                 tag, msg = log.split(': ', 1)
 
                 if tag.startswith('I/ActivityManager') and msg.startswith(msg_start) and msg.endswith(msg_end):

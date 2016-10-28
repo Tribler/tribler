@@ -2,7 +2,9 @@
 
 set -e
 
-export ADB=/opt/android-sdk/platform-tools/adb
+export ADB="adb -s $DEVICE"
+
+timestamp=$(date +%s)
 
 echo Start twistd
 $ADB shell am start -n org.tribler.android/.TwistdActivity

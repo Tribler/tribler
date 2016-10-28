@@ -1,34 +1,11 @@
 import sys
 import os
-import Queue
-import subprocess
 import threading
+import subprocess
 import time
+import Queue
 
-
-class AsynchronousFileReader(threading.Thread):
-    '''
-    Helper class to implement asynchronous reading of a file
-    in a separate thread. Pushes read lines on a queue to
-    be consumed in another thread.
-    '''
-
-    def __init__(self, fd, queue):
-        assert isinstance(queue, Queue.Queue)
-        assert callable(fd.readline)
-        threading.Thread.__init__(self)
-        self._fd = fd
-        self._queue = queue
-
-    def run(self):
-        '''The body of the tread: read lines and put them on the queue.'''
-        for line in iter(self._fd.readline, ''):
-            self._queue.put(line)
-
-    def eof(self):
-        '''Check whether there is no more content to expect.'''
-        return not self.is_alive() and self._queue.empty()
-
+from async_file_reader import AsynchronousFileReader
 
 
 class AdbPull():
@@ -37,6 +14,7 @@ class AdbPull():
     '''
 
     def __init__(self, argv, adb):
+        self._adb = adb
         nr_args = len(argv)
 
         if nr_args > 1:
@@ -65,12 +43,6 @@ class AdbPull():
         if os.path.exists(self._output_file):
             print 'Warning: Overwriting output file!'
 
-        self._adb = adb
-
-        if nr_args > 3:
-            device = argv[3]
-            self._adb += ' -s ' + device
-
 
     def run(self):
         # Clear logcat
@@ -88,7 +60,7 @@ class AdbPull():
         stdout_reader.start()
 
         # Start copy file
-        cmd_copy = self._adb + ' shell am start -n org.tribler.android/.CopyFilesActivity -e "' + self._input_file + '" ""'
+        cmd_copy = self._adb + ' shell am start -n org.tribler.android/.CopyFilesActivity --es "' + self._input_file + '"'
         print cmd_copy
         copy = subprocess.Popen(cmd_copy.split())
 
@@ -97,13 +69,14 @@ class AdbPull():
 
         # Read until nothing more to read
         while not stdout_reader.eof():
+            time.sleep(1)
             while not stdout_queue.empty():
                 line = stdout_queue.get().strip()
 
                 if line.startswith('-'):
                     break;
 
-                date, time, log = line.split(' ', 2)
+                device_date, device_time, log = line.split(' ', 2)
                 tag, file = log.split(': ', 1)
 
                 if tag.startswith('E/CopyFile'):
