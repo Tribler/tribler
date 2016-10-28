@@ -9,7 +9,7 @@ import os
 import shutil
 
 from twisted.internet import defer
-from twisted.internet.defer import inlineCallbacks, succeed
+from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
 from twisted.web.server import Site
 from twisted.web.static import File
@@ -299,15 +299,6 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
     def insert_torrents_into_channel(self, torrent_list):
         self.channel_db_handler.on_torrents_from_dispersy(torrent_list)
 
-    def on_dispersy_create_votecast(self, cid, vote, _):
-        """
-        Check whether we have the expected parameters when this method is called.
-        """
-        self.assertEqual(cid, self.expected_votecast_cid)
-        self.assertEqual(vote, self.expected_votecast_vote)
-        self.create_votecast_called = True
-        return succeed(None)
-
     @blocking_call_on_reactor_thread
     def create_fake_allchannel_community(self):
         """
@@ -318,7 +309,6 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         fake_member = DummyMember(self.session.lm.dispersy, 1, "a" * 20)
         member = self.session.lm.dispersy.get_new_member(u"curve25519")
         fake_community = AllChannelCommunity(self.session.lm.dispersy, fake_member, member)
-        fake_community.disp_create_votecast = self.on_dispersy_create_votecast
         self.session.lm.dispersy._communities = {"allchannel": fake_community}
 
     def set_boosting_settings(self):
