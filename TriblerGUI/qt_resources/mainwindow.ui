@@ -900,7 +900,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>7</number>
+         <number>3</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -4408,6 +4408,9 @@ background-color: transparent;</string>
               </property>
               <item>
                <widget class="LazyLoadList" name="channel_torrents_list">
+                <property name="focusPolicy">
+                 <enum>Qt::NoFocus</enum>
+                </property>
                 <property name="styleSheet">
                  <string notr="true">QListWidget::item:hover {
 background-color: #303030;
