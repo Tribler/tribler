@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem, QAction
 
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 from TriblerGUI.defs import *
+from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, format_speed
 
 
@@ -126,10 +127,28 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
         menu.exec_(self.window().download_files_list.mapToGlobal(pos))
 
+    def get_included_file_list(self):
+        return [file["name"] for file in self.current_download["files"] if file["included"]]
+
     def on_file_included(self, file_data):
-        # TODO
-        pass
+        included_list = self.get_included_file_list()
+        if not file_data["name"] in included_list:
+            included_list.append(file_data["name"])
+
+        self.set_included_files(included_list)
 
     def on_file_excluded(self, file_data):
-        # TODO
-        pass
+        included_list = self.get_included_file_list()
+        if file_data["name"] in included_list:
+            included_list.remove(file_data["name"])
+
+        self.set_included_files(included_list)
+
+    def set_included_files(self, files):
+        data_str = ''.join("selected_files[]=%s&" % file for file in files)[:-1]
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("downloads/%s" % self.current_download['infohash'], self.on_files_included,
+                                         method='PATCH', data=data_str)
+
+    def on_files_included(self, response):
+        print response
