@@ -47,13 +47,13 @@ class TestHiddenTunnelCommunity(TestTunnelBase):
         """
         def download_states_callback(dslist):
             self.tunnel_community_seeder.monitor_downloads(dslist)
-            return 1.0, []
+            return []
 
         self.tunnel_community_seeder.settings.min_circuits = 0
         self.tunnel_community_seeder.settings.max_circuits = 0
         self.session2.set_anon_proxy_settings(
             2, ("127.0.0.1", self.session2.get_tunnel_community_socks5_listen_ports()))
-        self.session2.set_download_states_callback(download_states_callback, False)
+        self.session2.set_download_states_callback(download_states_callback)
 
         # Wait for the introduction point to announce itself to the DHT
         def dht_announce(info_hash, community):

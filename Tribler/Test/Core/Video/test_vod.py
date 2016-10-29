@@ -78,7 +78,7 @@ class TestVideoOnDemand(TestAsServer):
                            ds.get_current_speed(UPLOAD),
                            ds.get_current_speed(DOWNLOAD))
 
-        return (1.0, [])
+        return []
 
     def state_callback(self, ds):
         download = ds.get_download()

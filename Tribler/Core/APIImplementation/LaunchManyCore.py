@@ -14,7 +14,8 @@ from traceback import print_exc
 
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
-from twisted.internet.task import deferLater
+from twisted.internet.task import deferLater, LoopingCall
+from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -60,6 +61,8 @@ class TriblerLaunchMany(TaskManager):
         self.dispersy = None
         self.state_cb_count = 0
         self.previous_active_downloads = []
+        self.download_states_lc = None
+        self.get_peer_list = []
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -481,27 +484,43 @@ class TriblerLaunchMany(TaskManager):
     #
     # State retrieval
     #
-    def set_download_states_callback(self, usercallback, getpeerlist, when=0.0):
-        """ Called by any thread """
+    def stop_download_states_callback(self):
+        """
+        Stop any download states callback if present.
+        """
+        if self.is_pending_task_active("download_states_lc"):
+            self.cancel_pending_task("download_states_lc")
+
+    def set_download_states_callback(self, usercallback, interval=1.0):
+        """
+        Set the download state callback. Remove any old callback if it's present.
+        """
+        self.stop_download_states_callback()
+        self._logger.debug("Starting the download state callback with interval %f", interval)
+        self.download_states_lc = self.register_task("download_states_lc",
+                                                     LoopingCall(self._invoke_states_cb, usercallback))
+        self.download_states_lc.start(interval)
+
+    def _invoke_states_cb(self, callback):
+        """
+        Invoke the download states callback with a list of the download states.
+        """
+        dslist = []
         for d in self.downloads.values():
-            # Arno, 2012-05-23: At Niels' request to get total transferred
-            # stats. Causes MOREINFO message to be sent from swift proc
-            # for every initiated dl.
-            # 2012-07-31: Turn MOREINFO on/off on demand for efficiency.
-            # 2013-04-17: Libtorrent now uses set_moreinfo_stats as well.
-            d.set_moreinfo_stats(True in getpeerlist or d.get_def().get_infohash() in getpeerlist)
+            d.set_moreinfo_stats(True in self.get_peer_list or d.get_def().get_infohash() in
+                                 self.get_peer_list)
+            ds = d.network_get_state(None, False)
+            dslist.append(ds)
 
-        network_set_download_states_callback_lambda = lambda: self.network_set_download_states_callback(usercallback)
+        def on_cb_done(new_get_peer_list):
+            self.get_peer_list = new_get_peer_list
 
-        random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
-        self.register_task("download_states_callback_%s" % random_id,
-                           reactor.callLater(when, reactor.callInThread, network_set_download_states_callback_lambda))
+        return deferToThread(callback, dslist).addCallback(on_cb_done)
 
     def sesscb_states_callback(self, states_list):
         """
         This method is periodically (every second) called with a list of the download states of the active downloads.
         """
-        wantpeers = []
         self.state_cb_count += 1
 
         # Check to see if a download has finished
@@ -556,27 +575,7 @@ class TriblerLaunchMany(TaskManager):
         if self.state_cb_count % 4 == 0 and self.tunnel_community:
             self.tunnel_community.monitor_downloads(states_list)
 
-        return 1.0, wantpeers
-
-    def network_set_download_states_callback(self, usercallback):
-        """ Called by network thread """
-        dslist = []
-        for d in self.downloads.values():
-            ds = d.network_get_state(None, False)
-            dslist.append(ds)
-
-        # Invoke the usercallback function on a separate thread.
-        # After the callback is invoked, the return values will be passed to the
-        # returncallback for post-callback processing.
-        def session_getstate_usercallback_target():
-            when, newgetpeerlist = usercallback(dslist)
-            if when > 0.0:
-                # reschedule
-                self.set_download_states_callback(usercallback, newgetpeerlist, when=when)
-
-        random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
-        self.register_task("session_getstate_cb_target_%s" % random_id,
-                           reactor.callLater(0, session_getstate_usercallback_target))
+        return []
 
     #
     # Persistence methods

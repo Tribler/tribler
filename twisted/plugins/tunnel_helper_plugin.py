@@ -236,7 +236,7 @@ class Tunnel(object):
 
         blockingCallFromThread(reactor, start_community)
 
-        self.session.set_download_states_callback(self.download_states_callback, False)
+        self.session.set_download_states_callback(self.download_states_callback, interval=4.0)
 
     def download_states_callback(self, dslist):
         try:
@@ -244,7 +244,7 @@ class Tunnel(object):
         except:
             logger.error("Monitoring downloads failed")
 
-        return (4.0, [])
+        return []
 
     def stop(self):
         if self.clean_messages_lc:

@@ -330,7 +330,7 @@ class Session(SessionConfigInterface):
 
         self.lm.remove_id(infohash)
 
-    def set_download_states_callback(self, usercallback, getpeerlist=None):
+    def set_download_states_callback(self, usercallback, interval=1.0):
         """
         See Download.set_state_callback. Calls usercallback with a list of
         DownloadStates, one for each Download in the Session as first argument.
@@ -344,7 +344,7 @@ class Session(SessionConfigInterface):
 
         @param usercallback A function adhering to the above spec.
         """
-        self.lm.set_download_states_callback(usercallback, getpeerlist or [])
+        self.lm.set_download_states_callback(usercallback, interval)
 
     #
     # Config parameters that only exist at runtime
