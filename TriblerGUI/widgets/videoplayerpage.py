@@ -21,6 +21,7 @@ class VideoPlayerPage(QWidget):
         self.active_infohash = ""
         self.active_index = -1
         self.is_full_screen = False
+        self.media = None
 
     def initialize_player(self):
         if vlc.plugin_path:
@@ -61,11 +62,13 @@ class VideoPlayerPage(QWidget):
         self.update_timer.timeout.connect(self.on_update_timer_tick)
         self.update_timer.start(500)
 
-        self.buffer_dialog = DialogContainer(self.window().video_player_widget)
-
         self.window().left_menu_playlist.playing_item_change.connect(self.change_playing_index)
 
     def on_update_timer_tick(self):
+        total_duration_str = "0:00"
+        if self.media and self.media.get_duration() != 0:
+            total_duration_str = seconds_to_string(self.media.get_duration() / 1000)
+
         if self.active_infohash == "" or self.active_index == -1:
             self.window().video_player_position_slider.setValue(0)
             self.window().video_player_time_label.setText("0:00 / 0:00")
@@ -75,7 +78,8 @@ class VideoPlayerPage(QWidget):
                 video_time = 0
 
             self.window().video_player_position_slider.setValue(self.mediaplayer.get_position() * 1000)
-            self.window().video_player_time_label.setText("%s / 0:00" % seconds_to_string(video_time / 1000))
+            self.window().video_player_time_label.setText("%s / %s" %
+                                                          (seconds_to_string(video_time / 1000), total_duration_str))
 
     def update_with_download_info(self, download):
         if len(download["files"]) > 0 and not self.window().left_menu_playlist.loaded_list:
@@ -128,8 +132,8 @@ class VideoPlayerPage(QWidget):
             self.window().exit_full_screen()
         self.is_full_screen = not self.is_full_screen
 
-    def set_torrent(self, torrent_info):
-        self.active_infohash = torrent_info['infohash']
+    def set_torrent_infohash(self, infohash):
+        self.active_infohash = infohash
 
     def change_playing_index(self, index, filename):
         self.active_index = index

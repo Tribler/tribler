@@ -178,6 +178,11 @@ class DownloadsPage(QWidget):
         self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_stopped,
                                          method='PATCH', data="state=stop")
 
+    def on_play_download_clicked(self):
+        self.window().clicked_menu_button_video_player()
+        self.window().video_player_page.set_torrent_infohash(self.selected_item.download_info["infohash"])
+        self.window().left_menu_playlist.set_loading()
+
     def on_download_stopped(self, json_result):
         if json_result["modified"]:
             self.selected_item.download_info['status'] = "DLSTATUS_STOPPED"
@@ -243,6 +248,7 @@ class DownloadsPage(QWidget):
 
         start_action = QAction('Start', self)
         stop_action = QAction('Stop', self)
+        play_action = QAction('Play', self)
         remove_download_action = QAction('Remove download', self)
         force_recheck_action = QAction('Force recheck', self)
         export_download_action = QAction('Export .torrent file', self)
@@ -252,6 +258,7 @@ class DownloadsPage(QWidget):
         start_action.setEnabled(DownloadsPage.start_download_enabled(self.selected_item))
         stop_action.triggered.connect(self.on_stop_download_clicked)
         stop_action.setEnabled(DownloadsPage.stop_download_enabled(self.selected_item))
+        play_action.triggered.connect(self.on_play_download_clicked)
         remove_download_action.triggered.connect(self.on_remove_download_clicked)
         force_recheck_action.triggered.connect(self.on_force_recheck_download)
         force_recheck_action.setEnabled(DownloadsPage.force_recheck_download_enabled(self.selected_item))
@@ -260,6 +267,7 @@ class DownloadsPage(QWidget):
 
         menu.addAction(start_action)
         menu.addAction(stop_action)
+        menu.addAction(play_action)
         menu.addSeparator()
         menu.addAction(remove_download_action)
         menu.addSeparator()

@@ -71,7 +71,7 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
 
     def on_play_request_done(self, result, response_code):
         self.window().clicked_menu_button_video_player()
-        self.window().video_player_page.set_torrent(self.torrent_info)
+        self.window().video_player_page.set_torrent_infohash(self.torrent_info["infohash"])
         self.window().left_menu_playlist.set_loading()
 
     def enterEvent(self, event):
