@@ -1,7 +1,6 @@
 from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtWidgets import QWidget, QGraphicsScene
 
-from TriblerGUI.defs import PAGE_DISCOVERED
 from TriblerGUI.utilities import get_image_path
 
 

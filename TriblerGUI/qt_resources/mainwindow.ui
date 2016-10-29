@@ -900,7 +900,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>3</number>
+         <number>7</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -4034,6 +4034,9 @@ color: #B5B5B5;</string>
              <string notr="true">QListWidget::item:hover {
 background-color: #303030;
 }
+QListWidget::item:selected {
+background-color: #404040;
+}
 QListWidget::item {
 border-bottom: 1px solid #303030;
 }
@@ -4043,7 +4046,7 @@ border-top: 1px solid #555;
 }</string>
             </property>
             <property name="selectionMode">
-             <enum>QAbstractItemView::NoSelection</enum>
+             <enum>QAbstractItemView::SingleSelection</enum>
             </property>
             <property name="verticalScrollMode">
              <enum>QAbstractItemView::ScrollPerPixel</enum>
@@ -4408,12 +4411,12 @@ background-color: transparent;</string>
               </property>
               <item>
                <widget class="LazyLoadList" name="channel_torrents_list">
-                <property name="focusPolicy">
-                 <enum>Qt::NoFocus</enum>
-                </property>
                 <property name="styleSheet">
                  <string notr="true">QListWidget::item:hover {
 background-color: #303030;
+}
+QListWidget::item:selected {
+background-color: #404040;
 }
 QListWidget::item {
 border-bottom: 1px solid #303030;
@@ -4424,7 +4427,7 @@ border-top: 1px solid #555;
 }</string>
                 </property>
                 <property name="selectionMode">
-                 <enum>QAbstractItemView::NoSelection</enum>
+                 <enum>QAbstractItemView::SingleSelection</enum>
                 </property>
                 <property name="verticalScrollMode">
                  <enum>QAbstractItemView::ScrollPerPixel</enum>
@@ -7376,7 +7379,7 @@ color: white;
 </string>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>1</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -7623,6 +7626,9 @@ margin-right: 10px;</string>
                   </property>
                   <item>
                    <widget class="QTreeWidget" name="download_files_list">
+                    <property name="contextMenuPolicy">
+                     <enum>Qt::CustomContextMenu</enum>
+                    </property>
                     <property name="styleSheet">
                      <string notr="true">QTreeWidget {
 border: none;
@@ -7663,7 +7669,7 @@ background-color: transparent;
                      <bool>false</bool>
                     </property>
                     <property name="selectionMode">
-                     <enum>QAbstractItemView::NoSelection</enum>
+                     <enum>QAbstractItemView::SingleSelection</enum>
                     </property>
                     <property name="indentation">
                      <number>0</number>
@@ -8074,6 +8080,9 @@ color: #B5B5B5;</string>
             <property name="styleSheet">
              <string notr="true">QListWidget::item:hover {
 background-color: #303030;
+}
+QListWidget::item:selected {
+background-color: #404040;
 }
 QListWidget::item {
 border-bottom: 1px solid #303030;

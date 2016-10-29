@@ -34,6 +34,7 @@ class DownloadsPage(QWidget):
 
         self.window().downloads_list.customContextMenuRequested.connect(self.on_right_click_item)
 
+        self.window().download_details_widget.initialize_details_widget()
         self.window().download_details_widget.hide()
 
         self.window().downloads_filter_input.textChanged.connect(self.on_filter_text_changed)

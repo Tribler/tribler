@@ -74,7 +74,7 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         self.window().video_player_page.set_torrent_infohash(self.torrent_info["infohash"])
         self.window().left_menu_playlist.set_loading()
 
-    def enterEvent(self, event):
+    def show_buttons(self):
         if not self.show_controls:
             self.remove_control_button_container.setHidden(True)
             self.control_buttons_container.setHidden(False)
@@ -85,6 +85,12 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
             self.remove_control_button_container.setHidden(False)
             self.remove_torrent_button.setIcon(QIcon(get_image_path('delete.png')))
 
-    def leaveEvent(self, event):
+    def hide_buttons(self):
         self.remove_control_button_container.setHidden(True)
         self.control_buttons_container.setHidden(True)
+
+    def enterEvent(self, event):
+        self.show_buttons()
+
+    def leaveEvent(self, event):
+        self.hide_buttons()

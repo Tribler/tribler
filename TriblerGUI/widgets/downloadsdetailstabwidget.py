@@ -1,4 +1,7 @@
-from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem, QAction
+
+from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 from TriblerGUI.defs import *
 from TriblerGUI.utilities import format_size, format_speed
 
@@ -8,6 +11,9 @@ class DownloadsDetailsTabWidget(QTabWidget):
     def __init__(self, parent):
         super(DownloadsDetailsTabWidget, self).__init__(parent)
         self.current_download = None
+
+    def initialize_details_widget(self):
+        self.window().download_files_list.customContextMenuRequested.connect(self.on_right_click_file_item)
 
     def update_with_download(self, download):
         self.current_download = download
@@ -33,6 +39,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
             item.setText(1, format_size(float(file["size"])))
             item.setText(2, '{percent:.1%}'.format(percent=file["progress"]))
             item.setText(3, "yes" if file["included"] else "no")
+            item.setData(0, Qt.UserRole, file)
             self.window().download_files_list.addTopLevelItem(item)
 
         # Populate the trackers list
@@ -99,3 +106,30 @@ class DownloadsDetailsTabWidget(QTabWidget):
         item.setText(3, format_speed(peer['uprate']))
         item.setText(4, state)
         item.setText(5, peer['extended_version'])
+
+    def on_right_click_file_item(self, pos):
+        self.selected_item = self.window().download_files_list.selectedItems()[0]
+        file_data = self.selected_item.data(0, Qt.UserRole)
+
+        menu = TriblerActionMenu(self)
+
+        include_action = QAction('Include', self)
+        exclude_action = QAction('Exclude', self)
+
+        include_action.triggered.connect(lambda: self.on_file_included(file_data))
+        include_action.setEnabled(not file_data["included"])
+        exclude_action.triggered.connect(lambda: self.on_file_excluded(file_data))
+        exclude_action.setEnabled(file_data["included"])
+
+        menu.addAction(include_action)
+        menu.addAction(exclude_action)
+
+        menu.exec_(self.window().download_files_list.mapToGlobal(pos))
+
+    def on_file_included(self, file_data):
+        # TODO
+        pass
+
+    def on_file_excluded(self, file_data):
+        # TODO
+        pass

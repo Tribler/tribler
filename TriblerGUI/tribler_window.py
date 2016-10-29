@@ -8,8 +8,8 @@ from PyQt5 import uic
 from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication
 from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
-    QCompleter, QApplication, QStyledItemDelegate
+from PyQt5.QtWidgets import QMainWindow, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
+    QCompleter, QApplication, QStyledItemDelegate, QListWidget
 import signal
 
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
@@ -78,7 +78,7 @@ class TriblerWindow(QMainWindow):
 
         # Remove the focus rect on OS X
         [widget.setAttribute(Qt.WA_MacShowFocusRect, 0) for widget in self.findChildren(QLineEdit) +
-         self.findChildren(QListView) + self.findChildren(QTreeWidget)]
+         self.findChildren(QListWidget) + self.findChildren(QTreeWidget)]
 
         self.menu_buttons = [self.left_menu_button_home, self.left_menu_button_my_channel,
                              self.left_menu_button_subscriptions, self.left_menu_button_video_player,
