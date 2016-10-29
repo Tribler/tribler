@@ -416,7 +416,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         """
         Return the total number of pieces
         """
-        return get_info_from_handle(self.handle).num_pieces()
+        if get_info_from_handle(self.handle):
+            return get_info_from_handle(self.handle).num_pieces()
 
     @checkHandleAndSynchronize(0.0)
     def get_byte_progress(self, byteranges, consecutive=False):
