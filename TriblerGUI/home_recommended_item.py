@@ -1,7 +1,11 @@
+from urllib import quote_plus
+
 from PyQt5.QtCore import QPoint, QSize, Qt
 from PyQt5.QtGui import QIcon, QCursor
 from PyQt5.QtWidgets import QWidget, QLabel, QSizePolicy, QToolButton
 
+from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
+from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.tribler_window import fc_home_recommended_item
 from TriblerGUI.utilities import pretty_date, get_image_path, format_size
 
@@ -54,7 +58,30 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         """)
         self.download_button.setIcon(QIcon(get_image_path('downloads.png')))
         self.download_button.setIconSize(QSize(18, 18))
+        self.download_button.clicked.connect(self.on_download_button_clicked)
         self.download_button.hide()
+
+    def on_download_button_clicked(self):
+        self.dialog = StartDownloadDialog(self.window().stackedWidget, self.torrent_info["name"])
+        self.dialog.button_clicked.connect(self.on_start_download_action)
+        self.dialog.show()
+
+    def on_start_download_action(self, action):
+        if action == 1:
+            magnet_link = quote_plus("magnet:?xt=urn:btih:%s&dn=%s" %
+                                     (self.torrent_info["infohash"], self.torrent_info["name"]))
+            anon_hops = 1 if self.dialog.dialog_widget.anon_download_checkbox.isChecked() else 0
+            safe_seeding = 1 if self.dialog.dialog_widget.safe_seed_checkbox.isChecked() else 0
+            post_data = str("uri=%s&anon_hops=%d&safe_seeding=%d" % (magnet_link, anon_hops, safe_seeding))
+            self.request_mgr = TriblerRequestManager()
+            self.request_mgr.perform_request("downloads", self.on_start_download_request_done,
+                                             method='PUT', data=post_data)
+
+        self.dialog.setParent(None)
+        self.dialog = None
+
+    def on_start_download_request_done(self, result, response_code):
+        self.window().left_menu_button_downloads.click()
 
     def update_with_torrent(self, torrent):
         self.show_torrent = True

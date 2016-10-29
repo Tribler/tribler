@@ -179,7 +179,7 @@ class DownloadsPage(QWidget):
                                          method='PATCH', data="state=stop")
 
     def on_play_download_clicked(self):
-        self.window().clicked_menu_button_video_player()
+        self.window().left_menu_button_video_player.click()
         self.window().video_player_page.set_torrent_infohash(self.selected_item.download_info["infohash"])
         self.window().left_menu_playlist.set_loading()
 
@@ -210,6 +210,8 @@ class DownloadsPage(QWidget):
             index = self.window().downloads_list.indexOfTopLevelItem(self.selected_item)
             self.window().downloads_list.takeTopLevelItem(index)
             del self.download_widgets[infohash]
+            if self.window().downloads_list.topLevelItemCount() == 0:
+                self.window().download_details_widget.clear_data()
 
     def on_force_recheck_download(self):
         infohash = self.selected_item.download_info["infohash"]

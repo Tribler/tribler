@@ -7412,7 +7412,7 @@ color: white;
                        <x>0</x>
                        <y>0</y>
                        <width>647</width>
-                       <height>373</height>
+                       <height>382</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -7550,13 +7550,13 @@ color: white;
                         <property name="minimumSize">
                          <size>
                           <width>0</width>
-                          <height>30</height>
+                          <height>26</height>
                          </size>
                         </property>
                         <property name="maximumSize">
                          <size>
                           <width>600000</width>
-                          <height>30</height>
+                          <height>26</height>
                          </size>
                         </property>
                         <property name="styleSheet">

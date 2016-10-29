@@ -43,7 +43,7 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
             self.remove_torrent_button.clicked.connect(lambda: on_remove_clicked(self))
 
     def on_download_clicked(self):
-        self.dialog = StartDownloadDialog(self.window().stackedWidget, self.torrent_info)
+        self.dialog = StartDownloadDialog(self.window().stackedWidget, self.torrent_info["name"])
         self.dialog.button_clicked.connect(self.on_start_download_action)
         self.dialog.show()
 
@@ -62,7 +62,7 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         self.dialog = None
 
     def on_start_download_request_done(self, result, response_code):
-        self.window().clicked_menu_button_downloads()
+        self.window().left_menu_button_downloads.click()
 
     def on_play_button_clicked(self):
         self.request_mgr = TriblerRequestManager()
@@ -70,7 +70,7 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
                                          self.on_play_request_done, method='PUT')
 
     def on_play_request_done(self, result, response_code):
-        self.window().clicked_menu_button_video_player()
+        self.window().left_menu_button_video_player.click()
         self.window().video_player_page.set_torrent_infohash(self.torrent_info["infohash"])
         self.window().left_menu_playlist.set_loading()
 

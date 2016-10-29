@@ -51,12 +51,17 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
     def clear_data(self):
         self.setCurrentIndex(0)
+        self.window().download_progress_bar.set_fraction(0.0)
         self.window().download_detail_name_label.setText("")
         self.window().download_detail_status_label.setText("")
         self.window().download_detail_filesize_label.setText("")
         self.window().download_detail_health_label.setText("")
         self.window().download_detail_infohash_label.setText("")
         self.window().download_detail_availability_label.setText("")
+
+        self.window().download_files_list.clear()
+        self.window().download_trackers_list.clear()
+        self.window().download_peers_list.clear()
 
     def create_widget_with_peer_info(self, peer):
         item = QTreeWidgetItem(self.window().download_peers_list)
@@ -80,8 +85,6 @@ class DownloadsDetailsTabWidget(QTabWidget):
             state += "UQ,"
         if not peer['uflushed']:
             state += "UBL,"
-        if peer['ueligable']:
-            state += "UE,"
         if peer['dinterested']:
             state += "DI,"
         if peer['dchoked']:
