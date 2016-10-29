@@ -352,16 +352,21 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
         """
         .. http:patch:: /download/(string: infohash)
 
-        A PATCH request to this endpoint will update a download in Tribler. A state parameter can be passed to modify
-        the state of the download. Valid states are "resume" (to resume a stopped/paused download), "stop" (to
-        stop a running download) and "recheck" (to force a recheck of the hashes of a download).
+        A PATCH request to this endpoint will update a download in Tribler.
+
+        A state parameter can be passed to modify the state of the download. Valid states are "resume"
+        (to resume a stopped/paused download), "stop" (to stop a running download) and "recheck"
+        (to force a recheck of the hashes of a download).
+
+        Another possible parameter is selected_files which manipulates which files are included in the download.
+        The selected_files parameter is an array with the file names as values.
 
             **Example request**:
 
                 .. sourcecode:: none
 
                     curl -X PATCH http://localhost:8085/downloads/4344503b7e797ebf31582327a5baae35b11bda01
-                    --data "state=resume"
+                    --data "state=resume&selected_files[]=file1.iso&selected_files[]=file2.iso"
 
             **Example response**:
 
@@ -374,6 +379,10 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             return DownloadSpecificEndpoint.return_404(request)
 
         parameters = http.parse_qs(request.content.read(), 1)
+
+        if 'selected_files[]' in parameters:
+            selected_files_list = [unicode(f, 'utf-8') for f in parameters['selected_files[]']]
+            download.set_selected_files(selected_files_list)
 
         if 'state' in parameters and len(parameters['state']) > 0:
             state = parameters['state'][0]
