@@ -166,7 +166,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     file_index = 0
 
                 files_array.append({"index": file_index, "name": file, "size": size,
-                                    "included": (file in selected_files), "progress": files_completion.get(file, 0.0)})
+                                    "included": (file in selected_files or not selected_files),
+                                    "progress": files_completion.get(file, 0.0)})
 
             # Create tracker information of the download
             tracker_info = []
