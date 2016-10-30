@@ -250,7 +250,7 @@ class TriblerWindow(QMainWindow):
 
     def on_add_torrent_browse_file(self):
         filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
-        self.download_uri = "file:%s" % filename[0]
+        self.download_uri = u"file:%s" % filename[0]
 
         self.dialog = StartDownloadDialog(self.window().stackedWidget, filename[0])
         self.dialog.button_clicked.connect(self.on_start_download_action)
@@ -258,7 +258,7 @@ class TriblerWindow(QMainWindow):
 
     def on_start_download_action(self, action):
         if action == 1:
-            escaped_uri = quote_plus(self.download_uri)
+            escaped_uri = quote_plus(self.download_uri.encode('utf-8'))
             anon_hops = 1 if self.dialog.dialog_widget.anon_download_checkbox.isChecked() else 0
             safe_seeding = 1 if self.dialog.dialog_widget.safe_seed_checkbox.isChecked() else 0
             post_data = str("uri=%s&anon_hops=%d&safe_seeding=%d" % (escaped_uri, anon_hops, safe_seeding))

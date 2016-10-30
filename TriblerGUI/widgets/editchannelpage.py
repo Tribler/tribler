@@ -2,7 +2,7 @@ import base64
 import urllib
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QCursor
 from PyQt5.QtWidgets import QWidget, QAction, QTreeWidgetItem, QFileDialog
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
@@ -152,7 +152,7 @@ class EditChannelPage(QWidget):
 
         self.window().create_channel_button.setEnabled(False)
         self.editchannel_request_mgr = TriblerRequestManager()
-        self.editchannel_request_mgr.perform_request("channels/discovered", self.on_channel_created, data=str('name=%s&description=%s' % (channel_name, channel_description)), method='PUT')
+        self.editchannel_request_mgr.perform_request("channels/discovered", self.on_channel_created, data=unicode('name=%s&description=%s' % (channel_name, channel_description)).encode('utf-8'), method='PUT')
 
     def on_channel_created(self, result):
         if u'added' in result:
@@ -165,7 +165,7 @@ class EditChannelPage(QWidget):
         self.window().edit_channel_save_button.setEnabled(False)
 
         self.editchannel_request_mgr = TriblerRequestManager()
-        self.editchannel_request_mgr.perform_request("mychannel", self.on_channel_edited, data=str('name=%s&description=%s' % (channel_name, channel_description)), method='POST')
+        self.editchannel_request_mgr.perform_request("mychannel", self.on_channel_edited, data=unicode('name=%s&description=%s' % (channel_name, channel_description)).encode('utf-8'), method='POST')
 
     def on_channel_edited(self, result):
         if 'modified' in result:
@@ -204,7 +204,7 @@ class EditChannelPage(QWidget):
         menu.addAction(add_url_action)
         menu.addAction(create_torrent_action)
 
-        menu.exec_(self.window().mapToGlobal(self.window().edit_channel_torrents_add_button.pos()))
+        menu.exec_(QCursor.pos())
 
     def on_add_torrent_browse_file(self):
         filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
@@ -319,9 +319,9 @@ class EditChannelPage(QWidget):
 
         self.editchannel_request_mgr = TriblerRequestManager()
         if self.editing_playlist is None:
-            self.editchannel_request_mgr.perform_request("channels/discovered/%s/playlists" % self.channel_overview["identifier"], self.on_playlist_created, data=str('name=%s&description=%s' % (name, description)), method='PUT')
+            self.editchannel_request_mgr.perform_request("channels/discovered/%s/playlists" % self.channel_overview["identifier"], self.on_playlist_created, data=unicode('name=%s&description=%s' % (name, description)).encode('utf-8'), method='PUT')
         else:
-            self.editchannel_request_mgr.perform_request("channels/discovered/%s/playlists/%s" % (self.channel_overview["identifier"], self.editing_playlist["id"]), self.on_playlist_edited, data=str('name=%s&description=%s' % (name, description)), method='POST')
+            self.editchannel_request_mgr.perform_request("channels/discovered/%s/playlists/%s" % (self.channel_overview["identifier"], self.editing_playlist["id"]), self.on_playlist_edited, data=unicode('name=%s&description=%s' % (name, description)).encode('utf-8'), method='POST')
 
     def on_playlist_created(self, json_result):
         if 'created' in json_result and json_result['created']:

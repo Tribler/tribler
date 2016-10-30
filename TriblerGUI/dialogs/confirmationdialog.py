@@ -1,8 +1,7 @@
 from PyQt5 import uic
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QCursor
-from PyQt5.QtWidgets import QSizePolicy, QToolButton, QSpacerItem
-from TriblerGUI.defs import BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
+from PyQt5.QtWidgets import QSizePolicy, QSpacerItem
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.utilities import get_ui_file_path
 from TriblerGUI.widgets.ellipsebutton import EllipseButton

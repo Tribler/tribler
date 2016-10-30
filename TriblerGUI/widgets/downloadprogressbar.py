@@ -31,7 +31,7 @@ class DownloadProgressBar(QWidget):
     def set_pieces(self):
         self.show_pieces = True
         self.fraction = 0.0
-        self.pieces = self.decode_pieces(self.download["pieces"][:self.download["total_pieces"]])
+        self.pieces = self.decode_pieces(self.download["pieces"])[:self.download["total_pieces"]]
         self.repaint()
 
     def decode_pieces(self, pieces):
