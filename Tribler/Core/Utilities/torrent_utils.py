@@ -74,9 +74,9 @@ def create_torrent_file(file_path_list, params):
     t1 = torrent.generate()
     torrent = libtorrent.bencode(t1)
 
-    postfix = '.torrent'
+    postfix = u'.torrent'
 
-    torrent_file_name = os.path.join(base_path, t1['info']['name'] + postfix)
+    torrent_file_name = os.path.join(base_path, unicode(t1['info']['name'], 'utf-8') + postfix)
     with open(torrent_file_name, 'wb') as f:
         f.write(torrent)
 

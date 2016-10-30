@@ -53,13 +53,13 @@ class CreateTorrentEndpoint(resource.Resource):
         params = {}
 
         if 'files[]' in parameters and len(parameters['files[]']) > 0:
-            file_path_list = parameters['files[]']
+            file_path_list = [unicode(f, 'utf-8') for f in parameters['files[]']]
         else:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "files parameter missing"})
 
         if 'description' in parameters and len(parameters['description']) > 0:
-            params['comment'] = parameters['description'][0].encode('utf-8')
+            params['comment'] = parameters['description'][0]
 
         if 'trackers[]' in parameters and len(parameters['trackers[]']) > 0:
             tracker_url_list = parameters['trackers[]']
@@ -89,8 +89,8 @@ class CreateTorrentEndpoint(resource.Resource):
             Error callback
             :param failure: from create_torrent_file
             """
-            failure.trap(IOError)
-            self._logger.exception(failure.value)
+            failure.trap(IOError, UnicodeDecodeError)
+            self._logger.exception(failure)
             request.write(return_handled_exception(request, failure.value))
             request.finish()
 

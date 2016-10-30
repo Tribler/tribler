@@ -122,7 +122,8 @@ class ChannelsPlaylistsEndpoint(BaseChannelsEndpoint):
             return BaseChannelsEndpoint.return_404(request,
                                                    message="the community for the specific channel cannot be found")
 
-        channel_community.create_playlist(parameters['name'][0], parameters['description'][0], [])
+        channel_community.create_playlist(unicode(parameters['name'][0], 'utf-8'),
+                                          unicode(parameters['description'][0], 'utf-8'), [])
 
         return json.dumps({"created": True})
 
