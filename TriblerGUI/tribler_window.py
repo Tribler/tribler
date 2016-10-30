@@ -69,6 +69,7 @@ class TriblerWindow(QMainWindow):
         sys.excepthook = self.on_exception
 
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
+        TriblerRequestManager.window = self
 
         QCoreApplication.setOrganizationDomain("nl")
         QCoreApplication.setOrganizationName("TUDelft")
