@@ -48,7 +48,7 @@ class SettingsPage(QWidget):
         self.window().watchfolder_location_input.setText(settings['watch_folder']['watch_folder_dir'])
 
         # Connection settings
-        self.window().firewall_current_port_input.setText(str(settings['libtorrent']['port']))
+        self.window().firewall_current_port_input.setText(str(settings['general']['minport']))
         self.window().lt_proxy_type_combobox.setCurrentIndex(settings['libtorrent']['lt_proxytype'])
         if settings['libtorrent']['lt_proxyserver']:
             self.window().lt_proxy_server_input = settings['libtorrent']['lt_proxyserver'][0]

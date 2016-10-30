@@ -173,7 +173,6 @@ class TriblerWindow(QMainWindow):
 
         self.downloads_page.start_loading_downloads()
         self.home_page.load_popular_torrents()
-        self.discovered_page.load_discovered_channels()
         if not self.gui_settings.value("first_discover", False) and not self.core_manager.use_existing_core:
             self.window().gui_settings.setValue("first_discover", True)
             self.discovering_page.is_discovering = True

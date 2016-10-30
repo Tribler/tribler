@@ -67,7 +67,8 @@ class EditChannelPage(QWidget):
 
     def load_my_channel_overview(self):
         self.editchannel_request_mgr = TriblerRequestManager()
-        self.editchannel_request_mgr.perform_request("mychannel", self.initialize_with_channel_overview)
+        self.editchannel_request_mgr.perform_request("mychannel", self.initialize_with_channel_overview,
+                                                     capture_errors=False)
 
     def initialize_with_channel_overview(self, overview):
         if 'error' in overview:
