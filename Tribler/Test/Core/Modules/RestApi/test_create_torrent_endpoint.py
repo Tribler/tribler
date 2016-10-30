@@ -60,9 +60,9 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
             self.assertEqual(dir(expected_tdef), dir(tdef))
 
         post_data = {
-            "files": [os.path.join(self.files_path, "video.avi")],
+            "files[]": os.path.join(self.files_path, "video.avi"),
             "description": "Video of my cat",
-            "trackers": ["http://localhost/announce"]
+            "trackers[]": "http://localhost/announce"
         }
         self.should_check_equality = False
         return self.do_request('createtorrent', 200, None, 'POST', post_data).addCallback(verify_torrent)
@@ -79,13 +79,13 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
                 u"error": {
                     u"handled": True,
                     u"code": u"IOError",
-                    u"message": u"Path does not exist: %s" % post_data["files"][0]
+                    u"message": u"Path does not exist: %s" % post_data["files[]"]
                 }
             }
             self.assertDictContainsSubset(expected_response[u"error"], error_response[u"error"])
 
         post_data = {
-            "files": ["non_existing_file.avi"]
+            "files[]": "non_existing_file.avi"
         }
         self.should_check_equality = False
         return self.do_request('createtorrent', 500, None, 'POST', post_data).addCallback(verify_error_message)
