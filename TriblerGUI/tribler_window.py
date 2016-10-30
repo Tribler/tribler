@@ -64,6 +64,7 @@ class TriblerWindow(QMainWindow):
         self.tribler_settings = None
         self.debug_window = None
         self.core_manager = CoreManager(self.api_port)
+        self.pending_requests = {}
 
         sys.excepthook = self.on_exception
 
@@ -261,22 +262,38 @@ class TriblerWindow(QMainWindow):
             escaped_uri = quote_plus(self.download_uri.encode('utf-8'))
             anon_hops = 1 if self.dialog.dialog_widget.anon_download_checkbox.isChecked() else 0
             safe_seeding = 1 if self.dialog.dialog_widget.safe_seed_checkbox.isChecked() else 0
-            post_data = str("uri=%s&anon_hops=%d&safe_seeding=%d" % (escaped_uri, anon_hops, safe_seeding))
-            self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("downloads", self.on_download_added,
-                                             method='PUT', data=post_data)
+            self.start_download(escaped_uri, anon_hops, safe_seeding)
 
         self.dialog.setParent(None)
         self.dialog = None
+
+    def start_download(self, uri, anon_hops, safe_seeding):
+        post_data = str("uri=%s&anon_hops=%d&safe_seeding=%d" % (uri, anon_hops, safe_seeding))
+        request_mgr = TriblerRequestManager()
+        self.pending_requests[request_mgr.request_id] = request_mgr
+        request_mgr.perform_request("downloads", self.on_download_added, method='PUT', data=post_data)
 
     def on_add_torrent_browse_dir(self):
         dir = QFileDialog.getExistingDirectory(self, "Please select the directory containing the .torrent files", "",
                                                QFileDialog.ShowDirsOnly)
 
         if len(dir) != 0:
-            for torrent_file in glob.glob(dir + "/*.torrent"):
-                self.file_request_mgr = TriblerRequestManager()
-                self.file_request_mgr.send_file("downloads", self.on_download_added, torrent_file)
+            self.selected_torrent_files = [torrent_file for torrent_file in glob.glob(dir + "/*.torrent")]
+            self.dialog = ConfirmationDialog(self, "Add torrents from directory",
+                                             "Are you sure you want to add %d torrents to Tribler?" %
+                                             len(self.selected_torrent_files),
+                                             [('add', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
+            self.dialog.button_clicked.connect(self.on_confirm_add_directory_dialog)
+            self.dialog.show()
+
+    def on_confirm_add_directory_dialog(self, action):
+        if action == 0:
+            for torrent_file in self.selected_torrent_files:
+                escaped_uri = quote_plus((u"file:%s" % torrent_file).encode('utf-8'))
+                self.start_download(escaped_uri, 1, 1)
+
+        self.dialog.setParent(None)
+        self.dialog = None
 
     def on_add_torrent_from_url(self):
         self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link", "Please enter the URL/magnet link in the field below:", [('add', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)], show_input=True)
