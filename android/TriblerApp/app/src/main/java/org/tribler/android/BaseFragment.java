@@ -27,6 +27,7 @@ public class BaseFragment extends Fragment {
         super.onCreate(savedInstanceState);
         Log.v(getClass().getSimpleName(), "onCreate");
 
+        // Create API client
         String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
         String authToken = getString(R.string.service_auth_token);
         service = TriblerService.createService(baseUrl, authToken);

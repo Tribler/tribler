@@ -113,20 +113,23 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
         initConnectivityManager();
 
+        // Start listening to events on the main thread so the gui can be updated
+        _eventHandler = new Handler(Looper.getMainLooper(), this);
+        EventStream.addHandler(_eventHandler);
+
         if (!EventStream.isReady()) {
             showLoading(R.string.status_opening_eventstream);
-
-            startService();
-
             EventStream.openEventStream();
-
-            // Start listening to events on the main thread so the gui can be updated
-            _eventHandler = new Handler(Looper.getMainLooper(), this);
-            EventStream.addHandler(_eventHandler);
-        } else {
-            showLoading(false);
         }
 
+        // Write permissions on sdcard?
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, WRITE_STORAGE_PERMISSION_REQUEST_CODE);
+        } else {
+            startService();
+        }
+
+        // Create API client
         String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
         String authToken = getString(R.string.service_auth_token);
         _service = TriblerService.createService(baseUrl, authToken);
@@ -613,11 +616,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     }
 
     protected void startService() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, WRITE_STORAGE_PERMISSION_REQUEST_CODE);
-        } else {
-            TriblerdService.start(this); // Run normally
-        }
+        TriblerdService.start(this); // Run normally
     }
 
     protected void killService() {

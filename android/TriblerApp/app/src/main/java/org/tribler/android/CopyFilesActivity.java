@@ -1,10 +1,15 @@
 package org.tribler.android;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Process;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -29,6 +34,8 @@ import rx.schedulers.Schedulers;
  */
 public class CopyFilesActivity extends BaseActivity {
 
+    public static final int WRITE_STORAGE_PERMISSION_REQUEST_CODE = 610;
+
     @BindView(R.id.copy_progress)
     View progressView;
 
@@ -45,8 +52,13 @@ public class CopyFilesActivity extends BaseActivity {
 
         TriblerdService.stop(this);
 
-        // Start coping files
-        handleIntent(getIntent());
+        // Write permissions on sdcard?
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, WRITE_STORAGE_PERMISSION_REQUEST_CODE);
+        } else {
+            // Start coping files
+            handleIntent(getIntent());
+        }
     }
 
     protected void showLoading(@Nullable CharSequence text) {
@@ -64,6 +76,26 @@ public class CopyFilesActivity extends BaseActivity {
 
     protected void showLoading(@StringRes int resId) {
         showLoading(getText(resId));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+
+            case WRITE_STORAGE_PERMISSION_REQUEST_CODE:
+                // If request is cancelled, the result arrays are empty
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Start coping files
+                    handleIntent(getIntent());
+                } else {
+                    finish();
+                }
+                return;
+        }
     }
 
     /**
