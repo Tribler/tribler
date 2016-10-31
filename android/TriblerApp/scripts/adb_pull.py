@@ -44,12 +44,6 @@ class AdbPull():
 
 
     def run(self):
-        # Clear logcat
-        cmd_clear = self._adb + ' logcat -c'
-        print cmd_clear
-        clear = subprocess.Popen(cmd_clear.split())
-        clear.wait()
-
         # Start reading logcat
         cmd_logcat = self._adb + ' logcat -v time tag long'
         logcat = subprocess.Popen(cmd_logcat.split(), stdout=subprocess.PIPE)

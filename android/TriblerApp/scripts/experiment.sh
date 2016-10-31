@@ -6,6 +6,8 @@ export ADB="adb -s $DEVICE"
 
 timestamp=$(date +%s)
 
+$ADB logcat -c
+
 echo Start experiment
 $ADB shell am start -n org.tribler.android/.ExperimentActivity --es "experiment" "ExperimentMultiChainScale" --ei "blocks_in_thousands" 10
 
