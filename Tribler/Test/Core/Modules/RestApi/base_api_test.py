@@ -23,8 +23,10 @@ class POSTDataProducer(object):
     """
     implements(IBodyProducer)
 
-    def __init__(self, data_dict):
-        self.body = urllib.urlencode(data_dict)
+    def __init__(self, data_dict, raw_data):
+        self.body = data_dict
+        if not raw_data:
+            self.body = urllib.urlencode(data_dict)
         self.length = len(self.body)
 
     def startProducing(self, consumer):
@@ -56,10 +58,10 @@ class AbstractBaseApiTest(TestAsServer):
             else int(os.environ['TEST_BUCKET']) * 2000 + 2000
         self.config.set_http_api_port(get_random_port(min_port=min_base_port, max_port=min_base_port + 2000))
 
-    def do_request(self, endpoint, request_type, post_data):
+    def do_request(self, endpoint, request_type, post_data, raw_data):
         agent = Agent(reactor)
         return agent.request(request_type, 'http://localhost:%s/%s' % (self.session.get_http_api_port(), endpoint),
-                             Headers({'User-Agent': ['Tribler ' + version_id]}), POSTDataProducer(post_data))
+                             Headers({'User-Agent': ['Tribler ' + version_id]}), POSTDataProducer(post_data, raw_data))
 
 
 class AbstractApiTest(AbstractBaseApiTest):
@@ -85,11 +87,12 @@ class AbstractApiTest(AbstractBaseApiTest):
             return readBody(response)
         return succeed(None)
 
-    def do_request(self, endpoint, expected_code=200, expected_json=None, request_type='GET', post_data=''):
+    def do_request(self, endpoint, expected_code=200, expected_json=None,
+                   request_type='GET', post_data='', raw_data=False):
         assert isInIOThread()
         self.expected_response_code = expected_code
         self.expected_response_json = expected_json
 
-        return super(AbstractApiTest, self).do_request(endpoint, request_type, post_data)\
+        return super(AbstractApiTest, self).do_request(endpoint, request_type, post_data, raw_data)\
                                            .addCallback(self.parse_response)\
                                            .addCallback(self.parse_body)
