@@ -2,6 +2,7 @@ package org.tribler.android;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Process;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
@@ -94,8 +95,8 @@ public class CopyFilesActivity extends BaseActivity {
                             }
 
                             if (TextUtils.isEmpty(value)) {
-                                getExternalCacheDir().mkdirs();
-                                to = new File(getExternalCacheDir(), String.valueOf(System.currentTimeMillis()) + from.getName());
+                                File publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                                to = new File(publicDir, String.valueOf(System.currentTimeMillis()) + from.getName());
                             } else if (value.startsWith("/")) {
                                 to = new File(value);
                             } else {
