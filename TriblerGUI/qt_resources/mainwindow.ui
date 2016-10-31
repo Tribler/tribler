@@ -900,7 +900,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>7</number>
+         <number>4</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -5324,6 +5324,9 @@ color: white;</string>
               </item>
               <item row="1" column="1">
                <widget class="QLineEdit" name="firewall_current_port_input">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                   <horstretch>0</horstretch>
@@ -7440,7 +7443,7 @@ color: white;
                        <x>0</x>
                        <y>0</y>
                        <width>647</width>
-                       <height>382</height>
+                       <height>381</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">

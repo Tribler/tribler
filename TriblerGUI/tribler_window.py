@@ -217,8 +217,9 @@ class TriblerWindow(QMainWindow):
 
     def received_variables(self, variables):
         self.video_player_page.video_player_port = variables["variables"]["ports"]["video~port"]
+        self.fetch_settings()
 
-        # fetch the settings
+    def fetch_settings(self):
         self.settings_request_mgr = TriblerRequestManager()
         self.settings_request_mgr.perform_request("settings", self.received_settings)
 
