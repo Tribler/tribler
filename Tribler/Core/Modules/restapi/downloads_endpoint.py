@@ -296,7 +296,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
         if not download:
             return DownloadSpecificEndpoint.return_404(request)
 
-        remove_data = parameters['remove_data'][0] is True
+        remove_data = parameters['remove_data'][0] == "1"
         self.session.remove_download(download, removecontent=remove_data)
 
         return json.dumps({"removed": True})
