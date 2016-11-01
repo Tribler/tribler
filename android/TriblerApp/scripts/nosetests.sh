@@ -15,5 +15,5 @@ echo Waiting on tests to finish
 python wait_for_process_death.py "org.tribler.android:service_NoseTestService"
 
 echo Fetching results
-python adb_pull.py "nosetests.xml" "$DEVICE.$timestamp.nosetests.xml"
-python adb_pull.py "coverage.xml" "$DEVICE.$timestamp.coverage.xml"
+python adb_pull.py "../output/nosetests.xml" "$DEVICE.$timestamp.nosetests.xml"
+python adb_pull.py "../output/coverage.xml" "$DEVICE.$timestamp.coverage.xml"
