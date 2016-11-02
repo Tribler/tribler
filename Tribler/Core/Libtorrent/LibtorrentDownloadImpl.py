@@ -2,6 +2,7 @@
 import base64
 import logging
 import os
+import random
 import sys
 import time
 from binascii import hexlify
@@ -625,7 +626,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                         return
                     if self.handle.status().progress == 1.0:
                         self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
-                self.register_task("reset_priorities", reactor.callLater(5, reset_priorities))
+                random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
+                self.register_task("reset_priorities_%s" % random_id, reactor.callLater(5, reset_priorities))
 
             if self.endbuffsize:
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
