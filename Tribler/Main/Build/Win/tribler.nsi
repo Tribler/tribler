@@ -4,6 +4,7 @@
 !define VERSION "6.5.0-rc5-1439-g095ca08"
 ; Laurens, 2016-03-14: The _x64 will be replaced by _x64 if needed in update_version_from_git.py
 !define BITVERSION "x86"
+!define VLCBITVERSION "32"
 
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
@@ -129,6 +130,10 @@ Section "!Main EXE" SecMain
     ; Libraries dependant on 2012 are: LevelDB, LibTorrent
     File vc_redist_110.exe
     ExecWait "$INSTDIR\vc_redist_110.exe /q /norestart"
+
+    ; Install VLC
+    File "vlc-2.2.4-win${VLCBITVERSION}.exe"
+    ExecWait "$INSTDIR\vlc-2.2.4-win${VLCBITVERSION}.exe /language=en_GB /S"
 
     FileOpen $9 "$INSTDIR\tribler.exe.log" w
     FileWrite $9 ""

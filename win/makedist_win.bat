@@ -76,9 +76,11 @@ copy vlc.py dist\tribler\vlc.py
 mkdir dist\tribler\tools
 copy win\tools\reset*.bat dist\tribler\tools
 
-REM Laurens, 2016-04-20: Copy the redistributables of 2008 and 2012 to the install dir
+REM Laurens, 2016-04-20: Copy the redistributables of 2008 and 2012 and the VLC installer to the install dir
 copy C:\build\vc_redist_90.exe dist\tribler
 copy C:\build\vc_redist_110.exe dist\tribler
+
+IF "%PROCESSOR_ARCHITECTURE%" == "AMD64" (copy C:\build\vlc-2.2.4-win64.exe dist\tribler) ELSE (copy C:\build\vlc-2.2.4-win32.exe dist\tribler)
 
 @echo Running NSIS
 cd dist\tribler
