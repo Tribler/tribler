@@ -829,9 +829,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         stats['vod_prebuf_frac'] = self.network_calc_prebuf_frac()
         stats['vod_prebuf_frac_consec'] = self.network_calc_prebuf_frac(consecutive=True)
         stats['vod'] = self.get_mode()
-        stats['vod_playable'] = self.progress == 1.0 or (
-            stats['vod_prebuf_frac'] == 1.0 and self.curspeeds[DOWNLOAD] > 0.0)
-        stats['vod_stats'] = self.network_get_vod_stats()
         stats['spew'] = self.network_create_spew_from_peerlist() if getpeerlist or self.askmoreinfo else None
         stats['tracker_status'] = self.network_tracker_status() if getpeerlist or self.askmoreinfo else None
 
@@ -876,18 +873,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                                               consecutive=consecutive)
         else:
             return 0.0
-
-    def network_get_vod_stats(self):
-        d = {}
-        d['played'] = None
-        d['late'] = None
-        d['dropped'] = None
-        d['stall'] = None
-        d['pos'] = None
-        d['prebuf'] = None
-        d['firstpiece'] = 0
-        d['npieces'] = ((self.length + 1023) / 1024)
-        return d
 
     @staticmethod
     def create_peerlist_data(peer_info):

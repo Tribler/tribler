@@ -7,7 +7,7 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 
-from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, NTFY_TORRENTS
+from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, NTFY_TORRENTS, DLMODE_VOD
 
 
 class DownloadBaseEndpoint(resource.Resource):
@@ -136,6 +136,9 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                             ...
                         }, ...],
                         "total_pieces": 420,
+                        "vod_mod": True,
+                        "vod_prebuffering_progress": 0.89,
+                        "vod_prebuffering_progress_consec": 0.86
                     }
                 }, ...]
         """
@@ -186,7 +189,9 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                              "max_upload_speed": download.get_max_speed(UPLOAD),
                              "max_download_speed": download.get_max_speed(DOWNLOAD),
                              "destination": download.get_dest_dir(), "availability": state.get_availability(),
-                             "total_pieces": download.get_num_pieces()}
+                             "total_pieces": download.get_num_pieces(), "vod_mode": download.get_mode() == DLMODE_VOD,
+                             "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
+                             "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec()}
 
             # Add peers information if requested
             if get_peers:
