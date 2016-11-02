@@ -199,9 +199,9 @@ class BoostingManager(TaskManager):
             if self.settings.auto_start_source:
                 self.boosting_sources[source].start()
 
-            self._logger.info("Added source %s", source)
+            self._logger.info("Added source %s", source_to_string(source))
         else:
-            self._logger.info("Already have source %s", source)
+            self._logger.info("Already have source %s", source_to_string(source))
 
     def remove_source(self, source_key):
         """
@@ -210,7 +210,7 @@ class BoostingManager(TaskManager):
         if source_key in self.boosting_sources:
             source = self.boosting_sources.pop(source_key)
             source.kill_tasks()
-            self._logger.info("Removed source %s", source_key)
+            self._logger.info("Removed source %s", source_to_string(source_key))
 
             rm_torrents = [torrent for _, torrent in self.torrents.items()
                            if torrent['source'] == source_to_string(source_key)]
@@ -269,7 +269,7 @@ class BoostingManager(TaskManager):
         metainfo = tdef.get_metainfo()
         torrentinfo = lt.torrent_info(metainfo)
 
-        self._logger.debug("%s start pre-downloading", hexlify(infohash))
+        self._logger.info("%s start pre-downloading", hexlify(infohash))
 
         thandle = self.pre_session.add_torrent({'ti': torrentinfo, 'save_path': self.settings.credit_mining_path,
                                                 'flags': lt.add_torrent_params_flags_t.flag_paused})
@@ -305,7 +305,7 @@ class BoostingManager(TaskManager):
             if elapsed_time > 3600 and not self.finish_pre_dl[infohash]:
                 self.cancel_pending_task("pre_download_%s" %hexlify(infohash))
                 if status.progress < 1.0:
-                    self._logger.debug("%s timeout pre-downloading with %f", hexlify(infohash), status.progress)
+                    self._logger.warn("%s timeout pre-downloading with %f", hexlify(infohash), status.progress)
 
                 thandle.pause()
                 thandle.save_resume_data()

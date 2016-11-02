@@ -79,7 +79,7 @@ class BoostingSource(TaskManager):
         self.register_task(str(self.source) + "_load", d, value=self.source)
 
         self.register_task("check_availability %s" %self.source, LoopingCall(self.check_available), 60, interval=60)
-        self._logger.debug("Start mining on %s", self.source)
+        self._logger.debug("Start mining on %s", source_to_string(self.source))
 
     def kill_tasks(self):
         """
