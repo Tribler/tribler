@@ -88,9 +88,9 @@ class MyChannelEndpoint(BaseChannelsEndpoint):
 
         changes = {}
         if my_channel[2] != get_parameter(parameters, 'name'):
-            changes['name'] = get_parameter(parameters, 'name')
+            changes['name'] = unicode(get_parameter(parameters, 'name'), 'utf-8')
         if my_channel[3] != get_parameter(parameters, 'description'):
-            changes['description'] = get_parameter(parameters, 'description')
+            changes['description'] = unicode(get_parameter(parameters, 'description'), 'utf-8')
 
         channel_community.modifyChannel(changes)
 

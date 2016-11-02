@@ -100,14 +100,15 @@ class TestSearchCommunity(TestAsServer):
         self.dispersy2 = self.session2.get_dispersy_instance()
 
         @blocking_call_on_reactor_thread
+        @inlineCallbacks
         def unload_communities():
             for community in self.dispersy.get_communities():
                 if isinstance(community, SearchCommunity) or isinstance(community, AllChannelCommunity):
-                    community.unload_community()
+                    yield community.unload_community()
 
             for community in self.dispersy2.get_communities():
                 if isinstance(community, SearchCommunity) or isinstance(community, AllChannelCommunity):
-                    community.unload_community()
+                    yield community.unload_community()
 
         @blocking_call_on_reactor_thread
         def load_communities():
@@ -123,7 +124,7 @@ class TestSearchCommunity(TestAsServer):
             self.dispersy2.define_auto_load(AllChannelCommunityTests, self.session2.dispersy_member, load=True,
                                             kargs={'tribler_session': self.session2})
 
-        unload_communities()
+        yield unload_communities()
         load_communities()
 
         self.search_community.add_discovered_candidate(Candidate(self.dispersy2.lan_address, tunnel=False))

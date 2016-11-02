@@ -7,7 +7,7 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 
-from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, NTFY_TORRENTS
+from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, NTFY_TORRENTS, DLMODE_VOD
 
 
 class DownloadBaseEndpoint(resource.Resource):
@@ -75,21 +75,22 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
     def render_GET(self, request):
         """
-        .. http:get:: /downloads?get_peers=(boolean: peers)
+        .. http:get:: /downloads?get_peers=(boolean: get_peers)&get_pieces=(boolean: get_pieces)
 
         A GET request to this endpoint returns all downloads in Tribler, both active and inactive. The progress is a
         number ranging from 0 to 1, indicating the progress of the specific state (downloading, checking etc). The
         download speeds have the unit bytes/sec. The size of the torrent is given in bytes. The estimated time assumed
         is given in seconds. A description of the possible download statuses can be found in the REST API documentation.
 
-        Detailed information about peers is only requested when the get_peers flag is set. Note that setting this flag
-        has a negative impact on performance and should only be used when displaying peers data.
+        Detailed information about peers and pieces is only requested when the get_peers and/or get_pieces flag is set.
+        Note that setting this flag has a negative impact on performance and should only be used in situations
+        where this data is required.
 
             **Example request**:
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/downloads?get_peers=1
+                curl -X GET http://localhost:8085/downloads?get_peers=1&get_pieces=1
 
             **Example response**:
 
@@ -135,6 +136,9 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                             ...
                         }, ...],
                         "total_pieces": 420,
+                        "vod_mod": True,
+                        "vod_prebuffering_progress": 0.89,
+                        "vod_prebuffering_progress_consec": 0.86
                     }
                 }, ...]
         """
@@ -142,6 +146,11 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
         if 'get_peers' in request.args and len(request.args['get_peers']) > 0 \
                 and request.args['get_peers'][0] == "1":
             get_peers = True
+
+        get_pieces = False
+        if 'get_pieces' in request.args and len(request.args['get_pieces']) > 0 \
+                and request.args['get_pieces'][0] == "1":
+            get_pieces = True
 
         downloads_json = []
         downloads = self.session.get_downloads()
@@ -160,7 +169,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     file_index = 0
 
                 files_array.append({"index": file_index, "name": file, "size": size,
-                                    "included": (file in selected_files), "progress": files_completion.get(file, 0.0)})
+                                    "included": (file in selected_files or not selected_files),
+                                    "progress": files_completion.get(file, 0.0)})
 
             # Create tracker information of the download
             tracker_info = []
@@ -179,16 +189,22 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                              "max_upload_speed": download.get_max_speed(UPLOAD),
                              "max_download_speed": download.get_max_speed(DOWNLOAD),
                              "destination": download.get_dest_dir(), "availability": state.get_availability(),
-                             "total_pieces": state.get_pieces_total_complete()[0]}
+                             "total_pieces": download.get_num_pieces(), "vod_mode": download.get_mode() == DLMODE_VOD,
+                             "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
+                             "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec()}
 
             # Add peers information if requested
             if get_peers:
                 peer_list = state.get_peerlist()
                 for peer_info in peer_list:  # Remove have field since it is very large to transmit.
                     del peer_info['have']
+                    peer_info['id'] = peer_info['id'].encode('hex')
 
-                print state.get_peerlist()
-                download_json["peers"] = state.get_peerlist()
+                download_json["peers"] = peer_list
+
+            # Add piece information if requested
+            if get_pieces:
+                download_json["pieces"] = download.get_pieces_base64()
 
             downloads_json.append(download_json)
         return json.dumps({"downloads": downloads_json})
@@ -285,7 +301,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
         if not download:
             return DownloadSpecificEndpoint.return_404(request)
 
-        remove_data = parameters['remove_data'][0] is True
+        remove_data = parameters['remove_data'][0] == "1"
         self.session.remove_download(download, removecontent=remove_data)
 
         return json.dumps({"removed": True})
@@ -341,16 +357,21 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
         """
         .. http:patch:: /download/(string: infohash)
 
-        A PATCH request to this endpoint will update a download in Tribler. A state parameter can be passed to modify
-        the state of the download. Valid states are "resume" (to resume a stopped/paused download), "stop" (to
-        stop a running download) and "recheck" (to force a recheck of the hashes of a download).
+        A PATCH request to this endpoint will update a download in Tribler.
+
+        A state parameter can be passed to modify the state of the download. Valid states are "resume"
+        (to resume a stopped/paused download), "stop" (to stop a running download) and "recheck"
+        (to force a recheck of the hashes of a download).
+
+        Another possible parameter is selected_files which manipulates which files are included in the download.
+        The selected_files parameter is an array with the file names as values.
 
             **Example request**:
 
                 .. sourcecode:: none
 
                     curl -X PATCH http://localhost:8085/downloads/4344503b7e797ebf31582327a5baae35b11bda01
-                    --data "state=resume"
+                    --data "state=resume&selected_files[]=file1.iso&selected_files[]=file2.iso"
 
             **Example response**:
 
@@ -363,6 +384,10 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             return DownloadSpecificEndpoint.return_404(request)
 
         parameters = http.parse_qs(request.content.read(), 1)
+
+        if 'selected_files[]' in parameters:
+            selected_files_list = [unicode(f, 'utf-8') for f in parameters['selected_files[]']]
+            download.set_selected_files(selected_files_list)
 
         if 'state' in parameters and len(parameters['state']) > 0:
             state = parameters['state'][0]

@@ -1,5 +1,6 @@
 import json
 from twisted.web import http
+from twisted.web.server import NOT_DONE_YET
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE, VOTE_UNSUBSCRIBE
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json
@@ -90,8 +91,13 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
             request.setResponseCode(http.CONFLICT)
             return json.dumps({"error": ALREADY_SUBSCRIBED_RESPONSE_MSG})
 
-        self.vote_for_channel(self.cid, VOTE_SUBSCRIBE)
-        return json.dumps({"subscribed": True})
+        def on_vote_done(_):
+            request.write(json.dumps({"subscribed": True}))
+            request.finish()
+
+        self.vote_for_channel(self.cid, VOTE_SUBSCRIBE).addCallback(on_vote_done)
+
+        return NOT_DONE_YET
 
     def render_DELETE(self, request):
         """
@@ -123,5 +129,10 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
         if channel_info[7] != VOTE_SUBSCRIBE:
             return ChannelsModifySubscriptionEndpoint.return_404(request, message=NOT_SUBSCRIBED_RESPONSE_MSG)
 
-        self.vote_for_channel(self.cid, VOTE_UNSUBSCRIBE)
-        return json.dumps({"unsubscribed": True})
+        def on_vote_done(_):
+            request.write(json.dumps({"unsubscribed": True}))
+            request.finish()
+
+        self.vote_for_channel(self.cid, VOTE_UNSUBSCRIBE).addCallback(on_vote_done)
+
+        return NOT_DONE_YET

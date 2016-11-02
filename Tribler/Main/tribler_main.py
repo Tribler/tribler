@@ -454,7 +454,7 @@ class ABCApp(TaskManager):
 
     def sesscb_states_callback(self, dslist):
         if not self.ready:
-            return 5.0, []
+            return []
 
         # update tray icon
         total_download, total_upload = get_download_upload_speed(dslist)
@@ -565,7 +565,7 @@ class ABCApp(TaskManager):
         except:
             print_exc()
 
-        return 1.0, wantpeers
+        return wantpeers
 
     @forceWxThread
     def guiservthread_free_space_check(self):

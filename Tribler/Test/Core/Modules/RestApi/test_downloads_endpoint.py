@@ -24,7 +24,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns an empty list when downloads are fetched but no downloads are active
         """
-        return self.do_request('downloads?get_peers=1', expected_code=200, expected_json={"downloads": []})
+        return self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200, expected_json={"downloads": []})
 
     @deferred(timeout=20)
     def test_get_downloads(self):
@@ -41,7 +41,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
 
         self.should_check_equality = False
-        return self.do_request('downloads?get_peers=1', expected_code=200).addCallback(verify_download)
+        return self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200).addCallback(verify_download)
 
     @deferred(timeout=10)
     def test_start_download_no_uri(self):
@@ -169,6 +169,29 @@ class TestDownloadsEndpoint(AbstractApiTest):
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"state": "stop"},
                                            expected_code=200, expected_json={"modified": True}, request_type='PATCH')
         return request_deferred.addCallback(verify_removed)
+
+    @deferred(timeout=10)
+    def test_select_download_file(self):
+        """
+        Testing whether files can be correctly toggled in a download
+        """
+        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        infohash = video_tdef.get_infohash().encode('hex')
+
+        def mocked_set_selected_files(*_):
+            mocked_set_selected_files.called = True
+
+        mocked_set_selected_files.called = False
+
+        def verify_method_called(_):
+            self.assertTrue(mocked_set_selected_files.called)
+
+        download.set_selected_files = mocked_set_selected_files
+
+        return self.do_request('downloads/%s' % infohash, post_data={"selected_files[]": ""},
+                               expected_code=200, expected_json={"modified": True}, request_type='PATCH')\
+            .addCallback(verify_method_called)
 
     @deferred(timeout=10)
     def test_resume_download_wrong_infohash(self):

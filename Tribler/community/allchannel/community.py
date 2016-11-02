@@ -1,5 +1,6 @@
 from random import sample
 from time import time
+from twisted.internet.defer import returnValue, inlineCallbacks
 
 from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
@@ -364,6 +365,7 @@ class AllChannelCommunity(Community):
                            'torrents': torrents}
                 self.tribler_session.notifier.notify(SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None, results)
 
+    @inlineCallbacks
     def disp_create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         # reclassify community
         if vote == 2:
@@ -372,7 +374,7 @@ class AllChannelCommunity(Community):
             communityclass = PreviewChannelCommunity
 
         community_old = self._get_channel_community(cid)
-        community = self.dispersy.reclassify_community(community_old, communityclass)
+        community = yield self.dispersy.reclassify_community(community_old, communityclass)
         community._candidates = community_old._candidates
 
         # check if we need to cancel a previous vote
@@ -389,7 +391,7 @@ class AllChannelCommunity(Community):
                             payload=(cid, vote, timestamp))
         self._dispersy.store_update_forward([message], store, update, forward)
 
-        return message
+        returnValue(message)
 
     def check_votecast(self, messages):
         with self._dispersy.database:
@@ -492,6 +494,7 @@ class AllChannelCommunity(Community):
                 return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid),
                                                               self._my_member, tribler_session=self.tribler_session)
 
+    @inlineCallbacks
     def unload_preview(self):
         cleanpoint = time() - 300
         inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(
@@ -499,7 +502,7 @@ class AllChannelCommunity(Community):
         self._logger.debug("cleaning %d/%d previewchannel communities", len(inactive), len(self.dispersy._communities))
 
         for community in inactive:
-            community.unload_community()
+            yield community.unload_community()
 
     def _get_channel_id(self, cid):
         assert isinstance(cid, str)

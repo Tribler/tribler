@@ -84,6 +84,10 @@ class AbstractServer(BaseTestCase):
         self.watchdog = WatchDog()
         self.selected_socks5_ports = set()
 
+        # Enable Deferred debugging
+        from twisted.internet.defer import setDebugging
+        setDebugging(True)
+
     def setUp(self, annotate=True):
         self._logger = logging.getLogger(self.__class__.__name__)
 

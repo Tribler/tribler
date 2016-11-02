@@ -11,6 +11,7 @@ import time
 from twisted.internet import threads
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.threadable import isInIOThread
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig, get_default_dest_dir
 
 from Tribler.Core.Utilities import torrent_utils
 from Tribler.Core import NoDispersyRLock
@@ -21,12 +22,14 @@ from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.restapi.rest_manager import RESTManager
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
+from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.defaults import tribler_defaults
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
     DuplicateTorrentFileError
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_METADATA, NTFY_MYPREFERENCES,
                                      NTFY_PEERS, NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
                                      STATEDIR_METADATA_STORE_DIR, STATEDIR_PEERICON_DIR, STATEDIR_TORRENT_STORE_DIR,
-                                     DLSTATUS_STOPPED)
+                                     DLSTATUS_STOPPED, STATEDIR_GUICONFIG)
 from Tribler.Core.statistics import TriblerStatistics
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -177,6 +180,7 @@ class Session(SessionConfigInterface):
         self.autoload_discovery = autoload_discovery
 
         self.tribler_config = TriblerConfig(self)
+        self.setup_tribler_gui_config()
 
     @blocking_call_on_reactor_thread
     def prestart(self):
@@ -225,6 +229,33 @@ class Session(SessionConfigInterface):
     #
     # Public methods
     #
+    def setup_tribler_gui_config(self):
+        """
+        Initialize the TriblerGUI configuration file.
+        """
+        configfilepath = os.path.join(self.get_state_dir(), STATEDIR_GUICONFIG)
+        gui_config = CallbackConfigParser()
+        DefaultDownloadStartupConfig.getInstance().set_dest_dir(get_default_dest_dir())
+
+        # Load the config file.
+        if os.path.exists(configfilepath):
+            gui_config.read_file(configfilepath, 'utf-8-sig')
+
+        if not gui_config.has_section('Tribler'):
+            gui_config.add_section('Tribler')
+            for k, v in tribler_defaults['Tribler'].iteritems():
+                gui_config.set('Tribler', k, v)
+
+        if not gui_config.has_section('downloadconfig'):
+            gui_config.add_section('downloadconfig')
+            for k, v in DefaultDownloadStartupConfig.getInstance().dlconfig._sections['downloadconfig'].iteritems():
+                gui_config.set('downloadconfig', k, v)
+
+        # Make sure we use the same ConfigParser instance for both Utility and DefaultDownloadStartupConfig.
+        DefaultDownloadStartupConfig.getInstance().dlconfig = gui_config
+
+        gui_config.write_file(configfilepath)
+
     def start_download_from_uri(self, uri, dconfig=None):
         """
         Start a download from an argument. This argument can be of the following type:
@@ -330,7 +361,7 @@ class Session(SessionConfigInterface):
 
         self.lm.remove_id(infohash)
 
-    def set_download_states_callback(self, usercallback, getpeerlist=None):
+    def set_download_states_callback(self, usercallback, interval=1.0):
         """
         See Download.set_state_callback. Calls usercallback with a list of
         DownloadStates, one for each Download in the Session as first argument.
@@ -344,7 +375,7 @@ class Session(SessionConfigInterface):
 
         @param usercallback A function adhering to the above spec.
         """
-        self.lm.set_download_states_callback(usercallback, getpeerlist or [])
+        self.lm.set_download_states_callback(usercallback, interval)
 
     #
     # Config parameters that only exist at runtime

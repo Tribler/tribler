@@ -1,5 +1,4 @@
 import os
-import time
 
 from twisted.internet.defer import returnValue, inlineCallbacks
 from twisted.python.threadable import isInIOThread
@@ -11,7 +10,7 @@ from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.crypto import NoCrypto
+from Tribler.dispersy.crypto import NoCrypto, ECCrypto
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
@@ -19,14 +18,11 @@ class HiddenTunnelCommunityTests(HiddenTunnelCommunity):
     """
     We are using a seperate community so we do not act as an exit node for the outside world.
     """
+    master_key = ""
 
     @classmethod
     def get_master_members(cls, dispersy):
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000400f4771c58e65f2cc0385a14027a937a0eb54df0e" \
-                     "4ae2f72acd8f8286066a48a5e8dcff81c7dfa369fbc33bfe9823587057557cf168b41586dc9ff7615a7e5213f3ec6" \
-                     "c9b4f9f57f00dbc0dd8ca8b9f6d76fd63a432a56d5938ce9dd7bd291daa92bec52ffcd58d9718836163868f493063" \
-                     "77c3b8bf36d43ea99122c3276e1a89fb5b9b2ff3f7f6f1702d057dca3e8c0"
-        master_key_hex = master_key.decode("HEX")
+        master_key_hex = HiddenTunnelCommunityTests.master_key.decode("HEX")
         master = dispersy.get_member(public_key=master_key_hex)
         return [master]
 
@@ -47,6 +43,10 @@ class TestTunnelBase(TestAsServer):
         self.bypass_dht = False
         self.seed_config = None
         self.tunnel_community_seeder = None
+
+        self.eccrypto = ECCrypto()
+        ec = self.eccrypto.generate_key(u"curve25519")
+        HiddenTunnelCommunityTests.master_key = self.eccrypto.key_to_bin(ec.pub()).encode('hex')
 
         self.tunnel_community = self.load_tunnel_community_in_session(self.session, exitnode=True)
         self.tunnel_communities = []

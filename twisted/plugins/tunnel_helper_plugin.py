@@ -205,10 +205,10 @@ class Tunnel(object):
         if upgrader.failed:
             msg("The upgrader failed: .Tribler directory backed up, aborting")
             reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
-            self.session.shutdown()
             reactor.stop()
-        self.session.start()
-        logger.info("Using port %d" % self.session.get_dispersy_port())
+        else:
+            self.session.start()
+            logger.info("Using Dispersy port %d" % self.session.get_dispersy_port())
 
     def start(self, introduce_port):
         def start_community():
@@ -236,7 +236,7 @@ class Tunnel(object):
 
         blockingCallFromThread(reactor, start_community)
 
-        self.session.set_download_states_callback(self.download_states_callback, False)
+        self.session.set_download_states_callback(self.download_states_callback, interval=4.0)
 
     def download_states_callback(self, dslist):
         try:
@@ -244,7 +244,7 @@ class Tunnel(object):
         except:
             logger.error("Monitoring downloads failed")
 
-        return (4.0, [])
+        return []
 
     def stop(self):
         if self.clean_messages_lc:
@@ -256,8 +256,8 @@ class Tunnel(object):
             self.build_history_lc = None
 
         if self.session:
-            self.session.shutdown()
-            logger.info("Session is shut down")
+            logger.info("Going to shutdown session")
+            return self.session.shutdown()
 
     def preprocess_stats(self, stats):
         result = defaultdict(int)
@@ -401,11 +401,6 @@ class TunnelHelperServiceMaker(object):
         """
         self._stopping = False
 
-    def shutdown_process(self, shutdown_message, code=1):
-        msg(shutdown_message)
-        reactor.addSystemEventTrigger('after', 'shutdown', os._exit, code)
-        reactor.stop()
-
     def start_tunnel(self, options):
         """
         Main method to startup a tunnel helper and add a signal handler.
@@ -448,8 +443,7 @@ class TunnelHelperServiceMaker(object):
                 self._stopping = True
                 msg("Setting the tunnel should_run variable to False")
                 tunnel.should_run = False
-                tunnel.stop()
-                reactor.stop()
+                tunnel.stop().addCallback(lambda _: reactor.stop())
 
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)

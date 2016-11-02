@@ -12,8 +12,8 @@ class AbstractTestCommunity(AbstractServer):
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self):
-        yield super(AbstractTestCommunity, self).setUp()
+    def setUp(self, annotate=True):
+        yield super(AbstractTestCommunity, self).setUp(annotate=annotate)
         self.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
         self.dispersy._database.open()
         self.master_member = DummyMember(self.dispersy, 1, "a" * 20)
@@ -22,6 +22,9 @@ class AbstractTestCommunity(AbstractServer):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self, annotate=True):
+        for community in self.dispersy.get_communities():
+            yield community.unload_community()
+
         self.master_member = None
         self.member = None
         yield super(AbstractTestCommunity, self).tearDown(annotate=annotate)

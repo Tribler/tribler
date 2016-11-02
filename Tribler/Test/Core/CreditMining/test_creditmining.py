@@ -8,6 +8,7 @@ Written by Mihai Capotă and Ardhi Putra Pratama H
 import binascii
 import random
 import re
+from unittest import skip
 
 from twisted.internet.defer import inlineCallbacks
 
@@ -73,6 +74,7 @@ class TestBoostingManagerPolicies(TriblerCoreTest):
         ids_stop = [torrent["metainfo"].get_infohash() for torrent in torrents_stop]
         self.assertEqual(ids_stop, [3, 1])
 
+    @skip("The random seed is not reliable")
     def test_fallback_policy(self):
         """
         testing policy (seederratio) and then fallback

@@ -92,16 +92,16 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
         if 'description' not in parameters or len(parameters['description']) == 0:
             description = u''
         else:
-            description = parameters['description'][0]
+            description = unicode(parameters['description'][0], 'utf-8')
 
         if 'mode' not in parameters or len(parameters['mode']) == 0:
             # By default, the mode of the new channel is closed.
             mode = u'closed'
         else:
-            mode = parameters['mode'][0]
+            mode = unicode(parameters['mode'][0], 'utf-8')
 
         try:
-            channel_id = self.session.create_channel(parameters['name'][0], description, mode)
+            channel_id = self.session.create_channel(unicode(parameters['name'][0], 'utf-8'), description, mode)
         except DuplicateChannelNameError as ex:
             return BaseChannelsEndpoint.return_500(self, request, ex)
 
