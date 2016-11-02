@@ -538,7 +538,7 @@ class TriblerLaunchMany(TaskManager):
                 new_active_downloads.append(safename)
             elif state == DLSTATUS_STOPPED_ON_ERROR:
                 self._logger.error("Error during download: %s", repr(ds.get_error()))
-                self.downloads.get(ds.get_infohash()).stop()
+                self.downloads.get(tdef.get_infohash()).stop()
                 self.session.notifier.notify(NTFY_TORRENTS, NTFY_ERROR, tdef.get_infohash(), repr(ds.get_error()))
             elif state == DLSTATUS_SEEDING:
                 seeding_download_list.append({u'infohash': tdef.get_infohash(),
