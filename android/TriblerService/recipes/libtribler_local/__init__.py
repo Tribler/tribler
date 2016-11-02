@@ -1,3 +1,4 @@
+from os import getenv
 from os.path import join, exists
 from sh import mkdir, cp
 from pythonforandroid.toolchain import PythonRecipe, current_directory
@@ -10,7 +11,7 @@ class LocalTriblerRecipe(PythonRecipe):
     http://www.tribler.org
     """
 
-    src_root = '/home/paul/repos/tribler-app'
+    src_root = getenv('WORKSPACE', '/home/paul/repos/tribler-app')
 
     version = 'local'
 
