@@ -1,9 +1,10 @@
 import os
 import sys
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 
 from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
+from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene
 from Tribler import vlc
 from TriblerGUI.defs import *
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
@@ -29,6 +30,8 @@ class VideoPlayerPage(QWidget):
             
         self.instance = vlc.Instance()
         self.mediaplayer = self.instance.media_player_new()
+        self.window().video_player_widget.should_hide_video_widgets.connect(self.hide_video_widgets)
+        self.window().video_player_widget.should_show_video_widgets.connect(self.show_video_widgets)
         self.window().video_player_position_slider.should_change_video_position.connect(self.on_should_change_video_time)
         self.window().video_player_volume_slider.valueChanged.connect(self.on_volume_change)
         self.window().video_player_volume_slider.setValue(self.mediaplayer.audio_get_volume())
@@ -64,14 +67,23 @@ class VideoPlayerPage(QWidget):
 
         self.window().left_menu_playlist.playing_item_change.connect(self.change_playing_index)
 
+    def hide_video_widgets(self):
+        if self.is_full_screen:
+            self.window().video_player_header_label.setHidden(True)
+            self.window().video_player_controls_container.setHidden(True)
+
+    def show_video_widgets(self):
+        self.window().video_player_header_label.setHidden(False)
+        self.window().video_player_controls_container.setHidden(False)
+
     def on_update_timer_tick(self):
-        total_duration_str = "0:00"
+        total_duration_str = "-:--"
         if self.media and self.media.get_duration() != 0:
             total_duration_str = seconds_to_string(self.media.get_duration() / 1000)
 
         if self.active_infohash == "" or self.active_index == -1:
             self.window().video_player_position_slider.setValue(0)
-            self.window().video_player_time_label.setText("0:00 / 0:00")
+            self.window().video_player_time_label.setText("0:00 / -:--")
         else:
             video_time = self.mediaplayer.get_time()
             if video_time == -1:

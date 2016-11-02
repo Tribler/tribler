@@ -435,6 +435,7 @@ class TriblerWindow(QMainWindow):
     def exit_full_screen(self):
         self.top_bar.show()
         self.left_menu.show()
+        self.video_player_page.is_full_screen = False
         self.showNormal()
 
     def close_tribler(self):
