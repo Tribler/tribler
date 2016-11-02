@@ -7,10 +7,10 @@ export ADB="adb -s $DEVICE"
 timestamp=$(date +%s)
 
 #echo Clean build
-#../gradlew clean
+#./gradlew clean
 
 echo Install debug build
-../gradlew installDebug
+./gradlew installDebug
 
 echo Start app
 $ADB shell am start -n org.tribler.android/.MainActivity
