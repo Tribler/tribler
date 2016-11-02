@@ -103,6 +103,17 @@ else:
 # instanciated.
 _internal_guard = object()
 
+def is_frozen():
+    """
+    Return whether we are running in a frozen environment
+    """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        return False
+    return True
+
 def find_lib():
     dll = None
     plugin_path = None
@@ -157,14 +168,19 @@ def find_lib():
             dll = ctypes.CDLL('libvlc.dll')
         ctypes.windll.kernel32.SetDllDirectoryW(dll_directory)
     elif sys.platform.startswith('darwin'):
+        # If we are frozen with PyInstaller, find the VLC libraries inside the .app
+        if is_frozen():
+            vlc_dir = os.path.join(sys._MEIPASS, 'vlc')
+        else:
+            vlc_dir = '/Applications/VLC.app/Contents/MacOS/'
+
         # FIXME: should find a means to configure path
-        d = '/Applications/VLC.app/Contents/MacOS/'
-        p = d + 'lib/libvlc.dylib'
-        if os.path.exists(p):
-            dll = ctypes.CDLL(p)
-            d += 'plugins'
-            if os.path.isdir(d):
-                plugin_path = d
+        libvlc_path = os.path.join(vlc_dir, 'lib', 'libvlc.dylib')
+        if os.path.exists(libvlc_path):
+            dll = ctypes.CDLL(libvlc_path)
+            vlc_dir = os.path.join(vlc_dir, 'plugins')
+            if os.path.isdir(vlc_dir):
+                plugin_path = vlc_dir
         else:  # hope, some PATH is set...
             dll = ctypes.CDLL('libvlc.dylib')
 
