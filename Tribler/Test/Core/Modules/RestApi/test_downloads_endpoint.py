@@ -171,6 +171,29 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return request_deferred.addCallback(verify_removed)
 
     @deferred(timeout=10)
+    def test_select_download_file(self):
+        """
+        Testing whether files can be correctly toggled in a download
+        """
+        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        infohash = video_tdef.get_infohash().encode('hex')
+
+        def mocked_set_selected_files(*_):
+            mocked_set_selected_files.called = True
+
+        mocked_set_selected_files.called = False
+
+        def verify_method_called(_):
+            self.assertTrue(mocked_set_selected_files.called)
+
+        download.set_selected_files = mocked_set_selected_files
+
+        return self.do_request('downloads/%s' % infohash, post_data={"selected_files[]": ""},
+                               expected_code=200, expected_json={"modified": True}, request_type='PATCH')\
+            .addCallback(verify_method_called)
+
+    @deferred(timeout=10)
     def test_resume_download_wrong_infohash(self):
         """
         Testing whether the API returns error 404 if a non-existent download is resumed
