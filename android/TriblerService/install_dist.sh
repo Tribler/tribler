@@ -37,5 +37,10 @@ cp -rf dist/TriblerApp-import/assets ../TriblerApp/app/src/main
 cp -rf dist/TriblerApp-import/jni ../TriblerApp/app/src/main
 cp -rf dist/TriblerApp-import/jniLibs ../TriblerApp/app/src/main
 
-cp dist/VLC-Android-2.0.6-ARMv7.apk ../TriblerApp/app/src/main/assets
-
+echo Add VLC.apk to app assets
+if [ -z $VLC_APK ]
+then
+    cp dist/VLC-Android-2.0.6-ARMv7.apk ../TriblerApp/app/src/main/assets
+else
+    cp $VLC_APK ../TriblerApp/app/src/main/assets
+fi
