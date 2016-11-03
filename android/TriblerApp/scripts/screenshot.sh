@@ -1,9 +1,5 @@
 #!/bin/bash
 
-set -e
-
-export ADB="adb -s $DEVICE"
-
 timestamp=$(date +%s)
 
 echo Making screenshot

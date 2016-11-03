@@ -1,11 +1,8 @@
 #!/bin/bash
 
-set -e
-
-export ADB="adb -s $DEVICE"
-
 timestamp=$(date +%s)
 
+echo Clean logcat
 $ADB logcat -c
 
 echo Start experiment
