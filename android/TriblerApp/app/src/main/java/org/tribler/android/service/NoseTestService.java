@@ -5,8 +5,6 @@ import android.content.Intent;
 
 import org.tribler.android.R;
 
-import java.io.File;
-
 public class NoseTestService extends TriblerdService {
 
     public static void start(Context ctx) {
@@ -18,14 +16,10 @@ public class NoseTestService extends TriblerdService {
         intent.putExtra("pythonHome", argument);
         intent.putExtra("pythonPath", argument + ":" + argument + "/lib");
         intent.putExtra("pythonEggCache", argument + "/.egg_cache");
-        // Clean output dir
-        File dir = new File(argument, "../output");
-        dir.mkdirs();
-        String OUTPUT_DIR = dir.getAbsolutePath();
         // From https://raw.githubusercontent.com/Tribler/gumby/devel/scripts/run_nosetests_for_jenkins.sh
         String NOSE_ARGS_COMMON = "--with-xunit --all-modules --traverse-namespace --cover-package=Tribler --cover-tests --cover-inclusive";
-        String NOSE_ARGS = "--verbose --with-xcoverage --xcoverage-file=" + OUTPUT_DIR +
-                "/coverage.xml --xunit-file=" + OUTPUT_DIR + "/nosetests.xml " + NOSE_ARGS_COMMON;
+        String NOSE_ARGS = "--verbose --with-xcoverage --xcoverage-file=" + argument +
+                "/coverage.xml --xunit-file=" + argument + "/nosetests.xml " + NOSE_ARGS_COMMON;
         intent.putExtra("pythonServiceArgument", NOSE_ARGS);
         intent.putExtra("serviceEntrypoint", "nosetests.py");
         intent.putExtra("serviceTitle", ctx.getString(R.string.status_nosetests));
