@@ -16,10 +16,14 @@ for file in os.listdir("TriblerGUI/widgets"):
     if file.endswith(".py"):
         widget_files.append('TriblerGUI.widgets.%s' % file[:-3])
 
+data_to_copy = [('Tribler/dispersy/libnacl/libnacl', 'libnacl'), ('TriblerGUI/qt_resources', 'qt_resources'), ('TriblerGUI/images', 'images'), ('TriblerGUI/scripts', 'scripts'), ('twisted', 'twisted'), ('Tribler', 'tribler_source/Tribler')]
+if sys.platform.startswith('darwin'):
+    data_to_copy += [('/Applications/VLC.app/Contents/MacOS/lib', 'vlc/lib'), ('/Applications/VLC.app/Contents/MacOS/plugins', 'vlc/plugins')]
+
 a = Analysis(['run_tribler.py'],
              pathex=['/Users/martijndevos/Documents/tribler'],
              binaries=None,
-datas=[('Tribler/dispersy/libnacl/libnacl', 'libnacl'), ('TriblerGUI/qt_resources', 'qt_resources'), ('TriblerGUI/images', 'images'), ('TriblerGUI/scripts', 'scripts'), ('twisted', 'twisted'), ('Tribler', 'tribler_source/Tribler'), ('/Applications/VLC.app/Contents/MacOS/lib', 'vlc/lib'), ('/Applications/VLC.app/Contents/MacOS/plugins', 'vlc/plugins')],
+             datas=data_to_copy,
              hiddenimports=['csv'] + widget_files,
              hookspath=[],
              runtime_hooks=[],
