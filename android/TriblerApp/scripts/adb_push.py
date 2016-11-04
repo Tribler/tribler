@@ -67,7 +67,7 @@ class AdbPush():
 
         # Read until nothing more to read
         while not stdout_reader.eof():
-            time.sleep(1)
+            time.sleep(0.1)
             while not stdout_queue.empty():
                 line = stdout_queue.get().strip()
 
