@@ -23,36 +23,42 @@ class WaitForProcessDeath():
             print 'Error: No process name specified!'
             exit()
 
+        self._output_file = str(time.time()) + '-' + self._process_name
+
 
     def run(self):
-        # Start reading logcat
-        cmd_logcat = self._adb + ' logcat -v time tag long'
-        logcat = subprocess.Popen(cmd_logcat.split(), stdout=subprocess.PIPE)
+        # Append logcat to output file
+        with open(self._output_file, 'a') as data_file:
 
-        stdout_queue = Queue.Queue()
-        stdout_reader = AsynchronousFileReader(logcat.stdout, stdout_queue)
-        stdout_reader.start()
+            # Start reading logcat
+            cmd_logcat = self._adb + ' logcat -v time tag long'
+            logcat = subprocess.Popen(cmd_logcat.split(), stdout=subprocess.PIPE)
 
-        msg_start = 'Process ' + self._process_name + ' '
-        msg_end = ' has died'
-        msg_end_ = msg_end + '.'
+            stdout_queue = Queue.Queue()
+            stdout_reader = AsynchronousFileReader(logcat.stdout, stdout_queue)
+            stdout_reader.start()
 
-        # Read until nothing more to read
-        while not stdout_reader.eof():
-            time.sleep(0.1)
-            while not stdout_queue.empty():
-                line = stdout_queue.get().strip()
-                print line
+            msg_start = 'Process ' + self._process_name + ' '
+            msg_end = ' has died'
+            msg_end_ = msg_end + '.'
 
-                if ': ' not in line: 
-                    break
+            # Read until nothing more to read
+            while not stdout_reader.eof():
+                time.sleep(0.1)
+                while not stdout_queue.empty():
+                    line = stdout_queue.get().strip()
+                    print line
+                    data_file.write(line + "\n")
 
-                device_date, device_time, log = line.split(' ', 2)
-                tag, msg = log.split(': ', 1)
+                    if ': ' not in line: 
+                        break
 
-                if tag.startswith('I/ActivityManager') and msg.startswith(msg_start) and (msg.endswith(msg_end) or msg.endswith(msg_end_)):
-                    logcat.kill()
-                    exit()
+                    device_date, device_time, log = line.split(' ', 2)
+                    tag, msg = log.split(': ', 1)
+
+                    if tag.startswith('I/ActivityManager') and msg.startswith(msg_start) and (msg.endswith(msg_end) or msg.endswith(msg_end_)):
+                        logcat.kill()
+                        exit()
 
 
 
