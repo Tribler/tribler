@@ -55,3 +55,8 @@ app = BUNDLE(coll,
              bundle_identifier='nl.tudelft.tribler',
              info_plist={'NSHighResolutionCapable': 'True', 'CFBundleInfoDictionaryVersion': 1.0, 'CFBundleVersion': version_str, 'CFBundleShortVersionString': version_str},
              console=True)
+
+# Remove libvlc - conflicts on Windows
+if sys.platform == 'win32':
+    os.remove(os.path.join(DISTPATH, 'tribler', 'libvlc.dll'))
+    os.remove(os.path.join(DISTPATH, 'tribler', 'libvlccore.dll'))
