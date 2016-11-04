@@ -55,7 +55,10 @@ class CoreManager(object):
         self.events_manager.connect()
 
     def stop(self):
-        self.core_process.terminate()
+        if sys.platform == "win32":
+            self.core_process.kill()
+        else:
+            self.core_process.terminate()
 
     def kill(self):
         self.core_process.kill()
