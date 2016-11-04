@@ -27,9 +27,10 @@ class EventRequestManager(QNetworkAccessManager):
         self.tribler_version = "Unknown"
 
     def on_error(self, error):
+        print "got error: %s" % error
         if error == QNetworkReply.ConnectionRefusedError:
-            if self.failed_attempts == 20:
-                raise RuntimeError("Could not connect with the Tribler Core within 10 seconds")
+            if self.failed_attempts == 40:
+                raise RuntimeError("Could not connect with the Tribler Core within 20 seconds")
 
             self.failed_attempts += 1
 
@@ -40,7 +41,10 @@ class EventRequestManager(QNetworkAccessManager):
 
     def on_read_data(self):
         self.connect_timer.stop()
+        print self.reply
         data = self.reply.readAll()
+        print "---- got event data ----"
+        print data
         self.current_event_string += data
         if len(self.current_event_string) > 0 and self.current_event_string[-1] == '\n':
             for event in self.current_event_string.split('\n'):
@@ -73,10 +77,12 @@ class EventRequestManager(QNetworkAccessManager):
         """
         Somehow, the events connection dropped. Try to reconnect.
         """
+        print "event connection finished, reconnect"
         self.failed_attempts = 0
         self.connect()
 
     def connect(self):
+        print "will connect to events endpoint"
         self.reply = self.get(self.request)
 
         self.reply.readyRead.connect(self.on_read_data)
