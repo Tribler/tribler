@@ -26,7 +26,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.current_event_string = ""
         self.tribler_version = "Unknown"
 
-    def on_error(self, error):
+    def on_error(self, error, reschedule_on_err):
         print "got error: %s" % error
         if error == QNetworkReply.ConnectionRefusedError:
             if self.failed_attempts == 40:
@@ -34,10 +34,11 @@ class EventRequestManager(QNetworkAccessManager):
 
             self.failed_attempts += 1
 
-            # Reschedule an attempt
-            self.connect_timer = QTimer()
-            self.connect_timer.timeout.connect(self.connect)
-            self.connect_timer.start(500)
+            if reschedule_on_err:
+                # Reschedule an attempt
+                self.connect_timer = QTimer()
+                self.connect_timer.timeout.connect(self.connect)
+                self.connect_timer.start(500)
 
     def on_read_data(self):
         self.connect_timer.stop()
@@ -81,9 +82,9 @@ class EventRequestManager(QNetworkAccessManager):
         self.failed_attempts = 0
         self.connect()
 
-    def connect(self):
+    def connect(self, reschedule_on_err=True):
         print "will connect to events endpoint"
         self.reply = self.get(self.request)
 
         self.reply.readyRead.connect(self.on_read_data)
-        self.reply.error.connect(self.on_error)
+        self.reply.error.connect(lambda error: self.on_error(error, reschedule_on_err=reschedule_on_err))

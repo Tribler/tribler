@@ -9,6 +9,7 @@ import time
 from twisted.application.service import MultiService, IServiceMaker
 from twisted.conch import manhole_tap
 from twisted.internet import reactor
+from twisted.logger import Logger
 from twisted.plugin import IPlugin
 from twisted.python import usage
 from twisted.python.log import msg
@@ -51,6 +52,7 @@ class TriblerServiceMaker(object):
         self.session = None
         self._stopping = False
         self.process_checker = None
+        self._logger = Logger()
 
     def log_incoming_remote_search(self, sock_addr, keywords):
         d = date.today()
@@ -62,7 +64,7 @@ class TriblerServiceMaker(object):
         reactor.addSystemEventTrigger('after', 'shutdown', os._exit, code)
         reactor.stop()
 
-    def start_tribler(self, options):
+    def start_tribler(self, options, start_deferred=None):
         """
         Main method to startup Tribler.
         """
@@ -109,8 +111,11 @@ class TriblerServiceMaker(object):
         if upgrader.failed:
             self.shutdown_process("The upgrader failed: .Tribler directory backed up, aborting")
         else:
-            self.session.start()
-            msg("Tribler started")
+            def on_tribler_started(_):
+                if start_deferred:
+                    start_deferred.callback(self.session)
+
+            self.session.start().addCallback(on_tribler_started)
 
         if "auto-join-channel" in options and options["auto-join-channel"]:
             msg("Enabling auto-joining of channels")

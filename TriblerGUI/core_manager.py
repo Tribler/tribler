@@ -41,7 +41,7 @@ class CoreManager(object):
             self.use_existing_core = False
             self.start_tribler_core()
 
-        self.events_manager.connect()
+        self.events_manager.connect(reschedule_on_err=False)
         self.events_manager.reply.error.connect(on_request_error)
 
     def start_tribler_core(self):
@@ -51,8 +51,6 @@ class CoreManager(object):
             self.core_process.start("python %s %d" % (core_script_path, self.api_port))
         else:
             self.core_process.start("python %s -n tribler" % core_script_path)
-
-        self.events_manager.connect()
 
     def stop(self):
         if sys.platform == "win32":
@@ -64,13 +62,16 @@ class CoreManager(object):
         self.core_process.kill()
 
     def on_ready_read_stdout(self):
-        print("Tribler core: %s" % str(self.core_process.readAllStandardOutput()).rstrip())
+        text = str(self.core_process.readAllStandardOutput()).rstrip()
+        if 'TRIBLER_STARTED_3894' in text:
+            self.events_manager.connect()
 
     def throw_core_exception(self):
         raise RuntimeError(self.recorded_stderr)
 
     def on_ready_read_stderr(self):
         std_output = self.core_process.readAllStandardError()
+        print std_output
         self.recorded_stderr += std_output
 
         # Check whether we have an exception
