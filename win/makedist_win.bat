@@ -63,9 +63,8 @@ copy C:\build\vc_redist_90.exe dist\tribler
 copy C:\build\vc_redist_110.exe dist\tribler
 
 REM Copy VLC, different files based on 32-bit or 64-bit
-reg Query "HKLM\Hardware\Description\System\CentralProcessor\0" | find /i "x86" > NUL && set OS=32BIT || set OS=64BIT
-if %OS%==32BIT copy C:\build\vlc-2.2.4-win32.exe dist\tribler
-if %OS%==64BIT copy C:\build\vlc-2.2.4-win64.exe dist\tribler
+if %1==32 copy C:\build\vlc-2.2.4-win32.exe dist\tribler
+if %1==64 copy C:\build\vlc-2.2.4-win64.exe dist\tribler
 
 @echo Running NSIS
 cd dist\tribler
