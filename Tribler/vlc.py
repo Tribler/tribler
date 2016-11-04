@@ -117,6 +117,7 @@ def is_frozen():
 def find_lib():
     dll = None
     plugin_path = None
+    vlc_dir = None
     if sys.platform.startswith('linux'):
         p = find_library('vlc')
         try:
@@ -142,30 +143,31 @@ def find_lib():
             for r in w.HKEY_LOCAL_MACHINE, w.HKEY_CURRENT_USER:
                 try:
                     r = w.OpenKey(r, 'Software\\VideoLAN\\VLC')
-                    plugin_path, _ = w.QueryValueEx(r, 'InstallDir')
+                    vlc_dir, _ = w.QueryValueEx(r, 'InstallDir')
                     w.CloseKey(r)
                     break
                 except w.error:
                     pass
         except ImportError:  # no PyWin32
             pass
-        if plugin_path is None:
-             # try some standard locations.
-            for p in ('Program Files\\VideoLan\\', 'VideoLan\\',
-                      'Program Files\\',           ''):
+        if vlc_dir is None:
+            # try some standard locations.
+            for p in ('Program Files\\VideoLAN\\', 'VideoLAN\\',
+                      'Program Files\\', 'Program Files (x86)\\VideoLAN\\', ''):
                 p = 'C:\\' + p + 'VLC\\libvlc.dll'
                 if os.path.exists(p):
-                    plugin_path = os.path.dirname(p)
+                    vlc_dir = os.path.dirname(p)
                     break
-        if plugin_path is not None:  # try loading
+        if vlc_dir is not None:  # try loading
             p = os.getcwd()
-            os.chdir(plugin_path)
-             # if chdir failed, this will raise an exception
+            os.chdir(vlc_dir)
+            # if chdir failed, this will raise an exception
             dll = ctypes.CDLL('libvlc.dll')
-             # restore cwd after dll has been loaded
+            # restore cwd after dll has been loaded
             os.chdir(p)
         else:  # may fail
             dll = ctypes.CDLL('libvlc.dll')
+        plugin_path = os.path.join(vlc_dir, 'plugins')
         ctypes.windll.kernel32.SetDllDirectoryW(dll_directory)
     elif sys.platform.startswith('darwin'):
         # If we are frozen with PyInstaller, find the VLC libraries inside the .app
@@ -187,7 +189,7 @@ def find_lib():
     else:
         raise NotImplementedError('%s: %s not supported' % (sys.argv[0], sys.platform))
 
-    return (dll, plugin_path)
+    return dll, plugin_path
 
 # plugin_path used on win32 and MacOS in override.py
 dll, plugin_path  = find_lib()
