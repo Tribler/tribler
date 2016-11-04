@@ -1,4 +1,4 @@
-@echo off
+REM @echo off
 REM No LIBRARYNAME here as this is not distributed with Tribler as BaseLib
 
 REM Check that we are running from the expected directory
@@ -49,29 +49,11 @@ REM packs them in the installer .EXE
 
 copy Tribler\Main\Build\Win\tribler*.nsi dist\tribler
 copy Tribler\Main\Build\Win\tribler.exe.manifest dist\tribler
-REM copy %PYTHONHOME%\msvcr71.dll dist\tribler
-REM For Vista. This works only when building on XP
-REM as Vista doesn't have this DLL by default.
-REM JD: My XP SP2 doesn't have it. It /is/ shipped with wxPython though
-
-REM Laurens: commented this because wx 3.0 no longer has this dll
-REM copy %PYTHONHOME%\Lib\site-packages\wx-3.0-msw\wx\msvcp71.dll dist\tribler
-
-REM Laurens: commented since this file is not even present on the (old) win 2008 builder
-REM copy %SystemRoot%\msvcp71.dll dist\tribler
-
-REM Laurens: commented since this file is not even present on the (old) 2008 builder
-REM copy %PYTHONHOME%\msvcp60.dll dist\tribler
-
-REM py2exe does this: copy SSLEAY32.dll dist\tribler
-REM copy LIBEAY32.dll dist\tribler
 
 type Tribler\LICENSE.txt Tribler\binary-LICENSE-postfix.txt > Tribler\binary-LICENSE.txt
 copy Tribler\binary-LICENSE.txt dist\tribler
 
-copy C:\Build\ffmpeg\bin\ffmpeg.exe dist\tribler
-xcopy vlc dist\tribler\vlc /E /I
-copy vlc.py dist\tribler\vlc.py
+REM copy C:\Build\ffmpeg\bin\ffmpeg.exe dist\tribler
 
 mkdir dist\tribler\tools
 copy win\tools\reset*.bat dist\tribler\tools
@@ -80,6 +62,7 @@ REM Laurens, 2016-04-20: Copy the redistributables of 2008 and 2012 and the VLC 
 copy C:\build\vc_redist_90.exe dist\tribler
 copy C:\build\vc_redist_110.exe dist\tribler
 
+echo Processor architecture: %PROCESSOR_ARCHITECTURE%
 IF "%PROCESSOR_ARCHITECTURE%" == "AMD64" (copy C:\build\vlc-2.2.4-win64.exe dist\tribler) ELSE (copy C:\build\vlc-2.2.4-win32.exe dist\tribler)
 
 @echo Running NSIS
@@ -94,13 +77,7 @@ SET PATH=%PATH%;C:\Program Files\Microsoft Platform SDK for Windows Server 2003 
 
 signtool.exe sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" tribler.exe
 
-REM Arno: Sign swift.exe so MS "Block / Unblock" dialog has publisher info.
-REM signtool.exe sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" swift.exe
-
-
 :makeinstaller
-REM %NSIS% tribler_novlc.nsi
-REM move Tribler_*.exe ..
 %NSIS% tribler.nsi
 move Tribler_*.exe ..
 cd ..
