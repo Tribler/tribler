@@ -42,6 +42,7 @@ class WaitForProcessDeath():
             time.sleep(1)
             while not stdout_queue.empty():
                 line = stdout_queue.get().strip()
+                print line
 
                 if ': ' not in line: 
                     break
