@@ -62,8 +62,10 @@ REM Laurens, 2016-04-20: Copy the redistributables of 2008 and 2012 and the VLC 
 copy C:\build\vc_redist_90.exe dist\tribler
 copy C:\build\vc_redist_110.exe dist\tribler
 
-echo Processor architecture: %PROCESSOR_ARCHITECTURE%
-IF "%PROCESSOR_ARCHITECTURE%" == "AMD64" (copy C:\build\vlc-2.2.4-win64.exe dist\tribler) ELSE (copy C:\build\vlc-2.2.4-win32.exe dist\tribler)
+REM Copy VLC, different files based on 32-bit or 64-bit
+reg Query "HKLM\Hardware\Description\System\CentralProcessor\0" | find /i "x86" > NUL && set OS=32BIT || set OS=64BIT
+if %OS%==32BIT copy C:\build\vlc-2.2.4-win32.exe dist\tribler
+if %OS%==64BIT copy C:\build\vlc-2.2.4-win64.exe dist\tribler
 
 @echo Running NSIS
 cd dist\tribler
