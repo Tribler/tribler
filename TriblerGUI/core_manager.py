@@ -15,16 +15,13 @@ from TriblerGUI.utilities import get_base_path, is_frozen
 
 START_FAKE_API = False
 
-core_queue = multiprocessing.Queue()
 
-
-def unhandled_error_observer(event):
-    if event['isError']:
-        core_queue.put(event['log_text'])
-
-
-def start_tribler_core(base_path):
+def start_tribler_core(core_queue, base_path):
     from twisted.internet import reactor
+
+    def unhandled_error_observer(event):
+        if event['isError']:
+            core_queue.put(event['log_text'])
 
     addObserver(unhandled_error_observer)
 
@@ -75,6 +72,7 @@ class CoreManager(object):
         self.shutting_down = False
         self.recorded_stderr = ""
         self.use_existing_core = True
+        self.core_queue = multiprocessing.Queue()
 
         self.queue_timer = QTimer()
         self.queue_timer.timeout.connect(self.check_queue)
@@ -84,7 +82,7 @@ class CoreManager(object):
 
     def check_queue(self):
         try:
-            data = core_queue.get_nowait()
+            data = self.core_queue.get_nowait()
             if data == "TRIBLER_STARTED":
                 self.events_manager.connect()
                 self.queue_timer.stop()
@@ -121,7 +119,7 @@ class CoreManager(object):
             # Workaround for MacOS
             sqlite3.connect(':memory:').close()
 
-            self.core_process = multiprocessing.Process(target=start_tribler_core, args=(self.base_path,))
+            self.core_process = multiprocessing.Process(target=start_tribler_core, args=(self.core_queue, self.base_path,))
             self.core_process.start()
             self.queue_timer.start(200)
 
