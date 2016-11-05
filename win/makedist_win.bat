@@ -48,7 +48,9 @@ REM packs them in the installer .EXE
 %PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec
 
 copy Tribler\Main\Build\Win\tribler*.nsi dist\tribler
-copy Tribler\Main\Build\Win\tribler.exe.manifest dist\tribler
+
+REM Martijn 2016-11-05: causing problems with PyInstaller
+REM copy Tribler\Main\Build\Win\tribler.exe.manifest dist\tribler
 
 type Tribler\LICENSE.txt Tribler\binary-LICENSE-postfix.txt > Tribler\binary-LICENSE.txt
 copy Tribler\binary-LICENSE.txt dist\tribler
