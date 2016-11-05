@@ -1,5 +1,8 @@
+import sys
+import multiprocessing
+
 if __name__ == "__main__":
-    import sys
+    multiprocessing.freeze_support()
 
     from TriblerGUI.single_application import QtSingleApplication
     from TriblerGUI.tribler_window import TriblerWindow
