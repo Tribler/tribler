@@ -1,44 +1,103 @@
+from Queue import Empty
+import multiprocessing
 import os
 import sys
-from PyQt5.QtCore import QProcess, QProcessEnvironment, QTimer
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication
-import TriblerGUI
+import sqlite3
+from twisted.python.log import addObserver
+from Tribler.Core.Modules.process_checker import ProcessChecker
+from Tribler.Core.Session import Session
+from Tribler.Core.SessionConfig import SessionStartupConfig
 
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.utilities import get_base_path, is_frozen
 
 START_FAKE_API = False
 
+core_queue = multiprocessing.Queue()
+
+
+def unhandled_error_observer(event):
+    if event['isError']:
+        core_queue.put(event['log_text'])
+
+
+def start_tribler_core(base_path):
+    from twisted.internet import reactor
+
+    addObserver(unhandled_error_observer)
+
+    def on_tribler_started(session):
+        """
+        We print a magic string when Tribler has started. While this solution is not pretty, it is more reliable than
+        trying to connect to the events endpoint with an interval.
+        """
+        core_queue.put("TRIBLER_STARTED")
+
+    sys.path.insert(0, base_path)
+
+    def start_tribler():
+        config = SessionStartupConfig()
+        config.set_http_api_port(8085)
+        config.set_http_api_enabled(True)
+
+        # Check if we are already running a Tribler instance
+        process_checker = ProcessChecker()
+        if process_checker.already_running:
+            #shutdown_process("Another Tribler instance is already using statedir %s" % config.get_state_dir())
+            return
+
+        session = Session(config)
+        upgrader = session.prestart()
+        if upgrader.failed:
+            pass
+            #shutdown_process("The upgrader failed: .Tribler directory backed up, aborting")
+
+        session.start().addCallback(on_tribler_started)
+
+    reactor.callWhenRunning(start_tribler)
+    reactor.run()
+
 
 class CoreManager(object):
 
     def __init__(self, api_port):
-        environment = QProcessEnvironment.systemEnvironment()
-
-        environment.insert("base_path", get_base_path())
+        self.base_path = get_base_path()
         if not is_frozen():
-            environment.insert("base_path", os.path.join(get_base_path(), ".."))
+            self.base_path = os.path.join(get_base_path(), "..")
 
         self.api_port = api_port
 
-        self.core_process = QProcess()
-        self.core_process.setProcessEnvironment(environment)
-        self.core_process.readyReadStandardOutput.connect(self.on_ready_read_stdout)
-        self.core_process.readyReadStandardError.connect(self.on_ready_read_stderr)
-        self.core_process.finished.connect(self.on_finished)
+        self.core_process = None
         self.events_manager = EventRequestManager(api_port)
 
         self.shutting_down = False
         self.recorded_stderr = ""
         self.use_existing_core = True
 
-        def print_state():
-            print "state: %s" % self.core_process.state()
-            print "last error: %s" % self.core_process.errorString()
+        self.queue_timer = QTimer()
+        self.queue_timer.timeout.connect(self.check_queue)
 
-        self.debug_timer = QTimer()
-        self.debug_timer.timeout.connect(print_state)
-        self.debug_timer.start(1000)
+        self.stop_timer = QTimer()
+        self.stop_timer.timeout.connect(self.check_stopped)
+
+    def check_queue(self):
+        try:
+            data = core_queue.get_nowait()
+            if data == "TRIBLER_STARTED":
+                self.events_manager.connect()
+                self.queue_timer.stop()
+                self.queue_timer.start(1000)
+            else:
+                raise RuntimeError(data)
+        except Empty:
+            pass
+
+    def check_stopped(self):
+        if not self.core_process.is_alive():
+            self.stop_timer.stop()
+            self.on_finished()
 
     def start(self):
         """
@@ -59,45 +118,19 @@ class CoreManager(object):
         if START_FAKE_API:
             self.core_process.start("python %s %d" % (core_script_path, self.api_port))
         else:
-            self.core_process.start("python %s -n tribler" % core_script_path)
+            # Workaround for MacOS
+            sqlite3.connect(':memory:').close()
+
+            self.core_process = multiprocessing.Process(target=start_tribler_core, args=(self.base_path,))
+            self.core_process.start()
+            self.queue_timer.start(200)
 
     def stop(self):
-        if sys.platform == "win32":
-            self.core_process.kill()
-        else:
-            self.core_process.terminate()
-
-    def kill(self):
-        self.core_process.kill()
-
-    def on_ready_read_stdout(self):
-        text = str(self.core_process.readAllStandardOutput()).rstrip()
-        if 'TRIBLER_STARTED_3894' in text:
-            self.events_manager.connect()
+        self.core_process.terminate()
+        self.stop_timer.start()
 
     def throw_core_exception(self):
         raise RuntimeError(self.recorded_stderr)
-
-    def on_ready_read_stderr(self):
-        std_output = self.core_process.readAllStandardError()
-        print std_output
-        self.recorded_stderr += std_output
-
-        # Check whether we have an exception
-        has_exception = False
-        for err_line in std_output.split('\n'):
-            if "Traceback" in err_line:
-                has_exception =True
-                break
-
-        if has_exception:
-            self.timer = QTimer()
-            self.timer.setSingleShot(True)
-            self.timer.timeout.connect(self.throw_core_exception)
-            self.timer.start(1000)
-
-        sys.stderr.write(std_output)
-        sys.stderr.flush()
 
     def on_finished(self):
         print "SUBPROCESS FINISHED"
