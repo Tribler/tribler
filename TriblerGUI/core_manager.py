@@ -32,12 +32,21 @@ class CoreManager(object):
         self.recorded_stderr = ""
         self.use_existing_core = True
 
+        def print_state():
+            print "state: %s" % self.core_process.state()
+            print "last error: %s" % self.core_process.errorString()
+
+        self.debug_timer = QTimer()
+        self.debug_timer.timeout.connect(print_state)
+        self.debug_timer.start(1000)
+
     def start(self):
         """
         First test whether we already have a Tribler process listening on port 8085. If so, use that one and don't
         start a new, fresh session.
         """
         def on_request_error(_):
+            print "got error - starting Tribler core..."
             self.use_existing_core = False
             self.start_tribler_core()
 
@@ -91,5 +100,6 @@ class CoreManager(object):
         sys.stderr.flush()
 
     def on_finished(self):
+        print "SUBPROCESS FINISHED"
         if self.shutting_down:
             QApplication.quit()
