@@ -33,6 +33,11 @@ a = Analysis(['run_tribler.py'],
              cipher=block_cipher)
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
+
+# Remove libsodium.so - workaround for MacOS (https://github.com/pyinstaller/pyinstaller/issues/1770)
+if sys.platform == 'darwin':
+    a.binaries = a.binaries - TOC([('/usr/local/lib/libsodium.so', None, None),])
+
 exe = EXE(pyz,
           a.scripts,
           exclude_binaries=True,
