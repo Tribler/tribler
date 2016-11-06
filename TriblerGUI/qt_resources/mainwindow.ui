@@ -7445,8 +7445,8 @@ color: white;
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>647</width>
-                       <height>381</height>
+                       <width>127</width>
+                       <height>212</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">

@@ -20,6 +20,9 @@ class DialogContainer(QWidget):
         painter = QPainter(self)
         self.style().drawPrimitive(QStyle.PE_Widget, opt, painter, self)
 
+    def close_dialog(self):
+        self.setParent(None)
+
     def on_main_window_resize(self):
         if not self.parentWidget():
             return

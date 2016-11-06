@@ -37,6 +37,7 @@ fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'
 class TriblerWindow(QMainWindow):
 
     resize_event = pyqtSignal()
+    escape_pressed = pyqtSignal()
     received_search_completions = pyqtSignal(object)
 
     def on_exception(self, *exc_info):
@@ -457,5 +458,7 @@ class TriblerWindow(QMainWindow):
         close_event.ignore()
 
     def keyReleaseEvent(self, event):
-        if event.key() == Qt.Key_Escape and self.isFullScreen():
-            self.exit_full_screen()
+        if event.key() == Qt.Key_Escape:
+            self.escape_pressed.emit()
+            if self.isFullScreen():
+                self.exit_full_screen()
