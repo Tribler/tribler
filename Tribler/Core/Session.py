@@ -19,12 +19,13 @@ from Tribler.Core.Utilities import torrent_utils
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_FILE_RELATIVE_PATH, DB_SCRIPT_RELATIVE_PATH
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_FILE_RELATIVE_PATH, DB_SCRIPT_NAME
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.restapi.rest_manager import RESTManager
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.defaults import tribler_defaults
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
     DuplicateTorrentFileError
@@ -199,7 +200,7 @@ class Session(SessionConfigInterface):
             self.lm.api_manager.start()
 
         db_path = os.path.join(self.get_state_dir(), DB_FILE_RELATIVE_PATH)
-        db_script_path = os.path.join(self.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
+        db_script_path = os.path.join(get_lib_path(), DB_SCRIPT_NAME)
 
         self.sqlite_db = SQLiteCacheDB(db_path, db_script_path)
         self.sqlite_db.initialize()
