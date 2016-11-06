@@ -64,6 +64,10 @@ REM Laurens, 2016-04-20: Copy the redistributables of 2008 and 2012 and the VLC 
 copy C:\build\vc_redist_90.exe dist\tribler
 copy C:\build\vc_redist_110.exe dist\tribler
 
+REM Copy various libraries required on runtime (libsodium and openssl)
+copy C:\build\libsodium.dll dist\tribler
+copy C:\build\openssl\*.dll dist\tribler
+
 REM Copy VLC, different files based on 32-bit or 64-bit
 if %1==32 copy C:\build\vlc-2.2.4-win32.exe dist\tribler
 if %1==64 copy C:\build\vlc-2.2.4-win64.exe dist\tribler
