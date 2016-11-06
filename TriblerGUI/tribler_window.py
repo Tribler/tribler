@@ -43,7 +43,8 @@ class TriblerWindow(QMainWindow):
         # Stop the download loop
         self.downloads_page.stop_loading_downloads()
 
-        self.core_manager.stop()
+        if not self.core_manager.shutting_down:
+            self.core_manager.stop()
         self.setHidden(True)
 
         exception_text = "".join(traceback.format_exception(*exc_info))
