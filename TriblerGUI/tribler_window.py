@@ -254,6 +254,9 @@ class TriblerWindow(QMainWindow):
 
     def on_add_torrent_browse_file(self):
         filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
+        if len(filename[0]) == 0:
+            return
+
         self.download_uri = u"file:%s" % filename[0]
 
         self.dialog = StartDownloadDialog(self.window().stackedWidget, filename[0])
