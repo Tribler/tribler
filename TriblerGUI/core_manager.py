@@ -5,6 +5,7 @@ import sys
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication
 import sqlite3
+import signal
 from twisted.python.log import addObserver
 from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Core.Session import Session
@@ -22,6 +23,14 @@ def start_tribler_core(core_queue, base_path):
     def unhandled_error_observer(event):
         if event['isError']:
             core_queue.put(event['log_text'])
+
+    def on_tribler_shutdown(_):
+        print "Tribler stopped!!"
+        reactor.stop()
+
+    def shutdown(session, *_):
+        print "Stopping Tribler..."
+        session.shutdown().addCallback(on_tribler_shutdown)
 
     addObserver(unhandled_error_observer)
 
@@ -51,6 +60,7 @@ def start_tribler_core(core_queue, base_path):
             pass
             #shutdown_process("The upgrader failed: .Tribler directory backed up, aborting")
 
+        signal.signal(signal.SIGTERM, lambda signum, stack: shutdown(session, signum, stack))
         session.start().addCallback(on_tribler_started)
 
     reactor.callWhenRunning(start_tribler)

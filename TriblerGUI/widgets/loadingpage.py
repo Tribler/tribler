@@ -19,4 +19,5 @@ class LoadingPage(QWidget):
         self.window().core_manager.events_manager.upgrader_tick.connect(self.set_loading_text)
 
     def set_loading_text(self, text):
-        self.window().loading_text_label.setText(text)
+        pass
+        #self.window().loading_text_label.setText(text)
