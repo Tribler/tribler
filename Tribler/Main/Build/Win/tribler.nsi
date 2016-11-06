@@ -1,8 +1,8 @@
 !define PRODUCT "Tribler"
-; Laurens, 2016-03-14: The 6.5.0-rc5-1439-g095ca08 string will be replaced by update_version_from_git.py 
+; Laurens, 2016-03-14: The __GIT__ string will be replaced by update_version_from_git.py
 ; with the current version of the build.
-!define VERSION "6.5.0-rc5-1439-g095ca08"
-; Laurens, 2016-03-14: The _x64 will be replaced by _x64 if needed in update_version_from_git.py
+!define VERSION "__GIT__"
+; Laurens, 2016-03-14: The _x86 will be replaced by _x64 if needed in update_version_from_git.py
 !define BITVERSION "x86"
 !define VLCBITVERSION "32"
 
