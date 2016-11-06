@@ -20,6 +20,10 @@ data_to_copy = [('Tribler/dispersy/libnacl/libnacl', 'libnacl'), ('TriblerGUI/qt
 if sys.platform.startswith('darwin'):
     data_to_copy += [('/Applications/VLC.app/Contents/MacOS/lib', 'vlc/lib'), ('/Applications/VLC.app/Contents/MacOS/plugins', 'vlc/plugins')]
 
+# Libsodium is dynamically loaded, explicitly include it
+if 'LIBSODIUM_PATH' in os.environ:
+    data_to_copy += [(os.environ['LIBSODIUM_PATH'], '')]
+
 a = Analysis(['run_tribler.py'],
              pathex=['/Users/martijndevos/Documents/tribler'],
              binaries=None,
