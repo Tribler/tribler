@@ -62,7 +62,9 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.download_button.hide()
 
     def on_download_button_clicked(self):
-        self.dialog = StartDownloadDialog(self.window().stackedWidget, self.torrent_info["name"])
+        download_uri = quote_plus("magnet:?xt=urn:btih:%s&dn=%s" %
+                                  (self.torrent_info["infohash"], self.torrent_info["name"]))
+        self.dialog = StartDownloadDialog(self.window().stackedWidget, download_uri, self.torrent_info["name"])
         self.dialog.button_clicked.connect(self.on_start_download_action)
         self.dialog.show()
 

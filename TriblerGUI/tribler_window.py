@@ -259,7 +259,7 @@ class TriblerWindow(QMainWindow):
 
         self.download_uri = u"file:%s" % filename[0]
 
-        self.dialog = StartDownloadDialog(self.window().stackedWidget, filename[0])
+        self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri, filename[0])
         self.dialog.button_clicked.connect(self.on_start_download_action)
         self.dialog.show()
 
@@ -315,7 +315,7 @@ class TriblerWindow(QMainWindow):
         self.dialog = None
 
         if action == 0:
-            self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri)
+            self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri, self.download_uri)
             self.dialog.button_clicked.connect(self.on_start_download_action)
             self.dialog.show()
 

@@ -1,16 +1,36 @@
 from PyQt5 import uic
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QSizePolicy, QFileDialog
+from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtWidgets import QSizePolicy, QFileDialog, QTreeWidgetItem
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
-from TriblerGUI.utilities import get_ui_file_path
+from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.utilities import get_ui_file_path, format_size
+
+
+class DownloadFileTreeWidget(QTreeWidgetItem):
+
+    def get_num_checked(self):
+        total_checked = 0
+        for ind in xrange(self.treeWidget().topLevelItemCount()):
+            item = self.treeWidget().topLevelItem(ind)
+            if item.checkState(2) == Qt.Checked:
+                total_checked += 1
+        return total_checked
+
+    def setData(self, index, role, value):
+        if index == 2 and self.get_num_checked() == 1 and role == Qt.CheckStateRole and value == Qt.Unchecked:
+            return
+
+        super(DownloadFileTreeWidget, self).setData(index, role, value)
 
 
 class StartDownloadDialog(DialogContainer):
 
     button_clicked = pyqtSignal(int)
 
-    def __init__(self, parent, torrent_name):
+    def __init__(self, parent, download_uri, torrent_name):
         super(StartDownloadDialog, self).__init__(parent)
+
+        self.download_uri = download_uri
 
         uic.loadUi(get_ui_file_path('startdownloaddialog.ui'), self.dialog_widget)
 
@@ -27,6 +47,34 @@ class StartDownloadDialog(DialogContainer):
         self.dialog_widget.safe_seed_checkbox.setEnabled(self.dialog_widget.anon_download_checkbox.isChecked())
         self.dialog_widget.anon_download_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
 
+        self.perform_files_request()
+        self.dialog_widget.files_list_view.setHidden(True)
+        self.dialog_widget.adjustSize()
+
+        self.on_main_window_resize()
+
+    def perform_files_request(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("torrentinfo?uri=%s" % self.download_uri, self.on_received_metainfo)
+
+    def on_received_metainfo(self, metainfo):
+        metainfo = metainfo['metainfo']
+        if 'files' in metainfo['info']:  # Multi-file torrent
+            files = metainfo['info']['files']
+        else:
+            files = [{'path': [metainfo['info']['name']], 'length': metainfo['info']['length']}]
+
+        for file in files:
+            item = DownloadFileTreeWidget(self.dialog_widget.files_list_view)
+            item.setText(0, file['path'][0])
+            item.setText(1, format_size(float(file['length'])))
+            item.setData(0, Qt.UserRole, file)
+            item.setCheckState(2, Qt.Checked)
+            self.dialog_widget.files_list_view.addTopLevelItem(item)
+
+        self.dialog_widget.loading_files_label.setHidden(True)
+        self.dialog_widget.files_list_view.setHidden(False)
+        self.dialog_widget.adjustSize()
         self.on_main_window_resize()
 
     def on_browse_dir_clicked(self):
