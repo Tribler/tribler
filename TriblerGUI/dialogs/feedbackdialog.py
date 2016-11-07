@@ -80,7 +80,7 @@ class FeedbackDialog(QDialog):
         self.request_mgr.base_url = 'http://reporter.tribler.org/'
 
         sys_info = ""
-        for ind in xrange(self.env_variables_list.topLevelItemCount() - 1):
+        for ind in xrange(self.env_variables_list.topLevelItemCount()):
             item = self.env_variables_list.topLevelItem(ind)
             sys_info += "%s\t%s\n" % (quote_plus(item.text(0)), quote_plus(item.text(1)))
 
