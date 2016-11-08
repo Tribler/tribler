@@ -39,7 +39,6 @@ class TestEventsEndpoint(AbstractApiTest):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        events_endpoint_file.MAX_EVENTS_BUFFER_SIZE = 100
         yield super(TestEventsEndpoint, self).setUp(autoload_discovery=autoload_discovery)
         self.events_deferred = Deferred()
         self.connection_pool = HTTPConnectionPool(reactor, False)
@@ -64,33 +63,15 @@ class TestEventsEndpoint(AbstractApiTest):
     def close_connections(self):
         return self.connection_pool.closeCachedConnections()
 
-    @deferred(timeout=10)
-    def test_events_buffer(self):
-        """
-        Testing whether we still receive messages that are in the buffer before the event connection is opened
-        """
-        def verify_delayed_message(results):
-            self.assertEqual(len(results), 1)
-
-        events_endpoint_file.MAX_EVENTS_BUFFER_SIZE = 1
-
-        events_endpoint = self.session.lm.api_manager.root_endpoint.events_endpoint
-        self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
-        results_dict = {"keywords": ["test"], "result_list": [('a',) * 10]}
-        events_endpoint.on_search_results_channels(None, None, None, results_dict)
-        events_endpoint.on_search_results_torrents(None, None, None, results_dict)
-        self.messages_to_wait_for = 1
-        return self.events_deferred.addCallback(verify_delayed_message)
-
     @deferred(timeout=20)
     def test_search_results(self):
         """
         Testing whether the event endpoint returns search results when we have search results available
         """
         def verify_search_results(results):
-            self.assertEqual(len(results), 3)
+            self.assertEqual(len(results), 2)
 
-        self.messages_to_wait_for = 3
+        self.messages_to_wait_for = 2
 
         def send_notifications(_):
             self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
@@ -108,7 +89,7 @@ class TestEventsEndpoint(AbstractApiTest):
         """
         Testing whether various events are coming through the events endpoints
         """
-        self.messages_to_wait_for = 12
+        self.messages_to_wait_for = 11
 
         def send_notifications(_):
             self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
@@ -134,7 +115,7 @@ class TestEventsEndpoint(AbstractApiTest):
         """
         Testing the family filter when searching for torrents and channels
         """
-        self.messages_to_wait_for = 4
+        self.messages_to_wait_for = 2
 
         def send_searches(_):
             events_endpoint = self.session.lm.api_manager.root_endpoint.events_endpoint

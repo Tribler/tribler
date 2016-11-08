@@ -7,8 +7,6 @@ from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON
                                      NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR)
 from Tribler.Core.version import version_id
 
-MAX_EVENTS_BUFFER_SIZE = 100
-
 
 class EventsEndpoint(resource.Resource):
     """
@@ -38,6 +36,7 @@ class EventsEndpoint(resource.Resource):
       torrent that has finished downloading.
     - torrent_error: An error has occurred during the download process of a specific torrent. The event includes the
       infohash and a readable string of the error message.
+    - tribler_exception: An exception has occurred in Tribler. The event includes a readable string of the error.
     """
 
     def __init__(self, session):
@@ -45,7 +44,6 @@ class EventsEndpoint(resource.Resource):
         self.session = session
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.events_requests = []
-        self.buffer = []
 
         self.infohashes_sent = set()
         self.channel_cids_sent = set()
@@ -66,12 +64,10 @@ class EventsEndpoint(resource.Resource):
 
     def write_data(self, message):
         """
-        Write data over the event socket. If the event socket is not open, add the message to the buffer instead.
+        Write data over the event socket if it's open.
         """
         if len(self.events_requests) == 0:
-            if len(self.buffer) >= MAX_EVENTS_BUFFER_SIZE:
-                self.buffer.pop(0)
-            self.buffer.append(message)
+            return
         else:
             [request.write(message + '\n') for request in self.events_requests]
 
@@ -146,6 +142,9 @@ class EventsEndpoint(resource.Resource):
         self.write_data(json.dumps({"type": "torrent_error", "event": {"infohash": objectID.encode('hex'),
                                                                        "error": args[0]}}))
 
+    def on_tribler_exception(self, exception_text):
+        self.write_data(json.dumps({"type": "tribler_exception", "event": {"text": exception_text}}))
+
     def render_GET(self, request):
         """
         .. http:get:: /events
@@ -166,8 +165,5 @@ class EventsEndpoint(resource.Resource):
 
         request.write(json.dumps({"type": "events_start", "event": {
             "tribler_started": self.session.lm.initComplete, "version": version_id}}) + '\n')
-
-        while not len(self.buffer) == 0:
-            request.write(self.buffer.pop(0) + '\n')
 
         return server.NOT_DONE_YET

@@ -10,6 +10,7 @@ from Tribler.Core.Modules.restapi.multichain_endpoint import MultichainEndpoint
 from Tribler.Core.Modules.restapi.search_endpoint import SearchEndpoint
 from Tribler.Core.Modules.restapi.settings_endpoint import SettingsEndpoint
 from Tribler.Core.Modules.restapi.shutdown_endpoint import ShutdownEndpoint
+from Tribler.Core.Modules.restapi.state_endpoint import StateEndpoint
 from Tribler.Core.Modules.restapi.statistics_endpoint import StatisticsEndpoint
 from Tribler.Core.Modules.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
 from Tribler.Core.Modules.restapi.torrents_endpoint import TorrentsEndpoint
@@ -24,13 +25,15 @@ class RootEndpoint(resource.Resource):
 
     def __init__(self, session):
         """
-        During the initialization of the REST API, we only start the event sockets. We enable the other endpoints
-        when Tribler has completed the starting procedure.
+        During the initialization of the REST API, we only start the event sockets and the state endpoint.
+        We enable the other endpoints when Tribler has completed the starting procedure.
         """
         resource.Resource.__init__(self)
         self.session = session
         self.events_endpoint = EventsEndpoint(self.session)
+        self.state_endpoint = StateEndpoint(self.session)
         self.putChild("events", self.events_endpoint)
+        self.putChild("state", self.state_endpoint)
 
     def start_endpoints(self):
         """
