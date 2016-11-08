@@ -268,13 +268,18 @@ class TriblerWindow(QMainWindow):
             escaped_uri = quote_plus(self.download_uri.encode('utf-8'))
             anon_hops = 1 if self.dialog.dialog_widget.anon_download_checkbox.isChecked() else 0
             safe_seeding = 1 if self.dialog.dialog_widget.safe_seed_checkbox.isChecked() else 0
-            self.start_download(escaped_uri, anon_hops, safe_seeding)
+            self.start_download(escaped_uri, anon_hops, safe_seeding, self.dialog.get_selected_files())
 
         self.dialog.setParent(None)
         self.dialog = None
 
-    def start_download(self, uri, anon_hops, safe_seeding):
-        post_data = str("uri=%s&anon_hops=%d&safe_seeding=%d" % (uri, anon_hops, safe_seeding))
+    def start_download(self, uri, anon_hops, safe_seeding, selected_files):
+        selected_files_uri = ""
+        if len(selected_files) != self.dialog.dialog_widget.files_list_view.topLevelItemCount():  # All files included
+            selected_files_uri = '&' + ''.join(u"selected_files[]=%s&" % file for file in selected_files)[:-1].encode('utf-8')
+
+        post_data = str("uri=%s&anon_hops=%d&safe_seeding=%d%s" % (uri, anon_hops, safe_seeding, selected_files_uri))
+        print post_data
         request_mgr = TriblerRequestManager()
         self.pending_requests[request_mgr.request_id] = request_mgr
         request_mgr.perform_request("downloads", self.on_download_added, method='PUT', data=post_data)

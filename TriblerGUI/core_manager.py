@@ -134,13 +134,13 @@ class CoreManager(object):
             self.queue_timer.start(200)
 
     def stop(self):
-        self.core_process.terminate()
-        self.stop_timer.start()
+        if self.core_process:
+            self.core_process.terminate()
+            self.stop_timer.start()
 
     def throw_core_exception(self):
         raise RuntimeError(self.recorded_stderr)
 
     def on_finished(self):
-        print "SUBPROCESS FINISHED"
         if self.shutting_down:
             QApplication.quit()

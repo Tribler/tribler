@@ -6,7 +6,7 @@ from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_ui_file_path, format_size
 
 
-class DownloadFileTreeWidget(QTreeWidgetItem):
+class DownloadFileTreeWidgetItem(QTreeWidgetItem):
 
     def get_num_checked(self):
         total_checked = 0
@@ -20,7 +20,7 @@ class DownloadFileTreeWidget(QTreeWidgetItem):
         if index == 2 and self.get_num_checked() == 1 and role == Qt.CheckStateRole and value == Qt.Unchecked:
             return
 
-        super(DownloadFileTreeWidget, self).setData(index, role, value)
+        super(DownloadFileTreeWidgetItem, self).setData(index, role, value)
 
 
 class StartDownloadDialog(DialogContainer):
@@ -53,6 +53,15 @@ class StartDownloadDialog(DialogContainer):
 
         self.on_main_window_resize()
 
+    def get_selected_files(self):
+        included_files = []
+        for ind in xrange(self.dialog_widget.files_list_view.topLevelItemCount()):
+            item = self.dialog_widget.files_list_view.topLevelItem(ind)
+            if item.checkState(2) == Qt.Checked:
+                included_files.append(unicode(item.data(0, Qt.UserRole)['path'][0]))
+
+        return included_files
+
     def perform_files_request(self):
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("torrentinfo?uri=%s" % self.download_uri, self.on_received_metainfo)
@@ -65,7 +74,7 @@ class StartDownloadDialog(DialogContainer):
             files = [{'path': [metainfo['info']['name']], 'length': metainfo['info']['length']}]
 
         for file in files:
-            item = DownloadFileTreeWidget(self.dialog_widget.files_list_view)
+            item = DownloadFileTreeWidgetItem(self.dialog_widget.files_list_view)
             item.setText(0, file['path'][0])
             item.setText(1, format_size(float(file['length'])))
             item.setData(0, Qt.UserRole, file)
