@@ -1,5 +1,4 @@
 from urllib import quote_plus
-from PyQt5 import uic
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
 

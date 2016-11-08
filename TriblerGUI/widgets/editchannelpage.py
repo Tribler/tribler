@@ -112,7 +112,7 @@ class EditChannelPage(QWidget):
 
         items = []
         for result in torrents['torrents']:
-            items.append((ChannelTorrentListItem, result, {"show_controls": True}))
+            items.append((ChannelTorrentListItem, result, {"show_controls": True, "on_remove_clicked": self.on_torrent_remove_clicked}))
         self.window().edit_channel_torrents_list.set_data_items(items)
 
     def load_channel_playlists(self):
@@ -143,6 +143,11 @@ class EditChannelPage(QWidget):
             item.setText(0, feed["url"])
 
             self.window().edit_channel_rss_feeds_list.addTopLevelItem(item)
+
+    def on_torrent_remove_clicked(self, item):
+        self.dialog = ConfirmationDialog(self, "Remove selected torrent", "Are you sure that you want to remove the selected torrent from this channel?", [('confirm', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
+        self.dialog.button_clicked.connect(lambda action: self.on_torrents_remove_selected_action(action, item))
+        self.dialog.show()
 
     def on_create_channel_button_pressed(self):
         channel_name = self.window().new_channel_name_edit.text()
@@ -179,9 +184,11 @@ class EditChannelPage(QWidget):
         if num_selected == 0:
             return
 
+        item = self.window().edit_channel_torrents_list.itemWidget(self.window().edit_channel_torrents_list.selectedItems()[0])
+
         self.dialog = ConfirmationDialog(self, "Remove %s selected torrents" % num_selected,
                     "Are you sure that you want to remove %s selected torrents from your channel?" % num_selected, [('confirm', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
-        self.dialog.button_clicked.connect(self.on_torrents_remove_selected_action)
+        self.dialog.button_clicked.connect(lambda action: self.on_torrents_remove_selected_action(action, item))
         self.dialog.show()
 
     def on_torrents_remove_all_clicked(self):
@@ -370,11 +377,10 @@ class EditChannelPage(QWidget):
         self.window().playlist_edit_description.setText(item.playlist_info["description"])
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_PLAYLIST_EDIT)
 
-    def on_torrents_remove_selected_action(self, action):
+    def on_torrents_remove_selected_action(self, action, item):
         if action == 0:
-            torrent_data = self.window().edit_channel_torrents_list.selectedItems()[0].data(Qt.UserRole)
             self.editchannel_request_mgr = TriblerRequestManager()
-            self.editchannel_request_mgr.perform_request("channels/discovered/%s/torrents/%s" % (self.channel_overview["identifier"], torrent_data['infohash']), self.on_torrent_removed, method='DELETE')
+            self.editchannel_request_mgr.perform_request("channels/discovered/%s/torrents/%s" % (self.channel_overview["identifier"], item.torrent_info['infohash']), self.on_torrent_removed, method='DELETE')
 
         self.dialog.setParent(None)
         self.dialog = None
