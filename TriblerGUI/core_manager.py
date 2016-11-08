@@ -22,7 +22,10 @@ def start_tribler_core(core_queue, base_path):
 
     def unhandled_error_observer(event):
         if event['isError']:
-            core_queue.put(event['log_text'])
+            if 'log_legacy' in event and 'log_text' in event:
+                core_queue.put(event['log_text'])
+            elif 'log_failure' in event:
+                core_queue.put(str(event['log_failure']))
 
     def on_tribler_shutdown(_):
         print "Tribler stopped!!"
