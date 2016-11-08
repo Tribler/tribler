@@ -10,7 +10,7 @@ from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException,
 from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, DLSTATUS_STOPPED, SIGNAL_CHANNEL, SIGNAL_ON_CREATED
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TORRENT_FILE
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -72,6 +72,30 @@ class TestSession(TriblerCoreTest):
         self.assertEqual(session.lm.channel_manager.invoked_name, "name")
         self.assertEqual(session.lm.channel_manager.invoked_desc, "description")
         self.assertEqual(session.lm.channel_manager.invoked_mode, "open")
+
+    def test_unhandled_error_observer(self):
+        """
+        Test the unhandled error observer
+        """
+        session = Session(SessionStartupConfig(), ignore_singleton=True)
+        session.lm = MockObject()
+        session.lm.api_manager = MockObject()
+        session.lm.api_manager.root_endpoint = MockObject()
+        session.lm.api_manager.root_endpoint.events_endpoint = MockObject()
+        session.lm.api_manager.root_endpoint.state_endpoint = MockObject()
+
+        expected_text = ""
+
+        def on_tribler_exception(exception_text):
+            self.assertEqual(exception_text, expected_text)
+
+        on_tribler_exception.called = 0
+        session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception = on_tribler_exception
+        session.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception = on_tribler_exception
+        expected_text = "abcd"
+        session.unhandled_error_observer({'isError': True, 'log_legacy': True, 'log_text': 'abcd'})
+        expected_text = "defg"
+        session.unhandled_error_observer({'isError': True, 'log_failure': 'defg'})
 
 
 class TestSessionAsServer(TestAsServer):

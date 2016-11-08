@@ -89,7 +89,7 @@ class TestEventsEndpoint(AbstractApiTest):
         """
         Testing whether various events are coming through the events endpoints
         """
-        self.messages_to_wait_for = 11
+        self.messages_to_wait_for = 12
 
         def send_notifications(_):
             self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
@@ -105,6 +105,7 @@ class TestEventsEndpoint(AbstractApiTest):
             self.session.notifier.notify(NTFY_TORRENT, NTFY_DISCOVERED, None, None)
             self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, 'a' * 10, None)
             self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, 'a' * 10, 'This is an error message')
+            self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception("hi")
 
         self.socket_open_deferred.addCallback(send_notifications)
 
