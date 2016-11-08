@@ -61,6 +61,10 @@ class DownloadBaseEndpoint(resource.Resource):
                 return None, "Invalid destination directory specified"
             download_config.set_dest_dir(parameters['destination'][0])
 
+        if 'selected_files[]' in parameters:
+            selected_files_list = [unicode(f, 'utf-8') for f in parameters['selected_files[]']]
+            download_config.set_selected_files(selected_files_list)
+
         return download_config, None
 
 

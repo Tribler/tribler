@@ -60,3 +60,6 @@ htmlcov/
 
 # Documentation
 doc/_build/
+
+# Twisted
+twisted/plugins/dropin.cache

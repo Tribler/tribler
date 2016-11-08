@@ -65,7 +65,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether an error is returned when we start a download from a bad URI
         """
-        post_data = {'uri': 'abcd'}
+        post_data = {'uri': 'abcd', 'selected_files[]': 'a.txt'}
         return self.do_request('downloads', expected_code=500, request_type='PUT', post_data=post_data,
                                expected_json={'error': 'invalid uri'})
 
