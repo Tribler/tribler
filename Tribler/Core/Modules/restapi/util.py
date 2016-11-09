@@ -137,3 +137,41 @@ def relevance_score_remote_torrent(torrent_name):
         score += inv_doc_freq * right_side
 
     return score
+
+
+def fix_unicode_dict(d):
+    """
+    This method removes illegal (unicode) characters recursively from a dictionary.
+    This is required since Dispersy members might add invalid characters to their strings and we are unable to utf8
+    encode these when sending the data over the API.
+    """
+    new_dict = {}
+
+    for key, value in d.items():
+        if isinstance(value, dict):
+            new_dict[key] = fix_unicode_dict(value)
+        elif isinstance(value, tuple):
+            new_dict[key] = fix_unicode_array(list(value))
+        elif isinstance(value, list):
+            new_dict[key] = fix_unicode_array(value)
+        elif isinstance(value, (str, unicode)):
+            new_dict[key] = value.decode('utf-8', 'ignore')
+        else:
+            new_dict[key] = value
+
+    return new_dict
+
+
+def fix_unicode_array(arr):
+    """
+    Iterate over the items of the array and remove invalid unicode characters.
+    """
+    new_arr = []
+
+    for ind in xrange(len(arr)):
+        if isinstance(arr[ind], (str, unicode)):
+            new_arr.append(arr[ind].decode('utf-8', 'ignore'))
+        else:
+            new_arr.append(arr[ind])
+
+    return new_arr
