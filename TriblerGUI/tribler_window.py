@@ -182,6 +182,18 @@ class TriblerWindow(QMainWindow):
         else:
             self.clicked_menu_button_home()
 
+    def perform_start_download_request(self, uri, anon_download, safe_seeding, selected_files, total_files=0):
+        selected_files_uri = ""
+        if len(selected_files) != total_files:  # Not all files included
+            selected_files_uri = '&' + ''.join(u"selected_files[]=%s&" % file for file in selected_files)[:-1].encode('utf-8')
+
+        anon_hops = int(self.tribler_settings['Tribler']['default_number_hops']) if anon_download else 0
+        safe_seeding = 1 if safe_seeding else 0
+        post_data = str("uri=%s&anon_hops=%d&safe_seeding=%d%s" % (uri, anon_hops, safe_seeding, selected_files_uri))
+        request_mgr = TriblerRequestManager()
+        self.pending_requests[request_mgr.request_id] = request_mgr
+        request_mgr.perform_request("downloads", self.on_download_added, method='PUT', data=post_data)
+
     def on_new_version_available(self, version):
         if version == str(self.gui_settings.value('last_reported_version')):
             return
@@ -259,30 +271,26 @@ class TriblerWindow(QMainWindow):
 
         self.download_uri = u"file:%s" % filename[0]
 
-        self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri, filename[0])
-        self.dialog.button_clicked.connect(self.on_start_download_action)
-        self.dialog.show()
+        if self.window().gui_settings.value("ask_download_settings", True):
+            self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri, filename[0])
+            self.dialog.button_clicked.connect(self.on_start_download_action)
+            self.dialog.show()
+        else:
+            self.window().perform_start_download_request(self.download_uri,
+                                                         self.window().gui_settings.value("default_anonymity_enabled", True),
+                                                         self.window().gui_settings.value("default_safeseeding_enabled", True),
+                                                         [], 0)
 
     def on_start_download_action(self, action):
         if action == 1:
-            escaped_uri = quote_plus(self.download_uri.encode('utf-8'))
-            anon_hops = 1 if self.dialog.dialog_widget.anon_download_checkbox.isChecked() else 0
-            safe_seeding = 1 if self.dialog.dialog_widget.safe_seed_checkbox.isChecked() else 0
-            self.start_download(escaped_uri, anon_hops, safe_seeding, self.dialog.get_selected_files())
+            self.window().perform_start_download_request(self.download_uri,
+                                                         self.dialog.dialog_widget.anon_download_checkbox.isChecked(),
+                                                         self.dialog.dialog_widget.safe_seed_checkbox.isChecked(),
+                                                         self.dialog.get_selected_files(),
+                                                         self.dialog.dialog_widget.files_list_view.topLevelItemCount())
 
         self.dialog.setParent(None)
         self.dialog = None
-
-    def start_download(self, uri, anon_hops, safe_seeding, selected_files):
-        selected_files_uri = ""
-        if len(selected_files) != self.dialog.dialog_widget.files_list_view.topLevelItemCount():  # All files included
-            selected_files_uri = '&' + ''.join(u"selected_files[]=%s&" % file for file in selected_files)[:-1].encode('utf-8')
-
-        post_data = str("uri=%s&anon_hops=%d&safe_seeding=%d%s" % (uri, anon_hops, safe_seeding, selected_files_uri))
-        print post_data
-        request_mgr = TriblerRequestManager()
-        self.pending_requests[request_mgr.request_id] = request_mgr
-        request_mgr.perform_request("downloads", self.on_download_added, method='PUT', data=post_data)
 
     def on_add_torrent_browse_dir(self):
         dir = QFileDialog.getExistingDirectory(self, "Please select the directory containing the .torrent files", "",
@@ -301,7 +309,10 @@ class TriblerWindow(QMainWindow):
         if action == 0:
             for torrent_file in self.selected_torrent_files:
                 escaped_uri = quote_plus((u"file:%s" % torrent_file).encode('utf-8'))
-                self.start_download(escaped_uri, 1, 1)
+                self.perform_start_download_request(escaped_uri,
+                                                    self.window().gui_settings.value("default_anonymity_enabled", True),
+                                                    self.window().gui_settings.value("default_safeseeding_enabled", True),
+                                                    [], 0)
 
         self.dialog.setParent(None)
         self.dialog = None
@@ -325,10 +336,7 @@ class TriblerWindow(QMainWindow):
             self.dialog.show()
 
     def on_download_added(self, result):
-        if 'started' in result:
-            self.deselect_all_menu_buttons()
-            self.left_menu_button_downloads.setChecked(True)
-            self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
+        self.window().left_menu_button_downloads.click()
 
     def on_top_menu_button_click(self):
         if self.left_menu.isHidden():

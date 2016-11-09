@@ -44,6 +44,10 @@ class StartDownloadDialog(DialogContainer):
             self.dialog_widget.destination_input.setText(self.window().tribler_settings['downloadconfig']['saveas'])
 
         self.dialog_widget.torrent_name_label.setText(torrent_name)
+
+        self.dialog_widget.safe_seed_checkbox.setChecked(self.window().gui_settings.value("default_safeseeding_enabled", True))
+        self.dialog_widget.anon_download_checkbox.setChecked(self.window().gui_settings.value("default_anonymity_enabled", True))
+
         self.dialog_widget.safe_seed_checkbox.setEnabled(self.dialog_widget.anon_download_checkbox.isChecked())
         self.dialog_widget.anon_download_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
 

@@ -214,6 +214,10 @@ class DownloadsPage(QWidget):
             if self.window().downloads_list.topLevelItemCount() == 0:
                 self.window().download_details_widget.clear_data()
 
+            # Reset video player if necessary
+            if self.window().video_player_page.active_infohash == infohash:
+                self.window().video_player_page.reset_player()
+
     def on_force_recheck_download(self):
         infohash = self.selected_item.download_info["infohash"]
         self.request_mgr = TriblerRequestManager()

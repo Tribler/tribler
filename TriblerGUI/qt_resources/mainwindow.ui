@@ -5050,6 +5050,31 @@ border: 0px;
               <property name="formAlignment">
                <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
               </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="label_35">
+                <property name="styleSheet">
+                 <string notr="true">font-weight: bold;
+color: white;</string>
+                </property>
+                <property name="text">
+                 <string>Family filter</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_37">
+                <property name="text">
+                 <string>Family filter enabled?</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QCheckBox" name="family_filter_checkbox">
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
               <item row="2" column="0">
                <widget class="QLabel" name="label_4">
                 <property name="styleSheet">
@@ -5105,14 +5130,15 @@ color: white;</string>
                  <string notr="true"/>
                 </property>
                 <property name="text">
-                 <string>Always ask location?</string>
+                 <string>Always ask download
+settings?</string>
                 </property>
                </widget>
               </item>
               <item row="4" column="1">
                <widget class="QCheckBox" name="always_ask_location_checkbox">
                 <property name="styleSheet">
-                 <string notr="true">margin-top: 2px;</string>
+                 <string notr="true">margin-top: 10px;</string>
                 </property>
                 <property name="text">
                  <string/>
@@ -5258,31 +5284,6 @@ color: white;</string>
                 <property name="styleSheet">
                  <string notr="true">margin-top: 2px;</string>
                 </property>
-                <property name="text">
-                 <string/>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="0">
-               <widget class="QLabel" name="label_35">
-                <property name="styleSheet">
-                 <string notr="true">font-weight: bold;
-color: white;</string>
-                </property>
-                <property name="text">
-                 <string>Family filter</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="label_37">
-                <property name="text">
-                 <string>Family filter enabled?</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QCheckBox" name="family_filter_checkbox">
                 <property name="text">
                  <string/>
                 </property>

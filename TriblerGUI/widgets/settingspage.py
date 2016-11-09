@@ -19,21 +19,12 @@ class SettingsPage(QWidget):
         self.window().settings_save_button.clicked.connect(self.save_settings)
 
         self.window().developer_mode_enabled_checkbox.stateChanged.connect(self.on_developer_mode_checkbox_changed)
-        self.window().always_ask_location_checkbox.stateChanged.connect(self.on_always_ask_location_checkbox_changed)
 
         self.settings = None
 
     def on_developer_mode_checkbox_changed(self, event):
         self.window().gui_settings.setValue("debug", self.window().developer_mode_enabled_checkbox.isChecked())
         self.window().left_menu_button_debug.setHidden(not self.window().developer_mode_enabled_checkbox.isChecked())
-
-    def on_always_ask_location_checkbox_changed(self, event):
-        should_hide = self.window().always_ask_location_checkbox.isChecked()
-        self.window().default_download_settings_header.setHidden(should_hide)
-        self.window().download_settings_anon_label.setHidden(should_hide)
-        self.window().download_settings_anon_checkbox.setHidden(should_hide)
-        self.window().download_settings_anon_seeding_label.setHidden(should_hide)
-        self.window().download_settings_anon_seeding_checkbox.setHidden(should_hide)
 
     def initialize_with_settings(self, settings):
         self.settings = settings
@@ -43,9 +34,9 @@ class SettingsPage(QWidget):
         self.window().developer_mode_enabled_checkbox.setChecked(self.window().gui_settings.value("debug", False))
         self.window().family_filter_checkbox.setChecked(settings['general']['family_filter'])
         self.window().download_location_input.setText(settings['downloadconfig']['saveas'])
-        self.window().always_ask_location_checkbox.setChecked(settings['Tribler']['showsaveas'])
-        self.window().download_settings_anon_checkbox.setChecked(settings['Tribler']['default_anonymity_enabled'])
-        self.window().download_settings_anon_seeding_checkbox.setChecked(settings['Tribler']['default_safeseeding_enabled'])
+        self.window().always_ask_location_checkbox.setChecked(self.window().gui_settings.value("ask_download_settings", True))
+        self.window().download_settings_anon_checkbox.setChecked(self.window().gui_settings.value("default_anonymity_enabled", True))
+        self.window().download_settings_anon_seeding_checkbox.setChecked(self.window().gui_settings.value("default_safeseeding_enabled", True))
         self.window().watchfolder_enabled_checkbox.setChecked(settings['watch_folder']['enabled'])
         self.window().watchfolder_location_input.setText(settings['watch_folder']['watch_folder_dir'])
 
@@ -98,10 +89,7 @@ class SettingsPage(QWidget):
                          'tunnel_community': {}, 'multichain': {}}
         settings_data['general']['family_filter'] = self.window().family_filter_checkbox.isChecked()
         settings_data['downloadconfig']['saveas'] = self.window().download_location_input.text()
-        settings_data['Tribler']['showsaveas'] = self.window().always_ask_location_checkbox.isChecked()
-        if settings_data['Tribler']['showsaveas']:
-            settings_data['Tribler']['default_anonymity_enabled'] = self.window().download_settings_anon_checkbox.isChecked()
-            settings_data['Tribler']['default_safeseeding_enabled'] = self.window().download_settings_anon_seeding_checkbox.isChecked()
+
         settings_data['watch_folder']['enabled'] = self.window().watchfolder_enabled_checkbox.isChecked()
         if settings_data['watch_folder']['enabled']:
             settings_data['watch_folder']['watch_folder_dir'] = self.window().watchfolder_location_input.text()
@@ -146,6 +134,14 @@ class SettingsPage(QWidget):
                                                   method='POST', data=json.dumps(settings_data))
 
     def on_settings_saved(self, _):
+        # Now save the GUI settings
+        self.window().gui_settings.setValue("ask_download_settings",
+                                            self.window().always_ask_location_checkbox.isChecked())
+        self.window().gui_settings.setValue("default_anonymity_enabled",
+                                            self.window().download_settings_anon_checkbox.isChecked())
+        self.window().gui_settings.setValue("default_safeseeding_enabled",
+                                            self.window().download_settings_anon_seeding_checkbox.isChecked())
+
         self.saved_dialog = ConfirmationDialog(TriblerRequestManager.window, "Settings saved",
                                                "Your settings have been saved.", [('close', BUTTON_TYPE_NORMAL)])
         self.saved_dialog.button_clicked.connect(self.on_dialog_cancel_clicked)
