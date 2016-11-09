@@ -5,7 +5,7 @@ from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAG
     PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, BUTTON_TYPE_NORMAL
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import seconds_to_string
+from TriblerGUI.utilities import seconds_to_string, string_to_minutes
 
 
 class SettingsPage(QWidget):
@@ -53,11 +53,11 @@ class SettingsPage(QWidget):
         self.window().firewall_current_port_input.setText(str(settings['general']['minport']))
         self.window().lt_proxy_type_combobox.setCurrentIndex(settings['libtorrent']['lt_proxytype'])
         if settings['libtorrent']['lt_proxyserver']:
-            self.window().lt_proxy_server_input = settings['libtorrent']['lt_proxyserver'][0]
-            self.window().lt_proxy_port_input = settings['libtorrent']['lt_proxyserver'][1]
+            self.window().lt_proxy_server_input.setText(settings['libtorrent']['lt_proxyserver'][0])
+            self.window().lt_proxy_port_input.setText(settings['libtorrent']['lt_proxyserver'][1])
         if settings['libtorrent']['lt_proxyauth']:
-            self.window().lt_proxy_username_input = settings['libtorrent']['lt_proxyauth'][0]
-            self.window().lt_proxy_password_input = settings['libtorrent']['lt_proxyauth'][1]
+            self.window().lt_proxy_username_input.setText(settings['libtorrent']['lt_proxyauth'][0])
+            self.window().lt_proxy_password_input.setText(settings['libtorrent']['lt_proxyauth'][1])
         self.window().lt_utp_checkbox.setChecked(settings['libtorrent']['utp'])
 
         # Bandwidth settings
@@ -120,6 +120,22 @@ class SettingsPage(QWidget):
             settings_data['Tribler']['maxuploadrate'] = self.window().upload_rate_limit_input.text()
         if self.window().download_rate_limit_input.text():
             settings_data['Tribler']['maxdownloadrate'] = self.window().download_rate_limit_input.text()
+
+        seeding_modes = ['forever', 'time', 'never', 'ratio']
+        selected_mode = 'forever'
+        for seeding_mode in seeding_modes:
+            if getattr(self.window(), "seeding_" + seeding_mode + "_radio").isChecked():
+                selected_mode = seeding_mode
+                break
+        settings_data['downloadconfig']['seeding_mode'] = selected_mode
+        settings_data['downloadconfig']['seeding_ratio'] = self.window().seeding_ratio_combobox.currentText()
+
+        try:
+            settings_data['downloadconfig']['seeding_time'] = string_to_minutes(self.window().seeding_time_input.text())
+        except ValueError:
+            ConfirmationDialog.show_error(self.window(), "Invalid seeding time",
+                                          "You've entered an invalid format for the seeding time (expected HH:MM)")
+            return
 
         settings_data['tunnel_community']['exitnode_enabled'] = self.window().allow_exit_node_checkbox.isChecked()
         settings_data['Tribler']['default_number_hops'] = self.window().number_hops_slider.value() + 1

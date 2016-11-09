@@ -29,6 +29,16 @@ def seconds_to_string(seconds):
     return "%d:%02d" % (minutes, seconds_left)
 
 
+def string_to_minutes(time_str):
+    parts = time_str.split(":")
+    if len(parts) != 2:
+        raise ValueError("Invalid time string")
+
+    hours = float(parts[0])
+    minutes = float(parts[1])
+    return hours * 60 + minutes
+
+
 def timestamp_to_time(timestamp):
     today = datetime.today()
     discovered = datetime.fromtimestamp(timestamp)

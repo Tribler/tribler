@@ -2,6 +2,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QSizePolicy, QSpacerItem
+from TriblerGUI.defs import BUTTON_TYPE_NORMAL
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.utilities import get_ui_file_path
 from TriblerGUI.widgets.ellipsebutton import EllipseButton
@@ -38,6 +39,16 @@ class ConfirmationDialog(DialogContainer):
 
         self.window().escape_pressed.connect(self.close_dialog)
         self.on_main_window_resize()
+
+    @classmethod
+    def show_error(self, window, title, error_text):
+        error_dialog = ConfirmationDialog(window, title, error_text, [('close', BUTTON_TYPE_NORMAL)])
+
+        def on_close():
+            error_dialog.setParent(None)
+
+        error_dialog.button_clicked.connect(on_close)
+        error_dialog.show()
 
     def create_button(self, index, button_text, button_type):
         button = EllipseButton(self.dialog_widget)
