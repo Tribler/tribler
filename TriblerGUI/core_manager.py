@@ -1,4 +1,3 @@
-from Queue import Empty
 import multiprocessing
 import os
 import sys
@@ -6,26 +5,19 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QApplication
 import sqlite3
 import signal
-from twisted.python.log import addObserver
 from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 
 from TriblerGUI.event_request_manager import EventRequestManager
+from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_base_path, is_frozen
 
 START_FAKE_API = False
 
 
-def start_tribler_core(core_queue, base_path):
+def start_tribler_core(base_path):
     from twisted.internet import reactor
-
-    def unhandled_error_observer(event):
-        if event['isError']:
-            if 'log_legacy' in event and 'log_text' in event:
-                core_queue.put(event['log_text'])
-            elif 'log_failure' in event:
-                core_queue.put(str(event['log_failure']))
 
     def on_tribler_shutdown(_):
         print "Tribler stopped!!"
@@ -34,15 +26,6 @@ def start_tribler_core(core_queue, base_path):
     def shutdown(session, *_):
         print "Stopping Tribler..."
         session.shutdown().addCallback(on_tribler_shutdown)
-
-    addObserver(unhandled_error_observer)
-
-    def on_tribler_started(session):
-        """
-        We print a magic string when Tribler has started. While this solution is not pretty, it is more reliable than
-        trying to connect to the events endpoint with an interval.
-        """
-        core_queue.put("TRIBLER_STARTED")
 
     sys.path.insert(0, base_path)
 
@@ -64,7 +47,7 @@ def start_tribler_core(core_queue, base_path):
             #shutdown_process("The upgrader failed: .Tribler directory backed up, aborting")
 
         signal.signal(signal.SIGTERM, lambda signum, stack: shutdown(session, signum, stack))
-        session.start().addCallback(on_tribler_started)
+        session.start()
 
     reactor.callWhenRunning(start_tribler)
     reactor.run()
@@ -85,25 +68,9 @@ class CoreManager(object):
         self.shutting_down = False
         self.recorded_stderr = ""
         self.use_existing_core = True
-        self.core_queue = multiprocessing.Queue()
-
-        self.queue_timer = QTimer()
-        self.queue_timer.timeout.connect(self.check_queue)
 
         self.stop_timer = QTimer()
         self.stop_timer.timeout.connect(self.check_stopped)
-
-    def check_queue(self):
-        try:
-            data = self.core_queue.get_nowait()
-            if data == "TRIBLER_STARTED":
-                self.events_manager.connect()
-                self.queue_timer.stop()
-                self.queue_timer.start(1000)
-            else:
-                raise RuntimeError(data)
-        except Empty:
-            pass
 
     def check_stopped(self):
         if not self.core_process.is_alive():
@@ -132,9 +99,23 @@ class CoreManager(object):
             # Workaround for MacOS
             sqlite3.connect(':memory:').close()
 
-            self.core_process = multiprocessing.Process(target=start_tribler_core, args=(self.core_queue, self.base_path,))
+            self.core_process = multiprocessing.Process(target=start_tribler_core, args=(self.base_path,))
             self.core_process.start()
-            self.queue_timer.start(200)
+
+            self.check_core_ready()
+
+    def check_core_ready(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("state", self.on_received_state)
+
+    def on_received_state(self, state):
+        if state['state'] == 'STARTED':
+            self.events_manager.connect(reschedule_on_err=False)
+        elif state['state'] == 'ERROR':
+            raise RuntimeError(state['last_exception'])
+        else:
+            # Reschedule request
+            self.check_core_ready()
 
     def stop(self):
         if self.core_process:

@@ -42,7 +42,6 @@ class EventRequestManager(QNetworkAccessManager):
 
     def on_read_data(self):
         self.connect_timer.stop()
-        print self.reply
         data = self.reply.readAll()
         print "---- got event data ----"
         print data
@@ -72,6 +71,8 @@ class EventRequestManager(QNetworkAccessManager):
                         self.tribler_started.emit()
                 elif json_dict["type"] == "torrent_finished":
                     self.torrent_finished.emit(json_dict["event"])
+                elif json_dict["type"] == "tribler_exception":
+                    raise RuntimeError(json_dict["event"]["text"])
             self.current_event_string = ""
 
     def on_finished(self):
