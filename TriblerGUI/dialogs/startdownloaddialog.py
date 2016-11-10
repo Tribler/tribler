@@ -68,9 +68,14 @@ class StartDownloadDialog(DialogContainer):
 
     def perform_files_request(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("torrentinfo?uri=%s" % self.download_uri, self.on_received_metainfo)
+        self.request_mgr.perform_request("torrentinfo?uri=%s" % self.download_uri, self.on_received_metainfo,
+                                         capture_errors=False)
 
     def on_received_metainfo(self, metainfo):
+        if 'error' in metainfo:
+            self.dialog_widget.loading_files_label.setText("Timeout when trying to fetch files.")
+            return
+
         metainfo = metainfo['metainfo']
         if 'files' in metainfo['info']:  # Multi-file torrent
             files = metainfo['info']['files']

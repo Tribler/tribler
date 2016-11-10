@@ -74,7 +74,7 @@ class TriblerRequestManager(QNetworkAccessManager):
             json_result = json.loads(str(data))
 
             if 'error' in json_result and capture_errors:
-                if type(json_result['error']) == str:
+                if isinstance(json_result['error'], (str, unicode)):
                     self.show_error(json_result['error'])
                 elif 'message' in json_result['error']:
                     self.show_error(json_result['error']['message'])

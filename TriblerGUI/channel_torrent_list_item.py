@@ -42,8 +42,8 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
             self.remove_torrent_button.clicked.connect(lambda: on_remove_clicked(self))
 
     def on_download_clicked(self):
-        self.download_uri = quote_plus("magnet:?xt=urn:btih:%s&dn=%s" %
-                                       (self.torrent_info["infohash"], self.torrent_info["name"]))
+        self.download_uri = quote_plus((u"magnet:?xt=urn:btih:%s&dn=%s" %
+                                        (self.torrent_info["infohash"], self.torrent_info['name'])).encode('utf-8'))
 
         if self.window().gui_settings.value("ask_download_settings", True):
             self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri, self.torrent_info["name"])
