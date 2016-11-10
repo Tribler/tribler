@@ -1,11 +1,12 @@
 import json
 from urllib import url2pathname
-from libtorrent import bdecode
+from libtorrent import bdecode, bencode
 from twisted.internet.defer import Deferred
 
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
-from Tribler.Core.Utilities.utilities import fix_torrent, http_get
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink
 
 
 class TorrentInfoEndpoint(resource.Resource):
@@ -16,6 +17,7 @@ class TorrentInfoEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
+        self.infohash = None
 
     def render_GET(self, request):
         """
@@ -40,8 +42,17 @@ class TorrentInfoEndpoint(resource.Resource):
         metainfo_deferred = Deferred()
 
         def on_got_metainfo(metainfo):
+            if self.infohash:
+                # Save the torrent to our store
+                self.session.save_collected_torrent(self.infohash, bencode(metainfo))
+
             del metainfo['info']['pieces']
             request.write(json.dumps({"metainfo": metainfo}))
+            request.finish()
+
+        def on_metainfo_timeout(_):
+            request.setResponseCode(http.REQUEST_TIMEOUT)
+            request.write(json.dumps({"error": "timeout"}))
             request.finish()
 
         if 'uri' not in request.args or len(request.args['uri']) == 0:
@@ -58,8 +69,14 @@ class TorrentInfoEndpoint(resource.Resource):
                 metainfo_deferred.callback(bdecode(tdef))
             http_get(uri.encode('utf-8')).addCallback(_on_loaded)
         elif uri.startswith('magnet'):
+            self.infohash = parse_magnetlink(uri)[1]
+            if self.session.has_collected_torrent(self.infohash):
+                tdef = TorrentDef.load_from_memory(self.session.get_collected_torrent(self.infohash))
+                on_got_metainfo(tdef.get_metainfo())
+                return NOT_DONE_YET
+
             self.session.lm.ltmgr.get_metainfo(uri, callback=metainfo_deferred.callback, timeout=20,
-                                               timeout_callback=metainfo_deferred.errback, notify=True)
+                                               timeout_callback=on_metainfo_timeout, notify=True)
         else:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "invalid uri"})
