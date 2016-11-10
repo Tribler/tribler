@@ -258,7 +258,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             request.write(json.dumps({"error": error.getErrorMessage()}))
             request.finish()
 
-        download_deferred = self.session.start_download_from_uri(parameters['uri'][0], download_config)
+        download_deferred = self.session.start_download_from_uri(
+            unicode(parameters['uri'][0], 'utf-8'), download_config)
         download_deferred.addCallback(download_added)
         download_deferred.addErrback(on_error)
 

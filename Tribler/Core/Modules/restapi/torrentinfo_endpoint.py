@@ -48,7 +48,7 @@ class TorrentInfoEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "uri parameter missing"})
 
-        uri = request.args['uri'][0]
+        uri = unicode(request.args['uri'][0], 'utf-8')
         if uri.startswith('file:'):
             filename = url2pathname(uri[5:])
             torrent_data = fix_torrent(filename)
@@ -56,7 +56,7 @@ class TorrentInfoEndpoint(resource.Resource):
         elif uri.startswith('http'):
             def _on_loaded(tdef):
                 metainfo_deferred.callback(bdecode(tdef))
-            http_get(uri).addCallback(_on_loaded)
+            http_get(uri.encode('utf-8')).addCallback(_on_loaded)
         elif uri.startswith('magnet'):
             self.session.lm.ltmgr.get_metainfo(uri, callback=metainfo_deferred.callback, timeout=20,
                                                timeout_callback=metainfo_deferred.errback, notify=True)
