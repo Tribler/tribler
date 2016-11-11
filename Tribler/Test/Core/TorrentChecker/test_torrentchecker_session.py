@@ -1,5 +1,5 @@
 import struct
-from libtorrent import bencode
+from Tribler.Test.Core.Libtorrent import bencode
 
 from twisted.internet.task import Clock
 
