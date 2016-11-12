@@ -332,6 +332,7 @@ class TorrentDBHandler(BasicDBHandler):
 
             if len(trackers) > 0:
                 metainfo['announce'] = trackers[0]
+                metainfo['announce-list'] = [list(trackers)]
             else:
                 metainfo['nodes'] = []
 
@@ -491,9 +492,6 @@ class TorrentDBHandler(BasicDBHandler):
         if announce_list:
             for tier in announce_list:
                 for tracker in tier:
-                    # TODO: check this. a limited tracker list
-                    if len(new_tracker_set) >= 25:
-                        break
                     tracker_url = get_uniformed_tracker_url(tracker)
                     if tracker_url:
                         new_tracker_set.add(tracker_url)
