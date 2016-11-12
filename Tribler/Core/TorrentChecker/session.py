@@ -8,6 +8,7 @@ from libtorrent import bdecode
 from twisted.internet import reactor, defer
 from twisted.internet.defer import Deferred, maybeDeferred, DeferredList, inlineCallbacks, returnValue
 from twisted.internet.protocol import DatagramProtocol
+from twisted.python.failure import Failure
 from twisted.web.client import Agent, readBody, RedirectAgent
 
 from Tribler.Core.Utilities.encoding import add_url_params
@@ -36,25 +37,25 @@ DHT_TRACKER_MAX_RETRIES = 8
 MAX_TRACKER_MULTI_SCRAPE = 74
 
 
-def create_tracker_session(tracker_url, on_result_callback):
+def create_tracker_session(tracker_url, timeout):
     """
     Creates a tracker session with the given tracker URL.
     :param tracker_url: The given tracker URL.
-    :param on_result_callback: The on_result callback.
+    :param timeout: The timeout for the session.
     :return: The tracker session.
     """
     tracker_type, tracker_address, announce_page = parse_tracker_url(tracker_url)
 
     if tracker_type == u'UDP':
-        return UdpTrackerSession(tracker_url, tracker_address, announce_page, on_result_callback)
+        return UdpTrackerSession(tracker_url, tracker_address, announce_page, timeout)
     else:
-        return HttpTrackerSession(tracker_url, tracker_address, announce_page, on_result_callback)
+        return HttpTrackerSession(tracker_url, tracker_address, announce_page, timeout)
 
 
 class TrackerSession(TaskManager):
     __meta__ = ABCMeta
 
-    def __init__(self, tracker_type, tracker_url, tracker_address, announce_page, on_result_callback):
+    def __init__(self, tracker_type, tracker_url, tracker_address, announce_page, timeout):
         super(TrackerSession, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -66,12 +67,10 @@ class TrackerSession(TaskManager):
         self._infohash_list = []
         self.result_deferred = None
 
-        self._on_result_callback = on_result_callback
-
         self._retries = 0
+        self.timeout = timeout
 
         self._last_contact = None
-        self._action = None
 
         # some flags
         self._is_initiated = False  # you cannot add requests to a session if it has been initiated
@@ -107,22 +106,17 @@ class TrackerSession(TaskManager):
 
         return not self._is_initiated and len(self._infohash_list) < MAX_TRACKER_MULTI_SCRAPE and etree_condition
 
-    def has_request(self, infohash):
+    def has_infohash(self, infohash):
         return infohash in self._infohash_list
 
-    def add_request(self, infohash):
+    def add_infohash(self, infohash):
         """
-        Adds a request into this session.
+        Adds a infohash into this session.
         :param infohash: The infohash to be added.
         """
         assert not self._is_initiated, u"Must not add request to an initiated session."
-        assert not self.has_request(infohash), u"Must not add duplicate requests"
+        assert not self.has_infohash(infohash), u"Must not add duplicate requests"
         self._infohash_list.append(infohash)
-
-    @abstractmethod
-    def create_connection(self):
-        """Creates a connection to the tracker."""
-        self._is_timed_out = False
 
     @abstractmethod
     def connect_to_tracker(self):
@@ -156,10 +150,6 @@ class TrackerSession(TaskManager):
         return self._last_contact
 
     @property
-    def action(self):
-        return self._action
-
-    @property
     def retries(self):
         return self._retries
 
@@ -184,9 +174,8 @@ class TrackerSession(TaskManager):
 
 
 class HttpTrackerSession(TrackerSession):
-    def __init__(self, tracker_url, tracker_address, announce_page, on_result_callback):
-        super(HttpTrackerSession, self).__init__(u'HTTP', tracker_url, tracker_address, announce_page,
-                                                 on_result_callback)
+    def __init__(self, tracker_url, tracker_address, announce_page, timeout):
+        super(HttpTrackerSession, self).__init__(u'HTTP', tracker_url, tracker_address, announce_page, timeout)
         self._header_buffer = None
         self._message_buffer = None
         self._content_encoding = None
@@ -209,11 +198,6 @@ class HttpTrackerSession(TrackerSession):
         """
         return HTTP_TRACKER_RECHECK_INTERVAL
 
-    def create_connection(self):
-        super(HttpTrackerSession, self).create_connection()
-        self._action = TRACKER_ACTION_CONNECT
-        return True
-
     def connect_to_tracker(self):
         # create the HTTP GET message
         # Note: some trackers have strange URLs, e.g.,
@@ -226,7 +210,7 @@ class HttpTrackerSession(TrackerSession):
                               self._announce_page.replace(u'announce', u'scrape')),
                              {"info_hash": self._infohash_list})
 
-        agent = RedirectAgent(Agent(reactor, connectTimeout=15.0))
+        agent = RedirectAgent(Agent(reactor, connectTimeout=self.timeout))
         self.request = self.register_task("request", agent.request('GET', bytes(url)))
         self.request.addCallback(self.on_response)
         self.request.addErrback(self.on_error)
@@ -234,12 +218,11 @@ class HttpTrackerSession(TrackerSession):
         self._logger.debug(u"%s HTTP SCRAPE message sent: %s", self, url)
 
         # no more requests can be appended to this session
-        self._action = TRACKER_ACTION_SCRAPE
         self._is_initiated = True
         self._last_contact = int(time.time())
 
         # Return deferred that will evaluate when the whole chain is done.
-        self.result_deferred = self.register_task("result", Deferred(self._on_cancel))
+        self.result_deferred = self.register_task("result", Deferred(canceller=self._on_cancel))
         return self.result_deferred
 
     def on_error(self, failure):
@@ -248,14 +231,14 @@ class HttpTrackerSession(TrackerSession):
         :param failure: The failure object that is thrown by a deferred.
         """
         self._logger.info("Error when querying http tracker: %s %s", str(failure), self.tracker_url)
-        self.failed()
+        self.failed(msg=failure.getErrorMessage())
 
     def on_response(self, response):
         # Check if this one was OK.
         if response.code != 200:
             # error response code
             self._logger.warning(u"%s HTTP SCRAPE error response code [%s, %s]", self, response.code, response.phrase)
-            self.failed()
+            self.failed(msg="error code %s" % response.code)
             return
 
         # All ok, parse the body
@@ -272,14 +255,17 @@ class HttpTrackerSession(TrackerSession):
             "The result deferred of this HTTP tracker session is being cancelled due to a session cleanup. HTTP url: %s",
             self.tracker_url)
 
-    def failed(self):
+    def failed(self, msg=None):
         """
         This method handles everything that needs to be done when one step
         in the session has failed and thus no data can be obtained.
         """
         self._is_failed = True
         if self.result_deferred:
-            self.result_deferred.errback(ValueError("HTTP tracker has failed for url %s" % self._tracker_url))
+            result_msg = "HTTP tracker failed for url %s" % self._tracker_url
+            if msg:
+                result_msg += " (error: %s)" % msg
+            self.result_deferred.errback(ValueError(result_msg))
 
     def _process_scrape_response(self, body):
         """
@@ -288,15 +274,15 @@ class HttpTrackerSession(TrackerSession):
         """
         # parse the retrieved results
         if body is None:
-            self.failed()
+            self.failed(msg="no response body")
             return
 
         response_dict = bdecode(body)
         if response_dict is None:
-            self.failed()
+            self.failed(msg="no valid response")
             return
 
-        seed_leech_dict = {}
+        response_list = []
 
         unprocessed_infohash_list = self._infohash_list[:]
         if 'files' in response_dict and isinstance(response_dict['files'], dict):
@@ -310,7 +296,7 @@ class HttpTrackerSession(TrackerSession):
                 leechers = incomplete
 
                 # Store the information in the dictionary
-                seed_leech_dict[infohash] = (seeders, leechers)
+                response_list.append({'infohash': infohash.encode('hex'), 'seeders': seeders, 'leechers': leechers})
 
                 # remove this infohash in the infohash list of this session
                 if infohash in unprocessed_infohash_list:
@@ -318,16 +304,15 @@ class HttpTrackerSession(TrackerSession):
 
         elif 'failure reason' in response_dict:
             self._logger.info(u"%s Failure as reported by tracker [%s]", self, repr(response_dict['failure reason']))
-            self.failed()
+            self.failed(msg=response_dict['failure reason'])
             return
 
         # handle the infohashes with no result (seeders/leechers = 0/0)
         for infohash in unprocessed_infohash_list:
-            seeders, leechers = 0, 0
-            seed_leech_dict[infohash] = (seeders, leechers)
+            response_list.append({'infohash': infohash.encode('hex'), 'seeders': 0, 'leechers': 0})
 
         self._is_finished = True
-        self.result_deferred.callback(seed_leech_dict)
+        self.result_deferred.callback({self.tracker_url: response_list})
 
     @inlineCallbacks
     def cleanup(self):
@@ -350,15 +335,15 @@ class UDPScraper(DatagramProtocol):
 
     _reactor = reactor
 
-    def __init__(self, udpsession, ip_address, port):
+    def __init__(self, udpsession, ip_address, port, timeout):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.udpsession = udpsession
         self.ip_address = ip_address
         self.port = port
         self.expect_connection_response = True
-        # Timeout after 15 seconds if nothing received.
-        self.timeout_seconds = 15
-        self.timeout = self._reactor.callLater(self.timeout_seconds, self.on_error)
+        # Timeout after x seconds if nothing received.
+        self.timeout = timeout
+        self.timeout_call = self._reactor.callLater(self.timeout, self.on_error)
 
     def on_error(self):
         """
@@ -373,8 +358,8 @@ class UDPScraper(DatagramProtocol):
         :return: A deferred that fires once it has closed the connection.
         """
         self._logger.info("Shutting down scraper which was connected to ip %s, port %s", self.ip_address, self.port)
-        if self.timeout.active():
-            self.timeout.cancel()
+        if self.timeout_call.active():
+            self.timeout_call.cancel()
 
         if self.transport and self.numPorts and self.transport.connected:
             return maybeDeferred(self.transport.stopListening)
@@ -407,8 +392,8 @@ class UDPScraper(DatagramProtocol):
         # If we expect a connection response, pass it to handle connection response
         if self.expect_connection_response:
             # Cancel the timeout
-            if self.timeout.active():
-                self.timeout.cancel()
+            if self.timeout_call.active():
+                self.timeout_call.cancel()
 
             # Pass the response to the udp tracker session
             self.udpsession.handle_connection_response(data)
@@ -431,14 +416,14 @@ class UdpTrackerSession(TrackerSession):
     """
     The UDPTrackerSession makes a connection with a UDP tracker by making use
     of a UDPScraper object. It handles the message serialization and communication
-    with the torrenchecker by making use of Deferred (asynchronously).
+    with the torrent checker by making use of Deferred (asynchronously).
     """
 
     # A list of transaction IDs that have been used in order to avoid conflict.
     _active_session_dict = dict()
 
-    def __init__(self, tracker_url, tracker_address, announce_page, on_result_callback):
-        super(UdpTrackerSession, self).__init__(u'UDP', tracker_url, tracker_address, announce_page, on_result_callback)
+    def __init__(self, tracker_url, tracker_address, announce_page, timeout):
+        super(UdpTrackerSession, self).__init__(u'UDP', tracker_url, tracker_address, announce_page, timeout)
         self._connection_id = 0
         self._transaction_id = 0
         self.port = tracker_address[1]
@@ -447,13 +432,18 @@ class UdpTrackerSession(TrackerSession):
         self.ip_resolve_deferred = None
         self.clean_defer_list = []
 
+        # prepare connection message
+        self._connection_id = UDP_TRACKER_INIT_CONNECTION_ID
+        self._action = TRACKER_ACTION_CONNECT
+        self.generate_transaction_id()
+
     def on_error(self, failure):
         """
         Handles the case when resolving an ip address fails.
         :param failure: The failure object thrown by the deferred.
         """
         self._logger.info("Error when querying UDP tracker: %s %s", str(failure), self.tracker_url)
-        self.failed()
+        self.failed(msg=failure.getErrorMessage())
 
     def _on_cancel(self, _):
         """
@@ -466,28 +456,31 @@ class UdpTrackerSession(TrackerSession):
             "The result deferred of this UDP tracker session is being cancelled due to a session cleanup. UDP url: %s",
             self.tracker_url)
 
-    def on_ip_address_resolved(self, ip_address):
+    def on_ip_address_resolved(self, ip_address, start_scraper=True):
         """
         Called when a hostname has been resolved to an ip address.
         Constructs a scraper and opens a UDP port to listen on.
         Removes an old scraper if present.
         :param ip_address: The ip address that matches the hostname of the tracker_url.
+        :param start_scraper: Whether we should start the scraper immediately.
         """
         self.ip_address = ip_address
-        # Close the old scraper if present.
-        if self.scraper:
-            self.clean_defer_list.append(self.scraper.stop())
-        self.scraper = UDPScraper(self, self.ip_address, self.port)
-        reactor.listenUDP(0, self.scraper)
+        self.scraper = UDPScraper(self, self.ip_address, self.port, self.timeout)
+        if start_scraper:
+            reactor.listenUDP(0, self.scraper)
 
-    def failed(self):
+    def failed(self, msg=None):
         """
         This method handles everything that needs to be done when one step
         in the session has failed and thus no data can be obtained.
         """
         self._is_failed = True
+        self.scraper.stop()
         if self.result_deferred:
-            self.result_deferred.errback(ValueError("UDP tracker failed for url %s" % self._tracker_url))
+            result_msg = "UDP tracker failed for url %s" % self._tracker_url
+            if msg:
+                result_msg += " (error: %s)" % msg
+            self.result_deferred.errback(ValueError(result_msg))
 
     def generate_transaction_id(self):
         """
@@ -547,19 +540,6 @@ class UdpTrackerSession(TrackerSession):
         """
         return UDP_TRACKER_RECHECK_INTERVAL * (2 ** self._retries)
 
-    def create_connection(self):
-        """
-        Sets the connection_id, _action and transaction_id.
-        :return: True if all is successful.
-        """
-        super(UdpTrackerSession, self).create_connection()
-        # prepare connection message
-        self._connection_id = UDP_TRACKER_INIT_CONNECTION_ID
-        self._action = TRACKER_ACTION_CONNECT
-        self.generate_transaction_id()
-
-        return True
-
     def connect_to_tracker(self):
         """
         Connects to the tracker and starts querying for seed and leech data.
@@ -602,7 +582,7 @@ class UdpTrackerSession(TrackerSession):
         # check message size
         if len(response) < 16:
             self._logger.error(u"%s Invalid response for UDP CONNECT: %s", self, repr(response))
-            self.failed()
+            self.failed(msg="invalid response size")
             return
 
         # check the response
@@ -614,7 +594,7 @@ class UdpTrackerSession(TrackerSession):
 
             self._logger.info(u"%s Error response for UDP CONNECT [%s]: %s",
                               self, repr(response), repr(error_message))
-            self.failed()
+            self.failed(msg=''.join(error_message))
             return
 
         # update action and IDs
@@ -642,7 +622,7 @@ class UdpTrackerSession(TrackerSession):
         # check message size
         if len(response) < 8:
             self._logger.info(u"%s Invalid response for UDP SCRAPE: %s", self, repr(response))
-            self.failed()
+            self.failed("invalid message size")
             return
 
         # check response
@@ -650,23 +630,22 @@ class UdpTrackerSession(TrackerSession):
         if action != self._action or transaction_id != self._transaction_id:
             # get error message
             errmsg_length = len(response) - 8
-            error_message = \
-                struct.unpack_from('!' + str(errmsg_length) + 's', response, 8)
+            error_message = struct.unpack_from('!' + str(errmsg_length) + 's', response, 8)
 
             self._logger.info(u"%s Error response for UDP SCRAPE: [%s] [%s]",
                               self, repr(response), repr(error_message))
-            self.failed()
+            self.failed(msg=''.join(error_message))
             return
 
         # get results
         if len(response) - 8 != len(self._infohash_list) * 12:
             self._logger.info(u"%s UDP SCRAPE response mismatch: %s", self, len(response))
-            self.failed()
+            self.failed(msg="invalid response size")
             return
 
         offset = 8
 
-        seed_leech_dict = {}
+        response_list = []
 
         for infohash in self._infohash_list:
             complete, _downloaded, incomplete = struct.unpack_from('!iii', response, offset)
@@ -675,15 +654,14 @@ class UdpTrackerSession(TrackerSession):
             # Store the information in the hash dict to be returned.
             # Sow complete as seeders. "complete: number of peers with the entire file, i.e. seeders (integer)"
             #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
-            seed_leech_dict[infohash] = (complete, incomplete)
+            response_list.append({'infohash': infohash.encode('hex'), 'seeders': complete, 'leechers': incomplete})
 
         # close this socket and remove its transaction ID from the list
         UdpTrackerSession.remove_transaction_id(self)
         self._is_finished = True
 
-        # Call the  callback of the deferred with the result
-        self.scraper.stop()
-        self.result_deferred.callback(seed_leech_dict)
+        # Call the callback of the deferred with the result
+        self.result_deferred.callback({self.tracker_url: response_list})
 
 
 class FakeDHTSession(TrackerSession):
@@ -691,10 +669,11 @@ class FakeDHTSession(TrackerSession):
     Fake TrackerSession that manages DHT requests
     """
 
-    def __init__(self, session, on_result_callback):
-        super(FakeDHTSession, self).__init__(u'DHT', u'DHT', u'DHT', u'DHT', on_result_callback)
+    def __init__(self, session, infohash, timeout):
+        super(FakeDHTSession, self).__init__(u'DHT', u'DHT', u'DHT', u'DHT', timeout)
 
-        self.result_deferred = None
+        self.result_deferred = Deferred()
+        self.infohash = infohash
         self._session = session
 
     def cleanup(self):
@@ -714,40 +693,32 @@ class FakeDHTSession(TrackerSession):
         """
         return True
 
-    def add_request(self, infohash):
+    def add_infohash(self, infohash):
         """
         This function adds a infohash to the request list.
         :param infohash: The infohash to be added.
         """
-
-        @call_on_reactor_thread
-        def on_metainfo_received(metainfo):
-            seed_leech_dict = {}
-            seed_leech_dict[infohash] = (metainfo['seeders'], metainfo['leechers'])
-            self._on_result_callback(seed_leech_dict)
-
-        @call_on_reactor_thread
-        def on_metainfo_timeout(result_info_hash):
-            seeder_leecher_dict = {}
-            seeder_leecher_dict[result_info_hash] = (0, 0)
-            self._on_result_callback(seeder_leecher_dict)
-
-        if self._session:
-            self._session.lm.ltmgr.get_metainfo(infohash, callback=on_metainfo_received,
-                                                timeout_callback=on_metainfo_timeout)
-
-    def create_connection(self):
-        pass
+        self.infohash = infohash
 
     def connect_to_tracker(self):
         """
         Fakely connects to a tracker.
         :return: A deferred with a callback containing an empty dictionary.
         """
-        return defer.succeed(dict())
+        @call_on_reactor_thread
+        def on_metainfo_received(metainfo):
+            self.result_deferred.callback({'DHT': [{'infohash': self.infohash.encode('hex'),
+                                                    'seeders': metainfo['seeders'], 'leechers': metainfo['leechers']}]})
 
-    def _handle_response(self):
-        pass
+        @call_on_reactor_thread
+        def on_metainfo_timeout(_):
+            self.result_deferred.errback(Failure(RuntimeError("DHT timeout")))
+
+        if self._session:
+            self._session.lm.ltmgr.get_metainfo(self.infohash, callback=on_metainfo_received,
+                                                timeout_callback=on_metainfo_timeout, timeout=self.timeout)
+
+        return self.result_deferred
 
     @property
     def max_retries(self):

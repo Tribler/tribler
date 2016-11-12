@@ -24,10 +24,6 @@ class TrackerManager(object):
         # A "dead" tracker will be retired every this amount of time (in seconds)
         self._tracker_retry_interval = TRACKER_RETRY_INTERVAL
 
-        # we use round-robin for automatic tracker checking.
-        # this index points to the tracker we are going to check next.
-        self._tracker_check_idx = 0
-
     @blocking_call_on_reactor_thread
     def initialize(self):
         # load all tracker information into the memory
@@ -94,6 +90,10 @@ class TrackerManager(object):
         :param tracker_url: The given tracker_url.
         :param is_successful: If the check was successful.
         """
+        if tracker_url not in self._tracker_dict:
+            self._logger.error("Trying to update the tracker info of an unknown tracker URL")
+            return
+
         tracker_info = self._tracker_dict[tracker_url]
 
         current_time = int(time.time())
@@ -135,20 +135,19 @@ class TrackerManager(object):
         if len(self._tracker_dict) == 0:
             return
 
-        if self._tracker_check_idx >= len(self._tracker_dict):
-            self._tracker_dict = 0
-
         next_tracker_url = None
         next_tracker_info = None
-        for idx in xrange(self._tracker_check_idx, len(self._tracker_dict)):
-            tracker_url = self._tracker_dict.keys()[idx]
+
+        sorted_tracker_list = sorted(self._tracker_dict.items(), key=lambda d: d[1][u'last_check'])
+
+        for tracker_url, tracker_info in sorted_tracker_list:
             if tracker_url == u'DHT':
                 next_tracker_url = tracker_url
                 next_tracker_info = {u'is_alive': True, u'last_check': int(time.time())}
                 break
             elif tracker_url != u'no-DHT' and self.should_check_tracker(tracker_url):
                 next_tracker_url = tracker_url
-                next_tracker_info = self._tracker_dict[next_tracker_url]
+                next_tracker_info = tracker_info
                 break
 
         if next_tracker_url is None:

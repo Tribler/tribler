@@ -9,7 +9,8 @@ from binascii import hexlify
 import time
 
 from twisted.internet import threads
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, fail
+from twisted.python.failure import Failure
 from twisted.python.log import addObserver
 from twisted.python.threadable import isInIOThread
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig, get_default_dest_dir
@@ -802,13 +803,14 @@ class Session(SessionConfigInterface):
                 data = channelcast_db.getTorrentFromChannelId(channel_id, torrent_def.infohash, ['ChannelTorrents.id'])
                 community.modifyTorrent(data, {'description': desc}, forward=forward)
 
-    def check_torrent_health(self, infohash):
+    def check_torrent_health(self, infohash, timeout=20, scrape_now=False):
         """
         Checks the given torrent's health on its trackers.
         :param infohash: The given torrent infohash.
         """
         if self.lm.torrent_checker:
-            self.lm.torrent_checker.add_gui_request(infohash)
+            return self.lm.torrent_checker.add_gui_request(infohash, timeout=timeout, scrape_now=scrape_now)
+        return fail(Failure(RuntimeError("Torrent checker not available")))
 
     def set_max_upload_speed(self, rate):
         """
