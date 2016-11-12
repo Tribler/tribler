@@ -848,7 +848,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         # delete torrents from db
         sql_del_torrent = u"UPDATE Torrent SET name = NULL, is_collected = 0 WHERE torrent_id = ?"
-        # sql_del_pref = "delete from Preference where torrent_id=?"
+        # sql_del_pref = "DELETE FROM Preference WHERE torrent_id = ?"
 
         tids = []
         for _name, torrent_id, infohash, _relevance, _weight in res_list:
@@ -905,7 +905,7 @@ class TorrentDBHandler(BasicDBHandler):
             for col_ind in xrange(num_cols):
                 score = 0
                 for phrase_ind in xrange(num_phrases):
-                    # Fetch info about the current matching term. This number is fetched from the matchinfo object.
+                    # Fetch info about the current matching term. This number is fetched FROM the matchinfo object.
                     # See https://www.sqlite.org/fts3.html#matchinfo for info about the offset calculation.
                     base_term_offset = 3 * (col_ind + phrase_ind * num_cols)
                     rows_with_term = matchinfo[base_term_offset + 2]
@@ -1045,7 +1045,7 @@ class TorrentDBHandler(BasicDBHandler):
                 dont_sort_list.append((index, result))
 
         if doSort:
-            # Remove the items with 0 seeders from the results list so the sort is faster, append them to the
+            # Remove the items with 0 seeders FROM the results list so the sort is faster, append them to the
             # results list afterwards.
             for index, result in dont_sort_list:
                 results.pop(index)
@@ -1177,7 +1177,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         # keys in data: destination_path, creation_time, torrent_id
         if self.getOne('torrent_id', torrent_id=torrent_id) is not None:
             # Arno, 2009-03-09: Torrent already exists in myrefs.
-            # Hack for hiding from lib while keeping in myprefs.
+            # Hack for hiding FROM lib while keeping in myprefs.
             # see standardOverview.removeTorrentFromLibrary()
             #
             self.updateDestDir(torrent_id, data.get('destination_path'))
@@ -1200,7 +1200,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         return True
 
     def deletePreference(self, torrent_id):
-        # Preferences are never actually deleted from the database, only their destdirs get reset.
+        # Preferences are never actually deleted FROM the database, only their destdirs get reset.
         # self._db.delete(self.table_name, **{'torrent_id': torrent_id})
         self.updateDestDir(torrent_id, "")
 
@@ -1263,7 +1263,7 @@ class VoteCastDBHandler(BasicDBHandler):
 
         if channel_ids:
             parameters = ",".join("?" * len(channel_ids))
-            sql = "Select channel_id, vote FROM ChannelVotes WHERE channel_id in (" + parameters + ")"
+            sql = "SELECT channel_id, vote FROM ChannelVotes WHERE channel_id in (" + parameters + ")"
             positive_votes = {}
             negative_votes = {}
             for channel_id, vote in self._db.fetchall(sql, channel_ids):
@@ -1292,7 +1292,7 @@ class VoteCastDBHandler(BasicDBHandler):
         return self._db.fetchone(select_vote, (channel_id,))
 
     def getPosNegVotes(self, channel_id):
-        sql = 'select nr_favorite, nr_spam from Channels where id = ?'
+        sql = 'select nr_favorite, nr_spam FROM Channels WHERE id = ?'
         result = self._db.fetchone(sql, (channel_id,))
         if result:
             return result
@@ -1301,9 +1301,9 @@ class VoteCastDBHandler(BasicDBHandler):
     def getVoteOnChannel(self, channel_id, voter_id):
         """ return the vote status if such record exists, otherwise None  """
         if voter_id:
-            sql = "select vote from ChannelVotes where channel_id = ? and voter_id = ?"
+            sql = "SELECT vote FROM ChannelVotes WHERE channel_id = ? AND voter_id = ?"
             return self._db.fetchone(sql, (channel_id, voter_id))
-        sql = "select vote from ChannelVotes where channel_id = ? and voter_id ISNULL"
+        sql = "SELECT vote FROM ChannelVotes WHERE channel_id = ? AND voter_id ISNULL"
         return self._db.fetchone(sql, (channel_id,))
 
     def getVoteForMyChannel(self, voter_id):
@@ -1312,17 +1312,17 @@ class VoteCastDBHandler(BasicDBHandler):
     def getDispersyId(self, channel_id, voter_id):
         """ return the dispersy_id for this vote """
         if voter_id:
-            sql = "select dispersy_id from ChannelVotes where channel_id = ? and voter_id = ?"
+            sql = "SELECT dispersy_id FROM ChannelVotes WHERE channel_id = ? AND voter_id = ?"
             return self._db.fetchone(sql, (channel_id, voter_id))
-        sql = "select dispersy_id from ChannelVotes where channel_id = ? and voter_id ISNULL"
+        sql = "SELECT dispersy_id FROM ChannelVotes WHERE channel_id = ? AND voter_id ISNULL"
         return self._db.fetchone(sql, (channel_id,))
 
     def getTimestamp(self, channel_id, voter_id):
         """ return the timestamp for this vote """
         if voter_id:
-            sql = "select time_stamp from ChannelVotes where channel_id = ? and voter_id = ?"
+            sql = "SELECT time_stamp FROM ChannelVotes WHERE channel_id = ? AND voter_id = ?"
             return self._db.fetchone(sql, (channel_id, voter_id))
-        sql = "select time_stamp from ChannelVotes where channel_id = ? and voter_id ISNULL"
+        sql = "SELECT time_stamp FROM ChannelVotes WHERE channel_id = ? AND voter_id ISNULL"
         return self._db.fetchone(sql, (channel_id,))
 
     def getMyVotes(self):
@@ -1439,8 +1439,8 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         else:
             _dispersy_cid = dispersy_cid
 
-        # merge channels if we detect upgrade from old-channelcast to new-dispersy-channelcast
-        get_channel = "SELECT id FROM Channels Where peer_id = ? and dispersy_cid == -1"
+        # merge channels if we detect upgrade FROM old-channelcast to new-dispersy-channelcast
+        get_channel = "SELECT id FROM Channels WHERE peer_id = ? AND dispersy_cid == -1"
         channel_id = self._db.fetchone(get_channel, (peer_id,))
 
         if channel_id:  # update this channel
@@ -1450,7 +1450,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
 
         else:
-            get_channel = "SELECT id FROM Channels Where dispersy_cid = ?"
+            get_channel = "SELECT id FROM Channels WHERE dispersy_cid = ?"
             channel_id = self._db.fetchone(get_channel, (_dispersy_cid,))
 
             if channel_id:
@@ -1518,22 +1518,30 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
             self.notifier.notify(SIGNAL_CHANNEL_COMMUNITY, SIGNAL_ON_TORRENT_UPDATED, channel_id, item)
 
     def on_remove_torrent_from_dispersy(self, channel_id, dispersy_id, redo):
-        sql = "UPDATE _ChannelTorrents SET deleted_at = ? WHERE channel_id = ? and dispersy_id = ?"
+        sql = "UPDATE _ChannelTorrents SET deleted_at = ? WHERE channel_id = ? AND dispersy_id = ?"
 
         if redo:
             deleted_at = None
         else:
             deleted_at = long(time())
         self._db.execute_write(sql, (deleted_at, channel_id, dispersy_id))
-
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
+
+        sql = """SELECT infohash FROM Torrent, _ChannelTorrents WHERE Torrent.torrent_id = _ChannelTorrents.torrent_id
+        AND _ChannelTorrents.channel_id = ? AND  _ChannelTorrents.dispersy_id = ?"""
+        infohash = self._db.fetchone(sql, (channel_id, dispersy_id))
+
+        if infohash:
+            infohash = str2bin(infohash)
+            self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, infohash, channel_id)
 
     def on_torrent_modification_from_dispersy(self, channeltorrent_id, modification_type, modification_value):
         if modification_type in ['name', 'description']:
             update_torrent = "UPDATE _ChannelTorrents SET " + modification_type + " = ?, modified = ? WHERE id = ?"
             self._db.execute_write(update_torrent, (modification_value, long(time()), channeltorrent_id))
 
-            sql = "Select infohash From Torrent, ChannelTorrents Where Torrent.torrent_id = ChannelTorrents.torrent_id And ChannelTorrents.id = ?"
+            sql = """SELECT infohash FROM Torrent, ChannelTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id
+            AND ChannelTorrents.id = ?"""
             infohash = self._db.fetchone(sql, (channeltorrent_id,))
 
             if infohash:
@@ -1541,7 +1549,8 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
                 self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
 
         elif modification_type in ['swift-url']:
-            sql = "Select infohash From Torrent, ChannelTorrents Where Torrent.torrent_id = ChannelTorrents.torrent_id And ChannelTorrents.id = ?"
+            sql = """SELECT infohash FROM Torrent, ChannelTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id
+            AND ChannelTorrents.id = ?"""
             infohash = self._db.fetchone(sql, (channeltorrent_id,))
 
     def addOrGetChannelTorrentID(self, channel_id, infohash):
@@ -1559,7 +1568,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
     def get_channel_torrent_id(self, channel_id, info_hash):
         torrent_id = self.torrent_db.getTorrentID(info_hash)
         if torrent_id:
-            sql = "SELECT id FROM ChannelTorrents WHERE torrent_id = ? and channel_id = ?"
+            sql = "SELECT id FROM ChannelTorrents WHERE torrent_id = ? AND channel_id = ?"
             channeltorrent_id = self._db.fetchone(sql, (torrent_id, channel_id))
             return channeltorrent_id
 
@@ -1657,7 +1666,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         self.notifier.notify(NTFY_PLAYLISTS, NTFY_INSERT, channel_id)
 
     def on_remove_playlist_from_dispersy(self, channel_id, dispersy_id, redo):
-        sql = "UPDATE _Playlists SET deleted_at = ? WHERE channel_id = ? and dispersy_id = ?"
+        sql = "UPDATE _Playlists SET deleted_at = ? WHERE channel_id = ? AND dispersy_id = ?"
 
         if redo:
             deleted_at = None
@@ -1803,13 +1812,13 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_STATE, channel_id)
 
     def getNrTorrentsDownloaded(self, channel_id):
-        sql = """select count(*) from MyPreference, ChannelTorrents
-        WHERE MyPreference.torrent_id = ChannelTorrents.torrent_id and ChannelTorrents.channel_id = ? LIMIT 1"""
+        sql = """SELECT count(*) FROM MyPreference, ChannelTorrents
+        WHERE MyPreference.torrent_id = ChannelTorrents.torrent_id AND ChannelTorrents.channel_id = ? LIMIT 1"""
         return self._db.fetchone(sql, (channel_id,))
 
     def getChannelNrTorrents(self, limit=None):
         if limit:
-            sql = """select count(torrent_id), channel_id from Channels, ChannelTorrents
+            sql = """SELECT count(torrent_id), channel_id FROM Channels, ChannelTorrents
             WHERE Channels.id = ChannelTorrents.channel_id AND dispersy_cid <> -1
             GROUP BY channel_id ORDER BY RANDOM() LIMIT ?"""
             return self._db.fetchall(sql, (limit,))
@@ -1821,20 +1830,20 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
     def getChannelNrTorrentsLatestUpdate(self, limit=None):
         if limit:
             sql = """SELECT count(CollectedTorrent.torrent_id), max(ChannelTorrents.time_stamp),
-            channel_id from Channels, ChannelTorrents, CollectedTorrent
+            channel_id FROM Channels, ChannelTorrents, CollectedTorrent
             WHERE ChannelTorrents.torrent_id = CollectedTorrent.torrent_id
             AND Channels.id = ChannelTorrents.channel_id AND dispersy_cid == -1
             GROUP BY channel_id ORDER BY RANDOM() LIMIT ?"""
             return self._db.fetchall(sql, (limit,))
 
-        sql = """SELECT count(CollectedTorrent.torrent_id), max(ChannelTorrents.time_stamp), channel_id from Channels,
+        sql = """SELECT count(CollectedTorrent.torrent_id), max(ChannelTorrents.time_stamp), channel_id FROM Channels,
         ChannelTorrents, CollectedTorrent
         WHERE ChannelTorrents.torrent_id = CollectedTorrent.torrent_id
         AND Channels.id = ChannelTorrents.channel_id AND dispersy_cid == -1 GROUP BY channel_id"""
         return self._db.fetchall(sql)
 
     def getNrChannels(self):
-        sql = "select count(DISTINCT id) from Channels LIMIT 1"
+        sql = "SELECT count(DISTINCT id) FROM Channels LIMIT 1"
         return self._db.fetchone(sql)
 
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10,
@@ -1843,16 +1852,16 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         torrent_dict = {}
 
         least_recent = -1
-        sql = """SELECT dispersy_cid, infohash, time_stamp from ChannelTorrents, Channels, Torrent
+        sql = """SELECT dispersy_cid, infohash, time_stamp FROM ChannelTorrents, Channels, Torrent
         WHERE ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id
-        AND ChannelTorrents.channel_id==? and ChannelTorrents.dispersy_id <> -1 order by time_stamp desc limit ?"""
+        AND ChannelTorrents.channel_id==? AND ChannelTorrents.dispersy_id <> -1 order by time_stamp desc limit ?"""
         myrecenttorrents = self._db.fetchall(sql, (self._channel_id, NUM_OWN_RECENT_TORRENTS))
         for cid, infohash, timestamp in myrecenttorrents:
             torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
             least_recent = timestamp
 
         if len(myrecenttorrents) == NUM_OWN_RECENT_TORRENTS and least_recent != -1:
-            sql = """SELECT dispersy_cid, infohash from ChannelTorrents, Channels, Torrent
+            sql = """SELECT dispersy_cid, infohash FROM ChannelTorrents, Channels, Torrent
             WHERE ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id
             AND ChannelTorrents.channel_id==? AND time_stamp<?
             AND ChannelTorrents.dispersy_id <> -1 order by random() limit ?"""
@@ -1870,16 +1879,16 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
             NUM_OTHERS_RECENT_TORRENTS += additionalSpace / 2
             NUM_OTHERS_RANDOM_TORRENTS += additionalSpace - (additionalSpace / 2)
 
-            # Niels 6-12-2011: we should substract additionalspace from recent and
+            # Niels 6-12-2011: we should substract additionalspace FROM recent and
             # random, otherwise the totals will not be correct.
             NUM_OWN_RECENT_TORRENTS -= additionalSpace / 2
             NUM_OWN_RANDOM_TORRENTS -= additionalSpace - (additionalSpace / 2)
 
         least_recent = -1
-        sql = """SELECT dispersy_cid, infohash, time_stamp from ChannelTorrents, Channels, Torrent
+        sql = """SELECT dispersy_cid, infohash, time_stamp FROM ChannelTorrents, Channels, Torrent
         WHERE ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id
-        AND ChannelTorrents.channel_id in (select channel_id from ChannelVotes
-        WHERE voter_id ISNULL AND vote=2) and ChannelTorrents.dispersy_id <> -1 ORDER BY time_stamp desc limit ?"""
+        AND ChannelTorrents.channel_id in (select channel_id FROM ChannelVotes
+        WHERE voter_id ISNULL AND vote=2) AND ChannelTorrents.dispersy_id <> -1 ORDER BY time_stamp desc limit ?"""
         othersrecenttorrents = self._db.fetchall(sql, (NUM_OTHERS_RECENT_TORRENTS,))
         for cid, infohash, timestamp in othersrecenttorrents:
             torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
@@ -1888,8 +1897,8 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         if othersrecenttorrents and len(othersrecenttorrents) == NUM_OTHERS_RECENT_TORRENTS and least_recent != -1:
             sql = """SELECT dispersy_cid, infohash FROM ChannelTorrents, Channels, Torrent
             WHERE ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id
-            AND ChannelTorrents.channel_id in (select channel_id from ChannelVotes
-            WHERE voter_id ISNULL and vote=2) and time_stamp < ?
+            AND ChannelTorrents.channel_id in (select channel_id FROM ChannelVotes
+            WHERE voter_id ISNULL AND vote=2) AND time_stamp < ?
             AND ChannelTorrents.dispersy_id <> -1 order by random() limit ?"""
             othersrandomtorrents = self._db.fetchall(sql, (least_recent, NUM_OTHERS_RANDOM_TORRENTS))
             for cid, infohash in othersrandomtorrents:
@@ -1901,11 +1910,11 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
                            NUM_OTHERS_RECENT_TORRENTS + NUM_OTHERS_RANDOM_TORRENTS) - nr_records
         NUM_OTHERS_DOWNLOADED += additionalSpace
 
-        sql = """SELECT dispersy_cid, infohash from ChannelTorrents, Channels, Torrent
+        sql = """SELECT dispersy_cid, infohash FROM ChannelTorrents, Channels, Torrent
         WHERE ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id
-        AND ChannelTorrents.channel_id in (select distinct channel_id from ChannelTorrents
-        WHERE torrent_id in (select torrent_id from MyPreference))
-        AND ChannelTorrents.dispersy_id <> -1 and Channels.modified > ? order by time_stamp desc limit ?"""
+        AND ChannelTorrents.channel_id in (select distinct channel_id FROM ChannelTorrents
+        WHERE torrent_id in (select torrent_id FROM MyPreference))
+        AND ChannelTorrents.dispersy_id <> -1 AND Channels.modified > ? order by time_stamp desc limit ?"""
         interesting_records = self._db.fetchall(sql, (twomonthsago, NUM_OTHERS_DOWNLOADED))
         for cid, infohash in interesting_records:
             torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
@@ -1937,7 +1946,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
 
     def get_random_channel_torrents(self, keys, limit=10):
         """
-        Return some random (channel) torrents from the database.
+        Return some random (channel) torrents FROM the database.
         """
         sql = "SELECT %s FROM ChannelTorrents, Torrent " \
               "WHERE ChannelTorrents.torrent_id = Torrent.torrent_id AND Torrent.name IS NOT NULL " \
@@ -2109,7 +2118,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         sql = "SELECT " + ", ".join(keys) + " FROM Torrent, ChannelTorrents " + \
               "WHERE Torrent.torrent_id = ChannelTorrents.torrent_id " + \
               "AND channel_id = ? " + \
-              "And ChannelTorrents.id NOT IN (Select channeltorrent_id From PlaylistTorrents) " + \
+              "And ChannelTorrents.id NOT IN (Select channeltorrent_id FROM PlaylistTorrents) " + \
               "ORDER BY time_stamp DESC"
         results = self._db.fetchall(sql, (channel_id,))
         return self.__fixTorrents(keys, results)
@@ -2268,8 +2277,8 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
     @staticmethod
     def calculate_score_channel(keywords, channel_name, channel_description):
         """
-        Calculate the relevance score of a channel from the database.
-        The algorithm used is a very stripped-down version of BM25 where only the matching terms are counted.
+        Calculate the relevance score of a channel FROM the database.
+        The algorithm used is a very stripped-down version of BM25 WHERE only the matching terms are counted.
         """
         values = [channel_name, channel_description]
         scores = []
@@ -2323,7 +2332,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         return self._getChannels(sql)
 
     def getChannel(self, channel_id):
-        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
+        sql = "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
               "FROM Channels WHERE id = ?"
         channels = self._getChannels(sql, (channel_id,))
         if len(channels) > 0:
@@ -2331,7 +2340,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
 
     def getChannels(self, channel_ids):
         channel_ids = "','".join(map(str, channel_ids))
-        sql = "Select id, name, description, dispersy_cid, modified, " + \
+        sql = "SELECT id, name, description, dispersy_cid, modified, " + \
               "nr_torrents, nr_favorite, nr_spam FROM Channels " + \
               "WHERE id IN ('" + \
             channel_ids + \
@@ -2343,7 +2352,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         parameters = parameters[:-1]
 
         channel_cids = map(buffer, channel_cids)
-        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
+        sql = "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
               "FROM Channels WHERE dispersy_cid IN (" + \
             parameters + \
             ")"
@@ -2351,12 +2360,12 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
 
     def getAllChannels(self):
         """ Returns all the channels """
-        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels"
+        sql = "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels"
         return self._getChannels(sql)
 
     def getNewChannels(self, updated_since=0):
         """ Returns all newest unsubscribed channels, ie the ones with no votes (positive or negative)"""
-        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
+        sql = "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
               "FROM Channels WHERE nr_favorite = 0 AND nr_spam = 0 AND modified > ?"
         return self._getChannels(sql, (updated_since,))
 
@@ -2376,12 +2385,12 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
             # finally compare nr_torrents
             return cmp(a[4], b[4])
 
-        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
+        sql = "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
               "FROM Channels Order By modified DESC Limit ?"
         return self._getChannels(sql, (max_nr,), cmpF=channel_sort)
 
     def getMostPopularChannels(self, max_nr=20):
-        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
+        sql = "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
               "FROM Channels ORDER BY nr_favorite DESC, modified DESC LIMIT ?"
         return self._getChannels(sql, (max_nr,), includeSpam=False)
 
@@ -2498,7 +2507,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
 
     def get_torrent_ids_from_playlist(self, playlist_id):
         """
-        Returns the torrent dispersy IDs from a specified playlist.
+        Returns the torrent dispersy IDs FROM a specified playlist.
         """
         sql = "SELECT dispersy_id FROM PlaylistTorrents WHERE playlist_id = ?"
         return self._db.fetchall(sql, (playlist_id,))

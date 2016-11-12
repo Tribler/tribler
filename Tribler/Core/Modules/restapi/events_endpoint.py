@@ -4,7 +4,7 @@ from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, conver
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT,
                                      NTFY_UPGRADER, NTFY_STARTED, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT,
                                      NTFY_NEW_VERSION, NTFY_FINISHED, NTFY_TRIBLER, NTFY_UPGRADER_TICK, NTFY_CHANNEL,
-                                     NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR)
+                                     NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_DELETE)
 from Tribler.Core.version import version_id
 
 MAX_EVENTS_BUFFER_SIZE = 100
@@ -61,6 +61,7 @@ class EventsEndpoint(resource.Resource):
         self.session.add_observer(self.on_tribler_started, NTFY_TRIBLER, [NTFY_STARTED])
         self.session.add_observer(self.on_channel_discovered, NTFY_CHANNEL, [NTFY_DISCOVERED])
         self.session.add_observer(self.on_torrent_discovered, NTFY_TORRENT, [NTFY_DISCOVERED])
+        self.session.add_observer(self.on_torrent_removed_from_channel, NTFY_TORRENT, [NTFY_DELETE])
         self.session.add_observer(self.on_torrent_finished, NTFY_TORRENT, [NTFY_FINISHED])
         self.session.add_observer(self.on_torrent_error, NTFY_TORRENT, [NTFY_ERROR])
 
@@ -138,13 +139,23 @@ class EventsEndpoint(resource.Resource):
     def on_torrent_discovered(self, subject, changetype, objectID, *args):
         self.write_data(json.dumps({"type": "torrent_discovered", "event": args[0]}))
 
+    def on_torrent_removed_from_channel(self, subject, changetype, objectID, *args):
+        self.write_data(json.dumps({"type": "torrent_removed_from_channel", "event": {
+            "infohash": objectID.encode('hex'),
+            "channel_id": args[0],
+        }}))
+
     def on_torrent_finished(self, subject, changetype, objectID, *args):
-        self.write_data(json.dumps({"type": "torrent_finished", "event": {"infohash": objectID.encode('hex'),
-                                                                          "name": args[0]}}))
+        self.write_data(json.dumps({"type": "torrent_finished", "event": {
+            "infohash": objectID.encode('hex'),
+            "name": args[0],
+        }}))
 
     def on_torrent_error(self, subject, changetype, objectID, *args):
-        self.write_data(json.dumps({"type": "torrent_error", "event": {"infohash": objectID.encode('hex'),
-                                                                       "error": args[0]}}))
+        self.write_data(json.dumps({"type": "torrent_error", "event": {
+            "infohash": objectID.encode('hex'),
+            "error": args[0],
+        }}))
 
     def render_GET(self, request):
         """
