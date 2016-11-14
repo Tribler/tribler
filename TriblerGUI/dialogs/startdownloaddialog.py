@@ -62,7 +62,7 @@ class StartDownloadDialog(DialogContainer):
         for ind in xrange(self.dialog_widget.files_list_view.topLevelItemCount()):
             item = self.dialog_widget.files_list_view.topLevelItem(ind)
             if item.checkState(2) == Qt.Checked:
-                included_files.append(unicode(item.data(0, Qt.UserRole)['path'][0]))
+                included_files.append(u'/'.join(item.data(0, Qt.UserRole)['path']))
 
         return included_files
 
@@ -84,7 +84,7 @@ class StartDownloadDialog(DialogContainer):
 
         for file in files:
             item = DownloadFileTreeWidgetItem(self.dialog_widget.files_list_view)
-            item.setText(0, file['path'][0])
+            item.setText(0, '/'.join(file['path']))
             item.setText(1, format_size(float(file['length'])))
             item.setData(0, Qt.UserRole, file)
             item.setCheckState(2, Qt.Checked)
