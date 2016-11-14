@@ -50,8 +50,8 @@ class AbstractBaseApiTest(TestAsServer):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self, annotate=True):
-        yield super(AbstractBaseApiTest, self).tearDown(annotate=annotate)
         yield self.close_connections()
+        yield super(AbstractBaseApiTest, self).tearDown(annotate=annotate)
 
     def close_connections(self):
         return self.connection_pool.closeCachedConnections()
