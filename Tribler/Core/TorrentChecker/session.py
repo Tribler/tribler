@@ -9,7 +9,7 @@ from twisted.internet import reactor, defer
 from twisted.internet.defer import Deferred, maybeDeferred, DeferredList, inlineCallbacks, returnValue
 from twisted.internet.protocol import DatagramProtocol
 from twisted.python.failure import Failure
-from twisted.web.client import Agent, readBody, RedirectAgent
+from twisted.web.client import Agent, readBody, RedirectAgent, HTTPConnectionPool
 
 from Tribler.Core.Utilities.encoding import add_url_params
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
@@ -183,6 +183,7 @@ class HttpTrackerSession(TrackerSession):
         self._received_length = None
         self.result_deferred = None
         self.request = None
+        self._connection_pool = HTTPConnectionPool(reactor, False)
 
     def max_retries(self):
         """
@@ -210,7 +211,7 @@ class HttpTrackerSession(TrackerSession):
                               self._announce_page.replace(u'announce', u'scrape')),
                              {"info_hash": self._infohash_list})
 
-        agent = RedirectAgent(Agent(reactor, connectTimeout=self.timeout))
+        agent = RedirectAgent(Agent(reactor, connectTimeout=self.timeout, pool=self._connection_pool))
         self.request = self.register_task("request", agent.request('GET', bytes(url)))
         self.request.addCallback(self.on_response)
         self.request.addErrback(self.on_error)
@@ -320,6 +321,7 @@ class HttpTrackerSession(TrackerSession):
         Cleans the session by cancelling all deferreds and closing sockets.
         :return: A deferred that fires once the cleanup is done.
         """
+        yield self._connection_pool.closeCachedConnections()
         yield super(HttpTrackerSession, self).cleanup()
         self.request = None
 
