@@ -9,7 +9,9 @@ from binascii import hexlify
 import time
 
 from twisted.internet import threads
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, fail
+from twisted.python.failure import Failure
+from twisted.python.log import addObserver
 from twisted.python.threadable import isInIOThread
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig, get_default_dest_dir
 
@@ -69,6 +71,8 @@ class Session(SessionConfigInterface):
         In the current implementation only a single session instance can exist
         at a time in a process. The ignore_singleton flag is used for testing.
         """
+        addObserver(self.unhandled_error_observer)
+
         if not ignore_singleton:
             if Session.__single:
                 raise RuntimeError("Session is singleton")
@@ -185,21 +189,21 @@ class Session(SessionConfigInterface):
     @blocking_call_on_reactor_thread
     def prestart(self):
         """
-        Pre-starts the session. We check the current version and upgrade if needed
--        before we start everything else.
+        Pre-starts the session. We check the current version and upgrade if needed before we start everything else.
         """
         assert isInIOThread()
+
+        # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
+        if self.get_http_api_enabled():
+            self.lm.api_manager = RESTManager(self)
+            self.lm.api_manager.start()
+
         db_path = os.path.join(self.get_state_dir(), DB_FILE_RELATIVE_PATH)
         db_script_path = os.path.join(self.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
 
         self.sqlite_db = SQLiteCacheDB(db_path, db_script_path)
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
-
-        # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
-        if self.get_http_api_enabled():
-            self.lm.api_manager = RESTManager(self)
-            self.lm.api_manager.start()
 
         self.upgrader = TriblerUpgrader(self, self.sqlite_db)
         self.upgrader.run()
@@ -225,6 +229,21 @@ class Session(SessionConfigInterface):
     @staticmethod
     def del_instance():
         Session.__single = None
+
+    def unhandled_error_observer(self, event):
+        """
+        This method is called when an unhandled error in Tribler is observed. Broadcasts the tribler_exception event.
+        """
+        if event['isError']:
+            text = ""
+            if 'log_legacy' in event and 'log_text' in event:
+                text = event['log_text']
+            elif 'log_failure' in event:
+                text = str(event['log_failure'])
+
+            if self.lm.api_manager and len(text) > 0:
+                self.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception(text)
+                self.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception(text)
 
     #
     # Public methods
@@ -784,13 +803,14 @@ class Session(SessionConfigInterface):
                 data = channelcast_db.getTorrentFromChannelId(channel_id, torrent_def.infohash, ['ChannelTorrents.id'])
                 community.modifyTorrent(data, {'description': desc}, forward=forward)
 
-    def check_torrent_health(self, infohash):
+    def check_torrent_health(self, infohash, timeout=20, scrape_now=False):
         """
         Checks the given torrent's health on its trackers.
         :param infohash: The given torrent infohash.
         """
         if self.lm.torrent_checker:
-            self.lm.torrent_checker.add_gui_request(infohash)
+            return self.lm.torrent_checker.add_gui_request(infohash, timeout=timeout, scrape_now=scrape_now)
+        return fail(Failure(RuntimeError("Torrent checker not available")))
 
     def set_max_upload_speed(self, rate):
         """

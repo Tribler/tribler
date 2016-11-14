@@ -1,6 +1,7 @@
 # Written by Egbert Bouman
 import binascii
 import logging
+import random
 from urllib import url2pathname
 import tempfile
 import threading
@@ -329,7 +330,8 @@ class LibtorrentMgr(TaskManager):
             self._logger.info("DHT not ready, rescheduling get_metainfo")
 
             def schedule_call():
-                self.register_task("schedule_metainfo_lookup",
+                random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
+                self.register_task("schedule_metainfo_lookup_%s" % random_id,
                                    reactor.callLater(5, lambda i=infohash_or_magnet, c=callback, t=timeout - 5,
                                                   tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n)))
 
@@ -378,7 +380,8 @@ class LibtorrentMgr(TaskManager):
                                                     'notify': notify}
 
                 def schedule_call():
-                    self.register_task("schedule_got_metainfo_lookup",
+                    random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
+                    self.register_task("schedule_got_metainfo_lookup_%s" % random_id,
                                        reactor.callLater(timeout, lambda: self.got_metainfo(infohash, timeout=True)))
 
                 reactor.callFromThread(schedule_call)

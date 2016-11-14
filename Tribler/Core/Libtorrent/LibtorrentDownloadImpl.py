@@ -990,7 +990,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                             # Schedule next invocation, either on general or DL specific
                             def reschedule_cb():
                                 dc = reactor.callLater(when, lambda: self.network_get_state(usercallback, getpeerlist))
-                                self.register_task("downloads_cb", dc)
+                                random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
+                                self.register_task("downloads_cb_%s" % random_id, dc)
 
                             reactor.callFromThread(reschedule_cb)
 

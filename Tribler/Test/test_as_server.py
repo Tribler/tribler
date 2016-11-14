@@ -34,7 +34,7 @@ from Tribler.Core import defaults
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Utilities.instrumentation import WatchDog
-from Tribler.Test.util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
+from Tribler.Test.util.util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 

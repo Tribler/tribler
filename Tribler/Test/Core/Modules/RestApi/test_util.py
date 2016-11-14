@@ -1,7 +1,8 @@
+# coding=utf-8
 import struct
 
 from Tribler.Core.Modules.restapi.util import convert_search_torrent_to_json, convert_db_channel_to_json, \
-    relevance_score_remote_torrent, get_parameter, can_edit_channel
+    relevance_score_remote_torrent, get_parameter, can_edit_channel, fix_unicode_array, fix_unicode_dict
 from Tribler.Core.Session import Session
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.community.channel.community import ChannelCommunity
@@ -96,3 +97,36 @@ class TestRestApiUtil(TriblerCoreTest):
         mocked_dispersy.get_community = lambda _: mocked_community
 
         self.assertTrue(can_edit_channel("abcd", 0))
+
+    def test_fix_unicode_array(self):
+        """
+        Testing the fix of a unicode array
+        """
+        arr1 = ['a', 'b', 'c', u'd']
+        self.assertListEqual(fix_unicode_array(arr1), ['a', 'b', 'c', 'd'])
+        arr2 = ['a', '\xa1']
+        self.assertListEqual(fix_unicode_array(arr2), ['a', ''])
+        arr3 = [1, 2, 3, '4']
+        self.assertListEqual(fix_unicode_array(arr3), [1, 2, 3, '4'])
+
+    def test_fix_unicode_dict(self):
+        """
+        Testing the fix of a unicode dictionary
+        """
+        dict1 = {'a': 'b', 'c': 'd'}
+        self.assertDictEqual(fix_unicode_dict(dict1), {'a': 'b', 'c': 'd'})
+        dict2 = {'a': '\xa2'}
+        self.assertDictEqual(fix_unicode_dict(dict2), {'a': ''})
+        dict3 = {'a': [1, 2], 'b': ['1', '2']}
+        self.assertDictEqual(fix_unicode_dict(dict3), {'a': [1, 2], 'b': ['1', '2']})
+        dict4 = {'a': ['1', '2\xa3']}
+        self.assertDictEqual(fix_unicode_dict(dict4), {'a': ['1', '2']})
+        dict5 = {'a': ('1', '2\xa3')}
+        self.assertDictEqual(fix_unicode_dict(dict5), {'a': ['1', '2']})
+        dict6 = {'a': {'b': 'c\xa4'}}
+        self.assertDictEqual(fix_unicode_dict(dict6), {'a': {'b': 'c'}})
+        dict7 = {'a': 'ѡ'}
+        self.assertDictEqual(fix_unicode_dict(dict7), {'a': u'ѡ'})
+        obj = MockObject
+        dict8 = {'a': {'b': obj}}
+        self.assertDictEqual(fix_unicode_dict(dict8), {'a': {'b': obj}})

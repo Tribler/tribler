@@ -1,13 +1,12 @@
 import json
 from twisted.web import server, resource
-from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_search_torrent_to_json
+from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_search_torrent_to_json, \
+    fix_unicode_dict
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT,
                                      NTFY_UPGRADER, NTFY_STARTED, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT,
                                      NTFY_NEW_VERSION, NTFY_FINISHED, NTFY_TRIBLER, NTFY_UPGRADER_TICK, NTFY_CHANNEL,
                                      NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR)
 from Tribler.Core.version import version_id
-
-MAX_EVENTS_BUFFER_SIZE = 100
 
 
 class EventsEndpoint(resource.Resource):
@@ -38,6 +37,7 @@ class EventsEndpoint(resource.Resource):
       torrent that has finished downloading.
     - torrent_error: An error has occurred during the download process of a specific torrent. The event includes the
       infohash and a readable string of the error message.
+    - tribler_exception: An exception has occurred in Tribler. The event includes a readable string of the error.
     """
 
     def __init__(self, session):
@@ -45,7 +45,6 @@ class EventsEndpoint(resource.Resource):
         self.session = session
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.events_requests = []
-        self.buffer = []
 
         self.infohashes_sent = set()
         self.channel_cids_sent = set()
@@ -66,14 +65,18 @@ class EventsEndpoint(resource.Resource):
 
     def write_data(self, message):
         """
-        Write data over the event socket. If the event socket is not open, add the message to the buffer instead.
+        Write data over the event socket if it's open.
         """
+        try:
+            message_str = json.dumps(message)
+        except UnicodeDecodeError:
+            # The message contains invalid characters; fix them
+            message_str = json.dumps(fix_unicode_dict(message))
+
         if len(self.events_requests) == 0:
-            if len(self.buffer) >= MAX_EVENTS_BUFFER_SIZE:
-                self.buffer.pop(0)
-            self.buffer.append(message)
+            return
         else:
-            [request.write(message + '\n') for request in self.events_requests]
+            [request.write(message_str + '\n') for request in self.events_requests]
 
     def start_new_query(self):
         self.infohashes_sent = set()
@@ -93,8 +96,7 @@ class EventsEndpoint(resource.Resource):
                 continue
 
             if channel_json['dispersy_cid'] not in self.channel_cids_sent:
-                self.write_data(json.dumps({"type": "search_result_channel",
-                                            "event": {"query": query, "result": channel_json}}) + '\n')
+                self.write_data({"type": "search_result_channel", "event": {"query": query, "result": channel_json}})
                 self.channel_cids_sent.add(channel_json['dispersy_cid'])
 
     def on_search_results_torrents(self, subject, changetype, objectID, results):
@@ -110,41 +112,41 @@ class EventsEndpoint(resource.Resource):
                 continue
 
             if 'infohash' in torrent_json and torrent_json['infohash'] not in self.infohashes_sent:
-                self.write_data(json.dumps({"type": "search_result_torrent",
-                                            "event": {"query": query, "result": torrent_json}}))
+                self.write_data({"type": "search_result_torrent", "event": {"query": query, "result": torrent_json}})
                 self.infohashes_sent.add(torrent_json['infohash'])
 
     def on_upgrader_started(self, subject, changetype, objectID, *args):
-        self.write_data(json.dumps({"type": "upgrader_started"}))
+        self.write_data({"type": "upgrader_started"})
 
     def on_upgrader_finished(self, subject, changetype, objectID, *args):
-        self.write_data(json.dumps({"type": "upgrader_finished"}))
+        self.write_data({"type": "upgrader_finished"})
 
     def on_upgrader_tick(self, subject, changetype, objectID, *args):
-        self.write_data(json.dumps({"type": "upgrader_tick", "event": {"text": args[0]}}))
+        self.write_data({"type": "upgrader_tick", "event": {"text": args[0]}})
 
     def on_watch_folder_corrupt_torrent(self, subject, changetype, objectID, *args):
-        self.write_data(json.dumps({"type": "watch_folder_corrupt_torrent", "event": {"name": args[0]}}))
+        self.write_data({"type": "watch_folder_corrupt_torrent", "event": {"name": args[0]}})
 
     def on_new_version_available(self, subject, changetype, objectID, *args):
-        self.write_data(json.dumps({"type": "new_version_available", "event": {"version": args[0]}}))
+        self.write_data({"type": "new_version_available", "event": {"version": args[0]}})
 
     def on_tribler_started(self, subject, changetype, objectID, *args):
-        self.write_data(json.dumps({"type": "tribler_started"}))
+        self.write_data({"type": "tribler_started"})
 
     def on_channel_discovered(self, subject, changetype, objectID, *args):
-        self.write_data(json.dumps({"type": "channel_discovered", "event": args[0]}))
+        self.write_data({"type": "channel_discovered", "event": args[0]})
 
     def on_torrent_discovered(self, subject, changetype, objectID, *args):
-        self.write_data(json.dumps({"type": "torrent_discovered", "event": args[0]}))
+        self.write_data({"type": "torrent_discovered", "event": args[0]})
 
     def on_torrent_finished(self, subject, changetype, objectID, *args):
-        self.write_data(json.dumps({"type": "torrent_finished", "event": {"infohash": objectID.encode('hex'),
-                                                                          "name": args[0]}}))
+        self.write_data({"type": "torrent_finished", "event": {"infohash": objectID.encode('hex'), "name": args[0]}})
 
     def on_torrent_error(self, subject, changetype, objectID, *args):
-        self.write_data(json.dumps({"type": "torrent_error", "event": {"infohash": objectID.encode('hex'),
-                                                                       "error": args[0]}}))
+        self.write_data({"type": "torrent_error", "event": {"infohash": objectID.encode('hex'), "error": args[0]}})
+
+    def on_tribler_exception(self, exception_text):
+        self.write_data({"type": "tribler_exception", "event": {"text": exception_text}})
 
     def render_GET(self, request):
         """
@@ -166,8 +168,5 @@ class EventsEndpoint(resource.Resource):
 
         request.write(json.dumps({"type": "events_start", "event": {
             "tribler_started": self.session.lm.initComplete, "version": version_id}}) + '\n')
-
-        while not len(self.buffer) == 0:
-            request.write(self.buffer.pop(0) + '\n')
 
         return server.NOT_DONE_YET

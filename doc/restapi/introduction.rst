@@ -82,9 +82,11 @@ Endpoints
    mychannel
    rssfeeds
    torrents
+   torrentinfo
    playlists
    downloads
    search
+   state
    variables
    settings
    events

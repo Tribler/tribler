@@ -1,4 +1,5 @@
 import json
+import logging
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.protocol import Protocol
@@ -20,11 +21,13 @@ class EventDataProtocol(Protocol):
     """
     def __init__(self, messages_to_wait_for, finished, response):
         self.json_buffer = []
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.messages_to_wait_for = messages_to_wait_for + 1  # The first event message is always events_start
         self.finished = finished
         self.response = response
 
     def dataReceived(self, data):
+        self._logger.info("Received data: %s" % data)
         self.json_buffer.append(json.loads(data))
         self.messages_to_wait_for -= 1
         if self.messages_to_wait_for == 0:
@@ -39,18 +42,18 @@ class TestEventsEndpoint(AbstractApiTest):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        events_endpoint_file.MAX_EVENTS_BUFFER_SIZE = 100
         yield super(TestEventsEndpoint, self).setUp(autoload_discovery=autoload_discovery)
         self.events_deferred = Deferred()
         self.connection_pool = HTTPConnectionPool(reactor, False)
         self.socket_open_deferred = self.tribler_started_deferred.addCallback(self.open_events_socket)
         self.messages_to_wait_for = 0
+        self.session.notifier.use_pool = False
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self, annotate=True):
-        yield super(TestEventsEndpoint, self).tearDown(annotate=annotate)
         yield self.close_connections()
+        yield super(TestEventsEndpoint, self).tearDown(annotate=annotate)
 
     def on_event_socket_opened(self, response):
         response.deliverBody(EventDataProtocol(self.messages_to_wait_for, self.events_deferred, response))
@@ -64,33 +67,15 @@ class TestEventsEndpoint(AbstractApiTest):
     def close_connections(self):
         return self.connection_pool.closeCachedConnections()
 
-    @deferred(timeout=10)
-    def test_events_buffer(self):
-        """
-        Testing whether we still receive messages that are in the buffer before the event connection is opened
-        """
-        def verify_delayed_message(results):
-            self.assertEqual(len(results), 1)
-
-        events_endpoint_file.MAX_EVENTS_BUFFER_SIZE = 1
-
-        events_endpoint = self.session.lm.api_manager.root_endpoint.events_endpoint
-        self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
-        results_dict = {"keywords": ["test"], "result_list": [('a',) * 10]}
-        events_endpoint.on_search_results_channels(None, None, None, results_dict)
-        events_endpoint.on_search_results_torrents(None, None, None, results_dict)
-        self.messages_to_wait_for = 1
-        return self.events_deferred.addCallback(verify_delayed_message)
-
     @deferred(timeout=20)
     def test_search_results(self):
         """
         Testing whether the event endpoint returns search results when we have search results available
         """
         def verify_search_results(results):
-            self.assertEqual(len(results), 3)
+            self.assertEqual(len(results), 2)
 
-        self.messages_to_wait_for = 3
+        self.messages_to_wait_for = 2
 
         def send_notifications(_):
             self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
@@ -121,9 +106,10 @@ class TestEventsEndpoint(AbstractApiTest):
             self.session.notifier.notify(NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, None, None)
             self.session.notifier.notify(NTFY_NEW_VERSION, NTFY_INSERT, None, None)
             self.session.notifier.notify(NTFY_CHANNEL, NTFY_DISCOVERED, None, None)
-            self.session.notifier.notify(NTFY_TORRENT, NTFY_DISCOVERED, None, None)
+            self.session.notifier.notify(NTFY_TORRENT, NTFY_DISCOVERED, None, {'a': 'Invalid character \xa1'})
             self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, 'a' * 10, None)
             self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, 'a' * 10, 'This is an error message')
+            self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception("hi")
 
         self.socket_open_deferred.addCallback(send_notifications)
 
@@ -134,7 +120,7 @@ class TestEventsEndpoint(AbstractApiTest):
         """
         Testing the family filter when searching for torrents and channels
         """
-        self.messages_to_wait_for = 4
+        self.messages_to_wait_for = 2
 
         def send_searches(_):
             events_endpoint = self.session.lm.api_manager.root_endpoint.events_endpoint

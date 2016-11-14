@@ -211,7 +211,7 @@ dldefaults['downloadconfig']['mode'] = 0
 dldefaults['downloadconfig']['hops'] = 0
 dldefaults['downloadconfig']['selected_files'] = []
 dldefaults['downloadconfig']['correctedfilename'] = None
-dldefaults['downloadconfig']['safe_seeding'] = True
+dldefaults['downloadconfig']['safe_seeding'] = False
 # Valid values: 'forever', 'never', 'ratio', 'time'
 dldefaults['downloadconfig']['seeding_mode'] = 'ratio'
 dldefaults['downloadconfig']['seeding_ratio'] = 2.0
