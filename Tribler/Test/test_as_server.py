@@ -85,6 +85,8 @@ class AbstractServer(BaseTestCase):
         from twisted.internet.defer import setDebugging
         setDebugging(True)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, annotate=True):
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -95,7 +97,7 @@ class AbstractServer(BaseTestCase):
         defaults.sessdefaults['general']['state_dir'] = self.state_dir
         defaults.dldefaults["downloadconfig"]["saveas"] = self.dest_dir
 
-        self.checkReactor(phase="setUp")
+        yield self.checkReactor(phase="setUp")
 
         self.setUpCleanup()
         os.makedirs(self.session_base_dir)
@@ -158,6 +160,7 @@ class AbstractServer(BaseTestCase):
                                      "Listening ports left on the reactor during %s: %s" % (phase, reader))
 
     @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self, annotate=True):
         self.tearDownCleanup()
         if annotate:
@@ -173,9 +176,9 @@ class AbstractServer(BaseTestCase):
             raise RuntimeError("Couldn't stop the WatchDog")
 
         if self.file_server:
-            return maybeDeferred(self.file_server.stopListening).addCallback(self.checkReactor)
+            yield maybeDeferred(self.file_server.stopListening).addCallback(self.checkReactor)
         else:
-            return self.checkReactor("tearDown")
+            yield self.checkReactor("tearDown")
 
     def tearDownCleanup(self):
         self.setUpCleanup()
