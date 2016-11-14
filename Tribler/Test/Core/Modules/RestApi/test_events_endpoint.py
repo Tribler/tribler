@@ -48,8 +48,8 @@ class TestEventsEndpoint(AbstractApiTest):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self, annotate=True):
-        yield super(TestEventsEndpoint, self).tearDown(annotate=annotate)
         yield self.close_connections()
+        yield super(TestEventsEndpoint, self).tearDown(annotate=annotate)
 
     def on_event_socket_opened(self, response):
         response.deliverBody(EventDataProtocol(self.messages_to_wait_for, self.events_deferred, response))
