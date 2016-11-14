@@ -93,7 +93,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
         deferred = impl.setup(None, None, None, 0)
         deferred.addCallback(callback)
-        return deferred
+        return deferred.addCallback(lambda _: impl.stop())
 
     def test_restart(self):
         tdef = self.create_tdef()
@@ -179,7 +179,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         result_deferred = impl.setup(None, None, None, 0)
         result_deferred.addCallback(callback)
 
-        return result_deferred
+        return result_deferred.addCallback(lambda _: impl.stop())
 
 
 class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
