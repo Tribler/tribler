@@ -1,4 +1,5 @@
 import json
+import logging
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.protocol import Protocol
@@ -20,11 +21,13 @@ class EventDataProtocol(Protocol):
     """
     def __init__(self, messages_to_wait_for, finished, response):
         self.json_buffer = []
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.messages_to_wait_for = messages_to_wait_for + 1  # The first event message is always events_start
         self.finished = finished
         self.response = response
 
     def dataReceived(self, data):
+        self._logger.info("Received data: %s" % data)
         self.json_buffer.append(json.loads(data))
         self.messages_to_wait_for -= 1
         if self.messages_to_wait_for == 0:
