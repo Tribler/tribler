@@ -1,6 +1,7 @@
 import binascii
 import os
 import libtorrent as lt
+from twisted.internet.defer import Deferred
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
@@ -110,6 +111,15 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         impl.dlconfig = DownloadStartupConfig().dlconfig.copy()
         impl.session.lm.on_download_wrapper_created = lambda _: True
         impl.restart()
+
+    @deferred(timeout=20)
+    def test_restart_no_handle(self):
+        test_deferred = Deferred()
+        tdef = self.create_tdef()
+        impl = LibtorrentDownloadImpl(self.session, tdef)
+        impl.session.lm.on_download_handle_created = lambda _: test_deferred.callback(None)
+        impl.restart()
+        return test_deferred
 
     @deferred(timeout=20)
     def test_multifile_torrent(self):
