@@ -70,3 +70,8 @@ BUTTON_TYPE_CONFIRM = 1
 VIDEO_EXTS = ['aac', 'asf', 'avi', 'dv', 'divx', 'flac', 'flc', 'flv', 'mkv', 'mpeg', 'mpeg4', 'mpegts',
               'mpg4', 'mp3', 'mp4', 'mpg', 'mkv', 'mov', 'm4v', 'ogg', 'ogm', 'ogv', 'oga', 'ogx', 'qt',
               'rm', 'swf', 'ts', 'vob', 'wmv', 'wav', 'webm']
+
+# Torrent health status
+STATUS_GOOD = 0
+STATUS_UNKNOWN = 1
+STATUS_DEAD = 2

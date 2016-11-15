@@ -1,13 +1,19 @@
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget
 from TriblerGUI.channel_list_item import ChannelListItem
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
-from TriblerGUI.utilities import split_into_keywords, bisect_right
+from TriblerGUI.utilities import bisect_right
 
 
 class SearchResultsPage(QWidget):
     """
     This class is responsible for displaying the search results.
     """
+
+    def __init__(self):
+        super(SearchResultsPage, self).__init__()
+        self.search_results = {'channels': [], 'torrents': []}
+        self.health_timer = None
 
     def initialize_search_results_page(self):
         self.window().search_results_tab.initialize()
@@ -19,6 +25,20 @@ class SearchResultsPage(QWidget):
         self.window().search_results_header_label.setText("Search results for '%s'" % query)
         self.window().search_results_list.set_data_items([])  # To clean the list
         self.window().search_results_tab.on_tab_button_click(self.window().search_results_all_button)
+
+        # Start the health timer that checks the health of the first five results
+        if self.health_timer:
+            self.health_timer.stop()
+
+        self.health_timer = QTimer()
+        self.health_timer.setSingleShot(True)
+        self.health_timer.timeout.connect(self.check_health_of_results)
+        self.health_timer.start(2000)
+
+    def check_health_of_results(self):
+        first_torrents = self.window().search_results_list.get_first_items(5, cls=ChannelTorrentListItem)
+        for torrent_item in first_torrents:
+            torrent_item.check_health()
 
     def clicked_tab_button(self, tab_button_name):
         if tab_button_name == "search_results_all_button":

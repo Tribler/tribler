@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem
-
+from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
 
 ITEM_LOAD_BATCH = 30
 
@@ -14,6 +14,7 @@ class LazyLoadList(QListWidget):
     def __init__(self, parent):
         super(LazyLoadList, self).__init__(parent)
         self.verticalScrollBar().valueChanged.connect(self.on_list_scroll)
+        self.itemSelectionChanged.connect(self.on_item_clicked)
         self.data_items = []  # Tuple of (ListWidgetClass, json data)
         self.items_loaded = 0
 
@@ -53,3 +54,27 @@ class LazyLoadList(QListWidget):
     def on_list_scroll(self, event):
         if self.verticalScrollBar().value() == self.verticalScrollBar().maximum():
             self.load_next_items()
+
+    def get_first_items(self, num, cls=None):
+        """
+        Return the first num widget items with type cls.
+        This can be useful when for instance you need the first five search results.
+        """
+        result = []
+        for i in xrange(self.count()):
+            widget_item = self.itemWidget(self.item(i))
+            if not cls or (cls and isinstance(widget_item, cls)):
+                result.append(widget_item)
+
+            if len(result) >= num:
+                break
+
+        return result
+
+    def on_item_clicked(self):
+        if len(self.selectedItems()) == 0:
+            return
+
+        item_widget = self.itemWidget(self.selectedItems()[0])
+        if isinstance(item_widget, ChannelTorrentListItem):
+            item_widget.check_health()

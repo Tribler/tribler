@@ -1,6 +1,8 @@
 from urllib import quote_plus
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
+from TriblerGUI.defs import STATUS_GOOD, STATUS_DEAD
+from TriblerGUI.defs import STATUS_UNKNOWN
 
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -22,6 +24,8 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         self.show_controls = show_controls
         self.remove_control_button_container.setHidden(True)
         self.control_buttons_container.setHidden(True)
+        self.is_health_checking = False
+        self.has_health = False
 
         self.channel_torrent_name.setText(torrent["name"])
         if torrent["size"] is None:
@@ -34,6 +38,9 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         else:
             self.channel_torrent_category.setText("Unknown")
         self.thumbnail_widget.initialize(torrent["name"], 24)
+
+        if torrent["last_tracker_check"] > 0:
+            self.update_health(int(torrent["num_seeders"]), int(torrent["num_leechers"]))
 
         self.torrent_play_button.clicked.connect(self.on_play_button_clicked)
         self.torrent_download_button.clicked.connect(self.on_download_clicked)
@@ -95,3 +102,51 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
 
     def leaveEvent(self, event):
         self.hide_buttons()
+
+    def check_health(self):
+        if self.is_health_checking or self.has_health:  # Don't check health again
+            return
+
+        self.health_text.setText("checking health...")
+        self.set_health_indicator(STATUS_UNKNOWN)
+        self.is_health_checking = True
+        self.health_request_mgr = TriblerRequestManager()
+        self.health_request_mgr.perform_request("torrents/%s/health?timeout=15" % self.torrent_info["infohash"],
+                                                self.on_health_response)
+
+    def on_health_response(self, response):
+        self.has_health = True
+        total_seeders = 0
+        total_leechers = 0
+
+        for tracker_url, status in response['health'].iteritems():
+            if 'error' in status:
+                continue  # Timeout or invalid status
+
+            total_seeders += int(status['seeders'])
+            total_leechers += int(status['leechers'])
+
+        self.is_health_checking = False
+        self.update_health(total_seeders, total_leechers)
+
+    def update_health(self, seeders, leechers):
+        if seeders > 0:
+            self.health_text.setText("good health (S%d L%d)" % (seeders, leechers))
+            self.set_health_indicator(STATUS_GOOD)
+        elif leechers > 0:
+            self.health_text.setText("unknown health (found peers)")
+            self.set_health_indicator(STATUS_UNKNOWN)
+        else:
+            self.health_text.setText("no peers found")
+            self.set_health_indicator(STATUS_DEAD)
+
+    def set_health_indicator(self, status):
+        color = "orange"
+        if status == STATUS_GOOD:
+            color = "green"
+        elif status == STATUS_UNKNOWN:
+            color = "orange"
+        elif status == STATUS_DEAD:
+            color = "red"
+
+        self.health_indicator.setStyleSheet("background-color: %s; border-radius: %dpx" % (color, self.health_indicator.height() / 2))
