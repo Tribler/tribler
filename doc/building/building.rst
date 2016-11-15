@@ -26,6 +26,8 @@ Run the following commands in your terminal:
     Tribler/Main/Build/update_version_from_git.py
     debuild -i -us -uc -b
 
+This will build the ``.deb`` file that can be used to install Tribler on other systems.
+
 Other Unixes
 ============
 
