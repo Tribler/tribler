@@ -269,6 +269,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     }
 
     private void createTorrent(final File file, final boolean delete) {
+        Log.v("createTorrent", file.getPath());
+
         // Workaround endpoint array parsing:
         String[] list = {String.format("[\"%s\"]", file.getAbsolutePath())};
         rxSubs.add(service.createTorrent(list)
@@ -278,6 +280,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 .subscribe(new Observer<TorrentCreatedResponse>() {
 
                     public void onNext(TorrentCreatedResponse response) {
+                        Log.v("createTorrent", String.format(context.getString(R.string.info_created_success), "Torrent"));
+
                         Toast.makeText(context, String.format(context.getString(R.string.info_created_success), "Torrent"), Toast.LENGTH_SHORT).show();
                         // Add to my channel immediately
                         addTorrent(response.getTorrent());
@@ -314,6 +318,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     public void onNext(AddedAck response) {
                         // Added?
                         if (response.isAdded()) {
+                            Log.v("addtorrent", String.format(context.getString(R.string.info_added_success), "Torrent"));
+
                             Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Torrent"), Toast.LENGTH_SHORT).show();
                         } else {
                             throw new Error("Torrent not added");

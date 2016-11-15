@@ -102,6 +102,8 @@ public abstract class ViewFragment extends BaseFragment {
     }
 
     protected void showLoading(@Nullable CharSequence text) {
+        Log.v("showLoading", text == null ? "null" : text.toString());
+
         _statusMsg = text;
     }
 

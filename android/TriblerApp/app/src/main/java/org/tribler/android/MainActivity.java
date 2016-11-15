@@ -199,6 +199,8 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                 return;
 
             case NfcAdapter.ACTION_NDEF_DISCOVERED:
+                Log.v("ACTION_NDEF_DISCOVERED", String.format("%b", intent.hasExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)));
+
                 Parcelable[] rawMsgs = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
                 if (rawMsgs != null && rawMsgs.length > 0) {
                     for (Parcelable rawMsg : rawMsgs) {
