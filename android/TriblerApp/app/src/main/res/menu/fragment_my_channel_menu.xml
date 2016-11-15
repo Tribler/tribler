@@ -14,7 +14,7 @@
         android:id="@+id/btn_beam_my_channel"
         android:icon="@drawable/ic_action_beam"
         android:onClick="btnMyChannelBeamClicked"
-        android:title="@string/action_mychannel_beam"
+        android:title="@string/action_beam"
         app:showAsAction="ifRoom|withText" />
 
     <item

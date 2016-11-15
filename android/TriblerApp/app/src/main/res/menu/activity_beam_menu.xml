@@ -8,7 +8,7 @@
         android:id="@+id/btn_bluetooth"
         android:icon="@drawable/ic_action_bluetooth"
         android:onClick="btnBluetoothClicked"
-        android:title="@string/action_send_app"
+        android:title="@string/action_beam"
         app:showAsAction="always" />
 
 </menu>

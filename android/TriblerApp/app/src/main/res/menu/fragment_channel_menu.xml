@@ -11,6 +11,13 @@
         app:showAsAction="ifRoom|withText" />
 
     <item
+        android:id="@+id/btn_beam_channel"
+        android:icon="@drawable/ic_action_beam"
+        android:onClick="btnChannelBeamClicked"
+        android:title="@string/action_beam"
+        app:showAsAction="ifRoom|withText" />
+
+    <item
         android:id="@+id/btn_filter_channel"
         android:icon="@drawable/ic_action_search"
         android:title="@string/action_search_in_channel"

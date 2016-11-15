@@ -41,7 +41,7 @@
                 android:id="@+id/nav_beam"
                 android:icon="@drawable/ic_menu_beam"
                 android:onClick="navBeamClicked"
-                android:title="@string/action_send_app" />
+                android:title="@string/action_beam" />
             <item
                 android:id="@+id/nav_settings"
                 android:icon="@drawable/ic_menu_settings"

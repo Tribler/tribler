@@ -60,6 +60,10 @@ public class ChannelActivity extends BaseActivity {
                 _fragment.loadTorrents();
                 return;
 
+            case Intent.ACTION_SEND:
+                startActivity(intent);
+                return;
+
             case ACTION_SUBSCRIBE:
                 rxSubs.add(_fragment.subscribe()
                         .observeOn(AndroidSchedulers.mainThread())
@@ -88,6 +92,13 @@ public class ChannelActivity extends BaseActivity {
                             }
 
                             public void onError(Throwable e) {
+                                // Original intent was to subscribe only?
+                                if (ACTION_SUBSCRIBE.equals(getIntent().getAction())) {
+                                    finish();
+                                } else {
+                                    // Update view
+                                    invalidateOptionsMenu();
+                                }
                             }
                         }));
                 return;
@@ -120,6 +131,13 @@ public class ChannelActivity extends BaseActivity {
                             }
 
                             public void onError(Throwable e) {
+                                // Original intent was to un-subscribe only?
+                                if (ACTION_UNSUBSCRIBE.equals(getIntent().getAction())) {
+                                    finish();
+                                } else {
+                                    // Update view
+                                    invalidateOptionsMenu();
+                                }
                             }
                         }));
                 return;
@@ -127,6 +145,10 @@ public class ChannelActivity extends BaseActivity {
     }
 
     public void btnFavoriteClicked(MenuItem item) {
+        handleIntent(item.getIntent());
+    }
+
+    public void btnChannelBeamClicked(MenuItem item) {
         handleIntent(item.getIntent());
     }
 

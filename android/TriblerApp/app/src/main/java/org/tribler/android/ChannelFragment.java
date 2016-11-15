@@ -1,6 +1,7 @@
 package org.tribler.android;
 
 import android.content.Intent;
+import android.nfc.NdefRecord;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -31,6 +32,7 @@ import rx.schedulers.Schedulers;
 public class ChannelFragment extends DefaultInteractionListFragment implements Handler.Callback {
 
     private MenuItem _btnFav;
+    private MenuItem _btnBeam;
     private Handler _eventHandler;
 
     private String _dispersyCid;
@@ -122,6 +124,12 @@ public class ChannelFragment extends DefaultInteractionListFragment implements H
         }
         toggleIntent.putExtra(ChannelActivity.EXTRA_DISPERSY_CID, _dispersyCid);
         _btnFav.setIntent(toggleIntent);
+
+        // Beam button
+        _btnBeam = menu.findItem(R.id.btn_beam_channel);
+        NdefRecord record = NdefRecord.createMime("text/plain", _dispersyCid.getBytes());
+        Intent beamIntent = MyUtils.beamIntent(record);
+        _btnBeam.setIntent(beamIntent);
 
         // Set title
         if (context instanceof AppCompatActivity) {

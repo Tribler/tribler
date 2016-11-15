@@ -15,7 +15,7 @@
     <string name="title_channel_preview">Preview of</string>
 
     <string name="title_activity_main">@string/app_name</string>
-    <string name="title_activity_beam">@string/action_send_app</string>
+    <string name="title_activity_beam">@string/action_beam</string>
     <string name="title_activity_settings">@string/action_settings</string>
 
     <string name="navigation_drawer_open">Open menu</string>
@@ -59,7 +59,7 @@
     <string name="action_shutdown_short">Shutdown</string>
     <string name="dialog_shutdown">Tribler will exit and stop all running tasks if you shutdown the service.\n\nShutdown Tribler service now?</string>
 
-    <string name="action_send_app">Send to nearby phone</string>
+    <string name="action_beam">Send to nearby phone</string>
     <string name="dialog_send_chooser">Send via</string>
     <string name="dialog_enable_nfc_beam">You must first turn on NFC and Android Beam on both phones.\n\nTurn on NFC and Android Beam now?</string>
     <string name="dialog_enable_beam">You must first turn on NFC and Android Beam on both phones.\n\nTurn on Android Beam now?</string>
@@ -69,7 +69,6 @@
     <string name="action_mychannel_add">Add to my channel</string>
     <string name="action_mychannel_remove">Remove from my channel</string>
     <string name="action_mychannel_edit">Edit my channel</string>
-    <string name="action_mychannel_beam">Send to nearby phone</string>
 
     <string name="exception_http_500">Tribler encountered an internal exception</string>
     <string name="warning_lost_connection">WARNING: Wi-Fi connection lost!</string>

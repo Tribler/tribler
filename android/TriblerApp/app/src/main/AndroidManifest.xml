@@ -118,12 +118,12 @@
         </activity>
         <activity
             android:name=".BeamActivity"
-            android:label="@string/action_send_app"
+            android:label="@string/action_beam"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".WifiActivity"
-            android:label="@string/action_send_app"
+            android:label="@string/action_beam"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
