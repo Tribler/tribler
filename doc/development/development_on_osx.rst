@@ -1,11 +1,11 @@
-This section contains information about setting up a Tribler development environment on OS X. Unlike Linux based systems where installing third-party libraries is often a single ``apt-get`` command, installing and configuring the necessary libraries requires more attention on OS X. This guide has been tested with OS X 10.10.5 (Yosemite) but should also work for OS X 10.11 (El Capitan).
+This section contains information about setting up a Tribler development environment on macOS. Unlike Linux based systems where installing third-party libraries is often a single ``apt-get`` command, installing and configuring the necessary libraries requires more attention on macOS. This guide has been tested with macOS 10.10.5 (Yosemite) but should also work for macOS 10.11 (El Capitan).
 
-Note that the guide below assumes that Python is installed in the default location of Python (shipped with OS X). This location is normally in ``/Library/Python/2.7``. Writing to this location requires root acccess when using easy_install or pip. To avoid root commands, you can install Python in a virtualenv. More information about setting up Python in a virtualenv can be found `here <http://www.marinamele.com/2014/05/install-python-virtualenv-virtualenvwrapper-mavericks.html>`_.
+Note that the guide below assumes that Python is installed in the default location of Python (shipped with macOS). This location is normally in ``/Library/Python/2.7``. Writing to this location requires root acccess when using easy_install or pip. To avoid root commands, you can install Python in a virtualenv. More information about setting up Python in a virtualenv can be found `here <http://www.marinamele.com/2014/05/install-python-virtualenv-virtualenvwrapper-mavericks.html>`_.
 
 Introduction
 ------------
 
-Compilation of C/C++ libraries should be performed using Clang which is part of the Xcode Command Line Tools. The Python version shipped with OS X can be used and this guide has been tested using Python 2.7. The current installed version and binary of Python can be found by executing:
+Compilation of C/C++ libraries should be performed using Clang which is part of the Xcode Command Line Tools. The Python version shipped with macOS can be used and this guide has been tested using Python 2.7. The current installed version and binary of Python can be found by executing:
 
 .. code-block:: none
 
@@ -32,12 +32,35 @@ The installation of Xcode is required in order to compile some C/C++ libraries. 
 
     xcode-select --install
 
-WxPython
---------
+PyQt5
+-----
 
-WxPython is the Graphical User Interface manager and an installer can be downloaded from `their website <http://www.wxpython.org/download.php>`_. Note that at this point, Wx 2.8 should still be used but support for 2.8 will be dropped soon and the Wx 2.8 library should be replaced by Wx 3.0. You probably need the Cocoa version of Wx.
+If you wish to run the Tribler Graphical User Interface, PyQt5 should be available on the system. While PyQt5 is available in the pip repository, this is only compatible with Python 3. To install PyQt5, we first need to install Qt5, a C++ library which can be installed with brew:
 
-Note: there is a bug on OS X 10.11 (El Capitan) where the installer gives an error that there is no software available to install. A workaround for this is to install the required files manually. This can be done by opening the ``.pkg`` file. First, you should run the ``preflight.sh`` script as root to clean up any old installation of wx. Next, unzip the ``wxPython3.0-osx-cocoa-py2.7.pax.gz`` file. This will create a ``usr`` directory which should be copied to ``/usr`` on the system. Note that you need root permissions to write to this directory (you can open a finder window with the needed permissions by running ``sudo open /usr`` in terminal). To link wx so Python can find it, you should run the ``postflight.sh`` as root.
+.. code-block:: none
+
+    brew install qt5
+    brew cask install qt-creator # if you want the visual designer
+    qmake --version # test whether qt is installed correctly
+
+After the installation completed, PyQt5 should be compiled. This library depends on SIP, another library to automatically generate Python bindings from C++ code. Download the latest SIP version `here <https://www.riverbankcomputing.com/software/sip/download>`_, extract it, navigate to the directory where it has been extracted and compile/install it:
+
+.. code-block:: none
+
+    python configure.py
+    make
+    sudo make install
+
+Next, download PyQt5 from `here <https://sourceforge.net/projects/pyqt/files/PyQt5/>`_ and make sure that you download the version that matches with the version of Qt you installed in the previous steps. Extract the binary and compile it:
+
+.. code-block:: none
+
+    python configure.py
+    make
+    sudo make install
+    python -c "import PyQt5" # this should work without any error
+
+Note that the installation can take a while. After it has finished, the PyQt5 library is installed correctly.
 
 M2Crypto
 --------
