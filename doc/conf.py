@@ -18,7 +18,29 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.append(os.path.join(os.path.dirname(__name__), '..'))
+from mock import Mock as MagicMock
+
+
+# Mock various libraries
+_classnames = {
+    'Resource',
+}
+
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return Mock if name in _classnames else Mock()
+
+
+MOCK_MODULES = ['twisted', 'twisted.web', 'twisted.web.server', 'twisted.web.client', 'twisted.web.http_headers',
+                'twisted.internet', 'twisted.internet.defer', 'twisted.internet.task', 'twisted.python',
+                'twisted.python.threadable', 'twisted.internet.base', 'twisted.internet.error',
+                'twisted.internet.protocol', 'apsw', 'libtorrent', 'chardet',
+                'Tribler.community.tunnel.crypto.cryptowrapper']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
 
 # -- General configuration ------------------------------------------------
 
