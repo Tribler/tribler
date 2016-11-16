@@ -321,6 +321,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 if self.get_mode() == DLMODE_VOD:
                     self.set_vod_mode(True)
 
+                # Limit the amount of connections if we have specified that
+                if self.session.get_libtorrent_max_conn_download() != -1:
+                    self.handle.set_max_connections(max(2, self.session.get_libtorrent_max_conn_download()))
+
                 self.handle.resolve_countries(True)
 
             else:

@@ -40,8 +40,9 @@ DEFAULTPORT = 7760
 #  Version 14: Added option to enable/disable channel, previewchannel and tunnel community.
 #  Version 15: Added credit mining options
 #  Version 16: Changed default VLC video player to external (due to the removal of the wx player).
+#  Version 17: Added an option to limit the amount of connections per download.
 
-SESSDEFAULTS_VERSION = 16
+SESSDEFAULTS_VERSION = 17
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -131,6 +132,7 @@ sessdefaults['libtorrent']['lt_proxytype'] = 0  # no proxy server is used by def
 sessdefaults['libtorrent']['lt_proxyserver'] = None
 sessdefaults['libtorrent']['lt_proxyauth'] = None
 sessdefaults['libtorrent']['utp'] = True
+sessdefaults['libtorrent']['max_connections_download'] = -1
 
 # Anonymous libtorrent
 sessdefaults['libtorrent']['anon_listen_port'] = -1
