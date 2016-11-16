@@ -41,6 +41,15 @@ class TimeoutException(Exception):
 class AbstractTriblerGUITest(unittest.TestCase):
 
     def setUp(self):
+        # To fix the Windows forking system it's necessary to point __main__ to
+        # the module we want to execute in the forked process
+        self.old_main = sys.modules["__main__"]
+        self.old_main_file = sys.modules["__main__"].__file__
+
+        from TriblerGUI.scripts import start_fake_core  # So the module is loaded
+        sys.modules["__main__"] = sys.modules["TriblerGUI.scripts.start_fake_core"]
+        sys.modules["__main__"].__file__ = sys.modules["TriblerGUI.scripts.start_fake_core"].__file__
+
         QTest.qWait(100)
         self.screenshots_taken = 0
         window.downloads_page.can_update_items = True
@@ -50,6 +59,9 @@ class AbstractTriblerGUITest(unittest.TestCase):
             self.wait_for_signal(window.core_manager.events_manager.tribler_started, no_args=True)
 
     def tearDown(self):
+        sys.modules["__main__"] = self.old_main
+        sys.modules["__main__"].__file__ = self.old_main_file
+
         window.downloads_page.can_update_items = False
 
     @classmethod
