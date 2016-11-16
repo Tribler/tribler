@@ -38,6 +38,7 @@ import org.tribler.android.restapi.json.TorrentCreatedResponse;
 import org.tribler.android.restapi.json.TriblerTorrent;
 
 import java.io.File;
+import java.io.IOException;
 
 import retrofit2.adapter.rxjava.HttpException;
 import rx.Observable;
@@ -316,7 +317,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     public void onNext(AddedAck response) {
                         // Added?
                         if (response.isAdded()) {
-                            Log.v("addtorrent", String.format(context.getString(R.string.info_added_success), "Torrent"));
+                            Log.v("addTorrent", String.format(context.getString(R.string.info_added_success), "Torrent"));
 
                             Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Torrent"), Toast.LENGTH_SHORT).show();
                         } else {
@@ -330,10 +331,22 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
+                        onCompleted();
+
                         if (e instanceof HttpException && ((HttpException) e).code() == 500) {
-                            // Torrent has not been added
-                            String question = String.format(context.getString(R.string.info_added_failure), "torrent");
-                            askUser(question, R.string.action_RETRY, v -> askUserToAddTorrent());
+                            String error = null;
+                            try {
+                                error = ((HttpException) e).response().errorBody().string();
+                            } catch (IOException e1) {
+                                e1.printStackTrace();
+                            }
+                            if ("{\"error\": {\"message\": null, \"code\": \"DuplicateTorrentFileError\", \"handled\": true}}".equals(error)) {
+                                Toast.makeText(context, String.format(context.getString(R.string.info_added_already), "Torrent"), Toast.LENGTH_SHORT).show();
+                            } else {
+                                // Torrent has not been added
+                                String question = String.format(context.getString(R.string.info_added_failure), "torrent");
+                                askUser(question, R.string.action_RETRY, v -> askUserToAddTorrent());
+                            }
                         } else {
                             MyUtils.onError(MyChannelFragment.this, "addTorrent64", e);
                         }
@@ -354,6 +367,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     public void onNext(AddedUrlAck response) {
                         // Added?
                         if (url.equals(response.getAdded())) {
+                            Log.v("addTorrentUrl", String.format(context.getString(R.string.info_added_success), "Url"));
+
                             Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Url"), Toast.LENGTH_SHORT).show();
                         } else {
                             throw new Error(String.format("Torrent url not added: %s != %s", url.toString(), response.getAdded()));
@@ -366,12 +381,22 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        showLoading(false);
+                        onCompleted();
 
                         if (e instanceof HttpException && ((HttpException) e).code() == 500) {
-                            // Torrent has not been added
-                            String question = String.format(context.getString(R.string.info_added_failure), "url");
-                            askUser(question, R.string.action_RETRY, v -> askUserToAddTorrent());
+                            String error = null;
+                            try {
+                                error = ((HttpException) e).response().errorBody().string();
+                            } catch (IOException e1) {
+                                e1.printStackTrace();
+                            }
+                            if ("{\"error\": {\"message\": null, \"code\": \"DuplicateTorrentFileError\", \"handled\": true}}".equals(error)) {
+                                Toast.makeText(context, String.format(context.getString(R.string.info_added_already), "Url"), Toast.LENGTH_SHORT).show();
+                            } else {
+                                // Torrent has not been added
+                                String question = String.format(context.getString(R.string.info_added_failure), "url");
+                                askUser(question, R.string.action_RETRY, v -> askUserToAddTorrent());
+                            }
                         } else {
                             MyUtils.onError(MyChannelFragment.this, "addTorrentUrl", e);
                         }
@@ -571,8 +596,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
                                     public void onError(Throwable e) {
                                         Log.e("askUserToSelectFile", "resolveUri", e);
-
-                                        showLoading(false);
                                         // Retry
                                         askUserToSelectFile();
                                     }

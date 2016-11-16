@@ -80,18 +80,18 @@
     <string name="dialog_received_channel">Do you want to add the received channel your favorites now?</string>
 
     <string name="status_subscribing">Adding to favorites now…</string>
-    <string name="info_subscribe_already">%s is already a favorite!</string>
+    <string name="info_subscribe_already">%s was already a favorite!</string>
     <string name="info_subscribe_success">%s is now a favorite!</string>
     <string name="info_subscribe_failure">%s is still not a favorite…</string>
     <string name="status_unsubscribing">Removing from favorites now…</string>
-    <string name="info_unsubscribe_already">%s is already not a favorite!</string>
+    <string name="info_unsubscribe_already">%s was already not a favorite!</string>
     <string name="info_unsubscribe_success">%s is now not a favorite anymore!</string>
     <string name="info_unsubscribe_failure">%s is still a favorite…</string>
 
-    <string name="info_added_already">%s is already added!</string>
+    <string name="info_added_already">%s was already added!</string>
     <string name="info_added_success">%s is now added!</string>
     <string name="info_added_failure">Failed to add %s</string>
-    <string name="info_removed_already">%s is already removed!</string>
+    <string name="info_removed_already">%s was already removed!</string>
     <string name="info_removed_success">%s is now removed!</string>
     <string name="info_removed_failure">Failed to remove %s</string>
     <string name="info_created_success">%s is now created!</string>
