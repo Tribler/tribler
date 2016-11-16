@@ -20,7 +20,6 @@ def start_tribler_core(base_path):
     from twisted.internet import reactor
 
     def on_tribler_shutdown(_):
-        print "Tribler stopped!!"
         reactor.stop()
 
     def shutdown(session, *_):
@@ -37,14 +36,12 @@ def start_tribler_core(base_path):
         # Check if we are already running a Tribler instance
         process_checker = ProcessChecker()
         if process_checker.already_running:
-            #shutdown_process("Another Tribler instance is already using statedir %s" % config.get_state_dir())
             return
 
         session = Session(config)
         upgrader = session.prestart()
         if upgrader.failed:
             pass
-            #shutdown_process("The upgrader failed: .Tribler directory backed up, aborting")
 
         signal.signal(signal.SIGTERM, lambda signum, stack: shutdown(session, signum, stack))
         session.start()
@@ -91,30 +88,29 @@ class CoreManager(object):
         self.events_manager.reply.error.connect(on_request_error)
 
     def start_tribler_core(self):
-        core_script_path = os.path.join(get_base_path(), 'scripts',
-                                        'start_fake_core.py' if START_FAKE_API else 'start_core.py')
         if START_FAKE_API:
-            self.core_process.start("python %s %d" % (core_script_path, self.api_port))
+            from TriblerGUI.scripts.start_fake_core import start_fake_core
+            self.core_process = multiprocessing.Process(target=start_fake_core, args=(self.api_port,))
         else:
             # Workaround for MacOS
             sqlite3.connect(':memory:').close()
 
             self.core_process = multiprocessing.Process(target=start_tribler_core, args=(self.base_path,))
-            self.core_process.start()
-
-            self.check_core_ready()
+        self.core_process.start()
+        self.check_core_ready()
 
     def check_core_ready(self):
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("state", self.on_received_state)
 
     def on_received_state(self, state):
-        if state['state'] == 'STARTED':
+        if not state:
+            self.check_core_ready()
+        elif state['state'] == 'STARTED':
             self.events_manager.connect(reschedule_on_err=False)
         elif state['state'] == 'ERROR':
             raise RuntimeError(state['last_exception'])
         else:
-            # Reschedule request
             self.check_core_ready()
 
     def stop(self):

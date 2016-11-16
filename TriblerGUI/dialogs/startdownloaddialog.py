@@ -26,6 +26,7 @@ class DownloadFileTreeWidgetItem(QTreeWidgetItem):
 class StartDownloadDialog(DialogContainer):
 
     button_clicked = pyqtSignal(int)
+    received_metainfo = pyqtSignal(dict)
 
     def __init__(self, parent, download_uri, torrent_name):
         super(StartDownloadDialog, self).__init__(parent)
@@ -94,6 +95,8 @@ class StartDownloadDialog(DialogContainer):
         self.dialog_widget.files_list_view.setHidden(False)
         self.dialog_widget.adjustSize()
         self.on_main_window_resize()
+
+        self.received_metainfo.emit(metainfo)
 
     def on_browse_dir_clicked(self):
         dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory of your download", "",

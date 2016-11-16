@@ -376,6 +376,10 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window, name="add_torrent_url_dialog")
         window.dialog.dialog_widget.dialog_input.setText("http://test.url/test.torrent")
         QTest.mouseClick(window.dialog.buttons[0], Qt.LeftButton)
+        self.screenshot(window, name="add_torrent_url_startdownload_dialog")
+        self.wait_for_signal(window.dialog.received_metainfo)
+        self.screenshot(window, name="add_torrent_url_startdownload_dialog_files")
+        QTest.mouseClick(window.dialog.dialog_widget.download_button, Qt.LeftButton)
         self.wait_for_signal(window.downloads_page.received_downloads)
         self.assertEqual(window.downloads_list.topLevelItemCount(), old_count + 1)
 
@@ -397,17 +401,14 @@ class TriblerGUITest(AbstractTriblerGUITest):
             self.screenshot(dialog, name="feedback_dialog")
             dialog.close()
 
-        dialog = FeedbackDialog(window, "test")
+        dialog = FeedbackDialog(window, "test", "1.2.3")
         QTimer.singleShot(1000, screenshot_dialog)
         dialog.exec_()
 
     def test_discovered_page(self):
         QTest.mouseClick(window.left_menu_button_discovered, Qt.LeftButton)
+        self.wait_for_list_populated( window.discovered_channels_list)
         self.screenshot(window, name="discovered_page")
-
-        # Click on the first item
-        first_widget = window.discovered_channels_list.itemWidget(window.discovered_channels_list.item(0))
-        QTest.mouseClick(first_widget, Qt.LeftButton)
 
     def test_debug_pane(self):
         QTest.mouseClick(window.left_menu_button_settings, Qt.LeftButton)
