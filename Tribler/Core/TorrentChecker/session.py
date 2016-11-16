@@ -475,7 +475,9 @@ class UdpTrackerSession(TrackerSession):
         in the session has failed and thus no data can be obtained.
         """
         self._is_failed = True
-        self.scraper.stop()
+        if self.scraper:
+            self.scraper.stop()
+
         if self.result_deferred:
             result_msg = "UDP tracker failed for url %s" % self._tracker_url
             if msg:
