@@ -5,7 +5,7 @@ from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAG
     PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, BUTTON_TYPE_NORMAL
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import seconds_to_string, string_to_minutes
+from TriblerGUI.utilities import seconds_to_string, string_to_minutes, get_gui_setting
 
 
 class SettingsPage(QWidget):
@@ -29,14 +29,15 @@ class SettingsPage(QWidget):
     def initialize_with_settings(self, settings):
         self.settings = settings
         settings = settings["settings"]
+        gui_settings = self.window().gui_settings
 
         # General settings
-        self.window().developer_mode_enabled_checkbox.setChecked(self.window().gui_settings.value("debug", False))
+        self.window().developer_mode_enabled_checkbox.setChecked(get_gui_setting(gui_settings, "debug", False, is_bool=True))
         self.window().family_filter_checkbox.setChecked(settings['general']['family_filter'])
         self.window().download_location_input.setText(settings['downloadconfig']['saveas'])
-        self.window().always_ask_location_checkbox.setChecked(self.window().gui_settings.value("ask_download_settings", True))
-        self.window().download_settings_anon_checkbox.setChecked(self.window().gui_settings.value("default_anonymity_enabled", True))
-        self.window().download_settings_anon_seeding_checkbox.setChecked(self.window().gui_settings.value("default_safeseeding_enabled", True))
+        self.window().always_ask_location_checkbox.setChecked(get_gui_setting(gui_settings, "ask_download_settings", True, is_bool=True))
+        self.window().download_settings_anon_checkbox.setChecked(get_gui_setting(gui_settings, "default_anonymity_enabled", True, is_bool=True))
+        self.window().download_settings_anon_seeding_checkbox.setChecked(get_gui_setting(gui_settings, "default_safeseeding_enabled", True, is_bool=True))
         self.window().watchfolder_enabled_checkbox.setChecked(settings['watch_folder']['enabled'])
         self.window().watchfolder_location_input.setText(settings['watch_folder']['watch_folder_dir'])
 

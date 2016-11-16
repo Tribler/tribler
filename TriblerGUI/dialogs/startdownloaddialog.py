@@ -3,7 +3,7 @@ from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QSizePolicy, QFileDialog, QTreeWidgetItem
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_ui_file_path, format_size
+from TriblerGUI.utilities import get_ui_file_path, format_size, get_gui_setting
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
@@ -32,6 +32,7 @@ class StartDownloadDialog(DialogContainer):
         super(StartDownloadDialog, self).__init__(parent)
 
         self.download_uri = download_uri
+        gui_settings = self.window().gui_settings
 
         uic.loadUi(get_ui_file_path('startdownloaddialog.ui'), self.dialog_widget)
 
@@ -46,8 +47,8 @@ class StartDownloadDialog(DialogContainer):
 
         self.dialog_widget.torrent_name_label.setText(torrent_name)
 
-        self.dialog_widget.safe_seed_checkbox.setChecked(self.window().gui_settings.value("default_safeseeding_enabled", True))
-        self.dialog_widget.anon_download_checkbox.setChecked(self.window().gui_settings.value("default_anonymity_enabled", True))
+        self.dialog_widget.safe_seed_checkbox.setChecked(get_gui_setting(gui_settings, "default_safeseeding_enabled", True, is_bool=True))
+        self.dialog_widget.anon_download_checkbox.setChecked(get_gui_setting(gui_settings, "default_anonymity_enabled", True, is_bool=True))
 
         self.dialog_widget.safe_seed_checkbox.setEnabled(self.dialog_widget.anon_download_checkbox.isChecked())
         self.dialog_widget.anon_download_checkbox.stateChanged.connect(self.on_anon_download_state_changed)

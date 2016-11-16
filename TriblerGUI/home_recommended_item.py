@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QSizePolicy, QToolButton
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.tribler_window import fc_home_recommended_item
-from TriblerGUI.utilities import pretty_date, get_image_path, format_size
+from TriblerGUI.utilities import pretty_date, get_image_path, format_size, get_gui_setting
 
 HOME_ITEM_FONT_SIZE = 44
 
@@ -62,16 +62,18 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.download_button.hide()
 
     def on_download_button_clicked(self):
+        gui_settings = self.window().gui_settings
         self.download_uri = quote_plus((u"magnet:?xt=urn:btih:%s&dn=%s" %
                                         (self.torrent_info["infohash"], self.torrent_info['name'])).encode('utf-8'))
-        if self.window().gui_settings.value("ask_download_settings", True):
+
+        if get_gui_setting(gui_settings, "ask_download_settings", True, is_bool=True):
             self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri, self.torrent_info["name"])
             self.dialog.button_clicked.connect(self.on_start_download_action)
             self.dialog.show()
         else:
             self.window().perform_start_download_request(self.download_uri,
-                                                         self.window().gui_settings.value("default_anonymity_enabled", True),
-                                                         self.window().gui_settings.value("default_safeseeding_enabled", True),
+                                                         get_gui_setting(gui_settings, "default_anonymity_enabled", True, is_bool=True),
+                                                         get_gui_setting(gui_settings, "default_safeseeding_enabled", True, is_bool=True),
                                                          [], 0)
 
     def on_start_download_action(self, action):

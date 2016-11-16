@@ -23,7 +23,7 @@ from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_ui_file_path, get_image_path
+from TriblerGUI.utilities import get_ui_file_path, get_image_path, get_gui_setting
 
 
 # Pre-load form UI classes
@@ -140,7 +140,7 @@ class TriblerWindow(QMainWindow):
         self.top_search_bar.setCompleter(completer)
 
         # Toggle debug if developer mode is enabled
-        self.window().left_menu_button_debug.setHidden(not self.gui_settings.value("debug", False))
+        self.window().left_menu_button_debug.setHidden(not get_gui_setting(self.gui_settings, "debug", False, is_bool=True))
 
         self.core_manager.start()
 
@@ -271,14 +271,14 @@ class TriblerWindow(QMainWindow):
 
         self.download_uri = u"file:%s" % filename[0]
 
-        if self.window().gui_settings.value("ask_download_settings", True):
+        if get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True):
             self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri, filename[0])
             self.dialog.button_clicked.connect(self.on_start_download_action)
             self.dialog.show()
         else:
             self.window().perform_start_download_request(self.download_uri,
-                                                         self.window().gui_settings.value("default_anonymity_enabled", True),
-                                                         self.window().gui_settings.value("default_safeseeding_enabled", True),
+                                                         get_gui_setting(self.gui_settings, "default_anonymity_enabled", True, is_bool=True),
+                                                         get_gui_setting(self.gui_settings, "default_safeseeding_enabled", True, is_bool=True),
                                                          [], 0)
 
     def on_start_download_action(self, action):
@@ -310,8 +310,8 @@ class TriblerWindow(QMainWindow):
             for torrent_file in self.selected_torrent_files:
                 escaped_uri = quote_plus((u"file:%s" % torrent_file).encode('utf-8'))
                 self.perform_start_download_request(escaped_uri,
-                                                    self.window().gui_settings.value("default_anonymity_enabled", True),
-                                                    self.window().gui_settings.value("default_safeseeding_enabled", True),
+                                                    get_gui_setting(self.gui_settings, "default_anonymity_enabled", True, is_bool=True),
+                                                    get_gui_setting(self.gui_settings, "default_safeseeding_enabled", True, is_bool=True),
                                                     [], 0)
 
         self.dialog.setParent(None)

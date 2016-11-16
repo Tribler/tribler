@@ -7,7 +7,7 @@ from TriblerGUI.defs import STATUS_UNKNOWN
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.tribler_window import fc_channel_torrent_list_item
-from TriblerGUI.utilities import format_size, get_image_path
+from TriblerGUI.utilities import format_size, get_image_path, get_gui_setting
 
 
 class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
@@ -49,17 +49,18 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
             self.remove_torrent_button.clicked.connect(lambda: on_remove_clicked(self))
 
     def on_download_clicked(self):
+        gui_settings = self.window().gui_settings
         self.download_uri = quote_plus((u"magnet:?xt=urn:btih:%s&dn=%s" %
                                         (self.torrent_info["infohash"], self.torrent_info['name'])).encode('utf-8'))
 
-        if self.window().gui_settings.value("ask_download_settings", True):
+        if get_gui_setting(gui_settings, "ask_download_settings", True, is_bool=True):
             self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri, self.torrent_info["name"])
             self.dialog.button_clicked.connect(self.on_start_download_action)
             self.dialog.show()
         else:
             self.window().perform_start_download_request(self.download_uri,
-                                                         self.window().gui_settings.value("default_anonymity_enabled", True),
-                                                         self.window().gui_settings.value("default_safeseeding_enabled", True),
+                                                         get_gui_setting(gui_settings, "default_anonymity_enabled", True, is_bool=True),
+                                                         get_gui_setting(gui_settings, "default_safeseeding_enabled", True, is_bool=True),
                                                          [], 0)
 
     def on_start_download_action(self, action):

@@ -40,7 +40,6 @@ class DownloadsPage(QWidget):
         self.window().downloads_filter_input.textChanged.connect(self.on_filter_text_changed)
 
         self.downloads = None
-        self.can_update_items = True
         self.downloads_timer = QTimer()
 
     def on_filter_text_changed(self, text):
@@ -77,8 +76,7 @@ class DownloadsPage(QWidget):
                 item = DownloadWidgetItem(self.window().downloads_list)
                 self.download_widgets[download["infohash"]] = item
 
-            if self.can_update_items:
-                item.update_with_download(download)
+            item.update_with_download(download)
 
             # Update video player with download info
             video_infohash = self.window().video_player_page.active_infohash

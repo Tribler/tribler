@@ -169,3 +169,14 @@ def bisect_right(item, item_list, is_torrent):
         else:
             lo = mid + 1
     return lo
+
+
+def get_gui_setting(gui_settings, value, default, is_bool=False):
+    """
+    Utility method to get a specific GUI setting. The is_bool flag defines whether we expect a boolean so we convert it
+    since on Windows, all values are saved as plain text.
+    """
+    val = gui_settings.value(value, default)
+    if is_bool:
+        val = val == True or val == 'true'
+    return val
