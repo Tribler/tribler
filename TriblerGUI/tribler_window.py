@@ -240,6 +240,12 @@ class TriblerWindow(QMainWindow):
     def received_settings(self, settings):
         self.tribler_settings = settings['settings']
 
+        # Disable various components based on the settings
+        if not self.tribler_settings['search_community']['enabled']:
+            self.window().top_search_bar.setHidden(True)
+        if not self.tribler_settings['video']['enabled']:
+            self.left_menu_button_video_player.setHidden(True)
+
     def on_top_search_button_click(self):
         self.deselect_all_menu_buttons()
         self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)

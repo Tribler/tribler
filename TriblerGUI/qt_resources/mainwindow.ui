@@ -5584,6 +5584,46 @@ Management (uTP)</string>
                 </property>
                </widget>
               </item>
+              <item row="10" column="0">
+               <widget class="QLabel" name="label_41">
+                <property name="text">
+                 <string>Max connections
+per download</string>
+                </property>
+               </widget>
+              </item>
+              <item row="10" column="1">
+               <widget class="QLineEdit" name="max_connections_download_input">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>250</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>250</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="placeholderText">
+                 <string>Max connections per download</string>
+                </property>
+               </widget>
+              </item>
+              <item row="11" column="1">
+               <widget class="QLabel" name="label_43">
+                <property name="text">
+                 <string>0 = unlimited</string>
+                </property>
+               </widget>
+              </item>
              </layout>
             </widget>
             <widget class="QWidget" name="settings_bandwidth_tab">
@@ -8386,6 +8426,11 @@ border-top: 1px solid #555;
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
+   <class>EllipseButton</class>
+   <extends>QToolButton</extends>
+   <header>TriblerGUI.widgets.ellipsebutton.h</header>
+  </customwidget>
+  <customwidget>
    <class>VideoPlayerPage</class>
    <extends>QWidget</extends>
    <header>TriblerGUI.widgets.videoplayerpage.h</header>
@@ -8517,11 +8562,6 @@ border-top: 1px solid #555;
    <class>CircleButton</class>
    <extends>QToolButton</extends>
    <header>TriblerGUI.widgets.circlebutton.h</header>
-  </customwidget>
-  <customwidget>
-   <class>EllipseButton</class>
-   <extends>QToolButton</extends>
-   <header>TriblerGUI.widgets.ellipsebutton.h</header>
   </customwidget>
   <customwidget>
    <class>DownloadProgressBar</class>

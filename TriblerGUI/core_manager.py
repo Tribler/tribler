@@ -29,7 +29,7 @@ def start_tribler_core(base_path):
     sys.path.insert(0, base_path)
 
     def start_tribler():
-        config = SessionStartupConfig()
+        config = SessionStartupConfig().load()
         config.set_http_api_port(8085)
         config.set_http_api_enabled(True)
 

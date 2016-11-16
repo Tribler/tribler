@@ -52,6 +52,11 @@ class SettingsPage(QWidget):
             self.window().lt_proxy_password_input.setText(settings['libtorrent']['lt_proxyauth'][1])
         self.window().lt_utp_checkbox.setChecked(settings['libtorrent']['utp'])
 
+        max_conn_download = settings['libtorrent']['max_connections_download']
+        if max_conn_download == -1:
+            max_conn_download = 0
+        self.window().max_connections_download_input.setText(str(max_conn_download))
+
         # Bandwidth settings
         self.window().upload_rate_limit_input.setText(str(settings['Tribler']['maxuploadrate']))
         self.window().download_rate_limit_input.setText(str(settings['Tribler']['maxdownloadrate']))
@@ -97,13 +102,27 @@ class SettingsPage(QWidget):
 
         settings_data['general']['minport'] = self.window().firewall_current_port_input.text()
         settings_data['libtorrent']['lt_proxytype'] = self.window().lt_proxy_type_combobox.currentIndex()
-        settings_data['libtorrent']['lt_proxyserver'] = [None, None]
-        settings_data['libtorrent']['lt_proxyserver'][0] = self.window().lt_proxy_server_input.text()
-        settings_data['libtorrent']['lt_proxyserver'][1] = self.window().lt_proxy_port_input.text()
-        settings_data['libtorrent']['lt_proxyauth'] = [None, None]
-        settings_data['libtorrent']['lt_proxyauth'][0] = self.window().lt_proxy_username_input.text()
-        settings_data['libtorrent']['lt_proxyauth'][1] = self.window().lt_proxy_password_input.text()
+
+        if len(self.window().lt_proxy_server_input.text()) > 0 and len(self.window().lt_proxy_port_input.text()) > 0:
+            settings_data['libtorrent']['lt_proxyserver'] = [None, None]
+            settings_data['libtorrent']['lt_proxyserver'][0] = self.window().lt_proxy_server_input.text()
+            settings_data['libtorrent']['lt_proxyserver'][1] = self.window().lt_proxy_port_input.text()
+
+        if len(self.window().lt_proxy_username_input.text()) > 0 and len(self.window().lt_proxy_password_input.text()) > 0:
+            settings_data['libtorrent']['lt_proxyauth'] = [None, None]
+            settings_data['libtorrent']['lt_proxyauth'][0] = self.window().lt_proxy_username_input.text()
+            settings_data['libtorrent']['lt_proxyauth'][1] = self.window().lt_proxy_password_input.text()
         settings_data['libtorrent']['utp'] = self.window().lt_utp_checkbox.isChecked()
+
+        try:
+            max_conn_download = int(self.window().max_connections_download_input.text())
+        except ValueError:
+            ConfirmationDialog.show_error(self.window(), "Invalid number of connections",
+                                          "You've entered an invalid format for the maximum number of connections.")
+            return
+        if max_conn_download == 0:
+            max_conn_download = -1
+        settings_data['libtorrent']['max_connections_download'] = max_conn_download
 
         if self.window().upload_rate_limit_input.text():
             settings_data['Tribler']['maxuploadrate'] = self.window().upload_rate_limit_input.text()
