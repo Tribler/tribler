@@ -393,6 +393,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window, name="add_torrent_url_startdownload_dialog_files")
         QTest.mouseClick(window.dialog.dialog_widget.download_button, Qt.LeftButton)
         self.wait_for_signal(window.downloads_page.received_downloads)
+        self.wait_for_signal(window.downloads_page.received_downloads)
         self.assertEqual(window.downloads_list.topLevelItemCount(), old_count + 1)
 
     def test_video_player_page(self):

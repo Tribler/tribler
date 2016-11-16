@@ -22,6 +22,10 @@ class FeedbackDialog(QDialog):
         self.selected_item_index = 0
         self.tribler_version = tribler_version
 
+        # Qt 5.2 does not have the setPlaceholderText property
+        if hasattr(self.comments_text_edit, "setPlaceholderText"):
+            self.comments_text_edit.setPlaceholderText("Comments (optional)")
+
         def add_item_to_info_widget(key, value):
             item = QTreeWidgetItem(self.env_variables_list)
             item.setText(0, key)

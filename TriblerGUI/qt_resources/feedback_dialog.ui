@@ -277,9 +277,6 @@ background-color: #303030;
           <height>16777215</height>
          </size>
         </property>
-        <property name="placeholderText">
-         <string>Comments (optional)</string>
-        </property>
        </widget>
       </item>
      </layout>
