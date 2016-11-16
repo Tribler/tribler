@@ -2,6 +2,7 @@ from binascii import hexlify
 import logging
 import os
 import shutil
+from unittest import skip
 from twisted.internet.defer import Deferred
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.twisted_thread import deferred
@@ -45,6 +46,7 @@ class TestDownload(TestAsServer):
         d.addCallback(self.on_download)
         return self.test_deferred
 
+    @skip("Fetching a torrent from the external network is unreliable")
     @deferred(timeout=60)
     def test_download_torrent_from_magnet(self):
         magnet_link = 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH)
