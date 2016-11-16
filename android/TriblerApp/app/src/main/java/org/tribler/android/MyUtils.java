@@ -15,7 +15,9 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
+import android.os.Bundle;
 import android.os.Environment;
+import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -32,6 +34,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ConnectException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -162,7 +165,13 @@ public class MyUtils {
         return intent;
     }
 
-    public static Intent videoCaptureIntent(Uri output) {
+    public static Intent captureImageIntent(Uri output) {
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, output);
+        return intent;
+    }
+
+    public static Intent captureVideoIntent(Uri output) {
         Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, output);
         intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1); // 0: low 1: high
@@ -170,9 +179,31 @@ public class MyUtils {
     }
 
     /**
+     * @return The file created for saving an image
+     */
+    public static File getImageOutputFile(Context context) throws IOException {
+        File imageDir;
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+            imageDir = new File(Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_DCIM).getAbsolutePath());
+        } else {
+            imageDir = new File(context.getFilesDir(), Environment.DIRECTORY_DCIM);
+        }
+        // Create the storage directory if it does not exist
+        if (!imageDir.exists() && !imageDir.mkdirs()) {
+            throw new IOException(String.format("Failed to create directory: %s", imageDir));
+        } else if (!imageDir.isDirectory()) {
+            throw new IOException(String.format("Not a directory: %s", imageDir));
+        }
+        // Create a image file name
+        String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH_mm_ss").format(new Date());
+        return new File(imageDir, String.format("IMG_%s.jpg", timeStamp));
+    }
+
+    /**
      * @return The file created for saving a video
      */
-    public static File getOutputVideoFile(Context context) throws IOException {
+    public static File getVideoOutputFile(Context context) throws IOException {
         File videoDir;
         if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
             videoDir = new File(Environment.getExternalStoragePublicDirectory(
@@ -186,7 +217,7 @@ public class MyUtils {
         } else if (!videoDir.isDirectory()) {
             throw new IOException(String.format("Not a directory: %s", videoDir));
         }
-        // Create a media file name
+        // Create a video file name
         String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH_mm_ss").format(new Date());
         return new File(videoDir, String.format("VID_%s.mp4", timeStamp));
     }
@@ -334,6 +365,60 @@ public class MyUtils {
         OutputStream output = new FileOutputStream(file, false);
         MyUtils.copy(input, output);
         return file;
+    }
+
+    public static String intentToString(Intent intent) {
+        if (intent == null) {
+            return null;
+        }
+        return intent.toString() + " " + bundleToString(intent.getExtras());
+    }
+
+    public static String bundleToString(Bundle bundle) {
+        StringBuilder out = new StringBuilder("Bundle[");
+
+        if (bundle == null) {
+            out.append("null");
+        } else {
+            boolean first = true;
+            for (String key : bundle.keySet()) {
+                if (!first) {
+                    out.append(", ");
+                }
+                out.append(key).append('=');
+                Object value = bundle.get(key);
+
+                if (value instanceof int[]) {
+                    out.append(Arrays.toString((int[]) value));
+                } else if (value instanceof byte[]) {
+                    out.append(Arrays.toString((byte[]) value));
+                } else if (value instanceof boolean[]) {
+                    out.append(Arrays.toString((boolean[]) value));
+                } else if (value instanceof short[]) {
+                    out.append(Arrays.toString((short[]) value));
+                } else if (value instanceof long[]) {
+                    out.append(Arrays.toString((long[]) value));
+                } else if (value instanceof float[]) {
+                    out.append(Arrays.toString((float[]) value));
+                } else if (value instanceof double[]) {
+                    out.append(Arrays.toString((double[]) value));
+                } else if (value instanceof String[]) {
+                    out.append(Arrays.toString((String[]) value));
+                } else if (value instanceof CharSequence[]) {
+                    out.append(Arrays.toString((CharSequence[]) value));
+                } else if (value instanceof Parcelable[]) {
+                    out.append(Arrays.toString((Parcelable[]) value));
+                } else if (value instanceof Bundle) {
+                    out.append(bundleToString((Bundle) value));
+                } else {
+                    out.append(value);
+                }
+
+                first = false;
+            }
+        }
+        out.append("]");
+        return out.toString();
     }
 
     public static void onError(BaseFragment f, String msg, Throwable e) {

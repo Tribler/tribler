@@ -32,6 +32,12 @@
                 android:icon="@drawable/ic_menu_video_camera"
                 android:onClick="navCaptureVideoClicked"
                 android:title="@string/action_capture_video" />
+            <item
+                android:id="@+id/nav_capture_image"
+                android:icon="@drawable/ic_menu_photo_camera"
+                android:onClick="navCaptureImageClicked"
+                android:title="@string/action_capture_image"
+                android:visible="false" />
         </menu>
     </item>
 

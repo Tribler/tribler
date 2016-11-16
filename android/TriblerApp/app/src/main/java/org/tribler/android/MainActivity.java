@@ -62,10 +62,13 @@ import rx.schedulers.Schedulers;
 
 public class MainActivity extends BaseActivity implements Handler.Callback {
 
-    public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 101;
-    public static final int SEARCH_ACTIVITY_REQUEST_CODE = 102;
-    public static final int SUBSCRIBE_TO_CHANNEL_ACTIVITY_REQUEST_CODE = 103;
-    public static final int INSTALL_VLC_REQUEST_CODE = 104;
+    public static final String ACTION_PUBLISH = "org.tribler.android.PUBLISH";
+
+    public static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 101;
+    public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 102;
+    public static final int SEARCH_ACTIVITY_REQUEST_CODE = 103;
+    public static final int SUBSCRIBE_TO_CHANNEL_ACTIVITY_REQUEST_CODE = 104;
+    public static final int INSTALL_VLC_REQUEST_CODE = 105;
 
     public static final int WRITE_STORAGE_PERMISSION_REQUEST_CODE = 110;
 
@@ -171,15 +174,15 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     @Override
     protected void handleIntent(Intent intent) {
         String action = intent.getAction();
-        // Handle intent only once
-        if (!TextUtils.isEmpty(action)) {
-            intent.setAction(null);
-        } else {
+        if (TextUtils.isEmpty(action)) {
             return;
         }
         switch (action) {
 
             case Intent.ACTION_MAIN:
+                // Handle intent only once
+                intent.setAction(null);
+
                 drawer.openDrawer(GravityCompat.START);
                 return;
 
@@ -213,10 +216,62 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                 }
                 return;
 
+            case ACTION_PUBLISH:
+                Log.v("ACTION_PUBLISH", intent.getDataString());
+
+                Fragment fragment = getCurrentFragment();
+                if (fragment instanceof MyChannelFragment) {
+                    // Handle intent only once
+                    intent.setAction(null);
+
+                    fragment.onActivityResult(MyChannelFragment.BROWSE_FILE_ACTIVITY_REQUEST_CODE, Activity.RESULT_OK, intent);
+                } else {
+                    // Goto MyChannel
+                    switchFragment(MyChannelFragment.class);
+                    // Retry
+                    _eventHandler.postDelayed(() -> handleIntent(intent), 200);
+                }
+                return;
+
             case Intent.ACTION_SHUTDOWN:
+                // Handle intent only once
+                intent.setAction(null);
+
                 shutdown();
                 return;
         }
+    }
+
+    private void askUserToPublishImage(Intent data) {
+        switchFragment(MyChannelFragment.class);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(R.string.dialog_publish_image);
+        builder.setPositiveButton(R.string.action_mychannel_add, (dialog, which) -> {
+            data.setAction(ACTION_PUBLISH);
+            onNewIntent(data);
+        });
+        builder.setNegativeButton(R.string.action_cancel, (dialog, which) -> {
+            // Do nothing
+        });
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void askUserToPublishVideo(Intent data) {
+        switchFragment(MyChannelFragment.class);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(R.string.dialog_publish_video);
+        builder.setPositiveButton(R.string.action_mychannel_add, (dialog, which) -> {
+            data.setAction(ACTION_PUBLISH);
+            onNewIntent(data);
+        });
+        builder.setNegativeButton(R.string.action_cancel, (dialog, which) -> {
+            // Do nothing
+        });
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     private void askUserToSubscribe(String dispersyCid, String name) {
@@ -269,12 +324,28 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         super.onActivityResult(requestCode, resultCode, data);
         switch (requestCode) {
 
+            case CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE:
+                switch (resultCode) {
+
+                    case Activity.RESULT_OK:
+                        Log.v("imageResult", MyUtils.intentToString(data));
+                        Toast.makeText(this, String.format("Photo saved to: %s", data.getDataString()), Toast.LENGTH_LONG).show();
+                        askUserToPublishImage(data);
+                        return;
+
+                    case Activity.RESULT_CANCELED:
+                        Toast.makeText(this, R.string.info_cancel_capture_image, Toast.LENGTH_SHORT).show();
+                        return;
+                }
+
+
             case CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE:
                 switch (resultCode) {
 
                     case Activity.RESULT_OK:
-                        Toast.makeText(this, String.format("Video saved to: %s", data.getData()), Toast.LENGTH_LONG).show();
-                        //TODO: create torrent file and add to own channel
+                        Log.v("videoResult", MyUtils.intentToString(data));
+                        Toast.makeText(this, String.format("Video saved to: %s", data.getDataString()), Toast.LENGTH_LONG).show();
+                        askUserToPublishVideo(data);
                         return;
 
                     case Activity.RESULT_CANCELED:
@@ -498,17 +569,33 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         switchFragment(PopularFragment.class);
     }
 
+    public void navCaptureImageClicked(MenuItem item) {
+        drawer.closeDrawer(GravityCompat.START);
+        // Check if device has camera
+        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
+            // Obtain output file
+            try {
+                File output = MyUtils.getImageOutputFile(this);
+                Intent captureIntent = MyUtils.captureImageIntent(Uri.fromFile(output));
+                startActivityForResult(captureIntent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
+            } catch (IOException ex) {
+                Log.e("getImageOutputFile", getString(R.string.error_output_file), ex);
+                Toast.makeText(this, R.string.error_output_file, Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
     public void navCaptureVideoClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         // Check if device has camera
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             // Obtain output file
             try {
-                File output = MyUtils.getOutputVideoFile(this);
-                Intent captureIntent = MyUtils.videoCaptureIntent(Uri.fromFile(output));
+                File output = MyUtils.getVideoOutputFile(this);
+                Intent captureIntent = MyUtils.captureVideoIntent(Uri.fromFile(output));
                 startActivityForResult(captureIntent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
             } catch (IOException ex) {
-                Log.e("getOutputVideoFile", getString(R.string.error_output_file), ex);
+                Log.e("getVideoOutputFile", getString(R.string.error_output_file), ex);
                 Toast.makeText(this, R.string.error_output_file, Toast.LENGTH_LONG).show();
             }
         }

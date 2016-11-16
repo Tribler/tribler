@@ -50,6 +50,7 @@
     <string name="action_my_playlists">My playlists</string>
     <string name="action_popular_channels">Popular channels</string>
     <string name="action_capture_video">Record a new video</string>
+    <string name="action_capture_image">Take a photo</string>
     <string name="action_create_torrent">Create a new torrent</string>
     <string name="action_create_channel">Create channel</string>
     <string name="action_edit_channel">Edit channel</string>
@@ -78,6 +79,8 @@
     <string name="info_content_discovered">New content discovered!\n\"%s\"</string>
     <string name="info_received_channel">Received channel</string>
     <string name="dialog_received_channel">Do you want to add the received channel your favorites now?</string>
+    <string name="dialog_publish_video">Do you want to publish this video on your own channel now?</string>
+    <string name="dialog_publish_image">Do you want to publish this photo on your own channel now?</string>
 
     <string name="status_subscribing">Adding to favorites now…</string>
     <string name="info_subscribe_already">%s was already a favorite!</string>
@@ -96,7 +99,8 @@
     <string name="info_removed_failure">Failed to remove %s</string>
     <string name="info_created_success">%s is now created!</string>
     <string name="info_created_failure">Failed to create %s</string>
-    <string name="info_cancel_capture_video">No video was captured</string>
+    <string name="info_cancel_capture_video">No video was recorded</string>
+    <string name="info_cancel_capture_image">No photo was taken</string>
     <string name="error_output_file">failed to obtain output file</string>
 
     <string name="status_opening_eventstream">Starting service…</string>
