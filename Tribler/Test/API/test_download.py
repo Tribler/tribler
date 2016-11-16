@@ -2,14 +2,12 @@ from binascii import hexlify
 import logging
 import os
 import shutil
-import threading
-from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.defer import Deferred
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_DOWNLOADING
 from Tribler.Test.common import UBUNTU_1504_INFOHASH, TORRENT_FILE
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestDownload(TestAsServer):
@@ -21,21 +19,14 @@ class TestDownload(TestAsServer):
     def __init__(self, *argv, **kwargs):
         super(TestDownload, self).__init__(*argv, **kwargs)
         self._logger = logging.getLogger(self.__class__.__name__)
-
-    @blocking_call_on_reactor_thread
-    @inlineCallbacks
-    def setUp(self):
-        """ override TestAsServer """
-        yield super(TestDownload, self).setUp()
-
         self.test_deferred = Deferred()
 
     def setUpPreSession(self):
-        """ override TestAsServer """
         super(TestDownload, self).setUpPreSession()
 
         self.config.set_libtorrent(True)
         self.config.set_dispersy(False)
+        self.config.set_libtorrent_max_conn_download(2)
 
     def on_download(self, download):
         self._logger.debug("Download started: %s", download)

@@ -327,6 +327,18 @@ class SessionConfigInterface(object):
         """
         return self.sessconfig.get(u'libtorrent', u'enabled')
 
+    def set_libtorrent_max_conn_download(self, value):
+        """ Set the maximum amount of connections for each download. By default, this is -1, unlimited.
+        @param value Integer.
+        """
+        self.sessconfig.set(u'libtorrent', u'max_connections_download', value)
+
+    def get_libtorrent_max_conn_download(self):
+        """ Returns the maximum amount of connections per download
+        @return Integer.
+        """
+        return self.sessconfig.get(u'libtorrent', u'max_connections_download')
+
     def set_libtorrent_proxy_settings(self, ptype, server=None, auth=None):
         """ Set which proxy LibTorrent should use (default = 0).
         @param ptype Integer (0 = no proxy server, 1 = SOCKS4, 2 = SOCKS5, 3 = SOCKS5 + auth, 4 = HTTP, 5 = HTTP + auth)
