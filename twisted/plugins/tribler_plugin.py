@@ -80,7 +80,7 @@ class TriblerServiceMaker(object):
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
-        config = SessionStartupConfig()
+        config = SessionStartupConfig().load()  # Load the default configuration file
         config.set_http_api_enabled(True)
 
         # Check if we are already running a Tribler instance
