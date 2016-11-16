@@ -269,11 +269,9 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     }
 
     private void createTorrent(final File file, final boolean delete) {
-        Log.v("createTorrent", file.getPath());
+        Log.v("createTorrent", file.getAbsolutePath());
 
-        // Workaround endpoint array parsing:
-        String[] list = {String.format("[\"%s\"]", file.getAbsolutePath())};
-        rxSubs.add(service.createTorrent(list)
+        rxSubs.add(service.createTorrent(new String[]{file.getAbsolutePath()})
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .observeOn(AndroidSchedulers.mainThread())
@@ -368,6 +366,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
+                        showLoading(false);
+
                         if (e instanceof HttpException && ((HttpException) e).code() == 500) {
                             // Torrent has not been added
                             String question = String.format(context.getString(R.string.info_added_failure), "url");
@@ -571,6 +571,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
                                     public void onError(Throwable e) {
                                         Log.e("askUserToSelectFile", "resolveUri", e);
+
+                                        showLoading(false);
                                         // Retry
                                         askUserToSelectFile();
                                     }

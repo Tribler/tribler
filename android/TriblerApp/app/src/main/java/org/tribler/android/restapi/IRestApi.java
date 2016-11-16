@@ -94,29 +94,29 @@ public interface IRestApi {
     @POST("/createtorrent")
     @FormUrlEncoded
     Observable<TorrentCreatedResponse> createTorrent(
-            @Field("files") String[] files
+            @Field("files[]") String[] files
     );
 
     @POST("/createtorrent")
     @FormUrlEncoded
     Observable<TorrentCreatedResponse> createTorrent(
-            @Field("files") String[] files,
+            @Field("files[]") String[] files,
             @Field("description") String description
     );
 
     @POST("/createtorrent")
     @FormUrlEncoded
     Observable<TorrentCreatedResponse> createTorrent(
-            @Field("files") String[] files,
-            @Field("trackers") String[] trackers
+            @Field("files[]") String[] files,
+            @Field("trackers[]") String[] trackers
     );
 
     @POST("/createtorrent")
     @FormUrlEncoded
     Observable<TorrentCreatedResponse> createTorrent(
-            @Field("files") String[] files,
+            @Field("files[]") String[] files,
             @Field("description") String description,
-            @Field("trackers") String[] trackers
+            @Field("trackers[]") String[] trackers
     );
 
     @GET("/channels/discovered/{dispersy_cid}/torrents")
