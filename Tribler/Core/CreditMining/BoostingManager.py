@@ -370,6 +370,9 @@ class BoostingManager(TaskManager):
         torrent['time']['last_activity'] = 0.0
         torrent['time']['timeout'] = self.settings.timeout_torrent_activity
 
+        torrent['availability'] = 0.0
+        torrent['livepeers'] = []
+
         self.torrents[infohash] = torrent
 
     def on_torrent_notify(self, subject, change_type, infohash):
@@ -504,6 +507,7 @@ class BoostingManager(TaskManager):
         torrent['download'] = self.session.lm.add(torrent['metainfo'], dscfg, pstate=pstate, hidden=True,
                                                   share_mode=not preload, checkpoint_disabled=True)
         torrent['download'].set_priority(torrent.get('prio', 1))
+        torrent['download'].set_state_callback(self.__bdl_callback, True)
 
         torrent['time']['last_started'] = time.time()
 
