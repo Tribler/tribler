@@ -101,7 +101,7 @@ class TorrentChecker(TaskManager):
         result = self.tribler_session.lm.tracker_manager.get_next_tracker_for_auto_check()
         if result is None:
             self._logger.warn(u"No tracker to select from, skip")
-            return
+            return succeed(None)
 
         tracker_url, _ = result
         self._logger.debug(u"Start selecting torrents on tracker %s.", tracker_url)
@@ -113,15 +113,16 @@ class TorrentChecker(TaskManager):
             # We have not torrent to recheck for this tracker. Still update the last_check for this tracker.
             self._logger.info("No torrent to check for tracker %s", tracker_url)
             self.tribler_session.lm.tracker_manager.update_tracker_info(tracker_url, True)
+            return succeed(None)
         elif tracker_url != u'DHT' and tracker_url != u'no-DHT'\
                 and self.tribler_session.lm.tracker_manager.should_check_tracker(tracker_url):
             session = self._create_session_for_request(tracker_url, timeout=30)
             for infohash in infohashes:
                 session.add_infohash(infohash)
 
-            session.connect_to_tracker().addCallbacks(*self.get_callbacks_for_session(session))
-
-        self._logger.debug(u"Selected %d new torrents to check on tracker: %s", len(infohashes), tracker_url)
+            self._logger.info(u"Selected %d new torrents to check on tracker: %s", len(infohashes), tracker_url)
+            return session.connect_to_tracker().addCallbacks(*self.get_callbacks_for_session(session))\
+                .addErrback(lambda _: None)
 
     def get_callbacks_for_session(self, session):
         success_lambda = lambda info_dict: self._on_result_from_session(session, info_dict)
@@ -210,7 +211,7 @@ class TorrentChecker(TaskManager):
         :param failure: The failure object raised by Twisted.
         """
         failure.trap(ValueError, CancelledError, ConnectingCancelledError, RuntimeError)
-        self._logger.info(u"Failed to create session for tracker %s", session.tracker_url)
+        self._logger.warning(u"Got session error for URL %s: %s", session.tracker_url, failure)
 
         # Do not update if the connection got cancelled, we are probably shutting down
         # and the tracker_manager may have shutdown already.
@@ -226,9 +227,6 @@ class TorrentChecker(TaskManager):
         if tracker_url not in self._session_list:
             self._session_list[tracker_url] = []
         self._session_list[tracker_url].append(session)
-
-        # update the number of responses this torrent is expecting
-        # self._update_pending_response(infohash)
 
         self._logger.debug(u"Session created for tracker %s", tracker_url)
         return session
