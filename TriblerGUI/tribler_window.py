@@ -5,8 +5,8 @@ import traceback
 from urllib import quote_plus
 
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication
-from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication, pyqtSlot, QUrl, QObject
+from PyQt5.QtGui import QIcon, QDesktopServices
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
     QCompleter, QApplication, QStyledItemDelegate, QListWidget
@@ -32,6 +32,17 @@ fc_channel_list_item, _ = uic.loadUiType(get_ui_file_path('channel_list_item.ui'
 fc_playlist_list_item, _ = uic.loadUiType(get_ui_file_path('playlist_list_item.ui'))
 fc_home_recommended_item, _ = uic.loadUiType(get_ui_file_path('home_recommended_item.ui'))
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
+
+
+class MagnetHandler(QObject):
+
+    def __init__(self, window):
+        super(MagnetHandler, self).__init__()
+        self.window = window
+
+    @pyqtSlot(QUrl)
+    def on_open_magnet_link(self, url):
+        self.window.on_added_magnetlink(url)
 
 
 class TriblerWindow(QMainWindow):
@@ -67,11 +78,15 @@ class TriblerWindow(QMainWindow):
         self.debug_window = None
         self.core_manager = CoreManager(self.api_port)
         self.pending_requests = {}
+        self.pending_download_file_requests = []
 
         sys.excepthook = self.on_exception
 
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
         TriblerRequestManager.window = self
+
+        self.magnet_handler = MagnetHandler(self.window)
+        QDesktopServices.setUrlHandler("magnet", self.magnet_handler, "on_open_magnet_link")
 
         QCoreApplication.setOrganizationDomain("nl")
         QCoreApplication.setOrganizationName("TUDelft")
@@ -182,6 +197,10 @@ class TriblerWindow(QMainWindow):
         else:
             self.clicked_menu_button_home()
 
+        # process pending file requests (i.e. someone clicked a torrent file when Tribler was closed)
+        for filename in self.pending_download_file_requests:
+            self.on_selected_torrent_file(filename)
+
     def perform_start_download_request(self, uri, anon_download, safe_seeding, selected_files, total_files=0):
         selected_files_uri = ""
         if len(selected_files) != total_files:  # Not all files included
@@ -274,6 +293,13 @@ class TriblerWindow(QMainWindow):
         filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
         if len(filename[0]) > 0:
             self.on_selected_torrent_file(filename[0])
+
+    def on_added_magnetlink(self, magnet_link):
+        self.download_uri = magnet_link
+
+        self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri, self.download_uri)
+        self.dialog.button_clicked.connect(self.on_start_download_action)
+        self.dialog.show()
 
     def on_selected_torrent_file(self, filepath):
         self.download_uri = u"file:%s" % filepath

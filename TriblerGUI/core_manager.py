@@ -1,6 +1,11 @@
+from twisted.internet.error import ReactorAlreadyInstalledError
+
 # We always use a selectreactor
-from twisted.internet import selectreactor
-selectreactor.install()
+try:
+    from twisted.internet import selectreactor
+    selectreactor.install()
+except ReactorAlreadyInstalledError:
+    pass
 
 import multiprocessing
 import os

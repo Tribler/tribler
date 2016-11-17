@@ -4,6 +4,7 @@ block_cipher = None
 
 import os
 import sys
+import shutil
 
 sys.path.insert(0, os.getcwdu())
 
@@ -19,6 +20,15 @@ for file in os.listdir("TriblerGUI/widgets"):
 data_to_copy = [('Tribler/dispersy/libnacl/libnacl', 'libnacl'), ('TriblerGUI/qt_resources', 'qt_resources'), ('TriblerGUI/images', 'images'), ('TriblerGUI/scripts', 'scripts'), ('twisted', 'twisted'), ('Tribler', 'tribler_source/Tribler')]
 if sys.platform.startswith('darwin'):
     data_to_copy += [('/Applications/VLC.app/Contents/MacOS/lib', 'vlc/lib'), ('/Applications/VLC.app/Contents/MacOS/plugins', 'vlc/plugins')]
+
+    # Create the right version info in the Info.plist file
+    with open('Tribler/Main/Build/Mac/Info.plist', 'r') as f:
+        content = f.read()
+        content = content.replace('__VERSION__', version_str)
+
+    os.unlink('Tribler/Main/Build/Mac/Info.plist')
+    with open('Tribler/Main/Build/Mac/Info.plist', 'w') as f:
+        f.write(content)
 
 a = Analysis(['run_tribler.py'],
              pathex=['/Users/martijndevos/Documents/tribler'],
@@ -65,3 +75,7 @@ app = BUNDLE(coll,
 if sys.platform == 'win32':
     os.remove(os.path.join(DISTPATH, 'tribler', 'libvlc.dll'))
     os.remove(os.path.join(DISTPATH, 'tribler', 'libvlccore.dll'))
+
+# Replace the Info.plist file on MacOS
+if sys.platform == 'darwin':
+    shutil.copy('Tribler/Main/Build/Mac/Info.plist', 'dist/Tribler.app/Contents/Info.plist')
