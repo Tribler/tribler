@@ -61,6 +61,7 @@ class TestBarterCommunity(TestAsServer):
                 if val > 0:
                     self._test_local_msg_lc.stop()
                     self.test_deferred.callback(None)
+                    break
 
         self._test_local_msg_lc = LoopingCall(do_stats_test)
         self._test_local_msg_lc.start(5, now=True)
