@@ -56,10 +56,12 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
     def setUp(self, autoload_discovery=True):
         yield super(TestTorrentHealthEndpoint, self).setUp(autoload_discovery=autoload_discovery)
 
-        self.udp_port = get_random_port()
+        min_base_port, max_base_port = self.get_bucket_range_port()
+
+        self.udp_port = get_random_port(min_port=min_base_port, max_port=max_base_port)
         self.udp_tracker = UDPTracker(self.udp_port)
 
-        self.http_port = get_random_port()
+        self.http_port = get_random_port(min_port=min_base_port, max_port=max_base_port)
         self.http_tracker = HTTPTracker(self.http_port)
 
     @blocking_call_on_reactor_thread
