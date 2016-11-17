@@ -4,10 +4,10 @@ import multiprocessing
 if __name__ == "__main__":
     multiprocessing.freeze_support()
 
-    from TriblerGUI.single_application import QtSingleApplication
+    from TriblerGUI.tribler_app import TriblerApplication
     from TriblerGUI.tribler_window import TriblerWindow
 
-    app = QtSingleApplication("triblerapp2", sys.argv)
+    app = TriblerApplication("triblerapp2", sys.argv)
 
     if app.is_running():
         sys.exit(1)
