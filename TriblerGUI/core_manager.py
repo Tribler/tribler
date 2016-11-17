@@ -1,3 +1,7 @@
+# We always use a selectreactor
+from twisted.internet import selectreactor
+selectreactor.install()
+
 import multiprocessing
 import os
 import sys
