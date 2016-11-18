@@ -9,11 +9,9 @@ import apsw
 from apsw import CantOpenError, SQLError
 from twisted.python.threadable import isInIOThread
 
-from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
-from Tribler import LIBRARYNAME
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
 
 
