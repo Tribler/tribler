@@ -47,8 +47,8 @@ class DownloadBaseEndpoint(resource.Resource):
                 and parameters['safe_seeding'][0] == "1":
             safe_seeding = True
 
-        if anon_hops <= 0 and safe_seeding:
-            return None, "Cannot set safe_seeding without anonymous download enabled"
+        if anon_hops > 0 and not safe_seeding:
+            return None, "Cannot set anonymous download without safe seeding enabled"
 
         if anon_hops > 0:
             download_config.set_hops(anon_hops)

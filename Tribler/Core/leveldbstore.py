@@ -79,9 +79,13 @@ class LevelDbStore(MutableMapping, TaskManager):
 
         self._store_dir = store_dir
         self._pending_torrents = {}
-        # This is done to work around LevelDB's inability to deal with non-ascii
-        # paths on windows.
-        self._db = self._leveldb(os.path.relpath(store_dir, os.getcwdu()))
+        # This is done to work around LevelDB's inability to deal with non-ascii paths on windows.
+        try:
+            self._db = self._leveldb(os.path.relpath(store_dir, os.getcwdu()))
+        except ValueError:
+            # This can happen on Windows when the state dir and Tribler installation are on different disks.
+            # In this case, hope for the best by using the full path.
+            self._db = self._leveldb(store_dir)
 
         self._writeback_lc = self.register_task("flush cache ", LoopingCall(self.flush))
         self._writeback_lc.clock = self._reactor

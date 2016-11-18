@@ -124,7 +124,7 @@ class SearchConversion(BinaryConversion):
     def _decode_search_response(self, placeholder, offset, data):
         try:
             offset, payload = decode(data, offset)
-        except ValueError:
+        except (ValueError, KeyError):
             raise DropPacket("Unable to decode the search-reponse-payload")
 
         if len(payload) < 2:

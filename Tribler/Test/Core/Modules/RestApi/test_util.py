@@ -39,16 +39,24 @@ class TestRestApiUtil(TriblerCoreTest):
         output['name'] = 'Unnamed torrent'
         self.assertEqual(convert_search_torrent_to_json(input), output)
 
+        input['name'] = '  \t\n\n\t  \t'
+        output['name'] = 'Unnamed torrent'
+        self.assertEqual(convert_search_torrent_to_json(input), output)
+
     def test_convert_torrent_to_json_tuple(self):
         """
         Test whether the conversion from db torrent tuple to json works
         """
-        input_tuple = (1, '2', 3, 4, 5, 6, 7, 8, 0, 0.123)
-        output = {'id': 1, 'infohash': '2'.encode('hex'), 'name': 3, 'size': 4, 'category': 5,
+        input_tuple = (1, '2', 'abc', 4, 5, 6, 7, 8, 0, 0.123)
+        output = {'id': 1, 'infohash': '2'.encode('hex'), 'name': 'abc', 'size': 4, 'category': 5,
                   'num_seeders': 6, 'num_leechers': 7, 'last_tracker_check': 8, 'relevance_score': 0.123}
         self.assertEqual(convert_search_torrent_to_json(input_tuple), output)
 
         input_tuple = (1, '2', None, 4, 5, 6, 7, 8, 0, 0.123)
+        output['name'] = 'Unnamed torrent'
+        self.assertEqual(convert_search_torrent_to_json(input_tuple), output)
+
+        input_tuple = (1, '2', '  \t\n\n\t  \t', 4, 5, 6, 7, 8, 0, 0.123)
         output['name'] = 'Unnamed torrent'
         self.assertEqual(convert_search_torrent_to_json(input_tuple), output)
 

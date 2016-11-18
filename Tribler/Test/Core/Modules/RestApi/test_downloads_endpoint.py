@@ -57,7 +57,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether an error is returned when we start a torrent download and pass wrong data
         """
         self.should_check_equality = False
-        post_data = {'anon_hops': 0, 'safe_seeding': 1, 'uri': 'abcd'}
+        post_data = {'anon_hops': 1, 'safe_seeding': 0, 'uri': 'abcd'}
         return self.do_request('downloads', expected_code=400, request_type='PUT', post_data=post_data)
 
     @deferred(timeout=10)
@@ -337,13 +337,13 @@ class TestDownloadsEndpoint(AbstractApiTest):
     @deferred(timeout=20)
     def test_start_down_no_anon_param(self):
         """
-        Testing whether starting a safe-seeding download without anon download specified gives an error
+        Testing whether starting an anon download without safe seeding specified gives an error
         """
         self.session.get_collected_torrent = lambda _: None
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         torrent_db.getTorrent = lambda infohash, keys: {"name": "test", "infohash": infohash, "keys": keys}
 
-        post_data = {"safe_seeding": 1}
+        post_data = {"anon_hops": 1, "safe_seeding": 0}
         self.should_check_equality = False
         return self.do_request('downloads/%s' % ('a' * 40), expected_code=400, request_type='PUT', post_data=post_data)
 
