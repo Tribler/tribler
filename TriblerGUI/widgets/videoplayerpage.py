@@ -66,6 +66,7 @@ class VideoPlayerPage(QWidget):
         self.update_timer.start(500)
 
         self.window().left_menu_playlist.playing_item_change.connect(self.change_playing_index)
+        self.window().video_player_play_pause_button.setEnabled(False)
 
     def hide_video_widgets(self):
         if self.is_full_screen:
@@ -117,7 +118,9 @@ class VideoPlayerPage(QWidget):
         self.mediaplayer.set_position(position)
 
     def on_play_pause_button_click(self):
-        print(self.mediaplayer.get_state())
+        if not self.active_infohash or self.active_index:
+            return
+
         if not self.mediaplayer.is_playing():
             self.window().video_player_play_pause_button.setIcon(self.pause_icon)
             self.mediaplayer.play()
@@ -161,6 +164,8 @@ class VideoPlayerPage(QWidget):
         self.media = self.instance.media_new(media_filename)
         self.mediaplayer.set_media(self.media)
         self.media.parse()
+
+        self.window().video_player_play_pause_button.setEnabled(True)
 
     def reset_player(self):
         """
