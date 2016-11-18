@@ -1,13 +1,11 @@
 import os
 import sys
-from PyQt5.QtCore import QTimer, Qt, pyqtSignal
+from PyQt5.QtCore import QTimer, QEvent, Qt
 
-from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
-from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene
+from PyQt5.QtGui import QPixmap, QIcon, QKeyEvent
+from PyQt5.QtWidgets import QWidget
 from Tribler import vlc
 from TriblerGUI.defs import *
-from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.utilities import is_video_file, seconds_to_string, get_image_path
 
 
@@ -177,3 +175,9 @@ class VideoPlayerPage(QWidget):
         self.mediaplayer.set_media(None)
         self.window().video_player_play_pause_button.setIcon(self.play_icon)
         self.window().video_player_position_slider.setValue(0)
+
+    def eventFilter(self, source, event):
+        if event.type() == QEvent.KeyRelease and self.isVisible() and not self.window().top_search_bar.hasFocus() and\
+                event.key() == Qt.Key_Space:
+            self.on_play_pause_button_click()
+        return QWidget.eventFilter(self, source, event)
