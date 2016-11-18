@@ -53,6 +53,15 @@ class SettingsEndpoint(resource.Resource):
                     }
                 }
         """
+        def set_gui_default_value(section, option):
+            if not self.tribler_gui_config.has_option(section, option):
+                self.tribler_gui_config.set(section, option, tribler_defaults.get('Tribler', {}).get(option, None))
+
+        # Make sure that some default values are present
+        set_gui_default_value('Tribler', 'default_number_hops')
+        set_gui_default_value('Tribler', 'maxuploadrate')
+        set_gui_default_value('Tribler', 'maxdownloadrate')
+
         libtribler_settings = self.session.sessconfig.get_config_as_json()
         tribler_settings = self.tribler_gui_config.get_config_as_json()
 
