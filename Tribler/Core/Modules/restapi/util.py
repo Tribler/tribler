@@ -76,7 +76,9 @@ def convert_db_torrent_to_json(torrent, include_rel_score=False):
     """
     This method converts a torrent in the database to a JSON dictionary.
     """
-    torrent_name = torrent[2] if torrent[2] is not None else "Unnamed torrent"
+    torrent_name = torrent[2]
+    if torrent_name is None or len(torrent_name.strip()) == 0:
+        torrent_name = "Unnamed torrent"
 
     res_json = {"id": torrent[0], "infohash": torrent[1].encode('hex'), "name": torrent_name, "size": torrent[3],
                 "category": torrent[4], "num_seeders": torrent[5] or 0, "num_leechers": torrent[6] or 0,
@@ -92,7 +94,9 @@ def convert_remote_torrent_to_json(torrent):
     """
     This method converts a torrent that has been received by remote peers in the network to a JSON dictionary.
     """
-    torrent_name = torrent['name'] if torrent['name'] is not None else "Unnamed torrent"
+    torrent_name = torrent['name']
+    if torrent_name is None or len(torrent_name.strip()) == 0:
+        torrent_name = "Unnamed torrent"
     relevance_score = relevance_score_remote_torrent(torrent_name)
 
     return {'id': torrent['torrent_id'], "infohash": torrent['infohash'].encode('hex'), "name": torrent_name,
