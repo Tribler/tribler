@@ -100,3 +100,7 @@ class FeedbackDialog(QDialog):
                      int(time.time()), sys_info, comments, stack)
 
         self.request_mgr.perform_request("report", self.on_report_sent, data=str(post_data), method='POST')
+
+    def closeEvent(self, close_event):
+        QCoreApplication.instance().quit()
+        close_event.ignore()

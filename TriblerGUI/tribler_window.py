@@ -58,6 +58,7 @@ class TriblerWindow(QMainWindow):
         if not self.core_manager.shutting_down:
             self.core_manager.stop()
         self.setHidden(True)
+        self.debug_window.setHidden(True)
 
         exception_text = "".join(traceback.format_exception(*exc_info))
         logging.error(exception_text)

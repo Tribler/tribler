@@ -1,10 +1,13 @@
+import json
 from time import localtime, strftime
 
 from PyQt5 import uic
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMainWindow, QTreeWidgetItem
 
 from TriblerGUI.utilities import get_ui_file_path, format_size
 from TriblerGUI.tribler_request_manager import performed_requests as tribler_performed_requests, TriblerRequestManager
+from TriblerGUI.event_request_manager import received_events as tribler_received_events
 
 
 class DebugWindow(QMainWindow):
@@ -19,6 +22,7 @@ class DebugWindow(QMainWindow):
         self.window().dispersy_tab_widget.setCurrentIndex(0)
         self.window().debug_tab_widget.currentChanged.connect(self.tab_changed)
         self.window().dispersy_tab_widget.currentChanged.connect(self.dispersy_tab_changed)
+        self.window().events_tree_widget.itemClicked.connect(self.on_event_clicked)
         self.load_general_tab()
 
     def tab_changed(self, index):
@@ -30,6 +34,8 @@ class DebugWindow(QMainWindow):
             self.load_multichain_tab()
         elif index == 3:
             self.dispersy_tab_changed(self.window().dispersy_tab_widget.currentIndex())
+        elif index == 4:
+            self.load_events_tab()
 
     def dispersy_tab_changed(self, index):
         if index == 0:
@@ -100,3 +106,16 @@ class DebugWindow(QMainWindow):
             item.setText(2, community["member"][:6])
             item.setText(3, "%s" % community["candidates"])
             self.window().communities_tree_widget.addTopLevelItem(item)
+
+    def on_event_clicked(self, item):
+        event_dict = item.data(0, Qt.UserRole)
+        self.window().event_text_box.setPlainText(json.dumps(event_dict))
+
+    def load_events_tab(self):
+        self.window().events_tree_widget.clear()
+        for event_dict, timestamp in tribler_received_events:
+            item = QTreeWidgetItem(self.window().events_tree_widget)
+            item.setData(0, Qt.UserRole, event_dict)
+            item.setText(0, "%s" % event_dict['type'])
+            item.setText(1, "%s" % strftime("%H:%M:%S", localtime(timestamp)))
+            self.window().events_tree_widget.addTopLevelItem(item)

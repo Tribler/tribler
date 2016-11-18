@@ -1,6 +1,10 @@
 import json
 from PyQt5.QtCore import QUrl, pyqtSignal, QTimer
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
+import time
+
+
+received_events = []
 
 
 class EventRequestManager(QNetworkAccessManager):
@@ -43,14 +47,17 @@ class EventRequestManager(QNetworkAccessManager):
     def on_read_data(self):
         self.connect_timer.stop()
         data = self.reply.readAll()
-        print "---- got event data ----"
-        print data
         self.current_event_string += data
         if len(self.current_event_string) > 0 and self.current_event_string[-1] == '\n':
             for event in self.current_event_string.split('\n'):
                 if len(event) == 0:
                     continue
                 json_dict = json.loads(str(event))
+
+                received_events.insert(0, (json_dict, time.time()))
+                if len(received_events) > 100:  # Only buffer the last 100 events
+                    received_events.pop()
+
                 if json_dict["type"] == "search_result_channel":
                     self.received_search_result_channel.emit(json_dict["event"]["result"])
                 elif json_dict["type"] == "search_result_torrent":
