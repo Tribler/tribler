@@ -25,6 +25,7 @@ from Tribler.Core.Modules.restapi.rest_manager import RESTManager
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.defaults import tribler_defaults
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
@@ -73,6 +74,8 @@ class Session(SessionConfigInterface):
         at a time in a process. The ignore_singleton flag is used for testing.
         """
         addObserver(self.unhandled_error_observer)
+
+        patch_crypto_be_discovery()
 
         if not ignore_singleton:
             if Session.__single:
