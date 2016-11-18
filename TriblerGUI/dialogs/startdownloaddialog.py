@@ -107,4 +107,6 @@ class StartDownloadDialog(DialogContainer):
             self.dialog_widget.destination_input.setText(dir)
 
     def on_anon_download_state_changed(self, _):
-        self.dialog_widget.safe_seed_checkbox.setEnabled(self.dialog_widget.anon_download_checkbox.isChecked())
+        if self.dialog_widget.anon_download_checkbox.isChecked():
+            self.dialog_widget.safe_seed_checkbox.setChecked(True)
+        self.dialog_widget.safe_seed_checkbox.setEnabled(not self.dialog_widget.anon_download_checkbox.isChecked())

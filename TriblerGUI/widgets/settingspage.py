@@ -19,12 +19,19 @@ class SettingsPage(QWidget):
         self.window().settings_save_button.clicked.connect(self.save_settings)
 
         self.window().developer_mode_enabled_checkbox.stateChanged.connect(self.on_developer_mode_checkbox_changed)
+        self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
 
         self.settings = None
 
-    def on_developer_mode_checkbox_changed(self, event):
+    def on_developer_mode_checkbox_changed(self, _):
         self.window().gui_settings.setValue("debug", self.window().developer_mode_enabled_checkbox.isChecked())
         self.window().left_menu_button_debug.setHidden(not self.window().developer_mode_enabled_checkbox.isChecked())
+
+    def on_anon_download_state_changed(self, _):
+        if self.window().download_settings_anon_checkbox.isChecked():
+            self.window().download_settings_anon_seeding_checkbox.setChecked(True)
+        self.window().download_settings_anon_seeding_checkbox.setEnabled(
+            not self.window().download_settings_anon_checkbox.isChecked())
 
     def initialize_with_settings(self, settings):
         self.settings = settings
