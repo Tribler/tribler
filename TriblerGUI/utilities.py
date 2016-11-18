@@ -115,6 +115,28 @@ def pretty_date(time=False):
     return str(day_diff / 365) + " years ago"
 
 
+def duration_to_string(seconds):
+    weeks = int(seconds / (60 * 60 * 24 * 7))
+    seconds -= weeks * (60 * 60 * 24 * 7)
+    days = int(seconds / (60 * 60 * 24))
+    seconds -= days * (60 * 60 * 24)
+    hours = int(seconds / (60 * 60))
+    seconds -= hours * (60 * 60)
+    minutes = int(seconds / 60)
+    seconds -= minutes * 60
+    seconds = int(seconds)
+
+    if weeks > 0:
+        return "{}w {}d".format(weeks, days)
+    if days > 0:
+        return "{}d {}h".format(days, hours)
+    if hours > 0:
+        return "{}h {}m".format(hours, minutes)
+    if minutes > 0:
+        return "{}m {}s".format(minutes, seconds)
+    return "{}s".format(seconds)
+
+
 def split_into_keywords(query):
     RE_KEYWORD_SPLIT = re.compile(r"[\W_]", re.UNICODE)
     return [kw for kw in RE_KEYWORD_SPLIT.split(query.lower()) if len(kw) > 0]

@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QTreeWidgetItem, QProgressBar
 from TriblerGUI.defs import *
-from TriblerGUI.utilities import format_size, format_speed
+from TriblerGUI.utilities import format_size, format_speed, duration_to_string
 
 
 class DownloadWidgetItem(QTreeWidgetItem):
@@ -56,7 +56,7 @@ class DownloadWidgetItem(QTreeWidgetItem):
 
         eta_text = "-"
         if self.get_raw_download_status() == DLSTATUS_DOWNLOADING:
-            eta_text = str(self.download_info["eta"])
+            eta_text = duration_to_string(self.download_info["eta"])
         self.setText(10, eta_text)
 
     def __lt__(self, other):
