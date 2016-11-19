@@ -3,6 +3,9 @@
 # see LICENSE.txt for license information
 
 # Make sure the in thread reactor is installed.
+from twisted.internet.task import deferLater
+from twisted.internet.tcp import Client
+from twisted.web.http import HTTPChannel
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.twisted_thread import reactor, deferred
 
@@ -131,6 +134,17 @@ class AbstractServer(BaseTestCase):
             for dc in delayed_calls:
                 self._logger.error(">     %s" % dc)
                 dc.cancel()
+
+        has_network_selectables = False
+        for item in reactor.getReaders() + reactor.getWriters():
+            if isinstance(item, HTTPChannel) or isinstance(item, Client):
+                has_network_selectables = True
+                break
+
+        if has_network_selectables:
+            # TODO(Martijn): we wait a while before we continue the check since network selectables
+            # might take some time to cleanup. I'm not sure what's causing this.
+            yield deferLater(reactor, 0.1, lambda: None)
 
         # This is the same check as in the _cleanReactor method of Twisted's Trial
         selectable_strings = []
