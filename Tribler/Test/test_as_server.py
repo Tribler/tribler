@@ -3,6 +3,9 @@
 # see LICENSE.txt for license information
 
 # Make sure the in thread reactor is installed.
+from twisted.internet.task import deferLater
+from twisted.internet.tcp import Client
+from twisted.web.http import HTTPChannel
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.twisted_thread import reactor, deferred
 
@@ -85,6 +88,8 @@ class AbstractServer(BaseTestCase):
         from twisted.internet.defer import setDebugging
         setDebugging(True)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, annotate=True):
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -95,7 +100,7 @@ class AbstractServer(BaseTestCase):
         defaults.sessdefaults['general']['state_dir'] = self.state_dir
         defaults.dldefaults["downloadconfig"]["saveas"] = self.dest_dir
 
-        self.checkReactor(phase="setUp")
+        yield self.checkReactor(phase="setUp")
 
         self.setUpCleanup()
         os.makedirs(self.session_base_dir)
@@ -130,6 +135,17 @@ class AbstractServer(BaseTestCase):
                 self._logger.error(">     %s" % dc)
                 dc.cancel()
 
+        has_network_selectables = False
+        for item in reactor.getReaders() + reactor.getWriters():
+            if isinstance(item, HTTPChannel) or isinstance(item, Client):
+                has_network_selectables = True
+                break
+
+        if has_network_selectables:
+            # TODO(Martijn): we wait a while before we continue the check since network selectables
+            # might take some time to cleanup. I'm not sure what's causing this.
+            yield deferLater(reactor, 0.1, lambda: None)
+
         # This is the same check as in the _cleanReactor method of Twisted's Trial
         selectable_strings = []
         for sel in reactor.removeAll():
@@ -158,6 +174,7 @@ class AbstractServer(BaseTestCase):
                                      "Listening ports left on the reactor during %s: %s" % (phase, reader))
 
     @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self, annotate=True):
         self.tearDownCleanup()
         if annotate:
@@ -173,9 +190,9 @@ class AbstractServer(BaseTestCase):
             raise RuntimeError("Couldn't stop the WatchDog")
 
         if self.file_server:
-            return maybeDeferred(self.file_server.stopListening).addCallback(self.checkReactor)
+            yield maybeDeferred(self.file_server.stopListening).addCallback(self.checkReactor)
         else:
-            return self.checkReactor("tearDown")
+            yield self.checkReactor("tearDown")
 
     def tearDownCleanup(self):
         self.setUpCleanup()

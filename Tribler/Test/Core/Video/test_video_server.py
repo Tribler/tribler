@@ -1,19 +1,75 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 import os
-import time
-import socket
 import binascii
-from traceback import print_exc
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
+from twisted.internet.protocol import Protocol, connectionDone
 
 from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
-DEBUG = True
+
+class VideoServerProtocol(Protocol):
+
+    def __init__(self, finished, content_size, expected_content, setset, exp_byte_range):
+        self.finished = finished
+        self.content_size = content_size
+        self.seen_empty_line = False
+        self.has_header = False
+        self.expected_content = expected_content
+        self.setset = setset
+        self.exp_byte_range = exp_byte_range
+
+    def sendMessage(self, msg):
+        self.transport.write("%s" % msg)
+
+    def dataReceived(self, data):
+        if not self.has_header:
+            for line in data.split('\r\n'):
+                if len(line) == 0 and self.seen_empty_line:
+                    self.has_header = True
+                elif len(line) == 0:
+                    self.seen_empty_line = True
+                else:
+                    self.seen_empty_line = False
+                    self.check_header(line)
+        else:
+            assert self.expected_content == data
+            self.transport.loseConnection()
+
+    def connectionLost(self, reason=connectionDone):
+        self.finished.callback(None)
+
+    def check_header(self, line):
+        if line.startswith("HTTP"):
+            if not self.setset:
+                # Python returns "HTTP/1.0 206 Partial Content\r\n" HTTP 1.0???
+                assert line.startswith("HTTP/1.")
+                assert line.find("206") != -1  # Partial content
+            else:
+                assert line.startswith("HTTP/1.")
+                assert line.find("416") != -1  # Requested Range Not Satisfiable
+                self.transport.loseConnection()
+
+        elif line.startswith("Content-Range:"):
+            expline = "Content-Range: bytes " + TestVideoServerSession.create_range_str(
+                self.exp_byte_range[0], self.exp_byte_range[1]) + "/" + str(self.content_size)
+            assert expline == line
+
+        elif line.startswith("Content-Type:") and not self.setset:
+            # We do not check for an exact content-type since that might differ between platforms.
+            assert line.startswith("Content-Type: video")
+
+        elif line.startswith("Content-Length:"):
+            assert line == "Content-Length: " + str(len(self.expected_content))
 
 
 class TestVideoServer(TriblerCoreTest):
@@ -51,14 +107,17 @@ class TestVideoServerSession(TestAsServer):
 
     Mainly HTTP range queries.
     """
-
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
         """ unittest test setup code """
-        TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
+        yield TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
         self.port = self.session.get_videoserver_port()
         self.sourcefn = os.path.join(TESTS_DATA_DIR, "video.avi")
         self.sourcesize = os.path.getsize(self.sourcefn)
         self.tdef = None
+        self.expsize = 0
+        yield self.start_vod_download()
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
@@ -68,21 +127,22 @@ class TestVideoServerSession(TestAsServer):
     #
     # Tests
     #
+    @deferred(timeout=10)
     def test_specific_range(self):
-        self.range_check(115, 214, self.sourcesize)
+        return self.range_check(115, 214)
 
+    @deferred(timeout=10)
     def test_last_100(self):
-        self.range_check(self.sourcesize - 100, None, self.sourcesize)
+        return self.range_check(self.sourcesize - 100, None)
 
+    @deferred(timeout=10)
     def test_first_100(self):
-        self.range_check(None, 100, self.sourcesize)
+        return self.range_check(None, 100)
 
+    @deferred(timeout=10)
     def test_combined(self):
-        self.range_check(115, 214, self.sourcesize, setset=True)
+        return self.range_check(115, 214, setset=True)
 
-    #
-    # Internal
-    #
     def start_vod_download(self):
         self.tdef = TorrentDef()
         self.tdef.add_content(self.sourcefn)
@@ -93,8 +153,7 @@ class TestVideoServerSession(TestAsServer):
         dscfg.set_dest_dir(os.path.dirname(self.sourcefn))
 
         download = self.session.start_download_from_tdef(self.tdef, dscfg)
-        while not download.handle:
-            time.sleep(1)
+        return download.get_handle()
 
     def get_std_header(self):
         msg = "GET /%s/0 HTTP/1.1\r\n" % binascii.hexlify(self.tdef.get_infohash())
@@ -112,13 +171,7 @@ class TestVideoServerSession(TestAsServer):
 
         return head
 
-    def range_check(self, firstbyte, lastbyte, sourcesize, setset=False):
-        self._logger.debug("range_test: %s %s %s setset %s", firstbyte, lastbyte, sourcesize, setset)
-        self.start_vod_download()
-
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(('127.0.0.1', self.port))
-
+    def get_header(self, firstbyte, lastbyte, setset=False):
         head = self.get_std_header()
 
         head += "Range: bytes="
@@ -130,102 +183,31 @@ class TestVideoServerSession(TestAsServer):
 
         head += "Connection: close\r\n"
 
-        head += "\r\n"
+        return head + "\r\n"
+
+    def range_check(self, firstbyte, lastbyte, setset=False):
+        test_deferred = Deferred()
+        self._logger.debug("range_test: %s %s %s setset %s", firstbyte, lastbyte, self.sourcesize, setset)
 
         if firstbyte is not None and lastbyte is None:
-            # 100-
-            expfirstbyte = firstbyte
-            explastbyte = self.sourcesize - 1
+            exp_byte_range = (firstbyte, self.sourcesize - 1)
         elif firstbyte is None and lastbyte is not None:
-            # -100
-            expfirstbyte = self.sourcesize - lastbyte
-            explastbyte = self.sourcesize - 1
+            exp_byte_range = (self.sourcesize - lastbyte, self.sourcesize - 1)
         else:
-            expfirstbyte = firstbyte
-            explastbyte = lastbyte
+            exp_byte_range = (firstbyte, lastbyte)
 
         # the amount of bytes actually requested. (Content-length)
-        expsize = explastbyte - expfirstbyte + 1
+        self.expsize = exp_byte_range[1] - exp_byte_range[0] + 1
+        f = open(self.sourcefn, "rb")
+        f.seek(exp_byte_range[0])
 
-        self._logger.debug("Expecting first %s last %s size %s ", expfirstbyte, explastbyte, sourcesize)
-        s.send(head)
+        expdata = f.read(self.expsize)
+        f.close()
 
-        # Parse header
-        s.settimeout(10.0)
-        while True:
-            line = self.read_line(s)
-            if DEBUG:
-                self._logger.debug("Got line: %s", repr(line))
+        def on_connected(p):
+            p.sendMessage(self.get_header(firstbyte, lastbyte, setset))
 
-            if len(line) == 0:
-                if DEBUG:
-                    self._logger.debug("server closed conn")
-                self.assertTrue(False)
-                return
-
-            if line.startswith("HTTP"):
-                if not setset:
-                    # Python returns "HTTP/1.0 206 Partial Content\r\n" HTTP 1.0???
-                    self.assertTrue(line.startswith("HTTP/1."))
-                    self.assertTrue(line.find("206") != -1)  # Partial content
-                else:
-                    self.assertTrue(line.startswith("HTTP/1."))
-                    self.assertTrue(line.find("416") != -1)  # Requested Range Not Satisfiable
-                    return
-
-            elif line.startswith("Content-Range:"):
-                expline = "Content-Range: bytes " + self.create_range_str(
-                    expfirstbyte, explastbyte) + "/" + str(sourcesize) + "\r\n"
-                self.assertEqual(expline, line)
-
-            elif line.startswith("Content-Type:"):
-                # We do not check for an exact content-type since that might differ between platforms.
-                self.assertTrue(line.startswith("Content-Type: video"))
-
-            elif line.startswith("Content-Length:"):
-                self.assertEqual(line, "Content-Length: " + str(expsize) + "\r\n")
-
-            elif line.endswith("\r\n") and len(line) == 2:
-                # End of header
-                break
-
-        data = s.recv(expsize)
-        if len(data) == 0:
-            if DEBUG:
-                self._logger.debug("server closed conn2")
-            self.assertTrue(False)
-            return
-        else:
-            f = open(self.sourcefn, "rb")
-            if firstbyte is not None:
-                f.seek(firstbyte)
-            else:
-                f.seek(lastbyte, os.SEEK_END)
-
-            expdata = f.read(expsize)
-            f.close()
-            self.assertTrue(data, expdata)
-
-            try:
-                # Read body, reading more should EOF (we disabled persist conn)
-                data = s.recv(10240)
-                self.assertTrue(len(data) == 0)
-
-            except socket.timeout:
-                if DEBUG:
-                    self._logger.debug(
-                        "Timeout, video server didn't respond with requested bytes, "
-                        "possibly bug in Python impl of HTTP")
-                    print_exc()
-
-    @staticmethod
-    def read_line(s):
-        line = ''
-        while True:
-            data = s.recv(1)
-            if len(data) == 0:
-                return line
-            else:
-                line = line + data
-            if data == '\n' and len(line) >= 2 and line[-2:] == '\r\n':
-                return line
+        endpoint = TCP4ClientEndpoint(reactor, "localhost", self.port)
+        connectProtocol(endpoint, VideoServerProtocol(test_deferred, self.sourcesize, expdata, setset, exp_byte_range))\
+            .addCallback(on_connected)
+        return test_deferred

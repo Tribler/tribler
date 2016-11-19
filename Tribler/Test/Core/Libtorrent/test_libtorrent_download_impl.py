@@ -1,6 +1,7 @@
 import binascii
 import os
 import libtorrent as lt
+from twisted.internet.defer import Deferred
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
@@ -8,6 +9,7 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.twisted_thread import deferred, reactor
+from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
@@ -87,12 +89,13 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         tdef = self.create_tdef()
 
         impl = LibtorrentDownloadImpl(self.session, tdef)
-        def callback((ignored, ignored2)):
-            pass
+
+        def callback(_):
+            impl.cancel_all_pending_tasks()
 
         deferred = impl.setup(None, None, None, 0)
         deferred.addCallback(callback)
-        return deferred
+        return deferred.addCallback(lambda _: impl.stop())
 
     def test_restart(self):
         tdef = self.create_tdef()
@@ -109,6 +112,15 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         impl.dlconfig = DownloadStartupConfig().dlconfig.copy()
         impl.session.lm.on_download_wrapper_created = lambda _: True
         impl.restart()
+
+    @deferred(timeout=20)
+    def test_restart_no_handle(self):
+        test_deferred = Deferred()
+        tdef = self.create_tdef()
+        impl = LibtorrentDownloadImpl(self.session, tdef)
+        impl.session.lm.on_download_handle_created = lambda _: test_deferred.callback(None)
+        impl.restart()
+        return test_deferred
 
     @deferred(timeout=20)
     def test_multifile_torrent(self):
@@ -178,7 +190,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         result_deferred = impl.setup(None, None, None, 0)
         result_deferred.addCallback(callback)
 
-        return result_deferred
+        return result_deferred.addCallback(lambda _: impl.stop())
 
 
 class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
@@ -494,3 +506,21 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
 
         self.libtorrent_download_impl.handle.status().pieces = [True * 16]
         self.assertEqual(self.libtorrent_download_impl.get_pieces_base64(), "gA==")
+
+    @deferred(timeout=10)
+    def test_resume_data_failed(self):
+        """
+        Testing whether the correct operations happen when an error is raised during resume data saving
+        """
+        test_deferred = Deferred()
+
+        def on_error(failure):
+            self.assertTrue(failure.check(SaveResumeDataError))
+            test_deferred.callback(None)
+
+        mock_alert = MockObject()
+        mock_alert.msg = "test error"
+
+        self.libtorrent_download_impl.deferreds_resume.append(Deferred().addErrback(on_error))
+        self.libtorrent_download_impl.on_save_resume_data_failed_alert(mock_alert)
+        return test_deferred

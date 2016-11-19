@@ -176,7 +176,7 @@ class Session(SessionConfigInterface):
         self.notifier = Notifier(use_pool=True)
 
         # Checkpoint startup config
-        self.save_pstate_sessconfig()
+        self.save_session_config()
 
         self.sqlite_db = None
         self.dispersy_member = None
@@ -527,43 +527,42 @@ class Session(SessionConfigInterface):
 
         self.lm.load_checkpoint(initialdlstatus_dict=initialdlstatus_dict)
 
-    def checkpoint(self):
-        """ Saves the internal session state to the Session's state dir. """
-        # Called by any thread
-        self.checkpoint_shutdown(stop=False, checkpoint=True, gracetime=None, hacksessconfcheckpoint=False)
-
     @blocking_call_on_reactor_thread
     def start(self):
-        """ Create the LaunchManyCore instance and start it"""
-
-        # Create engine with network thread
+        """
+        Start a Tribler session by initializing the LaunchManyCore class.
+        Returns a deferred that fires when the Tribler session is ready for use.
+        """
         startup_deferred = self.lm.register(self, self.sesslock)
 
-        if self.get_libtorrent():
-            self.load_checkpoint()
+        def load_checkpoint(_):
+            if self.get_libtorrent():
+                self.load_checkpoint()
 
         self.sessconfig.set_callback(self.lm.sessconfig_changed_callback)
 
-        return startup_deferred
+        return startup_deferred.addCallback(load_checkpoint)
 
     @blocking_call_on_reactor_thread
-    def shutdown(self, checkpoint=True, gracetime=2.0, hacksessconfcheckpoint=True):
-        """ Checkpoints the session and closes it, stopping the download engine.
-        @param checkpoint Whether to checkpoint the Session state on shutdown.
-        @param gracetime Time to allow for graceful shutdown + signoff (seconds).
+    def shutdown(self):
         """
-        # Has to be called from the reactor thread
+        Checkpoints the session and closes it, stopping the download engine.
+        This method has to be called from the reactor thread.
+        """
         assert isInIOThread()
 
         @inlineCallbacks
         def on_early_shutdown_complete(_):
             """
-            Callback that gets called when the early shutdown has been compelted.
+            Callback that gets called when the early shutdown has been completed.
             Continues the shutdown procedure that is dependant on the early shutdown.
             :param _: ignored parameter of the Deferred
             """
-            yield self.checkpoint_shutdown(stop=True, checkpoint=checkpoint,
-                                 gracetime=gracetime, hacksessconfcheckpoint=hacksessconfcheckpoint)
+            self.save_session_config()
+            yield self.checkpoint_downloads()
+            self.lm.shutdown_downloads()
+            self.lm.network_shutdown()
+
             if self.sqlite_db:
                 self.sqlite_db.close()
             self.sqlite_db = None
@@ -652,31 +651,13 @@ class Session(SessionConfigInterface):
     #
     # Internal persistence methods
     #
-    def checkpoint_shutdown(self, stop, checkpoint, gracetime, hacksessconfcheckpoint):
-        """ Checkpoints the Session and optionally shuts down the Session.
-        @param stop Whether to shutdown the Session as well.
-        @param checkpoint Whether to checkpoint at all, or just to stop.
-        @param gracetime Time to allow for graceful shutdown + signoff (seconds).
+    def checkpoint_downloads(self):
         """
-        # Called by any thread
-        with self.sesslock:
-            # Arno: Make checkpoint optional on shutdown. At the moment setting
-            # the config at runtime is not possible (see SessionRuntimeConfig)
-            # so this has little use, and interferes with our way of
-            # changing the startup config, which is to write a new
-            # config to disk that will be read at start up.
-            if hacksessconfcheckpoint:
-                try:
-                    self.save_pstate_sessconfig()
-                except Exception as e:
-                    self._logger.error("save_pstate_sessconfig() failed with error: %s", e)
+        Checkpoints the downloads in Tribler.
+        """
+        return self.lm.checkpoint_downloads()
 
-            # Checkpoint all Downloads and stop NetworkThread
-            if stop:
-                self._logger.debug("Session: checkpoint_shutdown")
-            return self.lm.checkpoint(stop=stop, checkpoint=checkpoint, gracetime=gracetime)
-
-    def save_pstate_sessconfig(self):
+    def save_session_config(self):
         """ Save the runtime SessionConfig to disk """
         # Called by any thread
         sscfg = self.get_current_startup_config_copy()

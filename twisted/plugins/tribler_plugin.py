@@ -66,16 +66,16 @@ class TriblerServiceMaker(object):
         """
         Main method to startup Tribler.
         """
-        def on_shutdown(_):
+        def on_tribler_shutdown(_):
             msg("Tribler shut down")
-            self.process_checker.remove_lock_file()
             reactor.stop()
+            self.process_checker.remove_lock_file()
 
         def signal_handler(sig, _):
             msg("Received shut down signal %s" % sig)
             if not self._stopping:
                 self._stopping = True
-                self.session.shutdown().addCallback(on_shutdown)
+                self.session.shutdown().addCallback(on_tribler_shutdown)
 
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)

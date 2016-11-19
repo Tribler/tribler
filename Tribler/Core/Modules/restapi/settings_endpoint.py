@@ -95,7 +95,7 @@ class SettingsEndpoint(resource.Resource):
         """
         settings_dict = json.loads(request.content.read())
         self.parse_settings_dict(settings_dict)
-        self.session.save_pstate_sessconfig()
+        self.session.save_session_config()
 
         return json.dumps({"modified": True})
 

@@ -6,7 +6,7 @@ from zope.interface import implements
 
 from twisted.internet.defer import succeed, inlineCallbacks
 from twisted.python.threadable import isInIOThread
-from twisted.web.client import Agent, readBody
+from twisted.web.client import Agent, readBody, HTTPConnectionPool
 from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
 
@@ -42,9 +42,19 @@ class AbstractBaseApiTest(TestAsServer):
     @inlineCallbacks
     def setUp(self, autoload_discovery=True):
         yield super(AbstractBaseApiTest, self).setUp(autoload_discovery=autoload_discovery)
+        self.connection_pool = HTTPConnectionPool(reactor, False)
         terms = self.session.lm.category.xxx_filter.xxx_terms
         terms.add("badterm")
         self.session.lm.category.xxx_filter.xxx_terms = terms
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self, annotate=True):
+        yield self.close_connections()
+        yield super(AbstractBaseApiTest, self).tearDown(annotate=annotate)
+
+    def close_connections(self):
+        return self.connection_pool.closeCachedConnections()
 
     @blocking_call_on_reactor_thread
     def setUpPreSession(self):
@@ -59,7 +69,7 @@ class AbstractBaseApiTest(TestAsServer):
         self.config.set_http_api_port(get_random_port(min_port=min_base_port, max_port=min_base_port + 2000))
 
     def do_request(self, endpoint, request_type, post_data, raw_data):
-        agent = Agent(reactor)
+        agent = Agent(reactor, pool=self.connection_pool)
         return agent.request(request_type, 'http://localhost:%s/%s' % (self.session.get_http_api_port(), endpoint),
                              Headers({'User-Agent': ['Tribler ' + version_id]}), POSTDataProducer(post_data, raw_data))
 
