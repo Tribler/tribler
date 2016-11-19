@@ -103,6 +103,11 @@ class TestChannelDBHandler(AbstractDB):
         self.cdb.on_remove_playlist_torrent(1, 1, str2bin('AA8cTG7ZuPsyblbRE7CyxsrKUCg='), False)
         self.assertEqual(len(self.cdb.getTorrentsFromPlaylist(1, ['Torrent.torrent_id'])), 0)
 
+    def test_on_remove_torrent_from_dispersy(self):
+        self.assertEqual(self.cdb.getTorrentFromChannelTorrentId(1, ['ChannelTorrents.dispersy_id']), 3)
+        self.cdb.on_remove_torrent_from_dispersy(1, 3, False)
+        self.assertIsNone(self.cdb.getTorrentFromChannelTorrentId(1, ['ChannelTorrents.dispersy_id']))
+
     def test_search_local_channels(self):
         """
         Testing whether the right results are returned when searching in the local database for channels
