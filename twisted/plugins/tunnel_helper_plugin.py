@@ -1,14 +1,12 @@
 """
 This twistd plugin enables to start a tunnel helper headless using the twistd command.
 """
-import cherrypy
 import json
 import logging
 import logging.config
 import os
 import random
 import signal
-import sys
 import threading
 import time
 from collections import defaultdict, deque
@@ -16,12 +14,15 @@ from collections import defaultdict, deque
 from twisted.application.service import MultiService, IServiceMaker
 from twisted.conch import manhole_tap
 from twisted.internet import reactor
+from twisted.internet.defer import maybeDeferred, succeed
 from twisted.internet.stdio import StandardIO
 from twisted.internet.task import LoopingCall
 
 # Laurens(23-05-2016): As of writing, Debian stable does not have
 # the globalLogPublisher in the current version of Twisted.
 # So we make it a conditional import.
+from twisted.web import server, resource
+
 try:
     global_log_publisher_available = True
 except:
@@ -56,12 +57,14 @@ def check_socks5_port(val):
     return socks5_port
 check_socks5_port.coerceDoc = "Socks5 port must be greater than 0."
 
+
 def check_introduce_port(val):
     introduce_port = int(val)
     if introduce_port <= 0:
         raise ValueError("Invalid port number")
     return introduce_port
 check_introduce_port.coerceDoc = "Introduction port must be greater than 0."
+
 
 def check_dispersy_port(val):
     dispersy_port = int(val)
@@ -70,11 +73,13 @@ def check_dispersy_port(val):
     return dispersy_port
 check_dispersy_port.coerceDoc = "Dispersy port must be greater than 0 or -1."
 
+
 def check_crawler_keypair(crawl_keypair_filename):
     if crawl_keypair_filename and not os.path.exists(crawl_keypair_filename):
         raise ValueError("Crawler file does not exist")
     return crawl_keypair_filename
 check_crawler_keypair.coerceDoc = "Give a path to an existing file."
+
 
 def check_json_port(val):
     json_port = int(val)
@@ -96,8 +101,7 @@ class Options(usage.Options):
         ["introduce", "i", None, 'Introduce the dispersy port of another tribler instance', check_introduce_port],
         ["dispersy", "d", -1, 'Dispersy port', check_dispersy_port],
         ["crawl", "c", None, 'Enable crawler and use the keypair specified in the given filename', check_crawler_keypair],
-        ["json", "j", 0, 'Enable JSON api, which will run on the provided port number ' +
-         '(only available if the crawler is enabled)', check_json_port],
+        ["tunnelapi", "j", 0, 'Enable JSON api, which will run on the provided port number', check_json_port],
     ]
 
 
@@ -105,6 +109,42 @@ logging.config.fileConfig("logger.conf")
 logger = logging.getLogger('TunnelMain')
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
+
+
+class TunnelRootEndpoint(resource.Resource):
+    """
+    This endpoint is responsible for handing all requests regarding the tunnel sessions.
+    """
+
+    def __init__(self, tunnel):
+        resource.Resource.__init__(self)
+        self.tunnel = tunnel
+        self.putChild("history", TunnelHistoryEndpoint(self.tunnel))
+        self.putChild("stats", TunnelStatsEndpoint(self.tunnel))
+
+
+class TunnelStatsEndpoint(resource.Resource):
+    """
+    This endpoint is responsible for handling tunnel stats requests.
+    """
+    def __init__(self, tunnel):
+        resource.Resource.__init__(self)
+        self.tunnel = tunnel
+
+    def render_GET(self, request):
+        return json.dumps(self.tunnel.get_stats())
+
+
+class TunnelHistoryEndpoint(resource.Resource):
+    """
+    This endpoint is responsible for handling tunnel history requests.
+    """
+    def __init__(self, tunnel):
+        resource.Resource.__init__(self)
+        self.tunnel = tunnel
+
+    def render_GET(self, request):
+        return json.dumps(list(self.tunnel.history_stats))
 
 
 class TunnelCommunityCrawler(HiddenTunnelCommunity):
@@ -272,22 +312,6 @@ class Tunnel(object):
     def get_stats(self):
         return [round(f, 2) for f in self.current_stats]
 
-    @cherrypy.expose
-    def index(self, *args, **kwargs):
-        # Return average statistics estimate.
-        if 'callback' in kwargs:
-            return kwargs['callback'] + '(' + json.dumps(self.get_stats()) + ');'
-        else:
-            return json.dumps(self.get_stats())
-
-    @cherrypy.expose
-    def history(self, *args, **kwargs):
-        # Return history of average statistics estimate.
-        if 'callback' in kwargs:
-            return kwargs['callback'] + '(' + json.dumps(list(self.history_stats)) + ');'
-        else:
-            return json.dumps(list(self.history_stats))
-
 
 class LineHandler(LineReceiver):
     delimiter = os.linesep
@@ -400,6 +424,7 @@ class TunnelHelperServiceMaker(object):
         Initialize the variables of this service and the logger.
         """
         self._stopping = False
+        self.tunnel_site = None
 
     def start_tunnel(self, options):
         """
@@ -437,22 +462,27 @@ class TunnelHelperServiceMaker(object):
         tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
         StandardIO(LineHandler(tunnel))
 
+        def stop_tunnel_api():
+            if self.tunnel_site:
+                return maybeDeferred(self.tunnel_site.stopListening)
+            return succeed(None)
+
         def signal_handler(sig, _):
             msg("Received shut down signal %s" % sig)
             if not self._stopping:
                 self._stopping = True
                 msg("Setting the tunnel should_run variable to False")
                 tunnel.should_run = False
-                tunnel.stop().addCallback(lambda _: reactor.stop())
+                tunnel.stop().addCallback(lambda _: stop_tunnel_api().addCallback(lambda _: reactor.stop()))
 
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
         tunnel.start(introduce_port)
 
-        if crawl_keypair_filename and options["json"] > 0:
-            cherrypy.config.update({'server.socket_host': '0.0.0.0', 'server.socket_port': options["json"]})
-            cherrypy.quickstart(tunnel)
+        if options["tunnelapi"] > 0:
+            self.tunnel_site = self.site = reactor.listenTCP(options["tunnelapi"],
+                                                             server.Site(resource=TunnelRootEndpoint(tunnel)))
 
     def makeService(self, options):
         """
