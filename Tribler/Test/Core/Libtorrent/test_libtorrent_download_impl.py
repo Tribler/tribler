@@ -9,6 +9,7 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.twisted_thread import deferred, reactor
+from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
@@ -505,3 +506,21 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
 
         self.libtorrent_download_impl.handle.status().pieces = [True * 16]
         self.assertEqual(self.libtorrent_download_impl.get_pieces_base64(), "gA==")
+
+    @deferred(timeout=10)
+    def test_resume_data_failed(self):
+        """
+        Testing whether the correct operations happen when an error is raised during resume data saving
+        """
+        test_deferred = Deferred()
+
+        def on_error(failure):
+            self.assertTrue(failure.check(SaveResumeDataError))
+            test_deferred.callback(None)
+
+        mock_alert = MockObject()
+        mock_alert.msg = "test error"
+
+        self.libtorrent_download_impl.deferreds_resume.append(Deferred().addErrback(on_error))
+        self.libtorrent_download_impl.on_save_resume_data_failed_alert(mock_alert)
+        return test_deferred
