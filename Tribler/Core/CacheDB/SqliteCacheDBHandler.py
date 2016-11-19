@@ -1525,6 +1525,17 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
 
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
 
+        sql = """SELECT infohash, dispersy_cid FROM Torrent, _ChannelTorrents, Channels
+        WHERE Torrent.torrent_id = _ChannelTorrents.torrent_id
+        AND _ChannelTorrents.channel_id = ? AND _ChannelTorrents.dispersy_id = ?
+        AND Channels.id = _ChannelTorrents.channel_id"""
+        infohash, dispersy_cid = self._db.fetchone(sql, (channel_id, dispersy_id))
+
+        if infohash:
+            self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, None,
+                                 {"infohash": str2bin(infohash).encode('hex'),
+                                  "dispersy_cid": dispersy_cid.encode('hex')})
+
     def on_torrent_modification_from_dispersy(self, channeltorrent_id, modification_type, modification_value):
         if modification_type in ['name', 'description']:
             update_torrent = "UPDATE _ChannelTorrents SET " + modification_type + " = ?, modified = ? WHERE id = ?"
@@ -1536,10 +1547,6 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
             if infohash:
                 infohash = str2bin(infohash)
                 self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
-
-        elif modification_type in ['swift-url']:
-            sql = "Select infohash From Torrent, ChannelTorrents Where Torrent.torrent_id = ChannelTorrents.torrent_id And ChannelTorrents.id = ?"
-            infohash = self._db.fetchone(sql, (channeltorrent_id,))
 
     def addOrGetChannelTorrentID(self, channel_id, infohash):
         torrent_id = self.torrent_db.addOrGetTorrentID(infohash)

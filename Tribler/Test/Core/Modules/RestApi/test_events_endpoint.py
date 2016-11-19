@@ -9,7 +9,7 @@ from Tribler.Core.Modules.restapi import events_endpoint as events_endpoint_file
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT, NTFY_UPGRADER, \
     NTFY_STARTED, NTFY_FINISHED, NTFY_UPGRADER_TICK, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, NTFY_NEW_VERSION, \
-    NTFY_CHANNEL, NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR
+    NTFY_CHANNEL, NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_DELETE
 from Tribler.Core.version import version_id
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -93,7 +93,7 @@ class TestEventsEndpoint(AbstractApiTest):
         """
         Testing whether various events are coming through the events endpoints
         """
-        self.messages_to_wait_for = 12
+        self.messages_to_wait_for = 13
 
         def send_notifications(_):
             self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
@@ -107,6 +107,7 @@ class TestEventsEndpoint(AbstractApiTest):
             self.session.notifier.notify(NTFY_NEW_VERSION, NTFY_INSERT, None, None)
             self.session.notifier.notify(NTFY_CHANNEL, NTFY_DISCOVERED, None, None)
             self.session.notifier.notify(NTFY_TORRENT, NTFY_DISCOVERED, None, {'a': 'Invalid character \xa1'})
+            self.session.notifier.notify(NTFY_TORRENT, NTFY_DELETE, None, {'a': 'b'})
             self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, 'a' * 10, None)
             self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, 'a' * 10, 'This is an error message')
             self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception("hi")
