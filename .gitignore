@@ -63,3 +63,4 @@ doc/_build/
 
 # Twisted
 twisted/plugins/dropin.cache
+twistd.pid
