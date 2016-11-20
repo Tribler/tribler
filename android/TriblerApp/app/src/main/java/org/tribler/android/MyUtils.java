@@ -346,12 +346,12 @@ public class MyUtils {
             cursor.close();
         }
 
-        // The name of the dir the file is in becomes the name of the .torrent file
-        File dir = new File(context.getCacheDir(), fileName);
+        // The name of the dir becomes the name of the .torrent file
+        File dir = new File(context.getExternalCacheDir(), fileName);
         File file = new File(dir, fileName);
         dir.mkdirs();
 
-        // Make file accessible to service by copying to app cache dir
+        // Make file accessible by copying to external cache dir
         InputStream input = resolver.openInputStream(uri);
         OutputStream output = new FileOutputStream(file, false);
         MyUtils.copy(input, output);
