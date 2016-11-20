@@ -1,10 +1,11 @@
 import os
 from configobj import ConfigObj
 from validate import Validator
+from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.simpledefs import STATEDIR_CONFIG
 
 
-CONFIGSPEC_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.spec')
+CONFIGSPEC_PATH = os.path.join(get_lib_path(), 'Core', 'Config', 'config.spec')
 
 
 class TriblerConfig(object):

@@ -12,12 +12,10 @@ from twisted.python.threadable import isInIOThread
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
-from Tribler import LIBRARYNAME
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
 
 
 DB_SCRIPT_NAME = u"schema_sdb_v%s.sql" % str(LATEST_DB_VERSION)
-DB_SCRIPT_RELATIVE_PATH = os.path.join(LIBRARYNAME, DB_SCRIPT_NAME)
 
 DB_FILE_NAME = u"tribler.sdb"
 DB_DIR_NAME = u"sqlite"

@@ -8,41 +8,37 @@ from Tribler.Test.test_as_server import AbstractServer
 
 class TriblerCategoryTest(AbstractServer):
 
-    FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-    CATEGORY_TEST_DATA_DIR = os.path.abspath(os.path.join(FILE_DIR, u"data/"))
+    def setUp(self, annotate=True):
+        super(TriblerCategoryTest, self).setUp(annotate=annotate)
+        self.category = Category()
+        self.category.xxx_filter.xxx_terms.add("term1")
 
     def test_category_names_none_names(self):
-        cat = Category(install_dir=self.CATEGORY_TEST_DATA_DIR)
-        cat.category_info = None
-        self.assertFalse(cat.getCategoryNames())
+        self.category.category_info = None
+        self.assertFalse(self.category.getCategoryNames())
 
     def test_get_category_names(self):
-        cat = Category(install_dir=self.CATEGORY_TEST_DATA_DIR)
-        self.assertEquals(len(cat.category_info), 9)
+        self.assertEquals(len(self.category.category_info), 9)
 
     def test_calculate_category_multi_file(self):
-        cat = Category(install_dir=self.CATEGORY_TEST_DATA_DIR)
         torrent_info = {"info": {"files": [{"path": "/my/path/video.avi", "length": 1234}]},
                         "announce": "http://tracker.org", "comment": "lorem ipsum"}
-        self.assertEquals(cat.calculateCategory(torrent_info, "my torrent"), 'other')
+        self.assertEquals(self.category.calculateCategory(torrent_info, "my torrent"), 'other')
 
     def test_calculate_category_single_file(self):
-        cat = Category(install_dir=self.CATEGORY_TEST_DATA_DIR)
         torrent_info = {"info": {"name": "my_torrent", "length": 1234},
                         "announce-list": ["http://tracker.org"], "comment": "lorem ipsum"}
-        self.assertEquals(cat.calculateCategory(torrent_info, "my torrent"), 'other')
+        self.assertEquals(self.category.calculateCategory(torrent_info, "my torrent"), 'other')
 
     def test_calculate_category_xxx(self):
-        cat = Category(install_dir=self.CATEGORY_TEST_DATA_DIR)
         torrent_info = {"info": {"name": "term1", "length": 1234},
                         "announce-list": ["http://tracker.org"], "comment": "lorem ipsum"}
-        self.assertEquals(cat.calculateCategory(torrent_info, "my torrent"), 'xxx')
+        self.assertEquals(self.category.calculateCategory(torrent_info, "my torrent"), 'xxx')
 
     def test_get_family_filter_sql(self):
-        cat = Category(install_dir=self.CATEGORY_TEST_DATA_DIR)
-        self.assertFalse(cat.get_family_filter_sql())
-        cat.set_family_filter(b=True)
-        self.assertTrue(cat.get_family_filter_sql())
+        self.assertFalse(self.category.get_family_filter_sql())
+        self.category.set_family_filter(b=True)
+        self.assertTrue(self.category.get_family_filter_sql())
 
     def test_cmp_rank(self):
         self.assertEquals(cmp_rank({'bla': 3}, {'bla': 4}), 1)
@@ -53,4 +49,3 @@ class TriblerCategoryTest(AbstractServer):
         category_file.CATEGORY_CONFIG_FILE = "thisfiledoesnotexist.conf"
         test_category = Category()
         self.assertEqual(test_category.category_info, [])
-

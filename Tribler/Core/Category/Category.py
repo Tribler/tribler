@@ -6,10 +6,9 @@ import re
 import logging
 from ConfigParser import MissingSectionHeaderError, ParsingError
 
-from Tribler import LIBRARYNAME
 from Tribler.Core.Category.init_category import getCategoryInfo
 from Tribler.Core.Category.FamilyFilter import XXXFilter
-from Tribler.Core.Utilities.install_dir import determine_install_dir
+from Tribler.Core.Utilities.install_dir import get_lib_path
 
 CATEGORY_CONFIG_FILE = "category.conf"
 
@@ -18,12 +17,10 @@ class Category(object):
 
     __size_change = 1024 * 1024
 
-    def __init__(self, install_dir=determine_install_dir(), ffEnabled=False):
+    def __init__(self, ffEnabled=False):
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.install_dir = install_dir
-
-        filename = os.path.join(self.install_dir, LIBRARYNAME, u'Core', u'Category', CATEGORY_CONFIG_FILE)
+        filename = os.path.join(get_lib_path(), u'Core', u'Category', CATEGORY_CONFIG_FILE)
         try:
             self.category_info = getCategoryInfo(filename)
             self.category_info.sort(cmp_rank)
@@ -31,7 +28,7 @@ class Category(object):
             self.category_info = []
             self._logger.critical('', exc_info=True)
 
-        self.xxx_filter = XXXFilter(self.install_dir)
+        self.xxx_filter = XXXFilter()
 
         self._logger.debug("category: Categories defined by user: %s", self.getCategoryNames())
 
