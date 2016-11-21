@@ -5,18 +5,18 @@ import re
 import os
 import logging
 
-from Tribler import LIBRARYNAME
+from Tribler.Core.Utilities.install_dir import get_lib_path
 
 WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
 
 
 class XXXFilter(object):
 
-    def __init__(self, install_dir):
+    def __init__(self):
         super(XXXFilter, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        termfilename = os.path.join(install_dir, LIBRARYNAME, 'Core', 'Category', 'filter_terms.filter')
+        termfilename = os.path.join(get_lib_path(), 'Core', 'Category', 'filter_terms.filter')
         self.xxx_terms, self.xxx_searchterms = self.initTerms(termfilename)
 
     def initTerms(self, filename):

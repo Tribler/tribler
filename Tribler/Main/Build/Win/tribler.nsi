@@ -1,9 +1,10 @@
 !define PRODUCT "Tribler"
-; Laurens, 2016-03-14: The __GIT__ string will be replaced by update_version_from_git.py 
+; Laurens, 2016-03-14: The __GIT__ string will be replaced by update_version_from_git.py
 ; with the current version of the build.
 !define VERSION "__GIT__"
 ; Laurens, 2016-03-14: The _x86 will be replaced by _x64 if needed in update_version_from_git.py
 !define BITVERSION "x86"
+!define VLCBITVERSION "32"
 
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
@@ -21,7 +22,7 @@ Name "${PRODUCT} ${VERSION}"
 OutFile "${PRODUCT}_${VERSION}_${BITVERSION}.exe"
 
 ;Folder selection page. 
-; Laurens, 2016-03-14: Note that $PROGRAMFILES will be replaced by $PROGRAMFILES64 
+; Laurens, 2016-03-14: Note that $PROGRAMFILES will be replaced by $PROGRAMFILES64
 ; if the 64 bit argument is passed to update_version_from_git.py.
 InstallDir "$PROGRAMFILES\${PRODUCT}"
 
@@ -68,7 +69,7 @@ BrandingText "${PRODUCT}"
 ;--------------------------------
 ;Modern UI Configuration
 
-!define MUI_ICON "Tribler\Main\vwxGUI\images\tribler.ico"
+!define MUI_ICON "tribler_source\Tribler\Main\Build\Win\tribler.ico"
 !define MUI_COMPONENTSPAGE_SMALLDESC
 !define MUI_ABORTWARNING
 
@@ -87,8 +88,6 @@ BrandingText "${PRODUCT}"
 
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
-
-;!insertmacro MUI_DEFAULT UMUI_HEADERIMAGE_BMP heading.bmp"
 
 ;--------------------------------
 ;Languages
@@ -119,63 +118,9 @@ Section "!Main EXE" SecMain
 
     ; Install Tribler stuff
     SetOutPath "$INSTDIR"
-    File /r Microsoft.VC90.CRT
     File /r *
-    File *.txt
-    File logger.conf
-    File tribler.exe
-    File ffmpeg.exe
-    File /r vlc
-    File tools\*.bat
-    Delete "$INSTDIR\*.pyd"
-    File *.pyd
-    Delete "$INSTDIR\python*.dll"
-    Delete "$INSTDIR\wx*.dll"
-    File *.dll
-    CreateDirectory "$INSTDIR\Tribler"
-    SetOutPath "$INSTDIR\Tribler"
-    File Tribler\*.sql
-    CreateDirectory "$INSTDIR\Tribler\Core"
 
-    ; Main client specific
-    CreateDirectory "$INSTDIR\Tribler"
-    CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI"
-    CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images"
-    CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images\default"
-    CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images\flags"
-    SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images"
-    File Tribler\Main\vwxGUI\images\*
-    SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images\default"
-    File Tribler\Main\vwxGUI\images\default\*
-    SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images\flags"
-    File Tribler\Main\vwxGUI\images\flags\*
-
-    CreateDirectory "$INSTDIR\Tribler\Main\webUI"
-    CreateDirectory "$INSTDIR\Tribler\Main\webUI\static"
-    CreateDirectory "$INSTDIR\Tribler\Main\webUI\static\images"
-    CreateDirectory "$INSTDIR\Tribler\Main\webUI\static\lang"
-    SetOutPath "$INSTDIR\Tribler\Main\webUI\static"
-    File Tribler\Main\webUI\static\*.*
-    SetOutPath "$INSTDIR\Tribler\Main\webUI\static\images"
-    File Tribler\Main\webUI\static\images\*.*
-    SetOutPath "$INSTDIR\Tribler\Main\webUI\static\lang"
-    File Tribler\Main\webUI\static\lang\*.*
-
-    ; Categories
-    CreateDirectory "$INSTDIR\Tribler\Core\Category"
-    SetOutPath "$INSTDIR\Tribler\Core\Category"
-    File Tribler\Core\Category\*.conf
-    File Tribler\Core\Category\*.filter
-
-    ; Arno, 2012-05-25: data files for pymdht
-    CreateDirectory "$INSTDIR\Tribler\Core\DecentralizedTracking"
-    CreateDirectory "$INSTDIR\Tribler\Core\DecentralizedTracking\pymdht"
-    CreateDirectory "$INSTDIR\Tribler\Core\DecentralizedTracking\pymdht\core"
-    SetOutPath "$INSTDIR\Tribler\Core\DecentralizedTracking\pymdht\core"
-    File Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap_stable
-    File Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap_unstable
-
-    ; Install MSVCR 2008, 2010, 2012
+    ; Install MSVCR 2008 and 2012
     SetOutPath "$INSTDIR"
 
     ; Libraries dependant on 2008 are: Python, APSW
@@ -185,6 +130,10 @@ Section "!Main EXE" SecMain
     ; Libraries dependant on 2012 are: LevelDB, LibTorrent
     File vc_redist_110.exe
     ExecWait "$INSTDIR\vc_redist_110.exe /q /norestart"
+
+    ; Install VLC
+    File "vlc-2.2.4-win${VLCBITVERSION}.exe"
+    ExecWait "$INSTDIR\vlc-2.2.4-win${VLCBITVERSION}.exe /language=en_GB /S"
 
     FileOpen $9 "$INSTDIR\tribler.exe.log" w
     FileWrite $9 ""

@@ -35,16 +35,29 @@ The first package to be installed is M2Crypto which can be installed using pip (
 
 If the second statement does not raise an error, M2Crypto is successfully installed.
 
-wxPython
---------
+PyQt5
+-----
 
-The graphical interface of Tribler is built using wxPython. wxPython can be installed by using the official win64 installer for Python 2.7 from `Sourceforge <http://sourceforge.net/projects/wxpython/files/wxPython>`_. **At the time of writing, wx3 is not supported yet so you should install wx2.8** (make sure to install the unicode version). You can test whether wx can be successfully imported by running:
+If you wish to run the Tribler Graphical User Interface, PyQt5 should be available on the system. While PyQt5 is available in the pip repository, this is only compatible with Python 3. Start by downloading the Qt library from `here <http://doc.qt.io/qt-5/windows-support.html>`_. You can either compile it from source or use a Qt installer which automatically installs the pre-compiled libraries.
+
+After the Qt installation is completed, PyQt5 should be compiled. This library depends on SIP, another library to automatically generate Python bindings from C++ code. Download the latest SIP version `here <https://www.riverbankcomputing.com/software/sip/download>`_, extract it, navigate to the directory where it has been extracted and compile/install it (don't forget to execute these commands in the Visual Studio command line):
 
 .. code-block:: none
 
-    python -c "import wx"
+    python configure.py
+    nmake
+    nmake install
 
-This statement should proceed without error.
+Next, download PyQt5 from `here <https://sourceforge.net/projects/pyqt/files/PyQt5/>`_ and make sure that you download the version that matches with the version of Qt you installed in the previous steps. Extract the binary and compile it:
+
+.. code-block:: none
+
+    python configure.py
+    nmake
+    nmake install
+    python -c "import PyQt5" # this should work without any error
+
+Note that the installation can take a while. After it has finished, the PyQt5 library is installed correctly.
 
 pyWin32 Tools
 -------------
