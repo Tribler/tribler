@@ -17,11 +17,7 @@ class TestShutdownEndpoint(AbstractApiTest):
         def verify_shutdown_called(_):
             self.assertTrue(self.shutdown_called)
 
-        def fake_shutdown(checkpoint=True, gracetime=2.0, hacksessconfcheckpoint=True):
-            # Assert shutdown arguments
-            self.assertTrue(checkpoint)
-            self.assertEqual(2.0, gracetime)
-            self.assertTrue(hacksessconfcheckpoint)
+        def fake_shutdown():
             # Record session.shutdown was called
             self.shutdown_called = True
             # Restore original shutdown for test teardown
@@ -30,6 +26,6 @@ class TestShutdownEndpoint(AbstractApiTest):
 
         self.session.shutdown = fake_shutdown
 
-        expected_json = {"shutdown": True, "gracetime": 2.0}
+        expected_json = {"shutdown": True}
         return self.do_request('shutdown', expected_code=200, expected_json=expected_json, request_type='PUT')\
             .addCallback(verify_shutdown_called)
