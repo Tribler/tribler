@@ -404,6 +404,10 @@ class MultiChainCommunity(Community):
         :param tunnel: The tunnel that was removed (closed)
         :param candidate: The dispersy candidate with whom this node has interacted in the tunnel
         """
+        from Tribler.community.tunnel.tunnel_community import Circuit, RelayRoute, TunnelExitSocket
+        assert isinstance(tunnel, Circuit) or isinstance(tunnel, RelayRoute) or isinstance(tunnel, TunnelExitSocket), \
+            "on_tunnel_remove() was called with an object that is not a Circuit, RelayRoute or TunnelExitSocket"
+
         if isinstance(tunnel.bytes_up, int) and isinstance(tunnel.bytes_down, int):
             if tunnel.bytes_up > MEGA_DIVIDER or tunnel.bytes_down > MEGA_DIVIDER:
                 # Tie breaker to prevent both parties from requesting
