@@ -682,7 +682,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                 .subscribe(new Observer<ShutdownAck>() {
 
                     public void onNext(ShutdownAck response) {
-                        Log.v("shutdown", "grace_time = " + response.getGracetime());
+                        Log.v("shutdown", "shutdown = " + String.valueOf(response.isShutdown()));
                     }
 
                     public void onCompleted() {
