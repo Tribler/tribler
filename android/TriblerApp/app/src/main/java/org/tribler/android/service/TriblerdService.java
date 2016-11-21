@@ -51,7 +51,7 @@ public class TriblerdService extends PythonService {
     @Override
     public void onCreate() {
         super.onCreate();
-
+/*
         // Keep the CPU on
         PowerManager powerManager =
                 (PowerManager) getApplicationContext().getSystemService(POWER_SERVICE);
@@ -63,6 +63,7 @@ public class TriblerdService extends PythonService {
                 (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL, "Tribler");
         wifiLock.acquire();
+*/
     }
 
     /**
@@ -70,8 +71,8 @@ public class TriblerdService extends PythonService {
      */
     @Override
     public void onDestroy() {
-        wakeLock.release();
-        wifiLock.release();
+        //wakeLock.release();
+        //wifiLock.release();
         super.onDestroy();
     }
 
