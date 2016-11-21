@@ -6,6 +6,7 @@ import org.tribler.android.restapi.json.AddedAck;
 import org.tribler.android.restapi.json.AddedChannelAck;
 import org.tribler.android.restapi.json.AddedUrlAck;
 import org.tribler.android.restapi.json.ChannelsResponse;
+import org.tribler.android.restapi.json.DownloadStartedAck;
 import org.tribler.android.restapi.json.DownloadsResponse;
 import org.tribler.android.restapi.json.ModifiedAck;
 import org.tribler.android.restapi.json.MyChannelResponse;
@@ -34,7 +35,7 @@ import retrofit2.http.Query;
 import retrofit2.http.Streaming;
 import rx.Observable;
 
-public interface IRestApi {
+public interface IRestApi extends IRestApiChannels, IRestApiMyChannel, IRestApiChannelTorrents, IRestApiCreateTorrent, IRestApiDownloads {
 
     @GET("/events")
     @Streaming
@@ -48,32 +49,13 @@ public interface IRestApi {
             @Query("q") String query
     );
 
+}
+
+interface IRestApiChannels {
+
     @GET("/channels/popular")
     Observable<ChannelsResponse> getPopularChannels(
             @Query("limit") int limit
-    );
-
-    @GET("/channels/subscribed")
-    Observable<SubscribedChannelsResponse> getSubscribedChannels();
-
-    @PUT("/channels/subscribed/{dispersy_cid}")
-    Observable<SubscribedAck> subscribe(
-            @Path("dispersy_cid") String dispersyCid
-    );
-
-    @DELETE("/channels/subscribed/{dispersy_cid}")
-    Observable<UnsubscribedAck> unsubscribe(
-            @Path("dispersy_cid") String dispersyCid
-    );
-
-    @GET("/mychannel")
-    Observable<MyChannelResponse> getMyChannel();
-
-    @POST("/mychannel")
-    @FormUrlEncoded
-    Observable<ModifiedAck> editMyChannel(
-            @Field("name") String name,
-            @Field("description") String description
     );
 
     @PUT("/channels/discovered")
@@ -91,39 +73,31 @@ public interface IRestApi {
             @Field("mode") String mode
     );
 
-    @POST("/createtorrent")
-    @FormUrlEncoded
-    Observable<TorrentCreatedResponse> createTorrent(
-            @Field("files[]") String[] files
+    @GET("/channels/subscribed")
+    Observable<SubscribedChannelsResponse> getSubscribedChannels();
+
+    @PUT("/channels/subscribed/{dispersy_cid}")
+    Observable<SubscribedAck> subscribe(
+            @Path("dispersy_cid") String dispersyCid
     );
 
-    @POST("/createtorrent")
-    @FormUrlEncoded
-    Observable<TorrentCreatedResponse> createTorrent(
-            @Field("files[]") String[] files,
-            @Field("description") String description
+    @DELETE("/channels/subscribed/{dispersy_cid}")
+    Observable<UnsubscribedAck> unsubscribe(
+            @Path("dispersy_cid") String dispersyCid
     );
 
-    @POST("/createtorrent")
-    @FormUrlEncoded
-    Observable<TorrentCreatedResponse> createTorrent(
-            @Field("files[]") String[] files,
-            @Field("trackers[]") String[] trackers
-    );
+}
 
-    @POST("/createtorrent")
-    @FormUrlEncoded
-    Observable<TorrentCreatedResponse> createTorrent(
-            @Field("files[]") String[] files,
-            @Field("description") String description,
-            @Field("trackers[]") String[] trackers
-    );
+interface IRestApiChannelTorrents {
 
     @GET("/channels/discovered/{dispersy_cid}/torrents")
     Observable<TorrentsResponse> getTorrents(
             @Path("dispersy_cid") String dispersyCid
     );
 
+    /**
+     * @param disableFilter boolean
+     */
     @GET("/channels/discovered/{dispersy_cid}/torrents")
     Observable<TorrentsResponse> getTorrents(
             @Path("dispersy_cid") String dispersyCid,
@@ -171,27 +145,107 @@ public interface IRestApi {
             @Path("infohash") String infohash
     );
 
+}
+
+interface IRestApiMyChannel {
+
+    @GET("/mychannel")
+    Observable<MyChannelResponse> getMyChannel();
+
+    @POST("/mychannel")
+    @FormUrlEncoded
+    Observable<ModifiedAck> editMyChannel(
+            @Field("name") String name,
+            @Field("description") String description
+    );
+
+}
+
+interface IRestApiCreateTorrent {
+
+    @POST("/createtorrent")
+    @FormUrlEncoded
+    Observable<TorrentCreatedResponse> createTorrent(
+            @Field("files[]") String[] files
+    );
+
+    @POST("/createtorrent")
+    @FormUrlEncoded
+    Observable<TorrentCreatedResponse> createTorrent(
+            @Field("files[]") String[] files,
+            @Field("description") String description
+    );
+
+    @POST("/createtorrent")
+    @FormUrlEncoded
+    Observable<TorrentCreatedResponse> createTorrent(
+            @Field("files[]") String[] files,
+            @Field("trackers[]") String[] trackers
+    );
+
+    @POST("/createtorrent")
+    @FormUrlEncoded
+    Observable<TorrentCreatedResponse> createTorrent(
+            @Field("files[]") String[] files,
+            @Field("description") String description,
+            @Field("trackers[]") String[] trackers
+    );
+
+}
+
+interface IRestApiDownloads {
+
     @GET("/downloads")
     Observable<DownloadsResponse> getDownloads();
 
+    @PUT("/downloads")
+    Observable<DownloadStartedAck> startDownload(
+            @Path("uri") Uri torrentFile
+    );
+
+    /**
+     * @param safeSeeding boolean
+     */
+    @PUT("/downloads")
+    Observable<DownloadStartedAck> startDownload(
+            @Path("uri") Uri torrentFile,
+            @Field("anon_hops") int anonHops,
+            @Field("safe_seeding") int safeSeeding,
+            @Field("destination") String destination
+    );
+
+    @PUT("/downloads/{infohash}")
+    Observable<StartedAck> startDownload(
+            @Path("infohash") String infohash
+    );
+
+    /**
+     * @param safeSeeding boolean
+     */
     @PUT("/downloads/{infohash}")
     Observable<StartedAck> startDownload(
             @Path("infohash") String infohash,
             @Field("anon_hops") int anonHops,
-            @Field("safe_seeding") boolean safeSeeding,
+            @Field("safe_seeding") int safeSeeding,
             @Field("destination") String destination
     );
 
+    /**
+     * @param state "resume" "stop" "recheck"
+     */
     @PATCH("/downloads/{infohash}")
     Observable<StartedAck> modifyDownload(
             @Path("infohash") String infohash,
             @Field("state") String state
     );
 
+    /**
+     * @param removeData boolean
+     */
     @DELETE("/downloads/{infohash}")
     Observable<StartedAck> removeDownload(
             @Path("infohash") String infohash,
-            @Field("remove_data") boolean removeData
+            @Field("remove_data") int removeData
     );
 
 }

@@ -5,10 +5,10 @@ import java.util.List;
 public class TriblerDownload {
 
     private String name, infohash, destination;
-    private double progress, speed_down, speed_up, availability;
+    private double progress, speed_down, speed_up, availability, vod_prebuffering_progress, vod_prebuffering_progress_consec;
     private long size, max_upload_speed, max_download_speed;
     private int eta, num_peers, num_seeds, hops, total_pieces;
-    private boolean anon_download, safe_seeding;
+    private boolean anon_download, safe_seeding, vod_mod;
     private List<DownloadFile> files;
     private List<DownloadTracker> trackers;
     private List<DownloadPeer> peers;
@@ -82,6 +82,18 @@ public class TriblerDownload {
 
     public boolean isSafeSeeding() {
         return safe_seeding;
+    }
+
+    public boolean isVod_mod() {
+        return vod_mod;
+    }
+
+    public double getVod_prebuffering_progress_consec() {
+        return vod_prebuffering_progress_consec;
+    }
+
+    public double getVod_prebuffering_progress() {
+        return vod_prebuffering_progress;
     }
 
     public List<DownloadFile> getFiles() {
