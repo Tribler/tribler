@@ -1,11 +1,11 @@
 package org.tribler.android.restapi.json;
 
-public class DownloadStartedAck {
+public class StartedDownloadAck {
 
     private boolean started;
     private String infohash;
 
-    DownloadStartedAck() {
+    StartedDownloadAck() {
     }
 
     public boolean isStarted() {

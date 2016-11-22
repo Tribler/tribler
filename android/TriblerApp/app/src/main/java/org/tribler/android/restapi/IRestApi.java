@@ -6,7 +6,6 @@ import org.tribler.android.restapi.json.AddedAck;
 import org.tribler.android.restapi.json.AddedChannelAck;
 import org.tribler.android.restapi.json.AddedUrlAck;
 import org.tribler.android.restapi.json.ChannelsResponse;
-import org.tribler.android.restapi.json.DownloadStartedAck;
 import org.tribler.android.restapi.json.DownloadsResponse;
 import org.tribler.android.restapi.json.ModifiedAck;
 import org.tribler.android.restapi.json.MyChannelResponse;
@@ -14,6 +13,7 @@ import org.tribler.android.restapi.json.QueriedAck;
 import org.tribler.android.restapi.json.RemovedAck;
 import org.tribler.android.restapi.json.ShutdownAck;
 import org.tribler.android.restapi.json.StartedAck;
+import org.tribler.android.restapi.json.StartedDownloadAck;
 import org.tribler.android.restapi.json.SubscribedAck;
 import org.tribler.android.restapi.json.SubscribedChannelsResponse;
 import org.tribler.android.restapi.json.TorrentCreatedResponse;
@@ -199,7 +199,7 @@ interface IRestApiDownloads {
     Observable<DownloadsResponse> getDownloads();
 
     @PUT("/downloads")
-    Observable<DownloadStartedAck> startDownload(
+    Observable<StartedDownloadAck> startDownload(
             @Path("uri") Uri torrentFile
     );
 
@@ -207,7 +207,7 @@ interface IRestApiDownloads {
      * @param safeSeeding boolean
      */
     @PUT("/downloads")
-    Observable<DownloadStartedAck> startDownload(
+    Observable<StartedDownloadAck> startDownload(
             @Path("uri") Uri torrentFile,
             @Field("anon_hops") int anonHops,
             @Field("safe_seeding") int safeSeeding,
@@ -234,7 +234,7 @@ interface IRestApiDownloads {
      * @param state "resume" "stop" "recheck"
      */
     @PATCH("/downloads/{infohash}")
-    Observable<StartedAck> modifyDownload(
+    Observable<ModifiedAck> modifyDownload(
             @Path("infohash") String infohash,
             @Field("state") String state
     );
@@ -243,7 +243,7 @@ interface IRestApiDownloads {
      * @param removeData boolean
      */
     @DELETE("/downloads/{infohash}")
-    Observable<StartedAck> removeDownload(
+    Observable<RemovedAck> removeDownload(
             @Path("infohash") String infohash,
             @Field("remove_data") int removeData
     );

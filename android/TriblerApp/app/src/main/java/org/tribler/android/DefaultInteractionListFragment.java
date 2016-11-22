@@ -3,8 +3,10 @@ package org.tribler.android;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 import android.widget.Toast;
 
+import org.tribler.android.restapi.json.StartedAck;
 import org.tribler.android.restapi.json.SubscribedAck;
 import org.tribler.android.restapi.json.TriblerChannel;
 import org.tribler.android.restapi.json.TriblerTorrent;
