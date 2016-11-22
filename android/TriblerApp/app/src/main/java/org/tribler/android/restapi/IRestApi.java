@@ -11,6 +11,7 @@ import org.tribler.android.restapi.json.ModifiedAck;
 import org.tribler.android.restapi.json.MyChannelResponse;
 import org.tribler.android.restapi.json.QueriedAck;
 import org.tribler.android.restapi.json.RemovedAck;
+import org.tribler.android.restapi.json.SettingsResponse;
 import org.tribler.android.restapi.json.ShutdownAck;
 import org.tribler.android.restapi.json.StartedAck;
 import org.tribler.android.restapi.json.StartedDownloadAck;
@@ -237,5 +238,10 @@ public interface IRestApi {
             @Path("infohash") String infohash,
             @Field("remove_data") int removeData
     );
+
+////////// SETTINGS //////////
+
+    @GET("/settings")
+    Observable<SettingsResponse> getSettings();
 
 }
