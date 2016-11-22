@@ -322,7 +322,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
                             Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Torrent"), Toast.LENGTH_SHORT).show();
                             // Start seeding torrent immediately
-                            startDownload(response.getInfohash(), "Torrent")
+                            rxSubs.add(startDownload(response.getInfohash(), "Torrent")
                                     .observeOn(AndroidSchedulers.mainThread())
                                     .subscribe(new Observer<StartedAck>() {
 
@@ -338,7 +338,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
                                         public void onError(Throwable e) {
                                         }
-                                    });
+                                    }));
                         } else {
                             throw new Error("Torrent not added");
                         }
