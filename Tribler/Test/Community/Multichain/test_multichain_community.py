@@ -165,22 +165,13 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         self.assertEqual((up, down), node.call(node.community._get_next_total, 0, 0))
         self.assertEqual((down, up), other.call(other.community._get_next_total, 0, 0))
 
-    @skip("Skip tunnel test that does not make sense")
-    @raises(AttributeError)
+    @raises(AssertionError)
     def test_on_tunnel_remove_NoneType(self):
         """
         Test the on_tunnel_remove handler function to handle a NoneType
         """
-        # Arrange
         node, other = self.create_nodes(2)
-        other.send_identity(node)
-        # Act
-        try:
-            node.call(node.community.on_tunnel_remove, None, None, None, None)
-        except TypeError:
-            error = True
-        # Assert
-        self.assertTrue(error)
+        node.call(node.community.on_tunnel_remove, None, None, None, None)
 
     def test_schedule_block(self):
         """
