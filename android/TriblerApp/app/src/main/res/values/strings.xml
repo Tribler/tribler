@@ -103,6 +103,10 @@
     <string name="info_cancel_capture_image">No photo was taken</string>
     <string name="error_output_file">failed to obtain output file</string>
 
+    <string name="info_start_download_already">%s was already downloading!</string>
+    <string name="info_start_download_success">%s is now downloading!</string>
+    <string name="info_start_download_failure">Failed to start downloading %s</string>
+
     <string name="status_opening_eventstream">Starting service…</string>
     <string name="status_searching">Searching…</string>
     <string name="status_shutting_down">Shutting down…</string>

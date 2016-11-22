@@ -172,33 +172,87 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onClick(final TriblerTorrent torrent) {
-        String category = torrent.getCategory();
-        if (category == null) {
-            category = "";
-        }
-        switch (category) {
-            case "Video":
-                //TODO: watch now
-                Toast.makeText(context, "watch now", Toast.LENGTH_SHORT).show();
-                break;
 
-            case "Audio":
-                //TODO: listen now
-                Toast.makeText(context, "listen now", Toast.LENGTH_SHORT).show();
-                break;
+        startDownload(torrent.getInfohash(), torrent.getName())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<StartedAck>() {
 
-            case "Document":
-                //TODO: read now
-                Toast.makeText(context, "read now", Toast.LENGTH_SHORT).show();
-                break;
+                    public void onNext(StartedAck response) {
+                        if (response.isStarted()) {
+                            // Notify user
+                            String category = torrent.getCategory();
+                            if (category == null) {
+                                category = "";
+                            }
+                            switch (category) {
+                                case "Video":
+                                    Toast.makeText(context, "Watch now", Toast.LENGTH_SHORT).show();
+                                    break;
 
-            case "Compressed":
-            case "xxx":
-            case "other":
-                //TODO: download now
-                Toast.makeText(context, "download now", Toast.LENGTH_SHORT).show();
-                break;
-        }
+                                case "Audio":
+                                    Toast.makeText(context, "Listen now", Toast.LENGTH_SHORT).show();
+                                    break;
+
+                                case "Document":
+                                    Toast.makeText(context, "Read now", Toast.LENGTH_SHORT).show();
+                                    break;
+
+                                case "Compressed":
+                                case "xxx":
+                                case "other":
+                                    Toast.makeText(context, "Download now", Toast.LENGTH_SHORT).show();
+                                    break;
+                            }
+                        }
+                    }
+
+                    public void onCompleted() {
+                    }
+
+                    public void onError(Throwable e) {
+                    }
+                });
+
+    }
+
+    Observable<StartedAck> startDownload(final String infohash, final String name) {
+
+        Observable<StartedAck> observable = service.startDownload(infohash)
+                .subscribeOn(Schedulers.io())
+                .retryWhen(MyUtils::twoSecondsDelay)
+                .share();
+
+        rxSubs.add(observable
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<StartedAck>() {
+
+                    public void onNext(StartedAck response) {
+                        // Started?
+                        if (response.isStarted()) {
+                            Toast.makeText(context, String.format(context.getString(R.string.info_start_download_success), name), Toast.LENGTH_SHORT).show();
+                        } else {
+                            throw new Error(String.format("Failed to start download: %s \"%s\"", infohash, name));
+                        }
+                    }
+
+                    public void onCompleted() {
+                    }
+
+                    public void onError(Throwable e) {
+                        if (e instanceof HttpException && ((HttpException) e).code() == 409) {
+                            // Already started
+                            Toast.makeText(context, String.format(context.getString(R.string.info_start_download_already), name), Toast.LENGTH_SHORT).show();
+                        } else if (e instanceof HttpException && ((HttpException) e).code() == 400) {
+                            Log.e("startDownload", "error", e);
+                            // Failed to start
+                            Toast.makeText(context, String.format(context.getString(R.string.info_start_download_failure), name), Toast.LENGTH_SHORT).show();
+                        } else {
+                            MyUtils.onError(DefaultInteractionListFragment.this, "startDownload", e);
+                        }
+                    }
+                }));
+
+        return observable;
     }
 
     /**

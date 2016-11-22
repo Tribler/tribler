@@ -321,6 +321,24 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                             Log.v("addTorrent", String.format(context.getString(R.string.info_added_success), "Torrent"));
 
                             Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Torrent"), Toast.LENGTH_SHORT).show();
+                            // Start seeding torrent immediately
+                            startDownload(response.getInfohash(), "Torrent")
+                                    .observeOn(AndroidSchedulers.mainThread())
+                                    .subscribe(new Observer<StartedAck>() {
+
+                                        public void onNext(StartedAck response) {
+                                            if (response.isStarted()) {
+                                                // Notify user
+                                                Toast.makeText(context, "Seeding now", Toast.LENGTH_SHORT).show();
+                                            }
+                                        }
+
+                                        public void onCompleted() {
+                                        }
+
+                                        public void onError(Throwable e) {
+                                        }
+                                    });
                         } else {
                             throw new Error("Torrent not added");
                         }
