@@ -35,7 +35,7 @@ import retrofit2.http.Query;
 import retrofit2.http.Streaming;
 import rx.Observable;
 
-public interface IRestApi extends IRestApiChannels, IRestApiMyChannel, IRestApiChannelTorrents, IRestApiCreateTorrent, IRestApiDownloads {
+public interface IRestApi {
 
     @GET("/events")
     @Streaming
@@ -49,9 +49,7 @@ public interface IRestApi extends IRestApiChannels, IRestApiMyChannel, IRestApiC
             @Query("q") String query
     );
 
-}
-
-interface IRestApiChannels {
+////////// CHANNELS //////////
 
     @GET("/channels/popular")
     Observable<ChannelsResponse> getPopularChannels(
@@ -86,9 +84,7 @@ interface IRestApiChannels {
             @Path("dispersy_cid") String dispersyCid
     );
 
-}
-
-interface IRestApiChannelTorrents {
+////////// TORRENTS //////////
 
     @GET("/channels/discovered/{dispersy_cid}/torrents")
     Observable<TorrentsResponse> getTorrents(
@@ -145,9 +141,7 @@ interface IRestApiChannelTorrents {
             @Path("infohash") String infohash
     );
 
-}
-
-interface IRestApiMyChannel {
+////////// MY CHANNEL //////////
 
     @GET("/mychannel")
     Observable<MyChannelResponse> getMyChannel();
@@ -159,9 +153,7 @@ interface IRestApiMyChannel {
             @Field("description") String description
     );
 
-}
-
-interface IRestApiCreateTorrent {
+////////// CREATE TORRENT //////////
 
     @POST("/createtorrent")
     @FormUrlEncoded
@@ -191,9 +183,7 @@ interface IRestApiCreateTorrent {
             @Field("trackers[]") String[] trackers
     );
 
-}
-
-interface IRestApiDownloads {
+////////// DOWNLOADS //////////
 
     @GET("/downloads")
     Observable<DownloadsResponse> getDownloads();
