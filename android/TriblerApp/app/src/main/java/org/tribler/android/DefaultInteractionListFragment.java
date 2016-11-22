@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -15,6 +16,7 @@ import org.tribler.android.restapi.json.TriblerChannel;
 import org.tribler.android.restapi.json.TriblerTorrent;
 import org.tribler.android.restapi.json.UnsubscribedAck;
 
+import java.io.File;
 import java.util.Map;
 
 import retrofit2.adapter.rxjava.HttpException;
@@ -241,8 +243,9 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     }
 
     Observable<StartedAck> startDownload(final String infohash, final String name) {
+        File downloadDir = getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
 
-        Observable<StartedAck> observable = service.startDownload(infohash)
+        Observable<StartedAck> observable = service.startDownload(infohash, 0, 0, downloadDir.getAbsolutePath())
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .share();
