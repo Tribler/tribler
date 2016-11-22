@@ -127,7 +127,7 @@ class CoreManager(object):
             self.check_core_ready()
         elif state['state'] == 'STARTED':
             self.events_manager.connect(reschedule_on_err=False)
-        elif state['state'] == 'ERROR':
+        elif state['state'] == 'EXCEPTION':
             raise RuntimeError(state['last_exception'])
         else:
             self.check_core_ready()
