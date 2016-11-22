@@ -162,6 +162,7 @@ class TestLaunchManyCoreFullSession(TestAsServer):
 
         self.config.set_megacache(True)
         self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
+        self.config.set_mainline_dht(True)
 
     def get_community(self, community_cls):
         for community in self.session.get_dispersy_instance().get_communities():

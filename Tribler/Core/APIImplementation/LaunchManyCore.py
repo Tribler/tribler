@@ -23,6 +23,7 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadSt
 from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Modules.watch_folder import WatchFolder
+from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Video.VideoServer import VideoServer
@@ -298,13 +299,11 @@ class TriblerLaunchMany(TaskManager):
                 self.channel_manager = ChannelManager(self.session)
                 self.channel_manager.initialize()
 
-        from Tribler.Core.DecentralizedTracking import mainlineDHT
-        try:
+        if self.session.get_mainline_dht():
+            from Tribler.Core.DecentralizedTracking import mainlineDHT
             self.mainline_dht = mainlineDHT.init(('127.0.0.1', self.session.get_mainline_dht_listen_port()),
                                                  self.session.get_state_dir())
             self.upnp_ports.append((self.session.get_mainline_dht_listen_port(), 'UDP'))
-        except:
-            print_exc()
 
         if self.session.get_libtorrent():
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
@@ -315,12 +314,8 @@ class TriblerLaunchMany(TaskManager):
 
         # add task for tracker checking
         if self.session.get_torrent_checking():
-            try:
-                from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
-                self.torrent_checker = TorrentChecker(self.session)
-                self.torrent_checker.initialize()
-            except:
-                print_exc()
+            self.torrent_checker = TorrentChecker(self.session)
+            self.torrent_checker.initialize()
 
         if self.rtorrent_handler:
             self.rtorrent_handler.initialize()

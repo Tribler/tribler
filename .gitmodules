@@ -3,4 +3,4 @@
 	url = https://github.com/Tribler/dispersy.git
 [submodule "Tribler/Core/DecentralizedTracking/pymdht"]
 	path = Tribler/Core/DecentralizedTracking/pymdht
-	url = https://github.com/LipuFei/pymdht.git
+	url = https://github.com/devos50/pymdht.git
