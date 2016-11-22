@@ -295,6 +295,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                 .subscribe(new Observer<SettingsResponse>() {
 
                     public void onNext(SettingsResponse response) {
+                        Log.v("getSettings", response.getSettings().toString());
+
                         // Get video server port
                         Map<String, Map<String, Object>> settings = response.getSettings();
                         if (settings.containsKey("video")) {
@@ -303,6 +305,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                                 Object port = videoSettings.get("port");
                                 if (port instanceof Integer) {
                                     videoServerPort = (int) port;
+
+                                    Log.v("getSettings", "video server port = " + videoServerPort);
                                 }
                             }
                         }
