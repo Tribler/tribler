@@ -119,7 +119,11 @@ class DownloadsDetailsTabWidget(QTabWidget):
         item.setText(5, peer['extended_version'])
 
     def on_right_click_file_item(self, pos):
-        self.selected_item = self.window().download_files_list.selectedItems()[0]
+        item_clicked = self.window().download_files_list.itemAt(pos)
+        if not item_clicked:
+            return
+
+        self.selected_item = item_clicked
         file_data = self.selected_item.data(0, Qt.UserRole)
 
         menu = TriblerActionMenu(self)

@@ -259,7 +259,11 @@ class DownloadsPage(QWidget):
         self.window().tray_icon.showMessage("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
     def on_right_click_item(self, pos):
-        self.selected_item = self.window().downloads_list.selectedItems()[0]
+        item_clicked = self.window().downloads_list.itemAt(pos)
+        if not item_clicked:
+            return
+
+        self.selected_item = item_clicked
 
         menu = TriblerActionMenu(self)
 
