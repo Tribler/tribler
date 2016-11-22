@@ -3,14 +3,19 @@ package org.tribler.android;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
+import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
+import org.tribler.android.restapi.json.SettingsResponse;
 import org.tribler.android.restapi.json.StartedAck;
 import org.tribler.android.restapi.json.SubscribedAck;
 import org.tribler.android.restapi.json.TriblerChannel;
 import org.tribler.android.restapi.json.TriblerTorrent;
 import org.tribler.android.restapi.json.UnsubscribedAck;
+
+import java.util.Map;
 
 import retrofit2.adapter.rxjava.HttpException;
 import rx.Observable;
@@ -21,6 +26,17 @@ import rx.schedulers.Schedulers;
 public class DefaultInteractionListFragment extends ListFragment implements ListFragment.IListFragmentInteractionListener {
 
     public static final int CHANNEL_ACTIVITY_REQUEST_CODE = 301;
+
+    private int videoServerPort = -1;
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        getSettings();
+    }
 
     /**
      * {@inheritDoc}
@@ -173,7 +189,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     @Override
     public void onClick(final TriblerTorrent torrent) {
 
-        startDownload(torrent.getInfohash(), torrent.getName())
+        rxSubs.add(startDownload(torrent.getInfohash(), torrent.getName())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<StartedAck>() {
 
@@ -204,6 +220,15 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                                     break;
                             }
                         }
+                        if (videoServerPort > 0) {
+                            // Play video
+                            Uri uri = Uri.parse("127.0.0.1:" + videoServerPort + "/" + torrent.getInfohash() + "/1");
+                            Intent viewIntent = MyUtils.viewUriIntent(uri);
+                            viewIntent.setType("video/*");
+                            startActivity(viewIntent);
+                        } else {
+                            //TODO: retry
+                        }
                     }
 
                     public void onCompleted() {
@@ -211,7 +236,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
                     public void onError(Throwable e) {
                     }
-                });
+                }));
 
     }
 
@@ -249,6 +274,42 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                         } else {
                             MyUtils.onError(DefaultInteractionListFragment.this, "startDownload", e);
                         }
+                    }
+                }));
+
+        return observable;
+    }
+
+    Observable<SettingsResponse> getSettings() {
+
+        Observable<SettingsResponse> observable = service.getSettings()
+                .subscribeOn(Schedulers.io())
+                .retryWhen(MyUtils::twoSecondsDelay)
+                .share();
+
+        rxSubs.add(observable
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<SettingsResponse>() {
+
+                    public void onNext(SettingsResponse response) {
+                        // Get video server port
+                        Map<String, Map<String, Object>> settings = response.getSettings();
+                        if (settings.containsKey("video")) {
+                            Map<String, Object> videoSettings = settings.get("video");
+                            if (videoSettings.containsKey("port")) {
+                                Object port = videoSettings.get("port");
+                                if (port instanceof Integer) {
+                                    videoServerPort = (int) port;
+                                }
+                            }
+                        }
+                    }
+
+                    public void onCompleted() {
+                    }
+
+                    public void onError(Throwable e) {
+                        MyUtils.onError(DefaultInteractionListFragment.this, "getSettings", e);
                     }
                 }));
 
