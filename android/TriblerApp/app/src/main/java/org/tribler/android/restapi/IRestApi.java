@@ -198,6 +198,7 @@ public interface IRestApi {
      * @param safeSeeding boolean
      */
     @PUT("/downloads")
+    @FormUrlEncoded
     Observable<StartedDownloadAck> startDownload(
             @Path("uri") Uri torrentFile,
             @Field("anon_hops") int anonHops,
@@ -214,6 +215,7 @@ public interface IRestApi {
      * @param safeSeeding boolean
      */
     @PUT("/downloads/{infohash}")
+    @FormUrlEncoded
     Observable<StartedAck> startDownload(
             @Path("infohash") String infohash,
             @Field("anon_hops") int anonHops,
@@ -225,6 +227,7 @@ public interface IRestApi {
      * @param state "resume" "stop" "recheck"
      */
     @PATCH("/downloads/{infohash}")
+    @FormUrlEncoded
     Observable<ModifiedAck> modifyDownload(
             @Path("infohash") String infohash,
             @Field("state") String state
@@ -234,6 +237,7 @@ public interface IRestApi {
      * @param removeData boolean
      */
     @DELETE("/downloads/{infohash}")
+    @FormUrlEncoded
     Observable<RemovedAck> removeDownload(
             @Path("infohash") String infohash,
             @Field("remove_data") int removeData
