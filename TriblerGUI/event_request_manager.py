@@ -17,6 +17,8 @@ class EventRequestManager(QNetworkAccessManager):
     received_search_result_torrent = pyqtSignal(object)
     tribler_started = pyqtSignal()
     upgrader_tick = pyqtSignal(str)
+    upgrader_started = pyqtSignal()
+    upgrader_finished = pyqtSignal()
     new_version_available = pyqtSignal(str)
     discovered_channel = pyqtSignal(object)
     discovered_torrent = pyqtSignal(object)
@@ -69,6 +71,10 @@ class EventRequestManager(QNetworkAccessManager):
                     self.tribler_started.emit()
                 elif json_dict["type"] == "new_version_available":
                     self.new_version_available.emit(json_dict["event"]["version"])
+                elif json_dict["type"] == "upgrader_started":
+                    self.upgrader_started.emit()
+                elif json_dict["type"] == "upgrader_finished":
+                    self.upgrader_finished.emit()
                 elif json_dict["type"] == "upgrader_tick":
                     self.upgrader_tick.emit(json_dict["event"]["text"])
                 elif json_dict["type"] == "channel_discovered":
