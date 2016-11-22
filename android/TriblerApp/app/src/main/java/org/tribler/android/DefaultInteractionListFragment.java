@@ -305,9 +305,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                                 Object port = videoSettings.get("port");
                                 if (port instanceof Integer) {
                                     videoServerPort = (int) port;
-
-                                    Log.v("getSettings", "video server port = " + videoServerPort);
+                                } else if (port instanceof String) {
+                                    videoServerPort = Integer.valueOf((String) port);
                                 }
+                                Log.v("getSettings", "video server port = " + videoServerPort);
                             }
                         }
                     }
