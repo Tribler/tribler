@@ -130,7 +130,6 @@ class TriblerUpgrader(object):
 
             self.failed = False
             self.is_done = True
-            self.notify_done()
         except Exception as e:
             self._logger.exception(u"failed to upgrade: %s", e)
 
