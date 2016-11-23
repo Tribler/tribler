@@ -19,6 +19,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Parcelable;
 import android.provider.MediaStore;
+import android.util.Base64;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
@@ -94,6 +95,12 @@ public class MyUtils {
             type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
         }
         return type;
+    }
+
+    public static Intent broadcastMediaIntent(Uri uri) {
+        Intent intent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        intent.setData(uri);
+        return intent;
     }
 
     public static Intent viewUriIntent(Uri uri) {
@@ -235,6 +242,24 @@ public class MyUtils {
             } catch (IOException ex) {
             }
             output.close();
+        }
+    }
+
+    public static void moveDir(File dirFrom, File dirTo) {
+        dirTo.mkdirs();
+        for (File file : dirFrom.listFiles()) {
+            file.renameTo(new File(dirTo, file.getName()));
+        }
+    }
+
+    public static void writeBase64ToFile(String b64, File torrentFile) throws IOException {
+        FileOutputStream out = null;
+        try {
+            byte[] data = Base64.decode(b64, Base64.DEFAULT);
+            out = new FileOutputStream(torrentFile);
+            out.write(data);
+        } finally {
+            out.close();
         }
     }
 

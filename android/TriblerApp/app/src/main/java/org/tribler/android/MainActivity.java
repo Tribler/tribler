@@ -219,6 +219,9 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
             case ACTION_PUBLISH:
                 Log.v("ACTION_PUBLISH", intent.getDataString());
 
+                // Add to gallery
+                sendBroadcast(MyUtils.broadcastMediaIntent(intent.getData()));
+
                 Fragment fragment = getCurrentFragment();
                 if (fragment instanceof MyChannelFragment) {
                     // Handle intent only once
