@@ -1534,7 +1534,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         if infohash:
             self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, None,
                                  {"infohash": str2bin(infohash).encode('hex'),
-                                  "dispersy_cid": dispersy_cid.encode('hex')})
+                                  "dispersy_cid": str(dispersy_cid).encode('hex')})
 
     def on_torrent_modification_from_dispersy(self, channeltorrent_id, modification_type, modification_value):
         if modification_type in ['name', 'description']:
