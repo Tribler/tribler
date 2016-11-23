@@ -7,7 +7,6 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.nfc.NdefRecord;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -35,7 +34,7 @@ import org.tribler.android.restapi.json.ChannelOverview;
 import org.tribler.android.restapi.json.ModifiedAck;
 import org.tribler.android.restapi.json.MyChannelResponse;
 import org.tribler.android.restapi.json.RemovedAck;
-import org.tribler.android.restapi.json.StartedAck;
+import org.tribler.android.restapi.json.StartedDownloadAck;
 import org.tribler.android.restapi.json.TorrentCreatedResponse;
 import org.tribler.android.restapi.json.TriblerTorrent;
 
@@ -140,6 +139,18 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     public void reload() {
         super.reload();
         loadMyChannelTorrents();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onClick(final TriblerTorrent torrent) {
+        File destination = new File(getContext().getExternalCacheDir(), torrent.getName());
+        destination.mkdirs();
+
+        File torrentFile = new File(destination, torrent.getName() + ".torrent");
+        startSeeding(torrentFile);
     }
 
     /**
@@ -282,23 +293,27 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
                     public void onNext(TorrentCreatedResponse response) {
                         Log.v("createTorrent", String.format(context.getString(R.string.info_created_success), "Torrent"));
+
                         Toast.makeText(context, String.format(context.getString(R.string.info_created_success), "Torrent"), Toast.LENGTH_SHORT).show();
 
-                        File destination = new File(getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), file.getName());
-                        destination.mkdirs();
-
                         // Add to my channel immediately
-                        addTorrent(response.getTorrent(), destination);
+                        addTorrent(response.getTorrent());
 
                         // Move to downloads dir for seeding
-                        MyUtils.moveDir(file.getParentFile(), destination);
+                        //File destination = new File(getContext().getExternalCacheDir(), file.getName());
+                        //destination.mkdirs();
+                        //MyUtils.moveDir(file.getParentFile(), destination);
+
+                        // Save torrent file
+                        File torrentFile = new File(file.getParentFile(), file.getName() + ".torrent");
                         try {
-                            // Save torrent file
-                            File torrentFile = new File(destination, file.getName() + ".torrent");
                             MyUtils.writeBase64ToFile(response.getTorrent(), torrentFile);
                         } catch (IOException ex) {
                             Log.e("writeBase64ToFile", "failed", ex);
                         }
+
+                        // Start seeding immediately
+                        startSeeding(torrentFile);
                     }
 
                     public void onCompleted() {
@@ -319,7 +334,30 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 }));
     }
 
-    private void addTorrent(final String torrent_b64, final File dir) {
+    private void startSeeding(final File torrentFile) {
+        Uri uri = Uri.fromFile(torrentFile);
+        Log.v("startSeeding", String.format("File: %s Uri: %s", torrentFile.getAbsoluteFile(), uri.toString()));
+
+        rxSubs.add(startDownload(uri, "Torrent", torrentFile.getParentFile().getParentFile()) // workaround subdir bug
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<StartedDownloadAck>() {
+
+                    public void onNext(StartedDownloadAck response) {
+                        if (response.isStarted()) {
+                            // Notify user
+                            Toast.makeText(context, "Seeding now", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    public void onCompleted() {
+                    }
+
+                    public void onError(Throwable e) {
+                    }
+                }));
+    }
+
+    private void addTorrent(final String torrent_b64) {
         adapter.clear();
         showLoading(R.string.status_adding_torrent);
 
@@ -333,26 +371,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         // Added?
                         if (response.isAdded()) {
                             Log.v("addTorrent", String.format(context.getString(R.string.info_added_success), "Torrent"));
+
                             Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Torrent"), Toast.LENGTH_SHORT).show();
-
-                            // Start seeding immediately
-                            rxSubs.add(startDownload(response.getInfohash(), "Torrent", dir)
-                                    .observeOn(AndroidSchedulers.mainThread())
-                                    .subscribe(new Observer<StartedAck>() {
-
-                                        public void onNext(StartedAck response) {
-                                            if (response.isStarted()) {
-                                                // Notify user
-                                                Toast.makeText(context, "Seeding now", Toast.LENGTH_SHORT).show();
-                                            }
-                                        }
-
-                                        public void onCompleted() {
-                                        }
-
-                                        public void onError(Throwable e) {
-                                        }
-                                    }));
                         } else {
                             throw new Error("Torrent not added");
                         }
@@ -621,7 +641,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                                 .subscribe(new Observer<File>() {
 
                                     public void onNext(File file) {
-                                        createTorrent(file, true);
+                                        createTorrent(file, false);
                                     }
 
                                     public void onCompleted() {

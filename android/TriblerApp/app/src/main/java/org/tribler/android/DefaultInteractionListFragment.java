@@ -5,16 +5,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
 import android.widget.Toast;
 
-import org.tribler.android.restapi.json.SettingsResponse;
 import org.tribler.android.restapi.json.StartedAck;
+import org.tribler.android.restapi.json.StartedDownloadAck;
 import org.tribler.android.restapi.json.SubscribedAck;
 import org.tribler.android.restapi.json.TriblerChannel;
 import org.tribler.android.restapi.json.TriblerTorrent;
 import org.tribler.android.restapi.json.UnsubscribedAck;
+import org.tribler.android.restapi.json.VariablesResponse;
 
 import java.io.File;
 import java.util.Map;
@@ -37,7 +37,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getSettings();
+        getVariables();
     }
 
     /**
@@ -190,7 +190,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onClick(final TriblerTorrent torrent) {
-        File destination = new File(getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), torrent.getName());
+        File destination = new File(getContext().getExternalCacheDir(), torrent.getName());
         destination.mkdirs();
 
         rxSubs.add(startDownload(torrent.getInfohash(), torrent.getName(), destination)
@@ -224,6 +224,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                                     break;
                             }
                         }
+                        Log.v("videoServerPort", " = " + videoServerPort);
+
                         if (videoServerPort > 0) {
                             // Play video
                             Uri uri = Uri.parse("127.0.0.1:" + videoServerPort + "/" + torrent.getInfohash() + "/1");
@@ -239,9 +241,59 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     }
 
                     public void onError(Throwable e) {
+                        Log.v("videoServerPort", " = " + videoServerPort);
+
+                        // Play video
+                        Uri uri = Uri.parse("127.0.0.1:" + videoServerPort + "/" + torrent.getInfohash() + "/1");
+                        Intent viewIntent = MyUtils.viewUriIntent(uri);
+                        viewIntent.setType("video/*");
+                        startActivity(viewIntent);
                     }
                 }));
 
+    }
+
+    Observable<StartedDownloadAck> startDownload(final Uri uri, final String name, final File destination) {
+        Log.v("startDownload", String.format("Starting download: %s \"%s\" %s", uri.toString(), name, destination.getAbsolutePath()));
+
+        Observable<StartedDownloadAck> observable = service.startDownload(uri, 0, 0, destination.getAbsolutePath())
+                .subscribeOn(Schedulers.io())
+                .retryWhen(MyUtils::twoSecondsDelay)
+                .share();
+
+        rxSubs.add(observable
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<StartedDownloadAck>() {
+
+                    public void onNext(StartedDownloadAck response) {
+                        // Started?
+                        if (response.isStarted()) {
+                            Log.v("startDownload", String.format("Download started: %s \"%s\"", response.getInfohash(), name));
+
+                            Toast.makeText(context, String.format(context.getString(R.string.info_start_download_success), name), Toast.LENGTH_SHORT).show();
+                        } else {
+                            throw new Error(String.format("Failed to start download: %s \"%s\"", response.getInfohash(), name));
+                        }
+                    }
+
+                    public void onCompleted() {
+                    }
+
+                    public void onError(Throwable e) {
+                        if (e instanceof HttpException && ((HttpException) e).code() == 500) { //FIXME: 500
+                            // Already started
+                            Toast.makeText(context, String.format(context.getString(R.string.info_start_download_already), name), Toast.LENGTH_SHORT).show();
+                        } else if (e instanceof HttpException && ((HttpException) e).code() == 400) {
+                            Log.e("startDownload", "error", e);
+                            // Failed to start
+                            Toast.makeText(context, String.format(context.getString(R.string.info_start_download_failure), name), Toast.LENGTH_SHORT).show();
+                        } else {
+                            MyUtils.onError(DefaultInteractionListFragment.this, "startDownload", e);
+                        }
+                    }
+                }));
+
+        return observable;
     }
 
     Observable<StartedAck> startDownload(final String infohash, final String name, final File destination) {
@@ -287,32 +339,32 @@ public class DefaultInteractionListFragment extends ListFragment implements List
         return observable;
     }
 
-    Observable<SettingsResponse> getSettings() {
+    Observable<VariablesResponse> getVariables() {
 
-        Observable<SettingsResponse> observable = service.getSettings()
+        Observable<VariablesResponse> observable = service.getVariables()
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .share();
 
         rxSubs.add(observable
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<SettingsResponse>() {
+                .subscribe(new Observer<VariablesResponse>() {
 
-                    public void onNext(SettingsResponse response) {
-                        Log.v("getSettings", response.getSettings().toString());
+                    public void onNext(VariablesResponse response) {
+                        Log.v("getVariables", response.getVariables().toString());
 
                         // Get video server port
-                        Map<String, Map<String, Object>> settings = response.getSettings();
-                        if (settings.containsKey("video")) {
-                            Map<String, Object> videoSettings = settings.get("video");
-                            if (videoSettings.containsKey("port")) {
-                                Object port = videoSettings.get("port");
+                        Map<String, Map<String, Object>> settings = response.getVariables();
+                        if (settings.containsKey("ports")) {
+                            Map<String, Object> ports = settings.get("ports");
+                            if (ports.containsKey("video~port")) {
+                                Object port = ports.get("video~port");
                                 if (port instanceof Integer) {
                                     videoServerPort = (int) port;
                                 } else if (port instanceof String) {
                                     videoServerPort = Integer.valueOf((String) port);
                                 }
-                                Log.v("getSettings", "video server port = " + videoServerPort);
+                                Log.v("getVariables", "video server port = " + videoServerPort);
                             }
                         }
                     }
@@ -321,7 +373,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     }
 
                     public void onError(Throwable e) {
-                        MyUtils.onError(DefaultInteractionListFragment.this, "getSettings", e);
+                        MyUtils.onError(DefaultInteractionListFragment.this, "getVariables", e);
                     }
                 }));
 

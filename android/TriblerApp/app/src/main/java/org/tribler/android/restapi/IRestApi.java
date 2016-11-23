@@ -21,6 +21,7 @@ import org.tribler.android.restapi.json.TorrentCreatedResponse;
 import org.tribler.android.restapi.json.TorrentsResponse;
 import org.tribler.android.restapi.json.TriblerTorrent;
 import org.tribler.android.restapi.json.UnsubscribedAck;
+import org.tribler.android.restapi.json.VariablesResponse;
 
 import java.io.Serializable;
 
@@ -190,8 +191,9 @@ public interface IRestApi {
     Observable<DownloadsResponse> getDownloads();
 
     @PUT("/downloads")
+    @FormUrlEncoded
     Observable<StartedDownloadAck> startDownload(
-            @Path("uri") Uri torrentFile
+            @Field("uri") Uri torrentFile
     );
 
     /**
@@ -200,7 +202,7 @@ public interface IRestApi {
     @PUT("/downloads")
     @FormUrlEncoded
     Observable<StartedDownloadAck> startDownload(
-            @Path("uri") Uri torrentFile,
+            @Field("uri") Uri torrentFile,
             @Field("anon_hops") int anonHops,
             @Field("safe_seeding") int safeSeeding,
             @Field("destination") String destination
@@ -247,5 +249,8 @@ public interface IRestApi {
 
     @GET("/settings")
     Observable<SettingsResponse> getSettings();
+
+    @GET("/variables")
+    Observable<VariablesResponse> getVariables();
 
 }
