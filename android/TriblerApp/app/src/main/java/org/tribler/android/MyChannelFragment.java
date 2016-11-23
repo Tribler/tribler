@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.nfc.NdefRecord;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -281,15 +282,28 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
                     public void onNext(TorrentCreatedResponse response) {
                         Log.v("createTorrent", String.format(context.getString(R.string.info_created_success), "Torrent"));
-
                         Toast.makeText(context, String.format(context.getString(R.string.info_created_success), "Torrent"), Toast.LENGTH_SHORT).show();
+
+                        File destination = new File(getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), file.getName());
+                        destination.mkdirs();
+
                         // Add to my channel immediately
-                        addTorrent(response.getTorrent());
+                        addTorrent(response.getTorrent(), destination);
+
+                        // Move to downloads dir for seeding
+                        MyUtils.moveDir(file.getParentFile(), destination);
+                        try {
+                            // Save torrent file
+                            File torrentFile = new File(destination, file.getName() + ".torrent");
+                            MyUtils.writeBase64ToFile(response.getTorrent(), torrentFile);
+                        } catch (IOException ex) {
+                            Log.e("writeBase64ToFile", "failed", ex);
+                        }
                     }
 
                     public void onCompleted() {
                         if (delete) {
-                            AssetExtract.recursiveDelete(new File(file.getParent()));
+                            AssetExtract.recursiveDelete(file.getParentFile());
                         }
                     }
 
@@ -305,7 +319,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 }));
     }
 
-    private void addTorrent(final String torrent_b64) {
+    private void addTorrent(final String torrent_b64, final File dir) {
         adapter.clear();
         showLoading(R.string.status_adding_torrent);
 
@@ -319,10 +333,10 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         // Added?
                         if (response.isAdded()) {
                             Log.v("addTorrent", String.format(context.getString(R.string.info_added_success), "Torrent"));
-
                             Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Torrent"), Toast.LENGTH_SHORT).show();
-                            // Start seeding torrent immediately
-                            rxSubs.add(startDownload(response.getInfohash(), "Torrent")
+
+                            // Start seeding immediately
+                            rxSubs.add(startDownload(response.getInfohash(), "Torrent", dir)
                                     .observeOn(AndroidSchedulers.mainThread())
                                     .subscribe(new Observer<StartedAck>() {
 

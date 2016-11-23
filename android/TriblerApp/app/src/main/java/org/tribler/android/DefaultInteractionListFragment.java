@@ -190,8 +190,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onClick(final TriblerTorrent torrent) {
+        File destination = new File(getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), torrent.getName());
+        destination.mkdirs();
 
-        rxSubs.add(startDownload(torrent.getInfohash(), torrent.getName())
+        rxSubs.add(startDownload(torrent.getInfohash(), torrent.getName(), destination)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<StartedAck>() {
 
@@ -242,10 +244,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
     }
 
-    Observable<StartedAck> startDownload(final String infohash, final String name) {
-        File downloadDir = getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+    Observable<StartedAck> startDownload(final String infohash, final String name, final File destination) {
+        Log.v("startDownload", String.format("Starting download: %s \"%s\" %s", infohash, name, destination.getAbsolutePath()));
 
-        Observable<StartedAck> observable = service.startDownload(infohash, 0, 0, downloadDir.getAbsolutePath())
+        Observable<StartedAck> observable = service.startDownload(infohash, 0, 0, destination.getAbsolutePath())
                 .subscribeOn(Schedulers.io())
                 .retryWhen(MyUtils::twoSecondsDelay)
                 .share();
@@ -257,6 +259,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     public void onNext(StartedAck response) {
                         // Started?
                         if (response.isStarted()) {
+                            Log.v("startDownload", String.format("Download started: %s \"%s\"", infohash, name));
+
                             Toast.makeText(context, String.format(context.getString(R.string.info_start_download_success), name), Toast.LENGTH_SHORT).show();
                         } else {
                             throw new Error(String.format("Failed to start download: %s \"%s\"", infohash, name));
