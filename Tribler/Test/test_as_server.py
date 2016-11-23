@@ -173,6 +173,9 @@ class AbstractServer(BaseTestCase):
             self.assertNotIsInstance(reader, BasePort,
                                      "Listening ports left on the reactor during %s: %s" % (phase, reader))
 
+        # Check whether the threadpool is clean
+        self.assertFalse(reactor.getThreadPool().working)
+
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self, annotate=True):
