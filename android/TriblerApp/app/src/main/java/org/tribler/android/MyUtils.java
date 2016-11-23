@@ -103,6 +103,16 @@ public class MyUtils {
         return intent;
     }
 
+    public static Intent viewVideoIntent(Uri uri, String title) {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndTypeAndNormalize(uri, "video/*");
+        intent.putExtra("title", title);
+        intent.putExtra("from_start", true);
+        //intent.putExtra("position", 90000l);
+        //intent.putExtra("subtitles_location", "/sdcard/Movies/example.srt");
+        return intent;
+    }
+
     public static Intent viewUriIntent(Uri uri) {
         return new Intent(Intent.ACTION_VIEW, uri);
     }

@@ -229,8 +229,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                         if (videoServerPort > 0) {
                             // Play video
                             Uri uri = Uri.parse("http://127.0.0.1:" + videoServerPort + "/" + torrent.getInfohash() + "/0");
-                            Intent viewIntent = MyUtils.viewUriIntent(uri);
-                            viewIntent.setType("video/*");
+                            Intent viewIntent = MyUtils.viewVideoIntent(uri, torrent.getName());
                             startActivity(viewIntent);
                         } else {
                             //TODO: retry
@@ -245,8 +244,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
                         // Play video
                         Uri uri = Uri.parse("http://127.0.0.1:" + videoServerPort + "/" + torrent.getInfohash() + "/0");
-                        Intent viewIntent = MyUtils.viewUriIntent(uri);
-                        viewIntent.setType("video/*");
+                        Intent viewIntent = MyUtils.viewVideoIntent(uri, torrent.getName());
                         startActivity(viewIntent);
                     }
                 }));
