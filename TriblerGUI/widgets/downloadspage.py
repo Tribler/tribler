@@ -71,6 +71,9 @@ class DownloadsPage(QWidget):
         self.request_mgr.perform_request(url, self.on_received_downloads)
 
     def on_received_downloads(self, downloads):
+        if not downloads:
+            return  # This might happen when closing Tribler
+
         total_download = 0
         total_upload = 0
         self.received_downloads.emit(downloads)
