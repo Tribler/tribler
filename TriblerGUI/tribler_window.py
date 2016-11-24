@@ -58,7 +58,7 @@ class TriblerWindow(QMainWindow):
         self.downloads_page.stop_loading_downloads()
 
         if not self.core_manager.shutting_down:
-            self.core_manager.stop()
+            self.core_manager.stop(stop_app_on_shutdown=False)
 
         self.setHidden(True)
 

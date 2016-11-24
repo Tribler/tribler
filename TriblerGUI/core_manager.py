@@ -129,11 +129,13 @@ class CoreManager(object):
         else:
             self.check_core_ready()
 
-    def stop(self):
+    def stop(self, stop_app_on_shutdown=True):
         if self.core_process:
             self.request_mgr = TriblerRequestManager()
             self.request_mgr.perform_request("shutdown", lambda _: None, method="PUT")
-            self.stop_timer.start()
+
+            if stop_app_on_shutdown:
+                self.stop_timer.start(100)
 
     def throw_core_exception(self):
         raise RuntimeError(self.recorded_stderr)
