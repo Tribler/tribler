@@ -131,7 +131,8 @@ class CoreManager(object):
 
     def stop(self):
         if self.core_process:
-            self.core_process.terminate()
+            self.request_mgr = TriblerRequestManager()
+            self.request_mgr.perform_request("shutdown", lambda _: None, method="PUT")
             self.stop_timer.start()
 
     def throw_core_exception(self):
