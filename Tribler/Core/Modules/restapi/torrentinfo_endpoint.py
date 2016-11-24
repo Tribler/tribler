@@ -44,7 +44,11 @@ class TorrentInfoEndpoint(resource.Resource):
         def on_got_metainfo(metainfo):
             if self.infohash:
                 # Save the torrent to our store
-                self.session.save_collected_torrent(self.infohash, bencode(metainfo))
+                try:
+                    self.session.save_collected_torrent(self.infohash, bencode(metainfo))
+                except TypeError:
+                    # TODO(Martijn): in libtorrent 1.1.1, bencode throws a TypeError which is a known bug
+                    pass
 
             del metainfo['info']['pieces']
             request.write(json.dumps({"metainfo": metainfo}))
