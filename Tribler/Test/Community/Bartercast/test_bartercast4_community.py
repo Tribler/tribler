@@ -41,7 +41,6 @@ class TestBarterCommunity(TestAsServer):
 
         self.session2 = Session(self.config2, ignore_singleton=True)
 
-        self.session2.prestart()
         yield self.session2.start()
         self.load_communities(self.session2, self.session2.get_dispersy_instance())
 

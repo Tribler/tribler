@@ -52,7 +52,6 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.config2.set_state_dir(self.getStateDir(2))
 
         self.session2 = Session(self.config2, ignore_singleton=True)
-        self.session2.prestart()
         return self.session2.start()
 
     @deferred(timeout=20)

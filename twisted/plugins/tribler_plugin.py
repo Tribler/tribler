@@ -105,12 +105,8 @@ class TriblerServiceMaker(object):
             config.set_listen_port(options["libtorrent"])
 
         self.session = Session(config)
-        upgrader = self.session.prestart()
-        if upgrader.failed:
-            self.shutdown_process("The upgrader failed: .Tribler directory backed up, aborting")
-        else:
-            self.session.start()
-            msg("Tribler started")
+        self.session.start().addErrback(lambda failure: self.shutdown_process(failure.getErrorMessage()))
+        msg("Tribler started")
 
         if "auto-join-channel" in options and options["auto-join-channel"]:
             msg("Enabling auto-joining of channels")

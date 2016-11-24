@@ -241,14 +241,8 @@ class Tunnel(object):
         config.set_tunnel_community_enabled(False)
 
         self.session = Session(config)
-        upgrader = self.session.prestart()
-        if upgrader.failed:
-            msg("The upgrader failed: .Tribler directory backed up, aborting")
-            reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
-            reactor.stop()
-        else:
-            self.session.start()
-            logger.info("Using Dispersy port %d" % self.session.get_dispersy_port())
+        self.session.start()
+        logger.info("Using Dispersy port %d" % self.session.get_dispersy_port())
 
     def start(self, introduce_port):
         def start_community():

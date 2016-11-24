@@ -54,9 +54,6 @@ def start_tribler_core(base_path):
             return
 
         session = Session(config)
-        upgrader = session.prestart()
-        if upgrader.failed:
-            pass
 
         signal.signal(signal.SIGTERM, lambda signum, stack: shutdown(session, signum, stack))
         session.start()
