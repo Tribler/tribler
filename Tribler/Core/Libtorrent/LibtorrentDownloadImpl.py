@@ -825,8 +825,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             return self.curspeeds[dir]
 
     def _on_resume_err(self, failure):
-        failure.trap(CancelledError)
-        self._logger.error("Resume data cancelled")
+        failure.trap(CancelledError, SaveResumeDataError)
+        self._logger.error("Resume data failed to save: %s", failure.getErrorMessage())
 
     def save_resume_data(self):
         """

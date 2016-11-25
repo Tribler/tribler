@@ -514,13 +514,13 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         """
         test_deferred = Deferred()
 
-        def on_error(failure):
-            self.assertTrue(failure.check(SaveResumeDataError))
+        def on_error(_):
             test_deferred.callback(None)
 
         mock_alert = MockObject()
         mock_alert.msg = "test error"
 
-        self.libtorrent_download_impl.deferreds_resume.append(Deferred().addErrback(on_error))
+        self.libtorrent_download_impl.deferreds_resume.append(Deferred().addErrback(
+            self.libtorrent_download_impl._on_resume_err).addCallback(on_error))
         self.libtorrent_download_impl.on_save_resume_data_failed_alert(mock_alert)
         return test_deferred
