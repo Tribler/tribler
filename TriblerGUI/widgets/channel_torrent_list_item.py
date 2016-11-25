@@ -76,6 +76,7 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
                                                          self.dialog.dialog_widget.safe_seed_checkbox.isChecked(),
                                                          self.dialog.get_selected_files(),
                                                          self.dialog.dialog_widget.files_list_view.topLevelItemCount())
+        self.dialog.request_mgr.cancel_request()
         self.dialog.setParent(None)
         self.dialog = None
 

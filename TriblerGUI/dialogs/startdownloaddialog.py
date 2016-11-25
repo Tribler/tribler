@@ -79,6 +79,9 @@ class StartDownloadDialog(DialogContainer):
                                          capture_errors=False)
 
     def on_received_metainfo(self, metainfo):
+        if not metainfo:
+            return
+
         if 'error' in metainfo:
             self.dialog_widget.loading_files_label.setText("Timeout when trying to fetch files.")
             return

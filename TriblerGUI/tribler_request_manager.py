@@ -90,9 +90,9 @@ class TriblerRequestManager(QNetworkAccessManager):
                     self.show_error(json_result['error']['message'])
             else:
                 self.received_json.emit(json_result, reply.error())
-        except ValueError as ex:
+        except ValueError:
             self.received_json.emit(None, reply.error())
-            logging.exception(ex)
+            logging.error("No json object could be decoded from data: %s" % data)
 
     def download_file(self, endpoint, read_callback):
         url = self.base_url + endpoint
@@ -115,3 +115,7 @@ class TriblerRequestManager(QNetworkAccessManager):
     def on_error_dialog_cancel_clicked(self, _):
         self.error_dialog.setParent(None)
         self.error_dialog = None
+
+    def cancel_request(self):
+        if self.reply:
+            self.reply.abort()
