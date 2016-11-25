@@ -82,13 +82,16 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
                                                          get_gui_setting(gui_settings, "default_anonymity_enabled",
                                                                          True, is_bool=True),
                                                          get_gui_setting(gui_settings, "default_safeseeding_enabled",
-                                                                         True, is_bool=True), [], 0)
+                                                                         True, is_bool=True),
+                                                         self.window().tribler_settings['downloadconfig']['saveas'],
+                                                         [], 0)
 
     def on_start_download_action(self, action):
         if action == 1:
             self.window().perform_start_download_request(self.download_uri,
                                                          self.dialog.dialog_widget.anon_download_checkbox.isChecked(),
                                                          self.dialog.dialog_widget.safe_seed_checkbox.isChecked(),
+                                                         self.dialog.dialog_widget.destination_input.text(),
                                                          self.dialog.get_selected_files(),
                                                          self.dialog.dialog_widget.files_list_view.topLevelItemCount())
 

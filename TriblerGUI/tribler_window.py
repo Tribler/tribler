@@ -230,7 +230,8 @@ class TriblerWindow(QMainWindow):
             elif uri.startswith('magnet'):
                 self.on_added_magnetlink(uri)
 
-    def perform_start_download_request(self, uri, anon_download, safe_seeding, selected_files, total_files=0):
+    def perform_start_download_request(self, uri, anon_download, safe_seeding, destination, selected_files,
+                                       total_files=0):
         selected_files_uri = ""
         if len(selected_files) != total_files:  # Not all files included
             selected_files_uri = '&' + ''.join(u"selected_files[]=%s&" % file for
@@ -238,7 +239,8 @@ class TriblerWindow(QMainWindow):
 
         anon_hops = int(self.tribler_settings['Tribler']['default_number_hops']) if anon_download else 0
         safe_seeding = 1 if safe_seeding else 0
-        post_data = str("uri=%s&anon_hops=%d&safe_seeding=%d%s" % (uri, anon_hops, safe_seeding, selected_files_uri))
+        post_data = str("uri=%s&anon_hops=%d&safe_seeding=%d&destination=%s%s" % (uri, anon_hops, safe_seeding,
+                                                                                  destination, selected_files_uri))
         request_mgr = TriblerRequestManager()
         self.pending_requests[request_mgr.request_id] = request_mgr
         request_mgr.perform_request("downloads", self.on_download_added, method='PUT', data=post_data)
@@ -350,13 +352,15 @@ class TriblerWindow(QMainWindow):
                                                                          is_bool=True),
                                                          get_gui_setting(self.gui_settings,
                                                                          "default_safeseeding_enabled", True,
-                                                                         is_bool=True), [], 0)
+                                                                         is_bool=True),
+                                                         self.tribler_settings['downloadconfig']['saveas'], [], 0)
 
     def on_start_download_action(self, action):
         if action == 1:
             self.window().perform_start_download_request(self.download_uri,
                                                          self.dialog.dialog_widget.anon_download_checkbox.isChecked(),
                                                          self.dialog.dialog_widget.safe_seed_checkbox.isChecked(),
+                                                         self.dialog.dialog_widget.destination_input.text(),
                                                          self.dialog.get_selected_files(),
                                                          self.dialog.dialog_widget.files_list_view.topLevelItemCount())
 
