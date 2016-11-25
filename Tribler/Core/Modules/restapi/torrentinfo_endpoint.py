@@ -6,6 +6,7 @@ from twisted.internet.error import DNSLookupError, ConnectError
 
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
+from Tribler.Core.Modules.restapi.util import fix_unicode_dict
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink
 
@@ -51,8 +52,7 @@ class TorrentInfoEndpoint(resource.Resource):
                     # TODO(Martijn): in libtorrent 1.1.1, bencode throws a TypeError which is a known bug
                     pass
 
-            del metainfo['info']['pieces']
-            request.write(json.dumps({"metainfo": metainfo}))
+            request.write(json.dumps({"metainfo": fix_unicode_dict(metainfo)}))
             request.finish()
 
         def on_metainfo_timeout(_):

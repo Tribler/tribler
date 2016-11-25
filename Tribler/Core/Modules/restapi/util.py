@@ -175,6 +175,8 @@ def fix_unicode_array(arr):
     for ind in xrange(len(arr)):
         if isinstance(arr[ind], (str, unicode)):
             new_arr.append(arr[ind].decode('utf-8', 'ignore'))
+        elif isinstance(arr[ind], dict):
+            new_arr.append(fix_unicode_dict(arr[ind]))
         else:
             new_arr.append(arr[ind])
 
