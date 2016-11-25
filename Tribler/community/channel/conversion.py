@@ -100,7 +100,10 @@ class ChannelConversion(BinaryConversion):
         return compressed_msg,
 
     def _decode_torrent(self, placeholder, offset, data):
-        uncompressed_data = zlib.decompress(data[offset:])
+        try:
+            uncompressed_data = zlib.decompress(data[offset:])
+        except zlib.error:
+            raise DropPacket("Invalid zlib data")
         offset = len(data)
 
         try:
