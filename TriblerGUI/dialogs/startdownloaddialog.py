@@ -83,7 +83,12 @@ class StartDownloadDialog(DialogContainer):
             return
 
         if 'error' in metainfo:
-            self.dialog_widget.loading_files_label.setText("Timeout when trying to fetch files.")
+            if metainfo['error'] == 'timeout':
+                self.dialog_widget.loading_files_label.setText("Timeout when trying to fetch files.")
+            elif 'code' in metainfo['error'] and metainfo['error']['code'] == 'IOError':
+                self.dialog_widget.loading_files_label.setText("Unable to read torrent file data")
+            else:
+                self.dialog_widget.loading_files_label.setText("Error: %s" % metainfo['error'])
             return
 
         metainfo = metainfo['metainfo']

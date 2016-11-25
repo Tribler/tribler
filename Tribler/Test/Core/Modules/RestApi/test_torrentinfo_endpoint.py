@@ -68,3 +68,13 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         path = 'magnet:?xt=urn:btih:%s&dn=%s' % ('a' * 40, quote_plus('test torrent'))
         self.session.lm.ltmgr.get_metainfo = get_metainfo_timeout
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=408)
+
+        def mocked_save_torrent(*_):
+            raise TypeError()
+
+        self.session.lm.ltmgr.get_metainfo = get_metainfo
+        self.session.save_collected_torrent = mocked_save_torrent
+        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
+
+        path = 'http://fdsafksdlafdslkdksdlfjs9fsafasdf7lkdzz32.n38/324.torrent'
+        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=500)

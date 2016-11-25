@@ -2,6 +2,7 @@ import json
 from urllib import url2pathname
 from libtorrent import bdecode, bencode
 from twisted.internet.defer import Deferred
+from twisted.internet.error import DNSLookupError, ConnectError
 
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
@@ -59,6 +60,12 @@ class TorrentInfoEndpoint(resource.Resource):
             request.write(json.dumps({"error": "timeout"}))
             request.finish()
 
+        def on_lookup_error(failure):
+            failure.trap(ConnectError, DNSLookupError)
+            request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+            request.write(json.dumps({"error": failure.getErrorMessage()}))
+            request.finish()
+
         if 'uri' not in request.args or len(request.args['uri']) == 0:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "uri parameter missing"})
@@ -66,12 +73,11 @@ class TorrentInfoEndpoint(resource.Resource):
         uri = unicode(request.args['uri'][0], 'utf-8')
         if uri.startswith('file:'):
             filename = url2pathname(uri[5:])
-            torrent_data = fix_torrent(filename)
-            metainfo_deferred.callback(bdecode(torrent_data))
+            metainfo_deferred.callback(bdecode(fix_torrent(filename)))
         elif uri.startswith('http'):
             def _on_loaded(tdef):
                 metainfo_deferred.callback(bdecode(tdef))
-            http_get(uri.encode('utf-8')).addCallback(_on_loaded)
+            http_get(uri.encode('utf-8')).addCallback(_on_loaded).addErrback(on_lookup_error)
         elif uri.startswith('magnet'):
             self.infohash = parse_magnetlink(uri)[1]
             if self.session.has_collected_torrent(self.infohash):
