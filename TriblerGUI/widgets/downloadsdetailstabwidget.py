@@ -40,6 +40,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
                                                            (self.current_download["num_seeds"],
                                                             self.current_download["num_peers"]))
         self.window().download_detail_infohash_label.setText(self.current_download['infohash'])
+        self.window().download_detail_destination_label.setText(self.current_download["destination"])
         self.window().download_detail_availability_label.setText("%.2f" % self.current_download['availability'])
 
         # Populate the files list
@@ -75,6 +76,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
         self.window().download_detail_filesize_label.setText("")
         self.window().download_detail_health_label.setText("")
         self.window().download_detail_infohash_label.setText("")
+        self.window().download_detail_destination_label.setText("")
         self.window().download_detail_availability_label.setText("")
 
         self.window().download_files_list.clear()
