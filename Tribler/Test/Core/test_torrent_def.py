@@ -415,6 +415,7 @@ class TestTorrentDef(BaseTestCase):
         self.assertFalse(torrent.get_files_as_unicode())
         self.assertFalse(torrent.get_files_as_unicode_with_length())
         self.assertFalse(torrent.get_trackers_as_single_tuple())
+        self.assertFalse(torrent.is_private())
 
         torrent2 = TorrentDefNoMetainfo("12345678901234567890", self.VIDEO_FILE_NAME, "magnet:")
         self.assertFalse(torrent2.get_trackers_as_single_tuple())
