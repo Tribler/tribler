@@ -11,7 +11,7 @@ except ReactorAlreadyInstalledError:
 import multiprocessing
 import os
 import sys
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, pyqtSignal, QObject
 from PyQt5.QtWidgets import QApplication
 import sqlite3
 import signal
@@ -62,13 +62,16 @@ def start_tribler_core(base_path):
     reactor.run()
 
 
-class CoreManager(object):
+class CoreManager(QObject):
     """
     The CoreManager is responsible for managing the Tribler core (starting/stopping). When we are running the GUI tests,
     a fake API will be started.
     """
+    tribler_stopped = pyqtSignal()
 
     def __init__(self, api_port):
+        QObject.__init__(self, None)
+
         self.base_path = get_base_path()
         if not is_frozen():
             self.base_path = os.path.join(get_base_path(), "..")
@@ -141,5 +144,6 @@ class CoreManager(object):
         raise RuntimeError(self.recorded_stderr)
 
     def on_finished(self):
+        self.tribler_stopped.emit()
         if self.shutting_down:
             QApplication.quit()
