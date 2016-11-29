@@ -35,27 +35,18 @@ class TriblerUpgrader(object):
 
     def run(self):
         self.current_status = u"Checking Tribler version..."
-        if self.session.get_current_startup_config_copy().get_upgrader_enabled():
-            failed, has_to_upgrade = self.check_should_upgrade()
-            if has_to_upgrade and not failed:
-                self.notify_starting()
-                self.upgrade_database_to_current_version()
+        failed, has_to_upgrade = self.check_should_upgrade()
+        if has_to_upgrade and not failed:
+            self.notify_starting()
+            self.upgrade_database_to_current_version()
 
-                # Convert old (pre 6.3 Tribler) pickle files to the newer .state format
-                pickle_converter = PickleConverter(self.session)
-                pickle_converter.convert()
+            # Convert old (pre 6.3 Tribler) pickle files to the newer .state format
+            pickle_converter = PickleConverter(self.session)
+            pickle_converter.convert()
 
-            if self.failed:
-                self.notify_starting()
-                self.stash_database()
-        else:
-            # Fake the upgrade is done, because the upgrader is disabled
-            # for testing purposes.
-            self.failed = False
-            # TODO refactor all is_done calls with the event call back in other files
-            # I leave this field for now because other classes may be dependent on it.
-            self.is_done = True
-            self.notify_done()
+        if self.failed:
+            self.notify_starting()
+            self.stash_database()
 
     def update_status(self, status_text):
         self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, status_text)
@@ -130,7 +121,6 @@ class TriblerUpgrader(object):
 
             self.failed = False
             self.is_done = True
-            self.notify_done()
         except Exception as e:
             self._logger.exception(u"failed to upgrade: %s", e)
 

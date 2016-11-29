@@ -71,6 +71,9 @@ class DownloadsPage(QWidget):
         self.request_mgr.perform_request(url, self.on_received_downloads)
 
     def on_received_downloads(self, downloads):
+        if not downloads:
+            return  # This might happen when closing Tribler
+
         total_download = 0
         total_upload = 0
         self.received_downloads.emit(downloads)
@@ -259,7 +262,11 @@ class DownloadsPage(QWidget):
         self.window().tray_icon.showMessage("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
     def on_right_click_item(self, pos):
-        self.selected_item = self.window().downloads_list.selectedItems()[0]
+        item_clicked = self.window().downloads_list.itemAt(pos)
+        if not item_clicked:
+            return
+
+        self.selected_item = item_clicked
 
         menu = TriblerActionMenu(self)
 

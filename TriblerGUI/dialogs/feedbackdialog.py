@@ -64,8 +64,11 @@ class FeedbackDialog(QDialog):
         self.env_variables_list.takeTopLevelItem(self.selected_item_index)
 
     def on_right_click_item(self, pos):
-        selected_item = self.env_variables_list.selectedItems()[0]
-        self.selected_item_index = self.env_variables_list.indexOfTopLevelItem(selected_item)
+        item_clicked = self.env_variables_list.itemAt(pos)
+        if not item_clicked:
+            return
+
+        self.selected_item_index = self.env_variables_list.indexOfTopLevelItem(item_clicked)
 
         menu = TriblerActionMenu(self)
 

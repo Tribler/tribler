@@ -2,9 +2,11 @@ import json
 from urllib import url2pathname
 from libtorrent import bdecode, bencode
 from twisted.internet.defer import Deferred
+from twisted.internet.error import DNSLookupError, ConnectError
 
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
+from Tribler.Core.Modules.restapi.util import fix_unicode_dict
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink
 
@@ -44,15 +46,24 @@ class TorrentInfoEndpoint(resource.Resource):
         def on_got_metainfo(metainfo):
             if self.infohash:
                 # Save the torrent to our store
-                self.session.save_collected_torrent(self.infohash, bencode(metainfo))
+                try:
+                    self.session.save_collected_torrent(self.infohash, bencode(metainfo))
+                except TypeError:
+                    # TODO(Martijn): in libtorrent 1.1.1, bencode throws a TypeError which is a known bug
+                    pass
 
-            del metainfo['info']['pieces']
-            request.write(json.dumps({"metainfo": metainfo}))
+            request.write(json.dumps({"metainfo": fix_unicode_dict(metainfo)}))
             request.finish()
 
         def on_metainfo_timeout(_):
             request.setResponseCode(http.REQUEST_TIMEOUT)
             request.write(json.dumps({"error": "timeout"}))
+            request.finish()
+
+        def on_lookup_error(failure):
+            failure.trap(ConnectError, DNSLookupError)
+            request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+            request.write(json.dumps({"error": failure.getErrorMessage()}))
             request.finish()
 
         if 'uri' not in request.args or len(request.args['uri']) == 0:
@@ -62,12 +73,11 @@ class TorrentInfoEndpoint(resource.Resource):
         uri = unicode(request.args['uri'][0], 'utf-8')
         if uri.startswith('file:'):
             filename = url2pathname(uri[5:])
-            torrent_data = fix_torrent(filename)
-            metainfo_deferred.callback(bdecode(torrent_data))
+            metainfo_deferred.callback(bdecode(fix_torrent(filename)))
         elif uri.startswith('http'):
             def _on_loaded(tdef):
                 metainfo_deferred.callback(bdecode(tdef))
-            http_get(uri.encode('utf-8')).addCallback(_on_loaded)
+            http_get(uri.encode('utf-8')).addCallback(_on_loaded).addErrback(on_lookup_error)
         elif uri.startswith('magnet'):
             self.infohash = parse_magnetlink(uri)[1]
             if self.session.has_collected_torrent(self.infohash):

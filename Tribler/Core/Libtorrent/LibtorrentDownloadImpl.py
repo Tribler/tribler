@@ -825,8 +825,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             return self.curspeeds[dir]
 
     def _on_resume_err(self, failure):
-        failure.trap(CancelledError)
-        self._logger.error("Resume data cancelled")
+        failure.trap(CancelledError, SaveResumeDataError)
+        self._logger.error("Resume data failed to save: %s", failure.getErrorMessage())
 
     def save_resume_data(self):
         """
@@ -983,7 +983,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 pex_peers += 1
 
         ltsession = self.ltmgr.get_session(self.get_hops())
-        public = self.tdef and not isinstance(self.tdef, TorrentDefNoMetainfo) and not self.tdef.is_private()
+        public = self.tdef and not self.tdef.is_private()
 
         result = self.tracker_status.copy()
         result['[DHT]'] = [dht_peers, 'Working' if ltsession.is_dht_running() and public else 'Disabled']

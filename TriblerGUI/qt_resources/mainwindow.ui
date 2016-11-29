@@ -900,7 +900,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>9</number>
+         <number>1</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1214,7 +1214,7 @@ margin: 10px;</string>
           <item>
            <widget class="QStackedWidget" name="edit_channel_stacked_widget">
             <property name="currentIndex">
-             <number>1</number>
+             <number>2</number>
             </property>
             <widget class="QWidget" name="no_channel_intro_page">
              <layout class="QVBoxLayout" name="verticalLayout">
@@ -3759,6 +3759,36 @@ padding-right: 4px;</string>
                   </item>
                  </layout>
                 </widget>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+            <widget class="QWidget" name="channel_loading_page">
+             <layout class="QVBoxLayout" name="verticalLayout">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="channel_loading_text_label">
+                <property name="styleSheet">
+                 <string notr="true">color: #B5B5B5;
+font-size: 18px;</string>
+                </property>
+                <property name="text">
+                 <string>Loading channel info...</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
                </widget>
               </item>
              </layout>
@@ -7492,7 +7522,7 @@ color: white;
 </string>
                 </property>
                 <property name="currentIndex">
-                 <number>1</number>
+                 <number>0</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -7530,8 +7560,8 @@ color: white;
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>127</width>
-                       <height>212</height>
+                       <width>131</width>
+                       <height>236</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -7641,7 +7671,7 @@ color: white;
                         </property>
                        </widget>
                       </item>
-                      <item row="7" column="0">
+                      <item row="8" column="0">
                        <widget class="QLabel" name="label_26">
                         <property name="styleSheet">
                          <string notr="true">font-weight: bold;</string>
@@ -7651,7 +7681,7 @@ color: white;
                         </property>
                        </widget>
                       </item>
-                      <item row="7" column="1">
+                      <item row="8" column="1">
                        <widget class="QLabel" name="download_detail_availability_label">
                         <property name="text">
                          <string/>
@@ -7710,6 +7740,23 @@ margin-right: 10px;</string>
                          </size>
                         </property>
                        </spacer>
+                      </item>
+                      <item row="7" column="0">
+                       <widget class="QLabel" name="label_44">
+                        <property name="styleSheet">
+                         <string notr="true">font-weight: bold;</string>
+                        </property>
+                        <property name="text">
+                         <string>Destination</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="7" column="1">
+                       <widget class="QLabel" name="download_detail_destination_label">
+                        <property name="text">
+                         <string/>
+                        </property>
+                       </widget>
                       </item>
                      </layout>
                     </widget>

@@ -7,7 +7,7 @@ from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import NTFY_UPGRADER_TICK, NTFY_STARTED
 from Tribler.Test.Core.Upgrade.upgrade_base import AbstractUpgrader
-from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestUpgrader(AbstractUpgrader):
@@ -51,6 +51,20 @@ class TestUpgrader(AbstractUpgrader):
         self.assertTrue(self.upgrader.is_done)
         self.assertFalse(self.upgrader.failed)
 
+    @blocking_call_on_reactor_thread
+    def test_run(self):
+        """
+        Test the run method of the upgrader
+        """
+        def check_should_upgrade():
+            self.upgrader.failed = True
+            return True, False
+
+        self.upgrader.check_should_upgrade = check_should_upgrade
+
+        self.upgrader.run()
+        self.assertTrue(self.upgrader.notified)
+
     @deferred(timeout=10)
     def test_update_status_text(self):
         test_deferred = Deferred()
@@ -62,6 +76,7 @@ class TestUpgrader(AbstractUpgrader):
         self.session.notifier.add_observer(on_upgrade_tick, NTFY_UPGRADER_TICK, [NTFY_STARTED])
         self.upgrader.update_status("12345")
         return test_deferred
+
 
 class TestUpgraderDisabled(AbstractUpgrader):
 

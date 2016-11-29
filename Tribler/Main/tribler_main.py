@@ -327,9 +327,8 @@ class ABCApp(TaskManager):
 
         session = Session(self.sconfig, autoload_discovery=autoload_discovery)
         session.add_observer(self.show_upgrade_dialog, NTFY_UPGRADER, [NTFY_STARTED])
-        self.upgrader = session.prestart()
 
-        while not self.upgrader.is_done:
+        while not session.upgrader.is_done:
             wx.SafeYield()
             sleep(0.1)
 

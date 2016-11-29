@@ -183,35 +183,13 @@ class Session(SessionConfigInterface):
         self.save_session_config()
 
         self.sqlite_db = None
+        self.upgrader = None
         self.dispersy_member = None
 
         self.autoload_discovery = autoload_discovery
 
         self.tribler_config = TriblerConfig(self)
         self.setup_tribler_gui_config()
-
-    @blocking_call_on_reactor_thread
-    def prestart(self):
-        """
-        Pre-starts the session. We check the current version and upgrade if needed before we start everything else.
-        """
-        assert isInIOThread()
-
-        # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
-        if self.get_http_api_enabled():
-            self.lm.api_manager = RESTManager(self)
-            self.lm.api_manager.start()
-
-        db_path = os.path.join(self.get_state_dir(), DB_FILE_RELATIVE_PATH)
-        db_script_path = os.path.join(get_lib_path(), DB_SCRIPT_NAME)
-
-        self.sqlite_db = SQLiteCacheDB(db_path, db_script_path)
-        self.sqlite_db.initialize()
-        self.sqlite_db.initial_begin()
-
-        self.upgrader = TriblerUpgrader(self, self.sqlite_db)
-        self.upgrader.run()
-        return self.upgrader
 
     #
     # Class methods
@@ -254,7 +232,7 @@ class Session(SessionConfigInterface):
     #
     def setup_tribler_gui_config(self):
         """
-        Initialize the TriblerGUI configuration file.
+        Initialize the TriblerGUI configuration file and make sure that we have all required values.
         """
         configfilepath = os.path.join(self.get_state_dir(), STATEDIR_GUICONFIG)
         gui_config = CallbackConfigParser()
@@ -266,12 +244,16 @@ class Session(SessionConfigInterface):
 
         if not gui_config.has_section('Tribler'):
             gui_config.add_section('Tribler')
-            for k, v in tribler_defaults['Tribler'].iteritems():
+
+        for k, v in tribler_defaults['Tribler'].iteritems():
+            if not gui_config.has_option(k, v):
                 gui_config.set('Tribler', k, v)
 
         if not gui_config.has_section('downloadconfig'):
             gui_config.add_section('downloadconfig')
-            for k, v in DefaultDownloadStartupConfig.getInstance().dlconfig._sections['downloadconfig'].iteritems():
+
+        for k, v in DefaultDownloadStartupConfig.getInstance().dlconfig._sections['downloadconfig'].iteritems():
+            if not gui_config.has_option(k, v):
                 gui_config.set('downloadconfig', k, v)
 
         # Make sure we use the same ConfigParser instance for both Utility and DefaultDownloadStartupConfig.
@@ -532,11 +514,35 @@ class Session(SessionConfigInterface):
         self.lm.load_checkpoint(initialdlstatus_dict=initialdlstatus_dict)
 
     @blocking_call_on_reactor_thread
+    def start_database(self):
+        """
+        Start the SQLite database.
+        """
+        db_path = os.path.join(self.get_state_dir(), DB_FILE_RELATIVE_PATH)
+        db_script_path = os.path.join(get_lib_path(), DB_SCRIPT_NAME)
+
+        self.sqlite_db = SQLiteCacheDB(db_path, db_script_path)
+        self.sqlite_db.initialize()
+        self.sqlite_db.initial_begin()
+
+    @blocking_call_on_reactor_thread
     def start(self):
         """
-        Start a Tribler session by initializing the LaunchManyCore class.
+        Start a Tribler session by initializing the LaunchManyCore class, opening the database and running the upgrader.
         Returns a deferred that fires when the Tribler session is ready for use.
         """
+
+        # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
+        if self.get_http_api_enabled():
+            self.lm.api_manager = RESTManager(self)
+            self.lm.api_manager.start()
+
+        self.start_database()
+
+        if self.get_upgrader_enabled():
+            self.upgrader = TriblerUpgrader(self, self.sqlite_db)
+            self.upgrader.run()
+
         startup_deferred = self.lm.register(self, self.sesslock)
 
         def load_checkpoint(_):

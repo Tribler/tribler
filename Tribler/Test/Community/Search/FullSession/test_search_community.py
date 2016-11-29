@@ -92,10 +92,6 @@ class TestSearchCommunity(TestAsServer):
 
         self.session2 = Session(self.config2, ignore_singleton=True)
 
-        upgrader = self.session2.prestart()
-        assert upgrader.is_done, "Upgrader is not done"
-        assert not upgrader.failed, upgrader.current_status
-
         yield self.session2.start()
         self.dispersy2 = self.session2.get_dispersy_instance()
 

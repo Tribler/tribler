@@ -10,8 +10,8 @@ class AbstractTestChannelCommunity(AbstractTestCommunity):
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self):
-        yield super(AbstractTestChannelCommunity, self).setUp()
+    def setUp(self, annotate=True):
+        yield super(AbstractTestChannelCommunity, self).setUp(annotate=annotate)
         self.channel_community = ChannelCommunity(self.dispersy, self.master_member, self.member)
 
     @blocking_call_on_reactor_thread

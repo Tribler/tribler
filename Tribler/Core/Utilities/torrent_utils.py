@@ -22,10 +22,14 @@ def create_torrent_file(file_path_list, params):
     # the base_dir directory is the parent directory of the base_path and is passed to the set_piece_hash method
     base_dir = os.path.split(base_path)[0]
 
-    for full_file_path in file_path_list_filtered:
-        filename = os.path.basename(full_file_path)
-        filename = os.path.join(base_path[len(base_dir) + 1:], filename)
-        fs.add_file(filename, os.path.getsize(full_file_path))
+    if len(file_path_list_filtered) == 1:
+        filename = os.path.basename(file_path_list_filtered[0])
+        fs.add_file(filename, os.path.getsize(file_path_list_filtered[0]))
+    else:
+        for full_file_path in file_path_list_filtered:
+            filename = os.path.basename(full_file_path)
+            filename = os.path.join(base_path[len(base_dir) + 1:], filename)
+            fs.add_file(filename, os.path.getsize(full_file_path))
 
     if params.get('piece length'):
         piece_size = params['piece length']
@@ -69,7 +73,10 @@ def create_torrent_file(file_path_list, params):
             torrent.add_url_seed(params['urllist'])
 
     # read the files and calculate the hashes
-    libtorrent.set_piece_hashes(torrent, base_dir)
+    if len(file_path_list) == 1:
+        libtorrent.set_piece_hashes(torrent, base_path)
+    else:
+        libtorrent.set_piece_hashes(torrent, base_dir)
 
     t1 = torrent.generate()
     torrent = libtorrent.bencode(t1)

@@ -103,8 +103,11 @@ class CreateTorrentPage(QWidget):
         self.window().create_torrent_files_list.takeItem(self.selected_item_index)
 
     def on_right_click_file_item(self, pos):
-        selected_item = self.window().create_torrent_files_list.selectedItems()[0]
-        self.selected_item_index = self.window().create_torrent_files_list.row(selected_item)
+        item_clicked = self.window().create_torrent_files_list.itemAt(pos)
+        if not item_clicked:
+            return
+
+        self.selected_item_index = self.window().create_torrent_files_list.row(item_clicked)
 
         menu = TriblerActionMenu(self)
 

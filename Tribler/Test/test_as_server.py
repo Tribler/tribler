@@ -144,7 +144,7 @@ class AbstractServer(BaseTestCase):
         if has_network_selectables:
             # TODO(Martijn): we wait a while before we continue the check since network selectables
             # might take some time to cleanup. I'm not sure what's causing this.
-            yield deferLater(reactor, 0.1, lambda: None)
+            yield deferLater(reactor, 0.2, lambda: None)
 
         # This is the same check as in the _cleanReactor method of Twisted's Trial
         selectable_strings = []
@@ -172,6 +172,9 @@ class AbstractServer(BaseTestCase):
         for reader in open_readers:
             self.assertNotIsInstance(reader, BasePort,
                                      "Listening ports left on the reactor during %s: %s" % (phase, reader))
+
+        # Check whether the threadpool is clean
+        self.assertFalse(reactor.getThreadPool().working)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -273,17 +276,13 @@ class TestAsServer(AbstractServer):
         self.seeder_session = None
 
         self.session = Session(self.config)
-        upgrader = self.session.prestart()
-        assert upgrader.is_done
 
-        assert not upgrader.failed, upgrader.current_status
         self.tribler_started_deferred = self.session.start()
-
         yield self.tribler_started_deferred
 
-        self.hisport = self.session.get_listen_port()
+        self.assertTrue(self.session.lm.initComplete)
 
-        assert self.session.lm.initComplete
+        self.hisport = self.session.get_listen_port()
 
         self.annotate(self._testMethodName, start=True)
 
@@ -376,7 +375,6 @@ class TestAsServer(AbstractServer):
         self._logger.debug("starting to wait for download to reach seeding state")
 
         self.seeder_session = Session(self.seed_config, ignore_singleton=True)
-        self.seeder_session.prestart()
         self.seeder_session.start().addCallback(start_seed_download)
 
         return self.seeding_deferred

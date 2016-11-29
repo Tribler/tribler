@@ -1,7 +1,7 @@
 from binascii import hexlify
 
 from nose.tools import raises
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
@@ -68,34 +68,12 @@ class TestSession(TriblerCoreTest):
         config = SessionStartupConfig()
         session = Session(config, ignore_singleton=True)
         session.lm = LmMock()
+        session.lm.api_manager = None
+
         session.create_channel("name", "description", "open")
         self.assertEqual(session.lm.channel_manager.invoked_name, "name")
         self.assertEqual(session.lm.channel_manager.invoked_desc, "description")
         self.assertEqual(session.lm.channel_manager.invoked_mode, "open")
-
-    def test_unhandled_error_observer(self):
-        """
-        Test the unhandled error observer
-        """
-        session = Session(SessionStartupConfig(), ignore_singleton=True)
-        session.lm = MockObject()
-        session.lm.api_manager = MockObject()
-        session.lm.api_manager.root_endpoint = MockObject()
-        session.lm.api_manager.root_endpoint.events_endpoint = MockObject()
-        session.lm.api_manager.root_endpoint.state_endpoint = MockObject()
-
-        expected_text = ""
-
-        def on_tribler_exception(exception_text):
-            self.assertEqual(exception_text, expected_text)
-
-        on_tribler_exception.called = 0
-        session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception = on_tribler_exception
-        session.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception = on_tribler_exception
-        expected_text = "abcd"
-        session.unhandled_error_observer({'isError': True, 'log_legacy': True, 'log_text': 'abcd'})
-        expected_text = "defg"
-        session.unhandled_error_observer({'isError': True, 'log_failure': 'defg'})
 
 
 class TestSessionAsServer(TestAsServer):
@@ -107,9 +85,34 @@ class TestSessionAsServer(TestAsServer):
         self.config.set_enable_channel_search(True)
         self.config.set_dispersy(True)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestSessionAsServer, self).setUp(autoload_discovery=autoload_discovery)
+        yield super(TestSessionAsServer, self).setUp(autoload_discovery=autoload_discovery)
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
+
+    def test_unhandled_error_observer(self):
+        """
+        Test the unhandled error observer
+        """
+        self.session.lm.api_manager = MockObject()
+        self.session.lm.api_manager.stop = lambda: None
+        self.session.lm.api_manager.root_endpoint = MockObject()
+        self.session.lm.api_manager.root_endpoint.events_endpoint = MockObject()
+        self.session.lm.api_manager.root_endpoint.state_endpoint = MockObject()
+
+        expected_text = ""
+
+        def on_tribler_exception(exception_text):
+            self.assertEqual(exception_text, expected_text)
+
+        on_tribler_exception.called = 0
+        self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception = on_tribler_exception
+        self.session.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception = on_tribler_exception
+        expected_text = "abcd"
+        self.session.unhandled_error_observer({'isError': True, 'log_legacy': True, 'log_text': 'abcd'})
+        expected_text = "defg"
+        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'defg'})
 
     @deferred(timeout=10)
     def test_add_torrent_def_to_channel(self):

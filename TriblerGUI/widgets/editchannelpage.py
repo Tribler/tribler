@@ -74,6 +74,9 @@ class EditChannelPage(QWidget):
         self.window().channel_settings_tab.clicked_tab_button.connect(self.clicked_tab_button)
 
     def load_my_channel_overview(self):
+        if not self.channel_overview:
+            self.window().edit_channel_stacked_widget.setCurrentIndex(2)
+
         self.editchannel_request_mgr = TriblerRequestManager()
         self.editchannel_request_mgr.perform_request("mychannel", self.initialize_with_channel_overview,
                                                      capture_errors=False)

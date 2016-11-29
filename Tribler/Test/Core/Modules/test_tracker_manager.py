@@ -16,7 +16,7 @@ class TestTrackerManager(TriblerCoreTest):
 
         self.setUpPreSession()
         self.session = Session(self.config, ignore_singleton=True)
-        self.session.prestart()
+        self.session.start_database()
         self.tracker_manager = TrackerManager(self.session)
 
     @blocking_call_on_reactor_thread

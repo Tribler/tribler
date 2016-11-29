@@ -11,7 +11,7 @@ except ReactorAlreadyInstalledError:
 import multiprocessing
 import os
 import sys
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, pyqtSignal, QObject
 from PyQt5.QtWidgets import QApplication
 import sqlite3
 import signal
@@ -54,9 +54,6 @@ def start_tribler_core(base_path):
             return
 
         session = Session(config)
-        upgrader = session.prestart()
-        if upgrader.failed:
-            pass
 
         signal.signal(signal.SIGTERM, lambda signum, stack: shutdown(session, signum, stack))
         session.start()
@@ -65,13 +62,16 @@ def start_tribler_core(base_path):
     reactor.run()
 
 
-class CoreManager(object):
+class CoreManager(QObject):
     """
     The CoreManager is responsible for managing the Tribler core (starting/stopping). When we are running the GUI tests,
     a fake API will be started.
     """
+    tribler_stopped = pyqtSignal()
 
     def __init__(self, api_port):
+        QObject.__init__(self, None)
+
         self.base_path = get_base_path()
         if not is_frozen():
             self.base_path = os.path.join(get_base_path(), "..")
@@ -127,19 +127,23 @@ class CoreManager(object):
             self.check_core_ready()
         elif state['state'] == 'STARTED':
             self.events_manager.connect(reschedule_on_err=False)
-        elif state['state'] == 'ERROR':
+        elif state['state'] == 'EXCEPTION':
             raise RuntimeError(state['last_exception'])
         else:
             self.check_core_ready()
 
-    def stop(self):
+    def stop(self, stop_app_on_shutdown=True):
         if self.core_process:
-            self.core_process.terminate()
-            self.stop_timer.start()
+            self.request_mgr = TriblerRequestManager()
+            self.request_mgr.perform_request("shutdown", lambda _: None, method="PUT")
+
+            if stop_app_on_shutdown:
+                self.stop_timer.start(100)
 
     def throw_core_exception(self):
         raise RuntimeError(self.recorded_stderr)
 
     def on_finished(self):
+        self.tribler_stopped.emit()
         if self.shutting_down:
             QApplication.quit()

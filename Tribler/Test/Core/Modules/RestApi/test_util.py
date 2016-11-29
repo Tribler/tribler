@@ -116,6 +116,8 @@ class TestRestApiUtil(TriblerCoreTest):
         self.assertListEqual(fix_unicode_array(arr2), ['a', ''])
         arr3 = [1, 2, 3, '4']
         self.assertListEqual(fix_unicode_array(arr3), [1, 2, 3, '4'])
+        arr4 = [{'a': 'b'}]
+        self.assertListEqual(fix_unicode_array(arr4), [{'a': 'b'}])
 
     def test_fix_unicode_dict(self):
         """

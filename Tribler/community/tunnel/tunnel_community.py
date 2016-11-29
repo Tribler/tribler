@@ -525,6 +525,7 @@ class TunnelCommunity(Community):
             for c in self.dispersy_yield_verified_candidates():
                 if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec) and \
                    (not required_endpoint or c.sock_addr != tuple(required_endpoint[:2])) and \
+                    c.get_member().public_key in self.exit_candidates and \
                    not self.exit_candidates[c.get_member().public_key].become_exit:
                     first_hop = c
                     break
