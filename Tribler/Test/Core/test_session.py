@@ -1,7 +1,7 @@
 from binascii import hexlify
 
 from nose.tools import raises
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
@@ -85,8 +85,10 @@ class TestSessionAsServer(TestAsServer):
         self.config.set_enable_channel_search(True)
         self.config.set_dispersy(True)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestSessionAsServer, self).setUp(autoload_discovery=autoload_discovery)
+        yield super(TestSessionAsServer, self).setUp(autoload_discovery=autoload_discovery)
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
 
     def test_unhandled_error_observer(self):
