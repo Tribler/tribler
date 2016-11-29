@@ -68,6 +68,8 @@ class TestSession(TriblerCoreTest):
         config = SessionStartupConfig()
         session = Session(config, ignore_singleton=True)
         session.lm = LmMock()
+        session.lm.api_manager = None
+
         session.create_channel("name", "description", "open")
         self.assertEqual(session.lm.channel_manager.invoked_name, "name")
         self.assertEqual(session.lm.channel_manager.invoked_desc, "description")
