@@ -338,7 +338,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         Uri uri = Uri.fromFile(torrentFile);
         Log.v("startSeeding", String.format("File: %s Uri: %s", torrentFile.getAbsoluteFile(), uri.toString()));
 
-        rxSubs.add(startDownload(uri, "Torrent", torrentFile.getParentFile().getParentFile()) // workaround subdir bug
+        rxSubs.add(startDownload(uri, "Torrent", torrentFile.getParentFile())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<StartedDownloadAck>() {
 
