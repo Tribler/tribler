@@ -144,7 +144,7 @@ class AbstractServer(BaseTestCase):
         if has_network_selectables:
             # TODO(Martijn): we wait a while before we continue the check since network selectables
             # might take some time to cleanup. I'm not sure what's causing this.
-            yield deferLater(reactor, 0.1, lambda: None)
+            yield deferLater(reactor, 0.2, lambda: None)
 
         # This is the same check as in the _cleanReactor method of Twisted's Trial
         selectable_strings = []
