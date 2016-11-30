@@ -15,7 +15,7 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 class FakeTriblerSession:
 
     def __init__(self, state_dir):
-        self.notifier = Notifier(False)
+        self.notifier = Notifier()
         self.state_dir = state_dir
 
     def get_libtorrent_utp(self):
