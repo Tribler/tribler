@@ -40,7 +40,6 @@ class TestSearchEndpoint(AbstractApiTest):
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
         self.torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)
 
-        self.session.notifier.use_pool = False
         self.session.add_observer(self.on_search_results_channels, SIGNAL_CHANNEL, [SIGNAL_ON_SEARCH_RESULTS])
         self.session.add_observer(self.on_search_results_torrents, SIGNAL_TORRENT, [SIGNAL_ON_SEARCH_RESULTS])
 

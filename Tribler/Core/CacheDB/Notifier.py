@@ -25,10 +25,8 @@ class Notifier(object):
                 SIGNAL_SEARCH_COMMUNITY, SIGNAL_TORRENT, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_NEW_VERSION,
                 NTFY_TRIBLER, NTFY_UPGRADER_TICK, NTFY_TORRENT, NTFY_CHANNEL]
 
-    def __init__(self, use_pool):
+    def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)
-
-        self.use_pool = use_pool
 
         self.observers = []
         self.observerscache = {}
@@ -104,10 +102,7 @@ class Notifier(object):
                                 self.observerLock.release()
 
                                 if events:
-                                    if self.use_pool:
-                                        callInThreadPool(ofunc, events)
-                                    else:
-                                        ofunc(events)
+                                    ofunc(events)
 
                             t = threading.Timer(cache, doQueue, (ofunc,))
                             t.setName("Notifier-timer-%s" % subject)
@@ -122,7 +117,4 @@ class Notifier(object):
 
         self.observerLock.release()
         for task in tasks:
-            if self.use_pool:
-                callInThreadPool(task, *args)
-            else:
-                task(*args)  # call observer function in this thread
+            task(*args)  # call observer function in this thread

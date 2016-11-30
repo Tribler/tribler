@@ -47,7 +47,6 @@ class TestEventsEndpoint(AbstractApiTest):
         self.connection_pool = HTTPConnectionPool(reactor, False)
         self.socket_open_deferred = self.tribler_started_deferred.addCallback(self.open_events_socket)
         self.messages_to_wait_for = 0
-        self.session.notifier.use_pool = False
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
