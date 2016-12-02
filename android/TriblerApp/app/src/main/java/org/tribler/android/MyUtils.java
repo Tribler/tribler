@@ -382,7 +382,7 @@ public class MyUtils {
         }
 
         // The name of the dir becomes the name of the .torrent file
-        File dir = new File(context.getExternalCacheDir(), fileName);
+        File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName);
         File file = new File(dir, fileName);
         dir.mkdirs();
 
@@ -395,7 +395,7 @@ public class MyUtils {
 
     public static File resolveAsset(String fileName, Context context) throws IOException {
         // Make file accessible by copying to external cache dir
-        File file = new File(context.getExternalCacheDir(), fileName);
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName);
         InputStream input = context.getAssets().open(fileName);
         OutputStream output = new FileOutputStream(file, false);
         MyUtils.copy(input, output);

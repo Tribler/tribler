@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -190,7 +191,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onClick(final TriblerTorrent torrent) {
-        final File destination = new File(getContext().getExternalCacheDir(), torrent.getName());
+        final File destination = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), torrent.getName());
         destination.mkdirs();
 
         rxSubs.add(startDownload(torrent.getInfohash(), torrent.getName(), destination)
