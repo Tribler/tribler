@@ -107,7 +107,7 @@ public class MyUtils {
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setDataAndTypeAndNormalize(uri, "video/*");
         intent.putExtra("title", title);
-        intent.putExtra("from_start", true);
+        //intent.putExtra("from_start", true);
         //intent.putExtra("position", 90000l);
         //intent.putExtra("subtitles_location", "/sdcard/Movies/example.srt");
         return intent;

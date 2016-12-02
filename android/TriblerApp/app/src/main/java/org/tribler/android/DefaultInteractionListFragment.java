@@ -190,7 +190,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onClick(final TriblerTorrent torrent) {
-        File destination = new File(getContext().getExternalCacheDir(), torrent.getName());
+        final File destination = new File(getContext().getExternalCacheDir(), torrent.getName());
         destination.mkdirs();
 
         rxSubs.add(startDownload(torrent.getInfohash(), torrent.getName(), destination)
