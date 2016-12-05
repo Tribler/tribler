@@ -8,7 +8,7 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from Tribler.Test.test_as_server import TESTS_DATA_DIR
+from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 

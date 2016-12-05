@@ -4,7 +4,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_MYPREFERENCES, NTFY_TORRENTS
-from Tribler.Test.common import TORRENT_FILE
+from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -27,7 +27,7 @@ class TestTorrentChecking(TestAsServer):
         self.config.set_libtorrent(True)
 
     def test_torrent_checking(self):
-        tdef = TorrentDef.load(TORRENT_FILE)
+        tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
         # TODO(emilon): This tracker is no more, we need to set up a new one
         # tdef.set_tracker("http://95.211.198.141:2710/announce")
         tdef.metainfo_valid = True
@@ -45,7 +45,7 @@ class TestTorrentChecking(TestAsServer):
         num_leechers, num_seeders)
 
     def test_udp_torrent_checking(self):
-        tdef = TorrentDef.load(TORRENT_FILE)
+        tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
         tdef.set_tracker("udp://localhost")
         tdef.metainfo_valid = True
 

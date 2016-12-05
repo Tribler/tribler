@@ -11,7 +11,7 @@ from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, DLSTATUS_STOPPED, SIGNAL_CHANNEL, SIGNAL_ON_CREATED
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.Test.common import TORRENT_FILE
+from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -121,7 +121,7 @@ class TestSessionAsServer(TestAsServer):
         """
         test_deferred = Deferred()
 
-        torrent_def = TorrentDef.load(TORRENT_FILE)
+        torrent_def = TorrentDef.load(TORRENT_UBUNTU_FILE)
 
         @blocking_call_on_reactor_thread
         def on_channel_created(subject, change_type, object_id, channel_data):
@@ -142,7 +142,7 @@ class TestSessionAsServer(TestAsServer):
         """
         test_deferred = Deferred()
 
-        torrent_def = TorrentDef.load(TORRENT_FILE)
+        torrent_def = TorrentDef.load(TORRENT_UBUNTU_FILE)
 
         @blocking_call_on_reactor_thread
         def on_channel_created(subject, change_type, object_id, channel_data):

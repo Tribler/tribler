@@ -7,7 +7,7 @@ from Tribler.Core.Upgrade.db_upgrader import DBUpgrader, VersionNoLongerSupporte
 from Tribler.Core.Utilities.utilities import fix_torrent
 from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Test.Core.Upgrade.upgrade_base import AbstractUpgrader, MockTorrentStore
-from Tribler.Test.common import TORRENT_FILE_INFOHASH, TORRENT_FILE
+from Tribler.Test.common import TORRENT_UBUNTU_FILE, TORRENT_UBUNTU_FILE_INFOHASH
 
 
 class TestDBUpgrader(AbstractUpgrader):
@@ -56,10 +56,10 @@ class TestDBUpgrader(AbstractUpgrader):
         db_migrator.start_migrate()
 
         # Import a torrent
-        self.torrent_store[TORRENT_FILE_INFOHASH] = fix_torrent(TORRENT_FILE)
+        self.torrent_store[TORRENT_UBUNTU_FILE_INFOHASH] = fix_torrent(TORRENT_UBUNTU_FILE)
         self.torrent_store.flush()
 
         db_migrator.reimport_torrents()
 
         torrent_db_handler = TorrentDBHandler(self.session)
-        self.assertEqual(torrent_db_handler.getTorrentID(TORRENT_FILE_INFOHASH), 3)
+        self.assertEqual(torrent_db_handler.getTorrentID(TORRENT_UBUNTU_FILE_INFOHASH), 3)

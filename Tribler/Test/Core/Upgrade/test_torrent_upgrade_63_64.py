@@ -7,7 +7,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Upgrade.torrent_upgrade64 import TorrentMigrator64
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.Test.common import TORRENT_FILE
+from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
@@ -42,7 +42,7 @@ class AbstractTorrentUpgrade63to64(TriblerCoreTest):
         self.write_data_to_file(os.path.join(self.torrent_collecting_dir, "torrent1.torrent"))
         self.write_data_to_file(os.path.join(self.torrent_collecting_dir, "torrent2.torrent"))
         os.mkdir(os.path.join(self.torrent_collecting_dir, "swift_reseeds"))
-        shutil.copyfile(TORRENT_FILE, os.path.join(self.torrent_collecting_dir, "torrent3.torrent"))
+        shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(self.torrent_collecting_dir, "torrent3.torrent"))
         shutil.copyfile(os.path.join(self.DB_DATA_DIR, "torrent_upgrade_64_dispersy.db"),
                         os.path.join(self.sqlite_path, "dispersy.db"))
 

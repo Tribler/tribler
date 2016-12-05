@@ -20,8 +20,8 @@ from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.Utilities.utilities import isValidTorrentFile
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, HttpError
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
-from Tribler.Test.common import TORRENT_FILE
-from Tribler.Test.test_as_server import BaseTestCase, TESTS_DATA_DIR
+from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
+from Tribler.Test.test_as_server import BaseTestCase
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
@@ -232,14 +232,14 @@ class TestTorrentDef(BaseTestCase):
         self.session_base_dir = mkdtemp(suffix="_tribler_test_load_from_url")
         files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
         os.mkdir(files_path)
-        shutil.copyfile(TORRENT_FILE, os.path.join(files_path, 'ubuntu.torrent'))
+        shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
 
         file_server_port = get_random_port()
         self.setUpFileServer(file_server_port, files_path)
 
         def _on_load(torrent_def):
             self.assertTrue(isValidTorrentFile(torrent_def.get_metainfo()))
-            self.assertEqual(TorrentDef.load(TORRENT_FILE), torrent_def)
+            self.assertEqual(TorrentDef.load(TORRENT_UBUNTU_FILE), torrent_def)
 
         torrent_url = 'http://localhost:%d/ubuntu.torrent' % file_server_port
         deferred = TorrentDef.load_from_url(torrent_url)
