@@ -590,6 +590,18 @@ class LibtorrentMgr(TaskManager):
 
         return result
 
+    def get_libtorrent_version(self):
+        """
+        This method returns the version of the used libtorrent
+        library and is required for compatibility purposes
+        """
+        if hasattr(lt, '__version__'):
+            return lt.__version__
+        else:
+            # libtorrent.version is deprecated starting from 1.0
+            return lt.version
+
+
 def encode_atp(atp):
     for k, v in atp.iteritems():
         if isinstance(v, unicode):
