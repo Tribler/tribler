@@ -211,19 +211,24 @@ class HttpTrackerSession(TrackerSession):
                               self._announce_page.replace(u'announce', u'scrape')),
                              {"info_hash": self._infohash_list})
 
-        agent = RedirectAgent(Agent(reactor, connectTimeout=self.timeout, pool=self._connection_pool))
-        self.request = self.register_task("request", agent.request('GET', bytes(url)))
-        self.request.addCallback(self.on_response)
-        self.request.addErrback(self.on_error)
-
-        self._logger.debug(u"%s HTTP SCRAPE message sent: %s", self, url)
-
         # no more requests can be appended to this session
         self._is_initiated = True
         self._last_contact = int(time.time())
 
-        # Return deferred that will evaluate when the whole chain is done.
-        self.result_deferred = self.register_task("result", Deferred(canceller=self._on_cancel))
+        agent = RedirectAgent(Agent(reactor, connectTimeout=self.timeout, pool=self._connection_pool))
+        try:
+            self.request = self.register_task("request", agent.request('GET', bytes(url)))
+            self.request.addCallback(self.on_response)
+            self.request.addErrback(self.on_error)
+
+            self._logger.debug(u"%s HTTP SCRAPE message sent: %s", self, url)
+
+            # Return deferred that will evaluate when the whole chain is done.
+            self.result_deferred = self.register_task("result", Deferred(canceller=self._on_cancel))
+
+        except UnicodeEncodeError as e:
+            self.result_deferred = defer.fail(e)
+
         return self.result_deferred
 
     def on_error(self, failure):
