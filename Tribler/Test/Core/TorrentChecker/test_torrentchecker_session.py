@@ -27,6 +27,8 @@ class FakeScraper(object):
 
 class TestTorrentCheckerSession(TriblerCoreTest):
 
+    error = None
+
     def setUp(self, annotate=True):
         super(TestTorrentCheckerSession, self).setUp(annotate=annotate)
         self.mock_transport = MockObject()
@@ -59,6 +61,17 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session._infohash_list = []
         session._process_scrape_response(bencode({'failure reason': 'test'}))
         self.assertTrue(session.is_failed)
+
+    def test_httpsession_on_error(self):
+        session = HttpTrackerSession("retracker.local", ("retracker.local", 80), u"/announce?size=33098770156&comment=nana-aida-film-039-s-collection.html&name=Nana+Aida+Film%26%23039%3Bs+Collection+%28Madonna%2C+Attackers%2C+BeFree%29+%5Bcen%5D+%5B2011-2014+%E3%E3.%2C+All+Sex%2C+Married+Woman%2C+Rape%2C+Mother-in-law%2C+Female+Teacher%2C+DVDRip%5D+%5B28+%D4%E8%EB%FC%EC%EE%E2%5D", 5)
+
+        def on_error(failure):
+            self.error = failure.value
+            failure.trap(UnicodeEncodeError)
+
+        session.connect_to_tracker().addErrback(on_error)
+        self.assertTrue(isinstance(self.error, UnicodeEncodeError))
+        self.assertEqual("ordinal not in range(128)", self.error.reason)
 
     @deferred(timeout=5)
     def test_httpsession_cancel_operation(self):
