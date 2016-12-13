@@ -455,7 +455,7 @@ class BoostingManager(TaskManager):
                                    lt_torrent.max_uploads(), lt_torrent.max_connections())
 
                 # piece_priorities will fail in libtorrent 1.0.9
-                if lt.__version__ == '1.0.9.0':
+                if self.session.lm.ltmgr.get_libtorrent_version() == '1.0.9.0':
                     continue
                 else:
                     non_zero_values = []

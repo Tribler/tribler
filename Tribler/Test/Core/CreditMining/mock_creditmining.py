@@ -147,6 +147,9 @@ class MockLtSession(object):
 
         self.add_observer = lambda *_: None
 
+    def get_libtorrent_version(self):
+        return '0'
+
     def get_session(self):
         """
         supposed to get libtorrent session
