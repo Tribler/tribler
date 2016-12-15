@@ -63,7 +63,8 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         self.assertTrue(session.is_failed)
 
     def test_httpsession_on_error(self):
-        session = HttpTrackerSession("retracker.local", ("retracker.local", 80), u"/announce?size=33098770156&comment=nana-aida-film-039-s-collection.html&name=Nana+Aida+Film%26%23039%3Bs+Collection+%28Madonna%2C+Attackers%2C+BeFree%29+%5Bcen%5D+%5B2011-2014+%E3%E3.%2C+All+Sex%2C+Married+Woman%2C+Rape%2C+Mother-in-law%2C+Female+Teacher%2C+DVDRip%5D+%5B28+%D4%E8%EB%FC%EC%EE%E2%5D", 5)
+        session = HttpTrackerSession("retracker.local", ("retracker.local", 80),
+		u"/announce?size=33098770156&comment=%26%23%3B%28%2C%29%5B%5D%E3%5B%D4%E8%EB%FC%EC%EE%E2", 5)
 
         def on_error(failure):
             self.error = failure.value
