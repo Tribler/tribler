@@ -786,6 +786,8 @@ class LibraryManager(object):
 
     def stopVideoIfEqual(self, download, reset_playlist=False):
         videoplayer = self._get_videoplayer()
+        if videoplayer is None:
+            return
         playd = videoplayer.get_vod_download()
 
         if playd == download:
