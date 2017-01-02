@@ -6,8 +6,8 @@ Written by Egbert Bouman and Ardhi Putra Pratama H
 
 import wx
 
+from Tribler.Core.CreditMining.BoostingSource import ChannelSource
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Policies.BoostingManager import ChannelSource
 
 
 class AddBoostingSource(wx.Dialog):

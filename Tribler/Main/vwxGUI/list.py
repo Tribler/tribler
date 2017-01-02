@@ -3,15 +3,14 @@ import copy
 import logging
 import re
 import sys
+import wx
 from binascii import hexlify, unhexlify
 from colorsys import hsv_to_rgb, rgb_to_hsv
 from math import log
 from time import time
-
-import wx
 from wx.lib.wordwrap import wordwrap
 
-from Tribler.Core.Category.Category import Category
+from Tribler.Core.CreditMining.credit_mining_util import string_to_source
 from Tribler.Core.exceptions import NotYetImplementedException
 from Tribler.Core.simpledefs import (DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR,
                                      DLSTATUS_WAITING4HASHCHECK, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING)
@@ -33,7 +32,6 @@ from Tribler.Main.vwxGUI.list_item import (ActivityListItem, ChannelListItem, Ch
                                            CreditMiningListItem)
 from Tribler.Main.vwxGUI.widgets import (BetterText, FancyPanel, HorizontalGauge, LinkStaticText, SwarmHealth, TagText,
                                          TorrentStatus, TransparentStaticBitmap, TransparentText, _set_font)
-from Tribler.Policies.credit_mining_util import string_to_source
 
 DEBUG_RELEVANCE = False
 MAX_REFRESH_PARTIAL = 5
