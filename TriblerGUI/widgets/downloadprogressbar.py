@@ -51,6 +51,9 @@ class DownloadProgressBar(QWidget):
         self.style().drawPrimitive(QStyle.PE_Widget, opt, painter, self)
 
         if self.show_pieces:
+            if len(self.pieces) == 0:  # Nothing to paint
+                return
+
             piece_width = self.width() / float(len(self.pieces))
             for i in xrange(len(self.pieces)):
                 if self.pieces[i]:
