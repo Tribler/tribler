@@ -246,14 +246,14 @@ class Session(SessionConfigInterface):
             gui_config.add_section('Tribler')
 
         for k, v in tribler_defaults['Tribler'].iteritems():
-            if not gui_config.has_option(k, v):
+            if not gui_config.has_option('Tribler', k):
                 gui_config.set('Tribler', k, v)
 
         if not gui_config.has_section('downloadconfig'):
             gui_config.add_section('downloadconfig')
 
         for k, v in DefaultDownloadStartupConfig.getInstance().dlconfig._sections['downloadconfig'].iteritems():
-            if not gui_config.has_option(k, v):
+            if not gui_config.has_option('downloadconfig', k):
                 gui_config.set('downloadconfig', k, v)
 
         # Make sure we use the same ConfigParser instance for both Utility and DefaultDownloadStartupConfig.
