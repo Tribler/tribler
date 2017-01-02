@@ -13,7 +13,6 @@ import os
 import sys
 from PyQt5.QtCore import QTimer, pyqtSignal, QObject
 from PyQt5.QtWidgets import QApplication
-import sqlite3
 import signal
 from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Core.Session import Session
@@ -111,10 +110,8 @@ class CoreManager(QObject):
             from TriblerGUI.scripts.start_fake_core import start_fake_core
             self.core_process = multiprocessing.Process(target=start_fake_core, args=(self.api_port,))
         else:
-            # Workaround for MacOS
-            sqlite3.connect(':memory:').close()
-
             self.core_process = multiprocessing.Process(target=start_tribler_core, args=(self.base_path,))
+
         self.core_process.start()
         self.check_core_ready()
 
