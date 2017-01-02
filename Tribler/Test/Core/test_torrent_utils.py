@@ -1,6 +1,6 @@
 import os
-from Tribler.Core.Utilities.torrent_utils import create_torrent_file
-from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.Core.Utilities.torrent_utils import create_torrent_file, get_info_from_handle
+from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 
 
 class TriblerCoreTestTorrentUtils(TriblerCoreTest):
@@ -40,6 +40,15 @@ class TriblerCoreTestTorrentUtils(TriblerCoreTest):
     def test_create_torrent_two_files(self):
         file_path_list = [os.path.join(self.TORRENT_DATA_DIR, self.FILE1_NAME),
                           os.path.join(self.TORRENT_DATA_DIR, self.FILE2_NAME)]
-        create_torrent_file(file_path_list, self.get_params())
-        self.assertTrue(os.path.isfile(os.path.abspath(os.path.join(self.TORRENT_DATA_DIR, u"torrent_creation_files.torrent"))))
-        os.remove(os.path.abspath(os.path.join(self.TORRENT_DATA_DIR, u"torrent_creation_files.torrent")))
+        result = create_torrent_file(file_path_list, self.get_params())
+        self.assertTrue(os.path.isfile(result["torrent_file_path"]))
+        os.remove(result["torrent_file_path"])
+
+    def test_get_info_from_handle(self):
+        mock_handle = MockObject()
+
+        def mock_get_torrent_file():
+            raise RuntimeError
+
+        mock_handle.torrent_file = mock_get_torrent_file
+        self.assertIsNone(get_info_from_handle(mock_handle))
