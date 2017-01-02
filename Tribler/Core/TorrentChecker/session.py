@@ -310,7 +310,7 @@ class HttpTrackerSession(TrackerSession):
 
         elif 'failure reason' in response_dict:
             self._logger.info(u"%s Failure as reported by tracker [%s]", self, repr(response_dict['failure reason']))
-            self.failed(msg=response_dict['failure reason'])
+            self.failed(msg=repr(response_dict['failure reason']))
             return
 
         # handle the infohashes with no result (seeders/leechers = 0/0)
