@@ -23,7 +23,7 @@ from Tribler.Main.vwxGUI import SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY, 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.list import CreditMiningList
 from Tribler.Main.vwxGUI.widgets import FancyPanel, LinkStaticText, _set_font
-from Tribler.Policies.BoostingSource import RSSFeedSource, DirectorySource, ChannelSource, BoostingSource
+from Tribler.Core.CreditMining.BoostingSource import RSSFeedSource, DirectorySource, ChannelSource, BoostingSource
 from Tribler.dispersy.taskmanager import TaskManager
 
 RETURNED_CHANNELS = 30

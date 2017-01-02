@@ -17,15 +17,13 @@ import os.path
 import sys
 from distutils.spawn import find_executable
 
+from Tribler.Core.CreditMining.BoostingPolicy import CreationDatePolicy, SeederRatioPolicy, RandomPolicy, BoostingPolicy
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import determine_install_dir
 from Tribler.Core.Utilities.network_utils import autodetect_socket_style, get_random_port
 from Tribler.Core.defaults import sessdefaults
 from Tribler.Core.osutils import get_appstate_dir, is_android
 from Tribler.Core.simpledefs import STATEDIR_SESSCONFIG
-from Tribler.Policies.BoostingPolicy import CreationDatePolicy, BoostingPolicy
-from Tribler.Policies.BoostingPolicy import RandomPolicy
-from Tribler.Policies.BoostingPolicy import SeederRatioPolicy
 
 
 class SessionConfigInterface(object):

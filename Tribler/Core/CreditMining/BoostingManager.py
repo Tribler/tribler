@@ -5,23 +5,23 @@ import logging
 import os
 import shutil
 from binascii import hexlify, unhexlify
+from twisted.internet.task import LoopingCall
 
 import libtorrent as lt
-from twisted.internet.task import LoopingCall
+from Tribler.Core.CreditMining.BoostingPolicy import SeederRatioPolicy
+from Tribler.Core.CreditMining.BoostingSource import ChannelSource
+from Tribler.Core.CreditMining.BoostingSource import DirectorySource
+from Tribler.Core.CreditMining.BoostingSource import RSSFeedSource
+from Tribler.Core.CreditMining.credit_mining_util import source_to_string, string_to_source, compare_torrents, \
+    validate_source_string
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
+from Tribler.Core.CreditMining.defs import SAVED_ATTR, CREDIT_MINING_FOLDER_DOWNLOAD, CONFIG_KEY_ARCHIVELIST, \
+    CONFIG_KEY_SOURCELIST, CONFIG_KEY_ENABLEDLIST, CONFIG_KEY_DISABLEDLIST
 from Tribler.Core.Utilities import utilities
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
-from Tribler.Policies.BoostingPolicy import SeederRatioPolicy
-from Tribler.Policies.BoostingSource import ChannelSource
-from Tribler.Policies.BoostingSource import DirectorySource
-from Tribler.Policies.BoostingSource import RSSFeedSource
-from Tribler.Policies.credit_mining_util import source_to_string, string_to_source, compare_torrents, \
-    validate_source_string
-from Tribler.Policies.defs import SAVED_ATTR, CREDIT_MINING_FOLDER_DOWNLOAD, CONFIG_KEY_ARCHIVELIST, \
-    CONFIG_KEY_SOURCELIST, CONFIG_KEY_ENABLEDLIST, CONFIG_KEY_DISABLEDLIST
 from Tribler.dispersy.taskmanager import TaskManager
 
 

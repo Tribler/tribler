@@ -5,8 +5,8 @@ Written by Ardhi Putra Pratama H
 """
 from twisted.web.resource import Resource
 
+from Tribler.Core.CreditMining.BoostingPolicy import SeederRatioPolicy
 from Tribler.Core.SessionConfig import SessionConfigInterface
-from Tribler.Policies.BoostingPolicy import SeederRatioPolicy
 from Tribler.Test.Core.base_test import MockObject
 
 

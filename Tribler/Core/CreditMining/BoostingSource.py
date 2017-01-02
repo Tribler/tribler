@@ -13,6 +13,7 @@ from hashlib import sha1
 import feedparser
 
 import libtorrent as lt
+
 from twisted.internet import defer
 from twisted.internet import reactor
 from twisted.internet.defer import CancelledError
@@ -21,11 +22,11 @@ from twisted.web.client import Agent, readBody, getPage
 from twisted.web.error import Error
 from twisted.web.http_headers import Headers
 
+from Tribler.Core.CreditMining.credit_mining_util import TorrentManagerCM, ent2chr
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_TORRENTS, NTFY_UPDATE
 from Tribler.Core.version import version_id
 from Tribler.Main.Utility.GuiDBTuples import Torrent, Channel
-from Tribler.Policies.credit_mining_util import TorrentManagerCM, ent2chr
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.dispersy.exception import CommunityNotFoundException

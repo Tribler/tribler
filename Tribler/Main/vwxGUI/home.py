@@ -1,11 +1,10 @@
 # Written by Niels Zeilemaker
+import binascii
 import datetime
 import logging
 import os
 import random
 import sys
-import binascii
-
 from time import strftime, time
 from traceback import print_exc
 
@@ -13,7 +12,6 @@ from traceback import print_exc
 from twisted.internet import reactor
 import wx
 
-from Tribler.Core.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Session import Session
 from Tribler.Core.Video.VideoUtility import considered_xxx
@@ -33,7 +31,7 @@ from Tribler.Main.vwxGUI.list_header import DetailHeader
 from Tribler.Main.vwxGUI.list_item import ThumbnailListItemNoTorrent
 from Tribler.Main.vwxGUI.widgets import (SelectableListCtrl, TextCtrlAutoComplete, BetterText as StaticText,
                                          LinkStaticText, ActionButton, HorizontalGauge, TagText)
-from Tribler.Policies.credit_mining_util import string_to_source
+from Tribler.Core.CreditMining.credit_mining_util import string_to_source
 from Tribler.community.multichain.community import MultiChainCommunity
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.routing import Hop
