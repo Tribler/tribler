@@ -61,6 +61,21 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         self.assertTrue(session.is_failed)
 
     @deferred(timeout=5)
+    def test_httpsession_unicode_err(self):
+        session = HttpTrackerSession("retracker.local", ("retracker.local", 80),
+                                     u"/announce?comment=%26%23%3B%28%2C%29%5B%5D%E3%5B%D4%E8%EB%FC%EC%EE%E2", 5)
+
+        test_deferred = Deferred()
+
+        def on_error(failure):
+            failure.trap(UnicodeEncodeError)
+            self.assertTrue(isinstance(failure.value, UnicodeEncodeError))
+            test_deferred.callback(None)
+
+        session.connect_to_tracker().addErrback(on_error)
+        return test_deferred
+
+    @deferred(timeout=5)
     def test_httpsession_cancel_operation(self):
         test_deferred = Deferred()
         session = HttpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 5)
