@@ -390,7 +390,7 @@ class TriblerWindow(QMainWindow):
                                                                     "default_anonymity_enabled", True, is_bool=True),
                                                     get_gui_setting(self.gui_settings,
                                                                     "default_safeseeding_enabled", True, is_bool=True),
-                                                    [], 0)
+                                                    self.tribler_settings['downloadconfig']['saveas'], [], 0)
 
         self.dialog.setParent(None)
         self.dialog = None
