@@ -613,7 +613,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             os.rmdir(self.unwanteddir_abs)
 
     def on_performance_alert(self, alert):
-        if self.get_anon_mode():
+        if self.get_anon_mode() or self.ltmgr.ltsessions is None:
             return
 
         # When the send buffer watermark is too low, double the buffer size to a
