@@ -5,7 +5,6 @@ import binascii
 import errno
 import logging
 import os
-import random
 import sys
 import time as timemod
 from glob import iglob
@@ -14,7 +13,7 @@ from traceback import print_exc
 
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList
-from twisted.internet.task import deferLater, LoopingCall
+from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
 
@@ -328,7 +327,7 @@ class TriblerLaunchMany(TaskManager):
             self.watch_folder.start()
 
         if self.session.get_creditmining_enable():
-            from Tribler.Policies.BoostingManager import BoostingManager
+            from Tribler.Core.CreditMining.BoostingManager import BoostingManager
             self.boosting_manager = BoostingManager(self.session)
 
         self.version_check_manager = VersionCheckManager(self.session)

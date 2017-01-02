@@ -2,17 +2,16 @@
 File containing function used in credit mining module.
 """
 
-
 import os
 from binascii import hexlify, unhexlify
 
+from Tribler.Core.CreditMining.defs import SIMILARITY_TRESHOLD
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Core.simpledefs import NTFY_VOTECAST
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, RemoteTorrent, NotCollectedTorrent, Channel, \
     ChannelTorrent
-from Tribler.Policies.defs import SIMILARITY_TRESHOLD
 from Tribler.dispersy.taskmanager import TaskManager
 
 
