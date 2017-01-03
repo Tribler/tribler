@@ -457,9 +457,7 @@ class Session(SessionConfigInterface):
             raise OperationNotEnabledByConfigurationException()
 
         # Called by any thread
-        if subject == NTFY_METADATA:
-            return self.lm.metadata_db
-        elif subject == NTFY_PEERS:
+        if subject == NTFY_PEERS:
             return self.lm.peer_db
         elif subject == NTFY_TORRENTS:
             return self.lm.torrent_db
@@ -475,9 +473,6 @@ class Session(SessionConfigInterface):
     def close_dbhandler(self, dbhandler):
         """ Closes the given database connection """
         dbhandler.close()
-
-    def get_statistics(self):
-        return TriblerStatistics(self).dump_statistics()
 
     def get_tribler_statistics(self):
         """
