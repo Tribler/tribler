@@ -6,6 +6,24 @@ import libtorrent
 logger = logging.getLogger(__name__)
 
 
+def commonprefix(l):
+    # this unlike the os.path.commonprefix version always returns path prefixes as it compares
+    # path component wise.
+    cp = []
+    ls = [p.split('/') for p in l]
+    ml = min(len(p) for p in ls)
+
+    for i in range(ml):
+
+        s = set(p[i] for p in ls)
+        if len(s) != 1:
+            break
+
+        cp.append(s.pop())
+
+    return os.path.sep.join(cp)
+
+
 def create_torrent_file(file_path_list, params):
     fs = libtorrent.file_storage()
 
@@ -21,7 +39,7 @@ def create_torrent_file(file_path_list, params):
     if len(file_path_list_filtered) == 1:
         base_path = os.path.split(file_path_list_filtered[0])[0]
     else:
-        base_path = os.path.dirname(os.path.abspath(os.path.commonprefix(file_path_list_filtered)))
+        base_path = os.path.abspath(commonprefix(file_path_list_filtered))
 
     # the base_dir directory is the parent directory of the base_path and is passed to the set_piece_hash method
     base_dir = os.path.split(base_path)[0]
@@ -31,8 +49,7 @@ def create_torrent_file(file_path_list, params):
         fs.add_file(filename, os.path.getsize(file_path_list_filtered[0]))
     else:
         for full_file_path in file_path_list_filtered:
-            filename = os.path.basename(full_file_path)
-            filename = os.path.join(base_path[len(base_dir) + 1:], filename)
+            filename = os.path.join(base_path[len(base_dir) + 1:], full_file_path[len(base_dir):])[1:]
             fs.add_file(filename, os.path.getsize(full_file_path))
 
     if params.get('piece length'):
