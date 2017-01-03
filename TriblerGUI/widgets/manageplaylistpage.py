@@ -43,7 +43,7 @@ class ManagePlaylistPage(QWidget):
 
         # Load torrents in your channel
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("channels/discovered/%s/torrents" %
+        self.request_mgr.perform_request("channels/discovered/%s/torrents?disable_filter=1" %
                                          channel_info["identifier"], self.on_received_channel_torrents)
 
         self.torrents_in_playlist = []

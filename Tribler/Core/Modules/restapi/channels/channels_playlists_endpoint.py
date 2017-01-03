@@ -23,6 +23,7 @@ class ChannelsPlaylistsEndpoint(BaseChannelsEndpoint):
         .. http:get:: /channels/discovered/(string: channelid)/playlists
 
         Returns the playlists in your channel. Returns error 404 if you have not created a channel.
+        - disable_filter: whether the family filter should be disabled for this request (1 = disabled)
 
             **Example request**:
 
@@ -63,14 +64,19 @@ class ChannelsPlaylistsEndpoint(BaseChannelsEndpoint):
         req_columns = ['Playlists.id', 'Playlists.name', 'Playlists.description']
         req_columns_torrents = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
                                 'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.inserted']
+
+        should_filter = self.session.tribler_config.get_family_filter_enabled()
+        if 'disable_filter' in request.args and len(request.args['disable_filter']) > 0 \
+                and request.args['disable_filter'][0] == "1":
+            should_filter = False
+
         for playlist in self.channel_db_handler.getPlaylistsFromChannelId(channel[0], req_columns):
             # Fetch torrents in the playlist
             playlist_torrents = self.channel_db_handler.getTorrentsFromPlaylist(playlist[0], req_columns_torrents)
             torrents = []
             for torrent_result in playlist_torrents:
                 torrent = convert_db_torrent_to_json(torrent_result)
-                if (self.session.tribler_config.get_family_filter_enabled() and torrent['category'] == 'xxx') or \
-                        torrent['name'] is None:
+                if (should_filter and torrent['category'] == 'xxx') or torrent['name'] is None:
                     continue
                 torrents.append(torrent)
 

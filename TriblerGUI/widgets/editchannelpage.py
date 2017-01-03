@@ -131,7 +131,7 @@ class EditChannelPage(QWidget):
     def load_channel_playlists(self):
         self.window().edit_channel_playlists_list.set_data_items([(LoadingListItem, None)])
         self.editchannel_request_mgr = TriblerRequestManager()
-        self.editchannel_request_mgr.perform_request("channels/discovered/%s/playlists" %
+        self.editchannel_request_mgr.perform_request("channels/discovered/%s/playlists?disable_filter=1" %
                                                      self.channel_overview["identifier"],
                                                      self.initialize_with_playlists)
 
@@ -456,9 +456,7 @@ class EditChannelPage(QWidget):
 
     def on_torrent_removed(self, json_result):
         if 'removed' in json_result and json_result['removed']:
-            selected_item = self.window().edit_channel_torrents_list.selectedItems()[0]
-            self.window().edit_channel_torrents_list.takeItem(
-                self.window().edit_channel_torrents_list.row(selected_item))
+            self.load_channel_torrents()
 
     def on_torrents_remove_all_action(self, action):
         if action == 0:
