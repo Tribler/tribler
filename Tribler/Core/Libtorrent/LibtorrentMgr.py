@@ -534,7 +534,7 @@ class LibtorrentMgr(TaskManager):
     def start_download_from_magnet(self, url, dconfig=None):
         name, infohash, _ = parse_magnetlink(url)
         if name is None:
-            name = ""
+            name = "Unknown name"
         if infohash is None:
             raise RuntimeError("Missing infohash")
         tdef = TorrentDefNoMetainfo(infohash, name, url=url)

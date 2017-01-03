@@ -88,10 +88,9 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         def verify_download(_):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
-            self.assertEqual(self.session.get_downloads()[0].get_def().get_name(), 'test torrent')
+            self.assertEqual(self.session.get_downloads()[0].get_def().get_name(), 'Unknown name')
 
-        post_data = {'uri': 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH),
-                                                              quote_plus('test torrent'))}
+        post_data = {'uri': 'magnet:?xt=urn:btih:%s' % (hexlify(UBUNTU_1504_INFOHASH))}
         expected_json = {'started': True, 'infohash': 'fc8a15a2faf2734dbb1dc5f7afdc5c9beaeb1f59'}
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
