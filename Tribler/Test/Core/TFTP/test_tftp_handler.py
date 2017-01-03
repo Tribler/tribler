@@ -1,4 +1,6 @@
 from nose.tools import raises
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.TFTP.exception import FileNotFound
 from Tribler.Core.TFTP.handler import TftpHandler
 from Tribler.Core.TFTP.packet import OPCODE_OACK, OPCODE_ERROR
@@ -11,13 +13,17 @@ class TestTFTPHandler(TriblerCoreTest):
     This class contains tests for the TFTP handler class.
     """
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, annotate=True):
-        TriblerCoreTest.setUp(self, annotate=annotate)
+        yield TriblerCoreTest.setUp(self, annotate=annotate)
         self.handler = TftpHandler(None, None, None)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self, annotate=True):
-        TriblerCoreTest.tearDown(self, annotate=annotate)
         self.handler.cancel_all_pending_tasks()
+        yield TriblerCoreTest.tearDown(self, annotate=annotate)
 
     @blocking_call_on_reactor_thread
     def test_download_file_not_running(self):
