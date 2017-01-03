@@ -249,7 +249,7 @@ class EditChannelPage(QWidget):
         filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
 
         with open(filename[0], "rb") as torrent_file:
-            torrent_content = base64.b64encode(torrent_file.read())
+            torrent_content = urllib.quote_plus(base64.b64encode(torrent_file.read()))
             self.editchannel_request_mgr = TriblerRequestManager()
             self.editchannel_request_mgr.perform_request("channels/discovered/%s/torrents" %
                                                          self.channel_overview['identifier'],

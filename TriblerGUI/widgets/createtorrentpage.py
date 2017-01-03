@@ -1,4 +1,6 @@
 import os
+import urllib
+
 from PyQt5.QtGui import QIcon
 
 from PyQt5.QtWidgets import QWidget, QFileDialog, QAction
@@ -88,7 +90,7 @@ class CreateTorrentPage(QWidget):
             self.add_torrent_to_channel(result['torrent'])
 
     def add_torrent_to_channel(self, torrent):
-        post_data = str("torrent=%s" % torrent)
+        post_data = str("torrent=%s" % urllib.quote_plus(torrent))
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("channels/discovered/%s/torrents" %
                                          self.channel_identifier, self.on_torrent_to_channel_added,
