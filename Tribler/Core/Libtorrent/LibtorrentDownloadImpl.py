@@ -764,7 +764,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                         self.handle.rename_file(index, new_path.encode("utf-8"))
 
             # if in share mode, don't change priority of the file
-            if self.get_share_mode():
+            if not self.get_share_mode():
                 self.handle.prioritize_files(filepriorities)
 
             self.unwanteddir_abs = unwanteddir_abs

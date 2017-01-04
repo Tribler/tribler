@@ -9,7 +9,6 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.twisted_thread import deferred, reactor
-from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.test_as_server import TestAsServer
@@ -228,6 +227,34 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
     def tearDown(self, annotate=True):
         self.libtorrent_download_impl.cancel_all_pending_tasks()
         super(TestLibtorrentDownloadImplNoSession, self).tearDown(annotate=annotate)
+
+    def test_selected_files(self):
+        """
+        Test whether the selected files are set correctly
+        """
+        def mocked_set_file_prios(_):
+            mocked_set_file_prios.called = True
+
+        mocked_set_file_prios.called = False
+
+        mocked_file = MockObject()
+        mocked_file.path = 'my/path'
+        mock_torrent_info = MockObject()
+        mock_torrent_info.files = lambda: [mocked_file, mocked_file]
+        self.libtorrent_download_impl.handle.prioritize_files = mocked_set_file_prios
+        self.libtorrent_download_impl.handle.get_torrent_info = lambda: mock_torrent_info
+        self.libtorrent_download_impl.handle.rename_file = lambda *_: None
+
+        self.libtorrent_download_impl.get_share_mode = lambda: False
+        self.libtorrent_download_impl.tdef.get_infohash = lambda: 'a' * 20
+        self.libtorrent_download_impl.orig_files = ['a', 'b']
+        self.libtorrent_download_impl.get_save_path = lambda: 'my/path'
+        self.libtorrent_download_impl.set_selected_files(['a'])
+        self.assertTrue(mocked_set_file_prios.called)
+
+        self.libtorrent_download_impl.get_share_mode = lambda: False
+        mocked_set_file_prios.called = False
+        self.assertFalse(mocked_set_file_prios.called)
 
     def test_get_share_mode(self):
         """
