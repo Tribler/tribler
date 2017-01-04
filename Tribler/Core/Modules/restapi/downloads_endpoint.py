@@ -311,53 +311,6 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
 
         return json.dumps({"removed": True})
 
-    def render_PUT(self, request):
-        """
-        .. http:put:: /download/(string: infohash)
-
-        A PUT request to this endpoint will start a download from a given infohash. Metadata and peers will be fetched
-        from the libtorrent DHT. Various options can be passed:
-        - anon_hops: the number of hops for the anonymous download. 0 hops is equivalent to a plain download
-        - safe_seeding: whether the seeding of the download should be anonymous or not (0 = off, 1 = on)
-        - destination: the download destination path of the torrent
-
-            **Example request**:
-
-                .. sourcecode:: none
-
-                    curl -X PUT http://localhost:8085/downloads/4344503b7e797ebf31582327a5baae35b11bda01
-                    --data "anon_hops=2&safe_seeding=1&destination=/my/dest/on/disk/"
-
-            **Example response**:
-
-                .. sourcecode:: javascript
-
-                    {"started": True}
-        """
-        parameters = http.parse_qs(request.content.read(), 1)
-
-        if self.session.has_download(self.infohash):
-            request.setResponseCode(http.CONFLICT)
-            return json.dumps({"error": "the download with the given infohash already exists"})
-
-        # Check whether we have the torrent file, otherwise, create a tdef without metainfo.
-        torrent_data = self.session.get_collected_torrent(self.infohash)
-        if torrent_data is not None:
-            tdef_download = TorrentDef.load_from_memory(torrent_data)
-        else:
-            torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
-            torrent = torrent_db.getTorrent(self.infohash, keys=['C.torrent_id', 'name'])
-            tdef_download = TorrentDefNoMetainfo(self.infohash, torrent['name'])
-
-        download_config, error = DownloadSpecificEndpoint.create_dconfig_from_params(parameters)
-        if not error:
-            self.session.start_download_from_tdef(tdef_download, download_config)
-        else:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": error})
-
-        return json.dumps({"started": True})
-
     def render_PATCH(self, request):
         """
         .. http:patch:: /download/(string: infohash)
