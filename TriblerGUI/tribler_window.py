@@ -231,7 +231,7 @@ class TriblerWindow(QMainWindow):
                 self.on_added_magnetlink(uri)
 
     def perform_start_download_request(self, uri, anon_download, safe_seeding, destination, selected_files,
-                                       total_files=0):
+                                       total_files=0, callback=None):
         selected_files_uri = ""
         if len(selected_files) != total_files:  # Not all files included
             selected_files_uri = '&' + ''.join(u"selected_files[]=%s&" % file for
@@ -243,7 +243,8 @@ class TriblerWindow(QMainWindow):
                                                                                   destination, selected_files_uri))
         request_mgr = TriblerRequestManager()
         self.pending_requests[request_mgr.request_id] = request_mgr
-        request_mgr.perform_request("downloads", self.on_download_added, method='PUT', data=post_data)
+        request_mgr.perform_request("downloads", callback if callback else self.on_download_added,
+                                    method='PUT', data=post_data)
 
     def on_new_version_available(self, version):
         if version == str(self.gui_settings.value('last_reported_version')):
