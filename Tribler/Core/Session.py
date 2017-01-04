@@ -223,6 +223,13 @@ class Session(SessionConfigInterface):
             elif 'log_failure' in event:
                 text = str(event['log_failure'])
 
+            # There are some errors that we are ignoring.
+            # No route to host: this issue is non-critical since Tribler can still function when a request fails.
+            if 'socket.error: [Errno 113]' in text:
+                self._logger.error("Observed no route to host error (but ignoring)."
+                                   "This might indicate a problem with your firewall.")
+                return
+
             if self.lm.api_manager and len(text) > 0:
                 self.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception(text)
                 self.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception(text)
