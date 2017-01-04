@@ -112,6 +112,9 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                         "eta": 38493,
                         "num_peers": 53,
                         "num_seeds": 93,
+                        "total_up": 10000,
+                        "total_down": 100000,
+                        "ratio": 0.1,
                         "files": [{
                             "index": 0,
                             "name": "ubuntu.iso",
@@ -181,14 +184,19 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             for url, url_info in download.network_tracker_status().iteritems():
                 tracker_info.append({"url": url, "peers": url_info[0], "status": url_info[1]})
 
+            ratio = 0.0
+            if stats.downTotal > 0:
+                ratio = stats.upTotal / float(stats.downTotal)
+
             download_json = {"name": download.get_def().get_name(), "progress": download.get_progress(),
                              "infohash": download.get_def().get_infohash().encode('hex'),
                              "speed_down": download.get_current_speed(DOWNLOAD),
                              "speed_up": download.get_current_speed(UPLOAD),
                              "status": dlstatus_strings[download.get_status()],
                              "size": download.get_def().get_length(), "eta": download.network_calc_eta(),
-                             "num_peers": stats.numPeers, "num_seeds": stats.numSeeds, "files": files_array,
-                             "trackers": tracker_info, "hops": download.get_hops(),
+                             "num_peers": stats.numPeers, "num_seeds": stats.numSeeds, "total_up": stats.upTotal,
+                             "total_down": stats.downTotal, "ratio": ratio,
+                             "files": files_array, "trackers": tracker_info, "hops": download.get_hops(),
                              "anon_download": download.get_anon_mode(), "safe_seeding": download.get_safe_seeding(),
                              "max_upload_speed": download.get_max_speed(UPLOAD),
                              "max_download_speed": download.get_max_speed(DOWNLOAD),
