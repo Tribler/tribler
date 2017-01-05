@@ -512,7 +512,7 @@ class LibtorrentMgr(TaskManager):
 
     def start_download_from_uri(self, uri, dconfig=None):
         if uri.startswith("http"):
-            return self.start_download_from_url(uri, dconfig=dconfig)
+            return self.start_download_from_url(bytes(uri), dconfig=dconfig)
         if uri.startswith("magnet:"):
             return succeed(self.start_download_from_magnet(uri, dconfig=dconfig))
         if uri.startswith("file:"):
