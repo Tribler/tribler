@@ -21,7 +21,9 @@ class TriblerCoreTestTorrentUtils(TriblerCoreTest):
         self.created_torrent_one_file(result)
 
     def test_create_torrent_one_file_2(self):
-        create_torrent_file([os.path.join(self.TORRENT_DATA_DIR, self.FILE2_NAME)], {})
+        result = create_torrent_file([os.path.join(self.TORRENT_DATA_DIR, self.FILE2_NAME)], {})
+        self.assertTrue(os.path.isfile(result["torrent_file_path"]))
+        os.remove(result["torrent_file_path"])
 
     def test_create_torrent_with_nodes(self):
         params = self.get_params()
@@ -34,7 +36,6 @@ class TriblerCoreTestTorrentUtils(TriblerCoreTest):
         self.assertEqual(result["base_path"], self.TORRENT_DATA_DIR)
         self.assertTrue(result["success"])
         self.assertTrue(os.path.isfile(result["torrent_file_path"]))
-
         os.remove(result["torrent_file_path"])
 
     def test_create_torrent_two_files(self):
