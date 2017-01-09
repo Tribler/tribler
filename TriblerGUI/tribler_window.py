@@ -1,5 +1,6 @@
 import glob
 import logging
+import os
 import sys
 import traceback
 from urllib import quote_plus
@@ -56,6 +57,9 @@ class TriblerWindow(QMainWindow):
     def on_exception(self, *exc_info):
         # Stop the download loop
         self.downloads_page.stop_loading_downloads()
+
+        # Add info about whether we are stopping Tribler or not
+        os.environ['TRIBLER_SHUTTING_DOWN'] = str(self.core_manager.shutting_down)
 
         if not self.core_manager.shutting_down:
             self.core_manager.stop(stop_app_on_shutdown=False)

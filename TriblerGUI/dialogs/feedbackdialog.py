@@ -7,7 +7,7 @@ import sys
 import platform
 import time
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import performed_requests as tribler_performed_requests, TriblerRequestManager
 from TriblerGUI.utilities import get_ui_file_path
 
 
@@ -56,6 +56,13 @@ class FeedbackDialog(QDialog):
 
         for key in os.environ.keys():
             add_item_to_info_widget('os.environ', '%s: %s' % (key, os.environ[key]))
+
+        request_ind = 1
+        for endpoint, method, data, timestamp, status_code in sorted(tribler_performed_requests.values(),
+                                                                     key=lambda x: x[3]):
+            add_item_to_info_widget('request_%d' % request_ind, '%s %s %s (time: %s, code: %s)' %
+                                    (endpoint, method, data, timestamp, status_code))
+            request_ind += 1
 
         # Users can remove specific lines in the report
         self.env_variables_list.customContextMenuRequested.connect(self.on_right_click_item)
