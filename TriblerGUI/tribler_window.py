@@ -239,8 +239,10 @@ class TriblerWindow(QMainWindow):
 
         anon_hops = int(self.tribler_settings['Tribler']['default_number_hops']) if anon_download else 0
         safe_seeding = 1 if safe_seeding else 0
-        post_data = str("uri=%s&anon_hops=%d&safe_seeding=%d&destination=%s%s" % (uri, anon_hops, safe_seeding,
-                                                                                  destination, selected_files_uri))
+        post_data = "uri=%s&anon_hops=%d&safe_seeding=%d&destination=%s%s" % (uri, anon_hops, safe_seeding,
+                                                                                   destination, selected_files_uri)
+        post_data = post_data.encode('utf-8')  # We need to send bytes in the request, not unicode
+
         request_mgr = TriblerRequestManager()
         self.pending_requests[request_mgr.request_id] = request_mgr
         request_mgr.perform_request("downloads", callback if callback else self.on_download_added,
