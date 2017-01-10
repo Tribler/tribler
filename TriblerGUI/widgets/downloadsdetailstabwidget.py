@@ -17,75 +17,32 @@ class DownloadsDetailsTabWidget(QTabWidget):
         QTabWidget.__init__(self, parent)
         self.current_download = None
         self.request_mgr = None
-        self.selected_item = None
+        self.files_widgets = {}    # dict of file name -> widget
+        self.tracker_widgets = {}  # dict of tracker URL -> widget
 
     def initialize_details_widget(self):
         self.window().download_files_list.customContextMenuRequested.connect(self.on_right_click_file_item)
 
     def update_with_download(self, download):
         self.current_download = download
-        self.update_pages()
+        self.update_pages(new_download=True)
 
-    def update_pages(self):
-        if self.current_download is None:
-            return
+    @staticmethod
+    def update_file_row(item, file_info):
+        item.setText(0, file_info["name"])
+        item.setText(1, format_size(float(file_info["size"])))
+        item.setText(2, '{percent:.1%}'.format(percent=file_info["progress"]))
+        item.setText(3, "yes" if file_info["included"] else "no")
+        item.setData(0, Qt.UserRole, file_info)
 
-        self.window().download_progress_bar.update_with_download(self.current_download)
-        self.window().download_detail_name_label.setText(self.current_download['name'])
-        self.window().download_detail_status_label.setText(DLSTATUS_STRINGS[eval(self.current_download["status"])])
-        self.window().download_detail_filesize_label.setText("%s in %d files" %
-                                                             (format_size(float(self.current_download["size"])),
-                                                              len(self.current_download["files"])))
-        self.window().download_detail_health_label.setText("%d seeders, %d leechers" %
-                                                           (self.current_download["num_seeds"],
-                                                            self.current_download["num_peers"]))
-        self.window().download_detail_infohash_label.setText(self.current_download['infohash'])
-        self.window().download_detail_destination_label.setText(self.current_download["destination"])
-        self.window().download_detail_availability_label.setText("%.2f" % self.current_download['availability'])
+    @staticmethod
+    def update_tracker_row(item, tracker):
+        item.setText(0, tracker["url"])
+        item.setText(1, tracker["status"])
+        item.setText(2, str(tracker["peers"]))
 
-        # Populate the files list
-        self.window().download_files_list.clear()
-        for filename in self.current_download["files"]:
-            item = QTreeWidgetItem(self.window().download_files_list)
-            item.setText(0, filename["name"])
-            item.setText(1, format_size(float(filename["size"])))
-            item.setText(2, '{percent:.1%}'.format(percent=filename["progress"]))
-            item.setText(3, "yes" if filename["included"] else "no")
-            item.setData(0, Qt.UserRole, filename)
-            self.window().download_files_list.addTopLevelItem(item)
-
-        # Populate the trackers list
-        self.window().download_trackers_list.clear()
-        for tracker in self.current_download["trackers"]:
-            item = QTreeWidgetItem(self.window().download_trackers_list)
-            item.setText(0, tracker["url"])
-            item.setText(1, tracker["status"])
-            item.setText(2, str(tracker["peers"]))
-
-        # Populate the peers list if the peer information is available
-        self.window().download_peers_list.clear()
-        if "peers" in self.current_download:
-            for peer in self.current_download["peers"]:
-                self.create_widget_with_peer_info(peer)
-
-    def clear_data(self):
-        self.setCurrentIndex(0)
-        self.window().download_progress_bar.set_fraction(0.0)
-        self.window().download_detail_name_label.setText("")
-        self.window().download_detail_status_label.setText("")
-        self.window().download_detail_filesize_label.setText("")
-        self.window().download_detail_health_label.setText("")
-        self.window().download_detail_infohash_label.setText("")
-        self.window().download_detail_destination_label.setText("")
-        self.window().download_detail_availability_label.setText("")
-
-        self.window().download_files_list.clear()
-        self.window().download_trackers_list.clear()
-        self.window().download_peers_list.clear()
-
-    def create_widget_with_peer_info(self, peer):
-        item = QTreeWidgetItem(self.window().download_peers_list)
-
+    @staticmethod
+    def update_peer_row(item, peer):
         peer_name = "%s:%s" % (peer["ip"], peer["port"])
         if peer['connection_type'] == 1:
             peer_name += ' [WebSeed]'
@@ -120,13 +77,60 @@ class DownloadsDetailsTabWidget(QTabWidget):
         item.setText(4, state)
         item.setText(5, peer['extended_version'])
 
+    def update_pages(self, new_download=False):
+        if self.current_download is None:
+            return
+
+        self.window().download_progress_bar.update_with_download(self.current_download)
+        self.window().download_detail_name_label.setText(self.current_download['name'])
+        self.window().download_detail_status_label.setText(DLSTATUS_STRINGS[eval(self.current_download["status"])])
+        self.window().download_detail_filesize_label.setText("%s in %d files" %
+                                                             (format_size(float(self.current_download["size"])),
+                                                              len(self.current_download["files"])))
+        self.window().download_detail_health_label.setText("%d seeders, %d leechers" %
+                                                           (self.current_download["num_seeds"],
+                                                            self.current_download["num_peers"]))
+        self.window().download_detail_infohash_label.setText(self.current_download['infohash'])
+        self.window().download_detail_destination_label.setText(self.current_download["destination"])
+        self.window().download_detail_availability_label.setText("%.2f" % self.current_download['availability'])
+
+        if new_download:  # When we have a new download, clear all pages and draw new widgets
+
+            # Populate the files list
+            self.window().download_files_list.clear()
+            self.files_widgets = {}
+            for dfile in self.current_download["files"]:
+                item = QTreeWidgetItem(self.window().download_files_list)
+                DownloadsDetailsTabWidget.update_file_row(item, dfile)
+                self.files_widgets[dfile["name"]] = item
+
+            # Populate the trackers list
+            self.window().download_trackers_list.clear()
+            for tracker in self.current_download["trackers"]:
+                item = QTreeWidgetItem(self.window().download_trackers_list)
+                DownloadsDetailsTabWidget.update_tracker_row(item, tracker)
+                self.tracker_widgets[tracker["url"]] = item
+
+        else:  # No new download, just update data in the lists
+            for dfile in self.current_download["files"]:
+                DownloadsDetailsTabWidget.update_file_row(self.files_widgets[dfile["name"]], dfile)
+
+            for tracker in self.current_download["trackers"]:
+                DownloadsDetailsTabWidget.update_tracker_row(self.tracker_widgets[tracker["url"]], tracker)
+
+        # Populate the peers list if the peer information is available
+        self.window().download_peers_list.clear()
+        if "peers" in self.current_download:
+            for peer in self.current_download["peers"]:
+                item = QTreeWidgetItem(self.window().download_peers_list)
+                DownloadsDetailsTabWidget.update_peer_row(item, peer)
+
     def on_right_click_file_item(self, pos):
         item_clicked = self.window().download_files_list.itemAt(pos)
         if not item_clicked:
             return
 
-        self.selected_item = item_clicked
-        file_data = self.selected_item.data(0, Qt.UserRole)
+        file_data = item_clicked.data(0, Qt.UserRole)
 
         menu = TriblerActionMenu(self)
 

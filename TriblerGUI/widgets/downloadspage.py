@@ -51,6 +51,8 @@ class DownloadsPage(QWidget):
         self.window().downloads_filter_input.textChanged.connect(self.on_filter_text_changed)
 
     def on_filter_text_changed(self, text):
+        self.window().downloads_list.clearSelection()
+        self.window().download_details_widget.hide()
         self.update_download_visibility()
 
     def start_loading_downloads(self):
@@ -139,7 +141,8 @@ class DownloadsPage(QWidget):
         elif button_name == "downloads_inactive_button":
             self.filter = DOWNLOADS_FILTER_INACTIVE
 
-        self.window().download_details_widget.clear_data()
+        self.window().downloads_list.clearSelection()
+        self.window().download_details_widget.hide()
         self.update_download_visibility()
 
     @staticmethod
@@ -224,8 +227,7 @@ class DownloadsPage(QWidget):
             index = self.window().downloads_list.indexOfTopLevelItem(self.selected_item)
             self.window().downloads_list.takeTopLevelItem(index)
             del self.download_widgets[infohash]
-            if self.window().downloads_list.topLevelItemCount() == 0:
-                self.window().download_details_widget.clear_data()
+            self.window().download_details_widget.hide()
 
             # Reset video player if necessary
             if self.window().video_player_page.active_infohash == infohash:
