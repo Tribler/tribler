@@ -305,6 +305,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
     def test_download_details(self):
         self.go_to_and_wait_for_downloads()
         QTest.mouseClick(window.downloads_list.topLevelItem(0).progress_slider, Qt.LeftButton)
+        QTest.qWait(500)  # Wait until the details pane shows
         window.download_details_widget.setCurrentIndex(0)
         self.screenshot(window, name="download_detail")
         window.download_details_widget.setCurrentIndex(1)
