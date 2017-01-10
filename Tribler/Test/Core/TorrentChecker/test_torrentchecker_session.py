@@ -44,6 +44,14 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session._process_scrape_response("test")
         self.assertTrue(session.is_failed)
 
+    @deferred(timeout=5)
+    def test_httpsession_on_error(self):
+        test_deferred = Deferred()
+        session = HttpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
+        session.result_deferred = Deferred().addErrback(lambda failure: test_deferred.callback(None))
+        session.on_error(Failure(RuntimeError(u"test\xf8\xf9")))
+        return test_deferred
+
     def test_httpsession_code_not_200(self):
         session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5)
 
