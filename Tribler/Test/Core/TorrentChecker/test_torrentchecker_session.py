@@ -240,6 +240,20 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session._process_scrape_response(response)
         self.assertTrue(session.is_finished)
 
+    @deferred(timeout=5)
+    def test_failed_unicode(self):
+        test_deferred = Deferred()
+
+        session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5)
+
+        def on_error(failure):
+            print failure
+            test_deferred.callback(None)
+
+        session.result_deferred = Deferred().addErrback(on_error)
+        session._process_scrape_response(bencode({'failure reason': '\xe9'}))
+
+        return test_deferred
 
 class TestDHTSession(TriblerCoreTest):
     """

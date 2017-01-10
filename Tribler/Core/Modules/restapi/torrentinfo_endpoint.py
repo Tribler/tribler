@@ -80,6 +80,10 @@ class TorrentInfoEndpoint(resource.Resource):
             http_get(uri.encode('utf-8')).addCallback(_on_loaded).addErrback(on_lookup_error)
         elif uri.startswith('magnet'):
             self.infohash = parse_magnetlink(uri)[1]
+            if self.infohash is None:
+                request.setResponseCode(http.BAD_REQUEST)
+                return json.dumps({"error": "missing infohash"})
+
             if self.session.has_collected_torrent(self.infohash):
                 tdef = TorrentDef.load_from_memory(self.session.get_collected_torrent(self.infohash))
                 on_got_metainfo(tdef.get_metainfo())

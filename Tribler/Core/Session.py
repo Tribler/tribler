@@ -223,6 +223,13 @@ class Session(SessionConfigInterface):
             elif 'log_failure' in event:
                 text = str(event['log_failure'])
 
+            # There are some errors that we are ignoring.
+            # No route to host: this issue is non-critical since Tribler can still function when a request fails.
+            if 'socket.error: [Errno 113]' in text:
+                self._logger.error("Observed no route to host error (but ignoring)."
+                                   "This might indicate a problem with your firewall.")
+                return
+
             if self.lm.api_manager and len(text) > 0:
                 self.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception(text)
                 self.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception(text)
@@ -246,14 +253,14 @@ class Session(SessionConfigInterface):
             gui_config.add_section('Tribler')
 
         for k, v in tribler_defaults['Tribler'].iteritems():
-            if not gui_config.has_option(k, v):
+            if not gui_config.has_option('Tribler', k):
                 gui_config.set('Tribler', k, v)
 
         if not gui_config.has_section('downloadconfig'):
             gui_config.add_section('downloadconfig')
 
         for k, v in DefaultDownloadStartupConfig.getInstance().dlconfig._sections['downloadconfig'].iteritems():
-            if not gui_config.has_option(k, v):
+            if not gui_config.has_option('downloadconfig', k):
                 gui_config.set('downloadconfig', k, v)
 
         # Make sure we use the same ConfigParser instance for both Utility and DefaultDownloadStartupConfig.
@@ -457,9 +464,7 @@ class Session(SessionConfigInterface):
             raise OperationNotEnabledByConfigurationException()
 
         # Called by any thread
-        if subject == NTFY_METADATA:
-            return self.lm.metadata_db
-        elif subject == NTFY_PEERS:
+        if subject == NTFY_PEERS:
             return self.lm.peer_db
         elif subject == NTFY_TORRENTS:
             return self.lm.torrent_db
@@ -475,9 +480,6 @@ class Session(SessionConfigInterface):
     def close_dbhandler(self, dbhandler):
         """ Closes the given database connection """
         dbhandler.close()
-
-    def get_statistics(self):
-        return TriblerStatistics(self).dump_statistics()
 
     def get_tribler_statistics(self):
         """

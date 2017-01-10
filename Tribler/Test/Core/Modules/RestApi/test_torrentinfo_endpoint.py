@@ -65,6 +65,9 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)  # Cached
 
+        path = 'magnet:?xt=urn:ed2k:354B15E68FB8F36D7CD88FF94116CDC1'  # No infohash
+        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=400)
+
         path = 'magnet:?xt=urn:btih:%s&dn=%s' % ('a' * 40, quote_plus('test torrent'))
         self.session.lm.ltmgr.get_metainfo = get_metainfo_timeout
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=408)

@@ -52,13 +52,14 @@ class DownloadWidgetItem(QTreeWidgetItem):
         self.setText(5, str(self.download_info["num_peers"]))
         self.setText(6, format_speed(self.download_info["speed_down"]))
         self.setText(7, format_speed(self.download_info["speed_up"]))
-        self.setText(8, "yes" if self.download_info["anon_download"] else "no")
-        self.setText(9, str(self.download_info["hops"]) if self.download_info["anon_download"] else "-")
+        self.setText(8, "%.3f" % float(self.download_info["ratio"]))
+        self.setText(9, "yes" if self.download_info["anon_download"] else "no")
+        self.setText(10, str(self.download_info["hops"]) if self.download_info["anon_download"] else "-")
 
         eta_text = "-"
         if self.get_raw_download_status() == DLSTATUS_DOWNLOADING:
             eta_text = duration_to_string(self.download_info["eta"])
-        self.setText(10, eta_text)
+        self.setText(11, eta_text)
 
     def __lt__(self, other):
         column = self.treeWidget().sortColumn()
@@ -74,6 +75,8 @@ class DownloadWidgetItem(QTreeWidgetItem):
             return float(self.download_info["speed_down"]) > float(other.download_info["speed_down"])
         elif column == 7:
             return float(self.download_info["speed_up"]) > float(other.download_info["speed_up"])
-        elif column == 10:
+        elif column == 8:
+            return float(self.download_info["ratio"]) > float(other.download_info["ratio"])
+        elif column == 11:
             return float(self.download_info["eta"]) > float(other.download_info["eta"])
         return self.text(column) > other.text(column)

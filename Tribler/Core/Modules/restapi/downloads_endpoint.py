@@ -112,6 +112,9 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                         "eta": 38493,
                         "num_peers": 53,
                         "num_seeds": 93,
+                        "total_up": 10000,
+                        "total_down": 100000,
+                        "ratio": 0.1,
                         "files": [{
                             "index": 0,
                             "name": "ubuntu.iso",
@@ -181,14 +184,19 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             for url, url_info in download.network_tracker_status().iteritems():
                 tracker_info.append({"url": url, "peers": url_info[0], "status": url_info[1]})
 
+            ratio = 0.0
+            if stats.downTotal > 0:
+                ratio = stats.upTotal / float(stats.downTotal)
+
             download_json = {"name": download.get_def().get_name(), "progress": download.get_progress(),
                              "infohash": download.get_def().get_infohash().encode('hex'),
                              "speed_down": download.get_current_speed(DOWNLOAD),
                              "speed_up": download.get_current_speed(UPLOAD),
                              "status": dlstatus_strings[download.get_status()],
                              "size": download.get_def().get_length(), "eta": download.network_calc_eta(),
-                             "num_peers": stats.numPeers, "num_seeds": stats.numSeeds, "files": files_array,
-                             "trackers": tracker_info, "hops": download.get_hops(),
+                             "num_peers": stats.numPeers, "num_seeds": stats.numSeeds, "total_up": stats.upTotal,
+                             "total_down": stats.downTotal, "ratio": ratio,
+                             "files": files_array, "trackers": tracker_info, "hops": download.get_hops(),
                              "anon_download": download.get_anon_mode(), "safe_seeding": download.get_safe_seeding(),
                              "max_upload_speed": download.get_max_speed(UPLOAD),
                              "max_download_speed": download.get_max_speed(DOWNLOAD),
@@ -310,53 +318,6 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
         self.session.remove_download(download, removecontent=remove_data)
 
         return json.dumps({"removed": True})
-
-    def render_PUT(self, request):
-        """
-        .. http:put:: /download/(string: infohash)
-
-        A PUT request to this endpoint will start a download from a given infohash. Metadata and peers will be fetched
-        from the libtorrent DHT. Various options can be passed:
-        - anon_hops: the number of hops for the anonymous download. 0 hops is equivalent to a plain download
-        - safe_seeding: whether the seeding of the download should be anonymous or not (0 = off, 1 = on)
-        - destination: the download destination path of the torrent
-
-            **Example request**:
-
-                .. sourcecode:: none
-
-                    curl -X PUT http://localhost:8085/downloads/4344503b7e797ebf31582327a5baae35b11bda01
-                    --data "anon_hops=2&safe_seeding=1&destination=/my/dest/on/disk/"
-
-            **Example response**:
-
-                .. sourcecode:: javascript
-
-                    {"started": True}
-        """
-        parameters = http.parse_qs(request.content.read(), 1)
-
-        if self.session.has_download(self.infohash):
-            request.setResponseCode(http.CONFLICT)
-            return json.dumps({"error": "the download with the given infohash already exists"})
-
-        # Check whether we have the torrent file, otherwise, create a tdef without metainfo.
-        torrent_data = self.session.get_collected_torrent(self.infohash)
-        if torrent_data is not None:
-            tdef_download = TorrentDef.load_from_memory(torrent_data)
-        else:
-            torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
-            torrent = torrent_db.getTorrent(self.infohash, keys=['C.torrent_id', 'name'])
-            tdef_download = TorrentDefNoMetainfo(self.infohash, torrent['name'])
-
-        download_config, error = DownloadSpecificEndpoint.create_dconfig_from_params(parameters)
-        if not error:
-            self.session.start_download_from_tdef(tdef_download, download_config)
-        else:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": error})
-
-        return json.dumps({"started": True})
 
     def render_PATCH(self, request):
         """

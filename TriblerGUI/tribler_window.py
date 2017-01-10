@@ -1,5 +1,6 @@
 import glob
 import logging
+import os
 import sys
 import traceback
 from urllib import quote_plus
@@ -56,6 +57,9 @@ class TriblerWindow(QMainWindow):
     def on_exception(self, *exc_info):
         # Stop the download loop
         self.downloads_page.stop_loading_downloads()
+
+        # Add info about whether we are stopping Tribler or not
+        os.environ['TRIBLER_SHUTTING_DOWN'] = str(self.core_manager.shutting_down)
 
         if not self.core_manager.shutting_down:
             self.core_manager.stop(stop_app_on_shutdown=False)
@@ -231,7 +235,7 @@ class TriblerWindow(QMainWindow):
                 self.on_added_magnetlink(uri)
 
     def perform_start_download_request(self, uri, anon_download, safe_seeding, destination, selected_files,
-                                       total_files=0):
+                                       total_files=0, callback=None):
         selected_files_uri = ""
         if len(selected_files) != total_files:  # Not all files included
             selected_files_uri = '&' + ''.join(u"selected_files[]=%s&" % file for
@@ -239,11 +243,14 @@ class TriblerWindow(QMainWindow):
 
         anon_hops = int(self.tribler_settings['Tribler']['default_number_hops']) if anon_download else 0
         safe_seeding = 1 if safe_seeding else 0
-        post_data = str("uri=%s&anon_hops=%d&safe_seeding=%d&destination=%s%s" % (uri, anon_hops, safe_seeding,
-                                                                                  destination, selected_files_uri))
+        post_data = "uri=%s&anon_hops=%d&safe_seeding=%d&destination=%s%s" % (uri, anon_hops, safe_seeding,
+                                                                                   destination, selected_files_uri)
+        post_data = post_data.encode('utf-8')  # We need to send bytes in the request, not unicode
+
         request_mgr = TriblerRequestManager()
         self.pending_requests[request_mgr.request_id] = request_mgr
-        request_mgr.perform_request("downloads", self.on_download_added, method='PUT', data=post_data)
+        request_mgr.perform_request("downloads", callback if callback else self.on_download_added,
+                                    method='PUT', data=post_data)
 
     def on_new_version_available(self, version):
         if version == str(self.gui_settings.value('last_reported_version')):
@@ -390,7 +397,7 @@ class TriblerWindow(QMainWindow):
                                                                     "default_anonymity_enabled", True, is_bool=True),
                                                     get_gui_setting(self.gui_settings,
                                                                     "default_safeseeding_enabled", True, is_bool=True),
-                                                    [], 0)
+                                                    self.tribler_settings['downloadconfig']['saveas'], [], 0)
 
         self.dialog.setParent(None)
         self.dialog = None

@@ -20,10 +20,10 @@ class DownloadProgressBar(QWidget):
 
     def update_with_download(self, download):
         self.download = download
-        if download["status"] in ("DLSTATUS_SEEDING", "DLSTATUS_STOPPED", "DLSTATUS_STOPPED_ON_ERROR",
-                                  "DLSTATUS_CIRCUITS"):
+        if download["status"] in ("DLSTATUS_SEEDING", "DLSTATUS_CIRCUITS"):
             self.set_fraction(download["progress"])
-        elif download["status"] in ("DLSTATUS_HASHCHECKING", "DLSTATUS_DOWNLOADING"):
+        elif download["status"] in ("DLSTATUS_HASHCHECKING", "DLSTATUS_DOWNLOADING", "DLSTATUS_STOPPED",
+                                    "DLSTATUS_STOPPED_ON_ERROR"):
             self.set_pieces()
         else:
             self.set_fraction(0.0)
@@ -51,6 +51,9 @@ class DownloadProgressBar(QWidget):
         self.style().drawPrimitive(QStyle.PE_Widget, opt, painter, self)
 
         if self.show_pieces:
+            if len(self.pieces) == 0:  # Nothing to paint
+                return
+
             piece_width = self.width() / float(len(self.pieces))
             for i in xrange(len(self.pieces)):
                 if self.pieces[i]:

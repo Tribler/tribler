@@ -88,10 +88,9 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         def verify_download(_):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
-            self.assertEqual(self.session.get_downloads()[0].get_def().get_name(), 'test torrent')
+            self.assertEqual(self.session.get_downloads()[0].get_def().get_name(), 'Unknown name')
 
-        post_data = {'uri': 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH),
-                                                              quote_plus('test torrent'))}
+        post_data = {'uri': 'magnet:?xt=urn:btih:%s' % (hexlify(UBUNTU_1504_INFOHASH))}
         expected_json = {'started': True, 'infohash': 'fc8a15a2faf2734dbb1dc5f7afdc5c9beaeb1f59'}
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
@@ -286,90 +285,3 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('downloads/%s/torrent' % video_tdef.get_infohash().encode('hex'),
                                expected_code=200, request_type='GET').addCallback(verify_exported_data)
-
-    @deferred(timeout=20)
-    def test_start_download_hash(self):
-        """
-        Testing whether starting a download from an infohash works
-        """
-        self.session.get_collected_torrent = lambda _: None
-        torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
-        torrent_db.getTorrent = lambda infohash, keys: {"name": "test", "infohash": infohash, "keys": keys}
-
-        def verify_download(_):
-            self.assertEqual(len(self.session.get_downloads()), 1)
-
-        return self.do_request('downloads/%s' % ('a' * 40), expected_code=200,
-                               expected_json={"started": True}, request_type='PUT').addCallback(verify_download)
-
-    @deferred(timeout=20)
-    def test_start_download_hash_anon(self):
-        """
-        Testing whether starting a download anonymously from an infohash works
-        """
-        self.session.get_collected_torrent = lambda _: None
-        torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
-        torrent_db.getTorrent = lambda infohash, keys: {"name": "test", "infohash": infohash, "keys": keys}
-
-        def verify_download(_):
-            self.assertEqual(len(self.session.get_downloads()), 1)
-            download = self.session.get_downloads()[0]
-            self.assertEqual(download.get_hops(), 2)
-            self.assertTrue(download.get_safe_seeding())
-
-        post_data = {"anon_hops": 2, "safe_seeding": 1, "destination": self.session_base_dir}
-        return self.do_request('downloads/%s' % ('a' * 40), expected_code=200,
-                               expected_json={"started": True}, request_type='PUT', post_data=post_data)\
-            .addCallback(verify_download)
-
-    @deferred(timeout=20)
-    def test_start_download_invalid_dir(self):
-        """
-        Testing whether starting a download with an invalid directory specified gives an error
-        """
-        self.session.get_collected_torrent = lambda _: None
-        torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
-        torrent_db.getTorrent = lambda infohash, keys: {"name": "test", "infohash": infohash, "keys": keys}
-
-        post_data = {"destination": "thispathdoesnotexist123"}
-        self.should_check_equality = False
-        return self.do_request('downloads/%s' % ('a' * 40), expected_code=400, request_type='PUT', post_data=post_data)
-
-    @deferred(timeout=20)
-    def test_start_down_no_anon_param(self):
-        """
-        Testing whether starting an anon download without safe seeding specified gives an error
-        """
-        self.session.get_collected_torrent = lambda _: None
-        torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
-        torrent_db.getTorrent = lambda infohash, keys: {"name": "test", "infohash": infohash, "keys": keys}
-
-        post_data = {"anon_hops": 1, "safe_seeding": 0}
-        self.should_check_equality = False
-        return self.do_request('downloads/%s' % ('a' * 40), expected_code=400, request_type='PUT', post_data=post_data)
-
-    @deferred(timeout=20)
-    def test_start_download_hash_cache(self):
-        """
-        Testing whether starting a download from an infohash present in the megacache works
-        """
-        with open(os.path.join(TESTS_DATA_DIR, 'private.torrent')) as torrent_file:
-            raw_data = torrent_file.read()
-        self.session.get_collected_torrent = lambda _: raw_data
-
-        def verify_download(_):
-            self.assertEqual(len(self.session.get_downloads()), 1)
-
-        return self.do_request('downloads/%s' % ('a' * 40), expected_code=200,
-                               expected_json={"started": True}, request_type='PUT').addCallback(verify_download)
-
-    @deferred(timeout=20)
-    def test_start_download_hash_twice(self):
-        """
-        Testing whether starting a download from an infohash twice raises error 409
-        """
-        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
-
-        return self.do_request('downloads/%s' % video_tdef.get_infohash().encode('hex'), expected_code=409,
-                               request_type='PUT')

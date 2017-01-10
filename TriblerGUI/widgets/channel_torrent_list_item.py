@@ -84,11 +84,20 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         self.dialog = None
 
     def on_play_button_clicked(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("downloads/%s" % self.torrent_info["infohash"],
-                                         self.on_play_request_done, method='PUT')
+        gui_settings = self.window().gui_settings
+        self.download_uri = quote_plus((u"magnet:?xt=urn:btih:%s&dn=%s" %
+                                        (self.torrent_info["infohash"], self.torrent_info['name'])).encode('utf-8'))
 
-    def on_play_request_done(self, result, response_code):
+        self.window().perform_start_download_request(self.download_uri,
+                                                     get_gui_setting(gui_settings, "default_anonymity_enabled",
+                                                                     True, is_bool=True),
+                                                     get_gui_setting(gui_settings, "default_safeseeding_enabled",
+                                                                     True, is_bool=True),
+                                                     self.window().tribler_settings['downloadconfig']['saveas'],
+                                                     [], 0, callback=self.on_play_request_done)
+
+
+    def on_play_request_done(self, result):
         self.window().left_menu_button_video_player.click()
         self.window().video_player_page.set_torrent_infohash(self.torrent_info["infohash"])
         self.window().left_menu_playlist.set_loading()

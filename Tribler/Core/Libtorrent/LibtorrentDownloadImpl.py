@@ -613,7 +613,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             os.rmdir(self.unwanteddir_abs)
 
     def on_performance_alert(self, alert):
-        if self.get_anon_mode():
+        if self.get_anon_mode() or self.ltmgr.ltsessions is None:
             return
 
         # When the send buffer watermark is too low, double the buffer size to a
@@ -764,7 +764,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                         self.handle.rename_file(index, new_path.encode("utf-8"))
 
             # if in share mode, don't change priority of the file
-            if self.get_share_mode():
+            if not self.get_share_mode():
                 self.handle.prioritize_files(filepriorities)
 
             self.unwanteddir_abs = unwanteddir_abs
