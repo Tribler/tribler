@@ -270,7 +270,7 @@ class HttpTrackerSession(TrackerSession):
         if self.result_deferred:
             result_msg = "HTTP tracker failed for url %s" % self._tracker_url
             if msg:
-                result_msg += " (error: %s)" % msg
+                result_msg += " (error: %s)" % unicode(msg, errors='replace')
             self.result_deferred.errback(ValueError(result_msg))
 
     def _process_scrape_response(self, body):
