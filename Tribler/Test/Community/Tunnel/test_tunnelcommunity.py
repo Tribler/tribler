@@ -4,8 +4,11 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Community.Tunnel.test_tunnel_base import AbstractTestTunnelCommunity
-from Tribler.community.tunnel.routing import Circuit, RelayRoute
-from Tribler.community.tunnel.tunnel_community import TunnelExitSocket, CircuitRequestCache, PingRequestCache
+from Tribler.community.tunnel.conversion import TunnelConversion
+from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
+from Tribler.community.tunnel.tunnel_community import (TunnelSettings, TunnelExitSocket, CircuitRequestCache,
+                                                       PingRequestCache)
+from Tribler.community.tunnel.crypto.tunnelcrypto import CryptoException, TunnelCrypto
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.message import DropMessage
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -128,3 +131,24 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
 
     def test_increase_bytes_received_error_branch(self):
         self.assertRaises(TypeError, self.tunnel_community.increase_bytes_received, 1, 1)
+
+    def test_on_data_invalid_encoding(self):
+        """
+        When on_data receives an invalid encryption, crypto_in() should throw a CryptoException.
+        """
+        # Prepare crypto and settings
+        tunnel_crypto = object.__new__(TunnelCrypto)
+        self.tunnel_community.settings = TunnelSettings()
+        # Register a valid circuit
+        circuit = Circuit(42L)
+        hop = Hop(tunnel_crypto.generate_key(u"curve25519"))
+        hop.session_keys = tunnel_crypto.generate_session_keys("1234")
+        circuit.add_hop(hop)
+        self.tunnel_community.circuits[42] = circuit
+
+        # Encode data with a truncated encrypted string (empty in this case)
+        packet = TunnelConversion.encode_data(42, ("127.0.0.1", 1337), ("127.0.0.1", 1337), "")
+
+        # Simulate on_data()
+        _, encrypted = TunnelConversion.split_encrypted_packet(packet, u"data")
+        self.assertRaises(CryptoException, self.tunnel_community.crypto_in, 42, encrypted, is_data=True)
