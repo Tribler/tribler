@@ -401,6 +401,9 @@ class TriblerLaunchMany(TaskManager):
         if not hidden:
             self.remove_id(infohash)
 
+        if self.tunnel_community:
+            self.tunnel_community.on_download_removed(d)
+
     def remove_id(self, infohash):
         @forceDBThread
         def do_db():
