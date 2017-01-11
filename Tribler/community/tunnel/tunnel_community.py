@@ -1,6 +1,7 @@
 # Written by Egbert Bouman
 
 import random
+import socket
 import time
 from collections import defaultdict
 from cryptography.exceptions import InvalidTag
@@ -146,7 +147,7 @@ class TunnelExitSocket(DatagramProtocol, TaskManager):
                     try:
                         self.transport.write(data, (ip_address, destination[1]))
                         self.community.increase_bytes_sent(self, len(data))
-                    except (AttributeError, MessageLengthError) as exception:
+                    except (AttributeError, MessageLengthError, socket.error) as exception:
                         self.tunnel_logger.error(
                             "Failed to write data to transport: %s. Destination: %r error was: %r",
                             exception, destination, exception)
