@@ -250,6 +250,12 @@ class DownloadsPage(QWidget):
             self.selected_item.update_item()
             self.on_download_item_clicked()
 
+    def change_anonymity(self, hops):
+        infohash = self.selected_item.download_info["infohash"]
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("downloads/%s" % infohash, lambda _: None,
+                                         method='PATCH', data='anon_hops=%d' % hops)
+
     def on_explore_files(self):
         QDesktopServices.openUrl(QUrl.fromLocalFile(self.selected_item.download_info["destination"]))
 
@@ -285,6 +291,11 @@ class DownloadsPage(QWidget):
         export_download_action = QAction('Export .torrent file', self)
         explore_files_action = QAction('Explore files', self)
 
+        no_anon_action = QAction('No anonymity', self)
+        one_hop_anon_action = QAction('One hop', self)
+        two_hop_anon_action = QAction('Two hops', self)
+        three_hop_anon_action = QAction('Three hops', self)
+
         start_action.triggered.connect(self.on_start_download_clicked)
         start_action.setEnabled(DownloadsPage.start_download_enabled(self.selected_item))
         stop_action.triggered.connect(self.on_stop_download_clicked)
@@ -296,6 +307,11 @@ class DownloadsPage(QWidget):
         export_download_action.triggered.connect(self.on_export_download)
         explore_files_action.triggered.connect(self.on_explore_files)
 
+        no_anon_action.triggered.connect(lambda: self.change_anonymity(0))
+        one_hop_anon_action.triggered.connect(lambda: self.change_anonymity(1))
+        two_hop_anon_action.triggered.connect(lambda: self.change_anonymity(2))
+        three_hop_anon_action.triggered.connect(lambda: self.change_anonymity(3))
+
         menu.addAction(start_action)
         menu.addAction(stop_action)
         menu.addAction(play_action)
@@ -306,6 +322,11 @@ class DownloadsPage(QWidget):
         menu.addSeparator()
         menu.addAction(export_download_action)
         menu.addSeparator()
+        menu_anon_level = menu.addMenu("Change anonymity")
+        menu_anon_level.addAction(no_anon_action)
+        menu_anon_level.addAction(one_hop_anon_action)
+        menu_anon_level.addAction(two_hop_anon_action)
+        menu_anon_level.addAction(three_hop_anon_action)
         menu.addAction(explore_files_action)
 
         menu.exec_(self.window().downloads_list.mapToGlobal(pos))
