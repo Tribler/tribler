@@ -52,7 +52,6 @@ STATEDIR_CONFIG = 'triblerd.conf'
 # For observer/callback mechanism, see Session.add_observer()
 
 # subjects
-NTFY_METADATA = 'metadata'
 NTFY_PEERS = 'peers'
 NTFY_TORRENTS = 'torrents'
 NTFY_TORRENT = 'torrent'
@@ -108,38 +107,16 @@ NTFY_FINISHED = 'finished'
 NTFY_ERROR = 'error'
 NTFY_MAGNET_STARTED = 'magnet_started'
 NTFY_MAGNET_GOT_PEERS = 'magnet_peers'
-NTFY_MAGNET_PROGRESS = 'magnet_progress'
 NTFY_MAGNET_CLOSE = 'magnet_close'
-NTFY_VIDEO_STARTED = 'video_started'
-NTFY_VIDEO_STOPPED = 'video_stopped'
-NTFY_VIDEO_ENDED = 'video_ended'
-NTFY_VIDEO_BUFFERING = 'video_bufering'
 NTFY_CREATED = 'created'
 NTFY_EXTENDED = 'extended'
-NTFY_EXTENDED_FOR = 'extended_for'
-NTFY_BROKEN = 'broken'
-NTFY_SELECT = 'select'
 NTFY_JOINED = 'joined'
 NTFY_REMOVE = 'remove'
 NTFY_DISCOVERED = 'discovered'
 
 # object IDs for NTFY_ACTIVITIES subject
-NTFY_ACT_NONE = 0
-NTFY_ACT_UPNP = 1
-NTFY_ACT_REACHABLE = 2
-NTFY_ACT_GET_EXT_IP_FROM_PEERS = 3
 NTFY_ACT_MEET = 4
-NTFY_ACT_GOT_METADATA = 5
-NTFY_ACT_RECOMMEND = 6
-NTFY_ACT_DISK_FULL = 7
-NTFY_ACT_NEW_VERSION = 8
-NTFY_ACT_ACTIVE = 9
 
-
-# Methods for authentication of the source in live streaming
-LIVE_AUTHMETHOD_NONE = "None"  # No auth, also no abs. piece nr. or timestamp.
-LIVE_AUTHMETHOD_ECDSA = "ECDSA"  # Elliptic Curve DSA signatures
-LIVE_AUTHMETHOD_RSA = "RSA"  # RSA signatures
 
 # Infohashes are always 20 byte binary strings
 INFOHASH_LENGTH = 20
