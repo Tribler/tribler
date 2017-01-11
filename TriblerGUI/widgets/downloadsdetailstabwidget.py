@@ -104,19 +104,16 @@ class DownloadsDetailsTabWidget(QTabWidget):
                 DownloadsDetailsTabWidget.update_file_row(item, dfile)
                 self.files_widgets[dfile["name"]] = item
 
-            # Populate the trackers list
-            self.window().download_trackers_list.clear()
-            for tracker in self.current_download["trackers"]:
-                item = QTreeWidgetItem(self.window().download_trackers_list)
-                DownloadsDetailsTabWidget.update_tracker_row(item, tracker)
-                self.tracker_widgets[tracker["url"]] = item
-
         else:  # No new download, just update data in the lists
             for dfile in self.current_download["files"]:
                 DownloadsDetailsTabWidget.update_file_row(self.files_widgets[dfile["name"]], dfile)
 
-            for tracker in self.current_download["trackers"]:
-                DownloadsDetailsTabWidget.update_tracker_row(self.tracker_widgets[tracker["url"]], tracker)
+        # Populate the trackers list
+        self.window().download_trackers_list.clear()
+        for tracker in self.current_download["trackers"]:
+            item = QTreeWidgetItem(self.window().download_trackers_list)
+            DownloadsDetailsTabWidget.update_tracker_row(item, tracker)
+            self.tracker_widgets[tracker["url"]] = item
 
         # Populate the peers list if the peer information is available
         self.window().download_peers_list.clear()
