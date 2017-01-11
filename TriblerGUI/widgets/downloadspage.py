@@ -57,7 +57,11 @@ class DownloadsPage(QWidget):
 
     def start_loading_downloads(self):
         self.load_downloads()
+        self.schedule_downloads_timer()
+
+    def schedule_downloads_timer(self):
         self.downloads_timer = QTimer()
+        self.downloads_timer.setSingleShot(True)
         self.downloads_timer.timeout.connect(self.load_downloads)
         self.downloads_timer.start(1000)
 
@@ -121,6 +125,7 @@ class DownloadsPage(QWidget):
             self.window().tray_icon.setToolTip(
                 "Down: %s, Up: %s" % (format_speed(total_download), format_speed(total_upload)))
         self.update_download_visibility()
+        self.schedule_downloads_timer()
 
     def update_download_visibility(self):
         for i in range(self.window().downloads_list.topLevelItemCount()):
