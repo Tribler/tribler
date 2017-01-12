@@ -152,3 +152,40 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
         # Simulate on_data()
         _, encrypted = TunnelConversion.split_encrypted_packet(packet, u"data")
         self.assertRaises(CryptoException, self.tunnel_community.crypto_in, 42, encrypted, is_data=True)
+
+    @blocking_call_on_reactor_thread
+    def test_valid_member_on_tunnel_remove(self):
+        """
+        Notifications of NTFY_TUNNEL NTFY_REMOVE should report candidates with valid member associations
+        """
+        class MockNotifier(object):
+
+            def __init__(self):
+                self.candidate = None
+                self.called = False
+
+            def notify(self, subject, change_type, tunnel, candidate):
+                self.called = True
+                self.candidate = candidate
+
+        # Prepare crypto
+        tunnel_crypto = object.__new__(TunnelCrypto)
+        # Register mock notifier
+        self.tunnel_community.notifier = MockNotifier()
+        # Register a valid circuit
+        circuit = Circuit(42L)
+        circuit.first_hop = ("127.0.0.1", 1337)
+        hop = Hop(tunnel_crypto.generate_key(u"curve25519").pub())
+        circuit.add_hop(hop)
+        # Register the first hop with dispersy and the community
+        self.tunnel_community.dispersy.get_member(public_key=hop.node_public_key)
+        self.tunnel_community.create_or_update_walkcandidate(circuit.first_hop, circuit.first_hop, circuit.first_hop,
+                                                             True, u'unknown')
+        self.tunnel_community.circuits[42] = circuit
+
+        # Remove the circuit, causing the notification
+        self.tunnel_community.remove_circuit(42)
+
+        self.assertTrue(self.tunnel_community.notifier.called)
+        self.assertNotEqual(self.tunnel_community.notifier.candidate, None)
+        self.assertNotEqual(self.tunnel_community.notifier.candidate.get_member(), None)
