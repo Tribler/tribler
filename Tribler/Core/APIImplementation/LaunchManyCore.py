@@ -401,6 +401,9 @@ class TriblerLaunchMany(TaskManager):
         if not hidden:
             self.remove_id(infohash)
 
+        if self.tunnel_community:
+            self.tunnel_community.on_download_removed(d)
+
     def remove_id(self, infohash):
         @forceDBThread
         def do_db():
@@ -424,6 +427,21 @@ class TriblerLaunchMany(TaskManager):
     def download_exists(self, infohash):
         with self.sesslock:
             return infohash in self.downloads
+
+    def update_download_hops(self, download, new_hops):
+        """
+        Update the amount of hops for a specified download. This can be done on runtime.
+        """
+        infohash = binascii.hexlify(download.tdef.get_infohash())
+        self._logger.info("Updating the amount of hops of download %s", infohash)
+        self.session.remove_download(download)
+
+        # copy the old download_config and change the hop count
+        dscfg = download.copy()
+        dscfg.set_hops(new_hops)
+
+        self.register_task("reschedule_download_%s" % infohash,
+                           reactor.callLater(3, self.session.start_download_from_tdef, download.tdef, dscfg))
 
     def update_trackers(self, infohash, trackers):
         """ Update the trackers for a download.

@@ -104,19 +104,16 @@ class DownloadsDetailsTabWidget(QTabWidget):
                 DownloadsDetailsTabWidget.update_file_row(item, dfile)
                 self.files_widgets[dfile["name"]] = item
 
-            # Populate the trackers list
-            self.window().download_trackers_list.clear()
-            for tracker in self.current_download["trackers"]:
-                item = QTreeWidgetItem(self.window().download_trackers_list)
-                DownloadsDetailsTabWidget.update_tracker_row(item, tracker)
-                self.tracker_widgets[tracker["url"]] = item
-
         else:  # No new download, just update data in the lists
             for dfile in self.current_download["files"]:
                 DownloadsDetailsTabWidget.update_file_row(self.files_widgets[dfile["name"]], dfile)
 
-            for tracker in self.current_download["trackers"]:
-                DownloadsDetailsTabWidget.update_tracker_row(self.tracker_widgets[tracker["url"]], tracker)
+        # Populate the trackers list
+        self.window().download_trackers_list.clear()
+        for tracker in self.current_download["trackers"]:
+            item = QTreeWidgetItem(self.window().download_trackers_list)
+            DownloadsDetailsTabWidget.update_tracker_row(item, tracker)
+            self.tracker_widgets[tracker["url"]] = item
 
         # Populate the peers list if the peer information is available
         self.window().download_peers_list.clear()
@@ -126,21 +123,44 @@ class DownloadsDetailsTabWidget(QTabWidget):
                 DownloadsDetailsTabWidget.update_peer_row(item, peer)
 
     def on_right_click_file_item(self, pos):
-        item_clicked = self.window().download_files_list.itemAt(pos)
-        if not item_clicked:
+        num_selected = len(self.window().download_files_list.selectedItems())
+        if num_selected == 0:
             return
 
-        file_data = item_clicked.data(0, Qt.UserRole)
+        item_infos = []  # Array of (item, included, is_selected)
+        selected_files_info = []
+
+        for i in range(self.window().download_files_list.topLevelItemCount()):
+            item = self.window().download_files_list.topLevelItem(i)
+            file_info = item.data(0, Qt.UserRole)
+            is_selected = item in self.window().download_files_list.selectedItems()
+            item_infos.append((item, file_info["included"], is_selected))
+
+            if is_selected:
+                selected_files_info.append(file_info)
+
+        item_clicked = self.window().download_files_list.itemAt(pos)
+        if not item_clicked or not item_clicked in self.window().download_files_list.selectedItems():
+            return
+
+        # Check whether we should enable the 'exclude' button
+        num_excludes = 0
+        num_includes_selected = 0
+        for item_info in item_infos:
+            if item_info[1] and item_info[0] in self.window().download_files_list.selectedItems():
+                num_includes_selected += 1
+            if not item_info[1]:
+                num_excludes += 1
 
         menu = TriblerActionMenu(self)
 
-        include_action = QAction('Include', self)
-        exclude_action = QAction('Exclude', self)
+        include_action = QAction('Include file' + ('(s)' if num_selected > 1 else ''), self)
+        exclude_action = QAction('Exclude file' + ('(s)' if num_selected > 1 else ''), self)
 
-        include_action.triggered.connect(lambda: self.on_file_included(file_data))
-        include_action.setEnabled(not file_data["included"])
-        exclude_action.triggered.connect(lambda: self.on_file_excluded(file_data))
-        exclude_action.setEnabled(file_data["included"])
+        include_action.triggered.connect(lambda: self.on_files_included(selected_files_info))
+        include_action.setEnabled(True)
+        exclude_action.triggered.connect(lambda: self.on_files_excluded(selected_files_info))
+        exclude_action.setEnabled(not (num_excludes + num_includes_selected == len(item_infos)))
 
         menu.addAction(include_action)
         menu.addAction(exclude_action)
@@ -150,25 +170,25 @@ class DownloadsDetailsTabWidget(QTabWidget):
     def get_included_file_list(self):
         return [unicode(file_info["name"]) for file_info in self.current_download["files"] if file_info["included"]]
 
-    def on_file_included(self, file_data):
+    def on_files_included(self, files_data):
+        print files_data
         included_list = self.get_included_file_list()
-        if not file_data["name"] in included_list:
-            included_list.append(file_data["name"])
+        for file_data in files_data:
+            if not file_data["name"] in included_list:
+                included_list.append(file_data["name"])
 
         self.set_included_files(included_list)
 
-    def on_file_excluded(self, file_data):
+    def on_files_excluded(self, files_data):
         included_list = self.get_included_file_list()
-        if file_data["name"] in included_list:
-            included_list.remove(file_data["name"])
+        for file_data in files_data:
+            if file_data["name"] in included_list:
+                included_list.remove(file_data["name"])
 
         self.set_included_files(included_list)
 
     def set_included_files(self, files):
         data_str = ''.join(u"selected_files[]=%s&" % file for file in files)[:-1].encode('utf-8')
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("downloads/%s" % self.current_download['infohash'], self.on_files_included,
+        self.request_mgr.perform_request("downloads/%s" % self.current_download['infohash'], lambda _: None,
                                          method='PATCH', data=data_str)
-
-    def on_files_included(self, response):
-        pass

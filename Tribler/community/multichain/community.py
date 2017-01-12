@@ -18,7 +18,7 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.community import Community
-from Tribler.dispersy.message import Message
+from Tribler.dispersy.message import Message, DelayPacketByMissingMember
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.community.multichain.payload import (SignaturePayload, CrawlRequestPayload, CrawlResponsePayload,
                                                   CrawlResumePayload)
@@ -141,7 +141,10 @@ class MultiChainCommunity(Community):
             total_amount_received_mb = bytes_down / MEGA_DIVIDER
 
             # Try to send the request
-            self.publish_signature_request_message(candidate, total_amount_sent_mb, total_amount_received_mb)
+            try:
+                self.publish_signature_request_message(candidate, total_amount_sent_mb, total_amount_received_mb)
+            except DelayPacketByMissingMember:
+                self.logger.warn("Missing member in MultiChain community to send signature request to")
         else:
             self.logger.warn(
                 "No valid candidate found for: %s to request block from.", candidate)

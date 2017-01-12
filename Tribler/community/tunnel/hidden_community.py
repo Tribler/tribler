@@ -360,7 +360,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
         circuit = self.selection_strategy.select(None, self.hops[info_hash])
         if not circuit:
             self.tunnel_logger.error("No circuit for key-request")
-            return False
+            return
 
         # 2. Send a key-request message
         self.tunnel_logger.info("Create key request: send key request")
@@ -370,7 +370,6 @@ class HiddenTunnelCommunity(TunnelCommunity):
         meta = self.get_meta_message(u'key-request')
         message = meta.impl(distribution=(self.global_time,), payload=(cache.number, info_hash))
         circuit.tunnel_data(sock_addr, TUNNEL_PREFIX + message.packet)
-        return True
 
     def check_key_request(self, messages):
         for message in messages:

@@ -1,6 +1,8 @@
 from PyQt5 import uic
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QSizePolicy, QFileDialog, QTreeWidgetItem
+
+from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_ui_file_path, format_size, get_gui_setting
@@ -10,20 +12,6 @@ class DownloadFileTreeWidgetItem(QTreeWidgetItem):
 
     def __init__(self, parent):
         QTreeWidgetItem.__init__(self, parent)
-
-    def get_num_checked(self):
-        total_checked = 0
-        for ind in xrange(self.treeWidget().topLevelItemCount()):
-            item = self.treeWidget().topLevelItem(ind)
-            if item.checkState(2) == Qt.Checked:
-                total_checked += 1
-        return total_checked
-
-    def setData(self, index, role, value):
-        if index == 2 and self.get_num_checked() == 1 and role == Qt.CheckStateRole and value == Qt.Unchecked:
-            return
-
-        QTreeWidgetItem.setData(self, index, role, value)
 
 
 class StartDownloadDialog(DialogContainer):
@@ -35,6 +23,7 @@ class StartDownloadDialog(DialogContainer):
         DialogContainer.__init__(self, parent)
 
         self.download_uri = download_uri
+        self.has_metainfo = False
         gui_settings = self.window().gui_settings
 
         uic.loadUi(get_ui_file_path('startdownloaddialog.ui'), self.dialog_widget)
@@ -43,7 +32,9 @@ class StartDownloadDialog(DialogContainer):
 
         self.dialog_widget.browse_dir_button.clicked.connect(self.on_browse_dir_clicked)
         self.dialog_widget.cancel_button.clicked.connect(lambda: self.button_clicked.emit(0))
-        self.dialog_widget.download_button.clicked.connect(lambda: self.button_clicked.emit(1))
+        self.dialog_widget.download_button.clicked.connect(self.on_download_clicked)
+        self.dialog_widget.select_all_files_button.clicked.connect(self.on_all_files_selected_clicked)
+        self.dialog_widget.deselect_all_files_button.clicked.connect(self.on_all_files_deselected_clicked)
 
         if self.window().tribler_settings:
             self.dialog_widget.destination_input.setText(self.window().tribler_settings['downloadconfig']['saveas'])
@@ -60,6 +51,7 @@ class StartDownloadDialog(DialogContainer):
 
         self.perform_files_request()
         self.dialog_widget.files_list_view.setHidden(True)
+        self.dialog_widget.download_files_container.setHidden(True)
         self.dialog_widget.adjustSize()
 
         self.on_main_window_resize()
@@ -105,7 +97,9 @@ class StartDownloadDialog(DialogContainer):
             item.setCheckState(2, Qt.Checked)
             self.dialog_widget.files_list_view.addTopLevelItem(item)
 
+        self.has_metainfo = True
         self.dialog_widget.loading_files_label.setHidden(True)
+        self.dialog_widget.download_files_container.setHidden(False)
         self.dialog_widget.files_list_view.setHidden(False)
         self.dialog_widget.adjustSize()
         self.on_main_window_resize()
@@ -123,3 +117,20 @@ class StartDownloadDialog(DialogContainer):
         if self.dialog_widget.anon_download_checkbox.isChecked():
             self.dialog_widget.safe_seed_checkbox.setChecked(True)
         self.dialog_widget.safe_seed_checkbox.setEnabled(not self.dialog_widget.anon_download_checkbox.isChecked())
+
+    def on_download_clicked(self):
+        if self.has_metainfo and len(self.get_selected_files()) == 0:  # User deselected all torrents
+            ConfirmationDialog.show_error(self.window(), "No files selected",
+                                          "Please select at least one file to download.")
+        else:
+            self.button_clicked.emit(1)
+
+    def on_all_files_selected_clicked(self):
+        for ind in xrange(self.dialog_widget.files_list_view.topLevelItemCount()):
+            item = self.dialog_widget.files_list_view.topLevelItem(ind)
+            item.setCheckState(2, Qt.Checked)
+
+    def on_all_files_deselected_clicked(self):
+        for ind in xrange(self.dialog_widget.files_list_view.topLevelItemCount()):
+            item = self.dialog_widget.files_list_view.topLevelItem(ind)
+            item.setCheckState(2, Qt.Unchecked)
