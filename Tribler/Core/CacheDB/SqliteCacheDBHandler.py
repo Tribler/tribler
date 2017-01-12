@@ -432,10 +432,6 @@ class TorrentDBHandler(BasicDBHandler):
         return torrent_id
 
     def _indexTorrent(self, torrent_id, swarmname, files):
-        existed = self._db.getOne('CollectedTorrent', 'infohash', torrent_id=torrent_id)
-        if existed:
-            return
-
         # Niels: new method for indexing, replaces invertedindex
         # Making sure that swarmname does not include extension for single file torrents
         swarm_keywords = " ".join(split_into_keywords(swarmname))
