@@ -385,9 +385,9 @@ class CreditMiningPanel(FancyPanel, TaskManager):
 
             self.source_label.SetLabel("Source : Channel (stored)")
             self.source_name.SetLabel("Name : " + data.get_source_text())
-            self.torrent_num.SetLabel("# Torrents : " + str(data.channel.nr_torrents))
-            self.last_updt.SetLabel("Latest update : " + format_time(data.channel.modified))
-            self.votes_num.SetLabel('Favorite votes : ' + str(data.channel.nr_favorites))
+            self.torrent_num.SetLabel("# Torrents : " + str(data.channel_dict[4]))
+            self.last_updt.SetLabel("Latest update : " + format_time(data.channel_dict[8]))
+            self.votes_num.SetLabel('Favorite votes : ' + str(data.channel_dict[5]))
             self.status_cm.SetLabel("Active" if data.enabled else "Inactive")
 
             debug_str = hexlify(data.source)

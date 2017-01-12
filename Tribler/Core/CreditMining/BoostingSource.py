@@ -8,12 +8,11 @@ import logging
 import os
 import re
 import urllib
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 from hashlib import sha1
+
 import feedparser
-
 import libtorrent as lt
-
 from twisted.internet import defer
 from twisted.internet import reactor
 from twisted.internet.defer import CancelledError
@@ -22,11 +21,10 @@ from twisted.web.client import Agent, readBody, getPage
 from twisted.web.error import Error
 from twisted.web.http_headers import Headers
 
-from Tribler.Core.CreditMining.credit_mining_util import TorrentManagerCM, ent2chr
+from Tribler.Core.CreditMining.credit_mining_util import ent2chr
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_TORRENTS, NTFY_UPDATE
 from Tribler.Core.version import version_id
-from Tribler.Main.Utility.GuiDBTuples import Torrent, Channel
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.dispersy.exception import CommunityNotFoundException
@@ -59,8 +57,6 @@ class BoostingSource(TaskManager):
 
         self.min_connection = boost_settings.min_connection_start
         self.min_channels = boost_settings.min_channels_start
-
-        self.torrent_mgr = TorrentManagerCM(session)
 
         self._logger = logging.getLogger(BoostingSource.__name__)
 
@@ -130,17 +126,6 @@ class BoostingSource(TaskManager):
     def _on_err(self, err_msg):
         self._logger.error(err_msg)
 
-    def check_and_register_task(self, name, task, delay=None, value=None, interval=None):
-        """
-        Helper function to avoid assertion in register task.
-
-        It will register task if it has not already registered
-        """
-        task_ret = None
-        if not self.is_pending_task_active(name):
-            task_ret = self.register_task(name, task, delay, value, interval)
-
-        return task_ret
 
 class ChannelSource(BoostingSource):
     """
@@ -151,16 +136,18 @@ class ChannelSource(BoostingSource):
 
         self.channel_id = None
 
-        self.channel = None
+        self.channel_dict = None
         self.community = None
         self.database_updated = True
 
         self.check_torrent_interval = 10
         self.dispersy_cid = dispersy_cid
 
+        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.session.add_observer(self._on_database_updated, NTFY_TORRENTS, [NTFY_INSERT, NTFY_UPDATE])
 
         self.unavail_torrent = {}
+        self.loaded_torrent = {}
 
     def kill_tasks(self):
         BoostingSource.kill_tasks(self)
@@ -201,11 +188,9 @@ class ChannelSource(BoostingSource):
             if self.community and self.community._channel_id:
                 self.channel_id = self.community._channel_id
 
-                channel_dict = self.channelcast_db.getChannel(self.channel_id)
-                self.channel = Channel(*channel_dict)
-
-                task_call = self.check_and_register_task(str(self.source) + "_update",
-                                                         LoopingCall(self._update)).start(self.interval, now=True)
+                self.channel_dict = self.channelcast_db.getChannel(self.channel_id)
+                task_call = self.register_task(str(self.source) + "_update",
+                                               LoopingCall(self._update)).start(self.interval, now=True)
                 if task_call:
                     self._logger.debug("Registering update call")
 
@@ -226,22 +211,23 @@ class ChannelSource(BoostingSource):
             """
             assembly torrent data, call the callback
             """
-            if torrent.files:
+            infohash = torrent.infohash
+            if torrent.get_files() and infohash in self.unavail_torrent:
                 if len(self.torrents) >= self.max_torrents:
                     self._logger.debug("Max torrents in source reached. Not adding %s", torrent.infohash)
                     del self.unavail_torrent[torrent.infohash]
                     return
 
-                infohash = torrent.infohash
                 self._logger.debug("[ChannelSource] Got torrent %s", hexlify(infohash))
                 self.torrents[infohash] = {}
-                self.torrents[infohash]['name'] = torrent.name
-                self.torrents[infohash]['metainfo'] = torrent.tdef
-                self.torrents[infohash]['creation_date'] = torrent.creation_date
-                self.torrents[infohash]['length'] = torrent.tdef.get_length()
-                self.torrents[infohash]['num_files'] = len(torrent.files)
-                self.torrents[infohash]['num_seeders'] = torrent.swarminfo[0] or 0
-                self.torrents[infohash]['num_leechers'] = torrent.swarminfo[1] or 0
+                self.torrents[infohash]['name'] = torrent.get_name()
+                self.torrents[infohash]['metainfo'] = torrent
+                self.torrents[infohash]['creation_date'] = torrent.get_creation_date()
+                self.torrents[infohash]['length'] = torrent.get_length()
+                self.torrents[infohash]['num_files'] = len(torrent.get_files())
+                #TODO(ardhi) get seeder/leecher from db
+                self.torrents[infohash]['num_seeders'] = 0
+                self.torrents[infohash]['num_leechers'] = 0
                 self.torrents[infohash]['enabled'] = self.enabled
 
                 # seeding stats from DownloadState
@@ -253,11 +239,10 @@ class ChannelSource(BoostingSource):
                     self.torrent_insert_callback(self.source, infohash, self.torrents[infohash])
                 self.database_updated = False
 
-        self._logger.debug("Unavailable #torrents : %d from %s", len(self.unavail_torrent), hexlify(self.source))
-
         if len(self.unavail_torrent) and self.enabled:
+            self._logger.debug("Unavailable #torrents : %d from %s", len(self.unavail_torrent), hexlify(self.source))
             for torrent in self.unavail_torrent.values():
-                self.torrent_mgr.load_torrent(torrent, showtorrent)
+                self._load_torrent(torrent[2]).addCallback(showtorrent)
 
     def _update(self):
         if len(self.torrents) < self.max_torrents and self.database_updated:
@@ -269,17 +254,13 @@ class ChannelSource(BoostingSource):
             torrent_values = self.channelcast_db.getTorrentsFromChannelId(self.channel_id, True, CHANTOR_DB,
                                                                           self.max_torrents)
 
-            listtor = self.torrent_mgr.create_torrents(torrent_values, True,
-                                                       {self.channel_id: self.channelcast_db.getChannel(
-                                                           self.channel_id)})
-
-            # dict {key_infohash(binary):Torrent(object-GUIDBTuple)}
-            self.unavail_torrent.update({t.infohash: t for t in listtor if t.infohash not in self.torrents})
+            # dict {key_infohash(binary):Torrent(tuples)}
+            self.unavail_torrent.update({t[2]: t for t in torrent_values if t[2] not in self.torrents})
 
             # it's highly probable the checktor function is running at this time (if it's already running)
             # if not running, start the checker
 
-            task_call = self.check_and_register_task(hexlify(self.source) + "_checktor", LoopingCall(self._check_tor))
+            task_call = self.register_task(hexlify(self.source) + "_checktor", LoopingCall(self._check_tor))
             if task_call:
                 self._logger.debug("Registering check torrent function")
                 task_call.start(self.check_torrent_interval, now=True)
@@ -288,7 +269,32 @@ class ChannelSource(BoostingSource):
         self.database_updated = True
 
     def get_source_text(self):
-        return self.channel.name if self.channel else None
+        return str(self.channel_dict[2]) if self.channel_dict else None
+
+    def _load_torrent(self, infohash):
+        """
+        function to download a torrent by infohash and call a callback afterwards
+        with TorrentDef object as parameter.
+        """
+
+        def add_to_loaded(infohash_str):
+            """
+            function to add loaded infohash to memory
+            """
+            self.loaded_torrent[unhexlify(infohash_str)].callback(
+                TorrentDef.load_from_memory(self.session.get_collected_torrent(unhexlify(infohash_str))))
+
+        if infohash not in self.loaded_torrent:
+            self.loaded_torrent[infohash] = defer.Deferred()
+
+            if not self.session.has_collected_torrent(infohash):
+                if self.session.has_download(infohash):
+                    return
+                self.session.download_torrentfile(infohash, add_to_loaded, 0)
+
+        deferred_load = self.loaded_torrent[infohash]
+
+        return deferred_load
 
 
 class RSSFeedSource(BoostingSource):
@@ -386,9 +392,6 @@ class RSSFeedSource(BoostingSource):
                 # manually generate an ID and put this into DB
                 self.torrent_db.addOrGetTorrentID(real_infohash)
                 self.torrent_db.addExternalTorrent(tdef)
-
-                # create Torrent object and store it
-                self.torrent_mgr.load_torrent(Torrent.fromTorrentDef(tdef))
 
                 # Notify the BoostingManager and provide the real infohash.
                 if self.torrent_insert_callback:
