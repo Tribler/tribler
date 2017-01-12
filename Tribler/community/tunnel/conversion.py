@@ -504,6 +504,11 @@ class TunnelConversion(BinaryConversion):
 
         return circuit_id, dest_address, org_address, data
 
+#Convert any Dispersy tunnel packet to cell by rewriting message IDentifier
+#First 22 Bytes are the Dispersy header
+#Tunnel packet has on byte 35 the target message type.
+#with this we alter the Dispersy packet into a Tor-like cell packet
+#this cell may contain: data, randevouz intro-point, ..
     @staticmethod
     def convert_from_cell(packet):
         header = packet[:22] + packet[35] + packet[23:31]
