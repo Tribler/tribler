@@ -489,6 +489,43 @@ class TunnelCommunity(Community):
                 self.exit_candidates.pop(pubkey)
                 self.tunnel_logger.info("Removed candidate from exit_candidates dictionary")
 
+    def copy_shallow_candidate(self, tunnel, sock_addr):
+        """
+        Create an unmanaged Candidate for a tunnel mechanism with a certain address
+
+        This avoids candidates being disassociated while they are being used in notifications.
+
+        :param tunnel: the tunnel object being used
+        :type tunnel: Circuit or RelayRoute or TunnelExitSocket
+        :param sock_addr: the socket address of the candidate
+        :type sock_addr: tuple
+        :return: the immutable Candidate object
+        :rtype: Candidate
+        """
+
+        assert isinstance(sock_addr, tuple), type(sock_addr)
+        assert len(sock_addr) == 2, sock_addr
+        assert isinstance(tunnel, Circuit) or isinstance(tunnel, RelayRoute) or isinstance(tunnel, TunnelExitSocket)
+
+        candidate = Candidate(sock_addr, True)
+        member = None
+        if isinstance(tunnel, Circuit):
+            # A circuit should only send when it has hops
+            # It might also be removed early when it is still using an unverified hop
+            # It should never have neither
+            if len(tunnel.hops) > 0:
+                member = self.dispersy.get_member(public_key=tunnel.hops[0].node_public_key)
+            elif tunnel.unverified_hop:
+                member = self.dispersy.get_member(public_key=tunnel.unverified_hop.node_public_key)
+        elif isinstance(tunnel, RelayRoute):
+            member = self.dispersy.get_member(mid=tunnel.mid)
+        elif isinstance(tunnel, TunnelExitSocket):
+            member = self.dispersy.get_member(mid=tunnel.mid.decode('hex'))
+
+        candidate.associate(member)
+
+        return candidate
+
     def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, required_endpoint=None, info_hash=None):
         assert required_endpoint is None or isinstance(required_endpoint, tuple), type(required_endpoint)
         assert required_endpoint is None or len(required_endpoint) == 3, required_endpoint
@@ -588,7 +625,7 @@ class TunnelCommunity(Community):
                 candidate = self.get_candidate(peer)
                 if candidate:
                     from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, candidate)
+                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, self.copy_shallow_candidate(circuit, peer))
                 else:
                     self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
             circuit.destroy()
@@ -638,7 +675,7 @@ class TunnelCommunity(Community):
                     candidate = self.get_candidate(peer)
                     if candidate:
                         from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-                        self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, relay, candidate)
+                        self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, relay, self.copy_shallow_candidate(relay, peer))
                     else:
                         self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
                 # Remove old session key
@@ -662,7 +699,8 @@ class TunnelCommunity(Community):
                 candidate = self.get_candidate(peer)
                 if candidate:
                     from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket, candidate)
+                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket,
+                                         self.copy_shallow_candidate(exit_socket, peer))
                 else:
                     self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
             if exit_socket.enabled:
