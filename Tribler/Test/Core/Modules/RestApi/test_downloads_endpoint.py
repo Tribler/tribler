@@ -1,12 +1,11 @@
 from binascii import hexlify
 import json
 import os
-from urllib import pathname2url, quote_plus
+from urllib import pathname2url
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.twisted_thread import deferred
-from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.common import UBUNTU_1504_INFOHASH, TESTS_DATA_DIR
 
@@ -248,6 +247,19 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return request_deferred.addCallback(verify_rechecked)
 
     @deferred(timeout=10)
+    def test_change_hops_error(self):
+        """
+        Testing whether the API returns 400 if we supply both anon_hops and another parameter
+        """
+        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        infohash = video_tdef.get_infohash().encode('hex')
+
+        self.should_check_equality = False
+        return self.do_request('downloads/%s' % infohash, post_data={"state": "resume", 'anon_hops': 1},
+                               expected_code=400, request_type='PATCH')
+
+    @deferred(timeout=10)
     def test_download_unknown_state(self):
         """
         Testing whether the API returns error 400 if an unknown state is passed when modifying a download
@@ -285,3 +297,24 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('downloads/%s/torrent' % video_tdef.get_infohash().encode('hex'),
                                expected_code=200, request_type='GET').addCallback(verify_exported_data)
+
+
+class TestDownloadsDispersyEndpoint(AbstractApiTest):
+
+    def setUpPreSession(self):
+        super(TestDownloadsDispersyEndpoint, self).setUpPreSession()
+        self.config.set_libtorrent(True)
+        self.config.set_dispersy(True)
+        self.config.set_tunnel_community_enabled(True)
+
+    @deferred(timeout=10)
+    def test_change_hops(self):
+        """
+        Testing whether the API returns 200 if we change the amount of hops of a download
+        """
+        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        infohash = video_tdef.get_infohash().encode('hex')
+
+        return self.do_request('downloads/%s' % infohash, post_data={'anon_hops': 1},
+                               expected_code=200, expected_json={'modified': True}, request_type='PATCH')

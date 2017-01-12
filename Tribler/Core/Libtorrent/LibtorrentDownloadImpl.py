@@ -726,6 +726,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             unwanteddir_abs = os.path.join(self.get_save_path().decode('utf-8'), unwanteddir)
 
             filepriorities = []
+            torrent_storage = get_info_from_handle(self.handle).files()
+
             for index, orig_path in enumerate(self.orig_files):
                 filename = orig_path[len(swarmname) + 1:] if swarmname else orig_path
 
@@ -736,13 +738,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     filepriorities.append(0)
                     new_path = os.path.join(unwanteddir, '%s%d' % (hexlify(self.tdef.get_infohash()), index))
 
-                torrent_storage = get_info_from_handle(self.handle).files()
-
                 # as from libtorrent 1.0, files returning file_storage (lazy-iterable)
                 if hasattr(lt, 'file_storage') and isinstance(torrent_storage, lt.file_storage):
                     cur_path = torrent_storage.at(index).path.decode('utf-8')
                 else:
-                    cur_path = get_info_from_handle(self.handle).files()[index].path.decode('utf-8')
+                    cur_path = torrent_storage[index].path.decode('utf-8')
 
                 if cur_path != new_path:
                     if not os.path.exists(unwanteddir_abs) and unwanteddir in new_path:

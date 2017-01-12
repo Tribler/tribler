@@ -1,5 +1,7 @@
-from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QTreeWidgetItem, QProgressBar
+from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.QtWidgets import QWidget
+
 from TriblerGUI.defs import *
 from TriblerGUI.utilities import format_size, format_speed, duration_to_string
 
@@ -12,13 +14,16 @@ class DownloadWidgetItem(QTreeWidgetItem):
     def __init__(self, parent):
         QTreeWidgetItem.__init__(self, parent)
         self.download_info = None
+
+        bar_container = QWidget()
+        bar_container.setLayout(QVBoxLayout())
+        bar_container.setStyleSheet("background-color: transparent;")
+
         self.progress_slider = QProgressBar()
         self.progress_slider.setStyleSheet("""
         QProgressBar {
-            margin: 8px;
-            margin-left: 0;
             background-color: white;
-            color: #ddd;
+            color: black;
             font-size: 12px;
             text-align: center;
         }
@@ -28,8 +33,11 @@ class DownloadWidgetItem(QTreeWidgetItem):
         }
         """)
 
-        parent.setItemWidget(self, 2, self.progress_slider)
-        self.setSizeHint(0, QSize(-1, 24))
+        bar_container.layout().addWidget(self.progress_slider)
+        bar_container.layout().setContentsMargins(4, 4, 8, 4)
+
+        parent.setItemWidget(self, 2, bar_container)
+        self.progress_slider.setAutoFillBackground(True)
 
     def update_with_download(self, download):
         self.download_info = download

@@ -1,6 +1,7 @@
 # Written by Egbert Bouman
 
 import random
+import socket
 import time
 from collections import defaultdict
 from cryptography.exceptions import InvalidTag
@@ -146,7 +147,7 @@ class TunnelExitSocket(DatagramProtocol, TaskManager):
                     try:
                         self.transport.write(data, (ip_address, destination[1]))
                         self.community.increase_bytes_sent(self, len(data))
-                    except (AttributeError, MessageLengthError) as exception:
+                    except (AttributeError, MessageLengthError, socket.error) as exception:
                         self.tunnel_logger.error(
                             "Failed to write data to transport: %s. Destination: %r error was: %r",
                             exception, destination, exception)
@@ -283,6 +284,7 @@ class TunnelCommunity(Community):
         self.relay_session_keys = {}
         self.exit_sockets = {}
         self.circuits_needed = defaultdict(int)
+        self.num_hops_by_downloads = defaultdict(int)  # Keeps track of the number of hops required by downloads
         self.exit_candidates = {}
         self.notifier = None
         self.selection_strategy = RoundRobin(self)
@@ -452,8 +454,19 @@ class TunnelCommunity(Community):
 
     def build_tunnels(self, hops):
         if hops > 0:
+            self.num_hops_by_downloads[hops] += 1
             self.circuits_needed[hops] = max(1, self.settings.max_circuits, self.circuits_needed[hops])
             self.do_circuits()
+
+    def on_download_removed(self, download):
+        """
+        This method is called when a download is removed. We check here whether we can stop building circuits for a
+        specific number of hops in case it hasn't been finished yet.
+        """
+        if download.get_hops() > 0:
+            self.num_hops_by_downloads[download.get_hops()] -= 1
+            if self.num_hops_by_downloads[download.get_hops()] == 0:
+                self.circuits_needed[download.get_hops()] = 0
 
     def do_remove(self):
         # Remove circuits that are inactive / are too old / have transferred too many bytes.

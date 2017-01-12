@@ -13,6 +13,7 @@ from Tribler.community.multichain.conversion import EMPTY_HASH
 from Tribler.community.tunnel.routing import Circuit, RelayRoute
 from Tribler.community.tunnel.tunnel_community import TunnelExitSocket
 from Tribler.Test.test_as_server import AbstractServer
+from Tribler.dispersy.message import DelayPacketByMissingMember
 from Tribler.dispersy.tests.dispersytestclass import DispersyTestFunc
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.dispersy.tests.debugcommunity.node import DebugNode
@@ -197,6 +198,21 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         candidate = Candidate(("127.0.0.1", 10), False)
         # Act
         node.call(node.community.schedule_block, candidate, 0, 0)
+
+    def test_schedule_block_missing_member(self):
+        """
+        Test the schedule_block function with a missing member
+        """
+        # Arrange
+        def mocked_publish_sig(*_):
+            raise DelayPacketByMissingMember(node.community, 'a' * 20)
+
+        node, other = self.create_nodes(2)
+        other.send_identity(node)
+        target_other = self._create_target(node, other)
+        node.community.publish_signature_request_message = mocked_publish_sig
+        # Act
+        node.call(node.community.schedule_block, target_other, 10, 10)
 
     def test_publish_signature_request_message(self):
         """
