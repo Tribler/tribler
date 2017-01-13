@@ -54,10 +54,22 @@ class DownloadProgressBar(QWidget):
             if len(self.pieces) == 0:  # Nothing to paint
                 return
 
-            piece_width = self.width() / float(len(self.pieces))
-            for i in xrange(len(self.pieces)):
-                if self.pieces[i]:
-                    painter.fillRect(QRect(float(i) * piece_width, 0, math.ceil(piece_width), self.height()),
-                                     QColor(230, 115, 0))
+            if len(self.pieces) <= self.width():  # We have less pieces than pixels
+                piece_width = self.width() / float(len(self.pieces))
+                for i in xrange(len(self.pieces)):
+                    if self.pieces[i]:
+                        painter.fillRect(QRect(float(i) * piece_width, 0, math.ceil(piece_width), self.height()),
+                                         QColor(230, 115, 0))
+            else:  # We have more pieces than pixels, group pieces
+                pieces_per_pixel = len(self.pieces) / float(self.width())
+                for i in xrange(self.width()):
+                    begin_piece = int(pieces_per_pixel * i)
+                    end_piece = int(begin_piece + pieces_per_pixel)
+                    piece_sum = 0
+                    for j in xrange(begin_piece, end_piece):
+                        piece_sum += self.pieces[j]
+                    qt_color = QColor()
+                    qt_color.setHsl(26, 255, 128 + 127 * (1 - piece_sum / pieces_per_pixel))
+                    painter.fillRect(QRect(i, 0, 10, self.height()), qt_color)
         else:
             painter.fillRect(QRect(0, 0, self.width() * self.fraction, self.height()), QColor(230, 115, 0))

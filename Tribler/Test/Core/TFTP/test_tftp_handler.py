@@ -49,12 +49,10 @@ class TestTFTPHandler(TriblerCoreTest):
 
     def test_schedule_callback_processing(self):
         """
-        Testing whether we do not register a tftp process task again
+        Testing whether scheduling a TFTP callback works correctly
         """
         self.assertFalse(self.handler.is_pending_task_active("tftp_process_callback"))
-        self.handler._schedule_callback_processing()
-        self.assertTrue(self.handler._callback_scheduled)
-        self.handler.cancel_all_pending_tasks()
+        self.handler._callback_scheduled = True
         self.handler._schedule_callback_processing()
         self.assertFalse(self.handler.is_pending_task_active("tftp_process_callback"))
 
