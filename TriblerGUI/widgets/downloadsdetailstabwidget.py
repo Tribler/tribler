@@ -20,10 +20,10 @@ class DownloadsDetailsTabWidget(QTabWidget):
         self.current_download = None
         self.request_mgr = None
         self.files_widgets = {}    # dict of file name -> widget
-        self.tracker_widgets = {}  # dict of tracker URL -> widget
 
     def initialize_details_widget(self):
         self.window().download_files_list.customContextMenuRequested.connect(self.on_right_click_file_item)
+        self.setCurrentIndex(0)
 
     def update_with_download(self, download):
         self.current_download = download
@@ -115,7 +115,6 @@ class DownloadsDetailsTabWidget(QTabWidget):
         for tracker in self.current_download["trackers"]:
             item = QTreeWidgetItem(self.window().download_trackers_list)
             DownloadsDetailsTabWidget.update_tracker_row(item, tracker)
-            self.tracker_widgets[tracker["url"]] = item
 
         # Populate the peers list if the peer information is available
         self.window().download_peers_list.clear()
