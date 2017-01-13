@@ -1089,7 +1089,7 @@ class TunnelCommunity(Community):
             if candidate.get_member() is not None:
                 candidate_mid = candidate.get_member().mid.encode('hex')
             else:
-                self.dispersy.get_member(public_key=message.payload.node_public_key)
+                candidate_mid = self.dispersy.get_member(public_key=message.payload.node_public_key).mid.encode('hex')
             self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, self, candidate.sock_addr, candidate_mid)
 
             if self.notifier:
