@@ -74,9 +74,9 @@ class CreateTorrentPage(QWidget):
 
         files_str = u""
         for ind in xrange(self.window().create_torrent_files_list.count()):
-            files_str += u"files[]=%s&" % self.window().create_torrent_files_list.item(ind).text()
+            files_str += u"files[]=%s&" % urllib.quote_plus(self.window().create_torrent_files_list.item(ind).text())
 
-        description = self.window().create_torrent_description_field.toPlainText()
+        description = urllib.quote_plus(self.window().create_torrent_description_field.toPlainText())
         post_data = (u"%s&description=%s" % (files_str[:-1], description)).encode('utf-8')
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("createtorrent", self.on_torrent_created, data=post_data, method='POST')

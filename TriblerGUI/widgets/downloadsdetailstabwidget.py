@@ -1,3 +1,5 @@
+from urllib import quote_plus
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem, QAction
 
@@ -171,7 +173,6 @@ class DownloadsDetailsTabWidget(QTabWidget):
         return [unicode(file_info["name"]) for file_info in self.current_download["files"] if file_info["included"]]
 
     def on_files_included(self, files_data):
-        print files_data
         included_list = self.get_included_file_list()
         for file_data in files_data:
             if not file_data["name"] in included_list:
@@ -188,7 +189,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
         self.set_included_files(included_list)
 
     def set_included_files(self, files):
-        data_str = ''.join(u"selected_files[]=%s&" % file for file in files)[:-1].encode('utf-8')
+        data_str = ''.join(u"selected_files[]=%s&" % quote_plus(file) for file in files)[:-1].encode('utf-8')
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("downloads/%s" % self.current_download['infohash'], lambda _: None,
                                          method='PATCH', data=data_str)
