@@ -7517,6 +7517,14 @@ color: white;
 }
 QTabWidget {
 border: none;
+}
+QTabBar::tab {
+    color: white;
+    background-color: #555;
+}
+QTabBar::tab:selected {
+    color: #555;
+    background-color: #777;
 }</string>
                 </property>
                 <property name="currentIndex">
