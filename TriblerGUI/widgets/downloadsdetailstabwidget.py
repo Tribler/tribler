@@ -96,9 +96,9 @@ class DownloadsDetailsTabWidget(QTabWidget):
         self.window().download_detail_destination_label.setText(self.current_download["destination"])
         self.window().download_detail_availability_label.setText("%.2f" % self.current_download['availability'])
 
-        if new_download:  # When we have a new download, clear all pages and draw new widgets
+        if new_download or len(self.current_download["files"]) != len(self.files_widgets.keys()):
 
-            # Populate the files list
+            # (re)populate the files list
             self.window().download_files_list.clear()
             self.files_widgets = {}
             for dfile in self.current_download["files"]:
