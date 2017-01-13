@@ -7517,10 +7517,18 @@ color: white;
 }
 QTabWidget {
 border: none;
+}
+QTabBar::tab {
+    color: white;
+    background-color: #555;
+}
+QTabBar::tab:selected {
+    color: #555;
+    background-color: #777;
 }</string>
                 </property>
                 <property name="currentIndex">
-                 <number>1</number>
+                 <number>0</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
