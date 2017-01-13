@@ -178,7 +178,7 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
         hop = Hop(tunnel_crypto.generate_key(u"curve25519").pub())
         circuit.add_hop(hop)
         # Register the first hop with dispersy and the community
-        self.tunnel_community.dispersy.get_member(public_key=hop.node_public_key)
+        circuit.mid = self.tunnel_community.dispersy.get_member(public_key=hop.node_public_key).mid.encode("HEX")
         self.tunnel_community.create_or_update_walkcandidate(circuit.first_hop, circuit.first_hop, circuit.first_hop,
                                                              True, u'unknown')
         self.tunnel_community.circuits[42] = circuit

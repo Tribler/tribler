@@ -515,24 +515,12 @@ class TunnelCommunity(Community):
         :return: the immutable Candidate object
         :rtype: Candidate
         """
-
         assert isinstance(sock_addr, tuple), type(sock_addr)
         assert len(sock_addr) == 2, sock_addr
         assert isinstance(tunnel, Circuit) or isinstance(tunnel, RelayRoute) or isinstance(tunnel, TunnelExitSocket)
 
         candidate = Candidate(sock_addr, True)
-        member = None
-        if isinstance(tunnel, Circuit):
-            # A circuit should only send when it has hops
-            # It might also be removed early when it is still using an unverified hop
-            # It should never have neither
-            if len(tunnel.hops) > 0:
-                member = self.dispersy.get_member(public_key=tunnel.hops[0].node_public_key)
-            elif tunnel.unverified_hop:
-                member = self.dispersy.get_member(public_key=tunnel.unverified_hop.node_public_key)
-        elif isinstance(tunnel, (RelayRoute, TunnelExitSocket)):
-            member = self.dispersy.get_member(mid=tunnel.mid.decode('hex'))
-
+        member = self.dispersy.get_member(mid=tunnel.mid.decode('hex'))
         candidate.associate(member)
 
         return candidate
@@ -1100,6 +1088,8 @@ class TunnelCommunity(Community):
             candidate_mid = 0
             if candidate.get_member() is not None:
                 candidate_mid = candidate.get_member().mid.encode('hex')
+            else:
+                self.dispersy.get_member(public_key=message.payload.node_public_key)
             self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, self, candidate.sock_addr, candidate_mid)
 
             if self.notifier:
@@ -1150,13 +1140,11 @@ class TunnelCommunity(Community):
 
             if message.payload.node_public_key in request.candidates:
                 extend_candidate = request.candidates[message.payload.node_public_key]
-                extend_candidate_mid = extend_candidate.get_member().mid.encode('hex')
             else:
                 extend_candidate = Candidate(message.payload.node_addr, False)
-                extend_candidate_mid = 0
-
-            # key = self.crypto.key_from_public_bin(message.payload.node_public_key)
-            # extend_candidate_mid = key.key_to_hash().encode('hex')
+                member = self.dispersy.get_member(public_key=message.payload.node_public_key)
+                extend_candidate.associate(member)
+            extend_candidate_mid = extend_candidate.get_member().mid.encode('hex')
 
             self.tunnel_logger.info("on_extend send CREATE for circuit (%s, %d) to %s:%d", candidate.sock_addr,
                                     circuit_id,
@@ -1165,9 +1153,15 @@ class TunnelCommunity(Community):
 
             to_circuit_id = self._generate_circuit_id(extend_candidate.sock_addr)
 
-            candidate_mid = 0
-            if candidate.get_member():
-                candidate_mid = candidate.get_member().mid.encode('hex')
+            if circuit_id in self.circuits:
+                candidate_mid = self.circuits[circuit_id].mid
+            elif circuit_id in self.exit_sockets:
+                candidate_mid = self.exit_sockets[circuit_id].mid
+            elif circuit_id in self.relay_from_to:
+                candidate_mid = self.relay_from_to[circuit_id].mid
+            else:
+                self.tunnel_logger.error("Got extend for unknown source circuit_id")
+                return
 
             self.tunnel_logger.info("extending circuit, got candidate with IP %s:%d from cache",
                                     *extend_candidate.sock_addr)

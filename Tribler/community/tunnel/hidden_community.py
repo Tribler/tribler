@@ -582,8 +582,10 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
             self.send_cell([message.candidate], u"linked-e2e", (circuit.circuit_id, message.payload.identifier))
 
-            self.relay_from_to[circuit.circuit_id] = RelayRoute(relay_circuit.circuit_id, relay_circuit.sock_addr, True)
-            self.relay_from_to[relay_circuit.circuit_id] = RelayRoute(circuit.circuit_id, circuit.sock_addr, True)
+            self.relay_from_to[circuit.circuit_id] = RelayRoute(relay_circuit.circuit_id, relay_circuit.sock_addr, True,
+                                                                mid=relay_circuit.mid)
+            self.relay_from_to[relay_circuit.circuit_id] = RelayRoute(circuit.circuit_id, circuit.sock_addr, True,
+                                                                      mid=circuit.mid)
 
     def check_linked_e2e(self, messages):
         for message in messages:
