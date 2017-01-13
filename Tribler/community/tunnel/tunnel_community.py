@@ -530,9 +530,7 @@ class TunnelCommunity(Community):
                 member = self.dispersy.get_member(public_key=tunnel.hops[0].node_public_key)
             elif tunnel.unverified_hop:
                 member = self.dispersy.get_member(public_key=tunnel.unverified_hop.node_public_key)
-        elif isinstance(tunnel, RelayRoute):
-            member = self.dispersy.get_member(mid=tunnel.mid)
-        elif isinstance(tunnel, TunnelExitSocket):
+        elif isinstance(tunnel, (RelayRoute, TunnelExitSocket)):
             member = self.dispersy.get_member(mid=tunnel.mid.decode('hex'))
 
         candidate.associate(member)
