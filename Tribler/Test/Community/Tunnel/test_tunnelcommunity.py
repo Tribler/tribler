@@ -189,3 +189,94 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
         self.assertTrue(self.tunnel_community.notifier.called)
         self.assertNotEqual(self.tunnel_community.notifier.candidate, None)
         self.assertNotEqual(self.tunnel_community.notifier.candidate.get_member(), None)
+
+    @blocking_call_on_reactor_thread
+    def test_reconstruct_candidate_on_tunnel_remove(self):
+        """
+        Notifications of NTFY_TUNNEL NTFY_REMOVE should report candidates even though they are no longer tracked
+
+        The notification should still have a valid Candidate object for the reference of third parties.
+        For example, Dispersy might determine a Candidate is no longer needed for the TunnelCommunity, but the
+        MultiChainCommunity will still be interested in the Candidate object tied to a removed circuit.
+        """
+
+        class MockNotifier(object):
+            def __init__(self):
+                self.candidate = None
+                self.called = False
+
+            def notify(self, subject, change_type, tunnel, candidate):
+                self.called = True
+                self.candidate = candidate
+
+        # Prepare crypto
+        tunnel_crypto = object.__new__(TunnelCrypto)
+        # Register mock notifier
+        self.tunnel_community.notifier = MockNotifier()
+        # Register a valid circuit
+        circuit = Circuit(42L)
+        circuit.first_hop = ("127.0.0.1", 1337)
+        hop = Hop(tunnel_crypto.generate_key(u"curve25519").pub())
+        circuit.add_hop(hop)
+        # Register the first hop with dispersy and the community
+        circuit.mid = self.tunnel_community.dispersy.get_member(public_key=hop.node_public_key).mid.encode("HEX")
+        self.tunnel_community.create_or_update_walkcandidate(circuit.first_hop, circuit.first_hop, circuit.first_hop,
+                                                             True, u'unknown')
+        self.tunnel_community.circuits[42] = circuit
+
+        # Simulate a candidate cleanup
+        self.tunnel_community.remove_candidate(circuit.first_hop)
+
+        # Remove the circuit, causing the notification
+        self.tunnel_community.remove_circuit(42)
+
+        self.assertTrue(self.tunnel_community.notifier.called)
+        self.assertNotEqual(self.tunnel_community.notifier.candidate, None)
+
+    @blocking_call_on_reactor_thread
+    def test_reconstruct_candidate_on_relay_remove(self):
+        """
+        Notifications of NTFY_TUNNEL NTFY_REMOVE should report candidates even though they are no longer tracked
+
+        The notification should still have a valid Candidate object for the reference of third parties.
+        For example, Dispersy might determine a Candidate is no longer needed for the TunnelCommunity, but the
+        MultiChainCommunity will still be interested in the Candidate object tied to a removed circuit.
+        """
+
+        class MockNotifier(object):
+            def __init__(self):
+                self.candidate = None
+                self.called = False
+
+            def notify(self, subject, change_type, tunnel, candidate):
+                self.called = True
+                self.candidate = candidate
+
+        # Prepare crypto
+        tunnel_crypto = object.__new__(TunnelCrypto)
+        # Register mock notifier
+        self.tunnel_community.notifier = MockNotifier()
+        # Register a valid circuit
+        circuit = Circuit(42L)
+        circuit.first_hop = ("127.0.0.1", 1337)
+        hop = Hop(tunnel_crypto.generate_key(u"curve25519").pub())
+        circuit.add_hop(hop)
+        # Register the first hop with dispersy and the community
+        circuit.mid = self.tunnel_community.dispersy.get_member(public_key=hop.node_public_key).mid.encode("HEX")
+        self.tunnel_community.create_or_update_walkcandidate(circuit.first_hop, circuit.first_hop,
+                                                             circuit.first_hop,
+                                                             True, u'unknown')
+        self.tunnel_community.circuits[42] = circuit
+        #Register a RelayRoute
+        self.tunnel_community.relay_from_to[circuit.circuit_id] = RelayRoute(circuit.circuit_id,
+                                                                             circuit.first_hop,
+                                                                             mid=circuit.mid)
+
+        # Simulate a candidate cleanup
+        self.tunnel_community.remove_candidate(circuit.first_hop)
+
+        # Remove the circuit, causing the notification
+        self.tunnel_community.remove_relay(42)
+
+        self.assertTrue(self.tunnel_community.notifier.called)
+        self.assertNotEqual(self.tunnel_community.notifier.candidate, None)

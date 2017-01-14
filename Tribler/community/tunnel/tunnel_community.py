@@ -621,12 +621,8 @@ class TunnelCommunity(Community):
             circuit = self.circuits.pop(circuit_id)
             if self.notifier:
                 peer = (circuit.first_hop[0], circuit.first_hop[1])
-                candidate = self.get_candidate(peer)
-                if candidate:
-                    from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, self.copy_shallow_candidate(circuit, peer))
-                else:
-                    self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
+                from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
+                self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, self.copy_shallow_candidate(circuit, peer))
             circuit.destroy()
 
             affected_peers = self.socks_server.circuit_dead(circuit)
@@ -671,12 +667,8 @@ class TunnelCommunity(Community):
                 relay = self.relay_from_to.pop(cid)
                 if self.notifier:
                     peer = (relay.sock_addr[0], relay.sock_addr[1])
-                    candidate = self.get_candidate(peer)
-                    if candidate:
-                        from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-                        self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, relay, self.copy_shallow_candidate(relay, peer))
-                    else:
-                        self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
+                    from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
+                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, relay, self.copy_shallow_candidate(relay, peer))
                 # Remove old session key
                 if cid in self.relay_session_keys:
                     del self.relay_session_keys[cid]
@@ -695,13 +687,9 @@ class TunnelCommunity(Community):
             exit_socket = self.exit_sockets.pop(circuit_id)
             if self.notifier:
                 peer = (exit_socket.sock_addr[0], exit_socket.sock_addr[1])
-                candidate = self.get_candidate(peer)
-                if candidate:
-                    from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket,
-                                         self.copy_shallow_candidate(exit_socket, peer))
-                else:
-                    self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
+                from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
+                self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket,
+                                     self.copy_shallow_candidate(exit_socket, peer))
             if exit_socket.enabled:
                 self.tunnel_logger.info("Removing exit socket %d %s", circuit_id, additional_info)
 
