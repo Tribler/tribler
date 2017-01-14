@@ -2,14 +2,14 @@ This section contains information about building Tribler on Windows. In the end 
 This guide installs a 64-bit version of Tribler and has been tested on Windows 10 and Windows 2008 Server R2, 64-bit. It is recommended to create this builder on a system that is already able to run Tribler from a git checkout (it means that all the required packages required by Tribler are installed already). In case you want to build a 32 bit version, just install all the dependencies mentioned in 32 bit version.
 Information about setting up a developer environment on Windows can be found on :ref:`tribler_dev_windows`.
 
-**When you have installed zope, an empty** ``__init__.py`` **file must be present in the zope folder. If this file is missing, a** ``No module named zope`` **error will be thrown. Create this file in the** ``site-packes/zope`` **folder if it does not exist.**
+**When you have installed zope, an empty** ``__init__.py`` **file must be present in the zope folder. If this file is missing, a** ``No module named zope`` **error will be thrown. Create this file in the** ``site-packages/zope`` **folder if it does not exist.**
 
 Required packages
 -----------------
 
 To build a Tribler installer, you'll need some additional scripts and packages. The versions used as of writing this guide are mentioned next to the package or script.
 * The git command tools (version 2.7.0) are required to fetch the latest release information. These can be downloaded from `here <https://git-scm.com/download/win>`_.
-* PyInstaller, a tool to create an executeable from python files. Install the latest version from pip: ``pip install pyinstaller``.
+* PyInstaller, a tool to create an executable from python files. Install the latest version from pip: ``pip install pyinstaller``.
 * The builder needs to find all packages that are required by Tribler so make sure you can run Tribler on your machine and that there are no missing dependencies.
 * Nullsoft Scriptable Install System (NSIS) (version 2.5.0) is a script-driven Installer authoring tool for Microsoft Windows with minimal overhead. It can be downloaded `here <http://nsis.sourceforge.net/Download>`_. We selected version 2.5 as the uninstall functions were not called properly in 3.03b.
 * Three plugins are required.The UAC plugin is the first. This can be downloaded from `here <http://nsis.sourceforge.net/UAC_plug-in>`_ (version 0.2.4c). How to install a plugin can be found `here <http://nsis.sourceforge.net/How_can_I_install_a_plugin>`_.

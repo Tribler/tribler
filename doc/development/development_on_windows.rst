@@ -1,4 +1,4 @@
-This section contains information about setting up a Tribler development environment on Windows. Unlike Linux based systems where installing third-party libraries is often a single ``apt-get`` command, installing and configuring the necessary libraries requires more attention on Windows. Moreover, the Windows environment has different file stuctures. For instance, where Linux is working extensively with .so (shared object) files, Windows uses DLL files.
+This section contains information about setting up a Tribler development environment on Windows. Unlike Linux based systems where installing third-party libraries is often a single ``apt-get`` command, installing and configuring the necessary libraries requires more attention on Windows. Moreover, the Windows environment has different file structures. For instance, where Linux is working extensively with .so (shared object) files, Windows uses DLL files.
 
 Introduction
 ------------
@@ -21,7 +21,7 @@ In order to compile some of the dependencies of Tribler, you will need Visual St
 
 In case importing one of the modules fail due to a DLL error, you can inspect if there are files missing by opening it with `Dependency Walker <www.dependencywalker.com>`_. It should show missing dependencies. In our case, we were missing ``MSVCR100.DLL`` which belongs to the Microsoft Visual C++ 2010 SP1 Redistributable Package (x64). This package can be downloaded `from the Microsoft website <https://www.microsoft.com/en-us/download/details.aspx?id=13523>`_.
 One other DLL that was missing was ``MSVCR110.DLL``, which belongs to the `Visual C++ Redistributable for Visual Studio 2012 Update 4 <https://www.microsoft.com/en-us/download/details.aspx?id=30679>`_.
-After installing these two pakets, there should be no more import errors.
+After installing these two packages, there should be no more import errors.
 
 M2Crypto
 --------
