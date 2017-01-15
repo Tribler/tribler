@@ -22,7 +22,7 @@ While installing libsodium13 and python-cryptography on a clean Ubuntu 14.04 ins
 
 This means that the required packages are not directly in the available package list of Ubuntu 14.04.
 
-To install the packages, the required files have to be downloaded from their respecive websites.
+To install the packages, the required files have to be downloaded from their respective websites.
 
 For libsodium13, download ``libsodium13\_1.0.1-1\_<ProcessorType\>.deb`` from `<http://packages.ubuntu.com/vivid/libsodium13](http://packages.ubuntu.com/vivid/libsodium13>`_
 

@@ -78,9 +78,9 @@ We have written guides on how to package Tribler for distribution on various sys
 Submodule notes
 ===============
 
-- As updated submodules are in detached head state, remember to check out a branch before commiting changes on them.
+- As updated submodules are in detached head state, remember to check out a branch before committing changes on them.
 - If you forgot to check out a branch before doing a commit, you should get a warning telling you about it. To get the commit to a branch just check out the branch and do a git cherry-pick of the commit.
-- Take care of not accidentally commiting a submodule revision change with ``git commit -a``.
+- Take care of not accidentally committing a submodule revision change with ``git commit -a``.
 - Do not commit a submodule update without running all the tests first and making sure the new code is not breaking Tribler.
 
 .. |jenkins_build| image:: http://jenkins.tribler.org/job/Test_tribler_devel/badge/icon

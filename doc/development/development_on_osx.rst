@@ -1,6 +1,6 @@
 This section contains information about setting up a Tribler development environment on macOS. Unlike Linux based systems where installing third-party libraries is often a single ``apt-get`` command, installing and configuring the necessary libraries requires more attention on macOS. This guide has been tested with macOS 10.10.5 (Yosemite) but should also work for macOS 10.11 (El Capitan).
 
-Note that the guide below assumes that Python is installed in the default location of Python (shipped with macOS). This location is normally in ``/Library/Python/2.7``. Writing to this location requires root acccess when using easy_install or pip. To avoid root commands, you can install Python in a virtualenv. More information about setting up Python in a virtualenv can be found `here <http://www.marinamele.com/2014/05/install-python-virtualenv-virtualenvwrapper-mavericks.html>`_.
+Note that the guide below assumes that Python is installed in the default location of Python (shipped with macOS). This location is normally in ``/Library/Python/2.7``. Writing to this location requires root access when using easy_install or pip. To avoid root commands, you can install Python in a virtualenv. More information about setting up Python in a virtualenv can be found `here <http://www.marinamele.com/2014/05/install-python-virtualenv-virtualenvwrapper-mavericks.html>`_.
 
 Introduction
 ------------
