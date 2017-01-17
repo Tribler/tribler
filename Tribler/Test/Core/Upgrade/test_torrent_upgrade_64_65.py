@@ -1,14 +1,20 @@
 import os
 import shutil
+
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65
 from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Test.Core.Upgrade.test_torrent_upgrade_63_64 import AbstractTorrentUpgrade63to64
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class AbstractTorrentUpgrade64to65(AbstractTorrentUpgrade63to64):
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(AbstractTorrentUpgrade64to65, self).setUp()
+        yield super(AbstractTorrentUpgrade64to65, self).setUp()
 
         leveldb_path = os.path.join(self.session_base_dir, "leveldbstore")
         os.mkdir(leveldb_path)

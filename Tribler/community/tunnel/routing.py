@@ -93,8 +93,6 @@ class Circuit(object):
         Convenience method to tunnel data over this circuit
         @param (str, int) destination: the destination of the packet
         @param str payload: the packet's payload
-        @return bool: whether the tunnel request has succeeded, this is in no
-         way an acknowledgement of delivery!
         """
 
         self._logger.info("Tunnel data (len %d) to end for circuit %s with ultimate destination %s", len(payload),
@@ -103,7 +101,9 @@ class Circuit(object):
         num_bytes = self.proxy.send_data([Candidate(self.first_hop, False)], self.circuit_id, destination, ('0.0.0.0', 0), payload)
         self.proxy.increase_bytes_sent(self, num_bytes)
 
-        return num_bytes > 0
+        if num_bytes == 0:
+            self._logger.warning("Should send %d bytes over circuit %s, zero bytes were sent",
+                                 len(payload), self.circuit_id)
 
     def destroy(self, reason='unknown'):
         """
@@ -181,7 +181,7 @@ class RelayRoute(object):
     it is online or not
     """
 
-    def __init__(self, circuit_id, sock_addr, rendezvous_relay=False, mid=0):
+    def __init__(self, circuit_id, sock_addr, rendezvous_relay=False, mid=None):
         """
         @type sock_addr: (str, int)
         @type circuit_id: int
@@ -194,7 +194,7 @@ class RelayRoute(object):
         self.last_incoming = time.time()
         self.bytes_up = self.bytes_down = 0
         self.rendezvous_relay = rendezvous_relay
-        self.mid = 0
+        self.mid = mid
 
 class RendezvousPoint(object):
 

@@ -1,16 +1,17 @@
 # Written by Egbert Bouman
 
 import random
+import socket
 import time
 from collections import defaultdict
 from cryptography.exceptions import InvalidTag
-from twisted.internet.error import MessageLengthError
-
-from twisted.internet.defer import maybeDeferred, succeed
 
 from twisted.internet import reactor
+from twisted.internet.defer import maybeDeferred, succeed, inlineCallbacks, returnValue
+from twisted.internet.error import MessageLengthError
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet.task import LoopingCall
+from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.Utilities.encoding import decode, encode
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
@@ -114,7 +115,7 @@ class StatsRequestCache(RandomNumberCache):
 class TunnelExitSocket(DatagramProtocol, TaskManager):
 
     def __init__(self, circuit_id, community, sock_addr, mid=None):
-        self.tunnel_logger = logging.getLogger('TunnelLogger')
+        self.tunnel_logger = logging.getLogger(self.__class__.__name__)
         super(TunnelExitSocket, self).__init__()
 
         self.port = None
@@ -146,7 +147,7 @@ class TunnelExitSocket(DatagramProtocol, TaskManager):
                     try:
                         self.transport.write(data, (ip_address, destination[1]))
                         self.community.increase_bytes_sent(self, len(data))
-                    except (AttributeError, MessageLengthError) as exception:
+                    except (AttributeError, MessageLengthError, socket.error) as exception:
                         self.tunnel_logger.error(
                             "Failed to write data to transport: %s. Destination: %r error was: %r",
                             exception, destination, exception)
@@ -171,19 +172,23 @@ class TunnelExitSocket(DatagramProtocol, TaskManager):
         self.tunnel_logger.debug("Tunnel data to origin %s for circuit %s", ('0.0.0.0', 0), self.circuit_id)
         self.community.send_data([Candidate(self.sock_addr, False)], self.circuit_id, ('0.0.0.0', 0), source, data)
 
+    @inlineCallbacks
     def close(self):
         """
         Closes the UDP socket if enabled and cancels all pending deferreds.
         :return: A deferred that fires once the UDP socket has closed.
         """
+        assert isInIOThread()
+        # The resolution deferreds can't be cancelled, so we need to wait for
+        # them to finish.
+        yield self.wait_for_deferred_tasks()
         self.cancel_all_pending_tasks()
-
         done_closing_deferred = succeed(None)
         if self.enabled:
             done_closing_deferred = maybeDeferred(self.port.stopListening)
             self.port = None
-
-        return done_closing_deferred
+        res = yield done_closing_deferred
+        returnValue(res)
 
     def check_num_packets(self, ip, incoming):
         if self.ips[ip] < 0:
@@ -279,6 +284,7 @@ class TunnelCommunity(Community):
         self.relay_session_keys = {}
         self.exit_sockets = {}
         self.circuits_needed = defaultdict(int)
+        self.num_hops_by_downloads = defaultdict(int)  # Keeps track of the number of hops required by downloads
         self.exit_candidates = {}
         self.notifier = None
         self.selection_strategy = RoundRobin(self)
@@ -386,8 +392,9 @@ class TunnelCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), TunnelConversion(self)]
 
+    @inlineCallbacks
     def unload_community(self):
-        self.socks_server.stop()
+        yield self.socks_server.stop()
 
         # Remove all circuits/relays/exitsockets
         for circuit_id in self.circuits.keys():
@@ -397,7 +404,7 @@ class TunnelCommunity(Community):
         for circuit_id in self.exit_sockets.keys():
             self.remove_exit_socket(circuit_id, 'unload', destroy=True)
 
-        super(TunnelCommunity, self).unload_community()
+        yield super(TunnelCommunity, self).unload_community()
 
     @property
     def crypto(self):
@@ -447,8 +454,19 @@ class TunnelCommunity(Community):
 
     def build_tunnels(self, hops):
         if hops > 0:
+            self.num_hops_by_downloads[hops] += 1
             self.circuits_needed[hops] = max(1, self.settings.max_circuits, self.circuits_needed[hops])
             self.do_circuits()
+
+    def on_download_removed(self, download):
+        """
+        This method is called when a download is removed. We check here whether we can stop building circuits for a
+        specific number of hops in case it hasn't been finished yet.
+        """
+        if download.get_hops() > 0:
+            self.num_hops_by_downloads[download.get_hops()] -= 1
+            if self.num_hops_by_downloads[download.get_hops()] == 0:
+                self.circuits_needed[download.get_hops()] = 0
 
     def do_remove(self):
         # Remove circuits that are inactive / are too old / have transferred too many bytes.
@@ -483,6 +501,29 @@ class TunnelCommunity(Community):
             if pubkey not in current_candidates:
                 self.exit_candidates.pop(pubkey)
                 self.tunnel_logger.info("Removed candidate from exit_candidates dictionary")
+
+    def copy_shallow_candidate(self, tunnel, sock_addr):
+        """
+        Create an unmanaged Candidate for a tunnel mechanism with a certain address
+
+        This avoids candidates being disassociated while they are being used in notifications.
+
+        :param tunnel: the tunnel object being used
+        :type tunnel: Circuit or RelayRoute or TunnelExitSocket
+        :param sock_addr: the socket address of the candidate
+        :type sock_addr: tuple
+        :return: the immutable Candidate object
+        :rtype: Candidate
+        """
+        assert isinstance(sock_addr, tuple), type(sock_addr)
+        assert len(sock_addr) == 2, sock_addr
+        assert isinstance(tunnel, Circuit) or isinstance(tunnel, RelayRoute) or isinstance(tunnel, TunnelExitSocket)
+
+        candidate = Candidate(sock_addr, True)
+        member = self.dispersy.get_member(mid=tunnel.mid.decode('hex'))
+        candidate.associate(member)
+
+        return candidate
 
     def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, required_endpoint=None, info_hash=None):
         assert required_endpoint is None or isinstance(required_endpoint, tuple), type(required_endpoint)
@@ -520,6 +561,7 @@ class TunnelCommunity(Community):
             for c in self.dispersy_yield_verified_candidates():
                 if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec) and \
                    (not required_endpoint or c.sock_addr != tuple(required_endpoint[:2])) and \
+                    c.get_member().public_key in self.exit_candidates and \
                    not self.exit_candidates[c.get_member().public_key].become_exit:
                     first_hop = c
                     break
@@ -579,12 +621,8 @@ class TunnelCommunity(Community):
             circuit = self.circuits.pop(circuit_id)
             if self.notifier:
                 peer = (circuit.first_hop[0], circuit.first_hop[1])
-                candidate = self.get_candidate(peer)
-                if candidate:
-                    from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, candidate)
-                else:
-                    self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
+                from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
+                self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, self.copy_shallow_candidate(circuit, peer))
             circuit.destroy()
 
             affected_peers = self.socks_server.circuit_dead(circuit)
@@ -629,12 +667,8 @@ class TunnelCommunity(Community):
                 relay = self.relay_from_to.pop(cid)
                 if self.notifier:
                     peer = (relay.sock_addr[0], relay.sock_addr[1])
-                    candidate = self.get_candidate(peer)
-                    if candidate:
-                        from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-                        self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, relay, candidate)
-                    else:
-                        self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
+                    from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
+                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, relay, self.copy_shallow_candidate(relay, peer))
                 # Remove old session key
                 if cid in self.relay_session_keys:
                     del self.relay_session_keys[cid]
@@ -653,12 +687,9 @@ class TunnelCommunity(Community):
             exit_socket = self.exit_sockets.pop(circuit_id)
             if self.notifier:
                 peer = (exit_socket.sock_addr[0], exit_socket.sock_addr[1])
-                candidate = self.get_candidate(peer)
-                if candidate:
-                    from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket, candidate)
-                else:
-                    self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
+                from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
+                self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket,
+                                     self.copy_shallow_candidate(exit_socket, peer))
             if exit_socket.enabled:
                 self.tunnel_logger.info("Removing exit socket %d %s", circuit_id, additional_info)
 
@@ -1045,6 +1076,8 @@ class TunnelCommunity(Community):
             candidate_mid = 0
             if candidate.get_member() is not None:
                 candidate_mid = candidate.get_member().mid.encode('hex')
+            else:
+                candidate_mid = self.dispersy.get_member(public_key=message.payload.node_public_key).mid.encode('hex')
             self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, self, candidate.sock_addr, candidate_mid)
 
             if self.notifier:
@@ -1095,13 +1128,11 @@ class TunnelCommunity(Community):
 
             if message.payload.node_public_key in request.candidates:
                 extend_candidate = request.candidates[message.payload.node_public_key]
-                extend_candidate_mid = extend_candidate.get_member().mid.encode('hex')
             else:
                 extend_candidate = Candidate(message.payload.node_addr, False)
-                extend_candidate_mid = 0
-
-            # key = self.crypto.key_from_public_bin(message.payload.node_public_key)
-            # extend_candidate_mid = key.key_to_hash().encode('hex')
+                member = self.dispersy.get_member(public_key=message.payload.node_public_key)
+                extend_candidate.associate(member)
+            extend_candidate_mid = extend_candidate.get_member().mid.encode('hex')
 
             self.tunnel_logger.info("on_extend send CREATE for circuit (%s, %d) to %s:%d", candidate.sock_addr,
                                     circuit_id,
@@ -1110,9 +1141,15 @@ class TunnelCommunity(Community):
 
             to_circuit_id = self._generate_circuit_id(extend_candidate.sock_addr)
 
-            candidate_mid = 0
-            if candidate.get_member():
-                candidate_mid = candidate.get_member().mid.encode('hex')
+            if circuit_id in self.circuits:
+                candidate_mid = self.circuits[circuit_id].mid
+            elif circuit_id in self.exit_sockets:
+                candidate_mid = self.exit_sockets[circuit_id].mid
+            elif circuit_id in self.relay_from_to:
+                candidate_mid = self.relay_from_to[circuit_id].mid
+            else:
+                self.tunnel_logger.error("Got extend for unknown source circuit_id")
+                return
 
             self.tunnel_logger.info("extending circuit, got candidate with IP %s:%d from cache",
                                     *extend_candidate.sock_addr)

@@ -1,14 +1,18 @@
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.community.bartercast4.statistics import BarterStatistics, BartercastStatisticTypes
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestBarterStatistics(AbstractServer):
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestBarterStatistics, self).setUp()
+        yield super(TestBarterStatistics, self).setUp()
         self.stats = BarterStatistics()
         self._peer1 = "peer1"
         self._peer2 = "peer2"

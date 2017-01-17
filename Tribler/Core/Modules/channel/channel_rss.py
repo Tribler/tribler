@@ -39,6 +39,8 @@ class ChannelRssParser(TaskManager):
 
         self._to_stop = False
 
+        self.running = False
+
     @blocking_call_on_reactor_thread
     def initialize(self):
         # initialize URL cache
@@ -66,6 +68,7 @@ class ChannelRssParser(TaskManager):
         rss_feed_data = {u'channel': self.channel_community,
                          u'rss_feed_url': self.rss_url}
         self.session.notifier.notify(SIGNAL_RSS_FEED, SIGNAL_ON_UPDATED, None, rss_feed_data)
+        self.running = True
 
     @blocking_call_on_reactor_thread
     def shutdown(self):
@@ -77,6 +80,7 @@ class ChannelRssParser(TaskManager):
 
         self.channel_community = None
         self.session = None
+        self.running = False
 
     def parse_feed(self):
         rss_parser = RSSFeedParser()

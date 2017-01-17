@@ -1,4 +1,4 @@
-This section contains information about setting up a Tribler development environment on Windows. Unlike Linux based systems where installing third-party libraries is often a single ``apt-get`` command, installing and configuring the necessary libraries requires more attention on Windows. Moreover, the Windows environment has different file stuctures. For instance, where Linux is working extensively with .so (shared object) files, Windows uses DLL files.
+This section contains information about setting up a Tribler development environment on Windows. Unlike Linux based systems where installing third-party libraries is often a single ``apt-get`` command, installing and configuring the necessary libraries requires more attention on Windows. Moreover, the Windows environment has different file structures. For instance, where Linux is working extensively with .so (shared object) files, Windows uses DLL files.
 
 Introduction
 ------------
@@ -21,7 +21,7 @@ In order to compile some of the dependencies of Tribler, you will need Visual St
 
 In case importing one of the modules fail due to a DLL error, you can inspect if there are files missing by opening it with `Dependency Walker <www.dependencywalker.com>`_. It should show missing dependencies. In our case, we were missing ``MSVCR100.DLL`` which belongs to the Microsoft Visual C++ 2010 SP1 Redistributable Package (x64). This package can be downloaded `from the Microsoft website <https://www.microsoft.com/en-us/download/details.aspx?id=13523>`_.
 One other DLL that was missing was ``MSVCR110.DLL``, which belongs to the `Visual C++ Redistributable for Visual Studio 2012 Update 4 <https://www.microsoft.com/en-us/download/details.aspx?id=30679>`_.
-After installing these two pakets, there should be no more import errors.
+After installing these two packages, there should be no more import errors.
 
 M2Crypto
 --------
@@ -35,16 +35,29 @@ The first package to be installed is M2Crypto which can be installed using pip (
 
 If the second statement does not raise an error, M2Crypto is successfully installed.
 
-wxPython
---------
+PyQt5
+-----
 
-The graphical interface of Tribler is built using wxPython. wxPython can be installed by using the official win64 installer for Python 2.7 from `Sourceforge <http://sourceforge.net/projects/wxpython/files/wxPython>`_. **At the time of writing, wx3 is not supported yet so you should install wx2.8** (make sure to install the unicode version). You can test whether wx can be successfully imported by running:
+If you wish to run the Tribler Graphical User Interface, PyQt5 should be available on the system. While PyQt5 is available in the pip repository, this is only compatible with Python 3. Start by downloading the Qt library from `here <http://doc.qt.io/qt-5/windows-support.html>`_. You can either compile it from source or use a Qt installer which automatically installs the pre-compiled libraries.
+
+After the Qt installation is completed, PyQt5 should be compiled. This library depends on SIP, another library to automatically generate Python bindings from C++ code. Download the latest SIP version `here <https://www.riverbankcomputing.com/software/sip/download>`_, extract it, navigate to the directory where it has been extracted and compile/install it (don't forget to execute these commands in the Visual Studio command line):
 
 .. code-block:: none
 
-    python -c "import wx"
+    python configure.py
+    nmake
+    nmake install
 
-This statement should proceed without error.
+Next, download PyQt5 from `here <https://sourceforge.net/projects/pyqt/files/PyQt5/>`_ and make sure that you download the version that matches with the version of Qt you installed in the previous steps. Extract the binary and compile it:
+
+.. code-block:: none
+
+    python configure.py
+    nmake
+    nmake install
+    python -c "import PyQt5" # this should work without any error
+
+Note that the installation can take a while. After it has finished, the PyQt5 library is installed correctly.
 
 pyWin32 Tools
 -------------
@@ -184,7 +197,7 @@ There are some additional packages which should be installed. They can easily be
 
 .. code-block:: none
 
-    pip install twisted requests pillow cherrypy cryptography decorator netifaces feedparser
+    pip install cherrypy chardet configobj cryptography decorator feedparser netifaces pillow twisted
 
 Running Tribler
 ---------------

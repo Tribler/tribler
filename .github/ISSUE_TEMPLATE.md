@@ -2,7 +2,7 @@
 
 #### Please, fill all relevant items: ####
 
-- [ ] I have read CONTRIBUTING.md
+- [ ] I have read CONTRIBUTING.rst
 
 - [ ] I have tried with the latest pre-release version and I still can reproduce the issue.
 

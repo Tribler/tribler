@@ -1,12 +1,13 @@
 # Written by Cor-Paul Bezemer
 
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.community.basecommunity import BaseCommunity
 from Tribler.dispersy.authentication import MemberAuthentication
-from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.distribution import DirectDistribution
-from Tribler.dispersy.message import Message, DelayMessageByProof
+from Tribler.dispersy.message import DelayMessageByProof
 from Tribler.dispersy.resolution import PublicResolution
 from .statistics import BartercastStatisticTypes, _barter_statistics
 from twisted.internet.task import LoopingCall
@@ -161,6 +162,7 @@ class BarterCommunity(BaseCommunity):
         self._logger.debug("merging bartercast statistics")
         _barter_statistics.persist(self._dispersy)
 
+    @inlineCallbacks
     def unload_community(self):
         self._logger.debug("unloading the Barter4 community")
         # store last cached statistics
@@ -170,7 +172,7 @@ class BarterCommunity(BaseCommunity):
 
         # close database
         _barter_statistics.close()
-        super(BarterCommunity, self).unload_community()
+        yield super(BarterCommunity, self).unload_community()
 
 
 class BarterCommunityCrawler(BarterCommunity):

@@ -1,4 +1,5 @@
 import json
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -13,8 +14,9 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 class TestCircuitDebugEndpoint(AbstractApiTest):
 
     @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestCircuitDebugEndpoint, self).setUp(autoload_discovery=autoload_discovery)
+        yield super(TestCircuitDebugEndpoint, self).setUp(autoload_discovery=autoload_discovery)
 
         self.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
         self.dispersy._database.open()
@@ -24,6 +26,10 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.tunnel_community = HiddenTunnelCommunity(self.dispersy, master_member, member)
         self.dispersy.get_communities = lambda: [self.tunnel_community]
         self.session.get_dispersy_instance = lambda: self.dispersy
+
+    def setUpPreSession(self):
+        super(TestCircuitDebugEndpoint, self).setUpPreSession()
+        self.config.set_tunnel_community_enabled(True)
 
     @deferred(timeout=10)
     def test_get_circuit_no_community(self):

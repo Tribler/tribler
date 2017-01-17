@@ -17,15 +17,13 @@ import os.path
 import sys
 from distutils.spawn import find_executable
 
+from Tribler.Core.CreditMining.BoostingPolicy import CreationDatePolicy, SeederRatioPolicy, RandomPolicy, BoostingPolicy
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import determine_install_dir
 from Tribler.Core.Utilities.network_utils import autodetect_socket_style, get_random_port
 from Tribler.Core.defaults import sessdefaults
 from Tribler.Core.osutils import get_appstate_dir, is_android
 from Tribler.Core.simpledefs import STATEDIR_SESSCONFIG
-from Tribler.Policies.BoostingPolicy import CreationDatePolicy, BoostingPolicy
-from Tribler.Policies.BoostingPolicy import RandomPolicy
-from Tribler.Policies.BoostingPolicy import SeederRatioPolicy
 
 
 class SessionConfigInterface(object):
@@ -326,6 +324,18 @@ class SessionConfigInterface(object):
         @return Boolean.
         """
         return self.sessconfig.get(u'libtorrent', u'enabled')
+
+    def set_libtorrent_max_conn_download(self, value):
+        """ Set the maximum amount of connections for each download. By default, this is -1, unlimited.
+        @param value Integer.
+        """
+        self.sessconfig.set(u'libtorrent', u'max_connections_download', value)
+
+    def get_libtorrent_max_conn_download(self):
+        """ Returns the maximum amount of connections per download
+        @return Integer.
+        """
+        return self.sessconfig.get(u'libtorrent', u'max_connections_download')
 
     def set_libtorrent_proxy_settings(self, ptype, server=None, auth=None):
         """ Set which proxy LibTorrent should use (default = 0).

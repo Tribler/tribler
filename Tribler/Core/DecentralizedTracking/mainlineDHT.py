@@ -1,11 +1,16 @@
 # written by Fabian van der Werf, Arno Bakker
 # Modified by Raul Jimenez to integrate KTH DHT
 # see LICENSE.txt for license information
+import os
 
 import sys
 import logging
+from Tribler.Core.Utilities.install_dir import get_lib_path
 
 logger = logging.getLogger(__name__)
+
+# Add the pymdht directory to the sys path
+sys.path.append(os.path.join(get_lib_path(), 'Core', 'DecentralizedTracking'))
 
 DEBUG = False
 

@@ -1,6 +1,7 @@
 import binascii
 import os
 import libtorrent as lt
+from twisted.internet.defer import Deferred
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
@@ -8,8 +9,10 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.twisted_thread import deferred, reactor
+from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
+from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.common import TESTS_DATA_DIR
 
 
 class TestLibtorrentDownloadImpl(TestAsServer):
@@ -21,12 +24,12 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         super(TestLibtorrentDownloadImpl, self).setUpPreSession()
         self.config = SessionStartupConfig()
         self.config.set_state_dir(self.getStateDir())
-        self.config.set_torrent_checking(False)
         self.config.set_multicast_local_peer_discovery(False)
         self.config.set_megacache(True)
-        self.config.set_dispersy(True)
+        self.config.set_dispersy(False)
+        self.config.set_tunnel_community_enabled(False)
         self.config.set_mainline_dht(False)
-        self.config.set_torrent_collecting(True)
+        self.config.set_torrent_collecting(False)
         self.config.set_libtorrent(True)
         self.config.set_dht_torrent_collecting(False)
         self.config.set_videoserver_enabled(False)
@@ -86,12 +89,13 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         tdef = self.create_tdef()
 
         impl = LibtorrentDownloadImpl(self.session, tdef)
-        def callback((ignored, ignored2)):
-            pass
+
+        def callback(_):
+            impl.cancel_all_pending_tasks()
 
         deferred = impl.setup(None, None, None, 0)
         deferred.addCallback(callback)
-        return deferred
+        return deferred.addCallback(lambda _: impl.stop())
 
     def test_restart(self):
         tdef = self.create_tdef()
@@ -108,6 +112,15 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         impl.dlconfig = DownloadStartupConfig().dlconfig.copy()
         impl.session.lm.on_download_wrapper_created = lambda _: True
         impl.restart()
+
+    @deferred(timeout=20)
+    def test_restart_no_handle(self):
+        test_deferred = Deferred()
+        tdef = self.create_tdef()
+        impl = LibtorrentDownloadImpl(self.session, tdef)
+        impl.session.lm.on_download_handle_created = lambda _: test_deferred.callback(None)
+        impl.restart()
+        return test_deferred
 
     @deferred(timeout=20)
     def test_multifile_torrent(self):
@@ -177,7 +190,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         result_deferred = impl.setup(None, None, None, 0)
         result_deferred.addCallback(callback)
 
-        return result_deferred
+        return result_deferred.addCallback(lambda _: impl.stop())
 
 
 class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
@@ -187,9 +200,61 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl = LibtorrentDownloadImpl(None, None)
         mock_handle = MockObject()
         mock_status = MockObject()
+        mock_status.pieces = [True, False, True, True, False]
+        torrent_info = MockObject()
+        file_info = MockObject()
+        file_info.size = 1234
+        torrent_info.file_at = lambda _: file_info
+        map_file_result = MockObject()
+        map_file_result.piece = 123
+        torrent_info.map_file = lambda _dummy1, _dummy2, _dummy3: map_file_result
+        torrent_info.num_pieces = lambda: 5
+
         mock_handle.is_valid = lambda: True
         mock_handle.status = lambda: mock_status
+        mock_handle.get_torrent_info = lambda: torrent_info
+        mock_handle.set_sequential_download = lambda _: None
+        mock_handle.set_priority = lambda _: None
+        mock_handle.prioritize_pieces = lambda _: None
+
         self.libtorrent_download_impl.handle = mock_handle
+
+        # Create a fake tdef
+        self.libtorrent_download_impl.tdef = MockObject()
+        self.libtorrent_download_impl.tdef.get_name = lambda: "ubuntu.iso"
+        self.libtorrent_download_impl.tdef.is_multifile_torrent = lambda: False
+
+    def tearDown(self, annotate=True):
+        self.libtorrent_download_impl.cancel_all_pending_tasks()
+        super(TestLibtorrentDownloadImplNoSession, self).tearDown(annotate=annotate)
+
+    def test_selected_files(self):
+        """
+        Test whether the selected files are set correctly
+        """
+        def mocked_set_file_prios(_):
+            mocked_set_file_prios.called = True
+
+        mocked_set_file_prios.called = False
+
+        mocked_file = MockObject()
+        mocked_file.path = 'my/path'
+        mock_torrent_info = MockObject()
+        mock_torrent_info.files = lambda: [mocked_file, mocked_file]
+        self.libtorrent_download_impl.handle.prioritize_files = mocked_set_file_prios
+        self.libtorrent_download_impl.handle.get_torrent_info = lambda: mock_torrent_info
+        self.libtorrent_download_impl.handle.rename_file = lambda *_: None
+
+        self.libtorrent_download_impl.get_share_mode = lambda: False
+        self.libtorrent_download_impl.tdef.get_infohash = lambda: 'a' * 20
+        self.libtorrent_download_impl.orig_files = ['a', 'b']
+        self.libtorrent_download_impl.get_save_path = lambda: 'my/path'
+        self.libtorrent_download_impl.set_selected_files(['a'])
+        self.assertTrue(mocked_set_file_prios.called)
+
+        self.libtorrent_download_impl.get_share_mode = lambda: False
+        mocked_set_file_prios.called = False
+        self.assertFalse(mocked_set_file_prios.called)
 
     def test_get_share_mode(self):
         """
@@ -370,8 +435,28 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         Testing whether the right piece progress is returned in LibtorrentDownloadImpl
         """
         self.assertEqual(self.libtorrent_download_impl.get_piece_progress(None), 1.0)
+
+        self.libtorrent_download_impl.handle.status().pieces = [True, False]
+        self.assertEqual(self.libtorrent_download_impl.get_piece_progress([0, 1], True), 0.5)
+
         self.libtorrent_download_impl.handle.status = lambda: None
         self.assertEqual(self.libtorrent_download_impl.get_piece_progress([3, 1]), 0.0)
+
+    def test_get_byte_progress(self):
+        """
+        Testing whether the right byte progress is returned in LibtorrentDownloadImpl
+        """
+        self.assertEqual(self.libtorrent_download_impl.get_byte_progress([(-1, 0, 0)], False), 1.0)
+
+        # Scenario: we have a file with 4 pieces, 250 bytes in each piece.
+        def map_file(_dummy1, start_byte, _dummy2):
+            res = MockObject()
+            res.piece = int(start_byte / 250)
+            return res
+
+        self.libtorrent_download_impl.handle.get_torrent_info().num_pieces = lambda: 4
+        self.libtorrent_download_impl.handle.get_torrent_info().map_file = map_file
+        self.assertEqual(self.libtorrent_download_impl.get_byte_progress([(0, 10, 270)], True), 0.5)
 
     def test_setup_exception(self):
         """
@@ -403,3 +488,67 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.stop_remove = mocked_stop_remove
         self.libtorrent_download_impl.stop()
         self.assertTrue(mocked_stop_remove.called)
+
+    def test_download_finish_alert(self):
+        """
+        Testing whether the right operations are performed when we get a torrent finished alert
+        """
+        status = self.libtorrent_download_impl.handle.status()
+        status.paused = False
+        status.state = DLSTATUS_DOWNLOADING
+        status.progress = 0.9
+        status.error = None
+        status.total_wanted = 33
+        status.download_payload_rate = 928
+        status.upload_payload_rate = 928
+        status.all_time_upload = 42
+        status.all_time_download = 43
+        status.finished_time = 1234
+
+        # Scenario: we have a file with 4 pieces, 250 bytes in each piece.
+        def map_file(_dummy1, start_byte, _dummy2):
+            res = MockObject()
+            res.piece = int(start_byte / 250)
+            return res
+
+        self.libtorrent_download_impl.handle.get_torrent_info().num_pieces = lambda: 4
+        self.libtorrent_download_impl.handle.get_torrent_info().map_file = map_file
+        self.libtorrent_download_impl.handle.piece_priorities = lambda: [0, 0, 0, 0]
+
+        self.libtorrent_download_impl.set_vod_mode(True)
+        self.libtorrent_download_impl.set_mode(DLMODE_VOD)
+        self.libtorrent_download_impl.on_torrent_finished_alert(None)
+
+        has_priorities_task = False
+        for task_name in self.libtorrent_download_impl._pending_tasks.iterkeys():
+            if 'reset_priorities' in task_name:
+                has_priorities_task = True
+        self.assertTrue(has_priorities_task)
+
+    def test_get_pieces_bitmask(self):
+        """
+        Testing whether a correct pieces bitmask is returned when requested
+        """
+        self.libtorrent_download_impl.handle.status().pieces = [True, False, True, False, False]
+        self.assertEqual(self.libtorrent_download_impl.get_pieces_base64(), "oA==")
+
+        self.libtorrent_download_impl.handle.status().pieces = [True * 16]
+        self.assertEqual(self.libtorrent_download_impl.get_pieces_base64(), "gA==")
+
+    @deferred(timeout=10)
+    def test_resume_data_failed(self):
+        """
+        Testing whether the correct operations happen when an error is raised during resume data saving
+        """
+        test_deferred = Deferred()
+
+        def on_error(_):
+            test_deferred.callback(None)
+
+        mock_alert = MockObject()
+        mock_alert.msg = "test error"
+
+        self.libtorrent_download_impl.deferreds_resume.append(Deferred().addErrback(
+            self.libtorrent_download_impl._on_resume_err).addCallback(on_error))
+        self.libtorrent_download_impl.on_save_resume_data_failed_alert(mock_alert)
+        return test_deferred

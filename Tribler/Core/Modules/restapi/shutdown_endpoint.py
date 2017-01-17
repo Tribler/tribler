@@ -10,7 +10,7 @@ from Tribler.Core.Modules.process_checker import ProcessChecker
 
 class ShutdownEndpoint(resource.Resource):
     """
-    With this endpoint you can trigger a Tribler shutdown.
+    With this endpoint you can shutdown Tribler.
     """
 
     def __init__(self, session):
@@ -23,7 +23,7 @@ class ShutdownEndpoint(resource.Resource):
         """
         .. http:put:: /shutdown
 
-        A PUT request to this endpoint triggers a Tribler shutdown.
+        A PUT request to this endpoint will shutdown Tribler.
 
             **Example request**:
 
@@ -36,12 +36,9 @@ class ShutdownEndpoint(resource.Resource):
             .. sourcecode:: javascript
 
                 {
-                    "shutdown": True,
-                    "gracetime": 2.0
+                    "shutdown": True
                 }
         """
-        gracetime = 2.0
-
         def shutdown_process(_, code=1):
             reactor.addSystemEventTrigger('after', 'shutdown', os._exit, code)
             reactor.stop()
@@ -51,8 +48,8 @@ class ShutdownEndpoint(resource.Resource):
             self._logger.error(failure.value)
             shutdown_process(failure, 0)
 
-        task.deferLater(reactor, 0, self.session.shutdown, gracetime=gracetime) \
+        task.deferLater(reactor, 0, self.session.shutdown) \
             .addCallback(shutdown_process) \
             .addErrback(log_and_shutdown)
 
-        return json.dumps({"shutdown": True, "gracetime": gracetime})
+        return json.dumps({"shutdown": True})

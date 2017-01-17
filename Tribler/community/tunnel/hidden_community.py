@@ -360,7 +360,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
         circuit = self.selection_strategy.select(None, self.hops[info_hash])
         if not circuit:
             self.tunnel_logger.error("No circuit for key-request")
-            return False
+            return
 
         # 2. Send a key-request message
         self.tunnel_logger.info("Create key request: send key request")
@@ -370,7 +370,6 @@ class HiddenTunnelCommunity(TunnelCommunity):
         meta = self.get_meta_message(u'key-request')
         message = meta.impl(distribution=(self.global_time,), payload=(cache.number, info_hash))
         circuit.tunnel_data(sock_addr, TUNNEL_PREFIX + message.packet)
-        return True
 
     def check_key_request(self, messages):
         for message in messages:
@@ -583,8 +582,10 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
             self.send_cell([message.candidate], u"linked-e2e", (circuit.circuit_id, message.payload.identifier))
 
-            self.relay_from_to[circuit.circuit_id] = RelayRoute(relay_circuit.circuit_id, relay_circuit.sock_addr, True)
-            self.relay_from_to[relay_circuit.circuit_id] = RelayRoute(circuit.circuit_id, circuit.sock_addr, True)
+            self.relay_from_to[circuit.circuit_id] = RelayRoute(relay_circuit.circuit_id, relay_circuit.sock_addr, True,
+                                                                mid=relay_circuit.mid)
+            self.relay_from_to[relay_circuit.circuit_id] = RelayRoute(circuit.circuit_id, circuit.sock_addr, True,
+                                                                      mid=circuit.mid)
 
     def check_linked_e2e(self, messages):
         for message in messages:

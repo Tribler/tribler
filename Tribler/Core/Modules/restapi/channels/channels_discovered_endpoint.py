@@ -43,11 +43,20 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
                         "torrents": 3,
                         "spam": 5,
                         "modified": 14598395,
+                        "can_edit": True
                     }, ...]
                 }
         """
         all_channels_db = self.channel_db_handler.getAllChannels()
-        results_json = [convert_db_channel_to_json(channel) for channel in all_channels_db]
+        results_json = []
+        for channel in all_channels_db:
+            channel_json = convert_db_channel_to_json(channel)
+            if self.session.tribler_config.get_family_filter_enabled() and \
+                    self.session.lm.category.xxx_filter.isXXX(channel_json['name']):
+                continue
+
+            results_json.append(channel_json)
+
         return json.dumps({"channels": results_json})
 
     def render_PUT(self, request):
@@ -83,16 +92,16 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
         if 'description' not in parameters or len(parameters['description']) == 0:
             description = u''
         else:
-            description = parameters['description'][0]
+            description = unicode(parameters['description'][0], 'utf-8')
 
         if 'mode' not in parameters or len(parameters['mode']) == 0:
             # By default, the mode of the new channel is closed.
             mode = u'closed'
         else:
-            mode = parameters['mode'][0]
+            mode = unicode(parameters['mode'][0], 'utf-8')
 
         try:
-            channel_id = self.session.create_channel(parameters['name'][0], description, mode)
+            channel_id = self.session.create_channel(unicode(parameters['name'][0], 'utf-8'), description, mode)
         except DuplicateChannelNameError as ex:
             return BaseChannelsEndpoint.return_500(self, request, ex)
 

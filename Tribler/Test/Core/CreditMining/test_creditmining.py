@@ -10,31 +10,36 @@ import random
 import re
 from unittest import skip
 
-import Tribler.Policies.BoostingManager as bm
+from Tribler.Core.CreditMining.BoostingPolicy import CreationDatePolicy, SeederRatioPolicy, RandomPolicy
+from Tribler.Core.CreditMining.BoostingSource import ent2chr
+from Tribler.Core.CreditMining.credit_mining_util import levenshtein_dist, source_to_string
+from twisted.internet.defer import inlineCallbacks
+
+import Tribler.Core.CreditMining.BoostingManager as bm
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.SessionConfig import SessionConfigInterface
 from Tribler.Core.Utilities import utilities
 from Tribler.Core.defaults import sessdefaults
-from Tribler.Policies.BoostingPolicy import CreationDatePolicy, SeederRatioPolicy, RandomPolicy
-from Tribler.Policies.BoostingSource import ent2chr
-from Tribler.Policies.credit_mining_util import levenshtein_dist, source_to_string
-from Tribler.Test.Core.CreditMining.mock_creditmining import MockMeta, MockLtPeer, MockLtSession, MockLtTorrent
-from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.Core.CreditMining.mock_creditmining import MockMeta, MockLtPeer, MockLtSession, MockLtTorrent, \
+    MockPeerId
+from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-@skip("Disabled credit mining tests until they are stable again")
-class TestBoostingManagerPolicies(TestAsServer):
+class TestBoostingManagerPolicies(TriblerCoreTest):
     """
     The class to test core function of credit mining policies
     """
 
     def __init__(self, *argv, **kwargs):
         super(TestBoostingManagerPolicies, self).__init__(*argv, **kwargs)
+        self.session = MockLtSession()
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerPolicies, self).setUp()
-        self.session.get_download = lambda x: x % 2
+        yield super(TestBoostingManagerPolicies, self).setUp()
         self.torrents = dict()
         for i in xrange(1, 11):
             mock_metainfo = MockMeta(i)
@@ -46,14 +51,16 @@ class TestBoostingManagerPolicies(TestAsServer):
         """
         testing random policy
         """
-        random.seed(0)
+        rdrwh = random.WichmannHill(0)
         policy = RandomPolicy(self.session)
+        policy.key = lambda _: rdrwh.random()
+
         torrents_start, torrents_stop = policy.apply(self.torrents, 6, force=True)
         ids_start = [torrent["metainfo"].get_infohash() for torrent in
                      torrents_start]
-        self.assertEqual(3, len(ids_start), "Start failed %s vs %s" % (ids_start, torrents_start))
+        self.assertEqual(1, len(ids_start), "Start failed %s vs %s" % (ids_start, torrents_start))
         ids_stop = [torrent["metainfo"].get_infohash() for torrent in torrents_stop]
-        self.assertEqual(2, len(ids_stop), "Stop failed %s vs %s" % (ids_stop, torrents_stop))
+        self.assertEqual(0, len(ids_stop), "Stop failed %s vs %s" % (ids_stop, torrents_stop))
 
     def test_seederratio_policy(self):
         """
@@ -67,6 +74,7 @@ class TestBoostingManagerPolicies(TestAsServer):
         ids_stop = [torrent["metainfo"].get_infohash() for torrent in torrents_stop]
         self.assertEqual(ids_stop, [3, 1])
 
+    @skip("The random seed is not reliable")
     def test_fallback_policy(self):
         """
         testing policy (seederratio) and then fallback
@@ -99,8 +107,7 @@ class TestBoostingManagerPolicies(TestAsServer):
         self.assertEqual(ids_stop, [5, 3, 1])
 
 
-@skip("Disabled credit mining tests until they are stable again")
-class TestBoostingManagerUtilities(TestAsServer):
+class TestBoostingManagerUtilities(TriblerCoreTest):
     """
     Test several utilities used in credit mining
     """
@@ -109,21 +116,25 @@ class TestBoostingManagerUtilities(TestAsServer):
         super(TestBoostingManagerUtilities, self).__init__(*argv, **kwargs)
 
         self.peer = [None] * 6
-        self.peer[0] = MockLtPeer(1, "ip1")
+        self.peer[0] = MockLtPeer(MockPeerId("1"), "ip1")
         self.peer[0].setvalue(True, True, True)
-        self.peer[1] = MockLtPeer(2, "ip2")
+        self.peer[1] = MockLtPeer(MockPeerId("2"), "ip2")
         self.peer[1].setvalue(False, False, True)
-        self.peer[2] = MockLtPeer(3, "ip3")
+        self.peer[2] = MockLtPeer(MockPeerId("3"), "ip3")
         self.peer[2].setvalue(True, False, True)
-        self.peer[3] = MockLtPeer(4, "ip4")
+        self.peer[3] = MockLtPeer(MockPeerId("4"), "ip4")
         self.peer[3].setvalue(False, True, False)
-        self.peer[4] = MockLtPeer(5, "ip5")
+        self.peer[4] = MockLtPeer(MockPeerId("5"), "ip5")
         self.peer[4].setvalue(False, True, True)
-        self.peer[5] = MockLtPeer(6, "ip6")
+        self.peer[5] = MockLtPeer(MockPeerId("6"), "ip6")
         self.peer[5].setvalue(False, False, False)
 
+        self.session = MockLtSession()
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerUtilities, self).setUp()
+        yield super(TestBoostingManagerUtilities, self).setUp()
 
         self.session.get_libtorrent = lambda: True
 
@@ -133,7 +144,7 @@ class TestBoostingManagerUtilities(TestAsServer):
         self.bsettings.check_dependencies = False
         self.bsettings.initial_logging_interval = 900
 
-    def tearDown(self):
+    def tearDown(self, annotate=True):
         # TODO(ardhi) : remove it when Tribler free of singleton
         # and 1 below
         DefaultDownloadStartupConfig.delInstance()
@@ -348,13 +359,19 @@ class TestBoostingManagerUtilities(TestAsServer):
         boost_man.cancel_all_pending_tasks()
 
 
-@skip("Disabled credit mining tests until they are stable again")
-class TestBoostingManagerError(TestAsServer):
+class TestBoostingManagerError(TriblerCoreTest):
     """
     Class to test a bunch of credit mining error handle
+
     """
+    def __init__(self, *argv, **kwargs):
+        super(TestBoostingManagerError, self).__init__(*argv, **kwargs)
+        self.session = MockLtSession()
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerError, self).setUp()
+        yield super(TestBoostingManagerError, self).setUp()
 
         self.session.open_dbhandler = lambda _: True
         self.session.get_libtorrent = lambda: True
@@ -367,8 +384,9 @@ class TestBoostingManagerError(TestAsServer):
         self.boosting_manager = bm.BoostingManager(self.session, self.boost_setting)
         self.session.lm.boosting_manager = self.boosting_manager
 
-    def tearDown(self):
+    def tearDown(self, annotate=True):
         DefaultDownloadStartupConfig.delInstance()
+        self.session.lm.boosting_manager.cancel_all_pending_tasks()
         super(TestBoostingManagerError, self).tearDown()
 
     def test_insert_torrent_unknown_source(self):

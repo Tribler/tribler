@@ -8,6 +8,7 @@ Full documentation will be available at http://repository.tudelft.nl/.
 
 import logging
 import base64
+from twisted.internet.defer import inlineCallbacks
 
 from twisted.internet.task import LoopingCall
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -17,7 +18,7 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.community import Community
-from Tribler.dispersy.message import Message
+from Tribler.dispersy.message import Message, DelayPacketByMissingMember
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.community.multichain.payload import (SignaturePayload, CrawlRequestPayload, CrawlResponsePayload,
                                                   CrawlResumePayload)
@@ -140,7 +141,10 @@ class MultiChainCommunity(Community):
             total_amount_received_mb = bytes_down / MEGA_DIVIDER
 
             # Try to send the request
-            self.publish_signature_request_message(candidate, total_amount_sent_mb, total_amount_received_mb)
+            try:
+                self.publish_signature_request_message(candidate, total_amount_sent_mb, total_amount_received_mb)
+            except DelayPacketByMissingMember:
+                self.logger.warn("Missing member in MultiChain community to send signature request to")
         else:
             self.logger.warn(
                 "No valid candidate found for: %s to request block from.", candidate)
@@ -384,11 +388,12 @@ class MultiChainCommunity(Community):
         previous_hash = self.persistence.get_latest_hash(self._public_key)
         return previous_hash if previous_hash else GENESIS_ID
 
+    @inlineCallbacks
     def unload_community(self):
         self.logger.debug("Unloading the MultiChain Community.")
         if self.notifier:
             self.notifier.remove_observer(self.on_tunnel_remove)
-        super(MultiChainCommunity, self).unload_community()
+        yield super(MultiChainCommunity, self).unload_community()
         # Close the persistence layer
         self.persistence.close()
 
@@ -402,6 +407,10 @@ class MultiChainCommunity(Community):
         :param tunnel: The tunnel that was removed (closed)
         :param candidate: The dispersy candidate with whom this node has interacted in the tunnel
         """
+        from Tribler.community.tunnel.tunnel_community import Circuit, RelayRoute, TunnelExitSocket
+        assert isinstance(tunnel, Circuit) or isinstance(tunnel, RelayRoute) or isinstance(tunnel, TunnelExitSocket), \
+            "on_tunnel_remove() was called with an object that is not a Circuit, RelayRoute or TunnelExitSocket"
+
         if isinstance(tunnel.bytes_up, int) and isinstance(tunnel.bytes_down, int):
             if tunnel.bytes_up > MEGA_DIVIDER or tunnel.bytes_down > MEGA_DIVIDER:
                 # Tie breaker to prevent both parties from requesting

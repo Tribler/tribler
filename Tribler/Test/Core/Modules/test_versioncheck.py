@@ -1,11 +1,12 @@
 import json
-from twisted.internet.defer import Deferred, maybeDeferred
+
+from twisted.internet.defer import maybeDeferred, inlineCallbacks
 from twisted.web import server, resource
 from Tribler.Core.Modules import versioncheck_manager
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.twisted_thread import reactor, deferred
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.dispersy.util import call_on_reactor_thread
+from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
 
 
 class VersionResource(resource.Resource):
@@ -24,13 +25,15 @@ class VersionResource(resource.Resource):
 
 class TestVersionCheck(TestAsServer):
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
         self.port = get_random_port()
         self.server = None
         self.should_call_new_version_callback = False
         self.new_version_called = False
         versioncheck_manager.VERSION_CHECK_URL = 'http://localhost:%s' % self.port
-        super(TestVersionCheck, self).setUp()
+        yield super(TestVersionCheck, self).setUp()
 
         self.session.notifier.notify = self.notifier_callback
 

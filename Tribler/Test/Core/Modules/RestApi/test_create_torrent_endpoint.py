@@ -3,10 +3,13 @@ import base64
 import os
 import shutil
 
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from Tribler.Test.test_as_server import TESTS_DATA_DIR
+from Tribler.Test.common import TESTS_DATA_DIR
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
@@ -22,8 +25,10 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
         shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'video.avi.torrent'),
                         os.path.join(self.files_path, 'video.avi.torrent'))
 
-    def tearDown(self):
-        super(TestMyChannelCreateTorrentEndpoint, self).tearDown()
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self, annotate=True):
+        yield super(TestMyChannelCreateTorrentEndpoint, self).tearDown(annotate=annotate)
         # Remove temporary test directory with test files
         if os.path.exists(self.files_path):
             torrent_file = os.path.join(self.files_path, 'TestMyChannelCreateTorrentEndpoint.torrent')
@@ -52,12 +57,12 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
             created_by = tdef.get_created_by()
             expected_tdef.metainfo["created by"] = created_by
 
-            self.assertEqual(expected_tdef, tdef)
+            self.assertEqual(dir(expected_tdef), dir(tdef))
 
         post_data = {
-            "files": [os.path.join(self.files_path, "video.avi")],
+            "files[]": os.path.join(self.files_path, "video.avi"),
             "description": "Video of my cat",
-            "trackers": ["http://localhost/announce"]
+            "trackers[]": "http://localhost/announce"
         }
         self.should_check_equality = False
         return self.do_request('createtorrent', 200, None, 'POST', post_data).addCallback(verify_torrent)
@@ -74,13 +79,13 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
                 u"error": {
                     u"handled": True,
                     u"code": u"IOError",
-                    u"message": u"Path does not exist: %s" % post_data["files"][0]
+                    u"message": u"Path does not exist: %s" % post_data["files[]"]
                 }
             }
             self.assertDictContainsSubset(expected_response[u"error"], error_response[u"error"])
 
         post_data = {
-            "files": ["non_existing_file.avi"]
+            "files[]": "non_existing_file.avi"
         }
         self.should_check_equality = False
         return self.do_request('createtorrent', 500, None, 'POST', post_data).addCallback(verify_error_message)

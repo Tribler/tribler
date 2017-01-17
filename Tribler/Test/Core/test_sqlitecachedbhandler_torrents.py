@@ -1,15 +1,16 @@
 from binascii import unhexlify
 import os
 from shutil import copy as copyfile
-from Tribler.Category.Category import Category
+from twisted.internet.defer import inlineCallbacks
+
+from Tribler.Core.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, ChannelCastDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
-from Tribler.Test.test_as_server import TESTS_DATA_DIR
+from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-
 
 S_TORRENT_PATH_BACKUP = os.path.join(TESTS_DATA_DIR, 'bak_single.torrent')
 M_TORRENT_PATH_BACKUP = os.path.join(TESTS_DATA_DIR, 'bak_multiple.torrent')
@@ -21,8 +22,10 @@ class TestTorrentFullSessionDBHandler(AbstractDB):
         super(TestTorrentFullSessionDBHandler, self).setUpPreSession()
         self.config.set_megacache(True)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestTorrentFullSessionDBHandler, self).setUp()
+        yield super(TestTorrentFullSessionDBHandler, self).setUp()
         self.tdb = TorrentDBHandler(self.session)
 
     @blocking_call_on_reactor_thread
@@ -40,8 +43,10 @@ class TestTorrentDBHandler(AbstractDB):
         self.config.set_megacache(True)
         self.config.set_torrent_store(True)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestTorrentDBHandler, self).setUp()
+        yield super(TestTorrentDBHandler, self).setUp()
 
         from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
         from Tribler.Core.Modules.tracker_manager import TrackerManager
@@ -50,16 +55,18 @@ class TestTorrentDBHandler(AbstractDB):
         self.session.lm.tracker_manager.initialize()
         self.tdb = TorrentDBHandler(self.session)
         self.tdb.torrent_dir = TESTS_DATA_DIR
-        self.tdb.category = Category.getInstance()
+        self.tdb.category = Category()
         self.tdb.mypref_db = MyPreferenceDBHandler(self.session)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self):
         self.tdb.mypref_db.close()
         self.tdb.mypref_db = None
         self.tdb.close()
         self.tdb = None
 
-        super(TestTorrentDBHandler, self).tearDown()
+        yield super(TestTorrentDBHandler, self).tearDown()
 
     @blocking_call_on_reactor_thread
     def test_hasTorrent(self):
@@ -239,7 +246,7 @@ class TestTorrentDBHandler(AbstractDB):
 
     @blocking_call_on_reactor_thread
     def test_get_search_suggestions(self):
-        self.assertEqual(self.tdb.getSearchSuggestion(["content", "cont"]), ["Content 1"])
+        self.assertEqual(self.tdb.getSearchSuggestion(["content", "cont"]), ["content 1"])
 
     @blocking_call_on_reactor_thread
     def test_get_autocomplete_terms(self):
@@ -283,3 +290,14 @@ class TestTorrentDBHandler(AbstractDB):
         results = self.tdb.searchNames(['content'], keys=columns)
         self.assertEqual(len(results), 4848)
         self.assertEqual(results[0][3], 493785)
+
+    @blocking_call_on_reactor_thread
+    def test_search_local_torrents(self):
+        """
+        Test the search procedure in the local database when searching for torrents
+        """
+        results = self.tdb.search_in_local_torrents_db('content', ['infohash'])
+        self.assertEqual(len(results), 4848)
+        self.assertNotEqual(results[0][-1], 0.0)  # Relevance score of result should not be zero
+        results = self.tdb.search_in_local_torrents_db('fdsafasfds', ['infohash'])
+        self.assertEqual(len(results), 0)

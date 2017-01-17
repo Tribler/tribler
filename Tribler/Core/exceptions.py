@@ -72,6 +72,13 @@ class DuplicateTorrentFileError(TriblerException):
     pass
 
 
+class SaveResumeDataError(TriblerException):
+
+    """ This error is used when the resume data of a download fails to save. """
+
+    pass
+
+
 class DuplicateDownloadException(TriblerException):
 
     """ The Download already exists in the Session, i.e., a Download for

@@ -1,13 +1,19 @@
 from binascii import unhexlify
+
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, VoteCastDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestChannelDBHandler(AbstractDB):
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestChannelDBHandler, self).setUp()
+        yield super(TestChannelDBHandler, self).setUp()
 
         self.cdb = ChannelCastDBHandler(self.session)
         self.tdb = TorrentDBHandler(self.session)
@@ -96,3 +102,19 @@ class TestChannelDBHandler(AbstractDB):
         self.assertEqual(len(self.cdb.getTorrentsFromPlaylist(1, ['Torrent.torrent_id'])), 1)
         self.cdb.on_remove_playlist_torrent(1, 1, str2bin('AA8cTG7ZuPsyblbRE7CyxsrKUCg='), False)
         self.assertEqual(len(self.cdb.getTorrentsFromPlaylist(1, ['Torrent.torrent_id'])), 0)
+
+    def test_on_remove_torrent_from_dispersy(self):
+        self.assertEqual(self.cdb.getTorrentFromChannelTorrentId(1, ['ChannelTorrents.dispersy_id']), 3)
+        self.cdb.on_remove_torrent_from_dispersy(1, 3, False)
+        self.assertIsNone(self.cdb.getTorrentFromChannelTorrentId(1, ['ChannelTorrents.dispersy_id']))
+
+    def test_search_local_channels(self):
+        """
+        Testing whether the right results are returned when searching in the local database for channels
+        """
+        results = self.cdb.search_in_local_channels_db("fancy")
+        self.assertEqual(len(results), 2)
+        self.assertNotEqual(results[0][-1], 0.0)  # Relevance score of result should not be zero
+
+        results = self.cdb.search_in_local_channels_db("fdajlkerhui")
+        self.assertEqual(len(results), 0)

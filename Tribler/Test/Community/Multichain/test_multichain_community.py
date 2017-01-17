@@ -4,6 +4,7 @@ This file contains the tests for the community.py for MultiChain community.
 from unittest.case import skip
 
 from nose.tools import raises
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Session import Session
 from Tribler.community.multichain.community import (MultiChainCommunity, MultiChainCommunityCrawler, CRAWL_REQUEST,
@@ -12,11 +13,13 @@ from Tribler.community.multichain.conversion import EMPTY_HASH
 from Tribler.community.tunnel.routing import Circuit, RelayRoute
 from Tribler.community.tunnel.tunnel_community import TunnelExitSocket
 from Tribler.Test.test_as_server import AbstractServer
+from Tribler.dispersy.message import DelayPacketByMissingMember
 from Tribler.dispersy.tests.dispersytestclass import DispersyTestFunc
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.dispersy.tests.debugcommunity.node import DebugNode
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.requestcache import IntroductionRequestCache
+
 
 class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
     """
@@ -27,10 +30,12 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         def add_observer(self, func, subject, changeTypes=[], objectID=None, cache=0):
             pass
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
         Session.__single = self.MockSession()
         AbstractServer.setUp(self)
-        DispersyTestFunc.setUp(self)
+        yield DispersyTestFunc.setUp(self)
 
     def tearDown(self):
         Session.del_instance()
@@ -161,22 +166,13 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         self.assertEqual((up, down), node.call(node.community._get_next_total, 0, 0))
         self.assertEqual((down, up), other.call(other.community._get_next_total, 0, 0))
 
-    @skip("Skip tunnel test that does not make sense")
-    @raises(AttributeError)
+    @raises(AssertionError)
     def test_on_tunnel_remove_NoneType(self):
         """
         Test the on_tunnel_remove handler function to handle a NoneType
         """
-        # Arrange
         node, other = self.create_nodes(2)
-        other.send_identity(node)
-        # Act
-        try:
-            node.call(node.community.on_tunnel_remove, None, None, None, None)
-        except TypeError:
-            error = True
-        # Assert
-        self.assertTrue(error)
+        node.call(node.community.on_tunnel_remove, None, None, None, None)
 
     def test_schedule_block(self):
         """
@@ -202,6 +198,21 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         candidate = Candidate(("127.0.0.1", 10), False)
         # Act
         node.call(node.community.schedule_block, candidate, 0, 0)
+
+    def test_schedule_block_missing_member(self):
+        """
+        Test the schedule_block function with a missing member
+        """
+        # Arrange
+        def mocked_publish_sig(*_):
+            raise DelayPacketByMissingMember(node.community, 'a' * 20)
+
+        node, other = self.create_nodes(2)
+        other.send_identity(node)
+        target_other = self._create_target(node, other)
+        node.community.publish_signature_request_message = mocked_publish_sig
+        # Act
+        node.call(node.community.schedule_block, target_other, 10, 10)
 
     def test_publish_signature_request_message(self):
         """

@@ -60,8 +60,7 @@ class MultichainCrawlerServiceMaker(object):
                 logger.info("Received signal '%s' in %s (shutting down)" % (sig, frame))
                 if not self._stopping:
                     self._stopping = True
-                    dispersy.stop()
-                    reactor.stop()
+                    dispersy.stop().addCallback(lambda _: reactor.stop)
             signal.signal(signal.SIGINT, signal_handler)
             signal.signal(signal.SIGTERM, signal_handler)
 

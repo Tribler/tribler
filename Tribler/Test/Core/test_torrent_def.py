@@ -1,24 +1,28 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
+from tempfile import mkdtemp
 import logging
 import os
 import shutil
-from tempfile import mkdtemp
-from nose.tools import raises
-from Tribler.Test.common import TORRENT_FILE
+
 from libtorrent import bdecode
+from nose.tools import raises
+
 from twisted.internet import reactor
 from twisted.web.server import Site
 from twisted.web.static import File
+from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.Utilities.utilities import isValidTorrentFile
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, HttpError
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
-from Tribler.Test.test_as_server import BaseTestCase, TESTS_DATA_DIR
-from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
+from Tribler.Test.test_as_server import BaseTestCase
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 TRACKER = 'http://www.tribler.org/announce'
@@ -34,13 +38,22 @@ class TestTorrentDef(BaseTestCase):
     def __init__(self, *argv, **kwargs):
         super(TestTorrentDef, self).__init__(*argv, **kwargs)
         self._logger = logging.getLogger(self.__class__.__name__)
+        self.file_server = None
 
+    @blocking_call_on_reactor_thread
     def setUpFileServer(self, port, path):
         # Create a local file server, can be used to serve local files. This is preferred over an external network
         # request in order to get files.
         resource = File(path)
         factory = Site(resource)
         self.file_server = reactor.listenTCP(port, factory)
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self):
+        super(TestTorrentDef, self).tearDown()
+        if self.file_server:
+            yield self.file_server.stopListening()
 
     def test_add_content_file_and_copy(self):
         """ Add a single file to a TorrentDef """
@@ -55,8 +68,8 @@ class TestTorrentDef(BaseTestCase):
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
 
-        self.assert_(metainfo['info']['name'] == self.VIDEO_FILE_NAME)
-        self.assert_(metainfo['info']['length'] == s)
+        self.assertEqual(metainfo['info']['name'], self.VIDEO_FILE_NAME)
+        self.assertEqual(metainfo['info']['length'], s)
         self.assertTrue(t.get_pieces())
         self.assertEqual(len(t.get_infohash()), INFOHASH_LENGTH)
         self.assertTrue(t.get_name())
@@ -96,7 +109,7 @@ class TestTorrentDef(BaseTestCase):
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
 
-        self.assert_(metainfo['info']['name'] == 'dirintorrent')
+        self.assertEqual(metainfo['info']['name'], 'dirintorrent')
         reals = 0
         for file in metainfo['info']['files']:
             s = file['length']
@@ -105,7 +118,7 @@ class TestTorrentDef(BaseTestCase):
 
         self._logger.debug("Real size of files in torrent %d", reals)
 
-        self.assert_(exps == reals)
+        self.assertEqual(exps, reals)
 
     def test_add_content_dir_and_file(self):
         """ Add a single dir and single file to a TorrentDef """
@@ -130,12 +143,12 @@ class TestTorrentDef(BaseTestCase):
 
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
-        self.assert_(metainfo['info']['name'] == 'dirintorrent')
+        self.assertEqual(metainfo['info']['name'], 'dirintorrent')
 
         reals = 0
         for file in metainfo['info']['files']:
             reals += file['length']
-        self.assert_(exps == reals)
+        self.assertEqual(exps, reals)
 
     def test_add_content_announce_list(self):
         """ Add a single file with announce-list to a TorrentDef """
@@ -152,7 +165,7 @@ class TestTorrentDef(BaseTestCase):
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
         realhier = metainfo['announce-list']
-        self.assert_(realhier == exphier)
+        self.assertEqual(realhier, exphier)
 
     def test_add_content_httpseeds(self):
         """ Add a single file with BitTornado httpseeds to a TorrentDef """
@@ -167,7 +180,7 @@ class TestTorrentDef(BaseTestCase):
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
         realseeds = metainfo['httpseeds']
-        self.assert_(realseeds == expseeds)
+        self.assertEqual(realseeds, expseeds)
 
     def test_add_content_piece_length(self):
         """ Add a single file with piece length to a TorrentDef """
@@ -180,7 +193,7 @@ class TestTorrentDef(BaseTestCase):
 
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
-        self.assert_(metainfo['info']['piece length'] == 2 ** 16)
+        self.assertEqual(metainfo['info']['piece length'], 2 ** 16)
 
     def test_add_content_file_save(self):
         """ Add a single file to a TorrentDef and save the latter"""
@@ -201,7 +214,7 @@ class TestTorrentDef(BaseTestCase):
         data = bdecode(bdata)
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
-        self.assert_(metainfo == data)
+        self.assertEqual(metainfo, data)
 
     def test_is_private(self):
         privatefn = os.path.join(TESTS_DATA_DIR, "private.torrent")
@@ -210,8 +223,8 @@ class TestTorrentDef(BaseTestCase):
         t1 = TorrentDef.load(privatefn)
         t2 = TorrentDef.load(publicfn)
 
-        self.assert_(t1.is_private() == True)
-        self.assert_(t2.is_private() == False)
+        self.assertTrue(t1.is_private())
+        self.assertFalse(t2.is_private())
 
     @deferred(timeout=10)
     def test_load_from_url(self):
@@ -219,14 +232,14 @@ class TestTorrentDef(BaseTestCase):
         self.session_base_dir = mkdtemp(suffix="_tribler_test_load_from_url")
         files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
         os.mkdir(files_path)
-        shutil.copyfile(TORRENT_FILE, os.path.join(files_path, 'ubuntu.torrent'))
+        shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
 
         file_server_port = get_random_port()
         self.setUpFileServer(file_server_port, files_path)
 
         def _on_load(torrent_def):
             self.assertTrue(isValidTorrentFile(torrent_def.get_metainfo()))
-            self.assertEqual(TorrentDef.load(TORRENT_FILE), torrent_def)
+            self.assertEqual(TorrentDef.load(TORRENT_UBUNTU_FILE), torrent_def)
 
         torrent_url = 'http://localhost:%d/ubuntu.torrent' % file_server_port
         deferred = TorrentDef.load_from_url(torrent_url)
@@ -402,10 +415,11 @@ class TestTorrentDef(BaseTestCase):
         self.assertFalse(torrent.get_files_as_unicode())
         self.assertFalse(torrent.get_files_as_unicode_with_length())
         self.assertFalse(torrent.get_trackers_as_single_tuple())
+        self.assertFalse(torrent.is_private())
 
         torrent2 = TorrentDefNoMetainfo("12345678901234567890", self.VIDEO_FILE_NAME, "magnet:")
         self.assertFalse(torrent2.get_trackers_as_single_tuple())
 
     def general_check(self, metainfo):
-        self.assert_(isValidTorrentFile(metainfo))
-        self.assert_(metainfo['announce'] == TRACKER)
+        self.assertTrue(isValidTorrentFile(metainfo))
+        self.assertEqual(metainfo['announce'], TRACKER)

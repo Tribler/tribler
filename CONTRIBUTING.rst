@@ -54,7 +54,7 @@ When creating a new Pull request, please observe the following:
   * Do not commit extraneous/auto-generated files.
   * Use Unix style newlines for any new file created.
   * No print statements if it's not really justified (command line tools and such).
-  * Do an ``autopep8`` pass before submiting the pull request.
+  * Do an ``autopep8`` pass before submitting the pull request.
   * Do a ``pylint`` pass with the ``.pylintrc`` on the root of the repository and
     make sure you are not raising the base branch violation count, it's bad enough as it is :).
   * For more PR etiquette have a look `here <https://github.com/blog/1943-how-to-write-the-perfect-pull-request>`_.

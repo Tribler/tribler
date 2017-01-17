@@ -819,3 +819,6 @@ class TorrentDefNoMetainfo(object):
             _, _, trs = parse_magnetlink(self.url)
             return tuple(trs)
         return ()
+
+    def is_private(self):
+        return False

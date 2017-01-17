@@ -49,10 +49,13 @@ class TestChannelsPlaylistEndpoints(AbstractTestChannelsPlaylistsEndpoint):
         my_channel_id = self.create_my_channel("my channel", "this is a short description")
         channel_cid = 'fakedispersyid'.encode('hex')
         self.create_playlist(my_channel_id, 1234, 42, "test playlist", "test description")
-        torrent_list = [[my_channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso",
-                         [['file1.txt', 42]], []]]
+        torrent_list = [
+            [my_channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso", [['file1.txt', 42]], []],
+            [my_channel_id, 1, 1, ('b' * 40).decode('hex'), 1460000000, "badterm", [['file1.txt', 42]], []]
+        ]
         self.insert_torrents_into_channel(torrent_list)
         self.insert_torrent_into_playlist(1234, ('a' * 40).decode('hex'))
+        self.insert_torrent_into_playlist(1234, ('b' * 40).decode('hex'))
 
         def verify_playlists(results):
             json_result = json.loads(results)

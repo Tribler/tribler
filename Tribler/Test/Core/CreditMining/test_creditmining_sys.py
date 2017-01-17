@@ -7,38 +7,43 @@ Written by Ardhi Putra Pratama H
 import binascii
 import os
 import shutil
-from unittest import skip
 
 from twisted.internet import defer
+from twisted.internet.defer import inlineCallbacks
+from twisted.internet.task import LoopingCall
 from twisted.web.server import Site
 from twisted.web.static import File
 
+from Tribler.Core.CreditMining.BoostingManager import BoostingManager, BoostingSettings
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
-from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
-from Tribler.Policies.BoostingManager import BoostingManager, BoostingSettings
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockLtTorrent, ResourceFailClass
-from Tribler.Test.common import TORRENT_FILE, TORRENT_FILE_INFOHASH
-from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
-from Tribler.Test.util import prepare_xml_rss
-from Tribler.community.allchannel.community import AllChannelCommunity
+from Tribler.Test.Core.base_test_channel import BaseTestChannel
+from Tribler.Test.common import TORRENT_UBUNTU_FILE, TORRENT_UBUNTU_FILE_INFOHASH, TESTS_DATA_DIR
+from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.util.util import prepare_xml_rss
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
-from Tribler.dispersy.member import DummyMember
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSys(TestAsServer):
     """
     base class to test base credit mining function
     """
 
+    def __init__(self, *argv, **kwargs):
+        super(TestBoostingManagerSys, self).__init__(*argv, **kwargs)
+        self._check_source_lc = None
+        self._check_torrents_lc = None
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerSys, self).setUp()
+        yield super(TestBoostingManagerSys, self).setUp()
 
         self.set_boosting_settings()
 
@@ -78,76 +83,79 @@ class TestBoostingManagerSys(TestAsServer):
         self.config.set_enable_channel_search(True)
         self.config.set_libtorrent(True)
 
-    def tearDown(self):
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self, annotate=True):
         DefaultDownloadStartupConfig.delInstance()
         self.boosting_manager.shutdown()
 
-        super(TestBoostingManagerSys, self).tearDown()
+        yield super(TestBoostingManagerSys, self).tearDown(annotate=annotate)
 
-    def check_torrents(self, src, defer_param=None, target=1):
+    def check_torrents(self, src, target=1):
         """
-        function to check if a torrent is already added to the source
-
-        In this function,
+        Check if a specified number of torrent has been added to the passed source.
         """
-        if defer_param is None:
-            defer_param = defer.Deferred()
+        defer_param = defer.Deferred()
 
-        src_obj = self.boosting_manager.get_source_object(src)
-        if len(src_obj.torrents) < target:
-            reactor.callLater(1, self.check_torrents, src, defer_param, target=target)
-        else:
-            # notify torrent (emulate scraping)
-            self.boosting_manager.scrape_trackers()
+        def do_check():
+            src_obj = self.boosting_manager.get_source_object(src)
+            if src_obj and len(src_obj.torrents) >= target:
 
-            def _get_tor_dummy(_, keys=123, include_mypref=True):
-                """
-                function to emulate get_torrent in torrent_db
-                """
-                return {'C.torrent_id': 93, 'category': u'Compressed', 'torrent_id': 41,
-                        'infohash': src_obj.torrents.keys()[0], 'length': 1150844928, 'last_tracker_check': 10001,
-                        'myDownloadHistory': False, 'name': u'ubuntu-15.04-desktop-amd64.iso',
-                        'num_leechers': 999, 'num_seeders': 123, 'status': u'unknown', 'tracker_check_retries': 0}
-            self.boosting_manager.torrent_db.getTorrent = _get_tor_dummy
-            self.session.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, src_obj.torrents.keys()[0])
+                def _get_tor_dummy(_, keys=123, include_mypref=True):
+                    """
+                    function to emulate get_torrent in torrent_db
+                    """
+                    return {'C.torrent_id': 93, 'category': u'Compressed', 'torrent_id': 41,
+                            'infohash': src_obj.torrents.keys()[0], 'length': 1150844928, 'last_tracker_check': 10001,
+                            'myDownloadHistory': False, 'name': u'ubuntu-15.04-desktop-amd64.iso',
+                            'num_leechers': 999, 'num_seeders': 123, 'status': u'unknown', 'tracker_check_retries': 0}
+                self.boosting_manager.torrent_db.getTorrent = _get_tor_dummy
+                self.session.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, src_obj.torrents.keys()[0])
 
-            # log it
-            self.boosting_manager.log_statistics()
+                # log it
+                self.boosting_manager.log_statistics()
 
-            defer_param.callback(src)
+                self._check_torrents_lc.stop()
+                self._check_torrents_lc = None
+                defer_param.callback(src)
+
+        self._check_torrents_lc = LoopingCall(do_check)
+        self._check_torrents_lc.start(1, now=True)
+
         return defer_param
 
-    def check_source(self, src, defer_param=None, ready=True):
+    def check_source(self, src):
         """
         function to check if a source is ready initializing
         """
-        if defer_param is None:
-            defer_param = defer.Deferred()
+        defer_param = defer.Deferred()
 
-        src_obj = self.boosting_manager.get_source_object(src)
+        def do_check():
+            src_obj = self.boosting_manager.get_source_object(src)
+            if src_obj and src_obj.ready:
+                self._check_source_lc.stop()
+                self._check_source_lc = None
+                defer_param.callback(src)
 
-        if not ready:
-            defer_param.callback(src)
-        elif not src_obj or not src_obj.ready:
-            reactor.callLater(1, self.check_source, src, defer_param)
-        else:
-            defer_param.callback(src)
+        self._check_source_lc = LoopingCall(do_check)
+        self._check_source_lc.start(1, now=True)
 
         return defer_param
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSysRSS(TestBoostingManagerSys):
     """
     testing class for RSS (dummy) source
     """
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerSysRSS, self).setUp()
+        yield super(TestBoostingManagerSysRSS, self).setUp()
 
         files_path, self.file_server_port = prepare_xml_rss(self.session_base_dir, 'test_rss_cm.xml')
 
-        shutil.copyfile(TORRENT_FILE, os.path.join(files_path, 'ubuntu.torrent'))
+        shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
         self.setUpFileServer(self.file_server_port, self.session_base_dir)
 
         self.rss_error_deferred = defer.Deferred()
@@ -166,7 +174,7 @@ class TestBoostingManagerSysRSS(TestBoostingManagerSys):
         self._logger.debug("Listen to port %s, factory %s", port, factory)
         self.file_server = reactor.listenTCP(port, factory)
 
-    @deferred(timeout=15)
+    @deferred(timeout=30)
     def test_rss(self):
         """
         test rss source
@@ -199,9 +207,7 @@ class TestBoostingManagerSysRSS(TestBoostingManagerSys):
         rss_obj._on_error_rss = self._on_error_rss
         rss_obj.start()
 
-        defer_err_rss = self.check_source(url, ready=False)
-        defer_err_rss.chainDeferred(self.rss_error_deferred)
-        return defer_err_rss
+        return self.rss_error_deferred
 
     @deferred(timeout=8)
     def test_rss_unavailable(self):
@@ -215,12 +221,9 @@ class TestBoostingManagerSysRSS(TestBoostingManagerSys):
         rss_obj._on_error_rss = self._on_error_rss
         rss_obj.start()
 
-        defer_err_rss = self.check_source(url, ready=False)
-        defer_err_rss.chainDeferred(self.rss_error_deferred)
-        return defer_err_rss
+        return self.rss_error_deferred
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSysDir(TestBoostingManagerSys):
     """
     testing class for directory source
@@ -269,50 +272,24 @@ class TestBoostingManagerSysDir(TestBoostingManagerSys):
         return d
 
 
-@skip("Disabled credit mining tests until they are stable again")
-class TestBoostingManagerSysChannel(TestBoostingManagerSys):
+class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
     """
     testing class for channel source
     """
 
     def __init__(self, *argv, **kwargs):
         super(TestBoostingManagerSysChannel, self).__init__(*argv, **kwargs)
-        self.tdef = TorrentDef.load(TORRENT_FILE)
+        self.tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
         self.channel_id = 0
         self.expected_votecast_cid = None
         self.expected_votecast_vote = None
 
-    def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerSysChannel, self).setUp()
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def setUp(self, annotate=True, autoload_discovery=True):
+        yield super(TestBoostingManagerSysChannel, self).setUp()
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
-
-    def insert_channel_in_db(self, dispersy_cid, peer_id, name, description):
-        return self.channel_db_handler.on_channel_from_dispersy(dispersy_cid, peer_id, name, description)
-
-    def insert_torrents_into_channel(self, torrent_list):
-        self.channel_db_handler.on_torrents_from_dispersy(torrent_list)
-
-    def on_dispersy_create_votecast(self, cid, vote, _):
-        """
-        Check whether we have the expected parameters when this method is called.
-        """
-        self.assertEqual(cid, self.expected_votecast_cid)
-        self.assertEqual(vote, self.expected_votecast_vote)
-        self.create_votecast_called = True
-
-    @blocking_call_on_reactor_thread
-    def create_fake_allchannel_community(self):
-        """
-        This method creates a fake AllChannel community so we can check whether a request is made in the community
-        when doing stuff with a channel.
-        """
-        self.session.lm.dispersy._database.open()
-        fake_member = DummyMember(self.session.lm.dispersy, 1, "a" * 20)
-        member = self.session.lm.dispersy.get_new_member(u"curve25519")
-        fake_community = AllChannelCommunity(self.session.lm.dispersy, fake_member, member)
-        fake_community.disp_create_votecast = self.on_dispersy_create_votecast
-        self.session.lm.dispersy._communities = {"allchannel": fake_community}
 
     def set_boosting_settings(self):
         super(TestBoostingManagerSysChannel, self).set_boosting_settings()
@@ -327,6 +304,12 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         # we use dummy dispersy here
         self.config.set_dispersy(False)
 
+    def _load(self, _):
+        """
+        Dummy method to download the torrent
+        """
+        return defer.succeed(self.tdef)
+
     @blocking_call_on_reactor_thread
     def create_torrents_in_channel(self, dispersy_cid_hex):
         """
@@ -338,7 +321,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         self.channel_id = self.insert_channel_in_db(dispersy_cid_hex.decode('hex'), 42,
                                                     'Simple Channel', 'Channel description')
 
-        torrent_list = [[self.channel_id, 1, 1, TORRENT_FILE_INFOHASH, 1460000000, TORRENT_FILE,
+        torrent_list = [[self.channel_id, 1, 1, TORRENT_UBUNTU_FILE_INFOHASH, 1460000000, TORRENT_UBUNTU_FILE,
                          self.tdef.get_files_as_unicode_with_length(), self.tdef.get_trackers_as_single_tuple()]]
 
         self.insert_torrents_into_channel(torrent_list)
@@ -362,20 +345,6 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         self.boosting_manager.add_source(dispersy_cid)
         chn_obj = self.boosting_manager.get_source_object(dispersy_cid)
 
-        def _load(torrent, callback=None):
-            if not isinstance(torrent, CollectedTorrent):
-                torrent_id = 0
-                if torrent.torrent_id <= 0:
-                    torrent_id = self.session.lm.torrent_db.getTorrentID(torrent.infohash)
-                if torrent_id:
-                    torrent.update_torrent_id(torrent_id)
-
-                torrent = CollectedTorrent(torrent, self.tdef)
-            if callback is not None:
-                callback(torrent)
-            else:
-                return torrent
-
         def check_torrents_channel(src, defer_param=None, target=1):
             """
             check if a torrent already in channel and ready to download
@@ -388,10 +357,10 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
             if not src_obj or len(src_obj.torrents) < target:
                 success = False
                 reactor.callLater(1, check_torrents_channel, src, defer_param, target=target)
-            elif not self.boosting_manager.torrents.get(TORRENT_FILE_INFOHASH, None):
+            elif not self.boosting_manager.torrents.get(TORRENT_UBUNTU_FILE_INFOHASH, None):
                 success = False
                 reactor.callLater(1, check_torrents_channel, src, defer_param, target=target)
-            elif not self.boosting_manager.torrents[TORRENT_FILE_INFOHASH].get('download', None):
+            elif not self.boosting_manager.torrents[TORRENT_UBUNTU_FILE_INFOHASH].get('download', None):
                 success = False
                 reactor.callLater(1, check_torrents_channel, src, defer_param, target=target)
 
@@ -400,17 +369,19 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
                 if src_obj.community:
                     src_obj.community.cancel_all_pending_tasks()
 
+                self.assertEqual(src_obj.get_source_text(), 'Simple Channel')
+
                 defer_param.callback(src)
 
             return defer_param
 
-        chn_obj.torrent_mgr.load_torrent = _load
+        chn_obj._load_torrent = self._load
 
         d = self.check_source(dispersy_cid)
         d.addCallback(check_torrents_channel, target=1)
         return d
 
-    @deferred(timeout=20)
+    @deferred(timeout=30)
     def test_chn_exist_lookup(self):
         """
         testing existing channel as a source.
@@ -448,21 +419,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         self.boosting_manager.add_source(dispersy_cid)
         chn_obj = self.boosting_manager.get_source_object(dispersy_cid)
 
-        def _load(torrent, callback=None):
-            if not isinstance(torrent, CollectedTorrent):
-                torrent_id = 0
-                if torrent.torrent_id <= 0:
-                    torrent_id = self.session.lm.torrent_db.getTorrentID(torrent.infohash)
-                if torrent_id:
-                    torrent.update_torrent_id(torrent_id)
-
-                torrent = CollectedTorrent(torrent, self.tdef)
-            if callback is not None:
-                callback(torrent)
-            else:
-                return torrent
-
-        chn_obj.torrent_mgr.load_torrent = _load
+        chn_obj._load_torrent = self._load
 
         def clean_community(_):
             """
@@ -478,7 +435,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         d.addCallback(clean_community)
         return d
 
-    @deferred(timeout=20)
+    @deferred(timeout=30)
     def test_chn_max_torrents(self):
         """
         Test the restriction of max_torrents in a source.
@@ -503,29 +460,19 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         self.boosting_manager.add_source(dispersy_cid)
         chn_obj = self.boosting_manager.get_source_object(dispersy_cid)
         chn_obj.max_torrents = 2
-        chn_obj.torrent_mgr.load_torrent = lambda dummy_1, dummy_2: None
+        chn_obj._load_torrent = lambda _: defer.Deferred()
 
-        def _load(torrent, callback=None):
-            if not isinstance(torrent, CollectedTorrent):
-                torrent_id = 0
-                if torrent.torrent_id <= 0:
-                    torrent_id = self.session.lm.torrent_db.getTorrentID(torrent.infohash)
-                if torrent_id:
-                    torrent.update_torrent_id(torrent_id)
-
-                infohash_str = binascii.hexlify(torrent.infohash)
-                torrent = CollectedTorrent(torrent, self.tdef if infohash_str.startswith("fc") else pioneer_tdef)
-            if callback is not None:
-                callback(torrent)
-            else:
-                return torrent
+        def _load(infohash):
+            defer_ret = defer.Deferred()
+            defer_ret.callback(self.tdef if binascii.hexlify(infohash).startswith("fc") else pioneer_tdef)
+            return defer_ret
 
         def activate_mgr():
             """
             activate ltmgr and adjust max torrents to emulate overflow torrents
             """
             chn_obj.max_torrents = 1
-            chn_obj.torrent_mgr.load_torrent = _load
+            chn_obj._load_torrent = _load
 
         reactor.callLater(5, activate_mgr)
 
@@ -555,8 +502,60 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         d.addCallback(check_torrents_channel)
         return d
 
+    @deferred(timeout=40)
+    def test_chn_native_load(self):
+        self.session.get_dispersy = lambda: True
+        self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
+        dispersy_cid_hex = "abcd" * 9 + "0012"
+        dispersy_cid = binascii.unhexlify(dispersy_cid_hex)
+
+        # create channel and insert torrent
+        self.create_fake_allchannel_community()
+        self.create_torrents_in_channel(dispersy_cid_hex)
+
+        self.session.download_torrentfile = \
+            lambda dummy_ihash, function, _: function(binascii.hexlify(TORRENT_UBUNTU_FILE_INFOHASH))
+
+        def get_bin_torrent(_):
+            """
+            get binary data of a torrent
+            """
+            f = open(TORRENT_UBUNTU_FILE, "rb")
+            bdata = f.read()
+            f.close()
+            return bdata
+
+        self.session.get_collected_torrent = get_bin_torrent
+
+        self.boosting_manager.add_source(dispersy_cid)
+
+        def _loop_check(_):
+            defer_param = defer.Deferred()
+
+            def check_loaded(src):
+                """
+                check if a torrent has been loaded
+                """
+                src_obj = self.boosting_manager.get_source_object(src)
+                if src_obj.loaded_torrent[TORRENT_UBUNTU_FILE_INFOHASH] is not None:
+                    src_obj.community.cancel_all_pending_tasks()
+                    src_obj.kill_tasks()
+                    self.check_loaded_lc.stop()
+                    self.check_loaded_lc = None
+                    defer_param.callback(src)
+
+            self.check_loaded_lc = LoopingCall(check_loaded, dispersy_cid)
+            self.check_loaded_lc.start(1, now=True)
+
+            return defer_param
+
+        defer_ret = self.check_source(dispersy_cid)
+        defer_ret.addCallback(_loop_check)
+
+        return defer_ret
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self):
         self.session.lm.dispersy._communities['allchannel'].cancel_all_pending_tasks()
-        self.session.lm.dispersy.cancel_all_pending_tasks()
-        self.session.lm.dispersy = None
-        super(TestBoostingManagerSysChannel, self).tearDown()
+        yield super(TestBoostingManagerSysChannel, self).tearDown()

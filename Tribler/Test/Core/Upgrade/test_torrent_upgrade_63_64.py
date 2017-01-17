@@ -1,10 +1,14 @@
 import os
 import shutil
+
 from apsw import Connection
 from nose.tools import raises
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.Upgrade.torrent_upgrade64 import TorrentMigrator64
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.Test.common import TORRENT_FILE
+from Tribler.Test.common import TORRENT_UBUNTU_FILE
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class AbstractTorrentUpgrade63to64(TriblerCoreTest):
@@ -17,9 +21,12 @@ class AbstractTorrentUpgrade63to64(TriblerCoreTest):
             file.write("lorem ipsum")
             file.close()
 
+
     # This setup creates a directory with files that should be used for the 6.3 -> 6.4 upgrade
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(AbstractTorrentUpgrade63to64, self).setUp()
+        yield super(AbstractTorrentUpgrade63to64, self).setUp()
 
         self.torrent_collecting_dir = os.path.join(self.session_base_dir, "torrent_collecting")
         self.sqlite_path = os.path.join(self.session_base_dir, "sqlite")
@@ -35,7 +42,7 @@ class AbstractTorrentUpgrade63to64(TriblerCoreTest):
         self.write_data_to_file(os.path.join(self.torrent_collecting_dir, "torrent1.torrent"))
         self.write_data_to_file(os.path.join(self.torrent_collecting_dir, "torrent2.torrent"))
         os.mkdir(os.path.join(self.torrent_collecting_dir, "swift_reseeds"))
-        shutil.copyfile(TORRENT_FILE, os.path.join(self.torrent_collecting_dir, "torrent3.torrent"))
+        shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(self.torrent_collecting_dir, "torrent3.torrent"))
         shutil.copyfile(os.path.join(self.DB_DATA_DIR, "torrent_upgrade_64_dispersy.db"),
                         os.path.join(self.sqlite_path, "dispersy.db"))
 

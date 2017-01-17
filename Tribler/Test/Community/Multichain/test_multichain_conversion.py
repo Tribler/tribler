@@ -1,6 +1,7 @@
 import logging
 from hashlib import sha1
 from struct import unpack
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
 from Tribler.community.multichain.conversion import (MultiChainConversion, split_function, signature_format,
@@ -17,6 +18,7 @@ from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.message import Message, DropPacket
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.crypto import ECCrypto
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestConversion(MultiChainTestCase):
@@ -24,8 +26,10 @@ class TestConversion(MultiChainTestCase):
         super(TestConversion, self).__init__(*args, **kwargs)
         self.community = TestCommunity()
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestConversion, self).setUp()
+        yield super(TestConversion, self).setUp()
         self.converter = MultiChainConversion(self.community)
         self.block = TestBlock()
 

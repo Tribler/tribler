@@ -2,6 +2,8 @@ import struct
 import socket
 
 # Some constants used in the RFC 1928 specification
+import logging
+
 SOCKS_VERSION = 0x05
 
 ADDRESS_TYPE_IPV4 = 0x01
@@ -21,6 +23,9 @@ REP_CONNECTION_REFUSED = 0x05
 REP_TTL_EXPIRED = 0x06
 REP_COMMAND_NOT_SUPPORTED = 0x07
 REP_ADDRESS_TYPE_NOT_SUPPORTED = 0x08
+
+
+logger = logging.getLogger(__name__)
 
 
 class MethodRequest(object):
@@ -146,7 +151,8 @@ def __decode_address(address_type, offset, data):
     elif address_type == ADDRESS_TYPE_IPV6:
         raise IPV6AddrError()
     else:
-        raise ValueError("Unsupported address type %r" % address_type )
+        logger.error("Unsupported address type %r", address_type)
+        return offset, None
 
     return offset, destination_address
 

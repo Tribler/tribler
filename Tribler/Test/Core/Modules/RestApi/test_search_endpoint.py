@@ -1,3 +1,5 @@
+from twisted.internet.defer import inlineCallbacks
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, \
     SIGNAL_TORRENT
@@ -30,13 +32,14 @@ class TestSearchEndpoint(AbstractApiTest):
         super(TestSearchEndpoint, self).__init__(*args, **kwargs)
         self.expected_events_messages = []
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestSearchEndpoint, self).setUp(autoload_discovery)
+        yield super(TestSearchEndpoint, self).setUp(autoload_discovery)
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
         self.torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)
 
-        self.session.notifier.use_pool = False
         self.session.add_observer(self.on_search_results_channels, SIGNAL_CHANNEL, [SIGNAL_ON_SEARCH_RESULTS])
         self.session.add_observer(self.on_search_results_torrents, SIGNAL_TORRENT, [SIGNAL_ON_SEARCH_RESULTS])
 

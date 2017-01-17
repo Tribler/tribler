@@ -3,14 +3,15 @@ import json
 import urllib
 import os
 import shutil
+from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.restapi.channels.channels_torrents_endpoint import ChannelModifyTorrentEndpoint
+
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Test.common import TORRENT_FILE
+from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.dispersy.exception import CommunityNotFoundException
 
 
@@ -24,25 +25,34 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
         self.should_check_equality = False
         return self.do_request('channels/discovered/abcd/torrents', expected_code=404)
 
-    @deferred(timeout=10)
+    @deferred(timeout=15)
+    @inlineCallbacks
     def test_get_torrents_in_channel(self):
         """
-        Testing whether the API returns inserted torrents when fetching discovered channels
+        Testing whether the API returns inserted torrents when fetching discovered channels, with and without filter
         """
-        def verify_torrents(torrents):
+        def verify_torrents_filter(torrents):
             torrents_json = json.loads(torrents)
             self.assertEqual(len(torrents_json['torrents']), 1)
             self.assertEqual(torrents_json['torrents'][0]['infohash'], 'a' * 40)
 
+        def verify_torrents_no_filter(torrents):
+            torrents_json = json.loads(torrents)
+            self.assertEqual(len(torrents_json['torrents']), 2)
+
         self.should_check_equality = False
         channel_id = self.insert_channel_in_db('rand', 42, 'Test channel', 'Test description')
 
-        torrent_list = [[channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso",
-                         [['file1.txt', 42]], []]]
+        torrent_list = [
+            [channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso", [['file1.txt', 42]], []],
+            [channel_id, 1, 1, ('b' * 40).decode('hex'), 1460000000, "badterm", [['file1.txt', 42]], []]
+        ]
         self.insert_torrents_into_channel(torrent_list)
 
-        return self.do_request('channels/discovered/%s/torrents' % 'rand'.encode('hex'), expected_code=200)\
-            .addCallback(verify_torrents)
+        yield self.do_request('channels/discovered/%s/torrents' % 'rand'.encode('hex'), expected_code=200)\
+            .addCallback(verify_torrents_filter)
+        yield self.do_request('channels/discovered/%s/torrents?disable_filter=1' % 'rand'.encode('hex'),
+                              expected_code=200).addCallback(verify_torrents_no_filter)
 
     @deferred(timeout=10)
     def test_add_torrent_to_channel(self):
@@ -50,7 +60,7 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
         Testing whether adding a torrent to your channels works
         """
         my_channel_id = self.create_fake_channel("channel", "")
-        torrent_path = TORRENT_FILE
+        torrent_path = TORRENT_UBUNTU_FILE
 
         def verify_method_invocation(channel_id, torrent_def, extra_info=None, forward=True):
             self.assertEqual(my_channel_id, channel_id)
@@ -76,7 +86,7 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
         Testing whether adding a torrent with a description to a channel works
         """
         my_channel_id = self.create_fake_channel("channel", "")
-        torrent_path = TORRENT_FILE
+        torrent_path = TORRENT_UBUNTU_FILE
 
         def verify_method_invocation(channel_id, torrent_def, extra_info=None, forward=True):
             self.assertEqual(my_channel_id, channel_id)
@@ -121,7 +131,7 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
         Testing whether the API returns a formatted 500 error if ValueError is raised
         """
         self.create_fake_channel("channel", "")
-        torrent_path = TORRENT_FILE
+        torrent_path = TORRENT_UBUNTU_FILE
 
         def fake_error(channel_id, torrent_def, extra_info=None, forward=True):
             raise ValueError("Test error")
@@ -168,14 +178,13 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         # Setup file server to serve torrent file
         files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
         os.mkdir(files_path)
-        shutil.copyfile(TORRENT_FILE, os.path.join(files_path, 'ubuntu.torrent'))
-
+        shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
         file_server_port = get_random_port()
         self.setUpFileServer(file_server_port, files_path)
 
         def verify_method_invocation(channel_id, torrent_def, extra_info=None, forward=True):
             self.assertEqual(my_channel_id, channel_id)
-            self.assertEqual(TorrentDef.load(TORRENT_FILE), torrent_def)
+            self.assertEqual(TorrentDef.load(TORRENT_UBUNTU_FILE), torrent_def)
             self.assertEqual({"description": "test"}, extra_info or {})
             self.assertEqual(True, forward)
 
@@ -194,14 +203,14 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         my_channel_id = self.create_fake_channel("channel", "")
 
         def fake_get_metainfo(_, callback, timeout=10, timeout_callback=None, notify=True):
-            meta_info = TorrentDef.load(TORRENT_FILE).get_metainfo()
+            meta_info = TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo()
             callback(meta_info)
 
         self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
 
         def verify_method_invocation(channel_id, torrent_def, extra_info=None, forward=True):
             self.assertEqual(my_channel_id, channel_id)
-            self.assertEqual(TorrentDef.load(TORRENT_FILE), torrent_def)
+            self.assertEqual(TorrentDef.load(TORRENT_UBUNTU_FILE), torrent_def)
             self.assertEqual({}, extra_info or {})
             self.assertEqual(True, forward)
 

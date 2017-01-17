@@ -5,7 +5,7 @@
 UNAME="$(uname -s)"
 
 if [ -z "$PROFILE_TRIBLER" ]; then
-    TRIBLER_SCRIPT=Tribler/Main/tribler.py
+    TRIBLER_SCRIPT=run_tribler.py
 else
     TRIBLER_SCRIPT=Tribler/Main/tribler_profiler.py
 fi
@@ -26,9 +26,9 @@ if [ "$UNAME" = "Linux" ]; then
         exit 1
     }
 
-    python2.7 $TRIBLER_SCRIPT
+    python2.7 $TRIBLER_SCRIPT "$@"
 elif [ ! -z `uname -s | grep CYGWIN_NT` ]; then
-    python $TRIBLER_SCRIPT
+    python $TRIBLER_SCRIPT "$@"
 else
     if [ "$UNAME" = "Darwin" ]; then
 
@@ -43,6 +43,6 @@ else
         PYTHONVER=2.7
         PYTHON="/usr/bin/python$PYTHONVER"
 
-        $PYTHON $TRIBLER_SCRIPT
+        $PYTHON $TRIBLER_SCRIPT "$@"
     fi
 fi

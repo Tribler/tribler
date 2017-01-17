@@ -66,12 +66,11 @@ class BaseChannelsEndpoint(resource.Resource):
 
     def vote_for_channel(self, cid, vote):
         """
-        Make a vote in the channel specified by the cid
+        Make a vote in the channel specified by the cid. Returns a deferred that fires when the vote is done.
         """
         for community in self.session.get_dispersy_instance().get_communities():
             if isinstance(community, AllChannelCommunity):
-                community.disp_create_votecast(cid, vote, int(time.time()))
-                break
+                return community.disp_create_votecast(cid, vote, int(time.time()))
 
     def get_community_for_channel_id(self, channel_id):
         """

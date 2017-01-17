@@ -46,6 +46,9 @@ class TestSessionConfig(TriblerCoreTest):
         sci.set_libtorrent(False)
         self.assertFalse(sci.get_libtorrent())
 
+        sci.set_libtorrent_max_conn_download(5)
+        self.assertEqual(sci.get_libtorrent_max_conn_download(), 5)
+
         sci.set_libtorrent_proxy_settings(3, ("127.0.0.1", 1337), ("foo", "bar"))
         self.assertEqual(sci.get_libtorrent_proxy_settings(), (3, ("127.0.0.1", 1337), ("foo", "bar")))
 

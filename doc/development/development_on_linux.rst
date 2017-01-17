@@ -3,22 +3,12 @@ This section contains information about setting up a Tribler development environ
 Debian/Ubuntu/Mint
 ------------------
 
-Execute the following command in your terminal:
+First, install the required dependencies by executing the following command in your terminal:
 
 .. code-block:: none
 
-    sudo apt-get install libav-tools libjs-excanvas libjs-mootools libsodium13 libx11-6 python-apsw python-cherrypy3 python-crypto python-cryptography python-feedparser python-leveldb python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 python2.7 vlc python-pip python-protobuf
+    sudo apt-get install libav-tools libsodium13 libx11-6 python-apsw python-cherrypy3 python-crypto python-cryptography python-feedparser python-leveldb python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-twisted python2.7 vlc python-pip python-chardet python-configobj python-pyqt5 python-pyqt5.qtsvg python-protobuf
     sudo pip install decorator libnacl
-
-Experimental support for Ubuntu 16.04
--------------------------------------
-
-Please try if the latest experimental build works for you.
-
-.. code-block:: none
-
-    bash
-    sudo apt-get install libsodium-dev python-nacl
 
 Next, download the latest .deb file from `here <https://jenkins.tribler.org/job/Build-Tribler_Ubuntu-64_devel/lastStableBuild/>`_.
 
@@ -32,7 +22,7 @@ While installing libsodium13 and python-cryptography on a clean Ubuntu 14.04 ins
 
 This means that the required packages are not directly in the available package list of Ubuntu 14.04.
 
-To install the packages, the required files have to be downloaded from their respecive websites.
+To install the packages, the required files have to be downloaded from their respective websites.
 
 For libsodium13, download ``libsodium13\_1.0.1-1\_<ProcessorType\>.deb`` from `<http://packages.ubuntu.com/vivid/libsodium13](http://packages.ubuntu.com/vivid/libsodium13>`_
 
@@ -74,4 +64,4 @@ Execute the following command in your terminal:
 
 .. code-block:: none
 
-    sudo pacman -S libsodium libtorrent-rasterbar python2-apsw python2-cherrypy python2-cryptography python2-decorator python2-feedparser python2-gmpy2 python2-m2crypto python2-netifaces python2-pillow python2-plyvel python2-requests python2-twisted wxpython2.8
+    sudo pacman -S libsodium libtorrent-rasterbar python2-apsw python2-cherrypy python2-cryptography python2-decorator python2-feedparser python2-gmpy2 python2-m2crypto python2-netifaces python2-pillow python2-plyvel python2-twisted wxpython2.8
