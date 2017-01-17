@@ -85,7 +85,10 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
         self.window().download_progress_bar.update_with_download(self.current_download)
         self.window().download_detail_name_label.setText(self.current_download['name'])
-        self.window().download_detail_status_label.setText(DLSTATUS_STRINGS[eval(self.current_download["status"])])
+        status_string = DLSTATUS_STRINGS[eval(self.current_download["status"])]
+        if eval(self.current_download["status"]) == DLSTATUS_STOPPED_ON_ERROR:
+            status_string += " (error: %s)" % self.current_download["error"]
+        self.window().download_detail_status_label.setText(status_string)
         self.window().download_detail_filesize_label.setText("%s in %d files" %
                                                              (format_size(float(self.current_download["size"])),
                                                               len(self.current_download["files"])))
