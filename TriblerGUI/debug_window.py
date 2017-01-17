@@ -16,7 +16,7 @@ class DebugWindow(QMainWindow):
     community information.
     """
 
-    def __init__(self):
+    def __init__(self, settings):
         QMainWindow.__init__(self)
 
         self.request_mgr = None
@@ -30,6 +30,9 @@ class DebugWindow(QMainWindow):
         self.window().dispersy_tab_widget.currentChanged.connect(self.dispersy_tab_changed)
         self.window().events_tree_widget.itemClicked.connect(self.on_event_clicked)
         self.load_general_tab()
+
+        if not settings['multichain']['enabled']:
+            self.window().debug_tab_widget.setTabEnabled(2, False)
 
     def tab_changed(self, index):
         if index == 0:

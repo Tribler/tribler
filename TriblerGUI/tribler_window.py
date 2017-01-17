@@ -480,7 +480,7 @@ class TriblerWindow(QMainWindow):
         self.hide_left_menu_playlist()
 
     def clicked_menu_button_debug(self):
-        self.debug_window = DebugWindow()
+        self.debug_window = DebugWindow(self.tribler_settings)
         self.debug_window.show()
 
     def clicked_menu_button_subscriptions(self):
