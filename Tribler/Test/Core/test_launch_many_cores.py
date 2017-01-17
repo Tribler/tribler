@@ -144,6 +144,25 @@ class TestLaunchManyCore(TriblerCoreTest):
 
         return readd_deferred
 
+    def test_load_checkpoint(self):
+        """
+        Test whether we are resuming downloads after loading checkpoint
+        """
+        def mocked_resume_download(filename, setupDelay=3):
+            self.assertTrue(filename.endswith('abcd.state'))
+            self.assertEqual(setupDelay, 0)
+            mocked_resume_download.called = True
+
+        mocked_resume_download.called = False
+        self.lm.session.get_downloads_pstate_dir = lambda: self.session_base_dir
+
+        with open(os.path.join(self.lm.session.get_downloads_pstate_dir(), 'abcd.state'), 'wb') as state_file:
+            state_file.write("hi")
+
+        self.lm.initComplete = True
+        self.lm.resume_download = mocked_resume_download
+        self.lm.load_checkpoint()
+        self.assertTrue(mocked_resume_download.called)
 
 class TestLaunchManyCoreFullSession(TestAsServer):
     """

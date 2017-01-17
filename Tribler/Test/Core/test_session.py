@@ -159,12 +159,10 @@ class TestSessionAsServer(TestAsServer):
         return test_deferred
 
     def test_load_checkpoint(self):
-        self.session.tribler_config.set_download_state("abc", "stop")
         self.load_checkpoint_called = False
 
-        def verify_load_checkpoint_call(initialdlstatus_dict={}):
+        def verify_load_checkpoint_call():
             self.load_checkpoint_called = True
-            self.assertEqual(initialdlstatus_dict, {"abc": DLSTATUS_STOPPED})
 
         self.session.lm.load_checkpoint = verify_load_checkpoint_call
         self.session.load_checkpoint()

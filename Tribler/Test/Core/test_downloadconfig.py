@@ -46,6 +46,9 @@ class TestConfigParser(TriblerCoreTest):
         dlcfg.set_selected_files("foo.bar")
         self.assertEqual(dlcfg.get_selected_files(), ["foo.bar"])
 
+        dlcfg.set_user_stopped(True)
+        self.assertTrue(dlcfg.get_user_stopped())
+
         dlcfg.set_max_speed(UPLOAD, 1337)
         dlcfg.set_max_speed(DOWNLOAD, 1338)
         self.assertEqual(dlcfg.get_max_speed(UPLOAD), 1337)

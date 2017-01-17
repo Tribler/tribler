@@ -93,7 +93,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         def callback(_):
             impl.cancel_all_pending_tasks()
 
-        deferred = impl.setup(None, None, None, 0)
+        deferred = impl.setup(None, None, 0)
         deferred.addCallback(callback)
         return deferred.addCallback(lambda _: impl.stop())
 
@@ -187,7 +187,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
             defer_alert.addCallback(resume_ready)
             return defer_alert
 
-        result_deferred = impl.setup(None, None, None, 0)
+        result_deferred = impl.setup(None, None, 0)
         result_deferred.addCallback(callback)
 
         return result_deferred.addCallback(lambda _: impl.stop())

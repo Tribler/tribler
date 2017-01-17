@@ -335,7 +335,7 @@ class TriblerLaunchMany(TaskManager):
 
         self.initComplete = True
 
-    def add(self, tdef, dscfg, pstate=None, initialdlstatus=None, setupDelay=0, hidden=False,
+    def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,
             share_mode=False, checkpoint_disabled=False):
         """ Called by any thread """
         d = None
@@ -360,7 +360,7 @@ class TriblerLaunchMany(TaskManager):
 
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
-            setup_deferred = d.setup(dscfg, pstate, initialdlstatus, wrapperDelay=setupDelay,
+            setup_deferred = d.setup(dscfg, pstate, wrapperDelay=setupDelay,
                                      share_mode=share_mode, checkpoint_disabled=checkpoint_disabled)
             setup_deferred.addCallback(self.on_download_handle_created)
 
@@ -589,16 +589,16 @@ class TriblerLaunchMany(TaskManager):
     #
     # Persistence methods
     #
-    def load_checkpoint(self, initialdlstatus=None, initialdlstatus_dict={}):
+    def load_checkpoint(self):
         """ Called by any thread """
 
-        def do_load_checkpoint(initialdlstatus, initialdlstatus_dict):
+        def do_load_checkpoint():
             with self.sesslock:
                 for i, filename in enumerate(iglob(os.path.join(self.session.get_downloads_pstate_dir(), '*.state'))):
-                    self.resume_download(filename, initialdlstatus, initialdlstatus_dict, setupDelay=i * 0.1)
+                    self.resume_download(filename, setupDelay=i * 0.1)
 
         if self.initComplete:
-            do_load_checkpoint(initialdlstatus, initialdlstatus_dict)
+            do_load_checkpoint()
         else:
             self.register_task("load_checkpoint", reactor.callLater(1, do_load_checkpoint))
 
@@ -615,7 +615,7 @@ class TriblerLaunchMany(TaskManager):
         except Exception:
             self._logger.exception("Exception while loading pstate: %s", infohash)
 
-    def resume_download(self, filename, initialdlstatus=None, initialdlstatus_dict={}, setupDelay=0):
+    def resume_download(self, filename, setupDelay=0):
         tdef = dscfg = pstate = None
 
         try:
@@ -664,8 +664,7 @@ class TriblerLaunchMany(TaskManager):
             if dscfg.get_dest_dir() != '':  # removed torrent ignoring
                 try:
                     if not self.download_exists(tdef.get_infohash()):
-                        initialdlstatus = initialdlstatus_dict.get(tdef.get_infohash(), initialdlstatus)
-                        self.add(tdef, dscfg, pstate, initialdlstatus, setupDelay=setupDelay)
+                        self.add(tdef, dscfg, pstate, setupDelay=setupDelay)
                     else:
                         self._logger.info("tlm: not resuming checkpoint because download has already been added")
 
