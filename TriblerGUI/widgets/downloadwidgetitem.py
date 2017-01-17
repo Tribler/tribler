@@ -70,6 +70,12 @@ class DownloadWidgetItem(QTreeWidgetItem):
         self.setText(11, eta_text)
 
     def __lt__(self, other):
+        # The download info might not be available yet
+        if not self.download_info:
+            return True
+        elif not other.download_info:
+            return False
+
         column = self.treeWidget().sortColumn()
         if column == 1:
             return float(self.download_info["size"]) > float(other.download_info["size"])
