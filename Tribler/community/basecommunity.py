@@ -1,6 +1,6 @@
 import logging
 
-from Tribler.community.serializer.serializer import Serializer
+from Tribler.community.TriblerProtobufSerialization.serializer import Serializer
 from Tribler.dispersy.authentication import NoAuthentication, MemberAuthentication, DoubleMemberAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion, BinaryConversion
