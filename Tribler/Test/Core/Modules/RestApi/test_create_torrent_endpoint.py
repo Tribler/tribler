@@ -24,6 +24,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
                         os.path.join(self.files_path, 'video.avi'))
         shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'video.avi.torrent'),
                         os.path.join(self.files_path, 'video.avi.torrent'))
+        self.config.set_libtorrent(True)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -65,7 +66,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
             "trackers[]": "http://localhost/announce"
         }
         self.should_check_equality = False
-        return self.do_request('createtorrent', 200, None, 'POST', post_data).addCallback(verify_torrent)
+        return self.do_request('createtorrent?download=1', 200, None, 'POST', post_data).addCallback(verify_torrent)
 
     @deferred(timeout=10)
     def test_create_torrent_io_error(self):

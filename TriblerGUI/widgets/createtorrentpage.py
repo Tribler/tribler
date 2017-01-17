@@ -28,6 +28,7 @@ class CreateTorrentPage(QWidget):
     def initialize(self, identifier):
         self.channel_identifier = identifier
         self.window().manage_channel_create_torrent_back.setIcon(QIcon(get_image_path('page_back.png')))
+        self.window().seed_after_adding_checkbox.setChecked(True)
 
         self.window().create_torrent_name_field.setText('')
         self.window().create_torrent_description_field.setText('')
@@ -78,8 +79,9 @@ class CreateTorrentPage(QWidget):
 
         description = urllib.quote_plus(self.window().create_torrent_description_field.toPlainText())
         post_data = (u"%s&description=%s" % (files_str[:-1], description)).encode('utf-8')
+        url = "createtorrent?download=1" if self.window().seed_after_adding_checkbox.isChecked() else "createtorrent"
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("createtorrent", self.on_torrent_created, data=post_data, method='POST')
+        self.request_mgr.perform_request(url, self.on_torrent_created, data=post_data, method='POST')
 
     def on_dialog_ok_clicked(self, _):
         self.dialog.setParent(None)
