@@ -13,6 +13,7 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_react
 
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession
+from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 
 # some settings
 DEFAULT_TORRENT_SELECTION_INTERVAL = 20  # every 20 seconds, the thread will select torrents to check
@@ -116,7 +117,13 @@ class TorrentChecker(TaskManager):
             return succeed(None)
         elif tracker_url != u'DHT' and tracker_url != u'no-DHT'\
                 and self.tribler_session.lm.tracker_manager.should_check_tracker(tracker_url):
-            session = self._create_session_for_request(tracker_url, timeout=30)
+
+            try:
+                session = self._create_session_for_request(tracker_url, timeout=30)
+            except MalformedTrackerURLException as e:
+                self._logger.error(e)
+                return succeed(None)
+
             for infohash in infohashes:
                 session.add_infohash(infohash)
 

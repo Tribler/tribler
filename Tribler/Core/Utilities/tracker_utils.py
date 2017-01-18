@@ -1,4 +1,3 @@
-import socket
 import re
 
 url_regex = re.compile(
@@ -8,6 +7,10 @@ url_regex = re.compile(
     r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
     r'(?::\d+)?'  # optional port
     r'(?:/?|[/?]\S+)$', re.IGNORECASE | re.UNICODE)
+
+
+class MalformedTrackerURLException(Exception):
+    pass
 
 
 # ------------------------------------------------------------
@@ -85,7 +88,7 @@ def parse_tracker_url(tracker_url):
     elif tracker_url.startswith(u'udp'):
         tracker_type = u'UDP'
     else:
-        raise RuntimeError(u'Unexpected tracker type.')
+        raise MalformedTrackerURLException(u'Unexpected tracker type (%s).' % tracker_url)
 
     # get URL information
     url_fields = tracker_url.split(u'://')[1]
@@ -95,7 +98,7 @@ def parse_tracker_url(tracker_url):
             hostname_part = url_fields
             announce_page = None
         else:
-            raise RuntimeError(u'Invalid tracker URL (%s).' % tracker_url)
+            raise MalformedTrackerURLException(u'Invalid tracker URL (%s).' % tracker_url)
     else:
         hostname_part, announce_page = url_fields.split(u'/', 1)
 
@@ -107,6 +110,6 @@ def parse_tracker_url(tracker_url):
         hostname = hostname_part
         port = 80
     else:
-        raise RuntimeError(u'No port number for UDP tracker URL.')
+        raise MalformedTrackerURLException(u'No port number for UDP tracker URL (%s).' % tracker_url)
 
     return tracker_type, (hostname, port), announce_page

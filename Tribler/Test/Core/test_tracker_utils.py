@@ -1,5 +1,6 @@
 from nose.tools import raises
-from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url, parse_tracker_url
+from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url, parse_tracker_url,\
+    MalformedTrackerURLException
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -50,15 +51,15 @@ class TriblerCoreTestTrackerUtils(TriblerCoreTest):
         self.assertEqual(result[0], "HTTP")
         self.assertEqual(result[2], "announce")
 
-    @raises(RuntimeError)
+    @raises(MalformedTrackerURLException)
     def test_parse_tracker_url_wrong_type_1(self):
         parse_tracker_url("abc://tracker.openbittorrent.com:80/announce")
 
-    @raises(RuntimeError)
+    @raises(MalformedTrackerURLException)
     def test_parse_tracker_url_wrong_type_2(self):
         parse_tracker_url("udp://tracker.openbittorrent.com/announce")
 
-    @raises(RuntimeError)
+    @raises(MalformedTrackerURLException)
     def test_parse_tracker_url_wrong_type_3(self):
         parse_tracker_url("http://tracker.openbittorrent.com:80")
 
