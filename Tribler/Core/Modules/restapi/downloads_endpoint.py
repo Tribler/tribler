@@ -57,9 +57,8 @@ class DownloadBaseEndpoint(resource.Resource):
             download_config.set_safe_seeding(True)
 
         if 'destination' in parameters and len(parameters['destination']) > 0:
-            if not os.path.isdir(parameters['destination'][0]):
-                return None, "Invalid destination directory specified"
-            download_config.set_dest_dir(parameters['destination'][0])
+            dest_dir = unicode(parameters['destination'][0], 'utf-8')
+            download_config.set_dest_dir(dest_dir)
 
         if 'selected_files[]' in parameters:
             selected_files_list = [unicode(f, 'utf-8') for f in parameters['selected_files[]']]

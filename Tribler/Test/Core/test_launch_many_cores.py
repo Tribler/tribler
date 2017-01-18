@@ -5,6 +5,7 @@ from twisted.internet.defer import Deferred
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.twisted_thread import deferred
@@ -53,7 +54,8 @@ class TestLaunchManyCore(TriblerCoreTest):
         tdef = TorrentDef()
         tdef.metainfo_valid = True
         tdef.infohash = "abcd"
-        self.lm.add(tdef, None)
+
+        self.lm.add(tdef, DefaultDownloadStartupConfig.getInstance())
 
     def test_load_download_pstate(self):
         """

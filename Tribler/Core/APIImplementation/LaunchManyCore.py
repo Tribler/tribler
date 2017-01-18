@@ -345,6 +345,10 @@ class TriblerLaunchMany(TaskManager):
 
             infohash = tdef.get_infohash()
 
+            # Create the destination directory if it does not exist yet
+            if not os.path.isdir(dscfg.get_dest_dir()):
+                os.makedirs(dscfg.get_dest_dir())
+
             # Check if running or saved on disk
             if infohash in self.downloads:
                 raise DuplicateDownloadException("This download already exists.")
