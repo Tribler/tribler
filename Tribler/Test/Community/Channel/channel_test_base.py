@@ -91,7 +91,6 @@ class ChannelTestBase(AbstractServer):
         self.ses2 = Session(config2, ignore_singleton=True)
 
         for session in [self.ses1, self.ses2]:
-            session.prestart()
             session.start()
 
     def _flush_community(self, community):

@@ -91,7 +91,6 @@ class AllChannelTestBase(AbstractServer):
         self.ses2 = Session(config2, ignore_singleton=True)
 
         for session in [self.ses1, self.ses2]:
-            session.prestart()
             session.start()
             self._mock_method(
                 session, Session, 'add_observer', lambda a, b, c, d=None, e=None, f=None: None)
