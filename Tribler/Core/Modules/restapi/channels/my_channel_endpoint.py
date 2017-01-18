@@ -86,6 +86,10 @@ class MyChannelEndpoint(BaseChannelsEndpoint):
         parameters = http.parse_qs(request.content.read(), 1)
         my_channel = self.channel_db_handler.getChannel(my_channel_id)
 
+        if not get_parameter(parameters, 'name'):
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": 'channel name cannot be empty'})
+
         changes = {}
         if my_channel[2] != get_parameter(parameters, 'name'):
             changes['name'] = unicode(get_parameter(parameters, 'name'), 'utf-8')

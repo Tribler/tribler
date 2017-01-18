@@ -86,7 +86,7 @@ class TestCreateChannelEndpoint(AbstractTestChannelsEndpoint):
             "description": "Video's of my cat",
             "mode": "semi-open"
         }
-        expected_json = {"error": "name parameter missing"}
+        expected_json = {"error": "channel name cannot be empty"}
         return self.do_request('channels/discovered', expected_code=400, expected_json=expected_json,
                                request_type='PUT', post_data=post_data)
 

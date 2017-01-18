@@ -190,7 +190,6 @@ class EditChannelPage(QWidget):
     def on_edit_channel_save_button_pressed(self):
         channel_name = self.window().edit_channel_name_edit.text()
         channel_description = self.window().edit_channel_description_edit.toPlainText()
-        self.window().edit_channel_save_button.setEnabled(False)
 
         self.editchannel_request_mgr = TriblerRequestManager()
         self.editchannel_request_mgr.perform_request("mychannel", self.on_channel_edited,
@@ -203,7 +202,6 @@ class EditChannelPage(QWidget):
             self.window().edit_channel_name_label.setText(self.window().edit_channel_name_edit.text())
             self.window().edit_channel_description_label.setText(
                 self.window().edit_channel_description_edit.toPlainText())
-            self.window().edit_channel_save_button.setEnabled(True)
 
     def on_torrents_remove_selected_clicked(self):
         num_selected = len(self.window().edit_channel_torrents_list.selectedItems())

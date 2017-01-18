@@ -85,9 +85,9 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
         """
         parameters = http.parse_qs(request.content.read(), 1)
 
-        if 'name' not in parameters or len(parameters['name']) == 0:
+        if 'name' not in parameters or len(parameters['name']) == 0 or len(parameters['name'][0]) == 0:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "name parameter missing"})
+            return json.dumps({"error": "channel name cannot be empty"})
 
         if 'description' not in parameters or len(parameters['description']) == 0:
             description = u''
