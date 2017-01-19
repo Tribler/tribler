@@ -194,8 +194,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.deferreds_handle.append(deferred)
         return deferred
 
-    def setup(self, dcfg=None, pstate=None, initialdlstatus=None,
-              wrapperDelay=0, share_mode=False, checkpoint_disabled=False):
+    def setup(self, dcfg=None, pstate=None, wrapperDelay=0, share_mode=False, checkpoint_disabled=False):
         """
         Create a Download object. Used internally by Session.
         @param dcfg DownloadStartupConfig or None (in which case
@@ -227,12 +226,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
                 self.dlstate = DLSTATUS_CIRCUITS if self.get_hops() > 0 else self.dlstate
 
-                self._logger.debug(u"setup: initialdlstatus %s %s", hexlify(self.tdef.get_infohash()), initialdlstatus)
+                self._logger.debug(u"setup: %s", hexlify(self.tdef.get_infohash()))
 
                 def schedule_create_engine():
                     self.cew_scheduled = True
                     create_engine_wrapper_deferred = self.network_create_engine_wrapper(
-                        self.pstate_for_restart, initialdlstatus, share_mode=share_mode)
+                        self.pstate_for_restart, share_mode=share_mode)
                     create_engine_wrapper_deferred.chainDeferred(deferred)
 
                 def schedule_create_engine_call(_):
@@ -286,7 +285,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         do_check()
         return can_create_deferred
 
-    def network_create_engine_wrapper(self, pstate, initialdlstatus=None, checkpoint_disabled=False, share_mode=False):
+    def network_create_engine_wrapper(self, pstate, checkpoint_disabled=False, share_mode=False):
         with self.dllock:
             self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
 
@@ -338,12 +337,14 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
                 self.set_selected_files()
 
+                user_stopped = pstate.get('downloadconfig', 'user_stopped') if pstate else False
+
                 # If we lost resume_data always resume download in order to force checking
-                if initialdlstatus != DLSTATUS_STOPPED or not resume_data:
+                if not user_stopped or not resume_data:
                     self.handle.resume()
 
                     # If we only needed to perform checking, pause download after it is complete
-                    self.pause_after_next_hashcheck = initialdlstatus == DLSTATUS_STOPPED
+                    self.pause_after_next_hashcheck = user_stopped
 
                 if self.get_mode() == DLMODE_VOD:
                     self.set_vod_mode(True)
@@ -1035,7 +1036,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 return ds
 
     def stop(self):
-        """ Called by any thread """
+        self.set_user_stopped(True)
         self.stop_remove(removestate=False, removecontent=False)
 
     def stop_remove(self, removestate=False, removecontent=False):
@@ -1093,9 +1094,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         metainfo = self.tdef.get_metainfo()
         self.filepieceranges = maketorrent.get_length_filepieceranges_from_metainfo(metainfo, [])[1]
 
-    def restart(self, initialdlstatus=None):
+    def restart(self):
         """ Restart the Download """
         # Called by any thread
+        self.set_user_stopped(False)
         self._logger.debug("LibtorrentDownloadImpl: restart: %s", self.tdef.get_name())
 
         with self.dllock:
@@ -1105,7 +1107,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 def schedule_create_engine(_):
                     self.cew_scheduled = True
                     create_engine_wrapper_deferred = self.network_create_engine_wrapper(
-                        self.pstate_for_restart, initialdlstatus, share_mode=self.get_share_mode())
+                        self.pstate_for_restart, share_mode=self.get_share_mode())
                     create_engine_wrapper_deferred.addCallback(self.session.lm.on_download_handle_created)
 
                 can_create_engine_deferred = self.can_create_engine_wrapper()

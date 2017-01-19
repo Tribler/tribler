@@ -2408,8 +2408,8 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
             my_vote = my_votes.get(id, 0)
             if not includeSpam and my_vote < 0:
                 continue
-            if name.strip() == '':
-                continue
+            if len(name.strip()) == 0:
+                name = "Unnamed channel"
 
             channels.append((id, str(dispersy_cid), name, description, nr_torrents,
                             nr_favorites, nr_spam, my_vote, modified, id == self._channel_id))

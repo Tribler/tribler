@@ -50,6 +50,8 @@ class DownloadsPage(QWidget):
 
         self.window().downloads_filter_input.textChanged.connect(self.on_filter_text_changed)
 
+        self.window().downloads_list.header().resizeSection(12, 146)
+
     def on_filter_text_changed(self, text):
         self.window().downloads_list.clearSelection()
         self.window().download_details_widget.hide()
@@ -219,6 +221,11 @@ class DownloadsPage(QWidget):
     def on_remove_download_dialog(self, action):
         if action != 2:
             infohash = self.selected_item.download_info["infohash"]
+
+            # Reset video player if necessary before doing the actual request
+            if self.window().video_player_page.active_infohash == infohash:
+                self.window().video_player_page.reset_player()
+
             self.request_mgr = TriblerRequestManager()
             self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_removed,
                                              method='DELETE', data="remove_data=%d" % action)
@@ -233,10 +240,6 @@ class DownloadsPage(QWidget):
             self.window().downloads_list.takeTopLevelItem(index)
             del self.download_widgets[infohash]
             self.window().download_details_widget.hide()
-
-            # Reset video player if necessary
-            if self.window().video_player_page.active_infohash == infohash:
-                self.window().video_player_page.reset_player()
 
     def on_force_recheck_download(self):
         infohash = self.selected_item.download_info["infohash"]

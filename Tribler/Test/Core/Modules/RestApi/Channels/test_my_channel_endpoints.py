@@ -1,7 +1,10 @@
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.Modules.restapi.channels.my_channel_endpoint import NO_CHANNEL_CREATED_RESPONSE_MSG
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.Core.base_test import MockObject
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestMyChannelEndpoints(AbstractTestChannelsEndpoint):
@@ -45,7 +48,8 @@ class TestMyChannelEndpoints(AbstractTestChannelsEndpoint):
 
         return self.do_request('mychannel', expected_code=404, request_type='POST')
 
-    @deferred(timeout=10)
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def test_edit_channel(self):
         """
         Testing whether a channel is correctly modified
@@ -67,6 +71,11 @@ class TestMyChannelEndpoints(AbstractTestChannelsEndpoint):
         mock_dispersy.get_community = lambda _: mock_channel_community
         self.session.get_dispersy_instance = lambda: mock_dispersy
 
+        self.should_check_equality = False
+        post_params = {'name': '', 'description': 'test2'}
+        yield self.do_request('mychannel', expected_code=400, post_data=post_params, request_type='POST')
+
+        self.should_check_equality = True
         post_params = {'name': 'test1', 'description': 'test2'}
-        return self.do_request('mychannel', expected_code=200, expected_json={"modified": True}, post_data=post_params,
-                               request_type='POST').addCallback(verify_channel_modified)
+        yield self.do_request('mychannel', expected_code=200, expected_json={"modified": True}, post_data=post_params,
+                              request_type='POST').addCallback(verify_channel_modified)

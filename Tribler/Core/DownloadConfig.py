@@ -120,6 +120,18 @@ class DownloadConfigInterface(object):
     def get_safe_seeding(self):
         return self.dlconfig.get('downloadconfig', 'safe_seeding')
 
+    def set_user_stopped(self, value):
+        self.dlconfig.set('downloadconfig', 'user_stopped', value)
+
+    def get_user_stopped(self):
+        return self.dlconfig.get('downloadconfig', 'user_stopped')
+
+    def set_time_added(self, value):
+        self.dlconfig.set('downloadconfig', 'time_added', value)
+
+    def get_time_added(self):
+        return self.dlconfig.get('downloadconfig', 'time_added')
+
     def set_selected_files(self, files):
         """ Select which files in the torrent to download. The filenames must
         be the names as they appear in the content def, including encoding.

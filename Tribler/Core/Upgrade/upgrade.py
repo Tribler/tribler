@@ -44,6 +44,8 @@ class TriblerUpgrader(object):
             pickle_converter = PickleConverter(self.session)
             pickle_converter.convert()
 
+            self.upgrade_to_tribler7()
+
         if self.failed:
             self.notify_starting()
             self.stash_database()
@@ -51,6 +53,13 @@ class TriblerUpgrader(object):
     def update_status(self, status_text):
         self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, status_text)
         self.current_status = status_text
+
+    def upgrade_to_tribler7(self):
+        """
+        This method performs actions necessary to upgrade to Tribler 7.
+        """
+        self.session.set_enable_multichain(True)
+        self.session.save_session_config()
 
     def notify_starting(self):
         """
@@ -61,7 +70,6 @@ class TriblerUpgrader(object):
         if not self.notified:
             self.notified = True
             self.session.notifier.notify(NTFY_UPGRADER, NTFY_STARTED, None)
-
 
     def notify_done(self):
         """
@@ -91,7 +99,6 @@ class TriblerUpgrader(object):
             self.failed = False
 
         return (self.failed, should_upgrade)
-
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks

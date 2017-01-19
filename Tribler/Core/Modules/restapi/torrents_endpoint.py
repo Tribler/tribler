@@ -1,5 +1,6 @@
 import json
 
+import logging
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
@@ -107,6 +108,13 @@ class TorrentHealthEndpoint(resource.Resource):
         self.session = session
         self.infohash = infohash
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+    def finish_request(self, request):
+        try:
+            request.finish()
+        except RuntimeError:
+            self._logger.warning("Writing response failed, probably the client closed the connection already.")
 
     def render_GET(self, request):
         """
@@ -157,12 +165,12 @@ class TorrentHealthEndpoint(resource.Resource):
 
         def on_health_result(result):
             request.write(json.dumps({'health': result}))
-            request.finish()
+            self.finish_request(request)
 
         def on_request_error(failure):
             request.setResponseCode(http.BAD_REQUEST)
             request.write(json.dumps({"error": failure.getErrorMessage()}))
-            request.finish()
+            self.finish_request(request)
 
         self.session.check_torrent_health(self.infohash.decode('hex'), timeout=timeout, scrape_now=refresh)\
             .addCallback(on_health_result).addErrback(on_request_error)

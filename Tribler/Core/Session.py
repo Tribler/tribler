@@ -282,7 +282,7 @@ class Session(SessionConfigInterface):
             return self.lm.ltmgr.start_download_from_uri(uri, dconfig=dconfig)
         raise OperationNotEnabledByConfigurationException()
 
-    def start_download_from_tdef(self, tdef, dcfg=None, initialdlstatus=None, hidden=False):
+    def start_download_from_tdef(self, tdef, dcfg=None, hidden=False):
         """
         Creates a Download object and adds it to the session. The passed
         ContentDef and DownloadStartupConfig are copied into the new Download
@@ -295,15 +295,12 @@ class Session(SessionConfigInterface):
         @param dcfg DownloadStartupConfig or None, in which case
         a new DownloadStartupConfig() is created with its default settings
         and the result becomes the runtime config of this Download.
-        @param initialdlstatus The initial download status of this Download
-        or None. This enables the caller to create a Download in e.g.
-        DLSTATUS_STOPPED state instead.
         @param hidden Whether this torrent should be added to the mypreference table
         @return Download
         """
         # locking by lm
         if self.get_libtorrent():
-            return self.lm.add(tdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
+            return self.lm.add(tdef, dcfg, hidden=hidden)
         raise OperationNotEnabledByConfigurationException()
 
     def resume_download_from_file(self, filename):
@@ -508,12 +505,7 @@ class Session(SessionConfigInterface):
         choices since it might be that a user has stopped a download. In that case, the download should not be
         resumed immediately when being loaded by libtorrent.
         """
-        initialdlstatus_dict = {}
-        for infohash, state in self.tribler_config.get_download_states().iteritems():
-            if state == 'stop':
-                initialdlstatus_dict[infohash] = DLSTATUS_STOPPED
-
-        self.lm.load_checkpoint(initialdlstatus_dict=initialdlstatus_dict)
+        self.lm.load_checkpoint()
 
     @blocking_call_on_reactor_thread
     def start_database(self):
@@ -777,7 +769,7 @@ class Session(SessionConfigInterface):
 
         channelcast_db = self.open_dbhandler(NTFY_CHANNELCAST)
         if channelcast_db.hasTorrent(channel_id, torrent_def.infohash):
-            raise DuplicateTorrentFileError()
+            raise DuplicateTorrentFileError("This torrent file already exists in your channel.")
 
         dispersy_cid = str(channelcast_db.getDispersyCIDFromChannelId(channel_id))
         community = self.get_dispersy_instance().get_community(dispersy_cid)

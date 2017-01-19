@@ -142,6 +142,9 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         """
         When we receive a health response, update the health status.
         """
+        if not self:  # The channel list item might have been deleted already (i.e. by doing another search).
+            return
+
         self.has_health = True
         total_seeders = 0
         total_leechers = 0

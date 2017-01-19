@@ -86,6 +86,14 @@ class TestChannelDBHandler(AbstractDB):
         self.cdb.votecast_db = None
         self.assertFalse(self.cdb._getChannels("SELECT id FROM channels"))
 
+    def test_get_channel_empty_name(self):
+        update_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name, description) VALUES(?, ?, ?, ?)"
+        self.cdb._db.execute_write(update_channel, ('', '', '', 'unique_desc_123'))
+
+        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
+              "FROM Channels WHERE description = 'unique_desc_123'"
+        self.assertEqual(self.cdb._getChannels(sql)[0][2], 'Unnamed channel')
+
     def test_get_my_channel_id(self):
         self.cdb._channel_id = 42
         self.assertEqual(self.cdb.getMyChannelId(), 42)
