@@ -50,6 +50,8 @@ class DownloadsPage(QWidget):
 
         self.window().downloads_filter_input.textChanged.connect(self.on_filter_text_changed)
 
+        self.window().downloads_list.header().resizeSection(12, 146)
+
     def on_filter_text_changed(self, text):
         self.window().downloads_list.clearSelection()
         self.window().download_details_widget.hide()

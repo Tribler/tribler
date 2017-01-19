@@ -199,7 +199,7 @@ sessdefaults['credit_mining']['policy'] = "seederratio"
 #  Version 12: remove thumb
 #  Version 13: remove super_seeder
 #  Version 15: add seeding ratio
-#  Version 16: added field whether the download has been manually stopped by the user
+#  Version 16: added field whether the download has been manually stopped by the user and time added
 
 DLDEFAULTS_VERSION = 16
 dldefaults = OrderedDict()
@@ -220,6 +220,7 @@ dldefaults['downloadconfig']['seeding_mode'] = 'ratio'
 dldefaults['downloadconfig']['seeding_ratio'] = 2.0
 dldefaults['downloadconfig']['seeding_time'] = 60
 dldefaults['downloadconfig']['user_stopped'] = False
+dldefaults['downloadconfig']['time_added'] = 0
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None

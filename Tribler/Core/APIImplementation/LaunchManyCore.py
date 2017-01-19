@@ -349,6 +349,9 @@ class TriblerLaunchMany(TaskManager):
             if not os.path.isdir(dscfg.get_dest_dir()):
                 os.makedirs(dscfg.get_dest_dir())
 
+            if dscfg.get_time_added() == 0:
+                dscfg.set_time_added(int(timemod.time()))
+
             # Check if running or saved on disk
             if infohash in self.downloads:
                 raise DuplicateDownloadException("This download already exists.")

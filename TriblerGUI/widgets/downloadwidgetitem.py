@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QTreeWidgetItem, QProgressBar
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QWidget
+from datetime import datetime
 
 from TriblerGUI.defs import *
 from TriblerGUI.utilities import format_size, format_speed, duration_to_string
@@ -63,6 +64,7 @@ class DownloadWidgetItem(QTreeWidgetItem):
         self.setText(8, "%.3f" % float(self.download_info["ratio"]))
         self.setText(9, "yes" if self.download_info["anon_download"] else "no")
         self.setText(10, str(self.download_info["hops"]) if self.download_info["anon_download"] else "-")
+        self.setText(12, datetime.fromtimestamp(int(self.download_info["time_added"])).strftime('%Y-%m-%d %H:%M'))
 
         eta_text = "-"
         if self.get_raw_download_status() == DLSTATUS_DOWNLOADING:
@@ -93,4 +95,6 @@ class DownloadWidgetItem(QTreeWidgetItem):
             return float(self.download_info["ratio"]) > float(other.download_info["ratio"])
         elif column == 11:
             return float(self.download_info["eta"]) > float(other.download_info["eta"])
+        elif column == 12:
+            return int(self.download_info["time_added"]) > int(other.download_info["time_added"])
         return self.text(column) > other.text(column)

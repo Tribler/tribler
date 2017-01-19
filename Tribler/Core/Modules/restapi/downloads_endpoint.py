@@ -146,6 +146,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                         "vod_prebuffering_progress": 0.89,
                         "vod_prebuffering_progress_consec": 0.86,
                         "error": "",
+                        "time_added": 1484819242,
                     }
                 }, ...]
         """
@@ -204,7 +205,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                              "total_pieces": download.get_num_pieces(), "vod_mode": download.get_mode() == DLMODE_VOD,
                              "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
                              "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec(),
-                             "error": repr(state.get_error()) if state.get_error() else ""}
+                             "error": repr(state.get_error()) if state.get_error() else "",
+                             "time_added": download.get_time_added()}
 
             # Add peers information if requested
             if get_peers:
