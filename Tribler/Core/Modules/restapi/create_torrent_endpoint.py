@@ -7,6 +7,7 @@ from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.restapi.util import return_handled_exception
+from Tribler.Core.exceptions import DuplicateDownloadException
 
 
 class CreateTorrentEndpoint(resource.Resource):
@@ -89,7 +90,10 @@ class CreateTorrentEndpoint(resource.Resource):
                     and request.args['download'][0] == "1":
                 download_config = DownloadStartupConfig()
                 download_config.set_dest_dir(result['base_path'])
-                self.session.start_download_from_uri('file:' + result['torrent_file_path'], download_config)
+                try:
+                    self.session.start_download_from_uri('file:' + result['torrent_file_path'], download_config)
+                except DuplicateDownloadException:
+                    self._logger.warning("The created torrent is already being downloaded.")
 
             request.write(json.dumps({"torrent": torrent_64}))
             request.finish()

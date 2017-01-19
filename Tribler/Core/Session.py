@@ -769,7 +769,7 @@ class Session(SessionConfigInterface):
 
         channelcast_db = self.open_dbhandler(NTFY_CHANNELCAST)
         if channelcast_db.hasTorrent(channel_id, torrent_def.infohash):
-            raise DuplicateTorrentFileError()
+            raise DuplicateTorrentFileError("This torrent file already exists in your channel.")
 
         dispersy_cid = str(channelcast_db.getDispersyCIDFromChannelId(channel_id))
         community = self.get_dispersy_instance().get_community(dispersy_cid)
