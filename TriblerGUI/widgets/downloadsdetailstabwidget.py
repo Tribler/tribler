@@ -23,6 +23,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
     def initialize_details_widget(self):
         self.window().download_files_list.customContextMenuRequested.connect(self.on_right_click_file_item)
+        self.window().download_files_list.header().resizeSection(0, 220)
         self.setCurrentIndex(0)
 
     def update_with_download(self, download):
