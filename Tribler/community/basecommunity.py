@@ -6,10 +6,9 @@ from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion, BinaryConversion
 from Tribler.dispersy.destination import CommunityDestination, CandidateDestination
 from Tribler.dispersy.distribution import FullSyncDistribution, LastSyncDistribution, DirectDistribution
-from Tribler.dispersy.message import BatchConfiguration, Message
+from Tribler.dispersy.message import BatchConfiguration, DropPacket, Message
 from Tribler.dispersy.payload import Payload
 from Tribler.dispersy.resolution import PublicResolution, LinearResolution, DynamicResolution
-from Tribler.dispersy.timeline import Timeline
 
 
 class MessageOptions(object):
@@ -136,8 +135,12 @@ class BaseCommunity(Community):
             :param messages: Dispersy Message objects
         """
         assert len(messages) == 1
-
         message = messages[0]
+
+        generic_check = self._generic_timeline_check([message]).next()
+        if generic_check != message:
+            return iter([generic_check])
+
         serialization = message.payload.unserialized[0]
         name = serialization[0]
         obj = serialization[1]
@@ -493,3 +496,35 @@ class BaseConversion(BinaryConversion):
         self._std_dec_mapping[type(traversal.res_type)](placeholder)
         self._std_dec_mapping[type(traversal.dist_type)](placeholder)
         self._std_dec_mapping[type(traversal.dest_type)](placeholder)
+
+    def _decode_dynamic_settings(self, placeholder, offset, data):
+        if len(data) < offset + 3:
+            raise DropPacket("Insufficient packet size (_decode_dynamic_settings)")
+
+        policies = []
+        while len(data) >= offset + 3:
+            meta_id, policy_type, policy_index = self._struct_ccB.unpack_from(data, offset)
+            decode_functions = self._decode_message_map.get(meta_id)
+            if decode_functions is None:
+                raise DropPacket("Unknown meta id [%d]" % ord(meta_id))
+
+            if meta_id == chr(81):
+                if isinstance(decode_functions.meta.resolution, DynamicResolution):
+                    for policy in decode_functions.meta.resolution.policies:
+                        policies.append((decode_functions.meta, policy))
+            else:
+                _, dsettings = super(BaseConversion, self)._decode_dynamic_settings(placeholder,
+                                                                                    0,
+                                                                                    data[offset:offset+3])
+                policies.extend(dsettings.policies)
+
+            offset += 3
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, policies)
+
+    def _decode_authorize(self, placeholder, offset, data):
+        meta = self._decode_message_map.get(chr(81)).meta
+        old_auth = meta.authentication
+        meta._authentication = MemberAuthentication()
+        offset, impl = super(BaseConversion, self)._decode_authorize(placeholder, offset, data)
+        meta._authentication = old_auth
+        return offset, impl
