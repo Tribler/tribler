@@ -264,8 +264,8 @@ class TriblerWindow(QMainWindow):
         self.dialog = ConfirmationDialog(self, "New version available",
                                          "Version %s of Tribler is available.Do you want to visit the website to "
                                          "download the newest version?" % version,
-                                         [('ignore', BUTTON_TYPE_NORMAL), ('later', BUTTON_TYPE_NORMAL),
-                                          ('ok', BUTTON_TYPE_NORMAL)])
+                                         [('IGNORE', BUTTON_TYPE_NORMAL), ('LATER', BUTTON_TYPE_NORMAL),
+                                          ('OK', BUTTON_TYPE_NORMAL)])
         self.dialog.button_clicked.connect(lambda action: self.on_new_version_dialog_done(version, action))
         self.dialog.show()
 
@@ -392,7 +392,7 @@ class TriblerWindow(QMainWindow):
             self.dialog = ConfirmationDialog(self, "Add torrents from directory",
                                              "Are you sure you want to add %d torrents to Tribler?" %
                                              len(self.selected_torrent_files),
-                                             [('add', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
+                                             [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)])
             self.dialog.button_clicked.connect(self.on_confirm_add_directory_dialog)
             self.dialog.show()
 
@@ -413,7 +413,7 @@ class TriblerWindow(QMainWindow):
     def on_add_torrent_from_url(self):
         self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link",
                                          "Please enter the URL/magnet link in the field below:",
-                                         [('add', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)],
+                                         [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
                                          show_input=True)
         self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
         self.dialog.button_clicked.connect(self.on_torrent_from_url_dialog_done)

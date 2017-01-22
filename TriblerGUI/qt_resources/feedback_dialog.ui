@@ -352,7 +352,7 @@ background-color: #303030;
          <string notr="true"/>
         </property>
         <property name="text">
-         <string>send report</string>
+         <string>SEND REPORT</string>
         </property>
        </widget>
       </item>
@@ -377,7 +377,7 @@ background-color: #303030;
          <string notr="true"/>
         </property>
         <property name="text">
-         <string>Cancel</string>
+         <string>CANCEL</string>
         </property>
        </widget>
       </item>

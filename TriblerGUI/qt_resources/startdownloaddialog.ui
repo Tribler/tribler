@@ -61,7 +61,16 @@ color: white;
    <property name="sizeConstraint">
     <enum>QLayout::SetMinimumSize</enum>
    </property>
-   <property name="margin">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
     <number>0</number>
    </property>
    <item>
@@ -79,7 +88,16 @@ color: white;
       <property name="sizeConstraint">
        <enum>QLayout::SetMinimumSize</enum>
       </property>
-      <property name="margin">
+      <property name="leftMargin">
+       <number>12</number>
+      </property>
+      <property name="topMargin">
+       <number>12</number>
+      </property>
+      <property name="rightMargin">
+       <number>12</number>
+      </property>
+      <property name="bottomMargin">
        <number>12</number>
       </property>
       <item>
@@ -148,7 +166,16 @@ color: white;</string>
          <property name="spacing">
           <number>10</number>
          </property>
-         <property name="margin">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
           <number>0</number>
          </property>
          <item>
@@ -191,7 +218,7 @@ padding: 4px;</string>
             </size>
            </property>
            <property name="text">
-            <string>Browse</string>
+            <string>BROWSE</string>
            </property>
           </widget>
          </item>
@@ -220,7 +247,16 @@ padding: 4px;</string>
          <property name="spacing">
           <number>0</number>
          </property>
-         <property name="margin">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
           <number>0</number>
          </property>
          <item>
@@ -463,7 +499,16 @@ background-color: transparent;
       <string notr="true"/>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
-      <property name="margin">
+      <property name="leftMargin">
+       <number>12</number>
+      </property>
+      <property name="topMargin">
+       <number>12</number>
+      </property>
+      <property name="rightMargin">
+       <number>12</number>
+      </property>
+      <property name="bottomMargin">
        <number>12</number>
       </property>
       <item>
@@ -500,7 +545,7 @@ background-color: transparent;
          </size>
         </property>
         <property name="text">
-         <string>Cancel</string>
+         <string>CANCEL</string>
         </property>
        </widget>
       </item>
@@ -525,7 +570,7 @@ background-color: transparent;
          <string notr="true"/>
         </property>
         <property name="text">
-         <string>Download</string>
+         <string>DOWNLOAD</string>
         </property>
        </widget>
       </item>

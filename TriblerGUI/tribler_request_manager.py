@@ -108,7 +108,7 @@ class TriblerRequestManager(QNetworkAccessManager):
     def show_error(self, error_text):
         main_text = "An error occurred during the request:\n\n%s" % error_text
         self.error_dialog = ConfirmationDialog(TriblerRequestManager.window, "Request error",
-                                               main_text, [('close', BUTTON_TYPE_NORMAL)])
+                                               main_text, [('CLOSE', BUTTON_TYPE_NORMAL)])
         self.error_dialog.button_clicked.connect(self.on_error_dialog_cancel_clicked)
         self.error_dialog.show()
 

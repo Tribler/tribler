@@ -179,7 +179,7 @@ class SettingsPage(QWidget):
                                             self.window().download_settings_anon_seeding_checkbox.isChecked())
 
         self.saved_dialog = ConfirmationDialog(TriblerRequestManager.window, "Settings saved",
-                                               "Your settings have been saved.", [('close', BUTTON_TYPE_NORMAL)])
+                                               "Your settings have been saved.", [('CLOSE', BUTTON_TYPE_NORMAL)])
         self.saved_dialog.button_clicked.connect(self.on_dialog_cancel_clicked)
         self.saved_dialog.show()
         self.window().fetch_settings()

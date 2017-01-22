@@ -39,9 +39,9 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
             self.channel_torrent_description.setText("Size: %s" % format_size(float(torrent["size"])))
 
         if torrent["category"]:
-            self.channel_torrent_category.setText(torrent["category"])
+            self.channel_torrent_category.setText(torrent["category"].lower())
         else:
-            self.channel_torrent_category.setText("Unknown")
+            self.channel_torrent_category.setText("unknown")
         self.thumbnail_widget.initialize(torrent["name"], 24)
 
         if torrent["last_tracker_check"] > 0:
