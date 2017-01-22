@@ -30,7 +30,7 @@ from Tribler.Core.defaults import tribler_defaults
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,
                                      NTFY_FINISHED, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
-                                     DLSTATUS_SEEDING)
+                                     DLSTATUS_SEEDING, NTFY_TORRENT)
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
@@ -555,13 +555,13 @@ class TriblerLaunchMany(TaskManager):
             elif state == DLSTATUS_STOPPED_ON_ERROR:
                 self._logger.error("Error during download: %s", repr(ds.get_error()))
                 self.downloads.get(tdef.get_infohash()).stop()
-                self.session.notifier.notify(NTFY_TORRENTS, NTFY_ERROR, tdef.get_infohash(), repr(ds.get_error()))
+                self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, tdef.get_infohash(), repr(ds.get_error()))
             elif state == DLSTATUS_SEEDING:
                 seeding_download_list.append({u'infohash': tdef.get_infohash(),
                                               u'download': download})
 
                 if safename in self.previous_active_downloads:
-                    self.session.notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, tdef.get_infohash(), safename)
+                    self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, tdef.get_infohash(), safename)
                     do_checkpoint = True
 
                 elif download.get_hops() == 0 and download.get_safe_seeding():
