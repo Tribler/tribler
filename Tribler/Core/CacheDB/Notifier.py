@@ -4,7 +4,6 @@
 import logging
 import threading
 
-from Tribler.Core.Utilities.twisted_utils import callInThreadPool
 from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENTS,
                                      NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_MYPREFERENCES,
                                      NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST, NTFY_VOTECAST, NTFY_DISPERSY,
