@@ -42,7 +42,7 @@ class ConfirmationDialog(DialogContainer):
 
     @classmethod
     def show_error(cls, window, title, error_text):
-        error_dialog = ConfirmationDialog(window, title, error_text, [('close', BUTTON_TYPE_NORMAL)])
+        error_dialog = ConfirmationDialog(window, title, error_text, [('CLOSE', BUTTON_TYPE_NORMAL)])
 
         def on_close():
             error_dialog.setParent(None)

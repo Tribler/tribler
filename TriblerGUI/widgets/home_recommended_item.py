@@ -69,42 +69,16 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.download_button.hide()
 
     def on_download_button_clicked(self):
-        gui_settings = self.window().gui_settings
         self.download_uri = quote_plus((u"magnet:?xt=urn:btih:%s&dn=%s" %
                                         (self.torrent_info["infohash"], self.torrent_info['name'])).encode('utf-8'))
-
-        if get_gui_setting(gui_settings, "ask_download_settings", True, is_bool=True):
-            self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri, self.torrent_info["name"])
-            self.dialog.button_clicked.connect(self.on_start_download_action)
-            self.dialog.show()
-        else:
-            self.window().perform_start_download_request(self.download_uri,
-                                                         get_gui_setting(gui_settings, "default_anonymity_enabled",
-                                                                         True, is_bool=True),
-                                                         get_gui_setting(gui_settings, "default_safeseeding_enabled",
-                                                                         True, is_bool=True),
-                                                         self.window().tribler_settings['downloadconfig']['saveas'],
-                                                         [], 0)
-
-    def on_start_download_action(self, action):
-        if action == 1:
-            self.window().perform_start_download_request(self.download_uri,
-                                                         self.dialog.dialog_widget.anon_download_checkbox.isChecked(),
-                                                         self.dialog.dialog_widget.safe_seed_checkbox.isChecked(),
-                                                         self.dialog.dialog_widget.destination_input.text(),
-                                                         self.dialog.get_selected_files(),
-                                                         self.dialog.dialog_widget.files_list_view.topLevelItemCount())
-
-        self.dialog.request_mgr.cancel_request()
-        self.dialog.setParent(None)
-        self.dialog = None
+        self.window().start_download_from_uri(self.download_uri)
 
     def update_with_torrent(self, torrent):
         self.show_torrent = True
         self.torrent_info = torrent
         self.thumbnail_widget.initialize(torrent["name"], HOME_ITEM_FONT_SIZE)
         self.main_label.setText(torrent["name"])
-        self.category_label.setText(torrent["category"])
+        self.category_label.setText(torrent["category"].lower())
         self.category_label.adjustSize()
         self.category_label.setHidden(False)
         self.setCursor(Qt.ArrowCursor)

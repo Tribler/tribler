@@ -45,7 +45,7 @@ class SubscribedChannelsPage(QWidget):
                                          "Please enter the identifier of the channel you want to subscribe to below. "
                                          "It can take up to a minute before the channel is visible in your list of "
                                          "subscribed channels.",
-                                         [('add', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)],
+                                         [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
                                          show_input=True)
         self.dialog.dialog_widget.dialog_input.setPlaceholderText('Channel identifier')
         self.dialog.button_clicked.connect(self.on_subscription_added)

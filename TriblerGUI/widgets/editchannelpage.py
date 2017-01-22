@@ -164,7 +164,7 @@ class EditChannelPage(QWidget):
     def on_torrent_remove_clicked(self, item):
         self.dialog = ConfirmationDialog(self, "Remove selected torrent",
                                          "Are you sure that you want to remove the selected torrent from this channel?",
-                                         [('confirm', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
+                                         [('CONFIRM', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)])
         self.dialog.button_clicked.connect(lambda action: self.on_torrents_remove_selected_action(action, item))
         self.dialog.show()
 
@@ -214,7 +214,7 @@ class EditChannelPage(QWidget):
         self.dialog = ConfirmationDialog(self, "Remove %s selected torrents" % num_selected,
                                          "Are you sure that you want to remove %s selected torrents "
                                          "from your channel?" % num_selected,
-                                         [('confirm', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
+                                         [('CONFIRM', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)])
         self.dialog.button_clicked.connect(lambda action: self.on_torrents_remove_selected_action(action, item))
         self.dialog.show()
 
@@ -222,7 +222,7 @@ class EditChannelPage(QWidget):
         self.dialog = ConfirmationDialog(self.window(), "Remove all torrents",
                                          "Are you sure that you want to remove all torrents from your channel? "
                                          "You cannot undo this action.",
-                                         [('confirm', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
+                                         [('CONFIRM', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)])
         self.dialog.button_clicked.connect(self.on_torrents_remove_all_action)
         self.dialog.show()
 
@@ -260,7 +260,7 @@ class EditChannelPage(QWidget):
     def on_add_torrent_from_url(self):
         self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link",
                                          "Please enter the URL/magnet link in the field below:",
-                                         [('add', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)],
+                                         [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
                                          show_input=True)
         self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
         self.dialog.button_clicked.connect(self.on_torrent_from_url_dialog_done)
@@ -325,7 +325,7 @@ class EditChannelPage(QWidget):
                                          "Remove selected torrent from playlist",
                                          "Are you sure that you want to remove the selected torrent "
                                          "from this playlist?",
-                                         [('confirm', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
+                                         [('CONFIRM', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)])
         self.dialog.button_clicked.connect(lambda action: self.on_playlist_torrent_remove_selected_action(item, action))
         self.dialog.show()
 
@@ -418,7 +418,7 @@ class EditChannelPage(QWidget):
         self.dialog = ConfirmationDialog(self, "Remove selected playlist",
                                          "Are you sure that you want to remove the selected playlist "
                                          "from your channel?",
-                                         [('confirm', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
+                                         [('CONFIRM', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)])
         self.dialog.button_clicked.connect(lambda action: self.on_playlist_remove_selected_action(item, action))
         self.dialog.show()
 
@@ -496,7 +496,7 @@ class EditChannelPage(QWidget):
 
     def on_rss_feed_add_clicked(self):
         self.dialog = ConfirmationDialog(self, "Add RSS feed", "Please enter the RSS feed URL in the field below:",
-                                         [('add', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)],
+                                         [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
                                          show_input=True)
         self.dialog.dialog_widget.dialog_input.setPlaceholderText('RSS feed URL')
         self.dialog.button_clicked.connect(self.on_rss_feed_dialog_added)
@@ -520,7 +520,7 @@ class EditChannelPage(QWidget):
     def on_rss_feeds_remove_selected_clicked(self):
         self.dialog = ConfirmationDialog(self, "Remove RSS feed",
                                          "Are you sure you want to remove the selected RSS feed?",
-                                         [('remove', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
+                                         [('REMOVE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)])
         self.dialog.button_clicked.connect(self.on_rss_feed_dialog_removed)
         self.dialog.show()
 

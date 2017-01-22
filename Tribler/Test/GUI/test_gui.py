@@ -361,7 +361,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
 
         QTest.mouseClick(torrent_widget.torrent_download_button, Qt.LeftButton)
         self.screenshot(window, name="start_download_dialog")
-        QTest.mouseClick(torrent_widget.dialog.dialog_widget.cancel_button, Qt.LeftButton)
+        QTest.mouseClick(window.dialog.dialog_widget.cancel_button, Qt.LeftButton)
 
     def test_create_remove_playlist(self):
         QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)

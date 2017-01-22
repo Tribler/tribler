@@ -17,13 +17,9 @@ class TriblerApplication(QtSingleApplication):
             self.handle_uri(msg)
 
     def handle_uri(self, uri):
-        if not self.activation_window().tribler_started:
-            self.activation_window().pending_uri_requests.append(uri)
-        else:
-            if uri.startswith('file'):
-                self.activation_window().on_selected_torrent_file(uri[5:])
-            elif uri.startswith('magnet'):
-                self.activation_window().on_added_magnetlink(uri)
+        self.activation_window().pending_uri_requests.append(uri)
+        if self.activation_window().tribler_started and not self.activation_window().start_download_dialog_active:
+            self.activation_window().process_uri_request()
 
     def parse_sys_args(self, args):
         for arg in args[1:]:
