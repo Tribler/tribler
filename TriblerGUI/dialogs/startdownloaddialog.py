@@ -1,3 +1,5 @@
+from urllib import unquote_plus
+
 from PyQt5 import uic
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QSizePolicy, QFileDialog, QTreeWidgetItem
@@ -19,8 +21,14 @@ class StartDownloadDialog(DialogContainer):
     button_clicked = pyqtSignal(int)
     received_metainfo = pyqtSignal(dict)
 
-    def __init__(self, parent, download_uri, torrent_name):
+    def __init__(self, parent, download_uri):
         DialogContainer.__init__(self, parent)
+
+        torrent_name = download_uri
+        if torrent_name.startswith('file:'):
+            torrent_name = torrent_name[5:]
+        elif torrent_name.startswith('magnet:'):
+            torrent_name = unquote_plus(torrent_name)
 
         self.download_uri = download_uri
         self.has_metainfo = False

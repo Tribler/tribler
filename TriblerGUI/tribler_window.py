@@ -45,7 +45,7 @@ class MagnetHandler(QObject):
 
     @pyqtSlot(QUrl)
     def on_open_magnet_link(self, url):
-        self.window.on_added_magnetlink(url)
+        self.window.start_download_from_uri(url)
 
 
 class TriblerWindow(QMainWindow):
@@ -91,6 +91,7 @@ class TriblerWindow(QMainWindow):
         self.pending_uri_requests = []
         self.download_uri = None
         self.dialog = None
+        self.start_download_dialog_active = False
         self.request_mgr = None
         self.search_request_mgr = None
         self.search_suggestion_mgr = None
@@ -227,12 +228,16 @@ class TriblerWindow(QMainWindow):
         else:
             self.clicked_menu_button_home()
 
-        # process pending file requests (i.e. someone clicked a torrent file when Tribler was closed)
-        for uri in self.pending_uri_requests:
-            if uri.startswith('file'):
-                self.on_selected_torrent_file(uri[5:])
-            elif uri.startswith('magnet'):
-                self.on_added_magnetlink(uri)
+    def process_uri_request(self):
+        """
+        Process a URI request if we have one in the queue.
+        """
+        if len(self.pending_uri_requests) == 0:
+            return
+
+        uri = self.pending_uri_requests.pop()
+        if uri.startswith('file') or uri.startswith('magnet'):
+            self.start_download_from_uri(uri)
 
     def perform_start_download_request(self, uri, anon_download, safe_seeding, destination, selected_files,
                                        total_files=0, callback=None):
@@ -309,6 +314,10 @@ class TriblerWindow(QMainWindow):
         if not self.tribler_settings['video']['enabled']:
             self.left_menu_button_video_player.setHidden(True)
 
+        # process pending file requests (i.e. someone clicked a torrent file when Tribler was closed)
+        # We do this after receiving the settings so we have the default download location.
+        self.process_uri_request()
+
     def on_top_search_button_click(self):
         self.deselect_all_menu_buttons()
         self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
@@ -336,22 +345,16 @@ class TriblerWindow(QMainWindow):
     def on_add_torrent_browse_file(self):
         filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
         if len(filename[0]) > 0:
-            self.on_selected_torrent_file(filename[0])
+            self.start_download_from_uri(u"file:%s" % filename[0])
 
-    def on_added_magnetlink(self, magnet_link):
-        self.download_uri = magnet_link
-
-        self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri, self.download_uri)
-        self.dialog.button_clicked.connect(self.on_start_download_action)
-        self.dialog.show()
-
-    def on_selected_torrent_file(self, filepath):
-        self.download_uri = u"file:%s" % filepath
+    def start_download_from_uri(self, uri):
+        self.download_uri = uri
 
         if get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True):
-            self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri, filepath)
+            self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri)
             self.dialog.button_clicked.connect(self.on_start_download_action)
             self.dialog.show()
+            self.start_download_dialog_active = True
         else:
             self.window().perform_start_download_request(self.download_uri,
                                                          get_gui_setting(self.gui_settings,
@@ -361,6 +364,7 @@ class TriblerWindow(QMainWindow):
                                                                          "default_safeseeding_enabled", True,
                                                                          is_bool=True),
                                                          self.tribler_settings['downloadconfig']['saveas'], [], 0)
+            self.process_uri_request()
 
     def on_start_download_action(self, action):
         if action == 1:
@@ -371,9 +375,11 @@ class TriblerWindow(QMainWindow):
                                                          self.dialog.get_selected_files(),
                                                          self.dialog.dialog_widget.files_list_view.topLevelItemCount())
 
-        self.dialog.request_mgr.cancel_request()
+        self.dialog.request_mgr.cancel_request()  # To abort the torrent info request
         self.dialog.setParent(None)
         self.dialog = None
+        self.process_uri_request()
+        self.start_download_dialog_active = False
 
     def on_add_torrent_browse_dir(self):
         chosen_dir = QFileDialog.getExistingDirectory(self, "Please select the directory containing the .torrent files",
@@ -412,16 +418,14 @@ class TriblerWindow(QMainWindow):
         self.dialog.show()
 
     def on_torrent_from_url_dialog_done(self, action):
-        self.download_uri = self.dialog.dialog_widget.dialog_input.text()
+        uri = self.dialog.dialog_widget.dialog_input.text()
 
         # Remove first dialog
         self.dialog.setParent(None)
         self.dialog = None
 
         if action == 0:
-            self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri, self.download_uri)
-            self.dialog.button_clicked.connect(self.on_start_download_action)
-            self.dialog.show()
+            self.start_download_from_uri(uri)
 
     def on_download_added(self, result):
         self.window().left_menu_button_downloads.click()
