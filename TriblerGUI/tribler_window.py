@@ -343,9 +343,11 @@ class TriblerWindow(QMainWindow):
         menu.exec_(self.mapToGlobal(self.add_torrent_button.pos()))
 
     def on_add_torrent_browse_file(self):
-        filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
-        if len(filename[0]) > 0:
-            self.start_download_from_uri(u"file:%s" % filename[0])
+        filenames = QFileDialog.getOpenFileNames(self,
+                                                 "Please select the .torrent file", "", "Torrent files (*.torrent)")
+        if len(filenames[0]) > 0:
+            [self.pending_uri_requests.append(u"file:%s" % filename) for filename in filenames[0]]
+            self.process_uri_request()
 
     def start_download_from_uri(self, uri):
         self.download_uri = uri
@@ -378,8 +380,8 @@ class TriblerWindow(QMainWindow):
         self.dialog.request_mgr.cancel_request()  # To abort the torrent info request
         self.dialog.setParent(None)
         self.dialog = None
-        self.process_uri_request()
         self.start_download_dialog_active = False
+        self.process_uri_request()
 
     def on_add_torrent_browse_dir(self):
         chosen_dir = QFileDialog.getExistingDirectory(self, "Please select the directory containing the .torrent files",
@@ -428,7 +430,8 @@ class TriblerWindow(QMainWindow):
             self.start_download_from_uri(uri)
 
     def on_download_added(self, result):
-        self.window().left_menu_button_downloads.click()
+        if len(self.pending_uri_requests) == 0:  # Otherwise, we first process the remaining requests.
+            self.window().left_menu_button_downloads.click()
 
     def on_top_menu_button_click(self):
         if self.left_menu.isHidden():
