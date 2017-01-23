@@ -1,12 +1,12 @@
 from urllib import quote_plus
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem, QAction
 
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.defs import *
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size, format_speed
+from TriblerGUI.widgets.downloadfilewidgetitem import DownloadFileWidgetItem
 
 
 class DownloadsDetailsTabWidget(QTabWidget):
@@ -32,11 +32,8 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
     @staticmethod
     def update_file_row(item, file_info):
-        item.setText(0, file_info["name"])
-        item.setText(1, format_size(float(file_info["size"])))
-        item.setText(2, '{percent:.1%}'.format(percent=file_info["progress"]))
-        item.setText(3, "yes" if file_info["included"] else "no")
-        item.setData(0, Qt.UserRole, file_info)
+        item.file_info = file_info
+        item.update_item()
 
     @staticmethod
     def update_tracker_row(item, tracker):
@@ -106,7 +103,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
             self.window().download_files_list.clear()
             self.files_widgets = {}
             for dfile in self.current_download["files"]:
-                item = QTreeWidgetItem(self.window().download_files_list)
+                item = DownloadFileWidgetItem(self.window().download_files_list, dfile)
                 DownloadsDetailsTabWidget.update_file_row(item, dfile)
                 self.files_widgets[dfile["name"]] = item
 
@@ -137,12 +134,11 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
         for i in range(self.window().download_files_list.topLevelItemCount()):
             item = self.window().download_files_list.topLevelItem(i)
-            file_info = item.data(0, Qt.UserRole)
             is_selected = item in self.window().download_files_list.selectedItems()
-            item_infos.append((item, file_info["included"], is_selected))
+            item_infos.append((item, item.file_info["included"], is_selected))
 
             if is_selected:
-                selected_files_info.append(file_info)
+                selected_files_info.append(item.file_info)
 
         item_clicked = self.window().download_files_list.itemAt(pos)
         if not item_clicked or not item_clicked in self.window().download_files_list.selectedItems():
