@@ -96,6 +96,53 @@ class SpecificTorrentEndpoint(resource.Resource):
         self.infohash = infohash
 
         self.putChild("health", TorrentHealthEndpoint(self.session, self.infohash))
+        self.putChild("trackers", TorrentTrackersEndpoint(self.session, self.infohash))
+
+
+class TorrentTrackersEndpoint(resource.Resource):
+    """
+    This class is responsible for fetching all trackers of a specific torrent.
+    """
+
+    def __init__(self, session, infohash):
+        resource.Resource.__init__(self)
+        self.session = session
+        self.infohash = infohash
+        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /torrents/(string: torrent infohash)/tracker
+
+        Fetch all trackers of a specific torrent.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl http://localhost:8085/torrents/97d2d8f5d37e56cfaeaae151d55f05b077074779/trackers
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "trackers": [
+                        "http://mytracker.com:80/announce",
+                        "udp://fancytracker.org:1337/announce"
+                    ]
+                }
+
+            :statuscode 404: if the torrent is not found in the database
+        """
+        torrent_info = self.torrent_db.getTorrent(self.infohash.decode('hex'), ['C.torrent_id', 'num_seeders'])
+
+        if torrent_info is None:
+            request.setResponseCode(http.NOT_FOUND)
+            return json.dumps({"error": "torrent not found in database"})
+
+        trackers = self.torrent_db.getTrackerListByInfohash(self.infohash.decode('hex'))
+        return json.dumps({"trackers": trackers})
 
 
 class TorrentHealthEndpoint(resource.Resource):
