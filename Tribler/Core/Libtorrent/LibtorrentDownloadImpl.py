@@ -1067,6 +1067,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 # stopped before, pstate_for_restart contains its resumedata.
                 # and that should be written into the checkpoint.
                 #
+                self.cancel_pending_task("check_create_wrapper")
+                if self.dlstate == DLSTATUS_CIRCUITS:
+                    self.dlstate = DLSTATUS_STOPPED
+
                 if self.pstate_for_restart is not None:
                     self._logger.debug(
                         "LibtorrentDownloadImpl: network_stop: Reusing previously saved engineresume data for checkpoint")
