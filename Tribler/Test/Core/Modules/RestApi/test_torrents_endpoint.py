@@ -49,6 +49,36 @@ class TestTorrentsEndpoint(AbstractApiTest):
         return self.do_request('torrents/random?limit=-5', expected_code=400, expected_json=expected_json)
 
 
+class TestTorrentTrackersEndpoint(AbstractApiTest):
+
+    @deferred(timeout=10)
+    def test_get_torrent_trackers_404(self):
+        """
+        Testing whether we get an error 404 if we are fetching the trackers of a non-existent torrent
+        """
+        self.should_check_equality = False
+        return self.do_request('torrents/%s/trackers' % ('a' * 40), expected_code=404)
+
+    @deferred(timeout=10)
+    def test_get_torrent_trackers(self):
+        """
+        Testing whether fetching the trackers of a non-existent torrent is successful
+        """
+        torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        torrent_db.addExternalTorrentNoDef('a' * 20, 'ubuntu-torrent.iso', [['file1.txt', 42]],
+                                           ('udp://trackerurl.com:1234/announce',
+                                            'http://trackerurl.com:4567/announce'), time.time())
+
+        def verify_trackers(trackers):
+            self.assertIn('DHT', trackers)
+            self.assertIn('udp://trackerurl.com:1234', trackers)
+            self.assertIn('http://trackerurl.com:4567/announce', trackers)
+
+        self.should_check_equality = False
+        return self.do_request('torrents/%s/trackers' % ('a' * 20).encode('hex'), expected_code=200)\
+            .addCallback(verify_trackers)
+
+
 class TestTorrentHealthEndpoint(AbstractApiTest):
 
     @blocking_call_on_reactor_thread
