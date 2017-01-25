@@ -21,6 +21,12 @@ class TorrentInfoEndpoint(resource.Resource):
         self.session = session
         self.infohash = None
 
+    def finish_request(self, request):
+        try:
+            request.finish()
+        except RuntimeError:
+            self._logger.warning("Writing response failed, probably the client closed the connection already.")
+
     def render_GET(self, request):
         """
         .. http:get:: /torrentinfo
@@ -53,18 +59,18 @@ class TorrentInfoEndpoint(resource.Resource):
                     pass
 
             request.write(json.dumps({"metainfo": fix_unicode_dict(metainfo)}))
-            request.finish()
+            self.finish_request(request)
 
         def on_metainfo_timeout(_):
             request.setResponseCode(http.REQUEST_TIMEOUT)
             request.write(json.dumps({"error": "timeout"}))
-            request.finish()
+            self.finish_request(request)
 
         def on_lookup_error(failure):
             failure.trap(ConnectError, DNSLookupError)
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
             request.write(json.dumps({"error": failure.getErrorMessage()}))
-            request.finish()
+            self.finish_request(request)
 
         if 'uri' not in request.args or len(request.args['uri']) == 0:
             request.setResponseCode(http.BAD_REQUEST)
