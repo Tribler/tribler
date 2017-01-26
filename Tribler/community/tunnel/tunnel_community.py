@@ -1353,9 +1353,8 @@ class TunnelCommunity(Community):
                                                self.relay_session_keys[circuit_id][EXIT_NODE_SALT])
             except InvalidTag as e:
                 raise CryptoException("Got exception %r when trying to decrypt relay message: "
-                                      "%r received for circuit_id: %s, is_data: %i, "
-                                      "circuit_hops: %r" % (e, content, circuit_id, is_data, circuit.hops
-                                      ))
+                                      "%r received for circuit_id: %s, is_data: %i, " %
+                                      (e, content, circuit_id, is_data))
 
         raise CryptoException("Received message for unknown circuit ID: %d" % circuit_id)
 
