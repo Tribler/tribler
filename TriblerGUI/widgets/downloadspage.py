@@ -238,7 +238,8 @@ class DownloadsPage(QWidget):
             infohash = self.selected_item.download_info["infohash"]
             index = self.window().downloads_list.indexOfTopLevelItem(self.selected_item)
             self.window().downloads_list.takeTopLevelItem(index)
-            del self.download_widgets[infohash]
+            if infohash in self.download_widgets:  # Could have been removed already through API
+                del self.download_widgets[infohash]
             self.window().download_details_widget.hide()
 
     def on_force_recheck_download(self):
