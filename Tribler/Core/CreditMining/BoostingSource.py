@@ -257,11 +257,9 @@ class ChannelSource(BoostingSource):
             # dict {key_infohash(binary):Torrent(tuples)}
             self.unavail_torrent.update({t[2]: t for t in torrent_values if t[2] not in self.torrents})
 
-            # it's highly probable the checktor function is running at this time (if it's already running)
-            # if not running, start the checker
-
-            task_call = self.register_task(hexlify(self.source) + "_checktor", LoopingCall(self._check_tor))
-            if task_call:
+            # Start the torrent channel checker in the first run
+            if not self.is_pending_task_active(hexlify(self.source) + "_checktor"):
+                task_call = self.register_task(hexlify(self.source) + "_checktor", LoopingCall(self._check_tor))
                 self._logger.debug("Registering check torrent function")
                 task_call.start(self.check_torrent_interval, now=True)
 
