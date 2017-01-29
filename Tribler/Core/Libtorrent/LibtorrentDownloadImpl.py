@@ -1100,9 +1100,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     def restart(self):
         """ Restart the Download """
-        # Called by any thread
         self.set_user_stopped(False)
         self._logger.debug("LibtorrentDownloadImpl: restart: %s", self.tdef.get_name())
+
+        # We stop a previous restart if it's active
+        self.cancel_pending_task("check_create_wrapper")
 
         with self.dllock:
             if self.handle is None:
