@@ -36,7 +36,7 @@ class EventRequestManager(QNetworkAccessManager):
         self._logger = logging.getLogger('TriblerGUI')
 
     def on_error(self, error, reschedule_on_err):
-        self._logger.error("Got Tribler core error: %s" % error)
+        self._logger.info("Got Tribler core error: %s" % error)
         if error == QNetworkReply.ConnectionRefusedError:
             if self.failed_attempts == 40:
                 raise RuntimeError("Could not connect with the Tribler Core within 20 seconds")
