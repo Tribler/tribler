@@ -3,7 +3,7 @@ from binascii import hexlify
 from nose.tools import raises
 from twisted.internet.defer import Deferred, inlineCallbacks
 
-from Tribler.Core.Session import Session
+from Tribler.Core.Session import Session, SOCKET_BLOCK_ERRORCODE
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException, DuplicateTorrentFileError
@@ -91,15 +91,18 @@ class TestSessionAsServer(TestAsServer):
         yield super(TestSessionAsServer, self).setUp(autoload_discovery=autoload_discovery)
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
 
-    def test_unhandled_error_observer(self):
-        """
-        Test the unhandled error observer
-        """
+    def mock_endpoints(self):
         self.session.lm.api_manager = MockObject()
         self.session.lm.api_manager.stop = lambda: None
         self.session.lm.api_manager.root_endpoint = MockObject()
         self.session.lm.api_manager.root_endpoint.events_endpoint = MockObject()
         self.session.lm.api_manager.root_endpoint.state_endpoint = MockObject()
+
+    def test_unhandled_error_observer(self):
+        """
+        Test the unhandled error observer
+        """
+        self.mock_endpoints()
 
         expected_text = ""
 
@@ -113,6 +116,23 @@ class TestSessionAsServer(TestAsServer):
         self.session.unhandled_error_observer({'isError': True, 'log_legacy': True, 'log_text': 'abcd'})
         expected_text = "defg"
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'defg'})
+
+    def test_error_observer_ignored_error(self):
+        """
+        Testing whether some errors are ignored (like socket errors)
+        """
+        self.mock_endpoints()
+
+        def on_tribler_exception(_):
+            raise RuntimeError("This method cannot be called!")
+
+        self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception = on_tribler_exception
+        self.session.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception = on_tribler_exception
+
+        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 113]'})
+        self.session.unhandled_error_observer({'isError': True,
+                                               'log_failure': 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
+
 
     @deferred(timeout=10)
     def test_add_torrent_def_to_channel(self):
