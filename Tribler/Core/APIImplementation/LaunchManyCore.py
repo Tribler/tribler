@@ -2,10 +2,8 @@
 # Updated by Niels Zeilemaker
 # see LICENSE.txt for license information
 import binascii
-import errno
 import logging
 import os
-import sys
 import time as timemod
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
@@ -39,11 +37,6 @@ try:
     import prctl
 except ImportError:
     pass
-
-if sys.platform == 'win32':
-    SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
-else:
-    SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
 
 
 # Internal classes
