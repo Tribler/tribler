@@ -303,10 +303,14 @@ class TriblerWindow(QMainWindow):
 
     def fetch_settings(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("settings", self.received_settings)
+        self.request_mgr.perform_request("settings", self.received_settings, capture_errors=False)
 
     def received_settings(self, settings):
-        self.tribler_settings = settings['settings']
+        # If we cannot receive the settings, stop Tribler with an option to send the crash report.
+        if 'error' in settings:
+            raise RuntimeError(TriblerRequestManager.get_message_from_error(settings))
+        else:
+            self.tribler_settings = settings['settings']
 
         # Disable various components based on the settings
         if not self.tribler_settings['search_community']['enabled']:
