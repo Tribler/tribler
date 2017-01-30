@@ -339,8 +339,11 @@ class TriblerLaunchMany(TaskManager):
             infohash = tdef.get_infohash()
 
             # Create the destination directory if it does not exist yet
-            if not os.path.isdir(dscfg.get_dest_dir()):
-                os.makedirs(dscfg.get_dest_dir())
+            try:
+                if not os.path.isdir(dscfg.get_dest_dir()):
+                    os.makedirs(dscfg.get_dest_dir())
+            except OSError:
+                self._logger.error("Unable to create the download destination directory.")
 
             if dscfg.get_time_added() == 0:
                 dscfg.set_time_added(int(timemod.time()))
