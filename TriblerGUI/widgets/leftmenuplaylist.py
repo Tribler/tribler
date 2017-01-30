@@ -10,6 +10,7 @@ class LeftMenuPlaylist(QListWidget):
     """
 
     playing_item_change = pyqtSignal(int, str)  # file index, name of file
+    item_should_play = pyqtSignal()  # no info required, a double click always follow a click event
 
     def __init__(self, parent):
         QListWidget.__init__(self, parent)
@@ -18,6 +19,7 @@ class LeftMenuPlaylist(QListWidget):
         self.loaded_list = False
         self.active_index = -1
         self.itemClicked.connect(self.on_item_clicked)
+        self.itemDoubleClicked.connect(self.on_item_double_clicked)
 
     def set_loading(self):
         self.clear()
@@ -46,3 +48,6 @@ class LeftMenuPlaylist(QListWidget):
     def on_item_clicked(self, item):
         item_ind = self.row(item)
         self.playing_item_change.emit(*self.files_data[item_ind])
+
+    def on_item_double_clicked(self, item):
+        self.item_should_play.emit()
