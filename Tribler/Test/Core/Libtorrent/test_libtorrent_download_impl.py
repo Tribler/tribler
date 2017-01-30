@@ -8,6 +8,7 @@ from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImp
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
@@ -360,6 +361,30 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         mock_alert.message = lambda: 'test'
         self.libtorrent_download_impl.process_alert(mock_alert, 'tracker_warning_alert')
         self.assertEqual(self.libtorrent_download_impl.tracker_status[url][1], 'Warning: test')
+
+    @deferred(timeout=10)
+    def test_on_metadata_received_alert(self):
+        """
+        Testing whether the right operations happen when we receive metadata
+        """
+        test_deferred = Deferred()
+
+        def mocked_checkpoint():
+            test_deferred.callback(None)
+
+        self.libtorrent_download_impl.handle.trackers = lambda: []
+        self.libtorrent_download_impl.handle.save_resume_data = lambda: None
+        torrent_dict = {'name': 'test', 'piece length': 42, 'pieces': '', 'files': []}
+        get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: lt.bencode(torrent_dict)
+
+        self.libtorrent_download_impl.checkpoint = mocked_checkpoint
+        self.libtorrent_download_impl.session = MockObject()
+        self.libtorrent_download_impl.session.lm = MockObject()
+        self.libtorrent_download_impl.session.lm.rtorrent_handler = None
+        self.libtorrent_download_impl.session.lm.torrent_db = None
+        self.libtorrent_download_impl.on_metadata_received_alert(None)
+
+        return test_deferred
 
     def test_torrent_checked_alert(self):
         """

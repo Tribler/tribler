@@ -111,6 +111,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.tdef = tdef
         self.handle = None
         self.vod_index = None
+        self.orig_files = None
 
         # Just enough so error saving and get_state() works
         self.error = None
@@ -588,17 +589,17 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.tracker_status[alert.url] = [peers, status]
 
     def on_metadata_received_alert(self, alert):
-        self.metadata = {'info': lt.bdecode(get_info_from_handle(self.handle).metadata())}
+        metadata = {'info': lt.bdecode(get_info_from_handle(self.handle).metadata())}
 
         trackers = [tracker['url'] for tracker in self.handle.trackers()]
         if trackers:
             if len(trackers) > 1:
-                self.metadata["announce-list"] = [trackers]
+                metadata["announce-list"] = [trackers]
             else:
-                self.metadata["announce"] = trackers[0]
+                metadata["announce"] = trackers[0]
 
-        self.tdef = TorrentDef.load_from_dict(self.metadata)
-        self.orig_files = [torrent_file.path.decode('utf-8') for torrent_file in lt.torrent_info(self.metadata).files()]
+        self.tdef = TorrentDef.load_from_dict(metadata)
+        self.orig_files = [torrent_file.path.decode('utf-8') for torrent_file in lt.torrent_info(metadata).files()]
         self.set_corrected_infoname()
         self.set_filepieceranges()
 
