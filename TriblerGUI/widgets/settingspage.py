@@ -165,6 +165,8 @@ class SettingsPage(QWidget):
         settings_data['Tribler']['default_number_hops'] = self.window().number_hops_slider.value() + 1
         settings_data['multichain']['enabled'] = self.window().multichain_enabled_checkbox.isChecked()
 
+        self.window().settings_save_button.setEnabled(False)
+
         self.settings_request_mgr = TriblerRequestManager()
         self.settings_request_mgr.perform_request("settings", self.on_settings_saved,
                                                   method='POST', data=json.dumps(settings_data))
@@ -185,5 +187,6 @@ class SettingsPage(QWidget):
         self.window().fetch_settings()
 
     def on_dialog_cancel_clicked(self, _):
+        self.window().settings_save_button.setEnabled(True)
         self.saved_dialog.setParent(None)
         self.saved_dialog = None

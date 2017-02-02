@@ -77,6 +77,7 @@ class VideoPlayerPage(QWidget):
         self.update_timer.start(500)
 
         self.window().left_menu_playlist.playing_item_change.connect(self.change_playing_index)
+        self.window().left_menu_playlist.item_should_play.connect(self.on_play_pause_button_click)
         self.window().video_player_play_pause_button.setEnabled(False)
 
     def hide_video_widgets(self):

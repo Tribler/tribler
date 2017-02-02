@@ -76,6 +76,14 @@ class TriblerRequestManager(QNetworkAccessManager):
 
         self.finished.connect(lambda reply: self.on_finished(reply, capture_errors))
 
+    @staticmethod
+    def get_message_from_error(error):
+        if isinstance(error['error'], (str, unicode)):
+            return error['error']
+        elif 'message' in error['error']:
+            return error['error']['message']
+        return "Unknown error"
+
     def on_finished(self, reply, capture_errors):
         performed_requests[self.request_id][4] = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
 
@@ -84,10 +92,7 @@ class TriblerRequestManager(QNetworkAccessManager):
             json_result = json.loads(str(data))
 
             if 'error' in json_result and capture_errors:
-                if isinstance(json_result['error'], (str, unicode)):
-                    self.show_error(json_result['error'])
-                elif 'message' in json_result['error']:
-                    self.show_error(json_result['error']['message'])
+                self.show_error(TriblerRequestManager.get_message_from_error(json_result))
             else:
                 self.received_json.emit(json_result, reply.error())
         except ValueError:

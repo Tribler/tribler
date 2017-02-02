@@ -160,6 +160,11 @@ class TestSessionConfig(TriblerCoreTest):
 
         sci.load(file_path)
 
+    def test_startup_session_invalid_port(self):
+        sci = SessionConfigInterface()
+        sci.set_mainline_dht_listen_port("abcd")
+        self.assertTrue(isinstance(sci.get_mainline_dht_listen_port(), int))
+
     @raises(IOError)
     def test_startup_session_load_corrupt(self):
         sci = SessionStartupConfig()

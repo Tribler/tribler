@@ -49,18 +49,19 @@ class StartDownloadDialog(DialogContainer):
 
         self.dialog_widget.torrent_name_label.setText(torrent_name)
 
+        self.dialog_widget.anon_download_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
         self.dialog_widget.safe_seed_checkbox.setChecked(get_gui_setting(gui_settings, "default_safeseeding_enabled",
                                                                          True, is_bool=True))
         self.dialog_widget.anon_download_checkbox.setChecked(get_gui_setting(gui_settings, "default_anonymity_enabled",
                                                                              True, is_bool=True))
 
         self.dialog_widget.safe_seed_checkbox.setEnabled(self.dialog_widget.anon_download_checkbox.isChecked())
-        self.dialog_widget.anon_download_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
 
         self.perform_files_request()
         self.dialog_widget.files_list_view.setHidden(True)
         self.dialog_widget.download_files_container.setHidden(True)
         self.dialog_widget.adjustSize()
+        self.on_anon_download_state_changed(None)
 
         self.on_main_window_resize()
 

@@ -1,10 +1,12 @@
-import hashlib
 import logging
 import os
 from twisted.internet.task import LoopingCall
+
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.utilities import fix_torrent
-from Tribler.Core.simpledefs import NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT
+from Tribler.Core.simpledefs import NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, STATEDIR_GUICONFIG
 from Tribler.dispersy.taskmanager import TaskManager
 
 
@@ -18,6 +20,11 @@ class WatchFolder(TaskManager):
 
         self._logger = logging.getLogger(self.__class__.__name__)
         self.session = session
+
+        gui_config_file_path = os.path.join(self.session.get_state_dir(), STATEDIR_GUICONFIG)
+        config = CallbackConfigParser()
+        config.read_file(gui_config_file_path, 'utf-8-sig')
+        self.tribler_gui_config = config.get_config_as_json()
 
     def start(self):
         self.register_task("check watch folder", LoopingCall(self.check_watch_folder))\
@@ -47,4 +54,10 @@ class WatchFolder(TaskManager):
 
                 if not self.session.has_download(infohash):
                     self._logger.info("Starting download from torrent file %s", name)
-                    self.session.lm.ltmgr.start_download(tdef=tdef)
+                    dl_config = DefaultDownloadStartupConfig.getInstance().copy()
+
+                    anon_enabled = self.tribler_gui_config['Tribler']['default_anonymity_enabled']
+                    default_num_hops = self.tribler_gui_config['Tribler']['default_number_hops']
+                    dl_config.set_hops(default_num_hops if anon_enabled else 0)
+                    dl_config.set_safe_seeding(self.tribler_gui_config['Tribler']['default_safeseeding_enabled'])
+                    self.session.lm.ltmgr.start_download(tdef=tdef, dconfig=dl_config)
