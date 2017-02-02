@@ -105,7 +105,10 @@ class Options(usage.Options):
     ]
 
 
-logging.config.fileConfig("logger.conf")
+if not os.path.exists("logger.conf"):
+    print "Unable to find logger.conf"
+else:
+    logging.config.fileConfig("logger.conf")
 logger = logging.getLogger('TunnelMain')
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
