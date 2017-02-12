@@ -220,24 +220,18 @@ class Socks5Connection(Protocol):
         self._logger.error("DENYING SOCKS5 request, reason: %s" % reason)
 
     def on_udp_associate_request(self, connection, request):
-        if self.selection_strategy.has_options(self.hops):
-            # The DST.ADDR and DST.PORT fields contain the address and port that the client expects
-            # to use to send UDP datagrams on for the association.  The server MAY use this information
-            # to limit access to the association.
-            self._udp_socket = SocksUDPConnection(self, request.destination)
-            ip = self.transport.getHost().host
-            port = self._udp_socket.get_listen_port()
+        # The DST.ADDR and DST.PORT fields contain the address and port that the client expects
+        # to use to send UDP datagrams on for the association.  The server MAY use this information
+        # to limit access to the association.
+        self._udp_socket = SocksUDPConnection(self, request.destination)
+        ip = self.transport.getHost().host
+        port = self._udp_socket.get_listen_port()
 
-            self._logger.info("Accepting UDP ASSOCIATE request to %s:%d", ip, port)
+        self._logger.info("Accepting UDP ASSOCIATE request to %s:%d", ip, port)
 
-            response = conversion.encode_reply(
-                0x05, conversion.REP_SUCCEEDED, 0x00, conversion.ADDRESS_TYPE_IPV4, ip, port)
-            self.transport.write(response)
-
-        else:
-            reason = "not enough circuits"
-            self.deny_request(request, reason)
-            self.close(reason)
+        response = conversion.encode_reply(
+            0x05, conversion.REP_SUCCEEDED, 0x00, conversion.ADDRESS_TYPE_IPV4, ip, port)
+        self.transport.write(response)
 
     def select(self, destination):
         if destination not in self.destinations:

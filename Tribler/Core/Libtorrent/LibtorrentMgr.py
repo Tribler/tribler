@@ -129,6 +129,7 @@ class LibtorrentMgr(TaskManager):
             settings['enable_outgoing_tcp'] = False
             settings['enable_incoming_tcp'] = False
             settings['anonymous_mode'] = True
+            settings['force_proxy'] = True
             # No PEX for anonymous sessions
             ltsession = lt.session(flags=0)
             ltsession.add_extension(lt.create_ut_metadata_plugin)
