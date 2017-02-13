@@ -674,15 +674,17 @@ class TorrentDBHandler(BasicDBHandler):
                 # have to use bencode to get around the TorrentDef.is_finalized() check in TorrentDef.encode()
                 self.session.save_collected_torrent(infohash, bencode(tdef.metainfo))
 
-    def getTorrentsOnTracker(self, tracker, current_time):
+    def getTorrentsOnTracker(self, tracker, current_time, limit=30):
         sql = """
             SELECT T.infohash
               FROM Torrent T, TrackerInfo TI, TorrentTrackerMapping TTM
               WHERE TI.tracker = ?
               AND TI.tracker_id = TTM.tracker_id AND T.torrent_id = TTM.torrent_id
               AND next_tracker_check < ?
+              ORDER BY next_tracker_check DESC
+              LIMIT ?
             """
-        return [str2bin(tinfo[0]) for tinfo in self._db.fetchall(sql, (tracker, current_time))]
+        return [str2bin(tinfo[0]) for tinfo in self._db.fetchall(sql, (tracker, current_time, limit))]
 
     def getTrackerListByTorrentID(self, torrent_id):
         sql = 'SELECT TR.tracker FROM TrackerInfo TR, TorrentTrackerMapping MP'\
