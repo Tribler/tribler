@@ -76,8 +76,10 @@ class SocksUDPConnection(DatagramProtocol):
 
     def close(self):
         if self.listen_port:
-            self.listen_port.stopListening()
+            exit_value = self.listen_port.stopListening()
             self.listen_port = None
+            return exit_value
+        return True
 
 
 class Socks5Connection(Protocol):
@@ -281,11 +283,13 @@ class Socks5Connection(Protocol):
 
     def close(self, reason='unspecified'):
         self._logger.info("Closing session, reason %s", reason)
+        exit_value = True
         if self._udp_socket:
-            self._udp_socket.close()
+            exit_value = self._udp_socket.close()
             self._udp_socket = None
 
         self.transport.loseConnection()
+        return exit_value
 
 
 class Socks5Server(object):
@@ -309,7 +313,7 @@ class Socks5Server(object):
 
         if self.twisted_ports:
             for session in self.sessions:
-                session.close('stopping')
+                deferred_list.append(maybeDeferred(session.close, 'stopping'))
             self.sessions = []
 
             for twisted_port in self.twisted_ports:
