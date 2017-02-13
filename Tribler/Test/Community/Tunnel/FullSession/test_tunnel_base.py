@@ -143,6 +143,7 @@ class TestTunnelBase(TestAsServer):
         returnValue(self.load_tunnel_community_in_session(session, exitnode=exitnode))
 
     @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setup_tunnel_seeder(self, hops):
         """
         Setup the seeder.
@@ -160,11 +161,18 @@ class TestTunnelBase(TestAsServer):
         tdef = TorrentDef()
         tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))
         tdef.set_tracker("http://localhost/announce")
-        tdef.set_private()  # disable dht
         tdef.finalize()
         torrentfn = os.path.join(self.session2.get_state_dir(), "gen.torrent")
         tdef.save(torrentfn)
         self.seed_tdef = tdef
+
+        if hops > 0:  # Safe seeding enabled
+            self.tunnel_community_seeder = self.load_tunnel_community_in_session(self.session2)
+            self.tunnel_community_seeder.build_tunnels(hops)
+
+            from twisted.internet import reactor, task
+            while not list(self.tunnel_community_seeder.active_data_circuits()):
+                yield task.deferLater(reactor, .05, lambda: None)
 
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
@@ -172,14 +180,13 @@ class TestTunnelBase(TestAsServer):
         d = self.session2.start_download_from_tdef(tdef, dscfg)
         d.set_state_callback(self.seeder_state_callback)
 
-        if hops > 0:  # Safe seeding enabled
-            self.tunnel_community_seeder = self.load_tunnel_community_in_session(self.session2)
-
     def seeder_state_callback(self, ds):
         """
         The callback of the seeder download. For now, this only logs the state of the download that's seeder and is
         useful for debugging purposes.
         """
+        if self.tunnel_community_seeder:
+            self.tunnel_community_seeder.monitor_downloads([ds])
         d = ds.get_download()
         self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()),
                            dlstatus_strings[ds.get_status()], ds.get_progress())

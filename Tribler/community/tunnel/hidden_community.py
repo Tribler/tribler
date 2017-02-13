@@ -616,6 +616,8 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def create_introduction_point(self, info_hash, amount=1):
         # Create a separate key per infohash
+        self.find_download(info_hash).add_peer(('1.1.1.1', 1024))
+
         if info_hash not in self.session_keys:
             self.session_keys[info_hash] = self.crypto.generate_key(u"curve25519")
 
