@@ -887,7 +887,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         status = self.handle.status()
         numTotSeeds = status.num_complete if status.num_complete >= 0 else status.list_seeds
         numTotPeers = status.num_incomplete if status.num_incomplete >= 0 else status.list_peers
-        numleech = status.num_peers - status.num_seeds
+        numleech = max(status.num_peers - status.num_seeds, 0)  # When anon downloading, this might become negative
         numseeds = status.num_seeds
         pieces = status.pieces
         upTotal = status.all_time_upload
