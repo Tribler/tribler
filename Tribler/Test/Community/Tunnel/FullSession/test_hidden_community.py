@@ -21,7 +21,6 @@ class FakeDHT(object):
         This mocked method simply adds a peer to the DHT dictionary and invokes the callback.
         """
         if bt_port != 0:
-            print "inserting %s" % (self.dht_dict.get(lookup_id, []) + [('127.0.0.1', bt_port)])
             self.dht_dict[lookup_id] = self.dht_dict.get(lookup_id, []) + [('127.0.0.1', bt_port)]
         callback_f(lookup_id, self.dht_dict.get(lookup_id, None), None)
 
@@ -61,10 +60,13 @@ class TestHiddenTunnelCommunity(TestTunnelBase):
                 self._logger.debug("announced %s to the DHT", info_hash.encode('hex'))
                 self.dht_deferred.callback(None)
             port = community.trsession.get_dispersy_port()
+            if not community.trsession.lm.mainline_dht:
+                community.trsession.lm.mainline_dht = FakeDHT(self.dht_dict)
             community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
 
         for community in self.tunnel_communities:
             community.dht_announce = lambda ih, com=community: dht_announce(ih, com)
+            community.settings.dht_lookup_interval = 0
 
         return self.dht_deferred
 
@@ -72,8 +74,7 @@ class TestHiddenTunnelCommunity(TestTunnelBase):
         for session in self.sessions + [self.session]:
             session.lm.mainline_dht = FakeDHT(self.dht_dict)
 
-    @skip("This test fails most of the time. Temporarily disabled, see issue #1826 on GitHub")
-    @deferred(timeout=100)
+    @deferred(timeout=50)
     @inlineCallbacks
     def test_hidden_services(self):
         """
@@ -90,6 +91,11 @@ class TestHiddenTunnelCommunity(TestTunnelBase):
                 self.test_deferred.callback(None)
                 return 0.0, False
             return 2.0, False
+
+        self.tunnel_community.build_tunnels(1)
+        from twisted.internet import reactor, task
+        while not list(self.tunnel_community.active_data_circuits()):
+            yield task.deferLater(reactor, .05, lambda: None)
 
         download = self.start_anon_download(hops=1)
         download.set_state_callback(download_state_callback)
