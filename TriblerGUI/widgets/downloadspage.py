@@ -267,16 +267,23 @@ class DownloadsPage(QWidget):
         self.export_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory", "",
                                                            QFileDialog.ShowDirsOnly)
 
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.download_file("downloads/%s/torrent" % self.selected_item.download_info['infohash'],
-                                       self.on_export_download_request_done)
+        if len(self.export_dir) > 0:
+            self.request_mgr = TriblerRequestManager()
+            self.request_mgr.download_file("downloads/%s/torrent" % self.selected_item.download_info['infohash'],
+                                           self.on_export_download_request_done)
 
     def on_export_download_request_done(self, filename, data):
         dest_path = os.path.join(self.export_dir, filename)
-        with open(dest_path, "wb") as torrent_file:
+        try:
+            torrent_file = open(dest_path, "wb")
             torrent_file.write(data)
-
-        self.window().tray_icon.showMessage("Torrent file exported", "Torrent file exported to %s" % dest_path)
+            torrent_file.close()
+        except IOError as exc:
+            ConfirmationDialog.show_error(self.window(),
+                                          "Error when exporting file",
+                                          "An error occurred when exporting the torrent file: %s" % str(exc))
+        else:
+            self.window().tray_icon.showMessage("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
     def on_right_click_item(self, pos):
         item_clicked = self.window().downloads_list.itemAt(pos)
