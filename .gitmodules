@@ -4,3 +4,6 @@
 [submodule "Tribler/Core/DecentralizedTracking/pymdht"]
 	path = Tribler/Core/DecentralizedTracking/pymdht
 	url = https://github.com/devos50/pymdht.git
+[submodule "Tribler/community/TriblerProtobufSerialization"]
+	path = Tribler/community/TriblerProtobufSerialization
+	url = https://github.com/qstokkink/TriblerProtobufSerialization.git

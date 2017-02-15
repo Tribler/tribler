@@ -1,14 +1,12 @@
-from random import sample
+from random import randint, sample
 from time import time
 from twisted.internet.defer import returnValue, inlineCallbacks
 
 from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
 
-from .conversion import AllChannelConversion
 from Tribler.community.allchannel.message import DelayMessageReqChannelMessage
-from Tribler.community.allchannel.payload import (ChannelCastRequestPayload, ChannelCastPayload, VoteCastPayload,
-                                                  ChannelSearchPayload, ChannelSearchResponsePayload)
+from Tribler.community.basecommunity import BaseCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.dispersy.authentication import MemberAuthentication
@@ -21,6 +19,8 @@ from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.message import Message, BatchConfiguration
 from Tribler.dispersy.resolution import PublicResolution
 
+# TODO REMOVE BACKWARD COMPATIBILITY: Delete this import
+from Tribler.community.allchannel.compatibility import AllChannelConversion, AllChannelCompatibility
 
 CHANNELCAST_FIRST_MESSAGE = 3.0
 CHANNELCAST_INTERVAL = 15.0
@@ -29,8 +29,7 @@ UNLOAD_COMMUNITY_INTERVAL = 60.0
 
 DEBUG = False
 
-
-class AllChannelCommunity(Community):
+class AllChannelCommunity(BaseCommunity):
 
     """
     A single community that all Tribler members join and use to disseminate .torrent files.
@@ -66,55 +65,48 @@ class AllChannelCommunity(Community):
         return self._dispersy_claim_sync_bloom_filter_modulo
 
     def initiate_meta_messages(self):
-        batch_delay = 1.0
+        self.register_traversal("ChannelCast",
+                                MemberAuthentication(),
+                                PublicResolution(),
+                                DirectDistribution(),
+                                CandidateDestination())
+        self.register_traversal("ChannelCastRequest",
+                                MemberAuthentication(),
+                                PublicResolution(),
+                                DirectDistribution(),
+                                CandidateDestination())
+        self.register_traversal("ChannelSearch",
+                                MemberAuthentication(),
+                                PublicResolution(),
+                                DirectDistribution(),
+                                CommunityDestination(node_count=10))
+        self.register_traversal("ChannelSearchResponse",
+                                MemberAuthentication(),
+                                PublicResolution(),
+                                DirectDistribution(),
+                                CandidateDestination())
+        self.register_traversal("Votecast",
+                                MemberAuthentication(),
+                                PublicResolution(),
+                                FullSyncDistribution(enable_sequence_number=False,
+                                                     synchronization_direction=u"DESC",
+                                                     priority=128),
+                                CommunityDestination(node_count=10))
 
-        return super(AllChannelCommunity, self).initiate_meta_messages() + [
-            Message(self, u"channelcast",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    ChannelCastPayload(),
-                    self.check_channelcast,
-                    self.on_channelcast),
-            Message(self, u"channelcast-request",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    ChannelCastRequestPayload(),
-                    self.check_channelcast_request,
-                    self.on_channelcast_request),
-            Message(self, u"channelsearch",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CommunityDestination(node_count=10),
-                    ChannelSearchPayload(),
-                    self.check_channelsearch,
-                    self.on_channelsearch),
-            Message(self, u"channelsearch-response",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    ChannelSearchResponsePayload(),
-                    self.check_channelsearch_response,
-                    self.on_channelsearch_response),
-            Message(self, u"votecast",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128),
-                    CommunityDestination(node_count=10),
-                    VoteCastPayload(),
-                    self.check_votecast,
-                    self.on_votecast,
-                    self.undo_votecast,
-                    batch=BatchConfiguration(max_window=batch_delay))
-        ]
+        # TODO REMOVE BACKWARD COMPATIBILITY: Delete deprecated call
+        return (super(AllChannelCommunity, self).initiate_meta_messages() +
+                self.compatibility.deprecated_meta_messages())
+
+    def initiate_conversions(self):
+        # TODO REMOVE BACKWARD COMPATIBILITY: Delete this method
+        return [DefaultConversion(self), AllChannelConversion(self)]
 
     def __init__(self, *args, **kwargs):
         super(AllChannelCommunity, self).__init__(*args, **kwargs)
+
+        # TODO REMOVE BACKWARD COMPATIBILITY: Delete the following 2 assignments
+        self.compatibility = AllChannelCompatibility(self)
+        self.compatibility_mode = True
 
         self._blocklist = {}
         self._recentlyRequested = []
@@ -151,9 +143,6 @@ class AllChannelCommunity(Community):
         self.register_task(u"unload preview",
                            LoopingCall(self.unload_preview)).start(UNLOAD_COMMUNITY_INTERVAL, now=False)
 
-    def initiate_conversions(self):
-        return [DefaultConversion(self), AllChannelConversion(self)]
-
     @property
     def dispersy_auto_download_master_member(self):
         # there is no dispersy-identity for the master member, so don't try to download
@@ -162,6 +151,14 @@ class AllChannelCommunity(Community):
     @property
     def dispersy_sync_response_limit(self):
         return 25 * 1024
+
+    def on_basemsg(self, messages):
+        # TODO REMOVE BACKWARD COMPATIBILITY: Delete this method
+
+        # Apparently the big switch is happening,
+        # start talking newspeak:
+        self.compatibility_mode = False
+        super(AllChannelCommunity, self).on_basemsg(messages)
 
     def create_channelcast(self):
         assert isInIOThread()
@@ -209,11 +206,42 @@ class AllChannelCommunity(Community):
 
             # torrents is a dictionary of channel_id (key) and infohashes (value)
             if len(torrents) > 0:
-                meta = self.get_meta_message(u"channelcast")
-                message = meta.impl(authentication=(self._my_member,),
-                                    distribution=(self.global_time,), destination=(candidate,), payload=(torrents,))
+                # TODO REMOVE BACKWARD COMPATIBILITY: Delete if statement and positive case
+                if self.compatibility_mode:
+                    meta = self.get_meta_message(u"channelcast")
+                    message = meta.impl(authentication=(self._my_member,),
+                                        distribution=(self.global_time,), destination=(candidate,), payload=(torrents,))
 
-                self._dispersy._forward([message])
+                    self._dispersy._forward([message])
+                else:
+                    options = self.get_traversal("ChannelCast",
+                                                 auth=(self._my_member,),
+                                                 dist=(self.global_time,),
+                                                 dest=(candidate,))
+
+                    # Setup torrents
+                    current_len = 0
+                    formatted = []
+                    cids = torrents.keys()
+                    for cid in cids:
+                        ts = list(torrents[cid])
+                        current_len += sum(map(len, ts))
+                        formatted.append((cid, ts))
+                    # Filter, so as to fit into a bloomfilter
+                    max_len = self.dispersy_sync_bloom_filter_bits / 8
+                    while current_len > max_len:
+                        index = randint(0, len(formatted)-1)
+                        ts = formatted[index][1]
+                        nrTorrents = len(ts)
+                        if nrTorrents == 1:
+                            current_len -= len(ts[0])
+                            del formatted[index]
+                        else:
+                            oldlen = sum(map(len, ts))
+                            formatted[index][1] = sample(ts, nrTorrents - 1)
+                            current_len -= oldlen - sum(map(len, formatted[index][1]))
+
+                    self.forward(options, "ChannelCast", formatted)
 
                 # we've send something to this address, add to blocklist
                 self._blocklist[candidate] = now
@@ -230,140 +258,160 @@ class AllChannelCommunity(Community):
     def get_nr_connections(self):
         return len(list(self.dispersy_yield_candidates()))
 
-    def check_channelcast(self, messages):
+    def check_channelcast(self, header, message):
         with self._dispersy.database:
-            for message in messages:
-                for cid in message.payload.torrents.iterkeys():
-                    channel_id = self._get_channel_id(cid)
-                    if not channel_id:
-                        community = self._get_channel_community(cid)
-                        yield DelayMessageReqChannelMessage(message, community, includeSnapshot=True)
-                        break
-                else:
-                    yield message
+            for torrent in message.torrents:
+                channel_id = self._get_channel_id(torrent.cid)
+                if not channel_id:
+                    community = self._get_channel_community(torrent.cid)
+                    yield DelayMessageReqChannelMessage(header, community, includeSnapshot=True)
+                    break
+            else:
+                yield header
 
             # ensure that no commits occur
             raise IgnoreCommits()
 
-    def on_channelcast(self, messages):
-        for message in messages:
-            toCollect = {}
-            for cid, infohashes in message.payload.torrents.iteritems():
-                for infohash in self._selectTorrentsToCollect(cid, infohashes):
-                    toCollect.setdefault(cid, set()).add(infohash)
+    def on_channelcast(self, header, message):
+        toCollect = {}
+        for torrent in message.torrents:
+            for infohash in self._selectTorrentsToCollect(torrent.cid, torrent.infohashes):
+                toCollect.setdefault(torrent.cid, set()).add(infohash)
 
-            nr_requests = sum([len(infohashes) for infohashes in toCollect.values()])
-            if nr_requests > 0:
-                self.create_channelcast_request(toCollect, message.candidate)
+        nr_requests = sum([len(infohashes) for infohashes in toCollect.values()])
+        if nr_requests > 0:
+            self.create_channelcast_request(toCollect, header.candidate)
 
     def create_channelcast_request(self, toCollect, candidate):
         # create channelcast request message
-        meta = self.get_meta_message(u"channelcast-request")
-        message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.global_time,), destination=(candidate,), payload=(toCollect,))
-        self._dispersy._forward([message])
+        # TODO REMOVE BACKWARD COMPATIBILITY: Delete if statement and positive case
+        if self.compatibility_mode:
+            meta = self.get_meta_message(u"channelcast-request")
+            message = meta.impl(authentication=(self._my_member,),
+                                distribution=(self.global_time,), destination=(candidate,), payload=(toCollect,))
+            self._dispersy._forward([message])
+        else:
+            options = self.get_traversal("ChannelCastRequest",
+                                         auth=(self._my_member,),
+                                         dist=(self.global_time,),
+                                         dest=(candidate,))
+            formatted = []
+            cids = toCollect.keys()
+            for cid in cids:
+                formatted.append((cid, list(toCollect[cid])))
+            self.forward(options, "ChannelCastRequest", formatted)
 
         nr_requests = sum([len(torrents) for torrents in toCollect.itervalues()])
         self._logger.debug("requesting %s torrents from %s", nr_requests, candidate)
 
-    def check_channelcast_request(self, messages):
-        # no timeline check because PublicResolution policy is used
-        return messages
+    def on_channelcastrequest(self, header, message):
+        requested_packets = []
+        for torrent in message.torrents:
+            requested_packets.extend(self._get_packets_from_infohashes(torrent.cid, torrent.infohashes))
 
-    def on_channelcast_request(self, messages):
-        for message in messages:
-            requested_packets = []
-            for cid, infohashes in message.payload.torrents.iteritems():
-                requested_packets.extend(self._get_packets_from_infohashes(cid, infohashes))
+        if requested_packets:
+            self._dispersy._send_packets([header.candidate], requested_packets,
+                                         self, "-caused by channelcast-request-")
 
-            if requested_packets:
-                self._dispersy._send_packets([message.candidate], requested_packets,
-                                             self, "-caused by channelcast-request-")
-
-            self._logger.debug("got request for %s torrents from %s", len(requested_packets), message.candidate)
+        self._logger.debug("got request for %s torrents from %s", len(requested_packets), header.candidate)
 
     def create_channelsearch(self, keywords):
         # clear searchcallbacks if new search
         query = " ".join(keywords)
 
-        meta = self.get_meta_message(u"channelsearch")
-        message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.global_time,),
-                            payload=(keywords,))
+        # TODO REMOVE BACKWARD COMPATIBILITY: Delete if statement and positive case
+        if self.compatibility_mode:
+            meta = self.get_meta_message(u"channelsearch")
+            message = meta.impl(authentication=(self._my_member,),
+                                distribution=(self.global_time,),
+                                payload=(keywords,))
+            self._dispersy._forward([message])
+        else:
+            options = self.get_traversal("ChannelSearch",
+                                         auth=(self._my_member,),
+                                         dist=(self.global_time,))
+            self.forward(options, "ChannelSearch", keywords)
 
         self._logger.debug("searching for channel matching '%s'", query)
 
-        return self._dispersy._forward([message])
+        return True
 
-    def check_channelsearch(self, messages):
-        # no timeline check because PublicResolution policy is used
-        return messages
+    def on_channelsearch(self, header, message):
+        keywords = message.keywords
+        query = " ".join(keywords)
 
-    def on_channelsearch(self, messages):
-        for message in messages:
-            keywords = message.payload.keywords
-            query = " ".join(keywords)
+        self._logger.debug("got search request for '%s'", query)
 
-            self._logger.debug("got search request for '%s'", query)
+        results = self._channelcast_db.searchChannelsTorrent(query, 7, 7, dispersyOnly=True)
+        if len(results) > 0:
+            responsedict = {}
+            for channel_id, dispersy_cid, name, infohash, torname, time_stamp in results:
+                infohashes = responsedict.setdefault(dispersy_cid, set())
+                infohashes.add(infohash)
 
-            results = self._channelcast_db.searchChannelsTorrent(query, 7, 7, dispersyOnly=True)
-            if len(results) > 0:
-                responsedict = {}
-                for channel_id, dispersy_cid, name, infohash, torname, time_stamp in results:
-                    infohashes = responsedict.setdefault(dispersy_cid, set())
-                    infohashes.add(infohash)
+                self._logger.debug("found cid: %s infohash: %s", dispersy_cid.encode("HEX"), infohash.encode("HEX"))
 
-                    self._logger.debug("found cid: %s infohash: %s", dispersy_cid.encode("HEX"), infohash.encode("HEX"))
+            self.create_channelsearch_response(keywords, responsedict, header.candidate)
 
-                self.create_channelsearch_response(keywords, responsedict, message.candidate)
-
-            else:
-                self._logger.debug("no results")
+        else:
+            self._logger.debug("no results")
 
     def create_channelsearch_response(self, keywords, torrents, candidate):
         # create channelsearch-response message
-        meta = self.get_meta_message(u"channelsearch-response")
-        message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.global_time,), destination=(candidate,), payload=(keywords, torrents))
+        # TODO REMOVE BACKWARD COMPATIBILITY: Delete if statement and positive case
+        if self.compatibility_mode:
+            meta = self.get_meta_message(u"channelsearch-response")
+            message = meta.impl(authentication=(self._my_member,),
+                                distribution=(self.global_time,),
+                                destination=(candidate,),
+                                payload=(keywords, torrents))
 
-        self._dispersy._forward([message])
+            self._dispersy._forward([message])
+        else:
+            options = self.get_traversal("ChannelSearchResponse",
+                                         auth=(self._my_member,),
+                                         dist=(self.global_time,),
+                                         dest=(candidate,))
+            formatted = []
+            cids = torrents.keys()
+            for cid in cids:
+                formatted.append((cid, list(torrents[cid])))
+            self.forward(options, "ChannelSearchResponse", keywords, formatted)
 
         nr_requests = sum([len(tors) for tors in torrents.values()])
         self._logger.debug("sending %s results", nr_requests)
 
-    def check_channelsearch_response(self, messages):
+    def check_channelsearchresponse(self, header, message):
         with self._dispersy.database:
-            for message in messages:
-                for cid in message.payload.torrents.iterkeys():
-                    channel_id = self._get_channel_id(cid)
-                    if not channel_id:
-                        community = self._get_channel_community(cid)
-                        yield DelayMessageReqChannelMessage(message, community, includeSnapshot=True)
-                        break
-                else:
-                    yield message
+            for torrent in message.torrents:
+                channel_id = self._get_channel_id(torrent.cid)
+                if not channel_id:
+                    community = self._get_channel_community(torrent.cid)
+                    yield DelayMessageReqChannelMessage(header, community, includeSnapshot=True)
+                    break
+            else:
+                yield header
 
             # ensure that no commits occur
             raise IgnoreCommits()
 
-    def on_channelsearch_response(self, messages):
+    def on_channelsearchresponse(self, header, message):
         # request missing torrents
-        self.on_channelcast(messages)
+        self.on_channelcast(header, message)
 
-        for message in messages:
-            # show results in gui
-            keywords = message.payload.keywords
-            query = " ".join(keywords)
+        # show results in gui
+        keywords = message.keywords
+        query = " ".join(keywords)
 
-            self._logger.debug("got search response for '%s'", query)
+        self._logger.debug("got search response for '%s'", query)
 
-            # emit a results signal if integrated with Tribler
-            if self.tribler_session is not None:
-                from Tribler.Core.simpledefs import SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS
-                torrents = message.payload.torrents
-                results = {'keywords': keywords,
-                           'torrents': torrents}
-                self.tribler_session.notifier.notify(SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None, results)
+        # emit a results signal if integrated with Tribler
+        if self.tribler_session is not None:
+            from Tribler.Core.simpledefs import SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS
+            torrents = message.torrents
+            results = {'keywords': keywords,
+                       'torrents': torrents}
+            self.tribler_session.notifier.notify(SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None, results)
 
     @inlineCallbacks
     def disp_create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
@@ -385,96 +433,99 @@ class AllChannelCommunity(Community):
                 self.create_undo(message)
 
         # create new vote message
-        meta = self.get_meta_message(u"votecast")
-        message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.claim_global_time(),),
-                            payload=(cid, vote, timestamp))
-        self._dispersy.store_update_forward([message], store, update, forward)
+        # TODO REMOVE BACKWARD COMPATIBILITY: Delete if statement and positive case
+        if self.compatibility_mode:
+            meta = self.get_meta_message(u"votecast")
+            message = meta.impl(authentication=(self._my_member,),
+                                distribution=(self.claim_global_time(),),
+                                payload=(cid, vote, timestamp))
+            self._dispersy.store_update_forward([message], store, update, forward)
+        else:
+            options = self.get_traversal("Votecast",
+                                         auth=(self._my_member,),
+                                         dist=(self.claim_global_time(),))
 
-        returnValue(message)
 
-    def check_votecast(self, messages):
+            self.store_update_forward(options, "Votecast", store, update, forward, cid, vote, timestamp)
+
+    def check_votecast(self, header, message):
         with self._dispersy.database:
             communities = {}
             channel_ids = {}
-            for cid in set([message.payload.cid for message in messages]):
-                channel_id = self._get_channel_id(cid)
-                if channel_id:
-                    channel_ids[cid] = channel_id
-                else:
-                    communities[cid] = self._get_channel_community(cid)
+            channel_id = self._get_channel_id(message.cid)
+            if channel_id:
+                channel_ids[message.cid] = channel_id
+            else:
+                communities[message.cid] = self._get_channel_community(message.cid)
 
-            for message in messages:
-                community = communities.get(message.payload.cid)
-                if community:
-                    # at this point we should NOT have the channel message for this community
-                    if __debug__:
-                        try:
-                            self._dispersy.database.execute(
-                                u"SELECT * FROM sync WHERE community = ? AND meta_message = ? AND undone = 0",
-                                (community.database_id, community.get_meta_message(u"channel").database_id)).next()
-                            self._logger.error("We already have the channel message... no need to wait for it %s",
-                                               community.cid.encode("HEX"))
-                        except StopIteration:
-                            pass
+            community = communities.get(message.cid)
+            if community:
+                # at this point we should NOT have the channel message for this community
+                if __debug__:
+                    try:
+                        self._dispersy.database.execute(
+                            u"SELECT * FROM sync WHERE community = ? AND meta_message = ? AND undone = 0",
+                            (community.database_id, community.get_meta_message(u"channel").database_id)).next()
+                        self._logger.error("We already have the channel message... no need to wait for it %s",
+                                           community.cid.encode("HEX"))
+                    except StopIteration:
+                        pass
 
-                    self._logger.debug("Did not receive channel, requesting channel message '%s' from %s",
-                                       community.cid.encode("HEX"), message.candidate.sock_addr)
-                    # request torrents if positive vote
-                    yield DelayMessageReqChannelMessage(message, community, includeSnapshot=message.payload.vote > 0)
+                self._logger.debug("Did not receive channel, requesting channel message '%s' from %s",
+                                   community.cid.encode("HEX"), header.candidate.sock_addr)
+                # request torrents if positive vote
+                yield DelayMessageReqChannelMessage(header, community, includeSnapshot=message.vote > 0)
 
-                else:
-                    message.channel_id = channel_ids[message.payload.cid]
-                    yield message
+            else:
+                header.channel_id = channel_ids[message.cid]
+                yield header
 
             # ensure that no commits occur
             raise IgnoreCommits()
 
-    def on_votecast(self, messages):
+    def on_votecast(self, header, message):
         if self.tribler_session is not None:
             votelist = []
-            for message in messages:
-                dispersy_id = message.packet_id
-                channel_id = getattr(message, "channel_id", 0)
+            dispersy_id = header.packet_id
+            channel_id = getattr(header, "channel_id", 0)
 
-                authentication_member = message.authentication.member
-                if authentication_member == self._my_member:
-                    peer_id = None
+            authentication_member = header.authentication.member
+            if authentication_member == self._my_member:
+                peer_id = None
 
-                    # if channel_id is not found, then this is a manual join
-                    # insert placeholder into database which will be replaced after channelmessage has been received
+                # if channel_id is not found, then this is a manual join
+                # insert placeholder into database which will be replaced after channelmessage has been received
+                if not channel_id:
+                    select_channel = "SELECT id FROM _Channels WHERE dispersy_cid = ?"
+                    channel_id = self._channelcast_db._db.fetchone(select_channel, (buffer(message.cid),))
+
                     if not channel_id:
-                        select_channel = "SELECT id FROM _Channels WHERE dispersy_cid = ?"
-                        channel_id = self._channelcast_db._db.fetchone(select_channel, (buffer(message.payload.cid),))
+                        insert_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name) " \
+                                         "VALUES (?, ?, ?); SELECT last_insert_rowid();"
+                        channel_id = self._channelcast_db._db.fetchone(insert_channel,
+                                                                       (buffer(message.cid), -1, ''))
+            else:
+                peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
 
-                        if not channel_id:
-                            insert_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name) " \
-                                             "VALUES (?, ?, ?); SELECT last_insert_rowid();"
-                            channel_id = self._channelcast_db._db.fetchone(insert_channel,
-                                                                           (buffer(message.payload.cid), -1, ''))
-                else:
-                    peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
-
-                votelist.append((channel_id, peer_id, dispersy_id, message.payload.vote, message.payload.timestamp))
+            votelist.append((channel_id, peer_id, dispersy_id, message.vote, message.timestamp))
 
             self._votecast_db.on_votes_from_dispersy(votelist)
 
-    def undo_votecast(self, descriptors, redo=False):
+    def undo_votecast(self, header, message, redo=False):
         if self.tribler_session is not None:
             contains_my_vote = False
             votelist = []
             now = long(time())
-            for _, _, packet in descriptors:
-                message = packet.load_message()
-                dispersy_id = message.packet_id
 
-                channel_id = self._get_channel_id(message.payload.cid)
-                votelist.append((None if redo else now, channel_id, dispersy_id))
+            dispersy_id = header.packet_id
 
-                authentication_member = message.authentication.member
-                my_vote = authentication_member == self._my_member
-                if my_vote:
-                    contains_my_vote = True
+            channel_id = self._get_channel_id(message.cid)
+            votelist.append((None if redo else now, channel_id, dispersy_id))
+
+            authentication_member = header.authentication.member
+            my_vote = authentication_member == self._my_member
+            if my_vote:
+                contains_my_vote = True
 
             self._votecast_db.on_remove_votes_from_dispersy(votelist, contains_my_vote)
 
@@ -596,7 +647,11 @@ class ChannelCastDBStub():
         torrent_dict = {}
 
         for _, payload in self.recentTorrents[:max(NUM_OWN_RECENT_TORRENTS, NUM_OTHERS_RECENT_TORRENTS)]:
-            torrent_dict.setdefault(self.channel_id, set()).add(payload.infohash)
+            # TODO REMOVE BACKWARD COMPATIBILITY: Keep only inner-if positive body
+            if hasattr(payload, 'unserialized'):
+                torrent_dict.setdefault(self.channel_id, set()).add(payload.unserialized[0][1].infohash)
+            else:
+                torrent_dict.setdefault(self.channel_id, set()).add(payload.infohash)
 
         if len(self.recentTorrents) >= NUM_OWN_RECENT_TORRENTS:
             for infohash in self.getRandomTorrents(self.channel_id, max(NUM_OWN_RANDOM_TORRENTS, NUM_OTHERS_RANDOM_TORRENTS)):
@@ -611,7 +666,11 @@ class ChannelCastDBStub():
         return torrents
 
     def newTorrent(self, message):
-        self._cachedTorrents[message.payload.infohash] = message
+        # TODO REMOVE BACKWARD COMPATIBILITY: Keep only inner-if positive body
+        if hasattr(message.payload, 'unserialized'):
+            self._cachedTorrents[message.payload.unserialized[0][1].infohash] = message
+        else:
+            self._cachedTorrents[message.payload.infohash] = message
 
         self.recentTorrents.append((message.distribution.global_time, message.payload))
         self.recentTorrents.sort(reverse=True)
@@ -657,7 +716,11 @@ class ChannelCastDBStub():
         messages = self.convert_to_messages(results)
 
         for _, message in messages:
-            self._cachedTorrents[message.payload.infohash] = message
+            # TODO REMOVE BACKWARD COMPATIBILITY: Keep only inner-if positive body
+            if hasattr(message.payload, 'unserialized'):
+                self._cachedTorrents[message.payload.unserialized[0][1].infohash] = message
+            else:
+                self._cachedTorrents[message.payload.infohash] = message
             self.recentTorrents.append((message.distribution.global_time, message.payload))
 
         self.recentTorrents.sort(reverse=True)

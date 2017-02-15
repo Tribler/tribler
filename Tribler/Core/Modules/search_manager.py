@@ -206,7 +206,7 @@ class SearchManager(TaskManager):
         if keywords != self._current_keywords:
             return
 
-        channel_cids = results.keys()
+        channel_cids = [result.cid for result in results]
         channel_results = self.channelcast_db.getChannelsByCID(channel_cids)
 
         results_data = {'keywords': keywords,
