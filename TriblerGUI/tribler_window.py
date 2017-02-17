@@ -19,7 +19,7 @@ from TriblerGUI.debug_window import DebugWindow
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
     PAGE_HOME, PAGE_EDIT_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
     PAGE_CHANNEL_DETAILS, PAGE_PLAYLIST_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, PAGE_LOADING,\
-    PAGE_DISCOVERING, PAGE_DISCOVERED
+    PAGE_DISCOVERING, PAGE_DISCOVERED, PAGE_TRUST
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
@@ -118,7 +118,7 @@ class TriblerWindow(QMainWindow):
         self.menu_buttons = [self.left_menu_button_home, self.left_menu_button_my_channel,
                              self.left_menu_button_subscriptions, self.left_menu_button_video_player,
                              self.left_menu_button_settings, self.left_menu_button_downloads,
-                             self.left_menu_button_discovered]
+                             self.left_menu_button_trust, self.left_menu_button_discovered]
 
         self.video_player_page.initialize_player()
         self.search_results_page.initialize_search_results_page()
@@ -130,6 +130,7 @@ class TriblerWindow(QMainWindow):
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
         self.discovered_page.initialize_discovered_page()
+        self.trust_page.initialize_trust_page()
 
         self.stackedWidget.setCurrentIndex(PAGE_LOADING)
 
@@ -483,6 +484,13 @@ class TriblerWindow(QMainWindow):
     def clicked_menu_button_downloads(self):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
+        self.navigation_stack = []
+        self.hide_left_menu_playlist()
+
+    def clicked_menu_button_trust(self):
+        self.deselect_all_menu_buttons(self.left_menu_button_trust)
+        self.stackedWidget.setCurrentIndex(PAGE_TRUST)
+        self.trust_page.load_trust_statistics()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
