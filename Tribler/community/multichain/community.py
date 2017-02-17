@@ -354,6 +354,8 @@ class MultiChainCommunity(Community):
         statistics["self_total_blocks"] = self.persistence.get_latest_sequence_number(self._public_key)
         (statistics["self_total_up_mb"],
          statistics["self_total_down_mb"]) = self.persistence.get_total(self._public_key)
+        (statistics["self_peers_helped"],
+         statistics["self_peers_helped_you"]) = self.persistence.get_num_unique_interactors(self._public_key)
         latest_block = self.persistence.get_latest_block(self._public_key)
         if latest_block:
             statistics["latest_block_insert_time"] = str(latest_block.insert_time)
