@@ -2,6 +2,8 @@ import logging
 from twisted.internet.error import ReactorAlreadyInstalledError
 
 # We always use a selectreactor
+from TriblerGUI.defs import API_PORT
+
 try:
     from twisted.internet import selectreactor
     selectreactor.install()
@@ -44,7 +46,7 @@ def start_tribler_core(base_path):
 
     def start_tribler():
         config = SessionStartupConfig().load()
-        config.set_http_api_port(8085)
+        config.set_http_api_port(API_PORT)
         config.set_http_api_enabled(True)
 
         # Check if we are already running a Tribler instance
@@ -68,18 +70,16 @@ class CoreManager(QObject):
     """
     tribler_stopped = pyqtSignal()
 
-    def __init__(self, api_port):
+    def __init__(self):
         QObject.__init__(self, None)
 
         self.base_path = get_base_path()
         if not is_frozen():
             self.base_path = os.path.join(get_base_path(), "..")
 
-        self.api_port = api_port
-
         self.request_mgr = None
         self.core_process = None
-        self.events_manager = EventRequestManager(api_port)
+        self.events_manager = EventRequestManager()
 
         self.shutting_down = False
         self.recorded_stderr = ""
@@ -108,7 +108,7 @@ class CoreManager(QObject):
     def start_tribler_core(self):
         if START_FAKE_API:
             from TriblerGUI.scripts.start_fake_core import start_fake_core
-            self.core_process = multiprocessing.Process(target=start_fake_core, args=(self.api_port,))
+            self.core_process = multiprocessing.Process(target=start_fake_core, args=(API_PORT,))
         else:
             self.core_process = multiprocessing.Process(target=start_tribler_core, args=(self.base_path,))
 

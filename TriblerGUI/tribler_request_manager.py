@@ -6,10 +6,9 @@ from time import time
 
 from PyQt5.QtCore import QUrl, pyqtSignal, QIODevice, QBuffer
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-from TriblerGUI.defs import BUTTON_TYPE_NORMAL
+from TriblerGUI.defs import BUTTON_TYPE_NORMAL, API_PORT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 
-API_PORT = 8085
 performed_requests = {}
 
 
