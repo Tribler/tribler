@@ -11,16 +11,14 @@ from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget
 
 from Tribler.Core.Utilities.network_utils import get_random_port
 import TriblerGUI.core_manager as core_manager
+import TriblerGUI.defs as gui_defs
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.widgets.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
 
 rand_port = get_random_port()
 core_manager.START_FAKE_API = True
-core_manager.FAKE_API_PORT = rand_port
-
-import TriblerGUI.tribler_request_manager as request_mgr
-request_mgr.API_PORT = rand_port
+gui_defs.API_PORT = rand_port
 
 import TriblerGUI
 
@@ -29,7 +27,7 @@ from TriblerGUI.tribler_window import TriblerWindow
 
 if os.environ.get("TEST_GUI") == "yes":
     app = QApplication(sys.argv)
-    window = TriblerWindow(api_port=rand_port)
+    window = TriblerWindow()
     QTest.qWaitForWindowExposed(window)
 else:
     window = None
