@@ -450,6 +450,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window, name="discovered_page")
 
     def test_debug_pane(self):
+        self.wait_for_variable("tribler_settings")
         QTest.mouseClick(window.left_menu_button_settings, Qt.LeftButton)
         QTest.mouseClick(window.settings_general_button, Qt.LeftButton)
         self.wait_for_settings()
@@ -463,19 +464,23 @@ class TriblerGUITest(AbstractTriblerGUITest):
 
         window.debug_window.debug_tab_widget.setCurrentIndex(1)
         self.wait_for_list_populated(window.debug_window.requests_tree_widget)
-        self.screenshot(window.debug_window, name="requests_panel_general_tab")
+        self.screenshot(window.debug_window, name="debug_panel_requests_tab")
 
         window.debug_window.debug_tab_widget.setCurrentIndex(2)
         self.wait_for_list_populated(window.debug_window.multichain_tree_widget)
-        self.screenshot(window.debug_window, name="requests_panel_multichain_tab")
+        self.screenshot(window.debug_window, name="debug_panel_multichain_tab")
 
         window.debug_window.debug_tab_widget.setCurrentIndex(3)
         self.wait_for_list_populated(window.debug_window.dispersy_general_tree_widget)
-        self.screenshot(window.debug_window, name="requests_panel_dispersy_tab")
+        self.screenshot(window.debug_window, name="debug_panel_dispersy_tab")
 
         window.debug_window.dispersy_tab_widget.setCurrentIndex(1)
         self.wait_for_list_populated(window.debug_window.communities_tree_widget)
-        self.screenshot(window.debug_window, name="requests_panel_communities_tab")
+        self.screenshot(window.debug_window, name="debug_panel_communities_tab")
+
+        window.debug_window.debug_tab_widget.setCurrentIndex(4)
+        self.wait_for_list_populated(window.debug_window.events_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_events_tab")
 
         window.debug_window.close()
 
@@ -509,6 +514,12 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window, name="manage_playlist_after")
 
         QTest.mouseClick(window.edit_channel_manage_playlist_save_button, Qt.LeftButton)
+
+    def test_trust_page(self):
+        QTest.mouseClick(window.left_menu_button_trust, Qt.LeftButton)
+        self.screenshot(window, name="trust_page_loading")
+        self.wait_for_variable("trust_page.blocks")
+        self.screenshot(window, name="trust_page_values")
 
 if __name__ == "__main__":
     unittest.main()
