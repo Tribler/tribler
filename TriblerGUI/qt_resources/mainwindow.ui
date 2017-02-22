@@ -143,7 +143,7 @@ border-bottom: 1px solid #242424;
 }
 
 CircleButton {
-border: 1px solid white;
+border: 2px solid white;
 }</string>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout">
@@ -301,6 +301,110 @@ color: black;
           <size>
            <width>40</width>
            <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QToolButton" name="trust_button">
+         <property name="minimumSize">
+          <size>
+           <width>22</width>
+           <height>22</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>22</width>
+           <height>22</height>
+          </size>
+         </property>
+         <property name="cursor">
+          <cursorShape>PointingHandCursor</cursorShape>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">border: none;
+background: none;</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>../images/trust.png</normaloff>../images/trust.png</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_68">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>10</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QToolButton" name="settings_button">
+         <property name="minimumSize">
+          <size>
+           <width>22</width>
+           <height>22</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>22</width>
+           <height>22</height>
+          </size>
+         </property>
+         <property name="cursor">
+          <cursorShape>PointingHandCursor</cursorShape>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">border: none;
+background: none;</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>../images/gear.png</normaloff>../images/gear.png</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_67">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>10</width>
+           <height>10</height>
           </size>
          </property>
         </spacer>
@@ -701,96 +805,6 @@ color: white;
             <iconset>
              <normaloff>../images/play.png</normaloff>
              <disabledon>../images/play.png</disabledon>../images/play.png</iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>16</width>
-             <height>16</height>
-            </size>
-           </property>
-           <property name="checkable">
-            <bool>true</bool>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="left_menu_button_trust">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>26</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="cursor">
-            <cursorShape>PointingHandCursor</cursorShape>
-           </property>
-           <property name="focusPolicy">
-            <enum>Qt::NoFocus</enum>
-           </property>
-           <property name="styleSheet">
-            <string notr="true"/>
-           </property>
-           <property name="text">
-            <string> Trust</string>
-           </property>
-           <property name="icon">
-            <iconset>
-             <normaloff>../images/trust.png</normaloff>
-             <disabledon>../images/trust.png</disabledon>../images/trust.png</iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>16</width>
-             <height>16</height>
-            </size>
-           </property>
-           <property name="checkable">
-            <bool>true</bool>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="left_menu_button_settings">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>26</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="cursor">
-            <cursorShape>PointingHandCursor</cursorShape>
-           </property>
-           <property name="focusPolicy">
-            <enum>Qt::NoFocus</enum>
-           </property>
-           <property name="styleSheet">
-            <string notr="true"/>
-           </property>
-           <property name="text">
-            <string> Settings</string>
-           </property>
-           <property name="icon">
-            <iconset>
-             <normaloff>../images/gear.png</normaloff>
-             <disabledon>../images/gear.png</disabledon>../images/gear.png</iconset>
            </property>
            <property name="iconSize">
             <size>
@@ -9324,22 +9338,6 @@ border: none;
    </hints>
   </connection>
   <connection>
-   <sender>left_menu_button_settings</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_settings()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>100</x>
-     <y>277</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>left_menu_button_subscriptions</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
@@ -9484,14 +9482,30 @@ border: none;
    </hints>
   </connection>
   <connection>
-   <sender>left_menu_button_trust</sender>
+   <sender>settings_button</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_trust()</slot>
+   <slot>on_settings_button_click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>94</x>
-     <y>291</y>
+     <x>789</x>
+     <y>24</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>trust_button</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_trust_button_click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>757</x>
+     <y>24</y>
     </hint>
     <hint type="destinationlabel">
      <x>427</x>
@@ -9509,7 +9523,6 @@ border: none;
   <slot>clicked_menu_button_my_channel()</slot>
   <slot>clicked_menu_button_video_player()</slot>
   <slot>clicked_menu_button_downloads()</slot>
-  <slot>clicked_menu_button_settings()</slot>
   <slot>clicked_menu_button_subscriptions()</slot>
   <slot>on_search_text_change()</slot>
   <slot>on_page_back_clicked()</slot>
@@ -9518,5 +9531,7 @@ border: none;
   <slot>clicked_menu_button_discovered()</slot>
   <slot>clicked_menu_button_debug()</slot>
   <slot>clicked_menu_button_trust()</slot>
+  <slot>on_settings_button_click()</slot>
+  <slot>on_trust_button_click()</slot>
  </slots>
 </ui>

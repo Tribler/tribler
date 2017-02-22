@@ -265,7 +265,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         QTest.mouseClick(window.edit_channel_details_rss_refresh_button, Qt.LeftButton)
 
     def test_settings(self):
-        QTest.mouseClick(window.left_menu_button_settings, Qt.LeftButton)
+        QTest.mouseClick(window.settings_button, Qt.LeftButton)
         QTest.mouseClick(window.settings_general_button, Qt.LeftButton)
         self.screenshot(window, name="settings_not_loaded")
         self.wait_for_settings()
@@ -451,7 +451,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
 
     def test_debug_pane(self):
         self.wait_for_variable("tribler_settings")
-        QTest.mouseClick(window.left_menu_button_settings, Qt.LeftButton)
+        QTest.mouseClick(window.settings_button, Qt.LeftButton)
         QTest.mouseClick(window.settings_general_button, Qt.LeftButton)
         self.wait_for_settings()
         if not window.developer_mode_enabled_checkbox.isChecked():
@@ -516,7 +516,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         QTest.mouseClick(window.edit_channel_manage_playlist_save_button, Qt.LeftButton)
 
     def test_trust_page(self):
-        QTest.mouseClick(window.left_menu_button_trust, Qt.LeftButton)
+        QTest.mouseClick(window.trust_button, Qt.LeftButton)
         self.screenshot(window, name="trust_page_loading")
         self.wait_for_variable("trust_page.blocks")
         self.screenshot(window, name="trust_page_values")
