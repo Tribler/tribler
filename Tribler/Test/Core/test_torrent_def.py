@@ -423,3 +423,14 @@ class TestTorrentDef(BaseTestCase):
     def general_check(self, metainfo):
         self.assertTrue(isValidTorrentFile(metainfo))
         self.assertEqual(metainfo['announce'], TRACKER)
+
+    def test_get_index(self):
+        t = TorrentDef()
+        t.metainfo_valid = True
+        t.metainfo = {'info': {'files': [{'path': ['a.txt'], 'length': 123}]}}
+        self.assertEqual(t.get_index_of_file_in_files('a.txt'), 0)
+        self.assertRaises(ValueError, t.get_index_of_file_in_files, 'b.txt')
+        self.assertRaises(ValueError, t.get_index_of_file_in_files, None)
+
+        t.metainfo = {'info': {'files': [{'path': ['a.txt'], 'path.utf-8': ['b.txt'], 'length': 123}]}}
+        self.assertEqual(t.get_index_of_file_in_files('b.txt'), 0)

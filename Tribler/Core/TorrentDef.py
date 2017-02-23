@@ -759,12 +759,16 @@ class TorrentDef(object):
 
         if file is not None and 'files' in info:
             for i in range(len(info['files'])):
-                x = info['files'][i]
+                file_dict = info['files'][i]
 
-                intorrentpath = maketorrent.pathlist2filename(x['path'])
+                if 'path.utf-8' in file_dict:
+                    intorrentpath = maketorrent.pathlist2filename(file_dict['path.utf-8'])
+                else:
+                    intorrentpath = maketorrent.pathlist2filename(file_dict['path'])
+
                 if intorrentpath == file:
                     return i
-            return ValueError("File not found in torrent")
+            raise ValueError("File not found in torrent")
         else:
             raise ValueError("File not found in single-file torrent")
 
