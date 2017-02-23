@@ -1,8 +1,11 @@
 import json
 import base64
+from urllib import quote_plus
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Utilities.twisted_thread import deferred
+from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.multichain.community import MultiChainCommunity
@@ -29,7 +32,7 @@ class TestMultichainStatsEndpoint(AbstractApiTest):
         self.session.get_dispersy_instance = lambda: self.dispersy
 
     @deferred(timeout=10)
-    def test_get_circuit_no_community(self):
+    def test_get_statistics_no_community(self):
         """
         Testing whether the API returns error 404 if no multichain community is loaded
         """
@@ -68,6 +71,8 @@ class TestMultichainStatsEndpoint(AbstractApiTest):
             self.assertEqual(stats["self_total_blocks"], 3)
             self.assertEqual(stats["self_total_up_mb"], 1024)
             self.assertEqual(stats["self_total_down_mb"], 2048)
+            self.assertEqual(stats["self_peers_helped"], 1)
+            self.assertEqual(stats["self_peers_helped_you"], 1)
             self.assertNotEqual(stats["latest_block_insert_time"], "")
             self.assertEqual(stats["latest_block_id"], base64.encodestring("b19b00b5".decode("HEX")).strip())
             self.assertEqual(stats["latest_block_requester_id"], base64.encodestring(self.member.public_key).strip())
@@ -92,6 +97,8 @@ class TestMultichainStatsEndpoint(AbstractApiTest):
             self.assertEqual(stats["self_total_blocks"], -1)
             self.assertEqual(stats["self_total_up_mb"], 0)
             self.assertEqual(stats["self_total_down_mb"], 0)
+            self.assertEqual(stats["self_peers_helped"], 0)
+            self.assertEqual(stats["self_peers_helped_you"], 0)
             self.assertEqual(stats["latest_block_insert_time"], "")
             self.assertEqual(stats["latest_block_id"], "")
             self.assertEqual(stats["latest_block_requester_id"], "")
@@ -101,3 +108,27 @@ class TestMultichainStatsEndpoint(AbstractApiTest):
 
         self.should_check_equality = False
         return self.do_request('multichain/statistics', expected_code=200).addCallback(verify_response)
+
+    @deferred(timeout=10)
+    def test_get_blocks_no_community(self):
+        """
+        Testing whether the API returns error 404 if no multichain community is loaded when requesting blocks
+        """
+        self.dispersy.get_communities = lambda: []
+        return self.do_request('multichain/blocks/aaaaa', expected_code=404)
+
+    @deferred(timeout=10)
+    def test_get_blocks(self):
+        """
+        Testing whether the API returns the correct blocks
+        """
+        def verify_response(response):
+            response_json = json.loads(response)
+            self.assertEqual(len(response_json["blocks"]), 1)
+
+        test_block = TestBlock()
+        self.mc_community.persistence.add_block(test_block)
+        pub_key = quote_plus(base64.encodestring(test_block.public_key_requester))
+        self.should_check_equality = False
+        return self.do_request('multichain/blocks/%s?limit=10' % pub_key, expected_code=200)\
+            .addCallback(verify_response)

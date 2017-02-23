@@ -6,6 +6,7 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
 from Tribler.community.multichain.database import MultiChainDB
 from Tribler.community.multichain.database import DATABASE_DIRECTORY
+from Tribler.dispersy.crypto import ECCrypto
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
@@ -38,6 +39,39 @@ class TestDatabase(MultiChainTestCase):
         # Assert
         result = self.db.get_by_hash_requester(self.block1.hash_requester)
         self.assertEqual_block(self.block1, result)
+
+    @blocking_call_on_reactor_thread
+    def test_get_blocks(self):
+        """
+        Test whether the right blocks are returned when fetching blocks
+        """
+        self.db.add_block(self.block1)
+        self.assertEqual(len(self.db.get_blocks(self.block1.public_key_requester)), 1)
+        self.block1.hash_requester = "a" * 40
+        self.db.add_block(self.block1)
+        self.assertEqual(len(self.db.get_blocks(self.block1.public_key_requester)), 2)
+        self.assertEqual(len(self.db.get_blocks(self.block1.public_key_requester, limit=1)), 1)
+
+    @blocking_call_on_reactor_thread
+    def test_get_num_interactors(self):
+        """
+        Test whether the right number of interactors is returned
+        """
+        crypto = ECCrypto()
+        my_key = crypto.key_to_bin(crypto.generate_key(u"curve25519").pub())
+        block1 = TestBlock()
+        block1.public_key_requester = my_key
+        block1.up = 100
+        block1.down = 100
+        self.db.add_block(block1)
+
+        block2 = TestBlock()
+        block2.public_key_responder = my_key
+        block2.up = 100
+        block2.down = 100
+        self.db.add_block(block2)
+
+        self.assertEqual((2, 2), self.db.get_num_unique_interactors(my_key))
 
     @blocking_call_on_reactor_thread
     def test_get_by_hash(self):
@@ -251,3 +285,13 @@ class TestDatabase(MultiChainTestCase):
         self.set_db_version(200000)
         version, = next(self.db.execute(u"SELECT value FROM option WHERE key = 'database_version' LIMIT 1"))
         self.assertEqual(version, u"200000")
+
+    @blocking_call_on_reactor_thread
+    def test_block_to_dictionary(self):
+        """
+        Test whether a block is correctly represented when converted to a dictionary
+        """
+        block_dict = self.block1.to_dictionary()
+        self.assertEqual(block_dict["up"], self.block1.up)
+        self.assertEqual(block_dict["down"], self.block1.down)
+        self.assertEqual(block_dict["insert_time"], self.block1.insert_time)

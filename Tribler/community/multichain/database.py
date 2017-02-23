@@ -1,5 +1,6 @@
 """ This file contains everything related to persistence for MultiChain.
 """
+import base64
 from os import path
 from hashlib import sha256
 from Tribler.dispersy.database import Database
@@ -209,6 +210,52 @@ class MultiChainDB(Database):
         db_result = self.execute(db_query, (sequence_number, buffer(public_key))).fetchall()
         return [self._create_database_block(db_item) for db_item in db_result]
 
+    def get_blocks(self, public_key, limit=100):
+        """
+        Returns database blocks identified by a specific public key (either of the requester or the responder).
+        Optionally limit the amount of blocks returned.
+        :param public_key: The public key corresponding to the member id
+        :param limit: The maximum number of blocks to return
+        :return A list of DB Blocks that match the criteria
+        """
+        db_query = u"SELECT public_key_requester, public_key_responder, up, down, " \
+                   u"total_up_requester, total_down_requester, sequence_number_requester, previous_hash_requester, " \
+                   u"signature_requester, hash_requester, " \
+                   u"total_up_responder, total_down_responder, sequence_number_responder, previous_hash_responder, " \
+                   u"signature_responder, hash_responder, insert_time " \
+                   u"FROM (" \
+                   u"SELECT *, sequence_number_requester AS sequence_number," \
+                   u" public_key_requester AS public_key FROM `multi_chain` " \
+                   u"UNION " \
+                   u"SELECT *, sequence_number_responder AS sequence_number," \
+                   u" public_key_responder AS public_key FROM `multi_chain`) " \
+                   u"WHERE public_key = ? " \
+                   u"ORDER BY sequence_number DESC " \
+                   u"LIMIT ?"
+        db_result = self.execute(db_query, (buffer(public_key), limit)).fetchall()
+        return [self._create_database_block(db_item) for db_item in db_result]
+
+    def get_num_unique_interactors(self, public_key):
+        """
+        Returns the number of people you interacted with (either helped or that have helped you)
+        :param public_key: The public key of the member of which we want the information
+        :return: A tuple of unique number of interactors that helped you and that you have helped respectively
+        """
+        peers_you_helped = set()
+        peers_helped_you = set()
+        for block in self.get_blocks(public_key, limit=-1):
+            if block.public_key_requester == public_key:
+                if int(block.up) > 0:
+                    peers_you_helped.add(block.public_key_responder)
+                if int(block.down) > 0:
+                    peers_helped_you.add(block.public_key_responder)
+            else:
+                if int(block.up) > 0:
+                    peers_helped_you.add(block.public_key_requester)
+                if int(block.down) > 0:
+                    peers_you_helped.add(block.public_key_requester)
+        return len(peers_you_helped), len(peers_helped_you)
+
     def _create_database_block(self, db_result):
         """
         Create a Database block or return None.
@@ -384,3 +431,25 @@ class DatabaseBlock:
                 self.sequence_number_responder, self.previous_hash_responder,
                 self.public_key_requester, self.signature_requester,
                 self.public_key_responder, self.signature_responder)
+
+    def to_dictionary(self):
+        """
+        :return: (dict) a dictionary that can be sent over the internet.
+        """
+        return {
+            "up": self.up,
+            "down": self.down,
+            "total_up_requester": self.total_up_requester,
+            "total_down_requester": self.total_down_requester,
+            "sequence_number_requester": self.sequence_number_requester,
+            "previous_hash_requester": base64.encodestring(self.previous_hash_requester).strip(),
+            "total_up_responder": self.total_up_responder,
+            "total_down_responder": self.total_down_responder,
+            "sequence_number_responder": self.sequence_number_responder,
+            "previous_hash_responder": base64.encodestring(self.previous_hash_responder).strip(),
+            "public_key_requester": base64.encodestring(self.public_key_requester).strip(),
+            "signature_requester": base64.encodestring(self.signature_requester).strip(),
+            "public_key_responder": base64.encodestring(self.public_key_responder).strip(),
+            "signature_responder": base64.encodestring(self.signature_responder).strip(),
+            "insert_time": self.insert_time
+        }
