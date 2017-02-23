@@ -94,7 +94,11 @@ class TorrentInfoEndpoint(resource.Resource):
                 return json.dumps({"error": "missing infohash"})
 
             if self.session.has_collected_torrent(self.infohash):
-                tdef = TorrentDef.load_from_memory(self.session.get_collected_torrent(self.infohash))
+                try:
+                    tdef = TorrentDef.load_from_memory(self.session.get_collected_torrent(self.infohash))
+                except ValueError as exc:
+                    request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+                    return json.dumps({"error": "invalid torrent file: %s" % str(exc)})
                 on_got_metainfo(tdef.get_metainfo())
                 return NOT_DONE_YET
 

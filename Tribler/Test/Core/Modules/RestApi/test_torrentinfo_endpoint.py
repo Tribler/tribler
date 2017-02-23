@@ -65,6 +65,9 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)  # Cached
 
+        self.session.get_collected_torrent = lambda _: 'a8fdsafsdjlfdsafs{}{{{[][]]['  # invalid torrent file
+        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
+
         path = 'magnet:?xt=urn:ed2k:354B15E68FB8F36D7CD88FF94116CDC1'  # No infohash
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=400)
 

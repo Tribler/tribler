@@ -639,23 +639,22 @@ class TriblerLaunchMany(TaskManager):
 
             torrent_data = self.torrent_store.get(infohash)
             if torrent_data:
-                tdef = TorrentDef.load_from_memory(torrent_data)
+                try:
+                    tdef = TorrentDef.load_from_memory(torrent_data)
+                    defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+                    dscfg = defaultDLConfig.copy()
 
-                defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-                dscfg = defaultDLConfig.copy()
-
-                if self.mypref_db is not None:
-                    dest_dir = self.mypref_db.getMyPrefStatsInfohash(infohash)
-                    if dest_dir:
-                        if os.path.isdir(dest_dir) or dest_dir == '':
+                    if self.mypref_db is not None:
+                        dest_dir = self.mypref_db.getMyPrefStatsInfohash(infohash)
+                        if dest_dir and os.path.isdir(dest_dir):
                             dscfg.set_dest_dir(dest_dir)
+                except ValueError:
+                    self._logger.warning("tlm: torrent data invalid")
 
-        self._logger.debug("tlm: load_checkpoint: pstate is %s %s",
-                           pstate.get('dlstate', 'status'), pstate.get('dlstate', 'progress'))
-        if pstate is None or pstate.get('state', 'engineresumedata') is None:
-            self._logger.debug("tlm: load_checkpoint: resumedata None")
-        else:
-            self._logger.debug("tlm: load_checkpoint: resumedata len %d", len(pstate.get('state', 'engineresumedata')))
+        if pstate is not None:
+            has_resume_data = pstate.get('state', 'engineresumedata') is None
+            self._logger.debug("tlm: load_checkpoint: resumedata %s",
+                               'len %d ' % len(pstate.get('state', 'engineresumedata')) if has_resume_data else 'None')
 
         if tdef and dscfg:
             if dscfg.get_dest_dir() != '':  # removed torrent ignoring
