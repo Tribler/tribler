@@ -170,7 +170,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             files_completion = dict((name, progress) for name, progress in state.get_files_completion())
             selected_files = download.get_selected_files()
             files_array = []
-            for file, size in download.get_def().get_files_as_unicode_with_length():
+            for file, size in download.get_def().get_files_with_length():
                 if download.get_def().is_multifile_torrent():
                     file_index = download.get_def().get_index_of_file_in_files(file)
                 else:

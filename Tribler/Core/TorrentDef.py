@@ -596,22 +596,6 @@ class TorrentDef(object):
 
         return bencode(self.metainfo)
 
-    def get_files_with_length(self, exts=None):
-        """ The list of files in the finalized torrent def.
-        @param exts (Optional) list of filename extensions (without leading .)
-        to search for.
-        @return A list of filenames.
-        """
-        return maketorrent.get_files(self.metainfo, exts)
-
-    def get_files(self, exts=None):
-        """ The list of files in the finalized torrent def.
-        @param exts (Optional) list of filename extensions (without leading .)
-        to search for.
-        @return A list of filenames.
-        """
-        return [filename for filename, _ in maketorrent.get_files(self.metainfo, exts)]
-
     def _get_all_files_as_unicode_with_length(self):
         """ Get a generator for files in the torrent def. No filtering
         is possible and all tricks are allowed to obtain a unicode
@@ -690,7 +674,7 @@ class TorrentDef(object):
             # Single-file torrent
             yield self.get_name_as_unicode(), self.metainfo["info"]["length"]
 
-    def get_files_as_unicode_with_length(self, exts=None):
+    def get_files_with_length(self, exts=None):
         """ The list of files in the finalized torrent def.
         @param exts (Optional) list of filename extensions (without leading .)
         to search for.
@@ -708,8 +692,8 @@ class TorrentDef(object):
                 videofiles.append((filename, length))
         return videofiles
 
-    def get_files_as_unicode(self, exts=None):
-        return [filename for filename, _ in self.get_files_as_unicode_with_length(exts)]
+    def get_files(self, exts=None):
+        return [filename for filename, _ in self.get_files_with_length(exts)]
 
     def get_length(self, selectedfiles=None):
         """ Returns the total size of the content in the torrent. If the
@@ -812,10 +796,7 @@ class TorrentDefNoMetainfo(object):
     def get_files(self, exts=None):
         return []
 
-    def get_files_as_unicode(self, exts=None):
-        return []
-
-    def get_files_as_unicode_with_length(self, exts=None):
+    def get_files_with_length(self, exts=None):
         return []
 
     def get_trackers_as_single_tuple(self):

@@ -796,7 +796,7 @@ class Session(SessionConfigInterface):
             torrent_def.infohash,
             long(time.time()),
             torrent_def.get_name_as_unicode(),
-            tuple(torrent_def.get_files_as_unicode_with_length()),
+            tuple(torrent_def.get_files_with_length()),
             torrent_def.get_trackers_as_single_tuple(),
             forward=forward)
 

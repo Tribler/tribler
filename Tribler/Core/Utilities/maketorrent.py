@@ -339,30 +339,3 @@ def copy_metainfo_to_input(metainfo, input):
 
     if 'httpseeds' in metainfo:
         input['httpseeds'] = metainfo['httpseeds']
-
-
-def get_files(metainfo, exts):
-    # 01/02/10 Boudewijn: now returns (file, length) tuples instead of files
-    videofiles = []
-    if 'files' in metainfo['info']:
-        # Multi-file torrent
-        files = metainfo['info']['files']
-        for file in files:
-            p = file['path']
-            filename = ''
-            for elem in p:
-                filename = os.path.join(filename, elem)
-
-            (prefix, ext) = os.path.splitext(filename)
-            if ext != '' and ext[0] == '.':
-                ext = ext[1:]
-            if exts is None or ext.lower() in exts:
-                videofiles.append((filename, file['length']))
-    else:
-        filename = metainfo['info']['name']  # don't think we need fixed name here
-        (prefix, ext) = os.path.splitext(filename)
-        if ext != '' and ext[0] == '.':
-            ext = ext[1:]
-        if exts is None or ext.lower() in exts:
-            videofiles.append((filename, metainfo['info']['length']))
-    return videofiles

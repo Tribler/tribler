@@ -128,7 +128,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
             return
 
         fileindex = int(fileindex)
-        filename, length = download.get_def().get_files_as_unicode_with_length()[fileindex]
+        filename, length = download.get_def().get_files_with_length()[fileindex]
 
         requested_range = get_ranges(self.headers.getheader('range'), length)
         if requested_range is not None and len(requested_range) != 1:

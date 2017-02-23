@@ -426,7 +426,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         if not torrentdef.is_multifile_torrent():
             swarmname, _ = os.path.splitext(swarmname)
-        self._indexTorrent(torrent_id, swarmname, torrentdef.get_files_as_unicode())
+        self._indexTorrent(torrent_id, swarmname, torrentdef.get_files())
 
         self._addTorrentTracker(torrent_id, torrentdef, extra_info)
         return torrent_id
