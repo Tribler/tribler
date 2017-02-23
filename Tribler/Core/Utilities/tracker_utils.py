@@ -1,118 +1,101 @@
-import re
-
-url_regex = re.compile(
-    r'^(?:http|udp)://'  # http:// or udp
-    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
-    r'localhost|'  # localhost...
-    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
-    r'(?::\d+)?'  # optional port
-    r'(?:/?|[/?]\S+)$', re.IGNORECASE | re.UNICODE)
+from urlparse import urlparse
+from httplib import HTTP_PORT
 
 
 class MalformedTrackerURLException(Exception):
     pass
 
 
-# ------------------------------------------------------------
-# Convert a given tracker's URL into a uniformed version:
-#    <type>://<host>:<port>/<page>
-# For example:
-#    udp://tracker.openbittorrent.com:80
-#    http://tracker.openbittorrent.com:80/announce
-# ------------------------------------------------------------
 def get_uniformed_tracker_url(tracker_url):
+    """
+    Parse a tracker url of basestring type.
+
+    The following checks and transformations are applied to the url:
+        - Check if the url is valid unicode data
+        - Strip whitespaces
+        - Strip a trailing '/'
+        - Check that the port is
+            - provided in case of UDP
+            - in range in case of HTTP (implicitly done in the `urlparse` function)
+        - If it is a url for a HTTP tracker, don't include the default port HTTP_PORT
+
+    Examples:
+        udp://tracker.openbittorrent.com:80
+        http://tracker.openbittorrent.com:80/announce
+
+    :param tracker_url: a basestring url for either a UDP or HTTP tracker
+    :return: the tracker in a uniform format <type>://<host>:<port>/<page>
+    """
     assert isinstance(tracker_url, basestring), u"tracker_url is not a basestring: %s" % type(tracker_url)
 
     # check if the URL is valid unicode data
     try:
         tracker_url = unicode(tracker_url)
     except UnicodeDecodeError:
-        return
+        return None
 
-    tracker_url = tracker_url.strip()
-    if tracker_url.endswith(u'/'):
-        tracker_url = tracker_url[:-1]
+    url = urlparse(tracker_url)
 
-    # get tracker type
-    if tracker_url.startswith(u'http://'):
-        tracker_type = u'http'
-        remaning_part = tracker_url[7:]
-    elif tracker_url.startswith(u'udp://'):
-        tracker_type = u'udp'
-        remaning_part = tracker_url[6:]
+    # scheme must be either UDP or HTTP
+    if url.scheme == 'udp' or url.scheme == 'http':
+        uniformed_scheme = url.scheme
     else:
-        return
+        return None
 
-    # host, port, and page
-    if remaning_part.find(u'/') == -1:
-        if tracker_type == u'http':
-            return
-        host_part = remaning_part
-        page_part = None
+    uniformed_hostname = url.hostname
+
+    if not url.port:
+        # UDP trackers must have a port
+        if url.scheme == 'udp':
+            return None
+        # HTTP trackers default to port HTTP_PORT
+        elif url.scheme == 'http':
+            uniformed_port = HTTP_PORT
     else:
-        host_part, page_part = remaning_part.split(u'/', 1)
+        uniformed_port = url.port
 
-    if host_part.find(u':') == -1:
-        if tracker_type == u'udp':
-            return
-        else:
-            host = host_part
-            port = 80
+    # UDP trackers have no path
+    if url.scheme == 'udp':
+        uniformed_path = ''
     else:
-        host, port = host_part.split(u':', 1)
+        uniformed_path = url.path.rstrip('/')
+    # HTTP trackers must have a path
+    if url.scheme == 'http' and not url.path:
+        return None
 
-    try:
-        port = int(port)
-    except ValueError:
-        return
-
-    if port < 0 or port > 65535:
-        return
-
-    page = page_part
-
-    if tracker_type == u'http':
-        # omit the port number if it is 80 for an HTTP tracker
-        if port == 80:
-            uniformed_url = u'%s://%s/%s' % (tracker_type, host, page)
-        else:
-            uniformed_url = u'%s://%s:%d/%s' % (tracker_type, host, port, page)
+    if url.scheme == 'http' and uniformed_port == HTTP_PORT:
+        uniformed_url = u'%s://%s%s' % (uniformed_scheme, uniformed_hostname, uniformed_path)
     else:
-        uniformed_url = u'%s://%s:%d' % (tracker_type, host, port)
+        uniformed_url = u'%s://%s:%d%s' % (uniformed_scheme, uniformed_hostname, uniformed_port, uniformed_path)
 
-    if url_regex.match(uniformed_url):
-        return uniformed_url
+    return uniformed_url
 
 
 def parse_tracker_url(tracker_url):
-    # get tracker type
-    if tracker_url.startswith(u'http'):
-        tracker_type = u'HTTP'
-    elif tracker_url.startswith(u'udp'):
-        tracker_type = u'UDP'
-    else:
-        raise MalformedTrackerURLException(u'Unexpected tracker type (%s).' % tracker_url)
+    """
+    Parse the tracker url and check whether it satisfies certain constraints:
 
-    # get URL information
-    url_fields = tracker_url.split(u'://')[1]
-    # some UDP trackers may not have 'announce' at the end.
-    if url_fields.find(u'/') == -1:
-        if tracker_type == u'UDP':
-            hostname_part = url_fields
-            announce_page = None
-        else:
-            raise MalformedTrackerURLException(u'Invalid tracker URL (%s).' % tracker_url)
-    else:
-        hostname_part, announce_page = url_fields.split(u'/', 1)
+        - The tracker type must be either http or udp
+        - HTTP trackers need a path
+        - UDP trackers need a port
 
-    # get port number if exists, otherwise, use HTTP default 80
-    if hostname_part.find(u':') != -1:
-        hostname, port = hostname_part.split(u':', 1)
-        port = int(port)
-    elif tracker_type == u'HTTP':
-        hostname = hostname_part
-        port = 80
-    else:
+    Note that HTTP trackers default to HTTP_PORT if none is given.
+
+    :param tracker_url the url of the tracker
+    :returns: a tuple of size 3 containing the scheme, a tuple of hostname and port,
+        and path of the url
+    """
+    url = urlparse(tracker_url)
+    if not (url.scheme == 'udp' or url.scheme == 'http'):
+        raise MalformedTrackerURLException(u'Unexpected tracker type (%s).' % url.scheme)
+
+    if url.scheme == 'udp' and not url.port:
         raise MalformedTrackerURLException(u'No port number for UDP tracker URL (%s).' % tracker_url)
 
-    return tracker_type, (hostname, port), announce_page
+    if url.scheme == 'http' and not url.port:
+        return url.scheme, (url.hostname, 80), url.path
+
+    if url.scheme == 'http' and not url.path:
+        raise MalformedTrackerURLException(u'Missing announce path for HTTP tracker url (%s).' % tracker_url)
+
+    return url.scheme, (url.hostname, url.port), url.path

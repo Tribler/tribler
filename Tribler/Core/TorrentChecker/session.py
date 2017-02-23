@@ -46,7 +46,7 @@ def create_tracker_session(tracker_url, timeout):
     """
     tracker_type, tracker_address, announce_page = parse_tracker_url(tracker_url)
 
-    if tracker_type == u'UDP':
+    if tracker_type == u'udp':
         return UdpTrackerSession(tracker_url, tracker_address, announce_page, timeout)
     else:
         return HttpTrackerSession(tracker_url, tracker_address, announce_page, timeout)
@@ -59,9 +59,11 @@ class TrackerSession(TaskManager):
         super(TrackerSession, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
+        # tracker type in lowercase
         self._tracker_type = tracker_type
         self._tracker_url = tracker_url
         self._tracker_address = tracker_address
+        # if this is a nonempty string it starts with '/'.
         self._announce_page = announce_page
 
         self._infohash_list = []
@@ -175,7 +177,7 @@ class TrackerSession(TaskManager):
 
 class HttpTrackerSession(TrackerSession):
     def __init__(self, tracker_url, tracker_address, announce_page, timeout):
-        super(HttpTrackerSession, self).__init__(u'HTTP', tracker_url, tracker_address, announce_page, timeout)
+        super(HttpTrackerSession, self).__init__(u'http', tracker_url, tracker_address, announce_page, timeout)
         self._header_buffer = None
         self._message_buffer = None
         self._content_encoding = None
@@ -206,7 +208,7 @@ class HttpTrackerSession(TrackerSession):
         #       which has some sort of 'key' as parameter, so we need to use the add_url_params
         #       utility function to handle such cases.
 
-        url = add_url_params("http://%s:%s/%s" %
+        url = add_url_params("http://%s:%s%s" %
                              (self._tracker_address[0], self._tracker_address[1],
                               self._announce_page.replace(u'announce', u'scrape')),
                              {"info_hash": self._infohash_list})
@@ -430,7 +432,7 @@ class UdpTrackerSession(TrackerSession):
     _active_session_dict = dict()
 
     def __init__(self, tracker_url, tracker_address, announce_page, timeout):
-        super(UdpTrackerSession, self).__init__(u'UDP', tracker_url, tracker_address, announce_page, timeout)
+        super(UdpTrackerSession, self).__init__(u'udp', tracker_url, tracker_address, announce_page, timeout)
         self._connection_id = 0
         self._transaction_id = 0
         self.port = tracker_address[1]
