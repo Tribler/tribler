@@ -66,6 +66,9 @@ def get_uniformed_tracker_url(tracker_url):
     except ValueError:
         return
 
+    if port < 0 or port > 65535:
+        return
+
     page = page_part
 
     if tracker_type == u'http':

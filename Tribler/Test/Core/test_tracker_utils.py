@@ -34,6 +34,9 @@ class TriblerCoreTestTrackerUtils(TriblerCoreTest):
         result = get_uniformed_tracker_url("http://tracker.openbittorrent.com:81/test")
         self.assertEqual(result, "http://tracker.openbittorrent.com:81/test")
 
+        result = get_uniformed_tracker_url("http://tracker.openbittorrent.com:81000/test")
+        self.assertIsNone(result)
+
     def test_parse_tracker_url(self):
         result = parse_tracker_url("http://tracker.openbittorrent.com:80/announce")
         self.assertEqual(result[0], "HTTP")
@@ -66,4 +69,3 @@ class TriblerCoreTestTrackerUtils(TriblerCoreTest):
     @raises(ValueError)
     def test_parse_tracker_url_wrong_type_4(self):
         parse_tracker_url("http://tracker.openbittorrent.com:abc/announce")
-
