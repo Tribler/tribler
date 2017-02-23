@@ -8,6 +8,9 @@ import socket
 from binascii import hexlify
 import time
 
+import sys
+
+import errno
 from twisted.internet import threads
 from twisted.internet.defer import inlineCallbacks, fail
 from twisted.python.failure import Failure
@@ -46,6 +49,12 @@ try:
     GOTM2CRYPTO = True
 except ImportError:
     pass
+
+
+if sys.platform == 'win32':
+    SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
+else:
+    SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
 
 
 class Session(SessionConfigInterface):
@@ -228,6 +237,11 @@ class Session(SessionConfigInterface):
             if 'socket.error: [Errno 113]' in text:
                 self._logger.error("Observed no route to host error (but ignoring)."
                                    "This might indicate a problem with your firewall.")
+                return
+
+            # Socket block: this sometimes occurres on Windows and is non-critical.
+            if 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE in text:
+                self._logger.error("Unable to send data due to socket.error %s", SOCKET_BLOCK_ERRORCODE)
                 return
 
             if self.lm.api_manager and len(text) > 0:

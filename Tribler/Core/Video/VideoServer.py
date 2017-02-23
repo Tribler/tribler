@@ -142,6 +142,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
             self.video_server.set_vod_download(download)
 
             # Put download in sequential mode + trigger initial buffering.
+            self.wait_for_handle(download)
             if download.get_def().is_multifile_torrent():
                 download.set_selected_files([filename])
             download.set_mode(DLMODE_VOD)
@@ -209,6 +210,11 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
 
             if not requested_range:
                 stream.close()
+
+    def wait_for_handle(self, download):
+        # TODO(Martijn): Ugly time.sleep required, should be refactored when we Twistify the video server
+        while not (download.handle and download.handle.is_valid()):
+            time.sleep(1)
 
     def wait_for_buffer(self, download):
         self.event = Event()

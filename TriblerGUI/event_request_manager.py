@@ -4,6 +4,7 @@ from PyQt5.QtCore import QUrl, pyqtSignal, QTimer
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 import time
 
+from TriblerGUI.defs import API_PORT
 
 received_events = []
 
@@ -24,9 +25,9 @@ class EventRequestManager(QNetworkAccessManager):
     discovered_torrent = pyqtSignal(object)
     torrent_finished = pyqtSignal(object)
 
-    def __init__(self, api_port):
+    def __init__(self):
         QNetworkAccessManager.__init__(self)
-        url = QUrl("http://localhost:%d/events" % api_port)
+        url = QUrl("http://localhost:%d/events" % API_PORT)
         self.request = QNetworkRequest(url)
         self.failed_attempts = 0
         self.connect_timer = QTimer()
@@ -36,7 +37,7 @@ class EventRequestManager(QNetworkAccessManager):
         self._logger = logging.getLogger('TriblerGUI')
 
     def on_error(self, error, reschedule_on_err):
-        self._logger.error("Got Tribler core error: %s" % error)
+        self._logger.info("Got Tribler core error: %s" % error)
         if error == QNetworkReply.ConnectionRefusedError:
             if self.failed_attempts == 40:
                 raise RuntimeError("Could not connect with the Tribler Core within 20 seconds")

@@ -111,6 +111,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.tdef = tdef
         self.handle = None
         self.vod_index = None
+        self.orig_files = None
 
         # Just enough so error saving and get_state() works
         self.error = None
@@ -588,17 +589,17 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.tracker_status[alert.url] = [peers, status]
 
     def on_metadata_received_alert(self, alert):
-        self.metadata = {'info': lt.bdecode(get_info_from_handle(self.handle).metadata())}
+        metadata = {'info': lt.bdecode(get_info_from_handle(self.handle).metadata())}
 
         trackers = [tracker['url'] for tracker in self.handle.trackers()]
         if trackers:
             if len(trackers) > 1:
-                self.metadata["announce-list"] = [trackers]
+                metadata["announce-list"] = [trackers]
             else:
-                self.metadata["announce"] = trackers[0]
+                metadata["announce"] = trackers[0]
 
-        self.tdef = TorrentDef.load_from_dict(self.metadata)
-        self.orig_files = [torrent_file.path.decode('utf-8') for torrent_file in lt.torrent_info(self.metadata).files()]
+        self.tdef = TorrentDef.load_from_dict(metadata)
+        self.orig_files = [torrent_file.path.decode('utf-8') for torrent_file in lt.torrent_info(metadata).files()]
         self.set_corrected_infoname()
         self.set_filepieceranges()
 
@@ -886,7 +887,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         status = self.handle.status()
         numTotSeeds = status.num_complete if status.num_complete >= 0 else status.list_seeds
         numTotPeers = status.num_incomplete if status.num_incomplete >= 0 else status.list_peers
-        numleech = status.num_peers - status.num_seeds
+        numleech = max(status.num_peers - status.num_seeds, 0)  # When anon downloading, this might become negative
         numseeds = status.num_seeds
         pieces = status.pieces
         upTotal = status.all_time_upload
@@ -1067,6 +1068,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 # stopped before, pstate_for_restart contains its resumedata.
                 # and that should be written into the checkpoint.
                 #
+                self.cancel_pending_task("check_create_wrapper")
+                if self.dlstate == DLSTATUS_CIRCUITS:
+                    self.dlstate = DLSTATUS_STOPPED
+
                 if self.pstate_for_restart is not None:
                     self._logger.debug(
                         "LibtorrentDownloadImpl: network_stop: Reusing previously saved engineresume data for checkpoint")
@@ -1096,9 +1101,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     def restart(self):
         """ Restart the Download """
-        # Called by any thread
         self.set_user_stopped(False)
         self._logger.debug("LibtorrentDownloadImpl: restart: %s", self.tdef.get_name())
+
+        # We stop a previous restart if it's active
+        self.cancel_pending_task("check_create_wrapper")
 
         with self.dllock:
             if self.handle is None:

@@ -109,7 +109,12 @@ class SessionConfigInterface(object):
         """ Fetch a port setting from the config file and in case it's set to -1 (random), look for a free port and assign it to
                 this particular setting.
         """
-        settings_port = self.sessconfig.get(section, option)
+        try:
+            settings_port = int(self.sessconfig.get(section, option))
+        except ValueError:
+            self._logger.warning("Invalid port for section %s and option %s, resetting to default", section, option)
+            settings_port = sessdefaults[section][option]
+            self.sessconfig.set(section, option, settings_port)
         path = section + '~' + option
         in_selected_ports = path in self.selected_ports
 

@@ -77,16 +77,15 @@ class TriblerWindow(QMainWindow):
             self.feedback_dialog_is_open = True
             _ = dialog.exec_()
 
-    def __init__(self, api_port=8085):
+    def __init__(self):
         QMainWindow.__init__(self)
 
-        self.api_port = api_port
         self.navigation_stack = []
         self.feedback_dialog_is_open = False
         self.tribler_started = False
         self.tribler_settings = None
         self.debug_window = None
-        self.core_manager = CoreManager(self.api_port)
+        self.core_manager = CoreManager()
         self.pending_requests = {}
         self.pending_uri_requests = []
         self.download_uri = None
@@ -303,10 +302,14 @@ class TriblerWindow(QMainWindow):
 
     def fetch_settings(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("settings", self.received_settings)
+        self.request_mgr.perform_request("settings", self.received_settings, capture_errors=False)
 
     def received_settings(self, settings):
-        self.tribler_settings = settings['settings']
+        # If we cannot receive the settings, stop Tribler with an option to send the crash report.
+        if 'error' in settings:
+            raise RuntimeError(TriblerRequestManager.get_message_from_error(settings))
+        else:
+            self.tribler_settings = settings['settings']
 
         # Disable various components based on the settings
         if not self.tribler_settings['search_community']['enabled']:
@@ -330,7 +333,7 @@ class TriblerWindow(QMainWindow):
 
         browse_files_action = QAction('Import torrent from file', self)
         browse_directory_action = QAction('Import torrents from directory', self)
-        add_url_action = QAction('Import torrent from URL', self)
+        add_url_action = QAction('Import torrent from magnet/URL', self)
 
         browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
         browse_directory_action.triggered.connect(self.on_add_torrent_browse_dir)
@@ -381,7 +384,9 @@ class TriblerWindow(QMainWindow):
         self.dialog.setParent(None)
         self.dialog = None
         self.start_download_dialog_active = False
-        self.process_uri_request()
+
+        if action == 0:  # We do this after removing the dialog since process_uri_request is blocking
+            self.process_uri_request()
 
     def on_add_torrent_browse_dir(self):
         chosen_dir = QFileDialog.getExistingDirectory(self, "Please select the directory containing the .torrent files",
@@ -432,6 +437,8 @@ class TriblerWindow(QMainWindow):
     def on_download_added(self, result):
         if len(self.pending_uri_requests) == 0:  # Otherwise, we first process the remaining requests.
             self.window().left_menu_button_downloads.click()
+        else:
+            self.process_uri_request()
 
     def on_top_menu_button_click(self):
         if self.left_menu.isHidden():

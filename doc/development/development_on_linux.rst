@@ -7,8 +7,7 @@ First, install the required dependencies by executing the following command in y
 
 .. code-block:: none
 
-    sudo apt-get install libav-tools libsodium13 libx11-6 python-apsw python-cherrypy3 python-crypto python-cryptography python-feedparser python-leveldb python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-twisted python2.7 vlc python-pip python-chardet python-configobj python-pyqt5 python-pyqt5.qtsvg
-    sudo pip install decorator libnacl
+    sudo apt-get install libav-tools libsodium18 libx11-6 python-apsw python-cherrypy3 python-crypto python-cryptography python-decorator python-feedparser python-leveldb python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-twisted python2.7 vlc python-chardet python-configobj python-pyqt5 python-pyqt5.qtsvg
 
 Next, download the latest .deb file from `here <https://jenkins.tribler.org/job/Build-Tribler_Ubuntu-64_devel/lastStableBuild/>`_.
 
@@ -64,4 +63,4 @@ Execute the following command in your terminal:
 
 .. code-block:: none
 
-    pacman -S libsodium libtorrent-rasterbar python2-pyqt5 qt5-svg phonon-qt5-vlc python2-apsw python2-cherrypy python2-cryptography python2-decorator python2-feedparser python2-chardet python2-m2crypto python2-netifaces python2-plyvel python2-requests python2-twisted
+    pacman -S libsodium libtorrent-rasterbar python2-pyqt5 qt5-svg phonon-qt5-vlc python2-apsw python2-cherrypy python2-cryptography python2-decorator python2-feedparser python2-chardet python2-m2crypto python2-netifaces python2-plyvel python2-requests python2-twisted python2-configobj

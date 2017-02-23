@@ -6,10 +6,9 @@ from time import time
 
 from PyQt5.QtCore import QUrl, pyqtSignal, QIODevice, QBuffer
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-from TriblerGUI.defs import BUTTON_TYPE_NORMAL
+from TriblerGUI.defs import BUTTON_TYPE_NORMAL, API_PORT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 
-API_PORT = 8085
 performed_requests = {}
 
 
@@ -27,7 +26,6 @@ class TriblerRequestManager(QNetworkAccessManager):
         self.request_id = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
         self.base_url = "http://localhost:%d/" % API_PORT
         self.reply = None
-        self.error_dialog = None
 
     def perform_request(self, endpoint, read_callback, data="", method='GET', capture_errors=True):
         """
@@ -76,6 +74,14 @@ class TriblerRequestManager(QNetworkAccessManager):
 
         self.finished.connect(lambda reply: self.on_finished(reply, capture_errors))
 
+    @staticmethod
+    def get_message_from_error(error):
+        if isinstance(error['error'], (str, unicode)):
+            return error['error']
+        elif 'message' in error['error']:
+            return error['error']['message']
+        return "Unknown error"
+
     def on_finished(self, reply, capture_errors):
         performed_requests[self.request_id][4] = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
 
@@ -84,10 +90,7 @@ class TriblerRequestManager(QNetworkAccessManager):
             json_result = json.loads(str(data))
 
             if 'error' in json_result and capture_errors:
-                if isinstance(json_result['error'], (str, unicode)):
-                    self.show_error(json_result['error'])
-                elif 'message' in json_result['error']:
-                    self.show_error(json_result['error']['message'])
+                self.show_error(TriblerRequestManager.get_message_from_error(json_result))
             else:
                 self.received_json.emit(json_result, reply.error())
         except ValueError:
@@ -107,14 +110,14 @@ class TriblerRequestManager(QNetworkAccessManager):
 
     def show_error(self, error_text):
         main_text = "An error occurred during the request:\n\n%s" % error_text
-        self.error_dialog = ConfirmationDialog(TriblerRequestManager.window, "Request error",
-                                               main_text, [('CLOSE', BUTTON_TYPE_NORMAL)])
-        self.error_dialog.button_clicked.connect(self.on_error_dialog_cancel_clicked)
-        self.error_dialog.show()
+        error_dialog = ConfirmationDialog(TriblerRequestManager.window, "Request error",
+                                          main_text, [('CLOSE', BUTTON_TYPE_NORMAL)])
 
-    def on_error_dialog_cancel_clicked(self, _):
-        self.error_dialog.setParent(None)
-        self.error_dialog = None
+        def on_close():
+            error_dialog.setParent(None)
+
+        error_dialog.button_clicked.connect(on_close)
+        error_dialog.show()
 
     def cancel_request(self):
         if self.reply:
