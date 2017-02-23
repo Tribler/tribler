@@ -244,6 +244,10 @@ class Session(SessionConfigInterface):
                 self._logger.error("Unable to send data due to socket.error %s", SOCKET_BLOCK_ERRORCODE)
                 return
 
+            if 'socket.error: [Errno 51]' in text:
+                self._logger.error("Could not send data: network is unreachable.")
+                return
+
             if self.lm.api_manager and len(text) > 0:
                 self.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception(text)
                 self.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception(text)

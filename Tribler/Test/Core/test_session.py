@@ -130,6 +130,7 @@ class TestSessionAsServer(TestAsServer):
         self.session.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception = on_tribler_exception
 
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 113]'})
+        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 51]'})
         self.session.unhandled_error_observer({'isError': True,
                                                'log_failure': 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
 
