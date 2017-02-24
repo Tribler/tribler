@@ -21,7 +21,7 @@ HomeBrew
 Note
 -----
 
-Skip to `Build <#Build>`_ if you are using MacPorts because HomeBrew is a less complete alternative to MacPorts.
+Skip to `Tribler <development_on_osx.rst#tribler>`_ if you are using MacPorts because HomeBrew is a less complete alternative to MacPorts.
 
 HomeBrew Install instructions at `brew.sh <https://brew.sh>`_.
 
