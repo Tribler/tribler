@@ -2,7 +2,6 @@ import urllib
 
 import datetime
 from PyQt5.QtWidgets import QSizePolicy
-from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QWidget
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.dates import DateFormatter
@@ -42,7 +41,7 @@ class TrustPlotMplCanvas(MplCanvas):
 
         self.axes.xaxis.set_major_formatter(DateFormatter('%d-%m-%y'))
 
-        points, = self.axes.plot(self.plot_data[1], self.plot_data[0][0], label="MBytes given", marker='o')
+        self.axes.plot(self.plot_data[1], self.plot_data[0][0], label="MBytes given", marker='o')
         self.axes.plot(self.plot_data[1], self.plot_data[0][1], label="MBytes taken", marker='o')
         self.axes.grid(True)
 
@@ -119,6 +118,10 @@ class TrustPage(QWidget):
             else:
                 plot_data[0][0].append(block["total_up_responder"])
                 plot_data[0][1].append(block["total_down_responder"])
+
+        if len(self.blocks) == 0:
+            # Create on single data point with 0mb up and 0mb down
+            plot_data = [[[0], [0]], [datetime.datetime.now()]]
 
         self.trust_plot.plot_data = plot_data
         self.trust_plot.compute_initial_figure()
