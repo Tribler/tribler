@@ -412,8 +412,7 @@ class TestTorrentDef(BaseTestCase):
         self.assertFalse(torrent.is_multifile_torrent())
         self.assertEqual(torrent.get_name_as_unicode(), unicode(self.VIDEO_FILE_NAME))
         self.assertFalse(torrent.get_files())
-        self.assertFalse(torrent.get_files_as_unicode())
-        self.assertFalse(torrent.get_files_as_unicode_with_length())
+        self.assertFalse(torrent.get_files_with_length())
         self.assertFalse(torrent.get_trackers_as_single_tuple())
         self.assertFalse(torrent.is_private())
 
