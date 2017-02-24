@@ -1,24 +1,29 @@
 Tribler development environment setup on MacOS (10.10 or 10.11).
 
-1. MacPorts
-2. HomeBrew 
-3. Build
-4. Notes
+1. `MacPorts <development_on_osx.rst#MacPorts>`_
+2. `HomeBrew <development_on_osx.rst#HomeBrew>`_
+3. `Tribler <development_on_osx.rst#Tribler>`_
+4. `Notes <development_on_osx.rst#Notes>`_
 
-`MacPorts <https://www.macports.org>`_
-======================================
+MacPorts
+========
+
+MacPorts Install instructions at `macports.org <https://www.macports.org>`_.
+To install the Tribler dependencies using MacPorts, please run the following command in your terminal:
 
 .. code-block:: bash
 
     sudo port -N install git ffmpeg qt5-qtcreator libtorrent-rasterbar gmp mpfr libmpc libsodium py27-m2crypto py27-apsw py27-Pillow py27-twisted py27-cherrypy3 py27-cffi py27-chardet py27-configobj py27-gmpy2 py27-pycparser py27-numpy py27-idna py27-leveldb py27-cryptography py27-decorator py27-feedparser py27-netifaces py27-service_identity py27-asn1-modules py27-pyinstaller py27-pyqt5 py27-sqlite py27-matplotlib
     
-`HomeBrew <https://brew.sh>`_
-=============================
+HomeBrew
+========
 
 Note
 -----
 
-Skip to Build if you are using MacPorts because HomeBrew is a less complete alternative to MacPorts.
+Skip to `Build <#Build>`_ if you are using MacPorts because HomeBrew is a less complete alternative to MacPorts.
+
+HomeBrew Install instructions at `brew.sh <https://brew.sh>`_.
 
 PyQt5
 -----
@@ -143,7 +148,7 @@ If you encounter any error during the installation of Pillow, make sure that lib
     brew install libjpeg zlib
     brew link --force zlib
 
-Build
+Tribler
 =====
 
 .. code-block:: bash
@@ -153,14 +158,8 @@ Build
     cp /usr/local/lib/libsodium.dylib ./ || cp /opt/local/lib/libsodium.dylib ./
     mkdir vlc
     which ffmpeg | xargs -I {} cp "{}" vlc/
-    ./Tribler/Main/Build/update_version_from_git.py
-    ./mac/makedistmac_64bit.sh
-
-Alternativly to makedist Tribler can be started with:
-
-.. code-block:: none
-
-    ./tribler.sh
+    
+Procede to `Build instructions <../building/building_on_osx.rst>`_
 
 Notes
 =====
