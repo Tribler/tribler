@@ -170,7 +170,7 @@ System Integrity Protection
 
 The security system on MacOS can prevent ``libsodium.dylib`` from being dynamically linked into Tribler when running Python. If this library cannot be loaded, it gives an error that libsodium could not be found. This is because the ``DYLD_LIBRARY_PATH`` cannot be set when Python starts. More information about this can be read `here <https://forums.developer.apple.com/thread/13161>`_.
 
-Thebest solution to this problem is to link or copy ``libsodium.dylib`` into the Tribler root directory.
+The best solution to this problem is to link or copy ``libsodium.dylib`` into the Tribler root directory.
 
 Help
 ----
