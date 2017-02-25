@@ -1,5 +1,8 @@
 import urllib
 
+import matplotlib
+matplotlib.use('Qt5Agg')
+
 import datetime
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QWidget
