@@ -223,6 +223,10 @@ class TriblerLaunchMany(TaskManager):
             tunnel_settings = TunnelSettings(tribler_session=self.session)
             tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
 
+            import sys
+            if '--tunnel_subprocess' in sys.argv:
+                tunnel_kwargs['is_subprocess'] = True
+
             if self.session.get_enable_multichain():
                 multichain_kwargs = {'tribler_session': self.session}
 
@@ -237,9 +241,17 @@ class TriblerLaunchMany(TaskManager):
                                                load=True,
                                                kargs=multichain_kwargs)
 
-                from Tribler.community.tunnel.hidden_community_multichain import HiddenTunnelCommunityMultichain
-                self.tunnel_community = self.dispersy.define_auto_load(
-                    HiddenTunnelCommunityMultichain, dispersy_member, load=True, kargs=tunnel_kwargs)[0]
+                if self.session.get_tunnel_community_pooled():
+                    # Load the pooled HiddenTunnelCommunityMultichain
+                    from Tribler.community.tunnel.pooled_tunnel_community import PooledTunnelCommunity
+                    self.tunnel_community = self.dispersy.define_auto_load(
+                        PooledTunnelCommunity, dispersy_member, load=True, kargs=tunnel_kwargs)[0]
+                else:
+                    # Load the normal HiddenTunnelCommunityMultichain
+                    from Tribler.community.tunnel.hidden_community_multichain \
+                        import HiddenTunnelCommunityMultichain
+                    self.tunnel_community = self.dispersy.define_auto_load(
+                        HiddenTunnelCommunityMultichain, dispersy_member, load=True, kargs=tunnel_kwargs)[0]
             else:
                 keypair = self.dispersy.crypto.generate_key(u"curve25519")
                 dispersy_member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
