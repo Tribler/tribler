@@ -1,6 +1,6 @@
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-from Tribler.community.tunnel.routing import Circuit
+from Tribler.community.tunnel.remotes.circuit import Circuit
 
 
 class TestRouting(TriblerCoreTest):

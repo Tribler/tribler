@@ -1,15 +1,13 @@
+import logging
 import time
 
 from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, \
     CIRCUIT_TYPE_DATA
-from Tribler.dispersy.crypto import LibNaCLPK
+from Tribler.community.tunnel.remotes.remote_object import RemoteObject, shared
 from Tribler.dispersy.candidate import Candidate
-import logging
-
-__author__ = 'chris'
 
 
-class Circuit(object):
+class Circuit(RemoteObject):
 
     """ Circuit data structure storing the id, state and hops """
 
@@ -24,15 +22,13 @@ class Circuit(object):
         :return: Circuit
         """
 
-        from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
         assert isinstance(circuit_id, long)
         assert isinstance(goal_hops, int)
-        assert proxy is None or isinstance(proxy, HiddenTunnelCommunity)
         assert first_hop is None or isinstance(first_hop, tuple) and isinstance(
             first_hop[0], basestring) and isinstance(first_hop[1], int)
 
         self._broken = False
-        self._hops = []
+        self.hops = []
 
         self.circuit_id = circuit_id
         self.first_hop = first_hop
@@ -52,20 +48,73 @@ class Circuit(object):
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
-    @property
+    @shared
     def hops(self):
         """
         Return a read only tuple version of the hop-list of this circuit
-        @rtype tuple[Hop]
+        @rtype list[<str> hop public key]
         """
-        return tuple(self._hops)
+        pass
+
+    @shared
+    def _broken(self):
+        pass
+
+    @shared(True)
+    def circuit_id(self):
+        pass
+
+    @shared
+    def first_hop(self):
+        pass
+
+    @shared
+    def goal_hops(self):
+        pass
+
+    @shared
+    def creation_time(self):
+        pass
+
+    @shared
+    def last_incoming(self):
+        pass
+
+    @shared
+    def unverified_hop(self):
+        pass
+
+    @shared
+    def bytes_up(self):
+        pass
+
+    @shared
+    def bytes_down(self):
+        pass
+
+    @shared
+    def ctype(self):
+        pass
+
+    @shared
+    def required_endpoint(self):
+        pass
+
+    @shared
+    def mid(self):
+        pass
+
+    @shared
+    def info_hash(self):
+        pass
 
     def add_hop(self, hop):
         """
         Adds a hop to the circuits hop collection
-        @param Hop hop: the hop to add
+        @param str hop public key: the hop to add
         """
-        self._hops.append(hop)
+        assert isinstance(hop, basestring)
+        self.hops = self.hops + [hop]
 
     @property
     def state(self):
@@ -96,9 +145,10 @@ class Circuit(object):
         """
 
         self._logger.info("Tunnel data (len %d) to end for circuit %s with ultimate destination %s", len(payload),
-                           self.circuit_id, destination)
+                          self.circuit_id, destination)
 
-        num_bytes = self.proxy.send_data([Candidate(self.first_hop, False)], self.circuit_id, destination, ('0.0.0.0', 0), payload)
+        num_bytes = self.proxy.send_data([Candidate(tuple(self.first_hop), False)], self.circuit_id,
+                                         destination, ('0.0.0.0', 0), payload)
         self.proxy.increase_bytes_sent(self, num_bytes)
 
         if num_bytes == 0:
@@ -114,92 +164,6 @@ class Circuit(object):
         """
         self._broken = True
 
-
-class Hop(object):
-
-    """
-    Circuit Hop containing the address, its public key and the first part of
-    the Diffie-Hellman handshake
-    """
-
-    def __init__(self, public_key=None):
-        """
-        @param None|LibNaCLPK public_key: public key object of the hop
-        """
-
-        assert public_key is None or isinstance(public_key, LibNaCLPK)
-
-        self.session_keys = None
-        self.dh_first_part = None
-        self.dh_secret = None
-        self.address = None
-        self.public_key = public_key
-
-    @property
-    def host(self):
-        """
-        The hop's hostname
-        """
-        if self.address:
-            return self.address[0]
-        return " UNKNOWN HOST "
-
-    @property
-    def port(self):
-        """
-        The hop's port
-        """
-        if self.address:
-            return self.address[1]
-        return " UNKNOWN PORT "
-
-    @property
-    def node_id(self):
-        """
-        The hop's nodeid
-        """
-        if self.public_key:
-            return self.public_key.key_to_hash()
-
-        raise RuntimeError("nodeid unknown")
-
-    @property
-    def node_public_key(self):
-        """
-        The hop's public_key
-        """
-        if self.public_key:
-            return self.public_key.key_to_bin()
-
-        raise RuntimeError("public key unknown")
-
-
-class RelayRoute(object):
-
-    """
-    Relay object containing the destination circuit, socket address and whether
-    it is online or not
-    """
-
-    def __init__(self, circuit_id, sock_addr, rendezvous_relay=False, mid=None):
-        """
-        @type sock_addr: (str, int)
-        @type circuit_id: int
-        @return:
-        """
-
-        self.sock_addr = sock_addr
-        self.circuit_id = circuit_id
-        self.creation_time = time.time()
-        self.last_incoming = time.time()
-        self.bytes_up = self.bytes_down = 0
-        self.rendezvous_relay = rendezvous_relay
-        self.mid = mid
-
-class RendezvousPoint(object):
-
-    def __init__(self, circuit, cookie, finished_callback):
-        self.circuit = circuit
-        self.cookie = cookie
-        self.finished_callback = finished_callback
-        self.rp_info = None
+        if self.proxy:
+            for hop_id in filter(set(self.hops).__contains__, self.proxy.hops.keys()):
+                self.proxy.hops.pop(hop_id)
