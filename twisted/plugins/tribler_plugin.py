@@ -4,13 +4,13 @@ This twistd plugin enables to start Tribler headless using the twistd command.
 from datetime import date
 import os
 import signal
+import sys
 import time
 
 from twisted.application.service import MultiService, IServiceMaker
 from twisted.conch import manhole_tap
 from twisted.internet import reactor
 from twisted.plugin import IPlugin
-from twisted.python import usage
 from twisted.python.log import msg
 from zope.interface import implements
 
@@ -21,10 +21,11 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 # Register yappi profiler
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.search.community import SearchCommunity
+from Tribler.community.tunnel.subprocess_launcher import SubprocessLauncher
 from Tribler.dispersy.utils import twistd_yappi
 
 
-class Options(usage.Options):
+class Options(SubprocessLauncher):
     optParameters = [
         ["manhole", "m", 0, "Enable manhole telnet service listening at the specified port", int],
         ["statedir", "s", None, "Use an alternate statedir", str],
@@ -142,4 +143,9 @@ class TriblerServiceMaker(object):
 
         return tribler_service
 
+
+options = Options()
+options.parse_argv()
+if options.attempt_subprocess_start():
+    sys.exit(0)
 service_maker = TriblerServiceMaker()

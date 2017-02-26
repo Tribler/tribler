@@ -1,8 +1,19 @@
+import logging.config
+import multiprocessing
 import os
 import sys
-import multiprocessing
+
+from Tribler.community.tunnel.subprocess_launcher import SubprocessLauncher
+
+if os.path.exists("logger.conf"):
+    logging.config.fileConfig("logger.conf")
 
 if __name__ == "__main__":
+    options = SubprocessLauncher()
+    options.parse_argv()
+    if options.attempt_subprocess_start():
+        sys.exit(0)
+
     multiprocessing.freeze_support()
 
     from TriblerGUI.tribler_app import TriblerApplication

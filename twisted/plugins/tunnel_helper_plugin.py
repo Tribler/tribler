@@ -7,6 +7,7 @@ import logging.config
 import os
 import random
 import signal
+import sys
 import threading
 import time
 from collections import defaultdict, deque
@@ -40,6 +41,7 @@ from Tribler.Core.permid import read_keypair
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+from Tribler.community.tunnel.subprocess_launcher import SubprocessLauncher
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
@@ -89,7 +91,7 @@ def check_json_port(val):
 check_json_port.coerceDoc = "Json API port must be greater than 0."
 
 
-class Options(usage.Options):
+class Options(SubprocessLauncher):
     optFlags = [
         ["exit", "x", "Allow being an exit-node"],
         ["multichain", "M", "Enable the multichain community"]
@@ -504,5 +506,8 @@ class TunnelHelperServiceMaker(object):
 
         return tunnel_helper_service
 
-
+options = Options()
+options.parse_argv()
+if options.attempt_subprocess_start():
+    sys.exit(0)
 service_maker = TunnelHelperServiceMaker()
