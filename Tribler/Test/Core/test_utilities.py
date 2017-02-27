@@ -204,6 +204,11 @@ class TriblerCoreTestUtilities(TriblerCoreTest):
         validTorrentFile({"info": {"name": "my_torrent", "piece length": 12345, "pieces": "12345678901234567890",
                                    "length": 42}, "httpseeds": ["http://google.com"]})
 
+    def test_valid_torrent_file_initial_peers(self):
+        validTorrentFile({"info": {"name": "my_torrent", "piece length": 12345, "pieces": "12345678901234567890",
+                                   "length": 42}, "initial peers": [("127.0.0.1", 8081)],
+                          "httpseeds": ["http://google.com"]})
+
     def test_is_valid_torrent_file(self):
         self.assertTrue(isValidTorrentFile({"info": {"name": "my_torrent", "piece length": 12345,
                                             "pieces": "12345678901234567890", "files": [{"length": 42, "path": []}]}}))

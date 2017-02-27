@@ -1,3 +1,4 @@
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Community.channel.test_channel_base import AbstractTestChannelCommunity
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -42,3 +43,17 @@ class TestChannelCommunity(AbstractTestChannelCommunity):
             lambda community, pid: mocked_load_message(True, community, pid)
         self.channel_community.remove_playlist_torrents(1234, [1234])
         self.assertTrue(mocked_undo_playlist_torrent.called)
+
+    @blocking_call_on_reactor_thread
+    def test_create_torrent_from_def(self):
+        """
+        Testing whether a correct Dispersy message is created when we add a torrent to our channel
+        """
+        metainfo = {"info": {"name": "my_torrent", "piece length": 12345, "pieces": "12345678901234567890",
+                             "files": [{'path': ['test.txt'], 'length': 1234}]}}
+        torrent = TorrentDef.load_from_dict(metainfo)
+        self.channel_community.initialize()
+
+        message = self.channel_community._disp_create_torrent_from_torrentdef(torrent, 12345)
+        self.assertEqual(message.payload.name, "my_torrent")
+        self.assertEqual(len(message.payload.files), 1)

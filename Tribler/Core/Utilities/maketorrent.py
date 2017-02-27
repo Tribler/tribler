@@ -3,13 +3,11 @@
 # modified for Merkle hashes and digital signatures by Arno Bakker
 # see LICENSE.txt for license information
 
-import sys
 import os
 import logging
 from hashlib import sha1
 from copy import copy
 from time import time
-from types import LongType
 from libtorrent import bencode
 
 import chardet
@@ -169,7 +167,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
             if userprogresscallback is not None:
                 userprogresscallback(float(totalhashed) / float(totalsize))
 
-        newdict = {'length': num2num(size),
+        newdict = {'length': size,
                    'path': uniconvertl(p, encoding),
                    'path.utf-8': uniconvertl(p, 'utf-8')}
 
@@ -183,7 +181,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
     # 5. Create info dict
     if len(subs) == 1:
         flkey = 'length'
-        flval = num2num(totalsize)
+        flval = totalsize
         name = subs[0][0][0]
     else:
         flkey = 'files'
@@ -196,7 +194,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
             l = filename2pathlist(outpath)
             name = l[0]
 
-    infodict = {'piece length': num2num(piece_length),
+    infodict = {'piece length': piece_length,
                 flkey: flval,
                 'name': uniconvert(name, encoding),
                 'name.utf-8': uniconvert(name, 'utf-8')}
@@ -260,14 +258,6 @@ def pathlist2savefilename(pathlist, encoding):
         b = fix_filebasename(u)
         fullpath = os.path.join(fullpath, b)
     return fullpath
-
-
-def num2num(num):
-    """ Converts long to int if small enough to fit """
-    if isinstance(num, LongType) and num < sys.maxint:
-        return int(num)
-    else:
-        return num
 
 
 def get_length_from_metainfo(metainfo, selectedfiles):
@@ -349,30 +339,3 @@ def copy_metainfo_to_input(metainfo, input):
 
     if 'httpseeds' in metainfo:
         input['httpseeds'] = metainfo['httpseeds']
-
-
-def get_files(metainfo, exts):
-    # 01/02/10 Boudewijn: now returns (file, length) tuples instead of files
-    videofiles = []
-    if 'files' in metainfo['info']:
-        # Multi-file torrent
-        files = metainfo['info']['files']
-        for file in files:
-            p = file['path']
-            filename = ''
-            for elem in p:
-                filename = os.path.join(filename, elem)
-
-            (prefix, ext) = os.path.splitext(filename)
-            if ext != '' and ext[0] == '.':
-                ext = ext[1:]
-            if exts is None or ext.lower() in exts:
-                videofiles.append((filename, file['length']))
-    else:
-        filename = metainfo['info']['name']  # don't think we need fixed name here
-        (prefix, ext) = os.path.splitext(filename)
-        if ext != '' and ext[0] == '.':
-            ext = ext[1:]
-        if exts is None or ext.lower() in exts:
-            videofiles.append((filename, metainfo['info']['length']))
-    return videofiles

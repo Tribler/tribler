@@ -412,8 +412,7 @@ class TestTorrentDef(BaseTestCase):
         self.assertFalse(torrent.is_multifile_torrent())
         self.assertEqual(torrent.get_name_as_unicode(), unicode(self.VIDEO_FILE_NAME))
         self.assertFalse(torrent.get_files())
-        self.assertFalse(torrent.get_files_as_unicode())
-        self.assertFalse(torrent.get_files_as_unicode_with_length())
+        self.assertFalse(torrent.get_files_with_length())
         self.assertFalse(torrent.get_trackers_as_single_tuple())
         self.assertFalse(torrent.is_private())
 
@@ -423,3 +422,14 @@ class TestTorrentDef(BaseTestCase):
     def general_check(self, metainfo):
         self.assertTrue(isValidTorrentFile(metainfo))
         self.assertEqual(metainfo['announce'], TRACKER)
+
+    def test_get_index(self):
+        t = TorrentDef()
+        t.metainfo_valid = True
+        t.metainfo = {'info': {'files': [{'path': ['a.txt'], 'length': 123}]}}
+        self.assertEqual(t.get_index_of_file_in_files('a.txt'), 0)
+        self.assertRaises(ValueError, t.get_index_of_file_in_files, 'b.txt')
+        self.assertRaises(ValueError, t.get_index_of_file_in_files, None)
+
+        t.metainfo = {'info': {'files': [{'path': ['a.txt'], 'path.utf-8': ['b.txt'], 'length': 123}]}}
+        self.assertEqual(t.get_index_of_file_in_files('b.txt'), 0)

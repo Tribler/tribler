@@ -1,11 +1,13 @@
 import json
-from urllib import url2pathname
+import logging
 from libtorrent import bdecode, bencode
+from urllib import url2pathname
+
 from twisted.internet.defer import Deferred
 from twisted.internet.error import DNSLookupError, ConnectError
-
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
+
 from Tribler.Core.Modules.restapi.util import fix_unicode_dict
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink
@@ -20,6 +22,7 @@ class TorrentInfoEndpoint(resource.Resource):
         resource.Resource.__init__(self)
         self.session = session
         self.infohash = None
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     def finish_request(self, request):
         try:
@@ -91,7 +94,11 @@ class TorrentInfoEndpoint(resource.Resource):
                 return json.dumps({"error": "missing infohash"})
 
             if self.session.has_collected_torrent(self.infohash):
-                tdef = TorrentDef.load_from_memory(self.session.get_collected_torrent(self.infohash))
+                try:
+                    tdef = TorrentDef.load_from_memory(self.session.get_collected_torrent(self.infohash))
+                except ValueError as exc:
+                    request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+                    return json.dumps({"error": "invalid torrent file: %s" % str(exc)})
                 on_got_metainfo(tdef.get_metainfo())
                 return NOT_DONE_YET
 

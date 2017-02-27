@@ -1,5 +1,6 @@
 import logging
 import os
+
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
@@ -33,6 +34,11 @@ class WatchFolder(TaskManager):
     def stop(self):
         self.cancel_all_pending_tasks()
 
+    def cleanup_torrent_file(self, root, name):
+        os.rename(os.path.join(root, name), os.path.join(root, name + ".corrupt"))
+        self._logger.warning("Watch folder - corrupt torrent file %s", name)
+        self.session.notifier.notify(NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, None, name)
+
     def check_watch_folder(self):
         if not os.path.isdir(self.session.get_watch_folder_path()):
             return
@@ -42,14 +48,12 @@ class WatchFolder(TaskManager):
                 if not name.endswith(u".torrent"):
                     continue
 
-                torrent_data = fix_torrent(os.path.join(root, name))
-                if not torrent_data:  # torrent appears to be corrupt
-                    os.rename(os.path.join(root, name), os.path.join(root, name + ".corrupt"))
-                    self._logger.warning("Watch folder - corrupt torrent file %s", name)
-                    self.session.notifier.notify(NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, None, name)
+                try:
+                    tdef = TorrentDef.load_from_memory(fix_torrent(os.path.join(root, name)))
+                except:  # torrent appears to be corrupt
+                    self.cleanup_torrent_file(root, name)
                     continue
 
-                tdef = TorrentDef.load_from_memory(torrent_data)
                 infohash = tdef.get_infohash()
 
                 if not self.session.has_download(infohash):

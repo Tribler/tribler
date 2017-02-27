@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QSizePolicy, QFileDialog, QTreeWidgetItem
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_ui_file_path, format_size, get_gui_setting
+from TriblerGUI.utilities import get_ui_file_path, format_size, get_gui_setting, get_image_path
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
@@ -44,8 +44,37 @@ class StartDownloadDialog(DialogContainer):
         self.dialog_widget.select_all_files_button.clicked.connect(self.on_all_files_selected_clicked)
         self.dialog_widget.deselect_all_files_button.clicked.connect(self.on_all_files_deselected_clicked)
 
+        self.dialog_widget.destination_input.setStyleSheet("""
+        QComboBox {
+            background-color: #444;
+            border: none;
+            color: #C0C0C0;
+            padding: 4px;
+        }
+        QComboBox::drop-down {
+            width: 20px;
+            border: 1px solid #999;
+            border-radius: 2px;
+        }
+        QComboBox QAbstractItemView {
+            selection-background-color: #707070;
+        }
+        QComboBox::down-arrow {
+            width: 12px;
+            height: 12px;
+            image: url('%s');
+        }
+        """ % get_image_path('down_arrow_input.png'))
+
         if self.window().tribler_settings:
-            self.dialog_widget.destination_input.setText(self.window().tribler_settings['downloadconfig']['saveas'])
+            # Set the most recent download locations in the QComboBox
+            current_settings = get_gui_setting(self.window().gui_settings, "recent_download_locations", "")
+            if len(current_settings) > 0:
+                recent_locations = [url.decode('hex') for url in current_settings.split(",")]
+                self.dialog_widget.destination_input.addItems(recent_locations)
+            else:
+                self.dialog_widget.destination_input.setCurrentText(
+                    self.window().tribler_settings['downloadconfig']['saveas'])
 
         self.dialog_widget.torrent_name_label.setText(torrent_name)
 
@@ -120,7 +149,7 @@ class StartDownloadDialog(DialogContainer):
                                                       "", QFileDialog.ShowDirsOnly)
 
         if len(chosen_dir) != 0:
-            self.dialog_widget.destination_input.setText(chosen_dir)
+            self.dialog_widget.destination_input.setCurrentText(chosen_dir)
 
     def on_anon_download_state_changed(self, _):
         if self.dialog_widget.anon_download_checkbox.isChecked():

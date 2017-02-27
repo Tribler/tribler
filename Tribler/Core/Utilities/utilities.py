@@ -62,15 +62,21 @@ def validTorrentFile(metainfo):
     # also allow for peer addresses to be (temporarily) stored in the
     # metadata.  Typically these addresses are recently gathered.
     if "initial peers" in metainfo:
+        valid_initial_peers = []
+
         if not isinstance(metainfo["initial peers"], list):
             raise ValueError("initial peers not list, but %s" % type(metainfo["initial peers"]))
         for address in metainfo["initial peers"]:
             if not (isinstance(address, tuple) and len(address) == 2):
-                raise ValueError("address not 2-item tuple, but %s" % type(address))
-            if not isinstance(address[0], str):
-                raise ValueError("address host not string, but %s" % type(address[0]))
-            if not isinstance(address[1], int):
-                raise ValueError("address port not int, but %s" % type(address[1]))
+                logger.info("address not 2-item tuple, but %s", type(address))
+            elif not isinstance(address[0], str):
+                logger.info("address host not string, but %s", type(address[0]))
+            elif not isinstance(address[1], int):
+                logger.info("address port not int, but %s", type(address[1]))
+            else:
+                valid_initial_peers.append(address)
+
+        metainfo['initial peers'] = valid_initial_peers
 
     info = metainfo['info']
     if not isinstance(info, DictType):

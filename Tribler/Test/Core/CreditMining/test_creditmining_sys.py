@@ -322,7 +322,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
                                                     'Simple Channel', 'Channel description')
 
         torrent_list = [[self.channel_id, 1, 1, TORRENT_UBUNTU_FILE_INFOHASH, 1460000000, TORRENT_UBUNTU_FILE,
-                         self.tdef.get_files_as_unicode_with_length(), self.tdef.get_trackers_as_single_tuple()]]
+                         self.tdef.get_files_with_length(), self.tdef.get_trackers_as_single_tuple()]]
 
         self.insert_torrents_into_channel(torrent_list)
 
@@ -454,7 +454,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
         pioneer_ihash = binascii.unhexlify("66ED7F30E3B30FA647ABAA19A36E7503AA071535")
 
         torrent_list = [[self.channel_id, 1, 1, pioneer_ihash, 1460000001, pioneer_file,
-                         pioneer_tdef.get_files_as_unicode_with_length(), pioneer_tdef.get_trackers_as_single_tuple()]]
+                         pioneer_tdef.get_files_with_length(), pioneer_tdef.get_trackers_as_single_tuple()]]
         self.insert_torrents_into_channel(torrent_list)
 
         self.boosting_manager.add_source(dispersy_cid)

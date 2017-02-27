@@ -12,6 +12,7 @@ from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_SEEDING
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
+from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.bartercast4.community import BarterCommunity
@@ -165,6 +166,30 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.lm.resume_download = mocked_resume_download
         self.lm.load_checkpoint()
         self.assertTrue(mocked_resume_download.called)
+
+    def test_resume_download(self):
+        with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
+            torrent_data = torrent_file.read()
+
+        def mocked_load_download_pstate(_):
+            raise ValueError()
+
+        def mocked_add(tdef, dscfg, pstate, **_):
+            self.assertTrue(tdef)
+            self.assertTrue(dscfg)
+            self.assertIsNone(pstate)
+            mocked_add.called = True
+        mocked_add.called = False
+
+        self.lm.load_download_pstate = mocked_load_download_pstate
+        self.lm.torrent_store = MockObject()
+        self.lm.torrent_store.get = lambda _: torrent_data
+        self.lm.add = mocked_add
+        self.lm.mypref_db = MockObject()
+        self.lm.mypref_db.getMyPrefStatsInfohash = lambda _: TESTS_DATA_DIR
+        self.lm.resume_download('%s.state' % ('a' * 20))
+        self.assertTrue(mocked_add.called)
+
 
 class TestLaunchManyCoreFullSession(TestAsServer):
     """

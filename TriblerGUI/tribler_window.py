@@ -143,6 +143,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_debug.setHidden(True)
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
+        self.trust_button.setHidden(True)
         self.settings_button.setHidden(True)
         self.add_torrent_button.setHidden(True)
         self.top_search_bar.setHidden(True)
@@ -203,6 +204,7 @@ class TriblerWindow(QMainWindow):
     def show_loading_screen(self):
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
+        self.trust_button.setHidden(True)
         self.settings_button.setHidden(True)
         self.add_torrent_button.setHidden(True)
         self.top_search_bar.setHidden(True)
@@ -213,6 +215,7 @@ class TriblerWindow(QMainWindow):
 
         self.top_menu_button.setHidden(False)
         self.left_menu.setHidden(False)
+        self.trust_button.setHidden(False)
         self.settings_button.setHidden(False)
         self.add_torrent_button.setHidden(False)
         self.top_search_bar.setHidden(False)
@@ -258,6 +261,19 @@ class TriblerWindow(QMainWindow):
         self.pending_requests[request_mgr.request_id] = request_mgr
         request_mgr.perform_request("downloads", callback if callback else self.on_download_added,
                                     method='PUT', data=post_data)
+
+        # Save the download location to the GUI settings
+        current_settings = get_gui_setting(self.gui_settings, "recent_download_locations", "")
+        recent_locations = current_settings.split(",") if len(current_settings) > 0 else []
+        encoded_destination = destination.encode('hex')
+        if encoded_destination in recent_locations:
+            recent_locations.remove(encoded_destination)
+        recent_locations.insert(0, encoded_destination)
+
+        if len(recent_locations) > 5:
+            recent_locations = recent_locations[:5]
+
+        self.gui_settings.setValue("recent_download_locations", ','.join(recent_locations))
 
     def on_new_version_available(self, version):
         if version == str(self.gui_settings.value('last_reported_version')):
@@ -393,7 +409,7 @@ class TriblerWindow(QMainWindow):
             self.window().perform_start_download_request(self.download_uri,
                                                          self.dialog.dialog_widget.anon_download_checkbox.isChecked(),
                                                          self.dialog.dialog_widget.safe_seed_checkbox.isChecked(),
-                                                         self.dialog.dialog_widget.destination_input.text(),
+                                                         self.dialog.dialog_widget.destination_input.currentText(),
                                                          self.dialog.get_selected_files(),
                                                          self.dialog.dialog_widget.files_list_view.topLevelItemCount())
 
