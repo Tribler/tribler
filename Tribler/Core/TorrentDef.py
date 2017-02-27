@@ -14,7 +14,7 @@ from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.defaults import TDEF_DEFAULTS
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, NotYetImplementedException
 from Tribler.Core.Utilities import maketorrent
-from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink, http_get
+from Tribler.Core.Utilities.utilities import create_valid_metainfo, isValidURL, parse_magnetlink, http_get
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -116,7 +116,7 @@ class TorrentDef(object):
 
     def _create(metainfo):  # TODO: replace with constructor
         # raises ValueErrors if not good
-        validTorrentFile(metainfo)
+        metainfo = create_valid_metainfo(metainfo)
 
         t = TorrentDef()
         t.metainfo = metainfo

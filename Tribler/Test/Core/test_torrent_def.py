@@ -12,7 +12,8 @@ from twisted.web.static import File
 
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.Utilities.utilities import isValidTorrentFile
+from Tribler.Core.Utilities.twisted_thread import deferred
+from Tribler.Core.Utilities.utilities import valid_torrent_file
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, HttpError
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -233,7 +234,7 @@ class TestTorrentDef(BaseTestCase):
         self.setUpFileServer(file_server_port, files_path)
 
         def _on_load(torrent_def):
-            self.assertTrue(isValidTorrentFile(torrent_def.get_metainfo()))
+            self.assertTrue(valid_torrent_file(torrent_def.get_metainfo()))
             self.assertEqual(TorrentDef.load(TORRENT_UBUNTU_FILE), torrent_def)
 
         torrent_url = 'http://localhost:%d/ubuntu.torrent' % file_server_port
@@ -381,7 +382,7 @@ class TestTorrentDef(BaseTestCase):
         metainfo = {"info": {"name": "my_torrent", "piece length": 12345, "pieces": "12345678901234567890",
                                    "files": []}}
         torrent = TorrentDef.load_from_dict(metainfo)
-        self.assertTrue(isValidTorrentFile(torrent.get_metainfo()))
+        self.assertTrue(valid_torrent_file(torrent.get_metainfo()))
 
     @raises(TorrentDefNotFinalizedException)
     def test_no_valid_metainfo(self):
@@ -415,7 +416,7 @@ class TestTorrentDef(BaseTestCase):
         self.assertFalse(torrent2.get_trackers_as_single_tuple())
 
     def general_check(self, metainfo):
-        self.assertTrue(isValidTorrentFile(metainfo))
+        self.assertTrue(valid_torrent_file(metainfo))
         self.assertEqual(metainfo['announce'], TRACKER)
 
     def test_get_index(self):
