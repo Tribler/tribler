@@ -179,7 +179,7 @@ color: white;</string>
           <number>0</number>
          </property>
          <item>
-          <widget class="QLineEdit" name="destination_input">
+          <widget class="QComboBox" name="destination_input">
            <property name="minimumSize">
             <size>
              <width>0</width>
@@ -193,13 +193,26 @@ color: white;</string>
             </size>
            </property>
            <property name="styleSheet">
-            <string notr="true">background-color: #444;
+            <string notr="true">QComboBox {
+background-color: #444;
 border: none;
 color: #C0C0C0;
-padding: 4px;</string>
+padding: 4px;
+}
+QComboBox::drop-down {
+width: 20px;
+border: 1px solid #999;
+border-radius: 2px;
+}
+QComboBox QAbstractItemView {
+selection-background-color: #707070;
+}</string>
            </property>
-           <property name="placeholderText">
-            <string>Destination directory</string>
+           <property name="editable">
+            <bool>true</bool>
+           </property>
+           <property name="currentText">
+            <string/>
            </property>
           </widget>
          </item>

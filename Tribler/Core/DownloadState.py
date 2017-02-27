@@ -284,7 +284,7 @@ class DownloadState(object):
         if len(self.download.get_selected_files()) > 0:
             files = self.download.get_selected_files()
         else:
-            files = self.download.get_def().get_files_as_unicode()
+            files = self.download.get_def().get_files()
 
         completion = []
         if self.filepieceranges:

@@ -517,7 +517,6 @@ class TriblerGUITest(AbstractTriblerGUITest):
 
     def test_trust_page(self):
         QTest.mouseClick(window.trust_button, Qt.LeftButton)
-        self.screenshot(window, name="trust_page_loading")
         self.wait_for_variable("trust_page.blocks")
         self.screenshot(window, name="trust_page_values")
 

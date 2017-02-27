@@ -426,7 +426,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         if not torrentdef.is_multifile_torrent():
             swarmname, _ = os.path.splitext(swarmname)
-        self._indexTorrent(torrent_id, swarmname, torrentdef.get_files_as_unicode())
+        self._indexTorrent(torrent_id, swarmname, torrentdef.get_files())
 
         self._addTorrentTracker(torrent_id, torrentdef, extra_info)
         return torrent_id
@@ -653,7 +653,12 @@ class TorrentDBHandler(BasicDBHandler):
         infohash = self.getInfohash(torrent_id)
         if infohash and self.session.has_collected_torrent(infohash):
             torrent_data = self.session.get_collected_torrent(infohash)
-            tdef = TorrentDef.load_from_memory(torrent_data)
+
+            try:
+                tdef = TorrentDef.load_from_memory(torrent_data)
+            except ValueError:
+                self._logger.warning("Invalid torrent file when adding trackers to database.")
+                return
 
             new_tracker_list = []
             for tracker in tracker_list:

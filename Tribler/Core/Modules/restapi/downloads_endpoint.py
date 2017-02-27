@@ -170,15 +170,12 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             files_completion = dict((name, progress) for name, progress in state.get_files_completion())
             selected_files = download.get_selected_files()
             files_array = []
-            for file, size in download.get_def().get_files_as_unicode_with_length():
-                if download.get_def().is_multifile_torrent():
-                    file_index = download.get_def().get_index_of_file_in_files(file)
-                else:
-                    file_index = 0
-
+            file_index = 0
+            for file, size in download.get_def().get_files_with_length():
                 files_array.append({"index": file_index, "name": file, "size": size,
                                     "included": (file in selected_files or not selected_files),
                                     "progress": files_completion.get(file, 0.0)})
+                file_index += 1
 
             # Create tracker information of the download
             tracker_info = []

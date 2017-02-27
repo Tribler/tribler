@@ -1,6 +1,11 @@
+import os
+
 from nose.tools import raises
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Test.Community.AbstractTestCommunity import AbstractTestCommunity
 from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.community.search.community import SearchCommunity
 from Tribler.community.search.conversion import SearchConversion
 from Tribler.dispersy.message import DropPacket
@@ -10,9 +15,16 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 class TestSearchCommunity(AbstractTestCommunity):
 
     @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, annotate=True):
-        super(TestSearchCommunity, self).setUp(annotate=annotate)
+        yield super(TestSearchCommunity, self).setUp(annotate=annotate)
         self.search_community = SearchCommunity(self.dispersy, self.master_member, self.member)
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self, annotate=True):
+        self.search_community.cancel_all_pending_tasks()
+        yield super(TestSearchCommunity, self).tearDown(annotate=annotate)
 
     def test_on_search(self):
         """
@@ -59,3 +71,23 @@ class TestSearchCommunity(AbstractTestCommunity):
         self.search_community._initialize_meta_messages()
         search_conversion = SearchConversion(self.search_community)
         search_conversion._decode_search_response(None, 0, "a[]")
+
+    @blocking_call_on_reactor_thread
+    def test_create_torrent(self):
+        """
+        Test the creation of a torrent in the search community
+        """
+        with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
+            torrent_data = torrent_file.read()
+
+        mock_session = MockObject()
+        mock_session.get_collected_torrent = lambda _: torrent_data
+        mock_session.open_dbhandler = lambda _: None
+        mock_session.notifier = None
+        mock_session.lm = MockObject()
+        mock_session.lm.rtorrent_handler = None
+
+        self.search_community.initialize(mock_session)
+        self.search_community._torrent_db = MockObject()
+        self.search_community._torrent_db.updateTorrent = lambda *_, **ignored: None
+        self.assertTrue(self.search_community.create_torrent('a' * 20))

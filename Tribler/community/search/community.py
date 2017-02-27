@@ -592,7 +592,7 @@ class SearchCommunity(Community):
         if torrent_data is not None:
             try:
                 torrentdef = TorrentDef.load_from_memory(torrent_data)
-                files = torrentdef.get_files_as_unicode_with_length()
+                files = torrentdef.get_files_with_length()
 
                 meta = self.get_meta_message(u"torrent")
                 message = meta.impl(authentication=(self._my_member,),
