@@ -1,11 +1,11 @@
 import os
 import sys
-from PyQt5.QtCore import QTimer, QEvent, Qt
 
+from PyQt5.QtCore import QTimer, QEvent, Qt
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QWidget
-from Tribler import vlc
-from TriblerGUI.defs import *
+
+from TriblerGUI import vlc
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.utilities import is_video_file, seconds_to_string, get_image_path
 
