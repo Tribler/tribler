@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem, QAction
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.defs import *
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import format_size, format_speed
+from TriblerGUI.utilities import format_size, format_speed, is_video_file
 from TriblerGUI.widgets.downloadfilewidgetitem import DownloadFileWidgetItem
 
 
@@ -166,6 +166,12 @@ class DownloadsDetailsTabWidget(QTabWidget):
         menu.addAction(include_action)
         menu.addAction(exclude_action)
 
+        if len(selected_files_info) == 1 and is_video_file(selected_files_info[0]['name'])\
+                and self.window().vlc_available:
+            play_action = QAction('Play', self)
+            play_action.triggered.connect(lambda: self.on_play_file(selected_files_info[0]))
+            menu.addAction(play_action)
+
         menu.exec_(self.window().download_files_list.mapToGlobal(pos))
 
     def get_included_file_list(self):
@@ -186,6 +192,13 @@ class DownloadsDetailsTabWidget(QTabWidget):
                 included_list.remove(file_data["name"])
 
         self.set_included_files(included_list)
+
+    def on_play_file(self, file_info):
+        self.window().left_menu_button_video_player.click()
+        self.window().video_player_page.set_torrent_infohash(self.current_download["infohash"])
+        self.window().video_player_page.change_playing_index(file_info["index"], file_info["name"])
+        self.window().left_menu_playlist.set_files(self.current_download["files"])
+        self.window().left_menu_playlist.set_active_index(file_info["index"])
 
     def set_included_files(self, files):
         data_str = ''.join(u"selected_files[]=%s&" % quote_plus(file) for file in files)[:-1].encode('utf-8')
