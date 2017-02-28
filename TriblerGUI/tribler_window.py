@@ -95,6 +95,7 @@ class TriblerWindow(QMainWindow):
         self.search_request_mgr = None
         self.search_suggestion_mgr = None
         self.selected_torrent_files = []
+        self.vlc_available = True
 
         sys.excepthook = self.on_exception
 

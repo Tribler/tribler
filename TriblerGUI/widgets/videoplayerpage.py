@@ -5,7 +5,6 @@ from PyQt5.QtCore import QTimer, QEvent, Qt
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QWidget
 
-from TriblerGUI import vlc
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.utilities import is_video_file, seconds_to_string, get_image_path
 
@@ -33,8 +32,23 @@ class VideoPlayerPage(QWidget):
         self.update_timer = None
 
     def initialize_player(self):
-        if vlc.plugin_path:
+        vlc_available = True
+        vlc = None
+        try:
+            from TriblerGUI import vlc
+        except OSError:
+            vlc_available = False
+
+        if vlc and vlc.plugin_path:
             os.environ['VLC_PLUGIN_PATH'] = vlc.plugin_path
+        else:
+            vlc_available = False
+
+        if not vlc_available:
+            # VLC is not available, we hide the video player button
+            self.window().vlc_available = False
+            self.window().left_menu_button_video_player.setHidden(True)
+            return
 
         self.instance = vlc.Instance()
         self.mediaplayer = self.instance.media_player_new()

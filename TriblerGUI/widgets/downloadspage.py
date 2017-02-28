@@ -296,7 +296,6 @@ class DownloadsPage(QWidget):
 
         start_action = QAction('Start', self)
         stop_action = QAction('Stop', self)
-        play_action = QAction('Play', self)
         remove_download_action = QAction('Remove download', self)
         force_recheck_action = QAction('Force recheck', self)
         export_download_action = QAction('Export .torrent file', self)
@@ -311,7 +310,6 @@ class DownloadsPage(QWidget):
         start_action.setEnabled(DownloadsPage.start_download_enabled(self.selected_item))
         stop_action.triggered.connect(self.on_stop_download_clicked)
         stop_action.setEnabled(DownloadsPage.stop_download_enabled(self.selected_item))
-        play_action.triggered.connect(self.on_play_download_clicked)
         remove_download_action.triggered.connect(self.on_remove_download_clicked)
         force_recheck_action.triggered.connect(self.on_force_recheck_download)
         force_recheck_action.setEnabled(DownloadsPage.force_recheck_download_enabled(self.selected_item))
@@ -325,7 +323,11 @@ class DownloadsPage(QWidget):
 
         menu.addAction(start_action)
         menu.addAction(stop_action)
-        menu.addAction(play_action)
+
+        if self.window().vlc_available:
+            play_action = QAction('Play', self)
+            play_action.triggered.connect(self.on_play_download_clicked)
+            menu.addAction(play_action)
         menu.addSeparator()
         menu.addAction(remove_download_action)
         menu.addSeparator()
