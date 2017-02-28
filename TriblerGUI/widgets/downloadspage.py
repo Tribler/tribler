@@ -40,6 +40,7 @@ class DownloadsPage(QWidget):
         self.window().start_download_button.clicked.connect(self.on_start_download_clicked)
         self.window().stop_download_button.clicked.connect(self.on_stop_download_clicked)
         self.window().remove_download_button.clicked.connect(self.on_remove_download_clicked)
+        self.window().play_download_button.clicked.connect(self.on_play_download_clicked)
 
         self.window().downloads_list.itemSelectionChanged.connect(self.on_download_item_clicked)
 
@@ -51,6 +52,9 @@ class DownloadsPage(QWidget):
         self.window().downloads_filter_input.textChanged.connect(self.on_filter_text_changed)
 
         self.window().downloads_list.header().resizeSection(12, 146)
+
+        if not self.window().vlc_available:
+            self.window().play_download_button.setHidden(True)
 
     def on_filter_text_changed(self, text):
         self.window().downloads_list.clearSelection()
@@ -169,12 +173,14 @@ class DownloadsPage(QWidget):
     def on_download_item_clicked(self):
         self.window().download_details_widget.show()
         if len(self.window().downloads_list.selectedItems()) == 0:
+            self.window().play_download_button.setEnabled(False)
             self.window().remove_download_button.setEnabled(False)
             self.window().start_download_button.setEnabled(False)
             self.window().stop_download_button.setEnabled(False)
             return
 
         self.selected_item = self.window().downloads_list.selectedItems()[0]
+        self.window().play_download_button.setEnabled(True)
         self.window().remove_download_button.setEnabled(True)
         self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_item))
         self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_item))
