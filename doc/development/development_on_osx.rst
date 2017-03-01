@@ -159,7 +159,7 @@ Tribler
     mkdir vlc
     which ffmpeg | xargs -I {} cp "{}" vlc/
     
-Procede to `Build instructions <../building/building_on_osx.rst>`_
+Proceed to `Build instructions <../building/building_on_osx.rst>`_
 
 Notes
 =====
