@@ -1,14 +1,12 @@
 import os
-
 from twisted.internet.defer import DeferredList, inlineCallbacks
 
 from Tribler.Core.Modules.channel.cache import SimpleCache
 from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser, RSSFeedParser
-from Tribler.Core.Utilities.twisted_thread import deferred
-
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.Core.base_test_channel import BaseTestChannel
 from Tribler.Test.common import TESTS_DATA_DIR
+from Tribler.Test.twisted_thread import deferred
 
 
 class TestChannelRss(BaseTestChannel):

@@ -1,10 +1,5 @@
-# Written by Arno Bakker
-# see LICENSE.txt for license information
-#
-
 import os
 from tempfile import mkstemp
-from threading import Event
 
 from M2Crypto import Rand
 from twisted.internet.defer import inlineCallbacks, Deferred
@@ -12,10 +7,10 @@ from twisted.internet.defer import inlineCallbacks, Deferred
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import dlstatus_strings, UPLOAD, DOWNLOAD, DLMODE_VOD
-from Tribler.Test.test_as_server import TestAsServer
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.twisted_thread import deferred
 
 
 class TestVideoOnDemand(TestAsServer):

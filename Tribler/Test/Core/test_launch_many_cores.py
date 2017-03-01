@@ -1,5 +1,4 @@
 import os
-
 from nose.tools import raises
 from twisted.internet.defer import Deferred
 
@@ -8,12 +7,12 @@ from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_SEEDING
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.twisted_thread import deferred
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.bartercast4.community import BarterCommunity
 from Tribler.community.multichain.community import MultiChainCommunity

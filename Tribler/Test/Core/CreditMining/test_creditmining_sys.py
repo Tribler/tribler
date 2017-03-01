@@ -7,7 +7,6 @@ Written by Ardhi Putra Pratama H
 import binascii
 import os
 import shutil
-
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
@@ -17,12 +16,12 @@ from twisted.web.static import File
 from Tribler.Core.CreditMining.BoostingManager import BoostingManager, BoostingSettings
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockLtTorrent, ResourceFailClass
 from Tribler.Test.Core.base_test_channel import BaseTestChannel
 from Tribler.Test.common import TORRENT_UBUNTU_FILE, TORRENT_UBUNTU_FILE_INFOHASH, TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.twisted_thread import deferred, reactor
 from Tribler.Test.util.util import prepare_xml_rss
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.dispersy.dispersy import Dispersy

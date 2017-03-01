@@ -1,9 +1,10 @@
 from twisted.internet.defer import inlineCallbacks
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from Tribler.Core.Utilities.twisted_thread import deferred
+
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, \
     SIGNAL_TORRENT
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.twisted_thread import deferred
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class FakeSearchManager(object):

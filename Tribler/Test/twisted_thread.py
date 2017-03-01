@@ -3,11 +3,9 @@ Helpers to run the reactor in a separate thread, adapted from Nose's twistedtool
 """
 import sys
 from Queue import Empty, Queue
-from threading import current_thread
 
 from twisted.internet import reactor
 from twisted.python import log
-
 
 _twisted_thread = None
 
@@ -22,6 +20,7 @@ def make_decorator(func):
     of the decorated function, including nose's additional stuff
     (namely, setup and teardown).
     """
+
     def decorate(newfunc):
         if hasattr(func, 'compat_func_name'):
             name = func.compat_func_name
@@ -38,6 +37,7 @@ def make_decorator(func):
             # can't set func name in 2.3
             newfunc.compat_func_name = name
         return newfunc
+
     return decorate
 
 
@@ -59,9 +59,11 @@ def threaded_reactor():
             observer.start()
             import logging
             log.msg("PythonLoggingObserver hooked up", logLevel=logging.DEBUG)
+
         reactor.callFromThread(hook_observer)
 
     return reactor, _twisted_thread
+
 
 # Export global reactor variable, as Twisted does
 reactor, reactor_thread = threaded_reactor()
@@ -162,6 +164,7 @@ def deferred(timeout=None):
                 # Twisted thread)
                 except:
                     q.put(sys.exc_info())
+
             reactor.callFromThread(g)
             try:
                 error = q.get(timeout=timeout)
@@ -172,6 +175,8 @@ def deferred(timeout=None):
             if error is not None:
                 exc_type, exc_value, tb = error
                 raise exc_type, exc_value, tb
+
         wrapper = make_decorator(func)(wrapper)
         return wrapper
+
     return decorate
