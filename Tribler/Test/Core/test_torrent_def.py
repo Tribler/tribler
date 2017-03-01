@@ -1,29 +1,24 @@
-# Written by Arno Bakker
-# see LICENSE.txt for license information
-
-from tempfile import mkdtemp
 import logging
 import os
 import shutil
+from tempfile import mkdtemp
 
 from libtorrent import bdecode
 from nose.tools import raises
-
 from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
 from twisted.web.server import Site
 from twisted.web.static import File
-from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.Utilities.utilities import isValidTorrentFile
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, HttpError
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import BaseTestCase
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
-
+from Tribler.Test.twisted_thread import deferred
 
 TRACKER = 'http://www.tribler.org/announce'
 

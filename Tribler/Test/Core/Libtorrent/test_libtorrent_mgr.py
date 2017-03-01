@@ -1,14 +1,13 @@
 import os
-
 import shutil
 import tempfile
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
+from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 

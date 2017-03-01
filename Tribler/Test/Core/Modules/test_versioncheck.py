@@ -1,11 +1,11 @@
 import json
-
 from twisted.internet.defer import maybeDeferred, inlineCallbacks
 from twisted.web import server, resource
+
 from Tribler.Core.Modules import versioncheck_manager
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.Utilities.twisted_thread import reactor, deferred
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.twisted_thread import reactor, deferred
 from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
 
 

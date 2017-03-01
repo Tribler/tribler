@@ -1,9 +1,9 @@
 import json
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.twisted_thread import deferred
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint

@@ -1,20 +1,20 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
-import os
 import binascii
+import os
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 from twisted.internet.protocol import Protocol, connectionDone
 
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
-from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.common import TESTS_DATA_DIR
-from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 

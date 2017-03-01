@@ -1,16 +1,15 @@
 import struct
-
+from libtorrent import bencode
 from twisted.internet.defer import Deferred, DeferredList
 from twisted.internet.task import Clock
 from twisted.python.failure import Failure
 
-from libtorrent import bencode
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentChecker.session import FakeDHTSession, DHT_TRACKER_MAX_RETRIES, DHT_TRACKER_RECHECK_INTERVAL, \
     UdpTrackerSession, UDPScraper, HttpTrackerSession
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
+from Tribler.Test.twisted_thread import deferred
 
 
 class ClockedUDPCrawler(UDPScraper):
