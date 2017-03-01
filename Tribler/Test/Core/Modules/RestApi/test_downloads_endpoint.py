@@ -63,7 +63,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether an error is returned when we start a download from a bad URI
         """
-        post_data = {'uri': 'abcd', 'destination': 'a/b/c', 'selected_files[]': 'a.txt'}
+        post_data = {'uri': 'abcd', 'destination': 'a/b/c', 'selected_files[]': '1'}
         return self.do_request('downloads', expected_code=500, request_type='PUT', post_data=post_data,
                                expected_json={'error': 'invalid uri'})
 
@@ -170,6 +170,19 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return request_deferred.addCallback(verify_removed)
 
     @deferred(timeout=10)
+    def test_select_download_file_range(self):
+        """
+        Testing whether an error is returned when we toggle a file for inclusion out of range
+        """
+        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        infohash = video_tdef.get_infohash().encode('hex')
+
+        self.should_check_equality = False
+        return self.do_request('downloads/%s' % infohash, expected_code=400, post_data={"selected_files[]": 1234},
+                               request_type='PATCH')
+
+    @deferred(timeout=10)
     def test_select_download_file(self):
         """
         Testing whether files can be correctly toggled in a download
@@ -188,7 +201,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
         download.set_selected_files = mocked_set_selected_files
 
-        return self.do_request('downloads/%s' % infohash, post_data={"selected_files[]": ""},
+        return self.do_request('downloads/%s' % infohash, post_data={"selected_files[]": 0},
                                expected_code=200, expected_json={"modified": True}, request_type='PATCH')\
             .addCallback(verify_method_called)
 
