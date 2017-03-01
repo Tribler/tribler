@@ -239,6 +239,10 @@ class HiddenTunnelCommunity(TunnelCommunity):
             old_state = self.download_states.get(info_hash, None)
             state_changed = new_state != old_state
 
+            # Stop creating introduction points if the download doesn't exist anymore
+            if info_hash in self.infohash_ip_circuits and new_state == None:
+                del self.infohash_ip_circuits[info_hash]
+
             # If the introducing circuit does not exist anymore or timed out: Build a new circuit
             if info_hash in self.infohash_ip_circuits:
                 for (circuit_id, time_created) in self.infohash_ip_circuits[info_hash]:
