@@ -18,6 +18,12 @@ export LIBRARYNAME=Tribler
 /bin/rm -rf dist build
 
 # ----- Build
+PI=pyinstaller
+if [ "$(which pyinstaller-2.7)" != "" ]; then
+	PI=pyinstaller-2.7
+fi
+$PI tribler.spec
+
 pyinstaller tribler.spec
 
 mkdir -p dist/installdir
