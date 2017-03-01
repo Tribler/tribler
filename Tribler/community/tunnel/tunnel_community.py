@@ -221,7 +221,9 @@ class TunnelSettings(object):
         self.max_circuits = 8
         self.max_relays_or_exits = 100
 
+        # Maximum number of seconds that a circuit should exist
         self.max_time = 10 * 60
+        # Maximum number of seconds before a circuit is considered inactive (and is removed)
         self.max_time_inactive = 20
         self.max_traffic = 250 * 1024 * 1024
 
@@ -234,13 +236,6 @@ class TunnelSettings(object):
         else:
             self.become_exitnode = False
             self.enable_multichain = False
-
-
-class ExitCandidate(object):
-
-    def __init__(self, become_exit):
-        self.become_exit = become_exit
-        self.creation_time = time.time()
 
 
 class RoundRobin(object):
@@ -285,7 +280,7 @@ class TunnelCommunity(Community):
         self.exit_sockets = {}
         self.circuits_needed = defaultdict(int)
         self.num_hops_by_downloads = defaultdict(int)  # Keeps track of the number of hops required by downloads
-        self.exit_candidates = {}
+        self.exit_candidates = {}  # Keeps track of the candidates that want to be an exit node
         self.notifier = None
         self.selection_strategy = RoundRobin(self)
         self.stats = defaultdict(int)
@@ -535,17 +530,17 @@ class TunnelCommunity(Community):
         if not required_endpoint:
             for c in self.dispersy_yield_verified_candidates():
                 pubkey = c.get_member().public_key
-                exit_candidate = self.exit_candidates[pubkey]
+                become_exit = pubkey in self.exit_candidates
                 if ctype == CIRCUIT_TYPE_DATA:
                     self.tunnel_logger.info("Look for an exit node to set as required_endpoint for this circuit")
-                    if exit_candidate.become_exit:
+                    if become_exit:
                         self.tunnel_logger.info("Valid exit candidate found for this circuit")
                         required_endpoint = (c.sock_addr[0], c.sock_addr[1], pubkey)
                         break
                 else:
                     self.tunnel_logger.info("Try to find connectable node to set as required_endpoint for circuit")
                     required_endpoint = (c.sock_addr[0], c.sock_addr[1], pubkey)
-                    if self.candidate_is_connectable(c) and not exit_candidate.become_exit:
+                    if self.candidate_is_connectable(c) and not become_exit:
                         # Prefer non exit candidate, because the real exit candidates are scarce, save their bandwidth
                         self.tunnel_logger.info("Connectable non-exit required_endpoint found, stop looking further")
                         break
@@ -561,8 +556,7 @@ class TunnelCommunity(Community):
             for c in self.dispersy_yield_verified_candidates():
                 if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec) and \
                    (not required_endpoint or c.sock_addr != tuple(required_endpoint[:2])) and \
-                    c.get_member().public_key in self.exit_candidates and \
-                   not self.exit_candidates[c.get_member().public_key].become_exit:
+                    c.get_member().public_key not in self.exit_candidates:
                     first_hop = c
                     break
 
@@ -993,13 +987,19 @@ class TunnelCommunity(Community):
             from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_CREATED, NTFY_EXTENDED
             self.notifier.notify(NTFY_TUNNEL, NTFY_CREATED if len(circuit.hops) == 1 else NTFY_EXTENDED, circuit)
 
+    def update_exit_candidates(self, candidate, become_exit):
+        pubkey = candidate.get_member().public_key
+        if become_exit:
+            self.exit_candidates[pubkey] = candidate
+        else:
+            self.exit_candidates.pop(pubkey, None)
+
     def on_introduction_request(self, messages):
         exitnode = self.become_exitnode()
         extra_payload = [exitnode]
         super(TunnelCommunity, self).on_introduction_request(messages, extra_payload)
         for message in messages:
-            pubkey = message.candidate.get_member().public_key
-            self.exit_candidates[pubkey] = ExitCandidate(message.payload.exitnode)
+            self.update_exit_candidates(message.candidate, message.payload.exitnode)
 
     def create_introduction_request(self, destination, allow_sync, forward=True, is_fast_walker=False):
         exitnode = self.become_exitnode()
@@ -1010,8 +1010,7 @@ class TunnelCommunity(Community):
     def on_introduction_response(self, messages):
         super(TunnelCommunity, self).on_introduction_response(messages)
         for message in messages:
-            pubkey = message.candidate.get_member().public_key
-            self.exit_candidates[pubkey] = ExitCandidate(message.payload.exitnode)
+            self.update_exit_candidates(message.candidate, message.payload.exitnode)
 
     def on_cell(self, messages):
         for message in messages:
@@ -1063,8 +1062,7 @@ class TunnelCommunity(Community):
             candidates = {}
             for c in self.dispersy_yield_verified_candidates():
                 pubkey = c.get_member().public_key
-                vc = self.exit_candidates[pubkey]
-                if vc.become_exit:
+                if pubkey in self.exit_candidates:
                     # Exit nodes are chosen by the circuit initiator, we decided not to use exit nodes as normal relay
                     continue
 
@@ -1378,7 +1376,7 @@ class TunnelCommunity(Community):
                 # - The pubkey of the introduction point changed (e.g. due to a
                 # restart), while other peers in the network are still exchanging
                 # the old key information.
-                #- A hostile peer may have forged the key of a candidate while
+                # - A hostile peer may have forged the key of a candidate while
                 # pexing information about candidates, thus polluting the network
                 # with wrong information. I doubt this is the case but it's
                 # possible. :)
