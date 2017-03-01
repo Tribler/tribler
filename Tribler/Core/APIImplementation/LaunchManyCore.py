@@ -652,9 +652,9 @@ class TriblerLaunchMany(TaskManager):
                     self._logger.warning("tlm: torrent data invalid")
 
         if pstate is not None:
-            has_resume_data = pstate.get('state', 'engineresumedata') is None
+            has_resume_data = pstate.get('state', 'engineresumedata') is not None
             self._logger.debug("tlm: load_checkpoint: resumedata %s",
-                               'len %d ' % len(pstate.get('state', 'engineresumedata')) if has_resume_data else 'None')
+                               'len %s ' % len(pstate.get('state', 'engineresumedata')) if has_resume_data else 'None')
 
         if tdef and dscfg:
             if dscfg.get_dest_dir() != '':  # removed torrent ignoring
