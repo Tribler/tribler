@@ -6,12 +6,13 @@ from twisted.internet.protocol import Protocol
 from twisted.internet.task import deferLater
 from twisted.web.client import Agent, HTTPConnectionPool
 from twisted.web.http_headers import Headers
-from Tribler.Core.Utilities.twisted_thread import deferred
+
 from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT, NTFY_UPGRADER, \
     NTFY_STARTED, NTFY_FINISHED, NTFY_UPGRADER_TICK, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, NTFY_NEW_VERSION, \
     NTFY_CHANNEL, NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_DELETE
 from Tribler.Core.version import version_id
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 

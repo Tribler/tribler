@@ -3,13 +3,6 @@
 # see LICENSE.txt for license information
 
 # Make sure the in thread reactor is installed.
-from twisted.internet.task import deferLater
-from twisted.internet.tcp import Client
-from twisted.web.http import HTTPChannel
-from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.Utilities.twisted_thread import reactor, deferred
-
-# importmagic: manage
 import functools
 import inspect
 import logging
@@ -20,23 +13,26 @@ import time
 import unittest
 from tempfile import mkdtemp
 from threading import enumerate as enumerate_threads
-
 from twisted.internet import interfaces
 from twisted.internet.base import BasePort
 from twisted.internet.defer import maybeDeferred, inlineCallbacks, Deferred, succeed
+from twisted.internet.task import deferLater
+from twisted.internet.tcp import Client
+from twisted.web.http import HTTPChannel
 from twisted.web.server import Site
 from twisted.web.static import File
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
 from Tribler.Core import defaults
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.instrumentation import WatchDog
+from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
+from Tribler.Test.twisted_thread import reactor
 from Tribler.Test.util.util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-
 
 TESTS_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 TESTS_DATA_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"data"))

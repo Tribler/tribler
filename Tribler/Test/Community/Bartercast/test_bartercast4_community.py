@@ -1,13 +1,11 @@
 # Written by Cor-Paul Bezemer
 # see LICENSE.txt for license information
 
-from time import sleep
-
-from twisted.internet.task import LoopingCall
 from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.task import LoopingCall
 
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.twisted_thread import deferred
 from Tribler.community.bartercast4.community import BarterCommunity, BarterCommunityCrawler
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
 from Tribler.community.tunnel.tunnel_community import TunnelSettings

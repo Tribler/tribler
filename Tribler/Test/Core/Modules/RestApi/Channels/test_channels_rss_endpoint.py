@@ -3,9 +3,9 @@ import os
 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN_CHANNEL_RESPONSE_MSG, \
     UNAUTHORIZED_RESPONSE_MSG
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
+from Tribler.Test.twisted_thread import deferred
 
 
 class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):

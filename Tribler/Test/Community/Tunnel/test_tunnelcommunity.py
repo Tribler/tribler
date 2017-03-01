@@ -1,14 +1,13 @@
 import time
-
 from twisted.internet.defer import inlineCallbacks, returnValue
 
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Community.Tunnel.test_tunnel_base import AbstractTestTunnelCommunity
+from Tribler.Test.twisted_thread import deferred
 from Tribler.community.tunnel.conversion import TunnelConversion
+from Tribler.community.tunnel.crypto.tunnelcrypto import CryptoException, TunnelCrypto
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.tunnel.tunnel_community import (TunnelSettings, TunnelExitSocket, CircuitRequestCache,
                                                        PingRequestCache)
-from Tribler.community.tunnel.crypto.tunnelcrypto import CryptoException, TunnelCrypto
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.message import DropMessage
 from Tribler.dispersy.util import blocking_call_on_reactor_thread

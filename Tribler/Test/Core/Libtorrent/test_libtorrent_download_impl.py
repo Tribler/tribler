@@ -1,7 +1,8 @@
 import binascii
 import os
-import libtorrent as lt
 from twisted.internet.defer import Deferred
+
+import libtorrent as lt
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
@@ -9,11 +10,11 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
-from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.common import TESTS_DATA_DIR
+from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.twisted_thread import deferred, reactor
 
 
 class TestLibtorrentDownloadImpl(TestAsServer):

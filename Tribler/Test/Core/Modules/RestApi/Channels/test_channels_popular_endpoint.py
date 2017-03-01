@@ -1,8 +1,8 @@
 import json
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
+from Tribler.Test.twisted_thread import deferred
 
 
 class TestChannelsPlaylistEndpoints(AbstractTestChannelsEndpoint):

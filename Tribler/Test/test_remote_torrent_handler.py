@@ -1,19 +1,17 @@
-# see LICENSE.txt for license information
-
 import os
+import sys
 from binascii import hexlify
 from hashlib import sha1
 from unittest import skipIf
-import sys
 
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.Session import Session
-from Tribler.Core.Utilities.twisted_thread import deferred
-from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.common import TESTS_DATA_DIR
-from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.dispersy.candidate import Candidate
+from Tribler.Test.common import TESTS_DATA_DIR
+from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.twisted_thread import deferred
 
 
 class TestRemoteTorrentHandler(TestAsServer):

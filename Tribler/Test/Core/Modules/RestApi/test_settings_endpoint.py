@@ -3,8 +3,8 @@ import os
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.twisted_thread import deferred
 
 
 class TestSettingsEndpoint(AbstractApiTest):

@@ -1,10 +1,11 @@
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, Deferred
+
 from Tribler.Core.Session import Session
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import NTFY_TORRENTS, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT, \
     NTFY_CHANNELCAST
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.twisted_thread import deferred
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.search.community import SearchCommunity
 from Tribler.dispersy.candidate import Candidate

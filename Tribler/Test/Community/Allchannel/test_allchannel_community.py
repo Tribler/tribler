@@ -1,5 +1,5 @@
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Community.AbstractTestCommunity import AbstractTestCommunity
+from Tribler.Test.twisted_thread import deferred
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.dispersy.member import DummyMember

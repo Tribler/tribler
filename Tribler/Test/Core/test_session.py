@@ -1,18 +1,17 @@
 from binascii import hexlify
-
 from nose.tools import raises
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Session import Session, SOCKET_BLOCK_ERRORCODE
 from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.Utilities.twisted_thread import deferred
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException, DuplicateTorrentFileError
 from Tribler.Core.leveldbstore import LevelDbStore
-from Tribler.Core.simpledefs import NTFY_CHANNELCAST, DLSTATUS_STOPPED, SIGNAL_CHANNEL, SIGNAL_ON_CREATED
-from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.simpledefs import NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON_CREATED
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
