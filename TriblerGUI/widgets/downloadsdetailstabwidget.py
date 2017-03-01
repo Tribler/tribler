@@ -179,21 +179,21 @@ class DownloadsDetailsTabWidget(QTabWidget):
         menu.exec_(self.window().download_files_list.mapToGlobal(pos))
 
     def get_included_file_list(self):
-        return [unicode(file_info["name"]) for file_info in self.current_download["files"] if file_info["included"]]
+        return [file_info["index"] for file_info in self.current_download["files"] if file_info["included"]]
 
     def on_files_included(self, files_data):
         included_list = self.get_included_file_list()
         for file_data in files_data:
-            if not file_data["name"] in included_list:
-                included_list.append(file_data["name"])
+            if not file_data["index"] in included_list:
+                included_list.append(file_data["index"])
 
         self.set_included_files(included_list)
 
     def on_files_excluded(self, files_data):
         included_list = self.get_included_file_list()
         for file_data in files_data:
-            if file_data["name"] in included_list:
-                included_list.remove(file_data["name"])
+            if file_data["index"] in included_list:
+                included_list.remove(file_data["index"])
 
         self.set_included_files(included_list)
 
@@ -205,7 +205,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
         self.window().left_menu_playlist.set_active_index(file_info["index"])
 
     def set_included_files(self, files):
-        data_str = ''.join(u"selected_files[]=%s&" % quote_plus(file) for file in files)[:-1].encode('utf-8')
+        data_str = ''.join("selected_files[]=%s&" % ind for ind in files)[:-1]
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("downloads/%s" % self.current_download['infohash'], lambda _: None,
                                          method='PATCH', data=data_str)
