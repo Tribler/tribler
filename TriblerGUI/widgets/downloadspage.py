@@ -40,6 +40,7 @@ class DownloadsPage(QWidget):
         self.window().start_download_button.clicked.connect(self.on_start_download_clicked)
         self.window().stop_download_button.clicked.connect(self.on_stop_download_clicked)
         self.window().remove_download_button.clicked.connect(self.on_remove_download_clicked)
+        self.window().play_download_button.clicked.connect(self.on_play_download_clicked)
 
         self.window().downloads_list.itemSelectionChanged.connect(self.on_download_item_clicked)
 
@@ -51,6 +52,9 @@ class DownloadsPage(QWidget):
         self.window().downloads_filter_input.textChanged.connect(self.on_filter_text_changed)
 
         self.window().downloads_list.header().resizeSection(12, 146)
+
+        if not self.window().vlc_available:
+            self.window().play_download_button.setHidden(True)
 
     def on_filter_text_changed(self, text):
         self.window().downloads_list.clearSelection()
@@ -169,12 +173,14 @@ class DownloadsPage(QWidget):
     def on_download_item_clicked(self):
         self.window().download_details_widget.show()
         if len(self.window().downloads_list.selectedItems()) == 0:
+            self.window().play_download_button.setEnabled(False)
             self.window().remove_download_button.setEnabled(False)
             self.window().start_download_button.setEnabled(False)
             self.window().stop_download_button.setEnabled(False)
             return
 
         self.selected_item = self.window().downloads_list.selectedItems()[0]
+        self.window().play_download_button.setEnabled(True)
         self.window().remove_download_button.setEnabled(True)
         self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_item))
         self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_item))
@@ -296,7 +302,6 @@ class DownloadsPage(QWidget):
 
         start_action = QAction('Start', self)
         stop_action = QAction('Stop', self)
-        play_action = QAction('Play', self)
         remove_download_action = QAction('Remove download', self)
         force_recheck_action = QAction('Force recheck', self)
         export_download_action = QAction('Export .torrent file', self)
@@ -311,7 +316,6 @@ class DownloadsPage(QWidget):
         start_action.setEnabled(DownloadsPage.start_download_enabled(self.selected_item))
         stop_action.triggered.connect(self.on_stop_download_clicked)
         stop_action.setEnabled(DownloadsPage.stop_download_enabled(self.selected_item))
-        play_action.triggered.connect(self.on_play_download_clicked)
         remove_download_action.triggered.connect(self.on_remove_download_clicked)
         force_recheck_action.triggered.connect(self.on_force_recheck_download)
         force_recheck_action.setEnabled(DownloadsPage.force_recheck_download_enabled(self.selected_item))
@@ -325,7 +329,11 @@ class DownloadsPage(QWidget):
 
         menu.addAction(start_action)
         menu.addAction(stop_action)
-        menu.addAction(play_action)
+
+        if self.window().vlc_available:
+            play_action = QAction('Play', self)
+            play_action.triggered.connect(self.on_play_download_clicked)
+            menu.addAction(play_action)
         menu.addSeparator()
         menu.addAction(remove_download_action)
         menu.addSeparator()

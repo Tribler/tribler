@@ -56,7 +56,10 @@ class DownloadWidgetItem(QTreeWidgetItem):
         except RuntimeError:
             pass
 
-        self.setText(3, DLSTATUS_STRINGS[eval(self.download_info["status"])])
+        if self.download_info["vod_mode"]:
+            self.setText(3, "Streaming")
+        else:
+            self.setText(3, DLSTATUS_STRINGS[eval(self.download_info["status"])])
         self.setText(4, str(self.download_info["num_seeds"]))
         self.setText(5, str(self.download_info["num_peers"]))
         self.setText(6, format_speed(self.download_info["speed_down"]))
