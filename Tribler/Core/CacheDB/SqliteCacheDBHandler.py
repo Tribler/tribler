@@ -1057,7 +1057,7 @@ class TorrentDBHandler(BasicDBHandler):
 
     def getAutoCompleteTerms(self, keyword, max_terms, limit=100):
         sql = "SELECT swarmname FROM FullTextIndex WHERE swarmname MATCH ? LIMIT ?"
-        result = self._db.fetchall(sql, (keyword + '*', limit))
+        result = self._db.fetchall(sql, ('"%s*"' % keyword, limit))
 
         all_terms = set()
         for line, in result:
