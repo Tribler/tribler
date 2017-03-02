@@ -1,36 +1,29 @@
-This section contains information about setting up a Tribler development environment on macOS. Unlike Linux based systems where installing third-party libraries is often a single ``apt-get`` command, installing and configuring the necessary libraries requires more attention on macOS. This guide has been tested with macOS 10.10.5 (Yosemite) but should also work for macOS 10.11 (El Capitan).
+Tribler development environment setup on MacOS (10.10 to 10.12).
 
-Note that the guide below assumes that Python is installed in the default location of Python (shipped with macOS). This location is normally in ``/Library/Python/2.7``. Writing to this location requires root access when using easy_install or pip. To avoid root commands, you can install Python in a virtualenv. More information about setting up Python in a virtualenv can be found `here <http://www.marinamele.com/2014/05/install-python-virtualenv-virtualenvwrapper-mavericks.html>`_.
+1. `MacPorts <development_on_osx.rst#macports>`_
+2. `HomeBrew <development_on_osx.rst#homebrew>`_
+3. `Tribler <development_on_osx.rst#tribler>`_
+4. `Notes <development_on_osx.rst#notes>`_
 
-Introduction
-------------
+MacPorts
+========
 
-Compilation of C/C++ libraries should be performed using Clang which is part of the Xcode Command Line Tools. The Python version shipped with macOS can be used and this guide has been tested using Python 2.7. The current installed version and binary of Python can be found by executing:
+MacPorts Install instructions at `macports.org <https://www.macports.org>`_.
+To install the Tribler dependencies using MacPorts, please run the following command in your terminal:
 
-.. code-block:: none
+.. code-block:: bash
 
-    python --version # gets the python version
-    which python # prints the path of the Python executable
+    sudo port -N install git ffmpeg qt5-qtcreator libtorrent-rasterbar gmp mpfr libmpc libsodium py27-m2crypto py27-apsw py27-Pillow py27-twisted py27-cherrypy3 py27-cffi py27-chardet py27-configobj py27-gmpy2 py27-pycparser py27-numpy py27-idna py27-leveldb py27-cryptography py27-decorator py27-feedparser py27-netifaces py27-service_identity py27-asn1-modules py27-pyinstaller py27-pyqt5 py27-sqlite py27-matplotlib
+    
+HomeBrew
+========
 
-Note that the default location of third-party Python libraries (for example, installed with ``pip``) can be found in ``/Library/Python/2.7/site-packages``.
+Note
+-----
 
-Many packages can be installed by using the popular brew and pip executables. Brew and pip can be installed by using:
+Skip to `Tribler <development_on_osx.rst#tribler>`_ if you are using MacPorts because HomeBrew is a less complete alternative to MacPorts.
 
-.. code-block:: none
-
-    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-    sudo easy_install pip
-
-This should be done after accepting the Xcode license so open Xcode at least once before installing Brew.
-
-Xcode Tools
------------
-
-The installation of Xcode is required in order to compile some C/C++ libraries. Xcode is an IDE developed by Apple and can be downloaded for free from the Mac App Store. After installation, the Command Line Tools should be installed by executing:
-
-.. code-block:: none
-
-    xcode-select --install
+HomeBrew installation instructions can be found at `brew.sh <https://brew.sh>`_.
 
 PyQt5
 -----
@@ -144,6 +137,7 @@ There are a bunch of other packages that can easily be installed using pip and b
 .. code-block:: none
 
     brew install homebrew/python/pillow gmp mpfr libmpc libsodium
+    sudo easy_install pip
     pip install --user cherrypy cffi chardet configobj cryptography decorator feedparser gmpy2 idna leveldb netifaces numpy pillow pyasn1 pycparser twisted service_identity
 
 If you encounter any error during the installation of Pillow, make sure that libjpeg and zlib are installed. They can be installed using:
@@ -154,25 +148,29 @@ If you encounter any error during the installation of Pillow, make sure that lib
     brew install libjpeg zlib
     brew link --force zlib
 
-Tribler should now be able to startup without warnings by executing this command in the Tribler root directory:
+Tribler
+=====
 
-.. code-block:: none
+.. code-block:: bash
 
-    ./tribler.sh
+    git clone --recursive  https://github.com/Tribler/tribler.git
+    cd tribler
+    cp /usr/local/lib/libsodium.dylib ./ || cp /opt/local/lib/libsodium.dylib ./
+    mkdir vlc
+    which ffmpeg | xargs -I {} cp "{}" vlc/
+    
+Proceed proceed to `Build instructions <../building/building_on_osx.rst>`_
 
-If there are any missing packages, they can often be installed by one pip or brew command. If there are any problems with the guide above, please feel free to fix any errors or `create an issue <https://github.com/Tribler/tribler/issues/new>`_ so we can look into it.
+Notes
+=====
 
-System Integrity Protection on El Capitan
------------------------------------------
+System Integrity Protection
+---------------------------
 
-The new security system in place in El Capitan can prevent ``libsodium.dylib`` from being dynamically linked into Tribler when running Python. If this library cannot be loaded, it gives an error that libsodium could not be found. This is because the ``DYLD_LIBRARY_PATH`` cannot be set when Python starts. More information about this can be read `here <https://forums.developer.apple.com/thread/13161>`_.
+The security system on MacOS can prevent ``libsodium.dylib`` from being dynamically linked into Tribler when running Python. If this library cannot be loaded, it gives an error that libsodium could not be found. This is because the ``DYLD_LIBRARY_PATH`` cannot be set when Python starts. More information about this can be read `here <https://forums.developer.apple.com/thread/13161>`_.
 
-There are two solutions for this problem. First, ``libsodium.dylib`` can symlinked into the Tribler root directory. This can be done by executing the following command **in the Tribler root directory**:
+The best solution to this problem is to link or copy ``libsodium.dylib`` into the Tribler root directory.
 
-.. code-block:: none
-
-    ln -s /usr/local/lib/libsodium.dylib
-
-Now the ``ctypes`` Python library will be able to find the ``libsodium.dylib`` file.
-
-The second solution is to disable SIP. This is not recommended since it makes the system more vulnerable for attacks. Information about disabling SIP can be found `here <http://www.imore.com/el-capitan-system-integrity-protection-helps-keep-malware-away>`_.
+Help
+----
+If there are any problems with the guide above, please feel free to fix any errors or `create an issue <https://github.com/Tribler/tribler/issues/new>`_ so we can look into it.
