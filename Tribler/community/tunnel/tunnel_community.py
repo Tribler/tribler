@@ -344,8 +344,11 @@ class TunnelCommunity(Community):
         # UP0GirNs3mkKwrfQOIjHrzZTczA1pWorgyZE/jhicKvmbSKejsk9fuX8UbNd65pP
         # p/CXr3nnFbDOzB+wSy3dKSE35pD8SjyS6T4=
         # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040140110760621b9d81a286f5500b90e7be5355d88a545efc77f4326d0954182b40b3529da15ee51e9aa6d15497635d6c04131c6c70df32ba0bd82f1cdda456079cbfd7d0637250fd068ab36cde690ac2b7d03888c7af3653733035a56a2b832644fe386270abe66d229e8ec93d7ee5fc51b35deb9a4fa7f097af79e715b0cecc1fb04b2ddd292137e690fc4a3c92e93e".decode("HEX")
-        master = dispersy.get_member(public_key=master_key)
+        master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040140110760621b9d81a286f5500b90e7be5355" + \
+                     "d88a545efc77f4326d0954182b40b3529da15ee51e9aa6d15497635d6c04131c6c70df32ba0bd82f1cdda45607" + \
+                     "9cbfd7d0637250fd068ab36cde690ac2b7d03888c7af3653733035a56a2b832644fe386270abe66d229e8ec93d" + \
+                     "7ee5fc51b35deb9a4fa7f097af79e715b0cecc1fb04b2ddd292137e690fc4a3c92e93e"
+        master = dispersy.get_member(public_key=master_key.decode("HEX"))
         return [master]
 
     def initiate_meta_messages(self):
