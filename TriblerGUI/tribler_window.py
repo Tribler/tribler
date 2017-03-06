@@ -249,8 +249,7 @@ class TriblerWindow(QMainWindow):
                                        total_files=0, callback=None):
         selected_files_uri = ""
         if len(selected_files) != total_files:  # Not all files included
-            selected_files_uri = '&' + ''.join(u"selected_files[]=%s&" % file for
-                                               file in selected_files)[:-1].encode('utf-8')
+            selected_files_uri = u'&' + u''.join(u"selected_files[]=%s&" % file for file in selected_files)[:-1]
 
         anon_hops = int(self.tribler_settings['Tribler']['default_number_hops']) if anon_download else 0
         safe_seeding = 1 if safe_seeding else 0

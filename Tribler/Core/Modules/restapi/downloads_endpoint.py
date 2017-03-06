@@ -1,6 +1,7 @@
 import json
 import os
 
+import logging
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -18,6 +19,7 @@ class DownloadBaseEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     @staticmethod
     def return_404(request, message="this download does not exist"):
@@ -330,7 +332,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
         (to force a recheck of the hashes of a download).
 
         Another possible parameter is selected_files which manipulates which files are included in the download.
-        The selected_files parameter is an array with the file names as values.
+        The selected_files parameter is an array with the file indices as values.
 
         The anonymity of a download can be changed at runtime by passing the anon_hops parameter, however, this must
         be the only parameter in this request.
@@ -340,7 +342,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 .. sourcecode:: none
 
                     curl -X PATCH http://localhost:8085/downloads/4344503b7e797ebf31582327a5baae35b11bda01
-                    --data "state=resume&selected_files[]=file1.iso&selected_files[]=file2.iso"
+                    --data "state=resume&selected_files[]=file1.iso&selected_files[]=1"
 
             **Example response**:
 
@@ -362,7 +364,13 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             self.session.lm.update_download_hops(download, anon_hops)
 
         if 'selected_files[]' in parameters:
-            selected_files_list = [unicode(f, 'utf-8') for f in parameters['selected_files[]']]
+            selected_files_list = []
+            for ind in parameters['selected_files[]']:
+                try:
+                    selected_files_list.append(download.tdef.get_files()[int(ind)])
+                except IndexError:  # File could not be found
+                    request.setResponseCode(http.BAD_REQUEST)
+                    return json.dumps({"error": "index %s out of range" % ind})
             download.set_selected_files(selected_files_list)
 
         if 'state' in parameters and len(parameters['state']) > 0:
