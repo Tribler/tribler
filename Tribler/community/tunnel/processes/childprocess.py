@@ -70,7 +70,7 @@ class ChildProcess(ProcessProtocol, IProcess):
 
         # twistd can't deal with multiple instances
         # supplying unused pid and logfiles to facilitate this
-        params = sys.argv + ["--tunnel_subprocess"]
+        params = sys.argv
         if sys.argv[0].endswith("twistd"):
             params = [params[0]] + ["--pidfile", ".pidfile", "--logfile", ".logfile"] + params[1:]
 
@@ -91,12 +91,14 @@ class ChildProcess(ProcessProtocol, IProcess):
         :type fds: {int: str or int} or None
         :returns: None
         """
+        sub_environ = {'TUNNEL_SUBPROCESS': '1'}
+        sub_environ.update(environ)
         if fds:
             reactor.spawnProcess(self,
                                  executable,
                                  [executable]
                                  + params,
-                                 env=environ,
+                                 env=sub_environ,
                                  path=path,
                                  childFDs=fds)
         else:
@@ -104,7 +106,7 @@ class ChildProcess(ProcessProtocol, IProcess):
                                  executable,
                                  [executable]
                                  + params,
-                                 env=environ,
+                                 env=sub_environ,
                                  path=path)
 
     def on_generic(self, msg):

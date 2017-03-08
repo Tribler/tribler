@@ -223,10 +223,6 @@ class TriblerLaunchMany(TaskManager):
             tunnel_settings = TunnelSettings(tribler_session=self.session)
             tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
 
-            import sys
-            if '--tunnel_subprocess' in sys.argv:
-                tunnel_kwargs['is_subprocess'] = True
-
             if self.session.get_enable_multichain():
                 multichain_kwargs = {'tribler_session': self.session}
 

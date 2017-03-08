@@ -5,6 +5,7 @@ import socket
 import time
 from collections import defaultdict
 from cryptography.exceptions import InvalidTag
+from os import environ
 
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred, succeed, inlineCallbacks, returnValue
@@ -302,7 +303,7 @@ class TunnelCommunity(Community):
 
         self.trsession = self.settings = self.socks_server = None
 
-    def initialize(self, tribler_session=None, settings=None, is_subprocess=False):
+    def initialize(self, tribler_session=None, settings=None):
         self.trsession = tribler_session
         self.settings = settings if settings else TunnelSettings(tribler_session=tribler_session)
 
@@ -321,7 +322,7 @@ class TunnelCommunity(Community):
 
         self.register_task("do_ping", LoopingCall(self.do_ping)).start(PING_INTERVAL)
 
-        if not is_subprocess:
+        if 'TUNNEL_SUBPROCESS' not in environ:
             self.register_task("do_circuits", LoopingCall(self.do_circuits)).start(5, now=True)
 
             self.socks_server = Socks5Server(self, tribler_session.get_tunnel_community_socks5_listen_ports()

@@ -91,7 +91,7 @@ def check_json_port(val):
 check_json_port.coerceDoc = "Json API port must be greater than 0."
 
 
-class Options(SubprocessLauncher):
+class Options(usage.Options):
     optFlags = [
         ["exit", "x", "Allow being an exit-node"],
         ["multichain", "M", "Enable the multichain community"]
@@ -506,8 +506,13 @@ class TunnelHelperServiceMaker(object):
 
         return tunnel_helper_service
 
-options = Options()
-options.parse_argv()
-if options.attempt_subprocess_start():
+if 'TUNNEL_SUBPROCESS' in os.environ:
+    from Tribler.community.tunnel.processes.tunnel_subprocess import TunnelSubprocess
+    from twisted.internet import reactor
+
+    subprocess = TunnelSubprocess()
+    subprocess.start()
+    reactor.run()
     sys.exit(0)
-service_maker = TunnelHelperServiceMaker()
+else:
+    service_maker = TunnelHelperServiceMaker()
