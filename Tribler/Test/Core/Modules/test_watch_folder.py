@@ -37,3 +37,7 @@ class TestWatchFolder(TestAsServer):
         self.session.lm.watch_folder.check_watch_folder()
         self.assertEqual(len(self.session.get_downloads()), 1)
         self.assertTrue(os.path.isfile(os.path.join(self.watch_dir, "test2.torrent.corrupt")))
+
+    def test_cleanup(self):
+        self.session.lm.watch_folder.cleanup_torrent_file(TESTS_DATA_DIR, 'thisdoesnotexist123.bla')
+        self.assertFalse(os.path.exists(os.path.join(TESTS_DATA_DIR, 'thisdoesnotexist123.bla.corrupt')))
