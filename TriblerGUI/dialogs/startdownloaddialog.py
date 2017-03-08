@@ -58,6 +58,7 @@ class StartDownloadDialog(DialogContainer):
         }
         QComboBox QAbstractItemView {
             selection-background-color: #707070;
+            color: #C0C0C0;
         }
         QComboBox::down-arrow {
             width: 12px;
