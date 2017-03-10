@@ -47,7 +47,8 @@ class LeftMenuPlaylist(QListWidget):
 
     def on_item_clicked(self, item):
         item_ind = self.row(item)
-        self.playing_item_change.emit(*self.files_data[item_ind])
+        if self.loaded_list:
+            self.playing_item_change.emit(*self.files_data[item_ind])
 
     def on_item_double_clicked(self, item):
         self.item_should_play.emit()

@@ -61,7 +61,7 @@ class SettingsPage(QWidget):
         self.window().lt_proxy_type_combobox.setCurrentIndex(settings['libtorrent']['lt_proxytype'])
         if settings['libtorrent']['lt_proxyserver']:
             self.window().lt_proxy_server_input.setText(settings['libtorrent']['lt_proxyserver'][0])
-            self.window().lt_proxy_port_input.setText(settings['libtorrent']['lt_proxyserver'][1])
+            self.window().lt_proxy_port_input.setText("%d" % settings['libtorrent']['lt_proxyserver'][1])
         if settings['libtorrent']['lt_proxyauth']:
             self.window().lt_proxy_username_input.setText(settings['libtorrent']['lt_proxyauth'][0])
             self.window().lt_proxy_password_input.setText(settings['libtorrent']['lt_proxyauth'][1])

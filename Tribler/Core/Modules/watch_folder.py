@@ -35,6 +35,10 @@ class WatchFolder(TaskManager):
         self.cancel_all_pending_tasks()
 
     def cleanup_torrent_file(self, root, name):
+        if not os.path.exists(os.path.join(root, name)):
+            self._logger.warning("File with path %s does not exist (anymore)", os.path.join(root, name))
+            return
+
         os.rename(os.path.join(root, name), os.path.join(root, name + ".corrupt"))
         self._logger.warning("Watch folder - corrupt torrent file %s", name)
         self.session.notifier.notify(NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, None, name)
