@@ -97,7 +97,9 @@ class DownloadWidgetItem(QTreeWidgetItem):
         elif column == 8:
             return float(self.download_info["ratio"]) > float(other.download_info["ratio"])
         elif column == 11:
-            return float(self.download_info["eta"]) > float(other.download_info["eta"])
+            # Put finished downloads with an ETA of 0 after all other downloads
+            return ((float(self.download_info["eta"]) or float('inf')) >
+                    (float(other.download_info["eta"]) or float('inf')))
         elif column == 12:
             return int(self.download_info["time_added"]) > int(other.download_info["time_added"])
         return self.text(column) > other.text(column)
