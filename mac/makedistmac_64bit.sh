@@ -24,8 +24,6 @@ if [ "$(which pyinstaller-2.7)" != "" ]; then
 fi
 $PI tribler.spec
 
-pyinstaller tribler.spec
-
 mkdir -p dist/installdir
 mv dist/$APPNAME.app dist/installdir
 

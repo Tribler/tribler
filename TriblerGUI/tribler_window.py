@@ -96,6 +96,7 @@ class TriblerWindow(QMainWindow):
         self.search_suggestion_mgr = None
         self.selected_torrent_files = []
         self.vlc_available = True
+        self.has_search_results = False
 
         sys.excepthook = self.on_exception
 
@@ -116,7 +117,7 @@ class TriblerWindow(QMainWindow):
         for widget in self.findChildren(QLineEdit) + self.findChildren(QListWidget) + self.findChildren(QTreeWidget):
             widget.setAttribute(Qt.WA_MacShowFocusRect, 0)
 
-        self.menu_buttons = [self.left_menu_button_home, self.left_menu_button_my_channel,
+        self.menu_buttons = [self.left_menu_button_home, self.left_menu_button_search, self.left_menu_button_my_channel,
                              self.left_menu_button_subscriptions, self.left_menu_button_video_player,
                              self.left_menu_button_downloads, self.left_menu_button_discovered]
 
@@ -341,8 +342,9 @@ class TriblerWindow(QMainWindow):
         self.process_uri_request()
 
     def on_top_search_button_click(self):
-        self.deselect_all_menu_buttons()
-        self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
+        self.left_menu_button_search.setChecked(True)
+        self.has_search_results = True
+        self.clicked_menu_button_search()
         self.search_results_page.perform_search(self.top_search_bar.text())
         self.search_request_mgr = TriblerRequestManager()
         self.search_request_mgr.perform_request("search?q=%s" % self.top_search_bar.text(), None)
@@ -485,11 +487,21 @@ class TriblerWindow(QMainWindow):
                 button.setEnabled(False)
                 continue
             button.setEnabled(True)
+
+            if button == self.left_menu_button_search and not self.has_search_results:
+                button.setEnabled(False)
+
             button.setChecked(False)
 
     def clicked_menu_button_home(self):
         self.deselect_all_menu_buttons(self.left_menu_button_home)
         self.stackedWidget.setCurrentIndex(PAGE_HOME)
+        self.navigation_stack = []
+        self.hide_left_menu_playlist()
+
+    def clicked_menu_button_search(self):
+        self.deselect_all_menu_buttons(self.left_menu_button_search)
+        self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
