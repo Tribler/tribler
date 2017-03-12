@@ -106,7 +106,7 @@ def decode_methods_request(offset, data):
     offset += 2
 
     methods = set([])
-    for i in range(number_of_methods):
+    for _ in xrange(number_of_methods):
         method, = struct.unpack_from("!B", data, offset)
         methods.add(method)
         offset += 1

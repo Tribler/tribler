@@ -1,8 +1,21 @@
+import logging.config
+import multiprocessing
 import os
 import sys
-import multiprocessing
+
+
+if os.path.exists("logger.conf"):
+    logging.config.fileConfig("logger.conf")
 
 if __name__ == "__main__":
+    if 'TUNNEL_SUBPROCESS' in os.environ:
+        from Tribler.community.tunnel.processes.tunnel_subprocess import TunnelSubprocess
+        from twisted.internet import reactor
+        subprocess = TunnelSubprocess()
+        subprocess.start()
+        reactor.run()
+        sys.exit(0)
+
     multiprocessing.freeze_support()
 
     from TriblerGUI.tribler_app import TriblerApplication

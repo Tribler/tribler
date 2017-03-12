@@ -259,6 +259,20 @@ class SessionConfigInterface(object):
         """
         return self.sessconfig.get(u'tunnel_community', u'enabled')
 
+    def set_tunnel_community_pooled(self, value):
+        """
+        Enable or disable subprocesses for the tunnel community.
+        :param value: A boolean indicating whether tunnel community pooling should be enabled
+        """
+        self.sessconfig.set(u'tunnel_community', u'pooled', value)
+
+    def get_tunnel_community_pooled(self):
+        """
+        Returns whether tunnel community pooling is enabled.
+        :return: A boolean indicating whether tunnel community pooling is enabled
+        """
+        return self.sessconfig.get(u'tunnel_community', u'pooled')
+
     #
     # BarterCommunity settings
     #

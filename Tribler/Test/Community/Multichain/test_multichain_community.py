@@ -10,7 +10,8 @@ from Tribler.Core.Session import Session
 from Tribler.community.multichain.community import (MultiChainCommunity, MultiChainCommunityCrawler, CRAWL_REQUEST,
                                                     CRAWL_RESPONSE, CRAWL_RESUME)
 from Tribler.community.multichain.conversion import EMPTY_HASH
-from Tribler.community.tunnel.routing import Circuit, RelayRoute
+from Tribler.community.tunnel.remotes.circuit import Circuit
+from Tribler.community.tunnel.remotes.relayroute import RelayRoute
 from Tribler.community.tunnel.tunnel_community import TunnelExitSocket
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.dispersy.message import DelayPacketByMissingMember

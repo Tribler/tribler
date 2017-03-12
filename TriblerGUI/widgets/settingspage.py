@@ -2,7 +2,7 @@ import json
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_BANDWIDTH, \
-    PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, BUTTON_TYPE_NORMAL
+    PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, PAGE_SETTINGS_EXPERIMENTAL, BUTTON_TYPE_NORMAL
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import seconds_to_string, string_to_minutes, get_gui_setting
@@ -88,6 +88,9 @@ class SettingsPage(QWidget):
         self.window().number_hops_slider.setValue(int(settings['Tribler']['default_number_hops']) - 1)
         self.window().multichain_enabled_checkbox.setChecked(settings['multichain']['enabled'])
 
+        # Experimental settings
+        self.window().enable_pooled_tunnel_checkbox.setChecked(settings['tunnel_community']['pooled'])
+
     def load_settings(self):
         self.settings_request_mgr = TriblerRequestManager()
         self.settings_request_mgr.perform_request("settings", self.initialize_with_settings)
@@ -103,6 +106,8 @@ class SettingsPage(QWidget):
             self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_SEEDING)
         elif tab_button_name == "settings_anonymity_button":
             self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_ANONYMITY)
+        elif tab_button_name == "settings_experimental_button":
+            self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_EXPERIMENTAL)
 
     def save_settings(self):
         # Create a dictionary with all available settings
@@ -164,6 +169,7 @@ class SettingsPage(QWidget):
         settings_data['tunnel_community']['exitnode_enabled'] = self.window().allow_exit_node_checkbox.isChecked()
         settings_data['Tribler']['default_number_hops'] = self.window().number_hops_slider.value() + 1
         settings_data['multichain']['enabled'] = self.window().multichain_enabled_checkbox.isChecked()
+        settings_data['tunnel_community']['pooled'] = self.window().enable_pooled_tunnel_checkbox.isChecked()
 
         self.window().settings_save_button.setEnabled(False)
 

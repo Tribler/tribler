@@ -4,6 +4,7 @@ This twistd plugin enables to start Tribler headless using the twistd command.
 from datetime import date
 import os
 import signal
+import sys
 import time
 
 from twisted.application.service import MultiService, IServiceMaker
@@ -142,4 +143,14 @@ class TriblerServiceMaker(object):
 
         return tribler_service
 
-service_maker = TriblerServiceMaker()
+
+if 'TUNNEL_SUBPROCESS' in os.environ:
+    from Tribler.community.tunnel.processes.tunnel_subprocess import TunnelSubprocess
+    from twisted.internet import reactor
+
+    subprocess = TunnelSubprocess()
+    subprocess.start()
+    reactor.run()
+    sys.exit(0)
+else:
+    service_maker = TriblerServiceMaker()

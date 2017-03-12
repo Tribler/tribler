@@ -7,6 +7,7 @@ import logging.config
 import os
 import random
 import signal
+import sys
 import threading
 import time
 from collections import defaultdict, deque
@@ -40,6 +41,7 @@ from Tribler.Core.permid import read_keypair
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+from Tribler.community.tunnel.subprocess_launcher import SubprocessLauncher
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
@@ -504,5 +506,13 @@ class TunnelHelperServiceMaker(object):
 
         return tunnel_helper_service
 
+if 'TUNNEL_SUBPROCESS' in os.environ:
+    from Tribler.community.tunnel.processes.tunnel_subprocess import TunnelSubprocess
+    from twisted.internet import reactor
 
-service_maker = TunnelHelperServiceMaker()
+    subprocess = TunnelSubprocess()
+    subprocess.start()
+    reactor.run()
+    sys.exit(0)
+else:
+    service_maker = TunnelHelperServiceMaker()

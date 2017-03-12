@@ -5158,6 +5158,40 @@ margin: 10px;</string>
               </widget>
              </item>
              <item>
+              <widget class="UnderlineTabButton" name="settings_experimental_button">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>36</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>36</height>
+                </size>
+               </property>
+               <property name="cursor">
+                <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="styleSheet">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>EXPERIMENTAL</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
               <spacer name="horizontalSpacer_10">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
@@ -6305,6 +6339,61 @@ color: white;</string>
               </item>
               <item>
                <spacer name="verticalSpacer_5">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>40</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </widget>
+            <widget class="QWidget" name="settings_experimental_tab">
+             <layout class="QVBoxLayout" name="formLayout">
+              <item>
+               <widget class="QLabel" name="label_44">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="MinimumExpanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>All of the settings on this page are experimental features. Enabling these may cause you, your computer, your loved ones, or frankly, anyone associated with you, harm in ways not limited to the physical realm. Use with caution.</string>
+                </property>
+                <property name="scaledContents">
+                 <bool>false</bool>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="enable_pooled_tunnel_checkbox">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="MinimumExpanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="toolTip">
+                 <string>Uses multiple processes to lighten the blow on your multi-core processor when downloading anonymously</string>
+                </property>
+                <property name="text">
+                 <string>Enable Multi-Core Anymous Downloading</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="verticalSpacer_15">
                 <property name="orientation">
                  <enum>Qt::Vertical</enum>
                 </property>

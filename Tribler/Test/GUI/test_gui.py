@@ -278,6 +278,8 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window, name="settings_seeding")
         QTest.mouseClick(window.settings_anonymity_button, Qt.LeftButton)
         self.screenshot(window, name="settings_anonymity")
+        QTest.mouseClick(window.settings_experimental_button, Qt.LeftButton)
+        self.screenshot(window, name="settings_experimental")
 
     def test_downloads(self):
         self.go_to_and_wait_for_downloads()

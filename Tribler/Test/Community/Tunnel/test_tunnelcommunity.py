@@ -5,7 +5,9 @@ from Tribler.Test.Community.Tunnel.test_tunnel_base import AbstractTestTunnelCom
 from Tribler.Test.twisted_thread import deferred
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.crypto.tunnelcrypto import CryptoException, TunnelCrypto
-from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
+from Tribler.community.tunnel.remotes.circuit import Circuit
+from Tribler.community.tunnel.remotes.hop import Hop
+from Tribler.community.tunnel.remotes.relayroute import RelayRoute
 from Tribler.community.tunnel.tunnel_community import (TunnelSettings, TunnelExitSocket, CircuitRequestCache,
                                                        PingRequestCache)
 from Tribler.dispersy.candidate import Candidate
@@ -142,7 +144,9 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
         circuit = Circuit(42L)
         hop = Hop(tunnel_crypto.generate_key(u"curve25519"))
         hop.session_keys = tunnel_crypto.generate_session_keys("1234")
-        circuit.add_hop(hop)
+        hop.hop_id = "1"
+        self.tunnel_community.hops[hop.hop_id] = hop
+        circuit.add_hop(hop.hop_id)
         self.tunnel_community.circuits[42] = circuit
 
         # Encode data with a truncated encrypted string (empty in this case)
@@ -175,7 +179,9 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
         circuit = Circuit(42L)
         circuit.first_hop = ("127.0.0.1", 1337)
         hop = Hop(tunnel_crypto.generate_key(u"curve25519").pub())
-        circuit.add_hop(hop)
+        hop.hop_id = "1"
+        self.tunnel_community.hops[hop.hop_id] = hop
+        circuit.add_hop(hop.hop_id)
         # Register the first hop with dispersy and the community
         circuit.mid = self.tunnel_community.dispersy.get_member(public_key=hop.node_public_key).mid.encode("HEX")
         self.tunnel_community.create_or_update_walkcandidate(circuit.first_hop, circuit.first_hop, circuit.first_hop,
@@ -216,7 +222,9 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
         circuit = Circuit(42L)
         circuit.first_hop = ("127.0.0.1", 1337)
         hop = Hop(tunnel_crypto.generate_key(u"curve25519").pub())
-        circuit.add_hop(hop)
+        hop.hop_id = "1"
+        self.tunnel_community.hops[hop.hop_id] = hop
+        circuit.add_hop(hop.hop_id)
         # Register the first hop with dispersy and the community
         circuit.mid = self.tunnel_community.dispersy.get_member(public_key=hop.node_public_key).mid.encode("HEX")
         self.tunnel_community.create_or_update_walkcandidate(circuit.first_hop, circuit.first_hop, circuit.first_hop,
@@ -259,7 +267,9 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
         circuit = Circuit(42L)
         circuit.first_hop = ("127.0.0.1", 1337)
         hop = Hop(tunnel_crypto.generate_key(u"curve25519").pub())
-        circuit.add_hop(hop)
+        hop.hop_id = "1"
+        self.tunnel_community.hops[hop.hop_id] = hop
+        circuit.add_hop(hop.hop_id)
         # Register the first hop with dispersy and the community
         circuit.mid = self.tunnel_community.dispersy.get_member(public_key=hop.node_public_key).mid.encode("HEX")
         self.tunnel_community.create_or_update_walkcandidate(circuit.first_hop, circuit.first_hop,
