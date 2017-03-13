@@ -237,16 +237,13 @@ class TriblerLaunchMany(TaskManager):
                                                load=True,
                                                kargs=multichain_kwargs)
 
-                from Tribler.community.tunnel.hidden_community_multichain import HiddenTunnelCommunityMultichain
-                self.tunnel_community = self.dispersy.define_auto_load(
-                    HiddenTunnelCommunityMultichain, dispersy_member, load=True, kargs=tunnel_kwargs)[0]
             else:
                 keypair = self.dispersy.crypto.generate_key(u"curve25519")
                 dispersy_member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
 
-                from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-                self.tunnel_community = self.dispersy.define_auto_load(
-                    HiddenTunnelCommunity, dispersy_member, load=True, kargs=tunnel_kwargs)[0]
+            from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+            self.tunnel_community = self.dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member,
+                                                                   load=True, kargs=tunnel_kwargs)[0]
 
         self.session.set_anon_proxy_settings(2, ("127.0.0.1",
                                                  self.session.get_tunnel_community_socks5_listen_ports()))
