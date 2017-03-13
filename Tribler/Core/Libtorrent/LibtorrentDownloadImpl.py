@@ -1,4 +1,6 @@
-# Based on SwiftDownloadImpl.py by Arno Bakker, modified by Egbert Bouman for the use with libtorrent
+"""
+Based on SwiftDownloadImpl.py, modified for the use with libtorrent.
+"""
 import base64
 import logging
 import os

@@ -1,10 +1,6 @@
-# Written by Arno Bakker
-# see LICENSE for license information
-""" The Tribler-specifc Exceptions the Core may throw. """
-
-#
-# Exceptions
-#
+"""
+The Tribler-specifc Exceptions the Core may throw.
+"""
 
 
 class TriblerException(Exception):

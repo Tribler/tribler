@@ -1,7 +1,3 @@
-# Written by Arno Bakker and Bram Cohen
-# Updated by Egbert Bouman, added subsection names + using OrderedDict + cleanup
-# see LICENSE for license information
-
 """ Default values for all configurarable parameters of the Core"""
 #
 # For an explanation of each parameter, see SessionConfig/DownloadConfig.py

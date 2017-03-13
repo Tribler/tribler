@@ -1,6 +1,3 @@
-# Written by Jelle Roozenburg
-# see LICENSE for license information
-
 import re
 import os
 import logging

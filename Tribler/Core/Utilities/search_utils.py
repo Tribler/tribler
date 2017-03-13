@@ -1,6 +1,3 @@
-# Written by Jelle Roozenburg, Arno Bakker
-# see LICENSE for license information
-
 import re
 
 RE_KEYWORD_SPLIT = re.compile(r"[\W_]", re.UNICODE)

@@ -1,4 +1,3 @@
-# Written by Niels Zeilemaker
 from conversion import DemersConversion
 from payload import TextPayload
 

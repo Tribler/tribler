@@ -1,5 +1,3 @@
-# Written by Arno Bakker
-# see LICENSE for license information
 import os
 import logging
 from M2Crypto import Rand, EC, BIO

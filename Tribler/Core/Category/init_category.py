@@ -1,7 +1,6 @@
-# Written by Yuan Yuan
-# see LICENSE for license information
-
-# give the initial category information
+"""
+Give the initial category information.
+"""
 
 import ConfigParser
 

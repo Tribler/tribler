@@ -1,13 +1,3 @@
-# see LICENSE for license information
-
-# upgrade64.py ---
-#
-# Filename: upgrade64.py
-# Description:
-# Author: Elric Milon
-# Maintainer:
-# Created: Thu Nov  6 18:13:34 2014 (+0100)
-
 import logging
 import os
 from binascii import hexlify

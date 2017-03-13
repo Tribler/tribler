@@ -1,5 +1,3 @@
-# Written by Egbert Bouman
-
 import time
 import os
 import struct

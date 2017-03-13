@@ -1,11 +1,5 @@
 #!/bin/sh -xe
-#
-# Written by Riccardo Petrocco, Arno Bakker
-# see LICENSE for license information
-#
 # Script to build Tribler 64-bit on Mac
-#
-# Based on original Makefile by JD Mol.
 
 APPNAME=Tribler
 if [ -e .TriblerVersion ]; then

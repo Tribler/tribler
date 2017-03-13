@@ -1,4 +1,3 @@
-# Written by Niels Zeilemaker
 from random import shuffle
 from time import time
 from binascii import hexlify

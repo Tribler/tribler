@@ -1,16 +1,6 @@
-# Written by Arno Bakker, ABC authors
-# see LICENSE for license information
 """
-OS-independent utility functions
-
-get_home_dir()      : Returns CSIDL_APPDATA i.e. App data directory on win32
-get_picture_dir()
-get_free_space(path)
+OS-independent utility functions.
 """
-
-#
-# Multiple methods for getting free diskspace
-#
 import sys
 import os
 import time

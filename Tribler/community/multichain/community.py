@@ -5,7 +5,6 @@ This reputation system builds a tamper proof interaction history contained in a 
 Every node has a chain and these chains intertwine by blocks shared by chains.
 Full documentation will be available at http://repository.tudelft.nl/.
 """
-
 import logging
 import base64
 from twisted.internet.defer import inlineCallbacks

@@ -1,6 +1,6 @@
-# Written by Arno Bakker
-# see LICENSE for license information
-""" Contains a snapshot of the state of the Download at a specific point in time. """
+"""
+Contains a snapshot of the state of the Download at a specific point in time.
+"""
 import logging
 import sys
 

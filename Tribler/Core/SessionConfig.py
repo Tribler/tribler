@@ -1,16 +1,6 @@
-# Written by Arno Bakker
-# Updated by Egbert Bouman, now using ConfigParser
-# see LICENSE for license information
-""" Controls the operation of a Session """
-
-#
-# WARNING: When extending this class:
-#
-# 1. Add a JavaDoc description for each method you add.
-# 2. Also add the methods to APIImplementation/SessionRuntimeConfig.py
-# 3. Document your changes in API.py
-#
-#
+"""
+Controls the operation of a Session.
+"""
 import logging
 import os
 import os.path

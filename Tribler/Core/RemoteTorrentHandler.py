@@ -1,8 +1,6 @@
-# Written by Niels Zeilemaker
-# see LICENSE for license information
-#
-# Handles the case where the user did a remote query and now selected one of the
-# returned torrents for download.
+"""
+Handles the case where the user did a remote query and now selected one of the returned torrents for download.
+"""
 import logging
 import sys
 import urllib

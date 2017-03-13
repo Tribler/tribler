@@ -1,5 +1,3 @@
-# Written by Egbert Bouman
-
 """
 The Libtorrent package contains code to manage the torrent library.
 """

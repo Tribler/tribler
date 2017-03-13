@@ -1,4 +1,3 @@
-# Written by Egbert Bouman
 import binascii
 import logging
 import random

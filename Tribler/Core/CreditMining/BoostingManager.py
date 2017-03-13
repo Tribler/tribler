@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
-# Written by Egbert Bouman, Mihai Capotă, Elric Milon, and Ardhi Putra Pratama H
-"""Manage boosting of swarms"""
+"""
+Manage boosting of swarms.
+"""
 import logging
 import os
 import shutil

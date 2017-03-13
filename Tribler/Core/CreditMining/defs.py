@@ -1,5 +1,5 @@
 """
-Definition/Constant that used in credit mining
+Definition/Constant that used in credit mining.
 """
 
 from Tribler.Core.Utilities.install_dir import determine_install_dir

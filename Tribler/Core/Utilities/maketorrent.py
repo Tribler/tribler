@@ -1,8 +1,3 @@
-# Written by Arno Bakker, Bram Cohen
-# multitracker extensions by John Hoffman
-# modified for Merkle hashes and digital signatures by Arno Bakker
-# see LICENSE for license information
-
 import os
 import logging
 from hashlib import sha1

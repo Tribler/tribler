@@ -1,6 +1,3 @@
-# Written by Arno Bakker, heavy modified by Niels Zeilemaker
-# see LICENSE for license information
-
 import logging
 import os
 from twisted.internet.defer import inlineCallbacks, Deferred

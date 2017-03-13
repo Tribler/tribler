@@ -1,6 +1,3 @@
-# Written by Arno Bakker
-# see LICENSE for license information
-
 import sys
 
 

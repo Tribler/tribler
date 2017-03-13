@@ -1,5 +1,5 @@
 """
-This file test whether Tribler is able to start when multichain is enabled
+This file test whether Tribler is able to start when multichain is enabled.
 Based on test_bartercast4_community.py
 """
 from twisted.internet.defer import inlineCallbacks
