@@ -8,9 +8,9 @@ import hashlib
 
 from collections import defaultdict
 
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED,\
-    NTFY_TUNNEL, NTFY_IP_REMOVED, NTFY_RP_REMOVED, NTFY_IP_RECREATE,\
-    NTFY_DHT_LOOKUP, NTFY_KEY_REQUEST, NTFY_KEY_RESPOND, NTFY_KEY_RESPONSE,\
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
+    NTFY_TUNNEL, NTFY_IP_REMOVED, NTFY_RP_REMOVED, NTFY_IP_RECREATE, \
+    NTFY_DHT_LOOKUP, NTFY_KEY_REQUEST, NTFY_KEY_RESPOND, NTFY_KEY_RESPONSE, \
     NTFY_CREATE_E2E, NTFY_ONCREATED_E2E, NTFY_IP_CREATED, DLSTATUS_DOWNLOADING
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.Utilities.encoding import encode, decode
@@ -238,6 +238,10 @@ class HiddenTunnelCommunity(TunnelCommunity):
             new_state = new_states.get(info_hash, None)
             old_state = self.download_states.get(info_hash, None)
             state_changed = new_state != old_state
+
+            # Stop creating introduction points if the download doesn't exist anymore
+            if info_hash in self.infohash_ip_circuits and new_state is None:
+                del self.infohash_ip_circuits[info_hash]
 
             # If the introducing circuit does not exist anymore or timed out: Build a new circuit
             if info_hash in self.infohash_ip_circuits:
@@ -523,24 +527,27 @@ class HiddenTunnelCommunity(TunnelCommunity):
                                                                           cache.hop.public_key.key.pk)
             session_keys = self.crypto.generate_session_keys(shared_secret)
 
-            _, rp_info = decode(self.crypto.decrypt_str(message.payload.rp_sock_addr,
+            _, decoded = decode(self.crypto.decrypt_str(message.payload.rp_sock_addr,
                                                         session_keys[EXIT_NODE],
                                                         session_keys[EXIT_NODE_SALT]))
+            rp_info, cookie = decoded
 
             if self.notifier:
-                self.notifier.notify(NTFY_TUNNEL, NTFY_ONCREATED_E2E, cache.info_hash.encode('hex')[:6], rp_info[0])
+                self.notifier.notify(NTFY_TUNNEL, NTFY_ONCREATED_E2E, cache.info_hash.encode('hex')[:6], rp_info)
 
             # Since it is the seeder that chose the rendezvous_point, we're essentially losing 1 hop of anonymity
             # at the downloader end. To compensate we add an extra hop.
+            required_exit = Candidate(rp_info[:2], False)
+            required_exit.associate(self.get_member(public_key=rp_info[2]))
             self.create_circuit(self.hops[cache.info_hash] + 1,
                                 CIRCUIT_TYPE_RENDEZVOUS,
-                                callback=lambda circuit, cookie=rp_info[1], session_keys=session_keys,
+                                callback=lambda circuit, cookie=cookie, session_keys=session_keys,
                                 info_hash=cache.info_hash, sock_addr=cache.sock_addr: self.create_link_e2e(circuit,
                                                                                                            cookie,
                                                                                                            session_keys,
                                                                                                            info_hash,
                                                                                                            sock_addr),
-                                required_endpoint=rp_info[0],
+                                required_exit=required_exit,
                                 info_hash=cache.info_hash)
 
     def create_link_e2e(self, circuit, cookie, session_keys, info_hash, sock_addr):

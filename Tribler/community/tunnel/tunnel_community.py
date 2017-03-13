@@ -3,6 +3,9 @@
 import random
 import socket
 import time
+import logging
+
+from itertools import chain
 from collections import defaultdict
 from cryptography.exceptions import InvalidTag
 
@@ -38,7 +41,6 @@ from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
-import logging
 
 
 class CircuitRequestCache(NumberCache):
@@ -221,7 +223,9 @@ class TunnelSettings(object):
         self.max_circuits = 8
         self.max_relays_or_exits = 100
 
+        # Maximum number of seconds that a circuit should exist
         self.max_time = 10 * 60
+        # Maximum number of seconds before a circuit is considered inactive (and is removed)
         self.max_time_inactive = 20
         self.max_traffic = 250 * 1024 * 1024
 
@@ -234,13 +238,6 @@ class TunnelSettings(object):
         else:
             self.become_exitnode = False
             self.enable_multichain = False
-
-
-class ExitCandidate(object):
-
-    def __init__(self, become_exit):
-        self.become_exit = become_exit
-        self.creation_time = time.time()
 
 
 class RoundRobin(object):
@@ -285,7 +282,7 @@ class TunnelCommunity(Community):
         self.exit_sockets = {}
         self.circuits_needed = defaultdict(int)
         self.num_hops_by_downloads = defaultdict(int)  # Keeps track of the number of hops required by downloads
-        self.exit_candidates = {}
+        self.exit_candidates = {}  # Keeps track of the candidates that want to be an exit node
         self.notifier = None
         self.selection_strategy = RoundRobin(self)
         self.stats = defaultdict(int)
@@ -333,21 +330,25 @@ class TunnelCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-        # generated: Sat Jul  4 15:31:17 2015
+        # generated: Tue Feb 28 18:52:56 2017
         # curve: None
         # len: 571 bits ~ 144 bytes signature
-        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000407b5eb7d25859eee6495ca0e1c14e0bb3c38cc4de5c1bb7d198a3cb6e075833ce59ac0464450e8405a6d9f7cce9824b970eb28259b8bd1f391d44c8dc7c8929014764cdbd5bd20300719a696f39dacd4e8c2dd8240e884a6eeff1734b9e175d28d805461f8a94f5fbc84b5ce1d0f322587522d1a79636301bb0efc1052239837beb88f3aa49b1b19b785296421ece659
-        # prv: 241 3081ee0201010448023682a3d2a23725d6c8effc8bccc46ecdd5b613621f536d9b41b6f35a1a4bfca1d8175ba6a2171a05aa6d72b6c51499ea602ab33047e4e93715496aa3f2e3526fd48fb75fb32cb4a00706052b81040027a18195038192000407b5eb7d25859eee6495ca0e1c14e0bb3c38cc4de5c1bb7d198a3cb6e075833ce59ac0464450e8405a6d9f7cce9824b970eb28259b8bd1f391d44c8dc7c8929014764cdbd5bd20300719a696f39dacd4e8c2dd8240e884a6eeff1734b9e175d28d805461f8a94f5fbc84b5ce1d0f322587522d1a79636301bb0efc1052239837beb88f3aa49b1b19b785296421ece659
-        # pub-sha1 2b62d6f75a72307897f512ecdd38ec5532c3ebc2
-        # prv-sha1 eaf086a8eefac71151337b26f8b04fedaa6650d0
+        # pub: 170 3081a7301006072a8648ce3d020106052b8104002703819200040140110760621b9d81a286f5500b90e7be5355d88a545efc7
+        # 7f4326d0954182b40b3529da15ee51e9aa6d15497635d6c04131c6c70df32ba0bd82f1cdda456079cbfd7d0637250fd068ab36cde690ac
+        # 2b7d03888c7af3653733035a56a2b832644fe386270abe66d229e8ec93d7ee5fc51b35deb9a4fa7f097af79e715b0cecc1fb04b2ddd292
+        # 137e690fc4a3c92e93e
+        # pub-sha1 7d510d1f81f63deaf2020464d1abdf0eb167e02e
         # -----BEGIN PUBLIC KEY-----
-        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQHtet9JYWe7mSVyg4cFOC7PDjMTeXB
-        # u30Zijy24HWDPOWawEZEUOhAWm2ffM6YJLlw6yglm4vR85HUTI3HyJKQFHZM29W9
-        # IDAHGaaW852s1OjC3YJA6ISm7v8XNLnhddKNgFRh+KlPX7yEtc4dDzIlh1ItGnlj
-        # YwG7DvwQUiOYN764jzqkmxsZt4UpZCHs5lk=
+        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQBQBEHYGIbnYGihvVQC5DnvlNV2IpU
+        # Xvx39DJtCVQYK0CzUp2hXuUemqbRVJdjXWwEExxscN8yugvYLxzdpFYHnL/X0GNy
+        # UP0GirNs3mkKwrfQOIjHrzZTczA1pWorgyZE/jhicKvmbSKejsk9fuX8UbNd65pP
+        # p/CXr3nnFbDOzB+wSy3dKSE35pD8SjyS6T4=
         # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000407b5eb7d25859eee6495ca0e1c14e0bb3c38cc4de5c1bb7d198a3cb6e075833ce59ac0464450e8405a6d9f7cce9824b970eb28259b8bd1f391d44c8dc7c8929014764cdbd5bd20300719a696f39dacd4e8c2dd8240e884a6eeff1734b9e175d28d805461f8a94f5fbc84b5ce1d0f322587522d1a79636301bb0efc1052239837beb88f3aa49b1b19b785296421ece659".decode("HEX")
-        master = dispersy.get_member(public_key=master_key)
+        master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040140110760621b9d81a286f5500b90e7be5355" + \
+                     "d88a545efc77f4326d0954182b40b3529da15ee51e9aa6d15497635d6c04131c6c70df32ba0bd82f1cdda45607" + \
+                     "9cbfd7d0637250fd068ab36cde690ac2b7d03888c7af3653733035a56a2b832644fe386270abe66d229e8ec93d" + \
+                     "7ee5fc51b35deb9a4fa7f097af79e715b0cecc1fb04b2ddd292137e690fc4a3c92e93e"
+        master = dispersy.get_member(public_key=master_key.decode("HEX"))
         return [master]
 
     def initiate_meta_messages(self):
@@ -525,58 +526,49 @@ class TunnelCommunity(Community):
 
         return candidate
 
-    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, required_endpoint=None, info_hash=None):
-        assert required_endpoint is None or isinstance(required_endpoint, tuple), type(required_endpoint)
-        assert required_endpoint is None or len(required_endpoint) == 3, required_endpoint
-        first_hop = None
+    @property
+    def compatible_candidates(self):
+        return (c for c in self.dispersy_yield_verified_candidates()
+                if self.crypto.is_key_compatible(c.get_member()._ec))
+
+    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, required_exit=None, info_hash=None):
+        assert required_exit is None or isinstance(required_exit, Candidate), type(required_exit)
 
         self.tunnel_logger.info("Creating a new circuit of length %d", goal_hops)
 
-        if not required_endpoint:
-            for c in self.dispersy_yield_verified_candidates():
-                pubkey = c.get_member().public_key
-                exit_candidate = self.exit_candidates[pubkey]
-                if ctype == CIRCUIT_TYPE_DATA:
-                    self.tunnel_logger.info("Look for an exit node to set as required_endpoint for this circuit")
-                    if exit_candidate.become_exit:
-                        self.tunnel_logger.info("Valid exit candidate found for this circuit")
-                        required_endpoint = (c.sock_addr[0], c.sock_addr[1], pubkey)
-                        break
-                else:
-                    self.tunnel_logger.info("Try to find connectable node to set as required_endpoint for circuit")
-                    required_endpoint = (c.sock_addr[0], c.sock_addr[1], pubkey)
-                    if self.candidate_is_connectable(c) and not exit_candidate.become_exit:
-                        # Prefer non exit candidate, because the real exit candidates are scarce, save their bandwidth
-                        self.tunnel_logger.info("Connectable non-exit required_endpoint found, stop looking further")
-                        break
+        # Determine the last hop
+        if not required_exit:
+            if ctype == CIRCUIT_TYPE_DATA:
+                required_exit = next(self.exit_candidates.itervalues(), None)
+            else:
+                # For exit nodes that don't exit actual data, we prefer verified candidates,
+                # but we also consider exit candidates.
+                required_exit = next((c for c in chain(self.compatible_candidates, self.exit_candidates.itervalues())
+                                      if self.candidate_is_connectable(c)), None)
 
-        # If the number of hops is 1, it should immediately be the required_endpoint hop.
-        if goal_hops == 1 and required_endpoint:
-            self.tunnel_logger.info("Associate first hop with a candidate and member object")
-            first_hop = Candidate((required_endpoint[0], required_endpoint[1]), False)
-            first_hop.associate(self.get_member(public_key=required_endpoint[2]))
+        if not required_exit:
+            self.tunnel_logger.info("Could not create circuit, no available exit-nodes")
+            return False
+
+        # Determine the first hop
+        if goal_hops == 1 and required_exit:
+            # If the number of hops is 1, it should immediately be the required_exit hop.
+            self.tunnel_logger.info("First hop is required exit")
+            first_hop = required_exit
         else:
             self.tunnel_logger.info("Look for a first hop that is not an exit node and is not used before")
-            hops = set([c.first_hop for c in self.circuits.values()])
-            for c in self.dispersy_yield_verified_candidates():
-                if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec) and \
-                   (not required_endpoint or c.sock_addr != tuple(required_endpoint[:2])) and \
-                    c.get_member().public_key in self.exit_candidates and \
-                   not self.exit_candidates[c.get_member().public_key].become_exit:
-                    first_hop = c
-                    break
-
-        if not required_endpoint:
-            self.tunnel_logger.info("could not create circuit, no available exit-nodes.")
-            return False
+            first_hops = set([c.first_hop for c in self.circuits.values()])
+            first_hop = next((c for c in self.compatible_candidates
+                              if c not in first_hops and c != required_exit), None)
 
         if not first_hop:
-            self.tunnel_logger.info("could not create circuit, no available relay for first hop.")
+            self.tunnel_logger.info("Could not create circuit, no first hop available")
             return False
 
+        # Finally, construct the Circuit object and send the CREATE message
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
         circuit = Circuit(circuit_id, goal_hops, first_hop.sock_addr, self, ctype, callback,
-                          required_endpoint, first_hop.get_member().mid.encode('hex'), info_hash)
+                          required_exit, first_hop.get_member().mid.encode('hex'), info_hash)
 
         self.request_cache.add(CircuitRequestCache(self, circuit))
 
@@ -584,7 +576,7 @@ class TunnelCommunity(Community):
         circuit.unverified_hop.address = first_hop.sock_addr
         circuit.unverified_hop.dh_secret, circuit.unverified_hop.dh_first_part = self.crypto.generate_diffie_secret()
 
-        self.tunnel_logger.info("creating circuit %d of %d hops. First hop: %s:%d", circuit_id, circuit.goal_hops,
+        self.tunnel_logger.info("Creating circuit %d of %d hops. First hop: %s:%d", circuit_id, circuit.goal_hops,
                            first_hop.sock_addr[0], first_hop.sock_addr[1])
 
         self.circuits[circuit_id] = circuit
@@ -926,16 +918,15 @@ class TunnelCommunity(Community):
 
         if circuit.state == CIRCUIT_STATE_EXTENDING:
             ignore_candidates = [self.crypto.key_to_bin(hop.public_key) for hop in circuit.hops] + \
-                [self.my_member.public_key]
-            if circuit.required_endpoint:
-                ignore_candidates.append(circuit.required_endpoint[2])
+                                [self.my_member.public_key]
+            if circuit.required_exit:
+                ignore_candidates.append(circuit.required_exit.get_member().public_key)
 
             become_exit = circuit.goal_hops - 1 == len(circuit.hops)
-            if become_exit and circuit.required_endpoint:
+            if become_exit and circuit.required_exit:
                 # Set the required exit according to the circuit setting (e.g. for linking e2e circuits)
-                host, port, pub_key = circuit.required_endpoint
-                extend_hop_public_bin = pub_key
-                extend_hop_addr = (host, port)
+                extend_hop_public_bin = circuit.required_exit.get_member().public_key
+                extend_hop_addr = circuit.required_exit.sock_addr
 
             else:
                 # The next candidate is chosen from the returned list of possible candidates
@@ -993,13 +984,19 @@ class TunnelCommunity(Community):
             from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_CREATED, NTFY_EXTENDED
             self.notifier.notify(NTFY_TUNNEL, NTFY_CREATED if len(circuit.hops) == 1 else NTFY_EXTENDED, circuit)
 
+    def update_exit_candidates(self, candidate, become_exit):
+        public_key = candidate.get_member().public_key
+        if become_exit:
+            self.exit_candidates[public_key] = candidate
+        else:
+            self.exit_candidates.pop(public_key, None)
+
     def on_introduction_request(self, messages):
         exitnode = self.become_exitnode()
         extra_payload = [exitnode]
         super(TunnelCommunity, self).on_introduction_request(messages, extra_payload)
         for message in messages:
-            pubkey = message.candidate.get_member().public_key
-            self.exit_candidates[pubkey] = ExitCandidate(message.payload.exitnode)
+            self.update_exit_candidates(message.candidate, message.payload.exitnode)
 
     def create_introduction_request(self, destination, allow_sync, forward=True, is_fast_walker=False):
         exitnode = self.become_exitnode()
@@ -1010,8 +1007,7 @@ class TunnelCommunity(Community):
     def on_introduction_response(self, messages):
         super(TunnelCommunity, self).on_introduction_response(messages)
         for message in messages:
-            pubkey = message.candidate.get_member().public_key
-            self.exit_candidates[pubkey] = ExitCandidate(message.payload.exitnode)
+            self.update_exit_candidates(message.candidate, message.payload.exitnode)
 
     def on_cell(self, messages):
         for message in messages:
@@ -1060,17 +1056,9 @@ class TunnelCommunity(Community):
             shared_secret, Y, AUTH = self.crypto.generate_diffie_shared_secret(message.payload.key)
             self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(shared_secret)
 
-            candidates = {}
-            for c in self.dispersy_yield_verified_candidates():
-                pubkey = c.get_member().public_key
-                vc = self.exit_candidates[pubkey]
-                if vc.become_exit:
-                    # Exit nodes are chosen by the circuit initiator, we decided not to use exit nodes as normal relay
-                    continue
-
-                candidates[pubkey] = c
-                if len(candidates) >= 4:
-                    break
+            candidates_list = [c for c in self.compatible_candidates
+                               if c.get_member().public_key not in self.exit_candidates][:4]
+            candidates = {c.get_member().public_key:c for c in candidates_list}
 
             self.request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates))
             candidate_mid = 0
@@ -1288,7 +1276,7 @@ class TunnelCommunity(Community):
 
         elif circuit_id in self.exit_sockets:
             if not self.exit_sockets[circuit_id].enabled:
-                # Check that we got the correct circuit_id, but from a wrong IP.
+                # Check that we got the data from the correct IP.
                 if sock_addr[0] == self.exit_sockets[circuit_id].sock_addr[0]:
                     self.exit_sockets[circuit_id].enable()
                 else:
@@ -1331,9 +1319,8 @@ class TunnelCommunity(Community):
                                                           hop.session_keys[ORIGINATOR_SALT])
                     except InvalidTag as e:
                         raise CryptoException("Got exception %r when trying to remove encryption layer %s "
-                                              "for message: %r received for circuit_id: %s, is_data: %i, "
-                                              "circuit_hops: %r" % (e, layer, content, circuit_id, is_data, circuit.hops
-                                                                    ))
+                                              "for message: %r received for circuit_id: %s, is_data: %i, circuit_hops:"
+                                              " %r" % (e, layer, content, circuit_id, is_data, circuit.hops))
 
                 if is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
                     direction = int(circuit.ctype != CIRCUIT_TYPE_RP)
@@ -1378,7 +1365,7 @@ class TunnelCommunity(Community):
                 # - The pubkey of the introduction point changed (e.g. due to a
                 # restart), while other peers in the network are still exchanging
                 # the old key information.
-                #- A hostile peer may have forged the key of a candidate while
+                # - A hostile peer may have forged the key of a candidate while
                 # pexing information about candidates, thus polluting the network
                 # with wrong information. I doubt this is the case but it's
                 # possible. :)
