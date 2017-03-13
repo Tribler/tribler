@@ -1,5 +1,5 @@
 # Written by Arno Bakker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 
 PLAYBACKMODE_INTERNAL = 0
 PLAYBACKMODE_EXTERNAL_DEFAULT = 1

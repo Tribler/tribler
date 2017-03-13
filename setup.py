@@ -5,7 +5,7 @@ from Tribler.Core.version import version_id
 with open('README.rst', 'r') as f:
     long_description = f.read()
 
-with open('Tribler/LICENSE.txt', 'r') as f:
+with open('LICENSE', 'r') as f:
     licenses = f.read()
 
 data_dirs = [

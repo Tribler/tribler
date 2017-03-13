@@ -1,5 +1,5 @@
 # Written by Arno Bakker, ABC authors
-# see LICENSE.txt for license information
+# see LICENSE for license information
 """
 OS-independent utility functions
 

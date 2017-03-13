@@ -1,6 +1,6 @@
 # Written by Arno Bakker, Jie Yang
 # Improved and Modified by Niels Zeilemaker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 
 # Make sure the in thread reactor is installed.
 import functools

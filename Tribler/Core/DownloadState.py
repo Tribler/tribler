@@ -1,5 +1,5 @@
 # Written by Arno Bakker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 """ Contains a snapshot of the state of the Download at a specific point in time. """
 import logging
 import sys

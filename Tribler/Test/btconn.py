@@ -1,5 +1,5 @@
 # Written by Arno Bakker, Jie Yang
-# see LICENSE.txt for license information
+# see LICENSE for license information
 
 import socket
 import logging

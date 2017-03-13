@@ -1,5 +1,5 @@
 # Written by Egbert Bouman
-# see LICENSE.txt for license information
+# see LICENSE for license information
 
 import ast
 import codecs

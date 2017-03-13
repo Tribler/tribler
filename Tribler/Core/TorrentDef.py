@@ -1,5 +1,5 @@
 # Written by Arno Bakker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 """ Definition of a torrent, that is, a collection of files or a live stream. """
 import sys
 import os

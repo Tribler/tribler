@@ -1,5 +1,5 @@
 # Written by Arno Bakker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 
 '''
 The Core package contains the core functionalities of the Tribler project
@@ -9,7 +9,7 @@ from threading import RLock
 import logging
 
 # Written by BitTornado authors and Arno Bakker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 
 
 logger = logging.getLogger(__name__)

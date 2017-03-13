@@ -1,5 +1,5 @@
 # Written by Arno Bakker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 
 """ Simple definitions for the Tribler Core. """
 DLSTATUS_ALLOCATING_DISKSPACE = 0  # TODO: make sure this get set when in this alloc mode

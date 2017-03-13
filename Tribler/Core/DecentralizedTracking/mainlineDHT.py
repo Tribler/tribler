@@ -1,6 +1,6 @@
 # written by Fabian van der Werf, Arno Bakker
 # Modified by Raul Jimenez to integrate KTH DHT
-# see LICENSE.txt for license information
+# see LICENSE for license information
 import os
 
 import sys

@@ -1,5 +1,5 @@
 # Written by Cor-Paul Bezemer
-# see LICENSE.txt for license information
+# see LICENSE for license information
 
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet.task import LoopingCall

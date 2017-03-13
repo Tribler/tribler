@@ -1,5 +1,5 @@
 # Written by Arno Bakker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 """ A Session is a running instance of the Tribler Core and the Core's central class. """
 import copy
 import logging

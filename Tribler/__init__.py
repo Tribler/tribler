@@ -1,4 +1,4 @@
 # Written by Arno Bakker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 
 LIBRARYNAME = 'Tribler'

@@ -1,7 +1,7 @@
 #!/bin/sh -xe
 #
 # Written by Riccardo Petrocco, Arno Bakker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 #
 # Script to build Tribler 64-bit on Mac
 #
@@ -99,7 +99,7 @@ hdiutil convert dist/temp/rw.dmg -format UDZO -imagekey zlib-level=9 -o dist/$AP
 rm -f dist/temp/rw.dmg
 
 # add EULA
-eulagise --license $LIBRARYNAME/LICENSE.txt --target dist/$APPNAME.dmg
+eulagise --license $LIBRARYNAME/LICENSE --target dist/$APPNAME.dmg
 
 if [ ! -z "$DMGNAME" ]; then
     mv dist/$APPNAME.dmg dist/$DMGNAME.dmg

@@ -1,5 +1,5 @@
 # Written by Jelle Roozenburg, Arno Bakker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 
 import re
 

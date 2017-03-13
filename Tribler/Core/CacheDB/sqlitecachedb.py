@@ -1,5 +1,5 @@
 # Written by Jie Yang
-# see LICENSE.txt for license information
+# see LICENSE for license information
 import logging
 import os
 from base64 import encodestring, decodestring

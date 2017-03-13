@@ -1,6 +1,6 @@
 # Written by Egbert Bouman
 # Based on SimpleServer written by Jan David Mol, Arno Bakker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 #
 import os
 import socket

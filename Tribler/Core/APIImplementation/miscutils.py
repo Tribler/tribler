@@ -1,5 +1,5 @@
 # Written by Arno Bakker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 
 
 def offset2piece(offset, piecesize, endpoint=True):

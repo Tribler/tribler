@@ -1,6 +1,6 @@
 # Written by Arno Bakker
 # Updated by Egbert Bouman, now using ConfigParser
-# see LICENSE.txt for license information
+# see LICENSE for license information
 """ Controls the operation of a Session """
 
 #

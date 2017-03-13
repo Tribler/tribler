@@ -1,6 +1,6 @@
 # Written by Arno Bakker
 # Updated by Niels Zeilemaker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 import binascii
 import logging
 import os

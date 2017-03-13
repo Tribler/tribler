@@ -1,5 +1,5 @@
 # written by Yuan Yuan, Jelle Roozenburg
-# see LICENSE.txt for license information
+# see LICENSE for license information
 
 import os
 import re

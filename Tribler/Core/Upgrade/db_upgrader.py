@@ -1,4 +1,4 @@
-# see LICENSE.txt for license information
+# see LICENSE for license information
 
 # upgrade64.py ---
 #

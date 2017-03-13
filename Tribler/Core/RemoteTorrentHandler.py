@@ -1,5 +1,5 @@
 # Written by Niels Zeilemaker
-# see LICENSE.txt for license information
+# see LICENSE for license information
 #
 # Handles the case where the user did a remote query and now selected one of the
 # returned torrents for download.
