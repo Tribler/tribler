@@ -47,13 +47,7 @@ class SessionConfigInterface(object):
         if not sessconfig:
             return
 
-        if sys.platform == 'win32':
-            # TODO(emilon): This is to work around the case where windows has
-            # non-ASCI chars on %PATH% contents. Should be removed if we migrate to
-            # python 3.
-            from Tribler.Main.hacks import get_environment_variable
-            path_env = get_environment_variable(u"PATH")
-        elif is_android():
+        if is_android():
             path_env = unicode(os.environ["PYTHONPATH"])
         else:
             path_env = os.environ["PATH"]
