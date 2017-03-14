@@ -250,18 +250,6 @@ class SessionConfigInterface(object):
         return self.sessconfig.get(u'tunnel_community', u'enabled')
 
     #
-    # BarterCommunity settings
-    #
-
-    def set_barter_community_enabled(self, value):
-        self.sessconfig.set(u'barter_community', u'enabled', value)
-
-    def get_barter_community_enabled(self):
-        """ Returns whether the Bartercast community is enabled
-        @return Boolean. """
-        return self.sessconfig.get(u'barter_community', u'enabled')
-
-    #
     # Network settings
     #
 

@@ -14,7 +14,6 @@ from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
 from Tribler.community.allchannel.community import AllChannelCommunity
-from Tribler.community.bartercast4.community import BarterCommunity
 from Tribler.community.multichain.community import MultiChainCommunity
 from Tribler.community.search.community import SearchCommunity
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
@@ -199,8 +198,8 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         TestAsServer.setUpPreSession(self)
 
         # Enable all communities
-        config_sections = ['search_community', 'multichain', 'allchannel_community', 'barter_community',
-                           'channel_community', 'preview_channel_community', 'tunnel_community', 'dispersy']
+        config_sections = ['search_community', 'multichain', 'allchannel_community', 'channel_community',
+                           'preview_channel_community', 'tunnel_community', 'dispersy']
 
         for section in config_sections:
             self.config.sessconfig.set(section, 'enabled', True)
@@ -220,7 +219,6 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         """
         self.assertTrue(self.get_community(DiscoveryCommunity))
         self.assertTrue(self.session.lm.initComplete)
-        self.assertTrue(self.get_community(BarterCommunity))
         self.assertTrue(self.get_community(SearchCommunity))
         self.assertTrue(self.get_community(AllChannelCommunity))
         self.assertTrue(self.get_community(HiddenTunnelCommunity))

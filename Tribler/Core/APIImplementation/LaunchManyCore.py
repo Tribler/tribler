@@ -199,11 +199,6 @@ class TriblerLaunchMany(TaskManager):
             self.dispersy.define_auto_load(AllChannelCommunity, self.session.dispersy_member, load=True,
                                            kargs=default_kwargs)
 
-        # Bartercast Community
-        if self.session.get_barter_community_enabled():
-            from Tribler.community.bartercast4.community import BarterCommunity
-            self.dispersy.define_auto_load(BarterCommunity, self.session.dispersy_member, load=True)
-
         # Channel Community
         if self.session.get_channel_community_enabled():
             from Tribler.community.channel.community import ChannelCommunity

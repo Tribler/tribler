@@ -42,9 +42,6 @@ class SettingsEndpoint(resource.Resource):
 
                 {
                     "settings": {
-                        "barter_community": {
-                            "enabled": false
-                        },
                         "libtorrent": {
                             "anon_listen_port": -1,
                             ...

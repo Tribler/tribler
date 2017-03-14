@@ -90,10 +90,6 @@ sessdefaults['tunnel_community']['enabled'] = True
 sessdefaults['multichain'] = OrderedDict()
 sessdefaults['multichain']['enabled'] = True
 
-# Barter community section
-sessdefaults['barter_community'] = OrderedDict()
-sessdefaults['barter_community']['enabled'] = False
-
 # Metadata section
 sessdefaults['metadata'] = OrderedDict()
 sessdefaults['metadata']['enabled'] = True

@@ -35,7 +35,6 @@ class TestSessionConfig(TriblerCoreTest):
 
         self.assertIsInstance(sci.get_tunnel_community_socks5_listen_ports(), list)
         self.assertFalse(sci.get_tunnel_community_exitnode_enabled())
-        self.assertFalse(sci.get_barter_community_enabled())
 
         sci.set_tunnel_community_enabled(False)
         self.assertFalse(sci.get_tunnel_community_enabled())
