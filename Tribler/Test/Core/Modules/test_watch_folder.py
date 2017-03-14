@@ -10,6 +10,7 @@ class TestWatchFolder(TestAsServer):
         super(TestWatchFolder, self).setUpPreSession()
         self.config.set_libtorrent(True)
         self.config.set_watch_folder_enabled(True)
+        self.config.set_dispersy(True)
 
         self.watch_dir = os.path.join(self.session_base_dir, 'watch')
         os.mkdir(self.watch_dir)

@@ -242,9 +242,6 @@ class TriblerLaunchMany(TaskManager):
             self.tunnel_community = self.dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member,
                                                                    load=True, kargs=tunnel_kwargs)[0]
 
-        self.session.set_anon_proxy_settings(2, ("127.0.0.1",
-                                                 self.session.get_tunnel_community_socks5_listen_ports()))
-
         self._logger.info("tribler: communities are ready in %.2f seconds", timemod.time() - now_time)
 
     def init(self):
@@ -279,6 +276,9 @@ class TriblerLaunchMany(TaskManager):
             self.session.notifier.notify(NTFY_DISPERSY, NTFY_STARTED, None)
 
             self.load_communities()
+
+            self.session.set_anon_proxy_settings(2, ("127.0.0.1",
+                                                     self.session.get_tunnel_community_socks5_listen_ports()))
 
             if self.session.get_enable_channel_search():
                 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
