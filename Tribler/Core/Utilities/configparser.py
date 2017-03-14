@@ -1,6 +1,3 @@
-# Written by Egbert Bouman
-# see LICENSE.txt for license information
-
 import ast
 import codecs
 from ConfigParser import DEFAULTSECT, RawConfigParser

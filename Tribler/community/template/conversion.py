@@ -1,7 +1,6 @@
 """
-Example file
+Example file.
 """
-
 from struct import pack, unpack_from
 
 from Tribler.dispersy.conversion import BinaryConversion

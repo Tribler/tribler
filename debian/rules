@@ -24,7 +24,7 @@ override_dh_install:
 	dh_install --exclude=.git
 
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Core/DecentralizedTracking/pymdht/LICENSE.txt
-	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/LICENSE.txt
+	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/LICENSE
 	rm -rf $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Test
 	rm -rf $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Main/Build
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Core/DecentralizedTracking/pymdht/LGPL-2.1.txt

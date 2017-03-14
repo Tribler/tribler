@@ -1,1 +1,0 @@
-This software is released under the LGPL license by Delft University of Technology. Included third party libraries and software modules may have different licences. For details see the included file in Tribler/LICENSE.txt or https://raw.githubusercontent.com/Tribler/tribler/devel/Tribler/LICENSE.txt.

@@ -1,6 +1,3 @@
-# Written by Jie Yang
-# see LICENSE.txt for license information
-
 from base64 import b32decode
 from types import StringType, LongType, IntType, ListType, DictType
 import urlparse

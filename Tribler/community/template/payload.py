@@ -1,7 +1,6 @@
 """
-Example file
+Example file.
 """
-
 from Tribler.dispersy.payload import Payload
 
 

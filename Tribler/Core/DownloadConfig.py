@@ -1,17 +1,6 @@
-# Written by Arno Bakker
-# Updated by Egbert Bouman, now using ConfigParser
-# see LICENSE.txt for license information
-
-""" Controls how a TorrentDef is downloaded (rate, where on disk, etc.) """
-
-#
-# WARNING: When extending this class:
-#
-# 1. Add a JavaDoc description for each method you add.
-# 2. Also add the methods to APIImplementation/DownloadRuntimeConfig.py
-# 3. Document your changes in API.py
-#
-#
+"""
+Controls how a TorrentDef is downloaded (rate, where on disk, etc.).
+"""
 import copy
 import logging
 

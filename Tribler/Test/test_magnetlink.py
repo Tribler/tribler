@@ -1,6 +1,3 @@
-# Written by Boudewijn Schoon
-# see LICENSE.txt for license information
-
 from binascii import hexlify
 import socket
 import os

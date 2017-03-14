@@ -1,5 +1,3 @@
-
-
 class TrackerInfo(object):
     """
     This class keeps track of info about a tracker. This info is used when a request to a tracker is performed.

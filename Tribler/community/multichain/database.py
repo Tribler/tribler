@@ -1,4 +1,5 @@
-""" This file contains everything related to persistence for MultiChain.
+"""
+This file contains everything related to persistence for MultiChain.
 """
 import base64
 from os import path

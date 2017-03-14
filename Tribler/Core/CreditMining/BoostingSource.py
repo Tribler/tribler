@@ -1,7 +1,5 @@
-# coding=utf-8
 """
-Written by Egbert Bouman, Mihai Capotă, Elric Milon, and Ardhi Putra Pratama H
-Supported boosting sources
+Supported boosting sources.
 """
 import glob
 import logging

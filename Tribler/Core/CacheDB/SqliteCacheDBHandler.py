@@ -1,5 +1,3 @@
-# Written by Jie Yang
-# see LICENSE.txt for license information
 # Note for Developers: Please write a unittest in Tribler/Test/test_sqlitecachedbhandler.py
 # for any function you add to database.
 # Please reuse the functions in sqlitecachedb as much as possible

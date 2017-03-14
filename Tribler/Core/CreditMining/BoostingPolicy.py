@@ -1,7 +1,5 @@
-# coding=utf-8
 """
-Written by Egbert Bouman, Mihai Capotă, Elric Milon, and Ardhi Putra Pratama H
-Supported boosting policy
+Supported boosting policy.
 """
 import logging
 import random

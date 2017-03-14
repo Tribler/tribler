@@ -1,7 +1,6 @@
 """
 File containing function used in credit mining module.
 """
-
 import os
 from binascii import hexlify, unhexlify
 

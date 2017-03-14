@@ -1,5 +1,3 @@
-# Written by Arno Bakker
-# see LICENSE.txt for license information
 import binascii
 import os
 from twisted.internet import reactor

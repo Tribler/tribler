@@ -1,6 +1,3 @@
-# Written by Arno Bakker, Jie Yang
-# see LICENSE.txt for license information
-
 import socket
 import logging
 from binascii import b2a_hex

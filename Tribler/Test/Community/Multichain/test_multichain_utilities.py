@@ -1,7 +1,6 @@
 """
 File containing utilities used in testing the double entry community.
 """
-
 import random
 from hashlib import sha256
 from Tribler.dispersy.crypto import ECCrypto

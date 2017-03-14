@@ -1,4 +1,3 @@
-# Written by Egbert Bouman
 import os
 import sys
 import tempfile

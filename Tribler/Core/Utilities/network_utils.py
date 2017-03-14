@@ -1,7 +1,6 @@
-#
-# This module contains some utility functions for network.
-#
-
+"""
+This module contains some utility functions for network.
+"""
 import socket
 import struct
 import random

@@ -1,8 +1,5 @@
-# coding=utf-8
 """
-Module of Credit mining function testing
-
-Written by Ardhi Putra Pratama H
+Module of Credit mining function testing.
 """
 import binascii
 import os

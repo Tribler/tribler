@@ -4,7 +4,7 @@ import sys
 if os.path.exists('test_osutils.py'):
     BASE_DIR = '..'
     sys.path.insert(1, os.path.abspath('..'))
-elif os.path.exists('LICENSE.txt'):
+elif os.path.exists('LICENSE'):
     BASE_DIR = '.'
 
 from Tribler.Core.osutils import (fix_filebasename, is_android, get_home_dir, get_appstate_dir, get_picture_dir,

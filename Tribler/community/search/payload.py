@@ -1,4 +1,3 @@
-# Written by Niels Zeilemaker
 from Tribler.dispersy.payload import Payload, IntroductionRequestPayload
 from Tribler.dispersy.bloomfilter import BloomFilter
 

@@ -1,4 +1,3 @@
-# Written by Cor-Paul Bezemer
 from twisted.internet.defer import inlineCallbacks
 from conversion import StatisticsConversion
 from payload import StatisticsRequestPayload, StatisticsResponsePayload
