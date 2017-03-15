@@ -1,6 +1,8 @@
 import os
 import shutil
 import tempfile
+
+from libtorrent import bencode
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.CacheDB.Notifier import Notifier
@@ -106,6 +108,38 @@ class TestLibtorrentMgr(TriblerCoreTest):
         self.ltmgr.is_dht_ready = lambda: True
         self.ltmgr.metainfo_cache[("a" * 20).encode('hex')] = {'meta_info': 'test'}
         self.ltmgr.get_metainfo("a" * 20, metainfo_cb)
+
+        return test_deferred
+
+    @deferred(timeout=20)
+    def test_got_metainfo(self):
+        """
+        Testing whether the callback is correctly invoked when we received metainfo
+        """
+        test_deferred = Deferred()
+        self.ltmgr.initialize()
+
+        def metainfo_cb(metainfo):
+            self.assertDictEqual(metainfo, {'info': {'pieces': ['a']}, 'leechers': 0,
+                                            'nodes': [], 'seeders': 0, 'initial peers': []})
+            test_deferred.callback(None)
+
+        fake_handle = MockObject()
+        torrent_info = MockObject()
+        torrent_info.metadata = lambda: bencode({'pieces': ['a']})
+        torrent_info.trackers = lambda: []
+        fake_handle.get_peer_info = lambda: []
+        fake_handle.torrent_file = lambda: torrent_info
+
+        self.ltmgr.get_session().remove_torrent = lambda *_: None
+
+        self.ltmgr.metainfo_requests['a' * 20] = {
+            'handle': fake_handle,
+            'timeout_callbacks': [],
+            'callbacks': [metainfo_cb],
+            'notify': False
+        }
+        self.ltmgr.got_metainfo("a" * 20)
 
         return test_deferred
 

@@ -387,6 +387,17 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
 
         return test_deferred
 
+    def test_metadata_received_invalid_info(self):
+        """
+        Testing whether the right operations happen when we receive metadata but the torrent info is invalid
+        """
+        def mocked_checkpoint():
+            raise RuntimeError("This code should not be reached!")
+
+        self.libtorrent_download_impl.checkpoint = mocked_checkpoint
+        self.libtorrent_download_impl.handle.get_torrent_info = lambda: None
+        self.libtorrent_download_impl.on_metadata_received_alert(None)
+
     def test_torrent_checked_alert(self):
         """
         Testing whether the right operations happen after a torrent checked alert is received

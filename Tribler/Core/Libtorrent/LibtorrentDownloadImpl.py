@@ -591,7 +591,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.tracker_status[alert.url] = [peers, status]
 
     def on_metadata_received_alert(self, alert):
-        metadata = {'info': lt.bdecode(get_info_from_handle(self.handle).metadata())}
+        torrent_info = get_info_from_handle(self.handle)
+        if not torrent_info:
+            return
+
+        metadata = {'info': lt.bdecode(torrent_info.metadata())}
 
         trackers = [tracker['url'] for tracker in self.handle.trackers()]
         if trackers:
