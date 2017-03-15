@@ -131,12 +131,6 @@ class Session(SessionConfigInterface):
 
         create_dir(os.path.join(scfg.get_state_dir(), STATEDIR_DLPSTATE_DIR))
 
-        # Reset the nickname to something not related to the host name, it was
-        # really silly to have this default on the first place.
-        # TODO: Maybe move this to the upgrader?
-        if socket.gethostname().decode('utf-8', 'replace') in scfg.get_nickname():
-            scfg.set_nickname("Tribler user")
-
         if GOTM2CRYPTO:
             permidmod.init()
             # Set params that depend on state_dir
