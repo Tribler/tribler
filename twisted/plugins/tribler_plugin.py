@@ -28,7 +28,7 @@ class Options(usage.Options):
     optParameters = [
         ["manhole", "m", 0, "Enable manhole telnet service listening at the specified port", int],
         ["statedir", "s", None, "Use an alternate statedir", str],
-        ["restapi", "p", 8085, "Use an alternate port for the REST API", int],
+        ["restapi", "p", -1, "Use an alternate port for the REST API", int],
         ["dispersy", "d", -1, "Use an alternate port for Dispersy", int],
         ["libtorrent", "l", -1, "Use an alternate port for libtorrent", int],
     ]
@@ -81,7 +81,6 @@ class TriblerServiceMaker(object):
         signal.signal(signal.SIGTERM, signal_handler)
 
         config = SessionStartupConfig().load()  # Load the default configuration file
-        config.set_http_api_enabled(True)
 
         # Check if we are already running a Tribler instance
         self.process_checker = ProcessChecker()
@@ -98,10 +97,10 @@ class TriblerServiceMaker(object):
             config.set_http_api_enabled(True)
             config.set_http_api_port(options["restapi"])
 
-        if options["dispersy"] != -1 and options["dispersy"] > 0:
+        if options["dispersy"] > 0:
             config.set_dispersy_port(options["dispersy"])
 
-        if options["libtorrent"] != -1 and options["libtorrent"] > 0:
+        if options["libtorrent"] > 0:
             config.set_listen_port(options["libtorrent"])
 
         self.session = Session(config)
