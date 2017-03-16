@@ -4,7 +4,6 @@ from math import pow
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
-from Tribler.dispersy.crypto import ECCrypto
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.community.multichain.database import MultiChainDB, DATABASE_DIRECTORY
 
@@ -41,21 +40,10 @@ class TestDatabase(MultiChainTestCase):
         """
         Test whether the right number of interactors is returned
         """
-        crypto = ECCrypto()
-        my_key = crypto.key_to_bin(crypto.generate_key(u"curve25519").pub())
-        block1 = TestBlock()
-        block1.public_key_requester = my_key
-        block1.up = 100
-        block1.down = 100
-        self.db.add_block(block1)
-
-        block2 = TestBlock()
-        block2.public_key_responder = my_key
-        block2.up = 100
-        block2.down = 100
-        self.db.add_block(block2)
-
-        self.assertEqual((2, 2), self.db.get_num_unique_interactors(my_key))
+        self.block2 = TestBlock(previous=self.block1)
+        self.db.add_block(self.block1)
+        self.db.add_block(self.block2)
+        self.assertEqual((2, 2), self.db.get_num_unique_interactors(self.block1.public_key))
 
     @blocking_call_on_reactor_thread
     def test_add_two_blocks(self):
@@ -203,7 +191,7 @@ class TestDatabase(MultiChainTestCase):
         """
         Test whether a block is correctly represented when converted to a dictionary
         """
-        block_dict = self.block1.to_dictionary()
+        block_dict = dict(self.block1)
         self.assertEqual(block_dict["up"], self.block1.up)
         self.assertEqual(block_dict["down"], self.block1.down)
         self.assertEqual(block_dict["insert_time"], self.block1.insert_time)

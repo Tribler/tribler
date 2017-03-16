@@ -3,11 +3,13 @@ All conversions for the MultiChain Community.
 """
 from struct import pack, unpack_from, calcsize
 
-from Tribler.community.multichain.block import MultiChainBlock, block_pack_size
+from Tribler.community.multichain.block import MultiChainBlock, block_pack_size, PK_LENGTH, EMPTY_PK
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 
-crawl_request_format = "! I"
+
+# The crawl message format permits future extensions by providing space for a public key and response limit
+crawl_request_format = "! {0}s I I ".format(PK_LENGTH)
 crawl_request_size = calcsize(crawl_request_format)
 
 
@@ -56,7 +58,7 @@ class MultiChainConversion(BinaryConversion):
         :param message: Message.impl of CrawlRequestPayload.impl
         :return encoding ready to be sent of the network of the message
         """
-        return pack(crawl_request_format, message.payload.requested_sequence_number),
+        return pack(crawl_request_format, EMPTY_PK, message.payload.requested_sequence_number, 10),
 
     @staticmethod
     def _decode_crawl_request(placeholder, offset, data):
@@ -70,5 +72,7 @@ class MultiChainConversion(BinaryConversion):
         if len(data) < offset + crawl_request_size:
             raise DropPacket("Unable to decode the payload")
 
+        who, seq, limit = unpack_from(crawl_request_format, data, offset)
+
         return offset + crawl_request_size, \
-            placeholder.meta.payload.implement(*unpack_from(crawl_request_format, data, offset))
+            placeholder.meta.payload.implement(seq)

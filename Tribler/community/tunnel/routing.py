@@ -19,7 +19,7 @@ class Circuit(object):
         """
         Instantiate a new Circuit data structure
         :type proxy: TunnelCommunity
-        :param int circuit_id: the id of the candidate circuit
+        :param long circuit_id: the id of the candidate circuit
         :param (str, int) first_hop: the first hop of the circuit
         :return: Circuit
         """

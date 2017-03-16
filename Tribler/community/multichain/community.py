@@ -191,33 +191,40 @@ class MultiChainCommunity(Community):
                 self.logger.debug("Received already known block (%s)", blk)
 
             # Is this a request, addressed to us, and have we not signed it already?
-            if blk.link_sequence_number == UNKNOWN_SEQ and \
-                    blk.link_public_key == self.my_member.public_key and \
-                    self.persistence.get_linked(blk) is None:
+            if blk.link_sequence_number != UNKNOWN_SEQ or \
+                    blk.link_public_key != self.my_member.public_key or \
+                    self.persistence.get_linked(blk) is not None:
+                continue
 
-                self.logger.info("Received request block addressed to us (%s)", blk)
+            self.logger.info("Received request block addressed to us (%s)", blk)
 
-                # determine if we want to (i.e. the requesting public key has enough pending bytes)
-                pend = self.pending_bytes.get(message.candidate.get_member().public_key)
-                if pend and pend.add(-blk.down, -blk.up):
-                    # It is important that the request matches up with its previous block, gaps cannot be tolerated at
-                    # this point. We already dropped invalids, so here we delay this message if the result is partial,
-                    # partial_previous or no-info. We send a crawl request to the requester to (hopefully) close the gap
-                    if validation[0] == ValidationResult.partial_previous or \
-                                    validation[0] == ValidationResult.partial or \
-                                    validation[0] == ValidationResult.no_info:
-                        # Note that this code does not cover the scenario where we obtain this block indirectly.
+            # determine if we want to sign (i.e. the requesting public key has enough pending bytes)
+            pend = self.pending_bytes.get(message.candidate.get_member().public_key)
+            if not pend or not pend.add(-blk.down, -blk.up):
+                continue
 
-                        self.send_crawl_request(message.candidate, max(GENESIS_SEQ, blk.sequence_number - 5))
-                        # Correct pending bytes since we did not sign the block yet
-                        pend.add(blk.down, blk.up)
-                        # Make sure we get called again after a while. Note that the cleanup task on pend will prevent
-                        # us from waiting on the peer forever
-                        if not self.is_pending_task_active("crawl_%s" % blk.hash):
-                            self.register_task("crawl_%s" % blk.hash, reactor.callLater(5.0, self.received_half_block,
-                                                                                    [message]))
-                    else:
-                        self.sign_block(message.candidate, None, None, blk)
+            # It is important that the request matches up with its previous block, gaps cannot be tolerated at
+            # this point. We already dropped invalids, so here we delay this message if the result is partial,
+            # partial_previous or no-info. We send a crawl request to the requester to (hopefully) close the gap
+            if validation[0] == ValidationResult.partial_previous or validation[0] == ValidationResult.partial or \
+                    validation[0] == ValidationResult.no_info:
+                # Note that this code does not cover the scenario where we obtain this block indirectly.
+
+                # We modified the counters to get here, correct pending bytes since we did not really sign the block yet
+                pend.add(blk.down, blk.up)
+
+                # Are we already waiting for this crawl to happen?
+                # For example: it's taking longer than 5 secs or the block message reached us twice via different paths
+                if self.is_pending_task_active("crawl_%s" % blk.hash):
+                    continue
+
+                self.send_crawl_request(message.candidate, max(GENESIS_SEQ, blk.sequence_number - 5))
+
+                # Make sure we get called again after a while. Note that the cleanup task on pend will prevent
+                # us from waiting on the peer forever,
+                self.register_task("crawl_%s" % blk.hash, reactor.callLater(5.0, self.received_half_block, [message]))
+            else:
+                self.sign_block(message.candidate, None, None, blk)
 
     def send_crawl_request(self, candidate, sequence_number=None):
         sq = sequence_number
@@ -246,36 +253,28 @@ class MultiChainCommunity(Community):
             self.logger.info("Sent %d blocks", count)
 
     @blocking_call_on_reactor_thread
-    def get_statistics(self):
+    def get_statistics(self, public_key=None):
         """
         Returns a dictionary with some statistics regarding the local multichain database
         :returns a dictionary with statistics
         """
-        latest_block = self.persistence.get_latest(self.my_member.public_key)
+        if public_key is None:
+            public_key = self.my_member.public_key
+        latest_block = self.persistence.get_latest(public_key)
         statistics = dict()
-        statistics["self_id"] = self.my_member.public_key.encode("hex")
-        (statistics["self_peers_helped"],
-         statistics["self_peers_helped_you"]) = self.persistence.get_num_unique_interactors(self.my_member.public_key)
+        statistics["id"] = public_key.encode("hex")
+        interacts = self.persistence.get_num_unique_interactors(public_key)
+        statistics["peers_that_pk_helped"] = interacts[0] if interacts[0] is not None else 0
+        statistics["peers_that_helped_pk"] = interacts[1] if interacts[1] is not None else 0
         if latest_block:
-            statistics["self_total_blocks"] = latest_block.sequence_number
-            statistics["self_total_up"] = latest_block.total_up
-            statistics["self_total_down"] = latest_block.total_down
-            statistics["latest_block_insert_time"] = str(latest_block.insert_time)
-            statistics["latest_block_id"] = latest_block.hash.encode("hex")
-            statistics["latest_block_link_public_key"] = latest_block.link_public_key.encode("hex")
-            statistics["latest_block_link_sequence_number"] = latest_block.link_sequence_number
-            statistics["latest_block_up"] = latest_block.up
-            statistics["latest_block_down"] = latest_block.down
+            statistics["total_blocks"] = latest_block.sequence_number
+            statistics["total_up"] = latest_block.total_up
+            statistics["total_down"] = latest_block.total_down
+            statistics["latest_block"] = dict(latest_block)
         else:
-            statistics["self_total_blocks"] = 0
-            statistics["self_total_up"] = 0
-            statistics["self_total_down"] = 0
-            statistics["latest_block_insert_time"] = ""
-            statistics["latest_block_id"] = ""
-            statistics["latest_block_link_public_key"] = ""
-            statistics["latest_block_link_sequence_number"] = 0
-            statistics["latest_block_up"] = 0
-            statistics["latest_block_down"] = 0
+            statistics["total_blocks"] = 0
+            statistics["total_up"] = 0
+            statistics["total_down"] = 0
         return statistics
 
     @inlineCallbacks

@@ -54,7 +54,8 @@ class MultiChainBlock(object):
                 self.signature = str(self.signature)
 
     def __str__(self):
-        return "Block {0} from {1}:{2} links {3}:{4} for {5}u:{6}d".format(
+        # This makes debugging and logging easier
+        return "Block {0} from ...{1}:{2} links ...{3}:{4} for {5}u:{6}d".format(
             self.hash.encode("hex")[-8:],
             self.public_key.encode("hex")[-8:],
             self.sequence_number,
@@ -339,6 +340,27 @@ class MultiChainBlock(object):
         return (self.up, self.down, self.total_up, self.total_down, buffer(self.public_key), self.sequence_number,
                 buffer(self.link_public_key), self.link_sequence_number, buffer(self.previous_hash),
                 buffer(self.signature), buffer(self.hash))
+
+    def __iter__(self):
+        """
+        This override allows one to take the dict(<block>) of a block.
+        :return: generator to iterate over all properties of this block
+        """
+        for key, value in self.__dict__.iteritems():
+            if key == 'key':
+                continue
+            if isinstance(value, basestring):
+                yield key, value.encode("hex")
+            else:
+                yield key, value
+        yield "hash", self.hash.encode("hex")
+
+        # "previous_hash_requester": base64.encodestring(self.previous_hash_requester).strip(),
+        # "previous_hash_responder": base64.encodestring(self.previous_hash_responder).strip(),
+        # "public_key_requester": base64.encodestring(self.public_key_requester).strip(),
+        # "signature_requester": base64.encodestring(self.signature_requester).strip(),
+        # "public_key_responder": base64.encodestring(self.public_key_responder).strip(),
+        # "signature_responder": base64.encodestring(self.signature_responder).strip(),
 
 
 class ValidationResult(object):

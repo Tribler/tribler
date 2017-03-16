@@ -1,7 +1,6 @@
 """
 This file contains everything related to persistence for MultiChain.
 """
-import base64
 from os import path
 
 from Tribler.dispersy.database import Database
@@ -109,6 +108,9 @@ class MultiChainDB(Database):
         return self._get(u"WHERE public_key = ? AND sequence_number = (SELECT MAX(sequence_number) FROM multi_chain "
                          u"WHERE public_key = ?)", (buffer(public_key), buffer(public_key)))
 
+    def get_latest_blocks(self, public_key, limit=25):
+        return self._getall(u"WHERE public_key = ? ORDER BY sequence_number DESC LIMIT ?", (buffer(public_key), limit))
+
     def get_block_after(self, block):
         """
         Returns database block with the lowest sequence number higher than the block's sequence_number
@@ -127,18 +129,6 @@ class MultiChainDB(Database):
         return self._get(u"WHERE sequence_number < ? AND public_key = ? ORDER BY sequence_number DESC",
                          (block.sequence_number, buffer(block.public_key)))
 
-    def get_num_unique_interactors(self, public_key):
-        """
-        Returns the number of people you interacted with (either helped or that have helped you)
-        :param public_key: The public key of the member of which we want the information
-        :return: A tuple of unique number of interactors that helped you and that you have helped respectively
-        """
-        db_query = u"SELECT SUM(CASE WHEN up > 0 THEN 1 ELSE 0 END) AS pk_helped, SUM(CASE WHEN down > 0 THEN 1 ELSE " \
-                   u"0 END) AS helped_pk FROM (SELECT link_public_key, SUM(up) AS up, SUM(down) AS down FROM " \
-                   u"multi_chain WHERE public_key = ? GROUP BY link_public_key) helpers"
-        db_result = self.execute(db_query, (buffer(public_key),)).fetchone()
-        return db_result[0], db_result[1]
-
     def get_linked(self, block):
         """
         Get the block that is linked to the given block
@@ -155,6 +145,17 @@ class MultiChainDB(Database):
                             u"sequence_number <= ?) AND (public_key = ? OR link_public_key = ?) "
                             u"ORDER BY insert_time ASC LIMIT ?",
                             (buffer(public_key), sequence_number, buffer(public_key), buffer(public_key), limit))
+
+    def get_num_unique_interactors(self, public_key):
+        """
+        Returns the number of people you interacted with (either helped or that have helped you)
+        :param public_key: The public key of the member of which we want the information
+        :return: A tuple of unique number of interactors that helped you and that you have helped respectively
+        """
+        db_query = u"SELECT SUM(CASE WHEN up > 0 THEN 1 ELSE 0 END) AS pk_helped, SUM(CASE WHEN down > 0 THEN 1 ELSE " \
+                   u"0 END) AS helped_pk FROM (SELECT link_public_key, SUM(up) AS up, SUM(down) AS down FROM " \
+                   u"multi_chain WHERE public_key = ? GROUP BY link_public_key) helpers"
+        return self.execute(db_query, (buffer(public_key),)).fetchone()
 
     def open(self, initial_statements=True, prepare_visioning=True):
         return super(MultiChainDB, self).open(initial_statements, prepare_visioning)

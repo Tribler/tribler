@@ -3,25 +3,22 @@ This file contains the tests for the community.py for MultiChain community.
 """
 from time import sleep
 
-from unittest.case import skip
-
-from nose.tools import raises
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.task import deferLater
 
 from Tribler.Core.Session import Session
 
 from Tribler.Test.Community.Multichain.test_multichain_utilities import MultiChainTestCase
 
+from Tribler.community.multichain.block import MultiChainBlock, GENESIS_SEQ
 from Tribler.community.multichain.community import (MultiChainCommunity, MultiChainCommunityCrawler, HALF_BLOCK, CRAWL,
                                                     PendingBytes)
-from Tribler.community.multichain.block import MultiChainBlock, GENESIS_SEQ
+from Tribler.community.tunnel.routing import Circuit
 
-from Tribler.community.tunnel.routing import Circuit, RelayRoute
-from Tribler.community.tunnel.tunnel_community import TunnelExitSocket
 from Tribler.Test.test_as_server import AbstractServer
 
 from Tribler.dispersy.message import DelayPacketByMissingMember
-
 from Tribler.dispersy.tests.dispersytestclass import DispersyTestFunc
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.dispersy.tests.debugcommunity.node import DebugNode
@@ -41,7 +38,6 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self):
-        self.assertEqual_block = MultiChainTestCase.assertEqual_block.__get__(self)
         Session.__single = self.MockSession()
         AbstractServer.setUp(self)
         yield DispersyTestFunc.setUp(self)
@@ -51,12 +47,14 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         DispersyTestFunc.tearDown(self)
         AbstractServer.tearDown(self)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def test_on_tunnel_remove(self):
         """
         Test the on_tunnel_remove handler function for a circuit
         """
         # Arrange
-        node, other = self.create_nodes(2)
+        node, other = yield self.create_nodes(2)
         tunnel_node = Circuit(long(0), 0)
         tunnel_other = Circuit(long(0), 0)
         tunnel_node.bytes_up = tunnel_other.bytes_down = 12 * 1024 * 1024
@@ -65,7 +63,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         # Act
         node.call(node.community.on_tunnel_remove, None, None, tunnel_node, self._create_target(node, other))
         other.call(other.community.on_tunnel_remove, None, None, tunnel_other, self._create_target(other, node))
-        sleep(5.1)
+        yield deferLater(reactor, 5.1, lambda: None)
 
         # Assert
         _, signature_request = node.receive_message(names=[HALF_BLOCK]).next()
@@ -77,12 +75,42 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         self.assertBlocksInDatabase(other, 2)
         self.assertBlocksAreEqual(node, other)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def test_on_tunnel_remove_small(self):
+        """
+        Test the on_tunnel_remove handler function for a circuit
+        """
+        # Arrange
+        node, other = yield self.create_nodes(2)
+        tunnel_node = Circuit(long(0), 0)
+        tunnel_other = Circuit(long(0), 0)
+        tunnel_node.bytes_up = tunnel_other.bytes_down = 1024
+        tunnel_node.bytes_down = tunnel_other.bytes_up = 2 * 1024
+
+        # Act
+        node.call(node.community.on_tunnel_remove, None, None, tunnel_node, self._create_target(node, other))
+        other.call(other.community.on_tunnel_remove, None, None, tunnel_other, self._create_target(other, node))
+        yield deferLater(reactor, 5.1, lambda: None)
+
+        # Assert
+        with self.assertRaises(StopIteration):
+            self.assertFalse(node.receive_message(names=[HALF_BLOCK]).next())
+
+        with self.assertRaises(StopIteration):
+            self.assertFalse(other.receive_message(names=[HALF_BLOCK]).next())
+
+        self.assertBlocksInDatabase(node, 0)
+        self.assertBlocksInDatabase(other, 0)
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def test_on_tunnel_remove_append_pending(self):
         """
         Test the on_tunnel_remove handler function for a circuit
         """
         # Arrange
-        node, other = self.create_nodes(2)
+        node, other = yield self.create_nodes(2)
         tunnel_node = Circuit(long(0), 0)
         tunnel_node.bytes_up = 12 * 1024 * 1024
         tunnel_node.bytes_down = 14 * 1024 * 1024
@@ -90,7 +118,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         # Act
         node.call(node.community.on_tunnel_remove, None, None, tunnel_node, self._create_target(node, other))
         node.call(node.community.on_tunnel_remove, None, None, tunnel_node, self._create_target(node, other))
-        sleep(5.1)
+        yield deferLater(reactor, 5.1, lambda: None)
 
         self.assertEqual(node.community.pending_bytes[other.community.my_member.public_key].up, 2*tunnel_node.bytes_up)
         self.assertEqual(node.community.pending_bytes[other.community.my_member.public_key].down,
@@ -220,6 +248,25 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
             # No signature responses, or crawl requests should have been sent
             node.receive_message(names=[HALF_BLOCK, CRAWL]).next()
 
+    def test_receive_request_unknown_pend(self):
+        """
+        Test the community to receive a request that claims about a peer we know nothing about
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+        target_other = self._create_target(node, other)
+        node.call(node.community.sign_block, target_other, 10, 5)
+        # Act
+        other.give_message(other.receive_message(names=[HALF_BLOCK]).next()[1], node)
+
+        # Assert
+        self.assertBlocksInDatabase(other, 1)
+        self.assertBlocksInDatabase(node, 1)
+
+        with self.assertRaises(StopIteration):
+            # No signature responses, or crawl requests should have been sent
+            node.receive_message(names=[HALF_BLOCK, CRAWL]).next()
+
     def test_block_values(self):
         """
         If a block is created between two nodes both
@@ -269,6 +316,29 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         # Assert
         message = node.receive_message(names=[CRAWL]).next()[1]
         self.assertTrue(message)
+
+    def test_crawl_not_double(self):
+        """
+        Test that a crawl is not send multiple times when a crawl is already happening as a result of an incoming block
+        """
+        # Arrange
+        node, other, another = self.create_nodes(3)
+
+        # Act
+        TestMultiChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
+        TestMultiChainCommunity.set_expectation(another, node, 30, 20)
+        node.call(node.community.sign_block, self._create_target(node, another), 30, 20)
+        message = another.receive_message(names=[HALF_BLOCK]).next()[1]
+        # this triggers the crawl
+        another.give_message(message, node)
+        TestMultiChainCommunity.clean_database(another)
+        # this should not trigger another crawl
+        another.give_message(message, node)
+
+        # Assert
+        self.assertTrue(node.receive_message(names=[CRAWL]).next()[1])
+        with self.assertRaises(StopIteration):
+            self.assertFalse(node.receive_message(names=[CRAWL]).next()[1])
 
     def test_crawl_on_partial_complete(self):
         """
@@ -402,6 +472,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
 
         # and we don't actually want to send the crawl request since the counter party is fake, just count if it is run
         counter = [0]
+
         def replacement(cand):
             counter[0] += 1
         crawler._community.send_crawl_request = replacement
@@ -434,6 +505,19 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         assert isinstance(statistics, dict), type(statistics)
         assert len(statistics) > 0
 
+    def test_get_statistics_for_not_self(self):
+        """
+        Test the get_statistics method where a last block exists
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+        TestMultiChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
+
+        # Get statistics
+        statistics = node.community.get_statistics(public_key=other.community.my_member.public_key)
+        assert isinstance(statistics, dict), type(statistics)
+        assert len(statistics) > 0
+
     @blocking_call_on_reactor_thread
     def assertBlocksInDatabase(self, node, amount):
         count = node.community.persistence.execute(u"SELECT COUNT(*) FROM multi_chain").fetchone()[0]
@@ -459,15 +543,16 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
     def create_block(req, resp, target_resp, up, down):
         TestMultiChainCommunity.set_expectation(resp, req, up, down)
         req.call(req.community.sign_block, target_resp, up, down)
-        resp.give_message(resp.receive_message(names=[HALF_BLOCK]).next()[1], req)
-        half_or_crawl = req.receive_message(names=[HALF_BLOCK, CRAWL]).next()[1]
-        req.give_message(half_or_crawl, resp)
-        while half_or_crawl.name == CRAWL:
-            sleep(0.5)
-            TestMultiChainCommunity.transport_halfblocks(req, resp)
-            sleep(5.5)
-            half_or_crawl = req.receive_message(names=[HALF_BLOCK, CRAWL]).next()[1]
-            req.give_message(half_or_crawl, resp)
+
+        # Process packets until there are no more to process. This should give enough margin to allow for a crawl
+        # during block creation + retry of block signing.
+        rounds = 13
+        while rounds > 0:
+            responder_packets = resp.process_packets(timeout=0.2)
+            requester_packets = req.process_packets(timeout=0.2)
+            if len(responder_packets if responder_packets else []) + \
+                    len(requester_packets if requester_packets else []) == 0:
+                rounds -= 1
 
     @staticmethod
     def crawl_node(crawler, crawlee, target_to_crawlee, sequence_number=None):
@@ -490,15 +575,22 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
             except StopIteration:
                 pass
 
+    @staticmethod
+    @blocking_call_on_reactor_thread
+    def clean_database(node):
+        node.community.persistence.execute(u"DELETE FROM multi_chain;")
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def create_nodes(self, *args, **kwargs):
-        nodes = super(TestMultiChainCommunity, self).create_nodes(*args, community_class=MultiChainCommunity,
+        nodes = yield super(TestMultiChainCommunity, self).create_nodes(*args, community_class=MultiChainCommunity,
                                                                  memory_database=False, **kwargs)
         for x in nodes:
             for y in nodes:
                 if x != y:
                     x.send_identity(y)
 
-        return nodes
+        returnValue(nodes)
 
     def _create_node(self, dispersy, community_class, c_master_member):
         return DebugNode(self, dispersy, community_class, c_master_member, curve=u"curve25519")

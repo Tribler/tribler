@@ -637,8 +637,8 @@ class TestBlocks(MultiChainTestCase):
         self.assertIsNone(ValidationResult.valid())
 
     class MockDatabase(object):
-        def __init__(self, *args, **kwargs):
-            super(TestBlocks.MockDatabase, self).__init__(*args, **kwargs)
+        def __init__(self):
+            super(TestBlocks.MockDatabase, self).__init__()
             self.data = dict()
 
         def add_block(self, block):
