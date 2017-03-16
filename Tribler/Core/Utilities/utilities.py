@@ -1,5 +1,5 @@
 """
-This class mainly provides validation and correction for both metainfo and urls. This class
+This module mainly provides validation and correction for both metainfo and urls. This class
 provides a method for HTTP GET requests as well as a function to translate peers into health.
 Author(s): Jie Yang
 """
@@ -62,7 +62,7 @@ def validate_init_peers(metainfo):
         - Whether the address host is a String
         - Whether the address port is an Integer
 
-    If there is a peer which does not pass the above tests, the peer is removed from the list
+    If there is a peer which does not pass the above tests, the peer is removed from the list.
 
     :param metainfo: the metainfo for which the nodes have to be validated
     :return: a list containing the valid initial peers or None if no list exists in the first place
@@ -91,7 +91,7 @@ def validate_url_list(metainfo):
     """
     Validate the list of URLs in the metainfo if such list exists and remove wrong URLs.
 
-    First checks whether a URL-list exists, after which it is checked whether the metainfo
+    First check whether a URL-list exists, after which it is checked whether the metainfo
     would be able to use HTTP seeding. This is not the case if there are multiple files specified.
 
     A warning is logged if:
@@ -130,9 +130,9 @@ def validate_http_seeds(metainfo):
 
     First checks whether a HTTP Seed list exists.
 
-    A warning is logged if:
+    None will be returned, as well as a warning is logged if:
         -   The HTTP seeds is not of the type list
-        -   One of the HTTP seeds is not a valid URL.
+        -   One of the HTTP seeds is not a valid URL
 
     Each HTTP seed is validated seperately.
 
@@ -187,20 +187,20 @@ def validate_files(info):
             raise ValueError('info files not list, but ' + repr(type(files)))
 
         filekeys = ['path', 'length']
-        for file in files:
-            if not all(key in file for key in filekeys):
+        for file_desc in files:
+            if not all(key in file_desc for key in filekeys):
                 raise ValueError('info files missing path or length key')
 
-            p = file['path']
-            if not isinstance(p, ListType):
-                raise ValueError('info files path is not list, but ' + repr(type(p)))
+            path = file_desc['path']
+            if not isinstance(path, ListType):
+                raise ValueError('info files path is not list, but ' + repr(type(path)))
 
-            if not all(isinstance(dirP, StringType) for dirP in p):
+            if not all(isinstance(dir_path, StringType) for dir_path in path):
                 raise ValueError('info files path is not string')
 
-            l = file['length']
-            if not isinstance(l, IntType) and not isinstance(l, LongType):
-                raise ValueError('info files length is not int, but ' + repr(type(l)))
+            length = file_desc['length']
+            if not isinstance(length, IntType) and not isinstance(length, LongType):
+                raise ValueError('info files length is not int, but ' + repr(type(length)))
     else:
         raise ValueError("neither length or files found in files information")
     return None
@@ -218,8 +218,6 @@ def validate_torrent_info(metainfo):
         -   Whether the root hash is an instance of String qnd has a length of 20 if it exists
         -   Whether the pieces value is an instance of String and it has a length of multiple of 20
 
-    The validate_files function is used to validate more as well.
-
     :param metainfo: the metainfo for which the information has to be validated
     :return: info if all validations succeed
     :raise ValueError: if one of the above validations do not succeed
@@ -231,7 +229,8 @@ def validate_torrent_info(metainfo):
     if not isinstance(info, DictType):
         raise ValueError('info not dict')
 
-    if not(all(x in info for x in {'name', 'piece length'}) and any(x in info for x in {'root hash', 'pieces'})):
+    if not(all(key in info for key in {'name', 'piece length'})
+           and any(key in info for key in {'root hash', 'pieces'})):
         raise ValueError('info misses key')
 
     name = info['name']
@@ -247,8 +246,8 @@ def validate_torrent_info(metainfo):
         if not isinstance(rh, StringType) or len(rh) != 20:
             raise ValueError('info roothash is not 20-byte string')
     else:
-        p = info['pieces']
-        if not isinstance(p, StringType) or len(p) % 20 != 0:
+        pieces = info['pieces']
+        if not isinstance(pieces, StringType) or len(pieces) % 20 != 0:
             raise ValueError('info pieces is not multiple of 20 bytes')
 
     validate_files(info)
@@ -270,7 +269,8 @@ def create_valid_metainfo(metainfo):
         raise ValueError('metainfo not dict')
 
     # some .torrent files have a dht:// url in the announce field.
-    if 'announce' in metainfo and not (is_valid_url(metainfo['announce']) or metainfo['announce'].startswith('dht:')):
+    if ('announce' in metainfo) \
+            and (not (is_valid_url(metainfo['announce']) or metainfo['announce'].startswith('dht:'))):
         raise ValueError('announce URL bad')
 
     # common additional fields
@@ -288,15 +288,16 @@ def create_valid_metainfo(metainfo):
     metainfo_result['info'] = validate_torrent_info(metainfo)
 
     # remove elements if None i.e. not valid.
-    for x in {'httpseeds', 'url-list', 'nodes', 'initial peers'}:
-        if not metainfo[x]:
-            del metainfo[x]
+    for key in {'httpseeds', 'url-list', 'nodes', 'initial peers'}:
+        if not metainfo[key]:
+            del metainfo[key]
 
     if not ('announce' in metainfo or 'nodes' in metainfo):
         # disabling this check, modifying metainfo to allow for ill-formatted torrents
         metainfo_result['nodes'] = []
 
-    return dict((k, v) for k, v in metainfo_result.iteritems() if v or (metainfo[k] and metainfo[k] == v))
+    return dict((key, val) for key, val in metainfo_result.iteritems()
+                if val or (metainfo[key] and metainfo[key] == val))
 
 
 def valid_torrent_file(metainfo):
@@ -311,7 +312,7 @@ def valid_torrent_file(metainfo):
         create_valid_metainfo(metainfo)
         return True
     except ValueError:
-        logger.exception("Could not check torrent file: a ValueError was thrown")
+        logger.exception("Torrent file is invalid")
         return False
 
 
@@ -326,17 +327,17 @@ def is_valid_url(url):
     """
     if url.lower().startswith('udp'):
         url = url.lower().replace('udp', 'http', 1)
-    r = urlparse.urlsplit(url)
+    split_url = urlparse.urlsplit(url)
 
-    return not(r[0] == '' or r[1] == '')
+    return not(split_url[0] == '' or split_url[1] == '')
 
 
 def http_get(uri):
     """
     Performs a GET request
     :param uri: The URL to perform a GET request to
-    :return: A deferred returning the body of the response.
-    :raises HttpError: When the HTTP response code is not OK (i.e. 200)
+    :return: A deferred firing the body of the response.
+    :raises HttpError: When the HTTP response code is not OK (i.e. not the HTTP Code 200)
     """
     def _on_response(response):
         if response.code == http.OK:
@@ -409,8 +410,8 @@ def parse_magnetlink(url):
 def fix_torrent(file_path):
     """
     Reads and checks if a torrent file is valid and tries to overwrite the torrent file with a non-sloppy version.
-    :param file_path: The torrent file path.
-    :return: True if the torrent file is now overwritten with valid information, otherwise False.
+    :param file_path: The torrent file path
+    :return: True if the torrent file is now overwritten with valid information, otherwise False
     """
     f = open(file_path, 'rb')
     bdata = f.read()
@@ -426,7 +427,7 @@ def fix_torrent(file_path):
 
 def translate_peers_into_health(peer_info_dicts):
     """
-    peer_info_dicts is a peer_info dictionary from LibTorrentDownloadImpl.create_peerlist_data
+    peer_info_dicts is a peer_info dictionary from LibTorrentDownloadImpl.create_peerlist_data.
     purpose : where we want to measure a swarm's health but no tracker can be contacted
     """
     upload_only = 0

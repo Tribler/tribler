@@ -26,7 +26,6 @@ TRACKER = 'http://www.tribler.org/announce'
 class TestTorrentDef(BaseTestCase):
 
     VIDEO_FILE_NAME = "video.avi"
-    maxDiff = None
 
     """
     Testing TorrentDef version 0
