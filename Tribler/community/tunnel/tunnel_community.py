@@ -215,7 +215,6 @@ class TunnelSettings(object):
         self.tunnel_logger = logging.getLogger('TunnelLogger')
 
         self.crypto = TunnelCrypto()
-        self.socks_listen_ports = range(1080, 1085)
 
         self.min_circuits = 4
         self.max_circuits = 8
@@ -231,9 +230,11 @@ class TunnelSettings(object):
         self.dht_lookup_interval = 30
 
         if tribler_session:
+            self.socks_listen_ports = tribler_session.get_tunnel_community_socks5_listen_ports()
             self.become_exitnode = tribler_session.get_tunnel_community_exitnode_enabled()
             self.enable_multichain = tribler_session.get_enable_multichain()
         else:
+            self.socks_listen_ports = range(1080, 1085)
             self.become_exitnode = False
             self.enable_multichain = False
 
@@ -309,8 +310,7 @@ class TunnelCommunity(Community):
         self.register_task("do_circuits", LoopingCall(self.do_circuits)).start(5, now=True)
         self.register_task("do_ping", LoopingCall(self.do_ping)).start(PING_INTERVAL)
 
-        self.socks_server = Socks5Server(self, tribler_session.get_tunnel_community_socks5_listen_ports()
-                                         if tribler_session else self.settings.socks_listen_ports)
+        self.socks_server = Socks5Server(self, self.settings.socks_listen_ports)
         self.socks_server.start()
 
         if self.trsession:
