@@ -33,7 +33,6 @@ Modules
     Tribler.Test.Category
     Tribler.Test.Core
     Tribler.community.allchannel
-    Tribler.community.bartercast4
     Tribler.community.channel
     Tribler.community.demers
     Tribler.community.multichain

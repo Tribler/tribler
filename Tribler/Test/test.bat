@@ -6,7 +6,6 @@ REM python test_buddycast.py # currently not working due to missing DataHandler 
 REM python test_friend.py # Arno, 2008-10-17: need to convert to new DB structure
 REM python test_torrentcollecting.py # currently not working due to missing functions, 2009-12-04
 python test_TimedTaskQueue.py
-python test_bartercast.py
 python test_buddycast2_datahandler.py
 python test_cachingstream.py
 python test_closedswarm.py

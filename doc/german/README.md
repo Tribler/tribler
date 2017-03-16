@@ -19,7 +19,6 @@
 |                                                   | [Video](/Tribler/Core/Video)                                  | Beinhaltet den VLCWrapper und den Code um Livestreams über Tribler ermöglichen.              |
 | [Community](/Tribler/community)                   | -                                                             | Beinhaltet den Code um sicher mit anderen Communities zu kommunizieren.              |
 |                                                   | [allchannel](/Tribler/community/allchannel)                   | Beinhaltet den Code für eine einzige Community, der alle Tribler-Benutzer beitreten und benutzen um .torrent Dateien auszutauschen.              |
-|                                                   | [bartercast4](/Tribler/community/bartercast4)                 | Beinhaltet das Protokoll für indirekte Gegenseitigkeit. Es dient als Motivation in Tribler zu Seeden und sich als Proxy-Relay zur Verfügung zu stellen.              |
 |                                                   | [channel](/Tribler/community/channel)                         | ???              |
 |                                                   | [demers](/Tribler/community/demers)                           | ???              |
 |                                                   | [metadata](/Tribler/community/metadata)                       | ???              |

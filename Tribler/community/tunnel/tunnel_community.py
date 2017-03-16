@@ -15,7 +15,6 @@ from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.Utilities.encoding import decode, encode
-from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
 from Tribler.community.tunnel import (CIRCUIT_ID_PORT, CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA,
                                       CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, EXIT_NODE, EXIT_NODE_SALT, ORIGINATOR,
                                       ORIGINATOR_SALT, PING_INTERVAL)
@@ -585,8 +584,6 @@ class TunnelCommunity(Community):
                                                                      circuit.unverified_hop.node_public_key,
                                                                      circuit.unverified_hop.dh_first_part)))
 
-        _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_CREATED, "%s:%s" %
-                                               (first_hop.sock_addr[0], first_hop.sock_addr[1]))
         return circuit_id
 
     def readd_bittorrent_peers(self):
@@ -1382,18 +1379,12 @@ class TunnelCommunity(Community):
         if isinstance(obj, Circuit):
             obj.bytes_up += num_bytes
             self.stats['bytes_up'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_SENT, "%s:%s" %
-                                                   (obj.first_hop[0], obj.first_hop[1]), num_bytes)
         elif isinstance(obj, RelayRoute):
             obj.bytes_up += num_bytes
             self.stats['bytes_relay_up'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_RELAY_BYTES_SENT, "%s:%s" %
-                                                   (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
         elif isinstance(obj, TunnelExitSocket):
             obj.bytes_up += num_bytes
             self.stats['bytes_exit'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_SENT, "%s:%s" %
-                                                   (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
         else:
             raise TypeError("Increase_bytes_sent() was called with an object that is not a Circuit, " +
                             "RelayRoute or TunnelExitSocket")
@@ -1402,18 +1393,12 @@ class TunnelCommunity(Community):
         if isinstance(obj, Circuit):
             obj.bytes_down += num_bytes
             self.stats['bytes_down'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_RECEIVED, "%s:%s" %
-                                                   (obj.first_hop[0], obj.first_hop[1]), num_bytes)
         elif isinstance(obj, RelayRoute):
             obj.bytes_down += num_bytes
             self.stats['bytes_relay_down'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_RELAY_BYTES_RECEIVED, "%s:%s" %
-                                                   (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
         elif isinstance(obj, TunnelExitSocket):
             obj.bytes_down += num_bytes
             self.stats['bytes_enter'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED, "%s:%s" %
-                                                   (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
         else:
             raise TypeError("Increase_bytes_received() was called with an object that is not a Circuit, " +
                             "RelayRoute or TunnelExitSocket")
