@@ -1,6 +1,6 @@
 """
-Different utility methods
-
+This class mainly provides validation and correction for both metainfo and urls. This class
+provides a method for HTTP GET requests as well as a function to translate peers into health.
 Author(s): Jie Yang
 """
 from base64 import b32decode
@@ -65,23 +65,26 @@ def validate_init_peers(metainfo):
     If there is a peer which does not pass the above tests, the peer is removed from the list
 
     :param metainfo: the metainfo for which the nodes have to be validated
-    :return: a list containing the valid initial peers
-    :raise ValueError: if the initial peers element of metainfo is not a list
+    :return: a list containing the valid initial peers or None if no list exists in the first place
+    :raise ValueError: if the initial peers element of metainfo is not a list or when either of the above
+    checks are not passed
     """
-    valid_initial_peers = []
+
     if "initial peers" in metainfo:
+        valid_initial_peers = []
         if not isinstance(metainfo["initial peers"], list):
             raise ValueError("initial peers not list, but %s" % type(metainfo["initial peers"]))
         for address in metainfo["initial peers"]:
             if not (isinstance(address, tuple) and len(address) == 2):
-                logger.info("address not 2-item tuple, but %s", type(address))
+                raise ValueError("address not 2-item tuple, but %s", type(address))
             elif not isinstance(address[0], str):
-                logger.info("address host not string, but %s", type(address[0]))
+                raise ValueError("address host not string, but %s", type(address[0]))
             elif not isinstance(address[1], int):
-                logger.info("address port not int, but %s", type(address[1]))
+                raise ValueError("address port not int, but %s", type(address[1]))
             else:
                 valid_initial_peers.append(address)
-    return valid_initial_peers
+        return valid_initial_peers
+    return None
 
 
 def validate_url_list(metainfo):
@@ -103,7 +106,8 @@ def validate_url_list(metainfo):
     """
     if 'url-list' in metainfo:
         url_list = metainfo['url-list']
-        if 'info' in metainfo and 'files' in metainfo['info']:         # Only single-file mode allowed for http seeding
+        # only single-file mode allowed for http seeding
+        if 'info' in metainfo and 'files' in metainfo['info']:
             logger.warn("Warning: Only single-file mode supported with HTTP seeding. HTTP seeding disabled")
             return None
         elif not isinstance(metainfo['url-list'], ListType):
@@ -135,7 +139,7 @@ def validate_http_seeds(metainfo):
     :param metainfo: the metainfo for which the HTTP seeds have to be validated
     :return: a list containing the valid HTTP seeds or None if there is a logged warning, for the cases specified above
     """
-    if 'httpseeds' in metainfo:
+    if 'httpseeds' in metainfo and metainfo['httpseeds']:
         http_seeds = []
         if not isinstance(metainfo['httpseeds'], ListType):
             logger.warn("Warning: httpseeds is not of type list. HTTP seeding disabled")
@@ -176,7 +180,7 @@ def validate_files(info):
         l = info['length']
         if not isinstance(l, IntType) and not isinstance(l, LongType):
             raise ValueError('info length is not int, but ' + repr(type(l)))
-    else:
+    elif 'files' in info:
         # multi-file torrent
         files = info['files']
         if not isinstance(files, ListType):
@@ -184,19 +188,21 @@ def validate_files(info):
 
         filekeys = ['path', 'length']
         for file in files:
-            if not(all(key in file for key in filekeys)):
+            if not all(key in file for key in filekeys):
                 raise ValueError('info files missing path or length key')
 
             p = file['path']
             if not isinstance(p, ListType):
                 raise ValueError('info files path is not list, but ' + repr(type(p)))
 
-            if not(all(isinstance(dirP, StringType) for dirP in p)):
+            if not all(isinstance(dirP, StringType) for dirP in p):
                 raise ValueError('info files path is not string')
 
             l = file['length']
             if not isinstance(l, IntType) and not isinstance(l, LongType):
                 raise ValueError('info files length is not int, but ' + repr(type(l)))
+    else:
+        raise ValueError("neither length or files found in files information")
     return None
 
 
@@ -225,7 +231,7 @@ def validate_torrent_info(metainfo):
     if not isinstance(info, DictType):
         raise ValueError('info not dict')
 
-    if not(all(x in info for x in {'name, piece length'}) and any(x in info for x in {'root hash', 'pieces'})):
+    if not(all(x in info for x in {'name', 'piece length'}) and any(x in info for x in {'root hash', 'pieces'})):
         raise ValueError('info misses key')
 
     name = info['name']
@@ -250,7 +256,6 @@ def validate_torrent_info(metainfo):
     return info
 
 
-
 def create_valid_metainfo(metainfo):
     """
     Creates a valid metainfo dictionary by validating the elements and correcting when possible.
@@ -264,7 +269,7 @@ def create_valid_metainfo(metainfo):
     if not isinstance(metainfo, DictType):
         raise ValueError('metainfo not dict')
 
-    # Niels: Some .torrent files have a dht:// url in the announce field.
+    # some .torrent files have a dht:// url in the announce field.
     if 'announce' in metainfo and not (is_valid_url(metainfo['announce']) or metainfo['announce'].startswith('dht:')):
         raise ValueError('announce URL bad')
 
@@ -273,12 +278,8 @@ def create_valid_metainfo(metainfo):
         al = metainfo['announce-list']
         if not isinstance(al, ListType):
             raise ValueError('announce-list is not list, but ' + repr(type(al)))
-        if not(all(isinstance(tier, ListType) for tier in al)):
+        if not all(isinstance(tier, ListType) for tier in al):
             raise ValueError('announce-list tier is not list')
-
-    if not ('announce' in metainfo or 'nodes' in metainfo):
-        # Niels: 07/06/2012, disabling this check, modifying metainfo to allow for ill-formatted torrents
-        metainfo_result['nodes'] = []
 
     metainfo_result['nodes'] = validate_torrent_nodes(metainfo_result)
     metainfo_result['initial peers'] = validate_init_peers(metainfo)
@@ -286,7 +287,16 @@ def create_valid_metainfo(metainfo):
     metainfo_result['httpseeds'] = validate_http_seeds(metainfo)
     metainfo_result['info'] = validate_torrent_info(metainfo)
 
-    return dict((k, v) for k, v in metainfo_result.iteritems() if v)
+    # remove elements if None i.e. not valid.
+    for x in {'httpseeds', 'url-list', 'nodes', 'initial peers'}:
+        if not metainfo[x]:
+            del metainfo[x]
+
+    if not ('announce' in metainfo or 'nodes' in metainfo):
+        # disabling this check, modifying metainfo to allow for ill-formatted torrents
+        metainfo_result['nodes'] = []
+
+    return dict((k, v) for k, v in metainfo_result.iteritems() if v or (metainfo[k] and metainfo[k] == v))
 
 
 def valid_torrent_file(metainfo):
@@ -295,7 +305,7 @@ def valid_torrent_file(metainfo):
 
 
     :param metainfo: the metainfo to be validated
-    :return: whether the specified metainfo is valid or not
+    :return: Boolean specifying whether the specified metainfo is valid or not
     """
     try:
         create_valid_metainfo(metainfo)
@@ -318,12 +328,16 @@ def is_valid_url(url):
         url = url.lower().replace('udp', 'http', 1)
     r = urlparse.urlsplit(url)
 
-    if r[0] == '' or r[1] == '':
-        return False
-    return True
+    return not(r[0] == '' or r[1] == '')
 
 
 def http_get(uri):
+    """
+    Performs a GET request
+    :param uri: The URL to perform a GET request to
+    :return: A deferred returning the body of the response.
+    :raises HttpError: When the HTTP response code is not OK (i.e. 200)
+    """
     def _on_response(response):
         if response.code == http.OK:
             return readBody(response)
@@ -340,7 +354,17 @@ def http_get(uri):
 
 
 def parse_magnetlink(url):
-    # url must be a magnet link
+    """
+    Parses the magnet link provided by the given URL.
+
+    The output of this file consists of:
+        -   dn: The display name of the magnet link
+        -   xt: The URI containing the file hash of the magnet link
+        -   trs: The list of Tracker URLs
+    :param url: the URL at which the magnet link can be found
+    :return: (dn, xt, trs) tuple, which will be left (None, None, []) if the
+    given URL does not lead to a magnet link
+    """
     dn = None
     xt = None
     trs = []
@@ -379,7 +403,7 @@ def parse_magnetlink(url):
         logger.debug("parse_magnetlink() HASH: %s", xt)
         logger.debug("parse_magnetlink() TRACS: %s", trs)
 
-    return (dn, xt, trs)
+    return dn, xt, trs
 
 
 def fix_torrent(file_path):

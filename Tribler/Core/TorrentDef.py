@@ -14,7 +14,7 @@ from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.defaults import TDEF_DEFAULTS
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, NotYetImplementedException
 from Tribler.Core.Utilities import maketorrent
-from Tribler.Core.Utilities.utilities import create_valid_metainfo, isValidURL, parse_magnetlink, http_get
+from Tribler.Core.Utilities.utilities import create_valid_metainfo, is_valid_url, parse_magnetlink, http_get
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -116,10 +116,10 @@ class TorrentDef(object):
 
     def _create(metainfo):  # TODO: replace with constructor
         # raises ValueErrors if not good
-        metainfo = create_valid_metainfo(metainfo)
+        metainfo_fixed = create_valid_metainfo(metainfo)
 
         t = TorrentDef()
-        t.metainfo = metainfo
+        t.metainfo = metainfo_fixed
         t.metainfo_valid = True
         # copy stuff into self.input
         maketorrent.copy_metainfo_to_input(t.metainfo, t.input)
@@ -231,7 +231,7 @@ class TorrentDef(object):
         """ Sets the tracker (i.e. the torrent file's 'announce' field).
         @param url The announce URL.
         """
-        if not isValidURL(url):
+        if not is_valid_url(url):
             raise ValueError("Invalid URL")
 
         if url.endswith('/'):
@@ -259,7 +259,7 @@ class TorrentDef(object):
                 raise ValueError("tier is not a list")
             newtier = []
             for url in tier:
-                if not isValidURL(url):
+                if not is_valid_url(url):
                     self._logger.error("Invalid tracker URL: %s", repr(url))
                     continue
 
@@ -357,7 +357,7 @@ class TorrentDef(object):
         @param value A list of URLs.
         """
         for url in value:
-            if not isValidURL(url):
+            if not is_valid_url(url):
                 raise ValueError("Invalid URL: " + repr(url))
 
         self.input['url-list'] = value
@@ -374,7 +374,7 @@ class TorrentDef(object):
         @param value A list of URLs.
         """
         for url in value:
-            if not isValidURL(url):
+            if not is_valid_url(url):
                 raise ValueError("Invalid URL: " + repr(url))
 
         self.input['httpseeds'] = value

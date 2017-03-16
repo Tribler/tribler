@@ -12,8 +12,7 @@ from twisted.web.static import File
 
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.Utilities.twisted_thread import deferred
-from Tribler.Core.Utilities.utilities import valid_torrent_file
+from Tribler.Core.Utilities.utilities import create_valid_metainfo, valid_torrent_file
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, HttpError
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -27,6 +26,7 @@ TRACKER = 'http://www.tribler.org/announce'
 class TestTorrentDef(BaseTestCase):
 
     VIDEO_FILE_NAME = "video.avi"
+    maxDiff = None
 
     """
     Testing TorrentDef version 0
@@ -234,8 +234,10 @@ class TestTorrentDef(BaseTestCase):
         self.setUpFileServer(file_server_port, files_path)
 
         def _on_load(torrent_def):
+            torrent_def.metainfo = create_valid_metainfo(torrent_def.get_metainfo())
             self.assertTrue(valid_torrent_file(torrent_def.get_metainfo()))
-            self.assertEqual(TorrentDef.load(TORRENT_UBUNTU_FILE), torrent_def)
+            self.assertEqual(torrent_def.get_metainfo(), TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo())
+            self.assertEqual(torrent_def.infohash, TorrentDef.load(TORRENT_UBUNTU_FILE).infohash)
 
         torrent_url = 'http://localhost:%d/ubuntu.torrent' % file_server_port
         deferred = TorrentDef.load_from_url(torrent_url)
