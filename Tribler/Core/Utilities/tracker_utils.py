@@ -36,37 +36,41 @@ def get_uniformed_tracker_url(tracker_url):
 
     url = urlparse(tracker_url)
 
-    # scheme must be either UDP or HTTP
-    if url.scheme == 'udp' or url.scheme == 'http':
-        uniformed_scheme = url.scheme
-    else:
-        return None
-
-    uniformed_hostname = url.hostname
-
-    if not url.port:
-        # UDP trackers must have a port
-        if url.scheme == 'udp':
+    # accessing urlparse attributes may throw UnicodeError's or ValueError's
+    try:
+        # scheme must be either UDP or HTTP
+        if url.scheme == 'udp' or url.scheme == 'http':
+            uniformed_scheme = url.scheme
+        else:
             return None
-        # HTTP trackers default to port HTTP_PORT
-        elif url.scheme == 'http':
-            uniformed_port = HTTP_PORT
-    else:
-        uniformed_port = url.port
 
-    # UDP trackers have no path
-    if url.scheme == 'udp':
-        uniformed_path = ''
-    else:
-        uniformed_path = url.path.rstrip('/')
-    # HTTP trackers must have a path
-    if url.scheme == 'http' and not url.path:
+        uniformed_hostname = url.hostname
+
+        if not url.port:
+            # UDP trackers must have a port
+            if url.scheme == 'udp':
+                return None
+            # HTTP trackers default to port HTTP_PORT
+            elif url.scheme == 'http':
+                uniformed_port = HTTP_PORT
+        else:
+            uniformed_port = url.port
+
+        # UDP trackers have no path
+        if url.scheme == 'udp':
+            uniformed_path = ''
+        else:
+            uniformed_path = url.path.rstrip('/')
+        # HTTP trackers must have a path
+        if url.scheme == 'http' and not url.path:
+            return None
+
+        if url.scheme == 'http' and uniformed_port == HTTP_PORT:
+            uniformed_url = u'%s://%s%s' % (uniformed_scheme, uniformed_hostname, uniformed_path)
+        else:
+            uniformed_url = u'%s://%s:%d%s' % (uniformed_scheme, uniformed_hostname, uniformed_port, uniformed_path)
+    except (UnicodeError, ValueError):
         return None
-
-    if url.scheme == 'http' and uniformed_port == HTTP_PORT:
-        uniformed_url = u'%s://%s%s' % (uniformed_scheme, uniformed_hostname, uniformed_path)
-    else:
-        uniformed_url = u'%s://%s:%d%s' % (uniformed_scheme, uniformed_hostname, uniformed_port, uniformed_path)
 
     return uniformed_url
 
