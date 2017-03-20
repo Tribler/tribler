@@ -34,7 +34,6 @@ Modules
     Tribler.Test.Core
     Tribler.community.allchannel
     Tribler.community.channel
-    Tribler.community.demers
     Tribler.community.multichain
     Tribler.community.search
     Tribler.community.template

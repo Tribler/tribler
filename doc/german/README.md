@@ -20,7 +20,6 @@
 | [Community](/Tribler/community)                   | -                                                             | Beinhaltet den Code um sicher mit anderen Communities zu kommunizieren.              |
 |                                                   | [allchannel](/Tribler/community/allchannel)                   | Beinhaltet den Code für eine einzige Community, der alle Tribler-Benutzer beitreten und benutzen um .torrent Dateien auszutauschen.              |
 |                                                   | [channel](/Tribler/community/channel)                         | ???              |
-|                                                   | [demers](/Tribler/community/demers)                           | ???              |
 |                                                   | [metadata](/Tribler/community/metadata)                       | ???              |
 |                                                   | [search](/Tribler/community/search)                           | ???              |
 |                                                   | [template](/Tribler/community/template)                       | Beinhaltet Beispiel-Dateien für die Communities.              |
