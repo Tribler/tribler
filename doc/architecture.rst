@@ -37,7 +37,6 @@ Modules
     Tribler.community.demers
     Tribler.community.multichain
     Tribler.community.search
-    Tribler.community.template
     Tribler.community.tunnel
 
 Maintenance
