@@ -320,6 +320,30 @@ class SessionConfigInterface(object):
         """
         return self.sessconfig.get(u'libtorrent', u'max_connections_download')
 
+    def set_libtorrent_max_download_rate(self, value):
+        """ Set the maximum download bandwidth for the libtorrent session. By default, this is 0, unlimited.
+        @param value Integer.
+        """
+        self.sessconfig.set(u'libtorrent', u'max_download_rate', value)
+
+    def get_libtorrent_max_download_rate(self):
+        """ Returns the maximum download bandwidth for the libtorrent session.
+        @return Integer.
+        """
+        return self.sessconfig.get(u'libtorrent', u'max_download_rate')
+
+    def set_libtorrent_max_upload_rate(self, value):
+        """ Set the maximum upload bandwidth for the libtorrent session. By default, this is 0, unlimited.
+        @param value Integer.
+        """
+        self.sessconfig.set(u'libtorrent', u'max_upload_rate', value)
+
+    def get_libtorrent_max_upload_rate(self):
+        """ Returns the maximum upload bandwidth for the libtorrent session.
+        @return Integer.
+        """
+        return self.sessconfig.get(u'libtorrent', u'max_upload_rate')
+
     def set_libtorrent_proxy_settings(self, ptype, server=None, auth=None):
         """ Set which proxy LibTorrent should use (default = 0).
         @param ptype Integer (0 = no proxy server, 1 = SOCKS4, 2 = SOCKS5, 3 = SOCKS5 + auth, 4 = HTTP, 5 = HTTP + auth)

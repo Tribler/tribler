@@ -9,6 +9,10 @@ from Tribler.Test.twisted_thread import deferred
 
 class TestSettingsEndpoint(AbstractApiTest):
 
+    def setUpPreSession(self):
+        super(TestSettingsEndpoint, self).setUpPreSession()
+        self.config.set_libtorrent(True)
+
     def verify_settings(self, settings):
         """
         Verify that the expected sections are present.
@@ -79,6 +83,6 @@ class TestSettingsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         post_data = json.dumps({'general': {'family_filter': not old_filter_setting},
                                 'Tribler': {'maxuploadrate': '1234'},
-                                'libtorrent': {'utp': False}})
+                                'libtorrent': {'utp': False, 'max_download_rate': 50}})
         return self.do_request('settings', expected_code=200, request_type='POST', post_data=post_data, raw_data=True)\
             .addCallback(verify_response)

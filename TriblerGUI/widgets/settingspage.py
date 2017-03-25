@@ -73,8 +73,8 @@ class SettingsPage(QWidget):
         self.window().max_connections_download_input.setText(str(max_conn_download))
 
         # Bandwidth settings
-        self.window().upload_rate_limit_input.setText(str(settings['Tribler']['maxuploadrate']))
-        self.window().download_rate_limit_input.setText(str(settings['Tribler']['maxdownloadrate']))
+        self.window().upload_rate_limit_input.setText(str(settings['libtorrent']['max_upload_rate'] / 1024))
+        self.window().download_rate_limit_input.setText(str(settings['libtorrent']['max_download_rate'] / 1024))
 
         # Seeding settings
         getattr(self.window(), "seeding_" + settings['downloadconfig']['seeding_mode'] + "_radio").setChecked(True)
@@ -141,9 +141,10 @@ class SettingsPage(QWidget):
         settings_data['libtorrent']['max_connections_download'] = max_conn_download
 
         if self.window().upload_rate_limit_input.text():
-            settings_data['Tribler']['maxuploadrate'] = self.window().upload_rate_limit_input.text()
+            settings_data['libtorrent']['max_upload_rate'] = int(self.window().upload_rate_limit_input.text()) * 1024
         if self.window().download_rate_limit_input.text():
-            settings_data['Tribler']['maxdownloadrate'] = self.window().download_rate_limit_input.text()
+            settings_data['libtorrent']['max_download_rate'] = int(self.window().download_rate_limit_input.text()) \
+                                                               * 1024
 
         seeding_modes = ['forever', 'time', 'never', 'ratio']
         selected_mode = 'forever'

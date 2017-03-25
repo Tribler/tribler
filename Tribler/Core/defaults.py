@@ -37,8 +37,9 @@ DEFAULTPORT = 7760
 #  Version 15: Added credit mining options
 #  Version 16: Changed default VLC video player to external (due to the removal of the wx player).
 #  Version 17: Added an option to limit the amount of connections per download.
+#  Version 18: Added max upload/download rates for libtorrent.
 
-SESSDEFAULTS_VERSION = 17
+SESSDEFAULTS_VERSION = 18
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -125,6 +126,8 @@ sessdefaults['libtorrent']['lt_proxyserver'] = None
 sessdefaults['libtorrent']['lt_proxyauth'] = None
 sessdefaults['libtorrent']['utp'] = True
 sessdefaults['libtorrent']['max_connections_download'] = -1
+sessdefaults['libtorrent']['max_download_rate'] = 0
+sessdefaults['libtorrent']['max_upload_rate'] = 0
 
 # Anonymous libtorrent
 sessdefaults['libtorrent']['anon_listen_port'] = -1
