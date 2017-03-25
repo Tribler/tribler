@@ -6,6 +6,7 @@ import os
 import os.path
 import sys
 from distutils.spawn import find_executable
+from shutil import copyfile
 
 from Tribler.Core.CreditMining.BoostingPolicy import CreationDatePolicy, SeederRatioPolicy, RandomPolicy, BoostingPolicy
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
@@ -1055,7 +1056,9 @@ class SessionStartupConfig(SessionConfigInterface):
         try:
             sessconfig.read_file(filename)
         except:
-            raise IOError("Failed to open session config file")
+            # Config file seems to be corrupt, backup the file and start from scratch
+            copyfile(filename, os.path.join(os.path.dirname(filename), 'corrupt_config.bak'))
+            return SessionStartupConfig()
 
         return SessionStartupConfig(sessconfig)
 
