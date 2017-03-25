@@ -29,8 +29,10 @@ class DownloadsPage(QWidget):
         self.download_widgets = {}  # key: infohash, value: QTreeWidgetItem
         self.downloads = None
         self.downloads_timer = QTimer()
+        self.downloads_timeout_timer = QTimer()
         self.selected_item = None
         self.dialog = None
+        self.downloads_request_mgr = None
         self.request_mgr = None
 
     def initialize_downloads_page(self):
@@ -62,25 +64,34 @@ class DownloadsPage(QWidget):
         self.update_download_visibility()
 
     def start_loading_downloads(self):
-        self.load_downloads()
-        self.schedule_downloads_timer()
+        self.schedule_downloads_timer(now=True)
 
-    def schedule_downloads_timer(self):
+    def schedule_downloads_timer(self, now=False):
         self.downloads_timer = QTimer()
         self.downloads_timer.setSingleShot(True)
         self.downloads_timer.timeout.connect(self.load_downloads)
-        self.downloads_timer.start(1000)
+        self.downloads_timer.start(0 if now else 1000)
+
+        self.downloads_timeout_timer = QTimer()
+        self.downloads_timeout_timer.setSingleShot(True)
+        self.downloads_timeout_timer.timeout.connect(self.on_downloads_request_timeout)
+        self.downloads_timeout_timer.start(16000)
+
+    def on_downloads_request_timeout(self):
+        self.downloads_request_mgr.cancel_request()
+        self.schedule_downloads_timer()
 
     def stop_loading_downloads(self):
         self.downloads_timer.stop()
+        self.downloads_timeout_timer.stop()
 
     def load_downloads(self):
         url = "downloads?get_pieces=1"
         if self.window().download_details_widget.currentIndex() == 3:
             url = "downloads?get_peers=1&get_pieces=1"
 
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request(url, self.on_received_downloads)
+        self.downloads_request_mgr = TriblerRequestManager()
+        self.downloads_request_mgr.perform_request(url, self.on_received_downloads)
 
     def on_received_downloads(self, downloads):
         if not downloads:
