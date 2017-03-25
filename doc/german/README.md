@@ -22,7 +22,6 @@
 |                                                   | [channel](/Tribler/community/channel)                         | ???              |
 |                                                   | [metadata](/Tribler/community/metadata)                       | ???              |
 |                                                   | [search](/Tribler/community/search)                           | ???              |
-|                                                   | [template](/Tribler/community/template)                       | Beinhaltet Beispiel-Dateien für die Communities.              |
 |                                                   | [tunnel](/Tribler/community/tunnel)                           | Definiert eine Proxy-Community, welche andere Proxy-Server aufspührt und eine API bereitstellt um Reverse-Circuits zu erstellen.              |
 | [Debug](/Tribler/Debug)                           | -                                                             | Beinhaltet Code um Tribler zu debuggen.              |
 | [Dispersy](https://github.com/Tribler/dispersy)   | -                                                             | Erweiterbares Datenbank-System, das das Rückgrat der Funktionalität von Tribler darstellt.       |

@@ -36,7 +36,6 @@ Modules
     Tribler.community.channel
     Tribler.community.multichain
     Tribler.community.search
-    Tribler.community.template
     Tribler.community.tunnel
 
 Maintenance
