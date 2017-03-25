@@ -133,6 +133,10 @@ class DownloadsPage(QWidget):
         self.update_download_visibility()
         self.schedule_downloads_timer()
 
+        # Update the top download management button if we have a row selected
+        if len(self.window().downloads_list.selectedItems()) > 0:
+            self.on_download_item_clicked()
+
     def update_download_visibility(self):
         for i in range(self.window().downloads_list.topLevelItemCount()):
             item = self.window().downloads_list.topLevelItem(i)
