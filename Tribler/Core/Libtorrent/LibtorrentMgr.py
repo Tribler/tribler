@@ -559,7 +559,7 @@ class LibtorrentMgr(TaskManager):
                 # try to get the torrent from the given torrent file
                 torrent_data = fix_torrent(torrentfilename)
                 if torrent_data is None:
-                    raise TorrentFileException()
+                    raise TorrentFileException("error while decoding torrent file")
 
                 tdef = TorrentDef.load_from_memory(torrent_data)
 

@@ -81,8 +81,12 @@ class TorrentInfoEndpoint(resource.Resource):
 
         uri = unicode(request.args['uri'][0], 'utf-8')
         if uri.startswith('file:'):
-            filename = url2pathname(uri[5:])
-            metainfo_deferred.callback(bdecode(fix_torrent(filename)))
+            try:
+                filename = url2pathname(uri[5:])
+                metainfo_deferred.callback(bdecode(fix_torrent(filename)))
+            except TypeError:
+                request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+                return json.dumps({"error": "error while decoding torrent file"})
         elif uri.startswith('http'):
             def _on_loaded(tdef):
                 metainfo_deferred.callback(bdecode(tdef))

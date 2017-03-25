@@ -7,7 +7,7 @@ from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-from Tribler.Core.exceptions import DuplicateDownloadException
+from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -185,6 +185,14 @@ class TestLibtorrentMgr(TriblerCoreTest):
         infohash.info_hash = lambda: 'a' * 20
         self.assertEqual(self.ltmgr.add_torrent(None, {'ti': infohash}), mock_handle)
         self.assertRaises(DuplicateDownloadException, self.ltmgr.add_torrent, None, {'ti': infohash})
+
+    def test_start_download_corrupt(self):
+        """
+        Testing whether starting the download of a corrupt torrent file raises an exception
+        """
+        self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
+        corrupt_file = os.path.join(self.LIBTORRENT_FILES_DIR, 'corrupt_torrent.torrent')
+        self.assertRaises(TorrentFileException, self.ltmgr.start_download, torrentfilename=corrupt_file)
 
     def test_start_download_duplicate(self):
         """
