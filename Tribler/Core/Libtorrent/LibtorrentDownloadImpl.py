@@ -704,10 +704,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     def _stop_if_finished(self):
         if self.dlstate == DLSTATUS_SEEDING:
-            mode = self.dlconfig.get('downloadconfig', 'seeding_mode')
-            if ((mode == 'never') or
-                (mode == 'ratio' and self.all_time_ratio >= self.dlconfig.get('downloadconfig', 'seeding_ratio')) or
-                (mode == 'time' and (self.finished_time / 60) >= self.dlconfig.get('downloadconfig', 'seeding_time'))):
+            mode = self.get_seeding_mode()
+            if mode == 'never' \
+                    or (mode == 'ratio' and
+                                self.all_time_ratio >= self.dlconfig.get('downloadconfig', 'seeding_ratio')) \
+                    or (mode == 'time' and self.finished_time >= self.dlconfig.get('downloadconfig', 'seeding_time')):
                 self.stop()
 
     def set_corrected_infoname(self):

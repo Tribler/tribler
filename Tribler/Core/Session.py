@@ -30,7 +30,7 @@ from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
 from Tribler.Core.Utilities.install_dir import get_lib_path
-from Tribler.Core.defaults import tribler_defaults
+from Tribler.Core.defaults import tribler_defaults, dldefaults
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
     DuplicateTorrentFileError
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_MYPREFERENCES,
@@ -279,6 +279,10 @@ class Session(SessionConfigInterface):
         DefaultDownloadStartupConfig.getInstance().dlconfig = gui_config
 
         gui_config.write_file(configfilepath)
+
+        # Update all dldefaults to use the settings in gui_config
+        for k, v in gui_config._sections['downloadconfig'].iteritems():
+            dldefaults['downloadconfig'][k] = v
 
     def start_download_from_uri(self, uri, dconfig=None):
         """

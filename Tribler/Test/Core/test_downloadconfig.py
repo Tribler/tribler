@@ -43,6 +43,9 @@ class TestConfigParser(TriblerCoreTest):
         dlcfg.set_safe_seeding(False)
         self.assertFalse(dlcfg.get_safe_seeding())
 
+        dlcfg.set_seeding_mode("abcd")
+        self.assertEqual(dlcfg.get_seeding_mode(), "abcd")
+
         dlcfg.set_selected_files("foo.bar")
         self.assertEqual(dlcfg.get_selected_files(), ["foo.bar"])
 

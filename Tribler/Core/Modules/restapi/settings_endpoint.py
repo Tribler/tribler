@@ -107,6 +107,9 @@ class SettingsEndpoint(resource.Resource):
             raise ValueError("Section %s with option %s does not exist" % (section, option))
         RawConfigParser.set(self.session.sessconfig, section, option, value)
 
+        # Reload the GUI settings in Tribler (there might have been download settings that have changed)
+        self.session.setup_tribler_gui_config()
+
         # Perform some actions when specific keys are set
         if section == "libtorrent" and (option == "max_download_rate" or option == "max_upload_rate"):
             for lt_session in self.session.lm.ltmgr.ltsessions.itervalues():

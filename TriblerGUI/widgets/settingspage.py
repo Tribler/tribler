@@ -5,7 +5,7 @@ from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAG
     PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, BUTTON_TYPE_NORMAL
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import seconds_to_string, string_to_minutes, get_gui_setting
+from TriblerGUI.utilities import string_to_seconds, get_gui_setting, seconds_to_hhmm_string
 
 
 class SettingsPage(QWidget):
@@ -78,7 +78,7 @@ class SettingsPage(QWidget):
 
         # Seeding settings
         getattr(self.window(), "seeding_" + settings['downloadconfig']['seeding_mode'] + "_radio").setChecked(True)
-        self.window().seeding_time_input.setText(seconds_to_string(settings['downloadconfig']['seeding_time']))
+        self.window().seeding_time_input.setText(seconds_to_hhmm_string(settings['downloadconfig']['seeding_time']))
         ind = self.window().seeding_ratio_combobox.findText(str(settings['downloadconfig']['seeding_ratio']))
         if ind != -1:
             self.window().seeding_ratio_combobox.setCurrentIndex(ind)
@@ -156,7 +156,7 @@ class SettingsPage(QWidget):
         settings_data['downloadconfig']['seeding_ratio'] = self.window().seeding_ratio_combobox.currentText()
 
         try:
-            settings_data['downloadconfig']['seeding_time'] = string_to_minutes(self.window().seeding_time_input.text())
+            settings_data['downloadconfig']['seeding_time'] = string_to_seconds(self.window().seeding_time_input.text())
         except ValueError:
             ConfirmationDialog.show_error(self.window(), "Invalid seeding time",
                                           "You've entered an invalid format for the seeding time (expected HH:MM)")

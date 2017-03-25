@@ -109,6 +109,12 @@ class DownloadConfigInterface(object):
     def get_safe_seeding(self):
         return self.dlconfig.get('downloadconfig', 'safe_seeding')
 
+    def set_seeding_mode(self, value):
+        self.dlconfig.set('downloadconfig', 'seeding_mode', value)
+
+    def get_seeding_mode(self):
+        return self.dlconfig.get('downloadconfig', 'seeding_mode')
+
     def set_user_stopped(self, value):
         self.dlconfig.set('downloadconfig', 'user_stopped', value)
 
