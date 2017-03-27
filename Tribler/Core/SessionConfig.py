@@ -6,6 +6,7 @@ import os
 import os.path
 import sys
 from distutils.spawn import find_executable
+from shutil import copyfile
 
 from Tribler.Core.CreditMining.BoostingPolicy import CreationDatePolicy, SeederRatioPolicy, RandomPolicy, BoostingPolicy
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
@@ -319,6 +320,30 @@ class SessionConfigInterface(object):
         @return Integer.
         """
         return self.sessconfig.get(u'libtorrent', u'max_connections_download')
+
+    def set_libtorrent_max_download_rate(self, value):
+        """ Set the maximum download bandwidth for the libtorrent session. By default, this is 0, unlimited.
+        @param value Integer.
+        """
+        self.sessconfig.set(u'libtorrent', u'max_download_rate', value)
+
+    def get_libtorrent_max_download_rate(self):
+        """ Returns the maximum download bandwidth for the libtorrent session.
+        @return Integer.
+        """
+        return self.sessconfig.get(u'libtorrent', u'max_download_rate')
+
+    def set_libtorrent_max_upload_rate(self, value):
+        """ Set the maximum upload bandwidth for the libtorrent session. By default, this is 0, unlimited.
+        @param value Integer.
+        """
+        self.sessconfig.set(u'libtorrent', u'max_upload_rate', value)
+
+    def get_libtorrent_max_upload_rate(self):
+        """ Returns the maximum upload bandwidth for the libtorrent session.
+        @return Integer.
+        """
+        return self.sessconfig.get(u'libtorrent', u'max_upload_rate')
 
     def set_libtorrent_proxy_settings(self, ptype, server=None, auth=None):
         """ Set which proxy LibTorrent should use (default = 0).
@@ -1031,7 +1056,9 @@ class SessionStartupConfig(SessionConfigInterface):
         try:
             sessconfig.read_file(filename)
         except:
-            raise IOError("Failed to open session config file")
+            # Config file seems to be corrupt, backup the file and start from scratch
+            copyfile(filename, os.path.join(os.path.dirname(filename), 'corrupt_config.bak'))
+            return SessionStartupConfig()
 
         return SessionStartupConfig(sessconfig)
 

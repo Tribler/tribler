@@ -42,8 +42,11 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         yield self.do_request('torrentinfo?uri=def', expected_code=400)
 
         path = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "bak_single.torrent")).encode('utf-8')
-
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
+
+        # Corrupt file
+        path = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "test_rss.xml")).encode('utf-8')
+        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
 
         path = "http://localhost:%d/ubuntu.torrent" % file_server_port
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)

@@ -30,7 +30,7 @@ from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
 from Tribler.Core.Utilities.install_dir import get_lib_path
-from Tribler.Core.defaults import tribler_defaults
+from Tribler.Core.defaults import tribler_defaults, dldefaults
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
     DuplicateTorrentFileError
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_MYPREFERENCES,
@@ -130,12 +130,6 @@ class Session(SessionConfigInterface):
         create_dir(os.path.join(scfg.get_state_dir(), u"sqlite"))
 
         create_dir(os.path.join(scfg.get_state_dir(), STATEDIR_DLPSTATE_DIR))
-
-        # Reset the nickname to something not related to the host name, it was
-        # really silly to have this default on the first place.
-        # TODO: Maybe move this to the upgrader?
-        if socket.gethostname().decode('utf-8', 'replace') in scfg.get_nickname():
-            scfg.set_nickname("Tribler user")
 
         if GOTM2CRYPTO:
             permidmod.init()
@@ -285,6 +279,10 @@ class Session(SessionConfigInterface):
         DefaultDownloadStartupConfig.getInstance().dlconfig = gui_config
 
         gui_config.write_file(configfilepath)
+
+        # Update all dldefaults to use the settings in gui_config
+        for k, v in gui_config._sections['downloadconfig'].iteritems():
+            dldefaults['downloadconfig'][k] = v
 
     def start_download_from_uri(self, uri, dconfig=None):
         """

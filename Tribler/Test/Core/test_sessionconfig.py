@@ -48,6 +48,12 @@ class TestSessionConfig(TriblerCoreTest):
         sci.set_libtorrent_max_conn_download(5)
         self.assertEqual(sci.get_libtorrent_max_conn_download(), 5)
 
+        sci.set_libtorrent_max_download_rate(200)
+        self.assertEqual(sci.get_libtorrent_max_download_rate(), 200)
+
+        sci.set_libtorrent_max_upload_rate(300)
+        self.assertEqual(sci.get_libtorrent_max_upload_rate(), 300)
+
         sci.set_libtorrent_proxy_settings(3, ("127.0.0.1", 1337), ("foo", "bar"))
         self.assertEqual(sci.get_libtorrent_proxy_settings(), (3, ("127.0.0.1", 1337), ("foo", "bar")))
 
@@ -164,10 +170,10 @@ class TestSessionConfig(TriblerCoreTest):
         sci.set_mainline_dht_listen_port("abcd")
         self.assertTrue(isinstance(sci.get_mainline_dht_listen_port(), int))
 
-    @raises(IOError)
     def test_startup_session_load_corrupt(self):
         sci = SessionStartupConfig()
         sci.load(os.path.join(self.CONFIG_FILES_DIR, "corrupt_session_config.conf"))
+        self.assertTrue(sci.sessconfig.has_section('upgrader'))
 
     def test_startup_session_load_no_filename(self):
         sci = SessionStartupConfig()

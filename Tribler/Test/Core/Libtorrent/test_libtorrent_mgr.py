@@ -1,11 +1,13 @@
 import os
 import shutil
 import tempfile
+
+from libtorrent import bencode
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-from Tribler.Core.exceptions import DuplicateDownloadException
+from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -37,6 +39,12 @@ class FakeTriblerSession:
 
     def set_listen_port_runtime(self, _):
         pass
+
+    def get_libtorrent_max_upload_rate(self):
+        return 100
+
+    def get_libtorrent_max_download_rate(self):
+        return 100
 
 
 class TestLibtorrentMgr(TriblerCoreTest):
@@ -110,6 +118,38 @@ class TestLibtorrentMgr(TriblerCoreTest):
         return test_deferred
 
     @deferred(timeout=20)
+    def test_got_metainfo(self):
+        """
+        Testing whether the callback is correctly invoked when we received metainfo
+        """
+        test_deferred = Deferred()
+        self.ltmgr.initialize()
+
+        def metainfo_cb(metainfo):
+            self.assertDictEqual(metainfo, {'info': {'pieces': ['a']}, 'leechers': 0,
+                                            'nodes': [], 'seeders': 0, 'initial peers': []})
+            test_deferred.callback(None)
+
+        fake_handle = MockObject()
+        torrent_info = MockObject()
+        torrent_info.metadata = lambda: bencode({'pieces': ['a']})
+        torrent_info.trackers = lambda: []
+        fake_handle.get_peer_info = lambda: []
+        fake_handle.torrent_file = lambda: torrent_info
+
+        self.ltmgr.get_session().remove_torrent = lambda *_: None
+
+        self.ltmgr.metainfo_requests['a' * 20] = {
+            'handle': fake_handle,
+            'timeout_callbacks': [],
+            'callbacks': [metainfo_cb],
+            'notify': False
+        }
+        self.ltmgr.got_metainfo("a" * 20)
+
+        return test_deferred
+
+    @deferred(timeout=20)
     def test_got_metainfo_timeout(self):
         """
         Testing whether the callback is correctly invoked when we received metainfo after timeout
@@ -151,6 +191,14 @@ class TestLibtorrentMgr(TriblerCoreTest):
         infohash.info_hash = lambda: 'a' * 20
         self.assertEqual(self.ltmgr.add_torrent(None, {'ti': infohash}), mock_handle)
         self.assertRaises(DuplicateDownloadException, self.ltmgr.add_torrent, None, {'ti': infohash})
+
+    def test_start_download_corrupt(self):
+        """
+        Testing whether starting the download of a corrupt torrent file raises an exception
+        """
+        self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
+        corrupt_file = os.path.join(self.LIBTORRENT_FILES_DIR, 'corrupt_torrent.torrent')
+        self.assertRaises(TorrentFileException, self.ltmgr.start_download, torrentfilename=corrupt_file)
 
     def test_start_download_duplicate(self):
         """

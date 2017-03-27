@@ -170,12 +170,9 @@ class LibtorrentMgr(TaskManager):
             ltsession.listen_on(self.trsession.get_anon_listen_port(), self.trsession.get_anon_listen_port() + 20)
             ltsession.start_dht()
 
-            # Elric: Copy the speed limits from the plain session until we come
-            # up with a way to have global bandwidth limit settings.
-            self_get_session_settings = self.get_session().get_settings()
             ltsession_settings = ltsession.get_settings()
-            ltsession_settings['upload_rate_limit'] = self_get_session_settings['upload_rate_limit']
-            ltsession_settings['download_rate_limit'] = self_get_session_settings['download_rate_limit']
+            ltsession_settings['upload_rate_limit'] = self.trsession.get_libtorrent_max_upload_rate()
+            ltsession_settings['download_rate_limit'] = self.trsession.get_libtorrent_max_download_rate()
             ltsession.set_settings(ltsession_settings)
 
         ltsession.add_dht_router('router.bittorrent.com', 6881)
@@ -353,7 +350,7 @@ class LibtorrentMgr(TaskManager):
 
             cache_result = self._get_cached_metainfo(infohash)
             if cache_result:
-                reactor.callInThread(callback, deepcopy(cache_result))
+                callback(deepcopy(cache_result))
 
             elif infohash not in self.metainfo_requests:
                 # Flags = 4 (upload mode), should prevent libtorrent from creating files
@@ -439,7 +436,7 @@ class LibtorrentMgr(TaskManager):
                         self._add_cached_metainfo(infohash, metainfo)
 
                         for callback in callbacks:
-                            reactor.callInThread(callback, deepcopy(metainfo))
+                            callback(deepcopy(metainfo))
 
                         # let's not print the hashes of the pieces
                         debuginfo = deepcopy(metainfo)
@@ -448,7 +445,7 @@ class LibtorrentMgr(TaskManager):
 
                     elif timeout_callbacks and timeout:
                         for callback in timeout_callbacks:
-                            reactor.callInThread(callback, infohash_bin)
+                            callback(infohash_bin)
 
                 if handle:
                     self.get_session().remove_torrent(handle, 1)
@@ -562,7 +559,7 @@ class LibtorrentMgr(TaskManager):
                 # try to get the torrent from the given torrent file
                 torrent_data = fix_torrent(torrentfilename)
                 if torrent_data is None:
-                    raise TorrentFileException()
+                    raise TorrentFileException("error while decoding torrent file")
 
                 tdef = TorrentDef.load_from_memory(torrent_data)
 

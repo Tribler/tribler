@@ -490,7 +490,7 @@ class UdpTrackerSession(TrackerSession):
         if self.result_deferred:
             result_msg = "UDP tracker failed for url %s" % self._tracker_url
             if msg:
-                result_msg += " (error: %s)" % msg
+                result_msg += " (error: %s)" % unicode(msg, errors='replace')
             self.result_deferred.errback(ValueError(result_msg))
 
     def generate_transaction_id(self):

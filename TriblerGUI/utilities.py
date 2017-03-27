@@ -26,14 +26,20 @@ def seconds_to_string(seconds):
     return "%d:%02d" % (minutes, seconds_left)
 
 
-def string_to_minutes(time_str):
+def seconds_to_hhmm_string(seconds):
+    hours = int(seconds) / 3600
+    seconds -= hours * 3600
+    return "%d:%02d" % (hours, seconds / 60)
+
+
+def string_to_seconds(time_str):
     parts = time_str.split(":")
     if len(parts) != 2:
         raise ValueError("Invalid time string")
 
     hours = float(parts[0])
     minutes = float(parts[1])
-    return hours * 60 + minutes
+    return hours * 3600 + minutes * 60
 
 
 def timestamp_to_time(timestamp):

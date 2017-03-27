@@ -591,7 +591,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.tracker_status[alert.url] = [peers, status]
 
     def on_metadata_received_alert(self, alert):
-        metadata = {'info': lt.bdecode(get_info_from_handle(self.handle).metadata())}
+        torrent_info = get_info_from_handle(self.handle)
+        if not torrent_info:
+            return
+
+        metadata = {'info': lt.bdecode(torrent_info.metadata())}
 
         trackers = [tracker['url'] for tracker in self.handle.trackers()]
         if trackers:
@@ -700,10 +704,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     def _stop_if_finished(self):
         if self.dlstate == DLSTATUS_SEEDING:
-            mode = self.dlconfig.get('downloadconfig', 'seeding_mode')
-            if ((mode == 'never') or
-                (mode == 'ratio' and self.all_time_ratio >= self.dlconfig.get('downloadconfig', 'seeding_ratio')) or
-                (mode == 'time' and (self.finished_time / 60) >= self.dlconfig.get('downloadconfig', 'seeding_time'))):
+            mode = self.get_seeding_mode()
+            if mode == 'never' \
+                    or (mode == 'ratio' and
+                                self.all_time_ratio >= self.dlconfig.get('downloadconfig', 'seeding_ratio')) \
+                    or (mode == 'time' and self.finished_time >= self.dlconfig.get('downloadconfig', 'seeding_time')):
                 self.stop()
 
     def set_corrected_infoname(self):
