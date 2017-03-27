@@ -3,17 +3,17 @@ Make torrent.
 
 Author(s): Arno Bakker, Bram Cohen, Arno Bakker
 """
-import os
 import logging
+import os
+
+import chardet
 from hashlib import sha1
 from copy import copy
 from time import time
 from libtorrent import bencode
 
-import chardet
 
 from Tribler.Core.Utilities.unicode import bin2unicode
-from Tribler.Core.APIImplementation.miscutils import offset2piece
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.defaults import tdefdictdefaults
 from Tribler.Core.Utilities.utilities import validTorrentFile
@@ -296,14 +296,19 @@ def get_length_filepieceranges_from_metainfo(metainfo, selectedfiles):
             filename = pathlist2filename(path)
 
             if length > 0 and (not selectedfiles or (selectedfiles and filename in selectedfiles)):
-                range = (offset2piece(offset, piecesize, False),
-                         offset2piece(offset + length, piecesize),
-                         (offset - offset2piece(offset, piecesize, False) * piecesize),
-                         filename)
-                filepieceranges.append(range)
+                pieces_range = (offset_to_piece(offset, piecesize, False), offset_to_piece(offset + length, piecesize),
+                                (offset - offset_to_piece(offset, piecesize, False) * piecesize), filename)
+                filepieceranges.append(pieces_range)
                 total += length
             offset += length
         return total, filepieceranges
+
+
+def offset_to_piece(offset, piece_size, endpoint=True):
+    p = offset / piece_size
+    if endpoint and offset % piece_size > 0:
+        p += 1
+    return p
 
 
 def copy_metainfo_to_input(metainfo, input):
