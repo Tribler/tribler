@@ -1,5 +1,7 @@
 """
-Simple definitions for the Tribler Core.
+Simple definitions.
+
+Author(s): Arno Bakker
 """
 
 DLSTATUS_ALLOCATING_DISKSPACE = 0  # TODO: make sure this get set when in this alloc mode

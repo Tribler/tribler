@@ -1,5 +1,7 @@
 """
 Module of Credit mining function testing.
+
+Author(s): Mihai Capota, Ardhi Putra
 """
 
 import binascii

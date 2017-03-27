@@ -1,3 +1,8 @@
+"""
+Seeding tests.
+
+Author(s): Arno Bakker, Niels Zeilemaker
+"""
 import logging
 import os
 from twisted.internet.defer import inlineCallbacks, Deferred

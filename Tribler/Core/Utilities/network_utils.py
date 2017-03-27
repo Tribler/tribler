@@ -1,5 +1,5 @@
 """
-This module contains some utility functions for network.
+This module contains some utility functions for networking.
 """
 import socket
 import struct

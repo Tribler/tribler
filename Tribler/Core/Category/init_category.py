@@ -1,7 +1,8 @@
 """
 Give the initial category information.
-"""
 
+Author(s): Yuan Yuan
+"""
 import ConfigParser
 
 

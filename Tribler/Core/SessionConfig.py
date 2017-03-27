@@ -1,5 +1,7 @@
 """
-Controls the operation of a Session.
+Configure parameters of a Session.
+
+Author(s): Arno Bakker, Egbert Bouman
 """
 import logging
 import os

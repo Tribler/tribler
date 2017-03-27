@@ -1,5 +1,6 @@
 #!/bin/sh -xe
 # Script to build Tribler 64-bit on Mac
+# Author(s): Riccardo Petrocco, Arno Bakker
 
 APPNAME=Tribler
 if [ -e .TriblerVersion ]; then

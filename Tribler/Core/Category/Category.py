@@ -1,3 +1,8 @@
+"""
+Category.
+
+Author(s):  Yuan Yuan, Jelle Roozenburg
+"""
 import os
 import re
 import logging

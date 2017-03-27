@@ -1,3 +1,8 @@
+"""
+Tests for the LevelDB.
+
+Author(s): Elric Milon
+"""
 from nose.tools import raises
 
 from shutil import rmtree
@@ -107,6 +112,3 @@ class AbstractTestLevelDBStore(BaseTestCase):
 class TestLevelDBStore(AbstractTestLevelDBStore):
     __test__ = True
     _storetype = ClockedLevelDBStore
-
-#
-# test_leveldb_store.py ends here

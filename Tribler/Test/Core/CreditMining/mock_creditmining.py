@@ -1,5 +1,7 @@
 """
 Module of Credit mining mock classes.
+
+Author(s): Ardhi Putra
 """
 from twisted.web.resource import Resource
 

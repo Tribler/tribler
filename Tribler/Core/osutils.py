@@ -1,6 +1,11 @@
 """
 OS-independent utility functions.
+
+The function get_home_dir returns CSIDL_APPDATA i.e. App data directory on win32.
+
+Author(s): Arno Bakker
 """
+
 import sys
 import os
 import time

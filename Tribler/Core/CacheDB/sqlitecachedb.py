@@ -1,3 +1,8 @@
+"""
+Sqlitecachedb.
+
+Author(s): Jie Yang
+"""
 import logging
 import os
 from base64 import encodestring, decodestring

@@ -1,11 +1,9 @@
-""" Default values for all configurarable parameters of the Core"""
-#
-# For an explanation of each parameter, see SessionConfig/DownloadConfig.py
-#
-# defaults with comments behind them are not user-setable via the
-# *ConfigInterface classes, because they are not currently implemented (IPv6)
-# or we only use them internally.
-#
+"""
+Default values for all configurable parameters of the Core.
+
+Author(s): Arno Bakker, Bram Cohen, Egbert Bouman
+"""
+
 # WARNING:
 #    As we have release Tribler 4.5.0 you must now take into account that
 #    people have stored versions of these params on their disk. Make sure

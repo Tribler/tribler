@@ -1,5 +1,7 @@
 """
 Supported boosting policy.
+
+Author(s): Egbert Bouman, Mihai Capota, Elric Milon, Ardhi Putra
 """
 import logging
 import random

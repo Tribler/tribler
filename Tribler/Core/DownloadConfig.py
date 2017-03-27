@@ -1,5 +1,7 @@
 """
 Controls how a TorrentDef is downloaded (rate, where on disk, etc.).
+
+Author(s): Arno Bakker, Egbert Bouman
 """
 import copy
 import logging

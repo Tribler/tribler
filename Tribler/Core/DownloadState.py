@@ -1,5 +1,7 @@
 """
 Contains a snapshot of the state of the Download at a specific point in time.
+
+Author(s): Arno Bakker
 """
 import logging
 import sys
@@ -9,7 +11,6 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
 
 
 class DownloadState(object):
-
     """
     Contains a snapshot of the state of the Download at a specific
     point in time. Using a snapshot instead of providing live data and
@@ -19,7 +20,8 @@ class DownloadState(object):
     """
 
     def __init__(self, download, status, error, progress, stats=None, seeding_stats=None, filepieceranges=None, logmsgs=None, peerid=None, videoinfo=None):
-        """ Internal constructor.
+        """
+        Internal constructor.
         @param download The Download this state belongs too.
         @param status The status of the Download (DLSTATUS_*)
         @param progress The general progress of the Download.

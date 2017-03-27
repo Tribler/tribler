@@ -1,3 +1,8 @@
+"""
+Windows 32 bit register checker.
+
+Author(s): Arno Bakker
+"""
 import sys
 import logging
 

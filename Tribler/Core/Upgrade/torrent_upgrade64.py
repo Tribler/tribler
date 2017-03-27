@@ -1,3 +1,8 @@
+"""
+Migration scripts for migrating to 6.4
+
+Author(s): Elric Milon
+"""
 import logging
 import os
 from binascii import hexlify

@@ -1,3 +1,8 @@
+"""
+Peer to peer search functionality and discovering new torrents.
+
+Author(s): Niels Zeilemaker
+"""
 from random import shuffle
 from time import time
 from binascii import hexlify

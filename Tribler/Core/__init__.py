@@ -1,9 +1,10 @@
 """
-The Core package contains the core functionalities of the Tribler project
+Core functionality of the Tribler.
+
+Author(s): Arno Bakker
 """
 from threading import RLock
 import logging
-
 
 logger = logging.getLogger(__name__)
 

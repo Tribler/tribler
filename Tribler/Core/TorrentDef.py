@@ -1,5 +1,7 @@
 """
-Definition of a torrent, that is, a collection of files or a live stream.
+Definition of a torrent, that is, a collection of files or a live stream
+
+Author(s): Arno Bakker
 """
 import sys
 import os

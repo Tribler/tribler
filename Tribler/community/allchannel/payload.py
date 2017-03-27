@@ -2,7 +2,6 @@ from Tribler.dispersy.payload import Payload
 
 
 class ChannelCastPayload(Payload):
-
     """
     Propagate semi random channel data.
 

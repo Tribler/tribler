@@ -1,3 +1,8 @@
+"""
+Conversions to unicode.
+
+Author(s): Arno Bakker
+"""
 import sys
 
 

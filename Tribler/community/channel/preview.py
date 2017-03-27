@@ -3,7 +3,6 @@ from time import time
 
 
 class PreviewChannelCommunity(ChannelCommunity):
-
     """
     The PreviewChannelCommunity extends the ChannelCommunity to allow ChannelCommunity messages to
     be decoded while not actually joining or participating in an actual ChannelCommunity.

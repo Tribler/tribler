@@ -1,3 +1,8 @@
+"""
+BitTorrent connections.
+
+Author(s): Arno Bakker, Jie Yang
+"""
 import socket
 import logging
 from binascii import b2a_hex

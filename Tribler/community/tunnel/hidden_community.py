@@ -1,3 +1,8 @@
+"""
+The hidden tunnel community.
+
+Author(s): Egbert Bouman
+"""
 import time
 import os
 import struct

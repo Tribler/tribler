@@ -1,5 +1,8 @@
 """
-Handles the case where the user did a remote query and now selected one of the returned torrents for download.
+Handles the case where the user did a remote query and now selected one of the
+returned torrents for download.
+
+Author(s): Niels Zeilemaker
 """
 import logging
 import sys

@@ -1,3 +1,8 @@
+"""
+LaunchManyCore
+
+Author(s): Arno Bakker, Niels Zeilemaker
+"""
 import binascii
 import logging
 import os
@@ -34,10 +39,6 @@ try:
     import prctl
 except ImportError:
     pass
-
-
-# Internal classes
-#
 
 
 class TriblerLaunchMany(TaskManager):

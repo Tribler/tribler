@@ -1,3 +1,8 @@
+"""
+Permanent Identifier.
+
+Author(s): Arno Bakker
+"""
 import os
 import logging
 from M2Crypto import Rand, EC, BIO

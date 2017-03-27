@@ -1,3 +1,8 @@
+"""
+Upgrades the database from one version to a newer version.
+
+Author(s): Elric Milon
+"""
 import logging
 import os
 from binascii import hexlify

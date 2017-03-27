@@ -1,3 +1,8 @@
+"""
+Print the directory where Python is installed.
+
+Author(s): Lipu Fei
+"""
 import os
 import sys
 

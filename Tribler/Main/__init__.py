@@ -1,3 +1,5 @@
 """
-The Main package contains code for the GUI of Tribler.
+Hacks used in Tribler.
+
+Author(s): Arno Bakker
 """

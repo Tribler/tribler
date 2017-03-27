@@ -1,7 +1,4 @@
 import os
-from tempfile import mkdtemp
-
-import shutil
 
 from M2Crypto.EC import EC
 from twisted.internet.defer import inlineCallbacks

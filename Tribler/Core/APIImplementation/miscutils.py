@@ -1,3 +1,10 @@
+"""
+Miscellaneous utilities.
+
+Author(s): Arno Bakker
+"""
+
+
 def offset2piece(offset, piecesize, endpoint=True):
     p = offset / piecesize
     # Niels: 08-08-2011: included endpoint boolean to specify if we should return an inclusive piece

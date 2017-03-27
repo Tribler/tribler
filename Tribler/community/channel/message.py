@@ -2,7 +2,6 @@ from Tribler.dispersy.message import DelayMessage
 
 
 class DelayMessageReqChannelMessage(DelayMessage):
-
     """
     Raised during ChannelCommunity.check_ if the channel message has not been received yet.
     """

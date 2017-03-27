@@ -1,3 +1,8 @@
+"""
+A configparser.
+
+Author(s): Egbert Bouman
+"""
 import ast
 import codecs
 from ConfigParser import DEFAULTSECT, RawConfigParser

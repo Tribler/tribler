@@ -1,5 +1,5 @@
 """
-File contains all conversions for the MultiChain Community.
+All conversions for the MultiChain Community.
 """
 from struct import pack, unpack_from, calcsize
 from Tribler.dispersy.conversion import BinaryConversion

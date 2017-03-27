@@ -1,3 +1,8 @@
+"""
+install_dir.
+
+Author(s): Elric Milon
+"""
 import os.path
 import sys
 import Tribler
@@ -53,7 +58,3 @@ def determine_install_dir():
 
     this_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
     return '/usr/share/tribler' if this_dir.startswith('/usr/lib') else this_dir
-
-
-#
-# install_dir.py ends here

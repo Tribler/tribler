@@ -1,3 +1,8 @@
+"""
+instrumentation.
+
+Author(s): Elric Milon
+"""
 import threading
 from os import sys
 from threading import Lock, RLock, Thread
@@ -165,6 +170,3 @@ class WatchDog(Thread):
                 self.stacks.pop(thread_id)
                 self.times.pop(thread_id)
                 self.print_all_stacks()
-
-#
-# instrumentation.py ends here
