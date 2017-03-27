@@ -40,6 +40,12 @@ class FakeTriblerSession:
     def set_listen_port_runtime(self, _):
         pass
 
+    def get_libtorrent_max_upload_rate(self):
+        return 100
+
+    def get_libtorrent_max_download_rate(self):
+        return 100
+
 
 class TestLibtorrentMgr(TriblerCoreTest):
 

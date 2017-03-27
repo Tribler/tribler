@@ -170,10 +170,10 @@ class TestSessionConfig(TriblerCoreTest):
         sci.set_mainline_dht_listen_port("abcd")
         self.assertTrue(isinstance(sci.get_mainline_dht_listen_port(), int))
 
-    @raises(IOError)
     def test_startup_session_load_corrupt(self):
         sci = SessionStartupConfig()
         sci.load(os.path.join(self.CONFIG_FILES_DIR, "corrupt_session_config.conf"))
+        self.assertTrue(sci.sessconfig.has_section('upgrader'))
 
     def test_startup_session_load_no_filename(self):
         sci = SessionStartupConfig()
