@@ -19,7 +19,7 @@ class BoostingPolicy(object):
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
-    def apply(self, torrents, max_active, force=False):
+    def apply(self, torrents, max_active):
         """
         apply the policy to the torrents stored
         """
@@ -35,19 +35,6 @@ class BoostingPolicy(object):
         for torrent in sorted_torrents[max_active:]:
             if self.session.get_download(torrent["metainfo"].get_infohash()):
                 torrents_stop.append(torrent)
-
-        if force:
-            return torrents_start, torrents_stop
-
-        # if both results are empty for some reason (e.g, key_check too restrictive)
-        # or torrent started less than half available torrent (try to keep boosting alive)
-        # if it's already random, just let it be
-        if not isinstance(self, RandomPolicy) and ((not torrents_start and not torrents_stop) or
-                                                   (len(torrents_start) < len(torrents) / 2 and len(
-                                                       torrents_start) < max_active / 2)):
-            self._logger.error("Start and stop torrent list are empty. Fallback to Random")
-            # fallback to random policy
-            torrents_start, torrents_stop = RandomPolicy(self.session).apply(torrents, max_active)
 
         return torrents_start, torrents_stop
 

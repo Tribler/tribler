@@ -51,7 +51,7 @@ class TestBoostingManagerPolicies(TriblerCoreTest):
         policy = RandomPolicy(self.session)
         policy.key = lambda _: rdrwh.random()
 
-        torrents_start, torrents_stop = policy.apply(self.torrents, 6, force=True)
+        torrents_start, torrents_stop = policy.apply(self.torrents, 6)
         ids_start = [torrent["metainfo"].get_infohash() for torrent in
                      torrents_start]
         self.assertEqual(1, len(ids_start), "Start failed %s vs %s" % (ids_start, torrents_start))
@@ -63,7 +63,7 @@ class TestBoostingManagerPolicies(TriblerCoreTest):
         testing seeder ratio policy
         """
         policy = SeederRatioPolicy(self.session)
-        torrents_start, torrents_stop = policy.apply(self.torrents, 6, force=True)
+        torrents_start, torrents_stop = policy.apply(self.torrents, 6)
         ids_start = [torrent["metainfo"].get_infohash() for torrent in
                      torrents_start]
         self.assertEqual(ids_start, [10, 8, 6])
@@ -95,7 +95,7 @@ class TestBoostingManagerPolicies(TriblerCoreTest):
         test policy based on creation date
         """
         policy = CreationDatePolicy(self.session)
-        torrents_start, torrents_stop = policy.apply(self.torrents, 5, force=True)
+        torrents_start, torrents_stop = policy.apply(self.torrents, 5)
         ids_start = [torrent["metainfo"].get_infohash() for torrent in
                      torrents_start]
         self.assertEqual(ids_start, [10, 8, 6])
