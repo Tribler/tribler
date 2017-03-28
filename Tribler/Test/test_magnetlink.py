@@ -1,3 +1,8 @@
+"""
+Testing magnetlinks.
+
+Author(s): Boudewijn Schoon
+"""
 from binascii import hexlify
 import socket
 import os

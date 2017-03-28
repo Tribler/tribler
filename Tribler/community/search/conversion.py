@@ -1,3 +1,8 @@
+"""
+Data conversions for the search community.
+
+Author(s): Niels Zeilemaker
+"""
 from struct import pack, unpack_from
 from random import choice, sample
 from math import ceil

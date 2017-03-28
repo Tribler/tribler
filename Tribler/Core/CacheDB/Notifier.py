@@ -1,3 +1,8 @@
+"""
+Notifier.
+
+Author(s): Jelle Roozenburg
+"""
 import logging
 import threading
 

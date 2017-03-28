@@ -1,3 +1,10 @@
+"""
+Testing as server.
+
+Make sure the thread reactor is installed.
+
+Author(s): Arno Bakker, Jie Yang, Niels Zeilemaker
+"""
 import functools
 import inspect
 import logging
@@ -25,7 +32,6 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.instrumentation import WatchDog
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
-# Make sure the in thread reactor is installed.
 from Tribler.Test.twisted_thread import reactor
 from Tribler.Test.util.util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
 from Tribler.dispersy.util import blocking_call_on_reactor_thread

@@ -1,3 +1,8 @@
+"""
+Video server.
+
+Author(s): Jan David Mol, Arno Bakker, Egbert Bouman
+"""
 import os
 import socket
 import logging

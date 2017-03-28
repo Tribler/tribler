@@ -1,3 +1,10 @@
+"""
+Test utilities.
+
+Partially based on the code from http://code.activestate.com/recipes/52215/
+
+Author(s): Elric Milon
+"""
 import logging
 import os
 import sys
@@ -12,7 +19,6 @@ __all__ = ["process_unhandled_exceptions"]
 
 
 class UnhandledExceptionCatcher(object):
-
     """
     Logs the usual tb information, followed by a listing of all the
     local variables in each frame and mark the test run as failed.
@@ -127,6 +133,3 @@ _twisted_catcher = UnhandledTwistedExceptionCatcher()
 
 process_unhandled_exceptions = _catcher.check_exceptions
 process_unhandled_twisted_exceptions = _twisted_catcher.check_exceptions
-
-#
-# util.py ends here

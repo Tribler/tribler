@@ -31,7 +31,6 @@ DEBUG = False
 
 
 class AllChannelCommunity(Community):
-
     """
     A single community that all Tribler members join and use to disseminate .torrent files.
 

@@ -1,3 +1,8 @@
+"""
+Dispersy Payload implementation for the search community.
+
+Author(s): Niels Zeilemaker
+"""
 from Tribler.dispersy.payload import Payload, IntroductionRequestPayload
 from Tribler.dispersy.bloomfilter import BloomFilter
 

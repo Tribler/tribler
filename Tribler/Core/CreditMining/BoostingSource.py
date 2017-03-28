@@ -1,5 +1,7 @@
 """
 Supported boosting sources.
+
+Author(s): Egbert Bouman, Mihai Capota, Elric Milon, Ardhi Putra
 """
 import glob
 import logging

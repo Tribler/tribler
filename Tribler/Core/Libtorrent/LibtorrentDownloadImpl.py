@@ -1,5 +1,7 @@
 """
-Based on SwiftDownloadImpl.py, modified for the use with libtorrent.
+A wrapper around a libtorrent download.
+
+Author(s): Arno Bakker, Egbert Bouman
 """
 import base64
 import logging

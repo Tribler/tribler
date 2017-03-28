@@ -1,3 +1,8 @@
+"""
+LevelDBStore.
+
+Author(s): Elric Milon
+"""
 from collections import MutableMapping
 from itertools import chain
 import os
@@ -120,7 +125,3 @@ class LevelDbStore(MutableMapping, TaskManager):
         self.cancel_all_pending_tasks()
         self.flush()
         self._db = None
-
-
-#
-# torrentstore.py ends here

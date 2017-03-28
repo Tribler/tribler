@@ -1,3 +1,8 @@
+"""
+Migration scripts for migrating to 6.5
+
+Author(s): Elric Milon
+"""
 import os
 from binascii import hexlify
 from shutil import rmtree
@@ -70,7 +75,3 @@ class TorrentMigrator65(TorrentMigrator64):
             # We don't want to walk through the child directories
             break
         self.status_update_func("All torrent files processed.")
-
-
-#
-# torrent_upgrade65.py ends here

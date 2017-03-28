@@ -1,3 +1,8 @@
+"""
+Tests for the video server.
+
+Author(s): Arno Bakker
+"""
 import binascii
 import os
 from twisted.internet import reactor

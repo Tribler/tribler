@@ -1,3 +1,8 @@
+"""
+A wrapper around libtorrent
+
+Author(s): Egbert Bouman
+"""
 import binascii
 import logging
 import random

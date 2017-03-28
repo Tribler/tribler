@@ -1,3 +1,8 @@
+"""
+Video utilities.
+
+Author(s): Egbert Bouman
+"""
 import os
 import sys
 import tempfile

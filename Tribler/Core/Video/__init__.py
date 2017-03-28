@@ -1,3 +1,5 @@
 """
-The Video package contains the VLCWrapper and code to stream live data in Tribler.
+VLCWrapper and code to stream live data in Tribler
+
+Author(s): Arno Bakker
 """

@@ -1,3 +1,8 @@
+"""
+Enumeration for playback modes.
+
+Author(s): Arno Bakker
+"""
 PLAYBACKMODE_INTERNAL = 0
 PLAYBACKMODE_EXTERNAL_DEFAULT = 1
 PLAYBACKMODE_EXTERNAL_MIME = 2

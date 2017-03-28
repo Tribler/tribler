@@ -1,3 +1,8 @@
+"""
+The FamilyFilter filters out nsfw content if enabled.
+
+Author(s): Jelle Roozenburg
+"""
 import re
 import os
 import logging

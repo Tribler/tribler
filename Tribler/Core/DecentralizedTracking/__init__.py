@@ -1,3 +1,5 @@
 """
-The DecentralizedTracking package contains the pymdht library for profiling network information.
+The DecentralizedTracking package contains the pymdht library for profiling networkinformation.
+
+Author(s): Arno Bakker
 """

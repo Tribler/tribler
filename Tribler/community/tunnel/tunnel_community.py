@@ -1,3 +1,8 @@
+"""
+The tunnel community.
+
+Author(s): Egbert Bouman
+"""
 import random
 import socket
 import time

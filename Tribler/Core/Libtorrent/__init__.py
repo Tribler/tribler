@@ -1,11 +1,13 @@
 """
 The Libtorrent package contains code to manage the torrent library.
+
+Author(s): Egbert Bouman
 """
 
 
 def checkHandleAndSynchronize(default=None):
     """
-    Return the libtorrent handle if it's available, else return the default value
+    Return the libtorrent handle if it's available, else return the default value.
     """
     def wrap(f):
         def invoke_func(*args, **kwargs):

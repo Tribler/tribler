@@ -1,6 +1,8 @@
-# Note for Developers: Please write a unittest in Tribler/Test/test_sqlitecachedbhandler.py
-# for any function you add to database.
-# Please reuse the functions in sqlitecachedb as much as possible
+"""
+SqlitecacheDBHanler.
+
+Author(s): Jie Yang
+"""
 import json
 import logging
 import math

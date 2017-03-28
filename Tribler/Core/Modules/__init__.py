@@ -1,3 +1,3 @@
 """
-The Modules package contains the tracker manager.
+The Modules package contains the tracker manager
 """

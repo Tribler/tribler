@@ -1,6 +1,3 @@
-"""
-This file should contain code for hacks needed to work around bugs in non-tribler code.
-"""
 import sys
 
 # TODO: remove this when Tribler gets migrated to python 3.
@@ -34,6 +31,3 @@ if sys.platform == "win32":
         if ctypes.windll.kernel32.SetEnvironmentVariableW(name, value) == 0:
             raise RuntimeError("Failed to set env. variable '%s' to '%s" %
                                (repr(name), repr(value)))
-
-#
-# hacks.py ends here

@@ -1,3 +1,8 @@
+"""
+Different utility methods
+
+Author(s): Jie Yang
+"""
 from base64 import b32decode
 from types import StringType, LongType, IntType, ListType, DictType
 import urlparse

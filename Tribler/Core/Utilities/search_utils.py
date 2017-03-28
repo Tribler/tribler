@@ -1,3 +1,8 @@
+"""
+Search utilities.
+
+Author(s): Jelle Roozenburg, Arno Bakker
+"""
 import re
 
 RE_KEYWORD_SPLIT = re.compile(r"[\W_]", re.UNICODE)

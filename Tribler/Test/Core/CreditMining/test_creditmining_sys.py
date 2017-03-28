@@ -1,5 +1,7 @@
 """
 Module of Credit mining function testing.
+
+Author(s): Ardhi Putra
 """
 import binascii
 import os
@@ -28,7 +30,7 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 class TestBoostingManagerSys(TestAsServer):
     """
-    base class to test base credit mining function
+    Base class to test base credit mining function.
     """
 
     def __init__(self, *argv, **kwargs):

@@ -1,3 +1,8 @@
+"""
+Make torrent.
+
+Author(s): Arno Bakker, Bram Cohen, Arno Bakker
+"""
 import os
 import logging
 from hashlib import sha1
