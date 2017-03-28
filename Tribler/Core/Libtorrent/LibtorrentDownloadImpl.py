@@ -236,7 +236,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 def schedule_create_engine():
                     self.cew_scheduled = True
                     create_engine_wrapper_deferred = self.network_create_engine_wrapper(
-                        self.pstate_for_restart, share_mode=share_mode)
+                        self.pstate_for_restart, share_mode=share_mode,
+                        checkpoint_disabled=self.get_checkpoint_disabled())
                     create_engine_wrapper_deferred.chainDeferred(deferred)
 
                 def schedule_create_engine_call(_):
@@ -1125,7 +1126,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 def schedule_create_engine(_):
                     self.cew_scheduled = True
                     create_engine_wrapper_deferred = self.network_create_engine_wrapper(
-                        self.pstate_for_restart, share_mode=self.get_share_mode())
+                        self.pstate_for_restart, share_mode=self.get_share_mode(),
+                        checkpoint_disabled=self.get_checkpoint_disabled())
                     create_engine_wrapper_deferred.addCallback(self.session.lm.on_download_handle_created)
 
                 can_create_engine_deferred = self.can_create_engine_wrapper()
