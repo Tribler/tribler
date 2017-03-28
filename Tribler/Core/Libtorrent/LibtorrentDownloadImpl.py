@@ -936,28 +936,52 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                      # optimistic_unchoke = 0x800 seems unavailable in python bindings
                      'optimistic': bool(peer_info.flags & 0x800),
                      'direction': 'L' if bool(peer_info.flags & peer_info.local_connection) else 'R',
+
                      'uprate': peer_info.payload_up_speed,
+                     'downrate': peer_info.payload_down_speed,
+
+                     # speed including protocol messages
+                     'alluprate': peer_info.up_speed,
+                     'alldownrate': peer_info.down_speed,
+
+                     # up/down peak speed for this
+                     'uppeak': peer_info.upload_rate_peak,
+                     'downpeak': peer_info.download_rate_peak,
+
                      'uinterested': bool(peer_info.flags & peer_info.remote_interested),
                      'uchoked': bool(peer_info.flags & peer_info.remote_choked),
-                     'uhasqueries': peer_info.upload_queue_length > 0,
-                     'uflushed': peer_info.used_send_buffer > 0,
-                     'downrate': peer_info.payload_down_speed,
                      'dinterested': bool(peer_info.flags & peer_info.interesting),
                      'dchoked': bool(peer_info.flags & peer_info.choked),
                      'snubbed': bool(peer_info.flags & 0x1000),
-                     'utotal': peer_info.total_upload,
-                     'dtotal': peer_info.total_download,
-                     'completed': peer_info.progress,
-                     'have': peer_info.pieces, 'speed': peer_info.remote_dl_rate,
-                     'country': peer_info.country,
-                     'connection_type': peer_info.connection_type,
+
                      # add upload_only and/or seed
                      'seed': bool(peer_info.flags & peer_info.seed),
                      'upload_only': bool(peer_info.flags & peer_info.upload_only),
+
+                     'uhasqueries': peer_info.upload_queue_length > 0,
+                     'uflushed': peer_info.used_send_buffer > 0,
+
+                     'utotal': peer_info.total_upload,
+                     'dtotal': peer_info.total_download,
+                     'completed': peer_info.progress_ppm,
+                     'have': peer_info.pieces,
+                     'speed': peer_info.remote_dl_rate,
+                     'country': peer_info.country,
+                     'connection_type': peer_info.connection_type,
+
                      # add read and write state (check unchoke/choke peers)
                      # read and write state is char with value 0, 1, 2, 4. May be empty
                      'rstate': peer_info.read_state,
-                     'wstate': peer_info.write_state}
+                     'wstate': peer_info.write_state,
+
+                     # number of pieces this peer has
+                     'num_pieces': peer_info.num_pieces,
+
+                     # peer source
+                     'source': peer_info.source,
+
+                     'rtt': peer_info.rtt,
+                     'recipro': peer_info.estimated_reciprocation_rate}
 
         return peer_dict
 
