@@ -35,11 +35,6 @@ from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
 
-try:
-    import prctl
-except ImportError:
-    pass
-
 
 class TriblerLaunchMany(TaskManager):
 
