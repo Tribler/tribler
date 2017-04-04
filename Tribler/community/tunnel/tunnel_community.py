@@ -654,7 +654,7 @@ class TunnelCommunity(Community):
 
         for cid in to_remove:
             if cid in self.relay_from_to:
-                self.tunnel_logger.warning("Removing relay %d %s", cid, additional_info)
+                self.tunnel_logger.info("Removing relay %d %s", cid, additional_info)
                 # Remove the relay
                 relay = self.relay_from_to.pop(cid)
                 if self.notifier:
@@ -1012,7 +1012,7 @@ class TunnelCommunity(Community):
     def on_cell(self, messages):
         for message in messages:
             circuit_id = message.payload.circuit_id
-            self.tunnel_logger.warning("Got %s (%d) from %s, I am %s", message.payload.message_type,
+            self.tunnel_logger.debug("Got %s (%d) from %s, I am %s", message.payload.message_type,
                                      message.payload.circuit_id, message.candidate.sock_addr,
                                      self.my_member)
 
