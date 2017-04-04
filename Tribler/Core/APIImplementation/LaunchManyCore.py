@@ -233,6 +233,9 @@ class TriblerLaunchMany(TaskManager):
             self.tunnel_community = self.dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member,
                                                                    load=True, kargs=tunnel_kwargs)[0]
 
+            # We don't want to automatically load other instances of this community with other master members.
+            self.dispersy.undefine_auto_load(HiddenTunnelCommunity)
+
         self._logger.info("tribler: communities are ready in %.2f seconds", timemod.time() - now_time)
 
     def init(self):
