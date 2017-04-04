@@ -63,6 +63,11 @@ class TrustPlotMplCanvas(MplCanvas):
         handles, labels = self.axes.get_legend_handles_labels()
         self.axes.legend(handles, labels)
 
+        if len(self.plot_data[0][0]) == 1:  # If we only have one data point, don't show negative axis
+            self.axes.set_ylim(-0.3, 10)
+            self.axes.set_xlim(datetime.datetime.now() - datetime.timedelta(hours=1),
+                               datetime.datetime.now() + datetime.timedelta(days=4))
+
         self.draw()
 
 
