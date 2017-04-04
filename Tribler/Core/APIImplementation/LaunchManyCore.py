@@ -556,7 +556,7 @@ class TriblerLaunchMany(TaskManager):
                     dscfg.set_hops(hops)
 
                     # TODO(emilon): That's a hack to work around the fact that removing a torrent is racy.
-                    self.register_task("reschedule_download",
+                    self.register_task("reschedule_download_%s" % tdef.get_infohash(),
                                        reactor.callLater(5, self.session.start_download_from_tdef, tdef, dscfg))
 
         self.previous_active_downloads = new_active_downloads
