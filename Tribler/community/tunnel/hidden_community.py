@@ -625,9 +625,14 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 return download
 
     def create_introduction_point(self, info_hash, amount=1):
-        # Create a separate key per infohash
-        self.find_download(info_hash).add_peer(('1.1.1.1', 1024))
+        download = self.find_download(info_hash)
+        if download:
+            download.add_peer(('1.1.1.1', 1024))
+        else:
+            self.tunnel_logger.error('When creating introduction point: could not find download!')
+            return
 
+        # Create a separate key per infohash
         if info_hash not in self.session_keys:
             self.session_keys[info_hash] = self.crypto.generate_key(u"curve25519")
 
