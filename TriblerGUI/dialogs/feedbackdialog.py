@@ -59,7 +59,7 @@ class FeedbackDialog(QDialog):
 
         request_ind = 1
         for endpoint, method, data, timestamp, status_code in sorted(tribler_performed_requests.values(),
-                                                                     key=lambda x: x[3])[-10:]:
+                                                                     key=lambda x: x[3])[-30:]:
             add_item_to_info_widget('request_%d' % request_ind, '%s %s %s (time: %s, code: %s)' %
                                     (endpoint, method, data, timestamp, status_code))
             request_ind += 1

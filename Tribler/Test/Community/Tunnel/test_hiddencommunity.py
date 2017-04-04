@@ -7,6 +7,7 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.Community.Tunnel.test_tunnel_base import AbstractTestTunnelCommunity
 
+
 class TestHiddenCommunity(AbstractTestTunnelCommunity):
 
     @blocking_call_on_reactor_thread
@@ -22,3 +23,11 @@ class TestHiddenCommunity(AbstractTestTunnelCommunity):
         self.tunnel_community.monitor_downloads([])
 
         self.assertNotIn(infohash, self.tunnel_community.infohash_ip_circuits)
+
+    @blocking_call_on_reactor_thread
+    def test_create_intro_no_download(self):
+        """
+        Test the creation of an introduction point with an unexisting download
+        """
+        self.tunnel_community.find_download = lambda _: None
+        self.tunnel_community.create_introduction_point('a' * 20)
