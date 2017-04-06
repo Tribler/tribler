@@ -1,5 +1,6 @@
 from twisted.web import resource
 
+from Tribler.Core.Modules.restapi.alive_endpoint import AliveEndpoint
 from Tribler.Core.Modules.restapi.channels.channels_endpoint import ChannelsEndpoint
 from Tribler.Core.Modules.restapi.channels.my_channel_endpoint import MyChannelEndpoint
 from Tribler.Core.Modules.restapi.create_torrent_endpoint import CreateTorrentEndpoint
@@ -45,7 +46,7 @@ class RootEndpoint(resource.Resource):
                               "downloads": DownloadsEndpoint, "createtorrent": CreateTorrentEndpoint,
                               "torrents": TorrentsEndpoint, "debug": DebugEndpoint, "shutdown": ShutdownEndpoint,
                               "multichain": MultichainEndpoint, "statistics": StatisticsEndpoint,
-                              "torrentinfo": TorrentInfoEndpoint}
+                              "torrentinfo": TorrentInfoEndpoint, "alive": AliveEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(self.session))

@@ -13,6 +13,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
     QCompleter, QApplication, QStyledItemDelegate, QListWidget
 
+from TriblerGUI.heartbeat_manager import HeartbeatManager
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.core_manager import CoreManager
 from TriblerGUI.debug_window import DebugWindow
@@ -97,6 +98,8 @@ class TriblerWindow(QMainWindow):
         self.selected_torrent_files = []
         self.vlc_available = True
         self.has_search_results = False
+        self.heartbeat_manager = HeartbeatManager()
+        self.heartbeat_manager.heartbeat_timeout.connect(self.on_heartbeat_timeout)
 
         sys.excepthook = self.on_exception
 
@@ -200,6 +203,9 @@ class TriblerWindow(QMainWindow):
 
         self.show()
 
+    def on_heartbeat_timeout(self, error):
+        raise RuntimeError(error)
+
     def on_torrent_finished(self, torrent_info):
         self.window().tray_icon.showMessage("Download finished", "Download of %s has finished." % torrent_info["name"])
 
@@ -234,6 +240,9 @@ class TriblerWindow(QMainWindow):
             self.stackedWidget.setCurrentIndex(PAGE_DISCOVERING)
         else:
             self.clicked_menu_button_home()
+
+        # Start the ping mechanism to check whether the Tribler core is still alive
+        self.heartbeat_manager.start()
 
     def process_uri_request(self):
         """
@@ -610,6 +619,7 @@ class TriblerWindow(QMainWindow):
             self.core_manager.stop()
             self.core_manager.shutting_down = True
             self.downloads_page.stop_loading_downloads()
+            self.heartbeat_manager.stop()
 
     def closeEvent(self, close_event):
         self.close_tribler()
