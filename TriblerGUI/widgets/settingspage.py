@@ -25,11 +25,17 @@ class SettingsPage(QWidget):
         self.window().settings_save_button.clicked.connect(self.save_settings)
 
         self.window().developer_mode_enabled_checkbox.stateChanged.connect(self.on_developer_mode_checkbox_changed)
+        self.window().use_monochrome_icon_checkbox.stateChanged.connect(self.on_use_monochrome_icon_checkbox_changed)
         self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
 
     def on_developer_mode_checkbox_changed(self, _):
         self.window().gui_settings.setValue("debug", self.window().developer_mode_enabled_checkbox.isChecked())
         self.window().left_menu_button_debug.setHidden(not self.window().developer_mode_enabled_checkbox.isChecked())
+
+    def on_use_monochrome_icon_checkbox_changed(self, _):
+        use_monochrome_icon = self.window().use_monochrome_icon_checkbox.isChecked()
+        self.window().gui_settings.setValue("use_monochrome_icon", use_monochrome_icon)
+        self.window().update_tray_icon(use_monochrome_icon)
 
     def on_anon_download_state_changed(self, _):
         if self.window().download_settings_anon_checkbox.isChecked():
@@ -46,6 +52,8 @@ class SettingsPage(QWidget):
         self.window().developer_mode_enabled_checkbox.setChecked(get_gui_setting(gui_settings, "debug",
                                                                                  False, is_bool=True))
         self.window().family_filter_checkbox.setChecked(settings['general']['family_filter'])
+        self.window().use_monochrome_icon_checkbox.setChecked(get_gui_setting(gui_settings, "use_monochrome_icon",
+                                                                                 False, is_bool=True))
         self.window().download_location_input.setText(settings['downloadconfig']['saveas'])
         self.window().always_ask_location_checkbox.setChecked(
             get_gui_setting(gui_settings, "ask_download_settings", True, is_bool=True))
@@ -176,6 +184,8 @@ class SettingsPage(QWidget):
         # Now save the GUI settings
         self.window().gui_settings.setValue("ask_download_settings",
                                             self.window().always_ask_location_checkbox.isChecked())
+        self.window().gui_settings.setValue("use_monochrome_icon",
+                                            self.window().use_monochrome_icon_checkbox.isChecked())
         self.window().gui_settings.setValue("default_anonymity_enabled",
                                             self.window().download_settings_anon_checkbox.isChecked())
         self.window().gui_settings.setValue("default_safeseeding_enabled",

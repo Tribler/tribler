@@ -138,8 +138,8 @@ class TriblerWindow(QMainWindow):
         # Create the system tray icon
         if QSystemTrayIcon.isSystemTrayAvailable():
             self.tray_icon = QSystemTrayIcon()
-            self.tray_icon.setIcon(QIcon(QPixmap(get_image_path('tribler.png'))))
-            self.tray_icon.show()
+            use_monochrome_icon = get_gui_setting(self.gui_settings, "use_monochrome_icon", False, is_bool=True)
+            self.update_tray_icon(use_monochrome_icon)
 
         self.hide_left_menu_playlist()
         self.left_menu_button_debug.setHidden(True)
@@ -199,6 +199,13 @@ class TriblerWindow(QMainWindow):
         self.installEventFilter(self.video_player_page)
 
         self.show()
+
+    def update_tray_icon(self, use_monochrome_icon):
+        if use_monochrome_icon:
+            self.tray_icon.setIcon(QIcon(QPixmap(get_image_path('monochrome_tribler.png'))))
+        else:
+            self.tray_icon.setIcon(QIcon(QPixmap(get_image_path('tribler.png'))))
+        self.tray_icon.show()
 
     def on_torrent_finished(self, torrent_info):
         self.window().tray_icon.showMessage("Download finished", "Download of %s has finished." % torrent_info["name"])
