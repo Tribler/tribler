@@ -1,3 +1,8 @@
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.task import deferLater
+from twisted.internet.threads import blockingCallFromThread
+
 from Tribler.Test.Community.Trustchain.test_community import BaseTestTrustChainCommunity
 from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TrustChainTestCase
 from Tribler.community.triblerchain.block import TriblerChainBlock
@@ -7,9 +12,6 @@ from Tribler.community.tunnel.routing import Circuit
 from Tribler.dispersy.requestcache import IntroductionRequestCache
 from Tribler.dispersy.tests.dispersytestclass import DispersyTestFunc
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, returnValue
-from twisted.internet.task import deferLater
 
 
 class TestPendingBytes(TrustChainTestCase):
@@ -307,9 +309,11 @@ class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
         # and we don't actually want to send the crawl request since the counter party is fake, just count if it is run
         counter = [0]
 
-        def replacement(cand, pk):
-            counter[0] += 1
-        crawler._community.send_crawl_request = replacement
+        def on_crawl_request(cand, pk, sequence_number=None):
+            # Ignore live edge request
+            if sequence_number != -1:
+                counter[0] += 1
+        crawler.community.send_crawl_request = on_crawl_request
 
         # Act
         crawler.call(crawler.community.on_introduction_response, [intro_response])
@@ -353,3 +357,32 @@ class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
         statistics = node.community.get_statistics(public_key=other.community.my_member.public_key)
         assert isinstance(statistics, dict), type(statistics)
         assert len(statistics) > 0
+
+    def test_get_trust(self):
+        """
+        Test that the trust nodes have for each other is the upload + the download total of all blocks.
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+        transaction = {'up': 10, 'down': 5, 'total_up': 10, 'total_down': 5}
+        TestTriblerChainCommunity.create_block(node, other, self._create_target(node, other), transaction)
+        TestTriblerChainCommunity.create_block(other, node, self._create_target(other, node), transaction)
+
+        # Get statistics
+        node_trust = blockingCallFromThread(reactor, node.community.get_trust, other.community.my_member)
+        other_trust = blockingCallFromThread(reactor, other.community.get_trust, node.community.my_member)
+        self.assertEqual(node_trust, 15)
+        self.assertEqual(other_trust, 15)
+
+    def test_get_default_trust(self):
+        """
+        Test that the trust between nodes without blocks is 1.
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+
+        # Get statistics
+        node_trust = blockingCallFromThread(reactor, node.community.get_trust, other.community.my_member)
+        other_trust = blockingCallFromThread(reactor, other.community.get_trust, node.community.my_member)
+        self.assertEqual(node_trust, 1)
+        self.assertEqual(other_trust, 1)

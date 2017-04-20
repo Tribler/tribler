@@ -4,10 +4,15 @@ This reputation system builds a tamper proof interaction history contained in a 
 Every node has a chain and these chains intertwine by blocks shared by chains.
 """
 import logging
+from random import randint
+from time import time
+
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
+
 from Tribler.community.trustchain.database import TrustChainDB
 from Tribler.dispersy.authentication import NoAuthentication, MemberAuthentication
+from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination
@@ -35,6 +40,13 @@ class TrustChainCommunity(Community):
         super(TrustChainCommunity, self).__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
         self.persistence = self.DB_CLASS(self.dispersy.working_directory, self.DB_NAME)
+
+        self._live_edge = []
+        self._live_edge_id = 0
+        self._live_edge_cb = None
+        self._live_edge_next = None
+        self._live_edges_enabled = True
+
         self.logger.debug("The trustchain community started with Public Key: %s",
                           self.my_member.public_key.encode("hex"))
 
@@ -59,6 +71,11 @@ class TrustChainCommunity(Community):
                      "311063069f49070cad7dc15620996cdd625c1abcdbfabf750727f1dec706f6f16cb28ce6946fdf39887a84fc457a5f9" \
                      "edc660adbe0a72ea5219f9578dd6432de825c167e80987ca4c6a2bf"
         return [dispersy.get_member(public_key=master_key.decode("HEX"))]
+
+    def initialize(self, tribler_session=None):
+        super(TrustChainCommunity, self).initialize()
+        if tribler_session:
+            self._live_edges_enabled = tribler_session.config.get_trustchain_live_edges_enabled()
 
     def initiate_meta_messages(self):
         """
@@ -197,7 +214,7 @@ class TrustChainCommunity(Community):
         if sequence_number is None:
             blk = self.persistence.get_latest(public_key)
             sq = blk.sequence_number if blk else GENESIS_SEQ
-        sq = max(GENESIS_SEQ, sq)
+        sq = max(GENESIS_SEQ, sq) if sq >= 0 else sq
         self.logger.info("Requesting crawl of node %s:%d", public_key.encode("hex")[-8:], sq)
         message = self.get_meta_message(CRAWL).impl(
             authentication=(self.my_member,),
@@ -213,6 +230,14 @@ class TrustChainCommunity(Community):
                              message.candidate.get_member().public_key.encode("hex")[-8:],
                              message.payload.requested_sequence_number)
             blocks = self.persistence.crawl(self.my_member.public_key, message.payload.requested_sequence_number)
+            sq = message.payload.requested_sequence_number
+            if sq < 0:
+                last_block = self.persistence.get_latest(self.my_member.public_key)
+                # The -1 element is the last_block.seq_nr
+                # The -2 element is the last_block.seq_nr - 1
+                # Etc. until the genesis seq_nr
+                sq = max(GENESIS_SEQ, last_block.sequence_number + (sq + 1))
+            blocks = self.persistence.crawl(self.my_member.public_key, sq)
             count = len(blocks)
             for blk in blocks:
                 self.send_block(message.candidate, blk)
@@ -224,3 +249,139 @@ class TrustChainCommunity(Community):
         yield super(TrustChainCommunity, self).unload_community()
         # Close the persistence layer
         self.persistence.close()
+
+    def set_live_edge_callback(self, func):
+        """
+        Set the callback function for live edge updates.
+        Passed arguments are:
+          live_edge_id, [candidates]
+        """
+        self._live_edge_cb = func
+
+    def reset_live_edges(self):
+        """
+        Reset the live edges counter and current live edge.
+        """
+        self._live_edge = []
+        self._live_edge_next = None
+        self._live_edge_id = 0
+
+    def set_live_edges_enabled(self, value):
+        """
+        Enable or disable live edges.
+
+        :param value: whether or not to enable live edges
+        :type value: boolean
+        """
+        if value and not self._live_edges_enabled:
+            # Make sure we don't inherit old edge data after a reset
+            self.reset_live_edges()
+        self._live_edges_enabled = value
+
+    def get_trust(self, member):
+        """
+        Get the trust for another member.
+        Currently this is just the length of their chain.
+
+        :param member: the member we interacted with
+        :type member: dispersy.member.Member
+        :return: the trust value for this member
+        :rtype: int
+        """
+        block = self.persistence.get_latest(member.public_key)
+        if block:
+            return block.sequence_number
+        else:
+            # We need a minimum of 1 trust to have a chance to be selected in the categorical distribution.
+            return 1
+
+    def dispersy_get_introduce_candidate(self, exclude_candidate=None):
+        """
+        Choose a trusted candidate to introduce to someone else.
+        The more trust you have for someone, the higher the chance is to forward them.
+        """
+        if not self._live_edges_enabled:
+            return super(TrustChainCommunity, self).dispersy_get_introduce_candidate(exclude_candidate)
+
+        eligible = [candidate for candidate in self._candidates.itervalues()
+                    if candidate.get_member() and candidate != exclude_candidate]
+
+        if not eligible:
+            # If we have no trusted candidates, bootstrap this process.
+            return super(TrustChainCommunity, self).dispersy_get_introduce_candidate(exclude_candidate)
+
+        total_trust = sum([self.get_trust(candidate.get_member()) for candidate in eligible])
+
+        random_trust_i = randint(0, total_trust - 1)
+        current_trust_i = 0
+        for i in xrange(0, len(eligible)):
+            next_trust_i = self.get_trust(eligible[i].get_member())
+            if current_trust_i + next_trust_i > random_trust_i:
+                return eligible[i]
+            else:
+                current_trust_i += next_trust_i
+
+        return eligible[-1]
+
+    def on_introduction_response(self, messages):
+        super(TrustChainCommunity, self).on_introduction_response(messages)
+
+        if self._live_edges_enabled:
+            for message in messages:
+                payload = message.payload
+                candidate = self.get_candidate(message.candidate.sock_addr, replace=False)
+
+                if not candidate.get_member():
+                    candidate.associate(message.authentication.member)
+
+                candidate.set_keepalive(self)
+                self._live_edge.append(candidate)
+                # Callback our live edge handler
+                if self._live_edge_cb:
+                    self._live_edge_cb(self._live_edge_id, self._live_edge)
+
+                self.send_crawl_request(candidate, candidate.get_member().public_key, -1)
+
+                lan_introduction_address = payload.lan_introduction_address
+                wan_introduction_address = payload.wan_introduction_address
+                if not (lan_introduction_address == ("0.0.0.0", 0) or wan_introduction_address == ("0.0.0.0", 0)):
+                    sock_introduction_addr = lan_introduction_address if wan_introduction_address[0] == \
+                                                                         self._dispersy.wan_address[
+                                                                             0] else wan_introduction_address
+                    self._live_edge_next = self.get_candidate(sock_introduction_addr, False, lan_introduction_address)
+                else:
+                    self._live_edge_next = None
+
+    def take_step(self):
+        if not self._live_edges_enabled:
+            return super(TrustChainCommunity, self).take_step()
+
+        now = time()
+        self._logger.debug("previous sync was %.1f seconds ago",
+                           now - self._last_sync_time if self._last_sync_time else -1)
+
+        if not self._live_edge or len(self._live_edge) == 5 or self._live_edge_next is None:
+            self._live_edge_id += 1
+
+            # New live edges always start with our member
+            my_candidate = Candidate(("127.0.0.1", self.dispersy.endpoint.get_address()[1]), False)
+            my_candidate.associate(self.my_member)
+            self._live_edge = [my_candidate]
+
+            # Callback our live edge handler
+            if self._live_edge_cb:
+                self._live_edge_cb(self._live_edge_id, self._live_edge)
+
+        if self._live_edge_next:
+            candidate = self._live_edge_next
+            self._live_edge_next = None
+        else:
+            candidate = self.dispersy_get_walk_candidate()
+
+        if candidate:
+            self._logger.debug("%s %s taking step towards %s",
+                               self.cid.encode("HEX"), self.get_classification(), candidate)
+            self.create_introduction_request(candidate, self.dispersy_enable_bloom_filter_sync)
+        else:
+            self._logger.debug("%s %s no candidate to take step", self.cid.encode("HEX"), self.get_classification())
+        self._last_sync_time = time()

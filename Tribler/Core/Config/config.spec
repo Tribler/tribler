@@ -25,6 +25,7 @@ exitnode_enabled = boolean(default=False)
 [trustchain]
 enabled = boolean(default=True)
 ec_keypair_filename = string(default='')
+live_edges_enabled = boolean(default=True)
 
 [metadata]
 enabled = boolean(default=True)

@@ -70,7 +70,7 @@ class TriblerChainCommunity(TrustChainCommunity):
         return [dispersy.get_member(public_key=master_key.decode("HEX"))]
 
     def initialize(self, tribler_session=None):
-        super(TriblerChainCommunity, self).initialize()
+        super(TriblerChainCommunity, self).initialize(tribler_session)
         if tribler_session:
             self.notifier = tribler_session.notifier
             self.notifier.add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
@@ -162,6 +162,23 @@ class TriblerChainCommunity(TrustChainCommunity):
             if self.pending_bytes[pk].clean is not None:
                 self.pending_bytes[pk].clean.reset(0)
         yield super(TriblerChainCommunity, self).unload_community()
+
+    def get_trust(self, member):
+        """
+        Get the trust for another member.
+        Currently this is just the amount of MBs exchanged with them.
+
+        :param member: the member we interacted with
+        :type member: dispersy.member.Member
+        :return: the trust value for this member
+        :rtype: int
+        """
+        block = self.persistence.get_latest(member.public_key)
+        if block:
+            return block.transaction['total_up'] + block.transaction['total_down']
+        else:
+            # We need a minimum of 1 trust to have a chance to be selected in the categorical distribution.
+            return 1
 
 
 class TriblerChainCommunityCrawler(TriblerChainCommunity):
