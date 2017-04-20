@@ -1,7 +1,7 @@
 import os
 from urllib import quote_plus
 from PyQt5 import uic
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QDialog, QTreeWidgetItem, QAction
 import sys
 import platform
@@ -85,10 +85,10 @@ class FeedbackDialog(QDialog):
         menu.exec_(self.env_variables_list.mapToGlobal(pos))
 
     def on_cancel_clicked(self):
-        QCoreApplication.instance().quit()
+        QApplication.quit()
 
     def on_report_sent(self, _):
-        QCoreApplication.instance().quit()
+        QApplication.quit()
 
     def on_send_clicked(self):
         self.request_mgr = TriblerRequestManager()
@@ -113,5 +113,5 @@ class FeedbackDialog(QDialog):
         self.request_mgr.perform_request("report", self.on_report_sent, data=str(post_data), method='POST')
 
     def closeEvent(self, close_event):
-        QCoreApplication.instance().quit()
+        QApplication.quit()
         close_event.ignore()
