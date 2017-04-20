@@ -50,6 +50,9 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         self.torrent_play_button.clicked.connect(self.on_play_button_clicked)
         self.torrent_download_button.clicked.connect(self.on_download_clicked)
 
+        if not self.window().vlc_available:
+            self.torrent_play_button.setHidden(True)
+
         if on_remove_clicked is not None:
             self.remove_torrent_button.clicked.connect(lambda: on_remove_clicked(self))
 
