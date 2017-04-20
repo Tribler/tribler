@@ -5420,18 +5420,46 @@ color: white;</string>
 color: white;</string>
                 </property>
                 <property name="text">
-                 <string>Developer mode</string>
+                 <string>Tray icon</string>
                 </property>
                </widget>
               </item>
               <item row="12" column="0">
                <widget class="QLabel" name="label_32">
                 <property name="text">
-                 <string>Enable developer mode?</string>
+                 <string>Use monochrome icon?</string>
                 </property>
                </widget>
               </item>
               <item row="12" column="1">
+               <widget class="QCheckBox" name="use_monochrome_icon_checkbox">
+                <property name="styleSheet">
+                 <string notr="true">margin-top: 2px;</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
+              <item row="13" column="0">
+               <widget class="QLabel" name="label_33">
+                <property name="styleSheet">
+                 <string notr="true">font-weight: bold;
+color: white;</string>
+                </property>
+                <property name="text">
+                 <string>Developer mode</string>
+                </property>
+               </widget>
+              </item>
+              <item row="14" column="0">
+               <widget class="QLabel" name="label_34">
+                <property name="text">
+                 <string>Enable developer mode?</string>
+                </property>
+               </widget>
+              </item>
+              <item row="14" column="1">
                <widget class="QCheckBox" name="developer_mode_enabled_checkbox">
                 <property name="styleSheet">
                  <string notr="true">margin-top: 2px;</string>
