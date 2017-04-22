@@ -53,6 +53,13 @@ class TorrentInfoEndpoint(resource.Resource):
         metainfo_deferred = Deferred()
 
         def on_got_metainfo(metainfo):
+            if not isinstance(metainfo, dict):
+                self._logger.warning("Received metainfo is not a dictionary")
+                request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+                request.write(json.dumps({"error": 'invalid response'}))
+                self.finish_request(request)
+                return
+
             if self.infohash:
                 # Save the torrent to our store
                 try:
