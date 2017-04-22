@@ -11,6 +11,7 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
+import sys
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList
 from twisted.internet.task import LoopingCall
@@ -25,6 +26,7 @@ from Tribler.Core.Modules.watch_folder import WatchFolder
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Core.defaults import tribler_defaults
 from Tribler.Core.exceptions import DuplicateDownloadException
@@ -99,6 +101,11 @@ class TriblerLaunchMany(TaskManager):
 
             self.session = session
             self.sesslock = sesslock
+
+            # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
+            # certificates provided by the system trust store.
+            if sys.platform == 'darwin':
+                os.environ['SSL_CERT_FILE'] = os.path.join(get_lib_path(), 'root_certs_mac.pem')
 
             if self.session.get_torrent_store():
                 from Tribler.Core.leveldbstore import LevelDbStore
