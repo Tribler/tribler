@@ -8,7 +8,7 @@ from twisted.web.server import NOT_DONE_YET
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.exceptions import DuplicateTorrentFileError
+from Tribler.Core.exceptions import DuplicateTorrentFileError, HttpError
 from Tribler.Core.Utilities.utilities import http_get
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -132,7 +132,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
             torrent_def = TorrentDef.load_from_memory(torrent)
             self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
 
-        except (DuplicateTorrentFileError, ValueError) as ex:
+        except (DuplicateTorrentFileError, ValueError, HttpError) as ex:
             return BaseChannelsEndpoint.return_500(self, request, ex)
 
         return json.dumps({"added": True})
