@@ -76,23 +76,24 @@ class MultiChainCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-        # generated: Fri Jul 1 15:22:20 2016
+        # generated: Sun Apr 23 10:06:29 2017
         # curve: None
-        # len:571 bits ~ 144 bytes signature
-        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000407afa96c83660dccfbf02a45b68f4bc
-        # 4957539860a3fe1ad4a18ccbfc2a60af1174e1f5395a7917285d09ab67c3d80c56caf5396fc5b231d84ceac23627
-        # 930b4c35cbfce63a49805030dabbe9b5302a966b80eefd7003a0567c65ccec5ecde46520cfe1875b1187d469823d
-        # 221417684093f63c33a8ff656331898e4bc853bcfaac49bc0b2a99028195b7c7dca0aea65
-        # pub-sha1 15ade4f5fb0f0f8019d8430473aaba4305e61753
+        # len: 571 bits ~ 144 bytes signature
+        # pub: 170 3081a7301006072a8648ce3d020106052b8104002703819200040503dac58c19267f12cb0cf667e480816cd2574acae5293b5
+        # 9d7c3da32e02b4747f7e2e9e9c880d2e5e2ba8b7fcc9892cb39b797ef98483ffd58739ed20990f8e3df7d1ec5a7ad2c0338dc206c4383a
+        # 943e3e2c682ac4b585880929a947ffd50057b575fc30ec88eada3ce6484e5e4d6fdf41984cd1e51aaacc5f9a51bcc8393aea1f786fc47c
+        # bf994cb1339f706df4a
+        # pub-sha1 b78a5e252bf2f7be8716c383734f325b9aaff844
         # -----BEGIN PUBLIC KEY-----
-        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQHr6lsg2YNzPvwKkW2j0vElXU5hgo/4a1KGMy/wqYK8RdOH1OVp5FyhdCatnw9g
-        # MVsr1OW/FsjHYTOrCNieTC0w1y/zmOkmAUDDau+m1MCqWa4Du/XADoFZ8ZczsXs3kZSDP4YdbEYfUaYI9IhQXaECT9jwzqP9l
-        # YzGJjkvIU7z6rEm8CyqZAoGVt8fcoK6mU=
+        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQFA9rFjBkmfxLLDPZn5ICBbNJXSsrl
+        # KTtZ18PaMuArR0f34unpyIDS5eK6i3/MmJLLObeX75hIP/1Yc57SCZD44999HsWn
+        # rSwDONwgbEODqUPj4saCrEtYWICSmpR//VAFe1dfww7Ijq2jzmSE5eTW/fQZhM0e
+        # UaqsxfmlG8yDk66h94b8R8v5lMsTOfcG30o=
         # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000407afa96c83660dccfbf02a45b68f4bc" + \
-                     "4957539860a3fe1ad4a18ccbfc2a60af1174e1f5395a7917285d09ab67c3d80c56caf5396fc5b231d84ceac23627" + \
-                     "930b4c35cbfce63a49805030dabbe9b5302a966b80eefd7003a0567c65ccec5ecde46520cfe1875b1187d469823d" + \
-                     "221417684093f63c33a8ff656331898e4bc853bcfaac49bc0b2a99028195b7c7dca0aea65"
+        master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040503dac58c19267f12cb0cf667e480816cd2574acae" \
+                     "5293b59d7c3da32e02b4747f7e2e9e9c880d2e5e2ba8b7fcc9892cb39b797ef98483ffd58739ed20990f8e3df7d1ec5" \
+                     "a7ad2c0338dc206c4383a943e3e2c682ac4b585880929a947ffd50057b575fc30ec88eada3ce6484e5e4d6fdf41984c" \
+                     "d1e51aaacc5f9a51bcc8393aea1f786fc47cbf994cb1339f706df4a"
         return [dispersy.get_member(public_key=master_key.decode("HEX"))]
 
     def initiate_meta_messages(self):
