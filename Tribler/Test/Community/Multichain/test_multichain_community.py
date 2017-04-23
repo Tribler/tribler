@@ -1,8 +1,6 @@
 """
 This file contains the tests for the community.py for MultiChain community.
 """
-from time import sleep
-
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import deferLater
@@ -131,7 +129,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
         # Act
-        node.call(node.community.sign_block, target_other, 5, 5)
+        node.call(node.community.sign_block, target_other, other.my_member.public_key, 5, 5)
         # Assert
         _, message = other.receive_message(names=[HALF_BLOCK]).next()
         self.assertTrue(message)
@@ -149,7 +147,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         target_other = self._create_target(node, other)
         node.community.dispersy.store_update_forward = mocked_publish_sig
         # Act
-        node.call(node.community.sign_block, target_other, 10, 10)
+        node.call(node.community.sign_block, target_other, other.my_member.public_key, 10, 10)
 
     def test_sign_invalid_block(self):
         """
@@ -158,22 +156,12 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
         # Act
-        node.call(node.community.sign_block, target_other, 0, 0)
+        node.call(node.community.sign_block, target_other, other.my_member.public_key, 0, 0)
         # Assert
 
         with self.assertRaises(StopIteration):
             # No signature requests
             other.receive_message(names=[HALF_BLOCK]).next()
-
-    def test_schedule_block_invalid_candidate(self):
-        """
-        Test the schedule_block function with an invalid candidate
-        """
-        # Arrange
-        [node] = self.create_nodes(1)
-        candidate = Candidate(("127.0.0.1", 10), False)
-        # Act
-        node.call(node.community.sign_block, candidate, 5, 5)
 
     def test_receive_signature_request_and_response(self):
         """
@@ -206,7 +194,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
         TestMultiChainCommunity.set_expectation(other, node, 10, 5)
-        node.call(node.community.sign_block, target_other, 10, 5)
+        node.call(node.community.sign_block, target_other, other.my_member.public_key, 10, 5)
         _, block_req = other.receive_message(names=[HALF_BLOCK]).next()
         # Act
         # construct faked block
@@ -214,7 +202,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         block.up += 10
         block.total_up = block.up
         block_req = node.community.get_meta_message(HALF_BLOCK).impl(
-            authentication=(node.community.my_member,),
+            authentication=tuple(),
             distribution=(node.community.claim_global_time(),),
             destination=(target_other,),
             payload=(block,))
@@ -228,6 +216,32 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
             # No signature responses, or crawl requests should have been sent
             node.receive_message(names=[HALF_BLOCK, CRAWL]).next()
 
+    def test_receive_request_twice(self):
+        """
+        Test the community to receive a request message twice.
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+        target_other = self._create_target(node, other)
+        TestMultiChainCommunity.create_block(node, other, target_other, 10, 5)
+
+        # construct faked block
+        block = node.call(node.community.persistence.get_latest, node.my_member.public_key)
+        block_req = node.community.get_meta_message(HALF_BLOCK).impl(
+            authentication=tuple(),
+            distribution=(node.community.claim_global_time(),),
+            destination=(target_other,),
+            payload=(block,))
+        other.give_message(block_req, node)
+
+        # Assert
+        self.assertBlocksInDatabase(other, 2)
+        self.assertBlocksInDatabase(node, 2)
+
+        with self.assertRaises(StopIteration):
+            # No signature responses, or crawl requests should have been sent
+            node.receive_message(names=[HALF_BLOCK, CRAWL]).next()
+
     def test_receive_request_too_much(self):
         """
         Test the community to receive a request that claims more than we are prepared to sign
@@ -236,7 +250,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
         TestMultiChainCommunity.set_expectation(other, node, 3, 3)
-        node.call(node.community.sign_block, target_other, 10, 5)
+        node.call(node.community.sign_block, target_other, other.my_member.public_key, 10, 5)
         # Act
         other.give_message(other.receive_message(names=[HALF_BLOCK]).next()[1], node)
 
@@ -255,7 +269,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         # Arrange
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
-        node.call(node.community.sign_block, target_other, 10, 5)
+        node.call(node.community.sign_block, target_other, other.my_member.public_key, 10, 5)
         # Act
         other.give_message(other.receive_message(names=[HALF_BLOCK]).next()[1], node)
 
@@ -292,7 +306,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         """
         # Arrange
         node, other = self.create_nodes(2)
-        node.call(node.community.sign_block, self._create_target(node, other), 10, 5)
+        node.call(node.community.sign_block, self._create_target(node, other), other.my_member.public_key,  10, 5)
 
         # Assert
         block = node.call(MultiChainBlock.create, node.community.persistence, node.community.my_member.public_key)
@@ -310,7 +324,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         TestMultiChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
 
         TestMultiChainCommunity.set_expectation(another, node, 30, 20)
-        node.call(node.community.sign_block, self._create_target(node, another), 30, 20)
+        node.call(node.community.sign_block, self._create_target(node, another), another.my_member.public_key, 30, 20)
         another.give_message(another.receive_message(names=[HALF_BLOCK]).next()[1], node)
 
         # Assert
@@ -327,7 +341,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         # Act
         TestMultiChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
         TestMultiChainCommunity.set_expectation(another, node, 30, 20)
-        node.call(node.community.sign_block, self._create_target(node, another), 30, 20)
+        node.call(node.community.sign_block, self._create_target(node, another), another.my_member.public_key, 30, 20)
         message = another.receive_message(names=[HALF_BLOCK]).next()[1]
         # this triggers the crawl
         another.give_message(message, node)
@@ -473,7 +487,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         # and we don't actually want to send the crawl request since the counter party is fake, just count if it is run
         counter = [0]
 
-        def replacement(cand):
+        def replacement(cand, pk):
             counter[0] += 1
         crawler._community.send_crawl_request = replacement
 
@@ -542,7 +556,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
     @staticmethod
     def create_block(req, resp, target_resp, up, down):
         TestMultiChainCommunity.set_expectation(resp, req, up, down)
-        req.call(req.community.sign_block, target_resp, up, down)
+        req.call(req.community.sign_block, target_resp, resp.my_member.public_key, up, down)
 
         # Process packets until there are no more to process. This should give enough margin to allow for a crawl
         # during block creation + retry of block signing.
@@ -556,7 +570,8 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
 
     @staticmethod
     def crawl_node(crawler, crawlee, target_to_crawlee, sequence_number=None):
-        crawler.call(crawler.community.send_crawl_request, target_to_crawlee, sequence_number)
+        crawler.call(crawler.community.send_crawl_request,
+                     target_to_crawlee, crawlee.my_member.public_key, sequence_number)
         crawlee.give_message(crawlee.receive_message(names=[CRAWL]).next()[1], crawler)
         TestMultiChainCommunity.transport_halfblocks(crawlee, crawler)
 

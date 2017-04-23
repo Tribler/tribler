@@ -4,14 +4,13 @@ This reputation system builds a tamper proof interaction history contained in a 
 Every node has a chain and these chains intertwine by blocks shared by chains.
 """
 import logging
-import base64
 from twisted.internet.defer import inlineCallbacks
 
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-from Tribler.dispersy.authentication import MemberAuthentication
+from Tribler.dispersy.authentication import NoAuthentication, MemberAuthentication
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.destination import CandidateDestination
@@ -103,7 +102,7 @@ class MultiChainCommunity(Community):
         """
         return super(MultiChainCommunity, self).initiate_meta_messages() + [
             Message(self, HALF_BLOCK,
-                    MemberAuthentication(),
+                    NoAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
@@ -123,9 +122,12 @@ class MultiChainCommunity(Community):
         return [DefaultConversion(self), MultiChainConversion(self)]
 
     def send_block(self, candidate, block):
-        self.logger.debug("Sending block to %s (%s)", candidate.get_member().public_key.encode("hex")[-8:], block)
+        if candidate.get_member():
+            self.logger.debug("Sending block to %s (%s)", candidate.get_member().public_key.encode("hex")[-8:], block)
+        else:
+            self.logger.debug("Sending block to %s (%s)", candidate, block)
         message = self.get_meta_message(HALF_BLOCK).impl(
-            authentication=(self.my_member,),
+            authentication=tuple(),
             distribution=(self.claim_global_time(),),
             destination=(candidate,),
             payload=(block,))
@@ -134,7 +136,7 @@ class MultiChainCommunity(Community):
         except DelayPacketByMissingMember:
             self.logger.warn("Missing member in MultiChain community to send signature request to")
 
-    def sign_block(self, candidate, bytes_up=None, bytes_down=None, linked=None):
+    def sign_block(self, candidate, public_key=None, bytes_up=None, bytes_down=None, linked=None):
         """
         Create, sign, persist and send a block signed message
         :param candidate: The peer with whom you have interacted, as a dispersy candidate
@@ -148,31 +150,26 @@ class MultiChainCommunity(Community):
             bytes_up is not None and bytes_down is not None and linked is None, \
             "Either provide a linked block or byte counts, not both"
         assert linked is None or linked.link_public_key == self.my_member.public_key, \
-            "Cannot counter sign block not addressed to me"
+            "Cannot counter sign block not addressed to self"
         assert linked is None or linked.link_sequence_number == UNKNOWN_SEQ, \
             "Cannot counter sign block that is not a request"
 
-        if candidate.get_member():
-            if linked is None:
-                block = MultiChainBlock.create(self.persistence, self.my_member.public_key)
-                block.up = bytes_up
-                block.down = bytes_down
-                block.total_up += bytes_up
-                block.total_down += bytes_down
-                block.link_public_key = candidate.get_member().public_key
-            else:
-                block = MultiChainBlock.create(self.persistence, self.my_member.public_key, linked)
-            block.sign(self.my_member.private_key)
-            validation = block.validate(self.persistence)
-            self.logger.info("Signed block to %s (%s) validation result %s",
-                             candidate.get_member().public_key.encode("hex")[-8:], block, validation)
-            if validation[0] != ValidationResult.partial_next and validation[0] != ValidationResult.valid:
-                self.logger.error("Signed block did not validate?!")
-            else:
-                self.persistence.add_block(block)
-                self.send_block(candidate, block)
+        block = MultiChainBlock.create(self.persistence, self.my_member.public_key, linked)
+        if linked is None:
+            block.up = bytes_up
+            block.down = bytes_down
+            block.total_up += bytes_up
+            block.total_down += bytes_down
+            block.link_public_key = public_key
+        block.sign(self.my_member.private_key)
+        validation = block.validate(self.persistence)
+        self.logger.info("Signed block to %s (%s) validation result %s",
+                         block.link_public_key.encode("hex")[-8:], block, validation)
+        if validation[0] != ValidationResult.partial_next and validation[0] != ValidationResult.valid:
+            self.logger.error("Signed block did not validate?! Result %s", repr(validation))
         else:
-            self.logger.warn("Candidate %s has no associated member?! Unable to sign block.", candidate)
+            self.persistence.add_block(block)
+            self.send_block(candidate, block)
 
     def received_half_block(self, messages):
         """
@@ -200,15 +197,19 @@ class MultiChainCommunity(Community):
             self.logger.info("Received request block addressed to us (%s)", blk)
 
             # determine if we want to sign (i.e. the requesting public key has enough pending bytes)
-            pend = self.pending_bytes.get(message.candidate.get_member().public_key)
+            pend = self.pending_bytes.get(blk.public_key)
             if not pend or not pend.add(-blk.down, -blk.up):
+                self.logger.info("Request block counter party does not have enough bytes pending.")
                 continue
 
+            crawl_task = "crawl_%s" % blk.hash
             # It is important that the request matches up with its previous block, gaps cannot be tolerated at
             # this point. We already dropped invalids, so here we delay this message if the result is partial,
             # partial_previous or no-info. We send a crawl request to the requester to (hopefully) close the gap
             if validation[0] == ValidationResult.partial_previous or validation[0] == ValidationResult.partial or \
                     validation[0] == ValidationResult.no_info:
+                self.logger.info("Request block could not be validated sufficiently, crawling requester. %s",
+                                 validation)
                 # Note that this code does not cover the scenario where we obtain this block indirectly.
 
                 # We modified the counters to get here, correct pending bytes since we did not really sign the block yet
@@ -216,24 +217,27 @@ class MultiChainCommunity(Community):
 
                 # Are we already waiting for this crawl to happen?
                 # For example: it's taking longer than 5 secs or the block message reached us twice via different paths
-                if self.is_pending_task_active("crawl_%s" % blk.hash):
+                if self.is_pending_task_active(crawl_task):
                     continue
 
-                self.send_crawl_request(message.candidate, max(GENESIS_SEQ, blk.sequence_number - 5))
+                self.send_crawl_request(message.candidate, blk.public_key, max(GENESIS_SEQ, blk.sequence_number - 5))
 
                 # Make sure we get called again after a while. Note that the cleanup task on pend will prevent
-                # us from waiting on the peer forever,
-                self.register_task("crawl_%s" % blk.hash, reactor.callLater(5.0, self.received_half_block, [message]))
+                # us from waiting on the peer forever.
+                self.register_task(crawl_task, reactor.callLater(5.0, self.received_half_block, [message]))
             else:
-                self.sign_block(message.candidate, None, None, blk)
+                self.sign_block(message.candidate, linked=blk)
+                if self.is_pending_task_active(crawl_task):
+                    self.cancel_pending_task(crawl_task)
+                    continue
 
-    def send_crawl_request(self, candidate, sequence_number=None):
+    def send_crawl_request(self, candidate, public_key, sequence_number=None):
         sq = sequence_number
         if sequence_number is None:
-            blk = self.persistence.get_latest(candidate.get_member().public_key)
+            blk = self.persistence.get_latest(public_key)
             sq = blk.sequence_number if blk else GENESIS_SEQ
         sq = max(GENESIS_SEQ, sq)
-        self.logger.info("Requesting crawl of node %s:%d", candidate.get_member().public_key.encode("hex")[-8:], sq)
+        self.logger.info("Requesting crawl of node %s:%d", public_key.encode("hex")[-8:], sq)
         message = self.get_meta_message(CRAWL).impl(
             authentication=(self.my_member,),
             distribution=(self.claim_global_time(),),
@@ -315,7 +319,8 @@ class MultiChainCommunity(Community):
             # Tie breaker to prevent both parties from requesting
             if up > down or (up == down and self.my_member.public_key > pk):
                 self.register_task("sign_%s" % tunnel.circuit_id,
-                                   reactor.callLater(5, self.sign_block, candidate, tunnel.bytes_up, tunnel.bytes_down))
+                                   reactor.callLater(5, self.sign_block, candidate, pk,
+                                                     tunnel.bytes_up, tunnel.bytes_down))
             else:
                 pend = self.pending_bytes.get(pk)
                 if not pend:
@@ -341,7 +346,7 @@ class MultiChainCommunityCrawler(MultiChainCommunity):
     def on_introduction_response(self, messages):
         super(MultiChainCommunityCrawler, self).on_introduction_response(messages)
         for message in messages:
-            self.send_crawl_request(message.candidate)
+            self.send_crawl_request(message.candidate, message.candidate.get_member().public_key)
 
     def start_walking(self):
         self.register_task("take step", LoopingCall(self.take_step)).start(self.CrawlerDelay, now=False)
