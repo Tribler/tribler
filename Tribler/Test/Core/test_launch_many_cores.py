@@ -96,7 +96,7 @@ class TestLaunchManyCore(TriblerCoreTest):
 
         return error_stop_deferred
 
-    @deferred(timeout=1000)
+    @deferred(timeout=10)
     def test_dlstates_cb_seeding(self):
         """
         Testing whether a download is readded when safe seeding in the download states callback in LaunchManyCore

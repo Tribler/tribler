@@ -66,7 +66,3 @@ class TestPickleConverter(TriblerCoreTest):
 
         self.assertFalse(os.path.exists(os.path.join(self.session_base_dir, "user_download_choice.pickle")))
         self.assertTrue(os.path.exists(os.path.join(self.session_base_dir, STATEDIR_CONFIG)))
-
-        # Check the content of the config file
-        self.assertEqual(len(self.mock_session.config.get_download_states()), 1)
-        self.assertEqual(self.mock_session.config.get_download_state('abc'), 'stop')

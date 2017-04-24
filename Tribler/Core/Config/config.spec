@@ -78,8 +78,6 @@ default_anonymity_enabled = boolean(default=True)
 default_number_hops = integer(min=0, max=3, default=1)
 default_safeseeding_enabled = boolean(default=True)
 
-[user_download_states]
-
 [dispersy]
 enabled = boolean(default=True)
 port = integer(min=1, max=65536, default=7759)

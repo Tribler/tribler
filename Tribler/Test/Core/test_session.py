@@ -182,7 +182,6 @@ class TestSessionAsServer(TestAsServer):
         return test_deferred
 
     def test_load_checkpoint(self):
-        self.session.config.set_download_state("abc", "stop")
         self.load_checkpoint_called = False
 
         def verify_load_checkpoint_call():

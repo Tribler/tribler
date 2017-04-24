@@ -33,7 +33,7 @@ class TriblerConfig(object):
         Create a new TriblerConfig instance.
 
         :param config: a ConfigObj
-        :raises a InvalidConfigException if ConfigObj is invalid
+        :raises an InvalidConfigException if ConfigObj is invalid
         """
         self.selected_ports = {}
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -81,7 +81,7 @@ class TriblerConfig(object):
         validator = Validator()
         validation_result = self.config.validate(validator, copy=True)
         if validation_result is not True:
-            raise InvalidConfigException(msg="TriblerConfig is invalid: 5s" % str(validation_result))
+            raise InvalidConfigException(msg="TriblerConfig is invalid: %s" % str(validation_result))
 
     @staticmethod
     def get_default_state_dir(home_dir_postfix=u'.Tribler'):
@@ -548,23 +548,6 @@ class TriblerConfig(object):
 
     def get_watch_folder_path(self):
         return self.config['watch_folder']['watch_folder_dir']
-
-    # Download state
-
-    def get_download_state(self, infohash):
-        if infohash.encode('hex') in self.config["user_download_states"]:
-            return self.config["user_download_states"][infohash.encode('hex')]
-        return None
-
-    def remove_download_state(self, infohash):
-        if infohash.encode('hex') in self.config["user_download_states"]:
-            del self.config["user_download_states"][infohash.encode('hex')]
-
-    def set_download_state(self, infohash, value):
-        self.config["user_download_states"][infohash.encode('hex')] = value
-
-    def get_download_states(self):
-        return dict((key.decode('hex'), value) for key, value in self.config["user_download_states"].iteritems())
 
     # Credit mining
     def set_credit_mining_enabled(self, value):

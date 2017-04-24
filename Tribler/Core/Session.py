@@ -48,13 +48,13 @@ class Session(object):
     A Session is a running instance of the Tribler Core and the Core's central
     class.
 
-    It is a singleton. It holds a reference to the download manager, LaunchManyCore and much more.
+    It is a singleton. It holds a reference to the download manager, LaunchManyCore and it's config.
     """
     __single = None
 
     def __init__(self, config=None, ignore_singleton=False, autoload_discovery=True):
         """
-        A Session object is created which is configured with Tribler configuration object.
+        A Session object is created which is configured with the Tribler configuration object.
 
         Only a single session instance can exist at a time in a process.
 
@@ -92,7 +92,6 @@ class Session(object):
 
         self.init_keypair()
 
-        # Create handler for calling back the user via separate threads
         self.lm = TriblerLaunchMany()
         self.notifier = Notifier()
 
@@ -384,7 +383,6 @@ class Session(object):
         for download in download_list:
             if download.get_def().get_infohash() == infohash:
                 self.remove_download(download, remove_content, remove_state)
-                self.config.remove_download_state(infohash)
                 return
 
         self.lm.remove_id(infohash)
@@ -748,7 +746,7 @@ class Session(object):
 
         :param file_path_list: files to add in torrent file
         :param params: optional parameters for torrent file
-        :return: a Deferred
+        :return: a Deferred that fires when the torrent file has been created
         """
         return threads.deferToThread(torrent_utils.create_torrent_file, file_path_list, params)
 

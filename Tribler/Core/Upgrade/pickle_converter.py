@@ -17,7 +17,7 @@ class PickleConverter(object):
 
     def convert(self):
         """
-        Calling this method will convert all configuration files to the ConfigObj/.state format.
+        Calling this method will convert all configuration files to the ConfigObj.state format.
         """
         self.convert_session_config()
         self.convert_main_config()

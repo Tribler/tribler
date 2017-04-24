@@ -21,6 +21,8 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadSt
 from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Modules.watch_folder import WatchFolder
+from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
+
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Video.VideoServer import VideoServer
@@ -294,7 +296,6 @@ class TriblerLaunchMany(TaskManager):
 
         # add task for tracker checking
         if self.session.config.get_torrent_checking_enabled():
-            from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
             self.torrent_checker = TorrentChecker(self.session)
             self.torrent_checker.initialize()
 

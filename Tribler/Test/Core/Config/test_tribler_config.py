@@ -12,7 +12,6 @@ class TestTriblerConfig(TriblerCoreTest):
 
         self.tribler_conf = TriblerConfig()
         self.assertIsNotNone(self.tribler_conf)
-        self.assertEqual(self.tribler_conf.config['user_download_states'], {})
 
     def test_set_family_filter(self):
         self.tribler_conf.set_family_filter_enabled(False)

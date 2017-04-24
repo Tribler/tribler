@@ -61,10 +61,14 @@ class ProcessChecker(object):
             lock_file.write(str(os.getpid()))
 
     def remove_lock_file(self):
-        """Remove the lock file."""
+        """
+        Remove the lock file.
+        """
         os.unlink(self.lock_file_path)
 
     def get_pid_from_lock_file(self):
-        """Returns the PID from the lock file."""
+        """
+        Returns the PID from the lock file.
+        """
         with open(self.lock_file_path, 'rb') as lock_file:
             return lock_file.read()
