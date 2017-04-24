@@ -4,8 +4,7 @@ from nose.tools import raises
 
 from Tribler.Core.DownloadConfig import DownloadConfigInterface, DownloadStartupConfig, get_default_dest_dir, \
     DefaultDownloadStartupConfig
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.simpledefs import DLMODE_VOD, STATEDIR_DLCONFIG
+from Tribler.Core.simpledefs import DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -21,10 +20,7 @@ class TestConfigParser(TriblerCoreTest):
         DefaultDownloadStartupConfig.delInstance()
 
     def test_downloadconfig(self):
-        dlconf = CallbackConfigParser()
-        dlconf.add_section('downloadconfig')
-        dlconf.set('downloadconfig', 'hops', 5)
-        dlcfg = DownloadConfigInterface(dlconf)
+        dlcfg = DownloadConfigInterface()
 
         self.assertIsInstance(dlcfg.get_dest_dir(), unicode)
         dlcfg.set_dest_dir(self.session_base_dir)
@@ -47,9 +43,6 @@ class TestConfigParser(TriblerCoreTest):
 
         dlcfg.set_selected_files("foo.bar")
         self.assertEqual(dlcfg.get_selected_files(), ["foo.bar"])
-
-        dlcfg.set_user_stopped(True)
-        self.assertTrue(dlcfg.get_user_stopped())
 
     @raises(ValueError)
     def test_downloadconfig_set_vod_multiple_files(self):

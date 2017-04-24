@@ -439,6 +439,12 @@ class TriblerConfig(object):
     def get_default_safeseeding_enabled(self):
         return self.config['downloadconfig']['default_safeseeding_enabled']
 
+    def set_default_destination_dir(self, value):
+        self.config['download_defaults']['destination_dir'] = value
+
+    def get_default_destination_dir(self):
+        return self.config['download_defaults']['destination_dir']
+
     # Upgrader
 
     def set_upgrader_enabled(self, should_upgrade):

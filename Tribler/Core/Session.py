@@ -21,19 +21,15 @@ from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_FILE_RELATIVE_PATH, DB_SCRIPT_RELATIVE_PATH
 from Tribler.Core.Config.tribler_config import TriblerConfig
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig, get_default_dest_dir
 from Tribler.Core.Modules.restapi.rest_manager import RESTManager
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.Utilities import torrent_utils
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
 from Tribler.Core.Utilities.install_dir import get_lib_path
-from Tribler.Core.defaults import dldefaults
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
     DuplicateTorrentFileError
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_MYPREFERENCES, NTFY_PEERS,
-                                     NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
-                                     STATEDIR_GUICONFIG)
+                                     NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR)
 from Tribler.Core.statistics import TriblerStatistics
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -100,8 +96,6 @@ class Session(object):
         self.dispersy_member = None
 
         self.autoload_discovery = autoload_discovery
-
-        self.setup_tribler_gui_config()
 
     def create_state_directory_structure(self):
         """Create directory structure of the state directory."""
@@ -248,34 +242,6 @@ class Session(object):
             if self.lm.api_manager and len(text) > 0:
                 self.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception(text)
                 self.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception(text)
-
-    def setup_tribler_gui_config(self):
-        """
-        Initialize the TriblerGUI configuration file and make sure that we have all required values.
-        """
-        configfilepath = os.path.join(self.config.get_state_dir(), STATEDIR_GUICONFIG)
-        gui_config = CallbackConfigParser()
-        DefaultDownloadStartupConfig.getInstance().set_dest_dir(get_default_dest_dir())
-
-        # Load the config file.
-        if os.path.exists(configfilepath):
-            gui_config.read_file(configfilepath, 'utf-8-sig')
-
-        if not gui_config.has_section('downloadconfig'):
-            gui_config.add_section('downloadconfig')
-
-        for k, v in DefaultDownloadStartupConfig.getInstance().dlconfig._sections['downloadconfig'].iteritems():
-            if not gui_config.has_option('downloadconfig', k):
-                gui_config.set('downloadconfig', k, v)
-
-        # Make sure we use the same ConfigParser instance for both Utility and DefaultDownloadStartupConfig.
-        DefaultDownloadStartupConfig.getInstance().dlconfig = gui_config
-
-        gui_config.write_file(configfilepath)
-
-        # Update all dldefaults to use the settings in gui_config
-        for k, v in gui_config._sections['downloadconfig'].iteritems():
-            dldefaults['downloadconfig'][k] = v
 
     def start_download_from_uri(self, uri, download_config=None):
         """

@@ -87,8 +87,6 @@ class AbstractServer(BaseTestCase):
         self.state_dir = os.path.join(self.session_base_dir, u"dot.Tribler")
         self.dest_dir = os.path.join(self.session_base_dir, u"TriblerDownloads")
 
-        defaults.dldefaults["downloadconfig"]["saveas"] = self.dest_dir
-
         yield self.checkReactor(phase="setUp")
 
         self.setUpCleanup()
@@ -280,6 +278,7 @@ class TestAsServer(AbstractServer):
         self.config = TriblerConfig()
         self.config.set_dispersy_port(-1)
         self.config.set_libtorrent_port(-1)
+        self.config.set_default_destination_dir(self.dest_dir)
         self.config.set_state_dir(self.getStateDir())
         self.config.set_torrent_checking_enabled(False)
         self.config.set_megacache_enabled(False)

@@ -34,8 +34,6 @@ PERSISTENTSTATE_CURRENTVERSION = 5
 
 STATEDIR_DLPSTATE_DIR = u'dlcheckpoints'
 
-STATEDIR_DLCONFIG = 'tribler.conf'
-STATEDIR_GUICONFIG = 'tribler.conf'
 STATEDIR_CONFIG = 'triblerd.conf'
 STATEDIR_CONFIGSPEC = 'config.spec'
 

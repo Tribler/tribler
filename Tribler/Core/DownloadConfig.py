@@ -70,7 +70,6 @@ class DownloadConfigInterface(object):
 
         return dest_dir
 
-
     def get_corrected_filename(self):
         """ Gets the directory name where to save this torrent
         """
@@ -111,10 +110,10 @@ class DownloadConfigInterface(object):
         return self.dlconfig.get('downloadconfig', 'seeding_mode')
 
     def set_user_stopped(self, value):
-        self.dlconfig.set('downloadconfig', 'user_stopped', value)
+        self.dlconfig.set('download_defaults', 'user_stopped', value)
 
     def get_user_stopped(self):
-        return self.dlconfig.get('downloadconfig', 'user_stopped')
+        return self.dlconfig.get('download_defaults', 'user_stopped')
 
     def set_time_added(self, value):
         self.dlconfig.set('downloadconfig', 'time_added', value)
@@ -240,19 +239,20 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
 
 
 def get_default_dest_dir():
-    """ Returns the default dir to save content to.
-    * If Downloads/ exists: Downloads/TriblerDownloads
-        else: Home/TriblerDownloads
-
     """
-    t_downloaddir = u"TriblerDownloads"
+    Returns the default dir to save content to.
+    
+    If Downloads/ exists: Downloads/TriblerDownloads
+    else: Home/TriblerDownload
+    """
+    download_dir = u"TriblerDownloads"
 
     # TODO: Is this here so the unit tests work?
-    if os.path.isdir(t_downloaddir):
-        return os.path.abspath(t_downloaddir)
+    if os.path.isdir(download_dir):
+        return os.path.abspath(download_dir)
 
     downloads_dir = os.path.join(get_home_dir(), u"Downloads")
     if os.path.isdir(downloads_dir):
-        return os.path.join(downloads_dir, t_downloaddir)
+        return os.path.join(downloads_dir, download_dir)
     else:
-        return os.path.join(get_home_dir(), t_downloaddir)
+        return os.path.join(get_home_dir(), download_dir)

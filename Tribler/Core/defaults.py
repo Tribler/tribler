@@ -36,22 +36,16 @@ DEFAULTPORT = 7760
 #  Version 15: add seeding ratio
 #  Version 16: added field whether the download has been manually stopped by the user and time added
 
-DLDEFAULTS_VERSION = 16
 dldefaults = OrderedDict()
 
 # General download settings
 dldefaults['downloadconfig'] = OrderedDict()
-dldefaults['downloadconfig']['version'] = DLDEFAULTS_VERSION
-dldefaults['downloadconfig']['saveas'] = None  # Set to get_default_destdir()
 dldefaults['downloadconfig']['mode'] = 0
 dldefaults['downloadconfig']['hops'] = 0
 dldefaults['downloadconfig']['selected_files'] = []
 dldefaults['downloadconfig']['correctedfilename'] = None
 dldefaults['downloadconfig']['safe_seeding'] = False
 # Valid values: 'forever', 'never', 'ratio', 'time'
-dldefaults['downloadconfig']['seeding_mode'] = 'ratio'
-dldefaults['downloadconfig']['seeding_ratio'] = 2.0
-dldefaults['downloadconfig']['seeding_time'] = 60
 dldefaults['downloadconfig']['user_stopped'] = False
 dldefaults['downloadconfig']['time_added'] = 0
 

@@ -70,13 +70,14 @@ anon_proxyserver_ports = string_list(default=list('-1', '-1', '-1', '-1', '-1'))
 anon_proxyauth = string(default='')
 
 [downloadconfig]
-saveas = string(default=None)
-seeding_mode = string(default='ratio')
-seeding_time = integer(default=60)
-seeding_ratio = float(default=2.0)
 default_anonymity_enabled = boolean(default=True)
 default_number_hops = integer(min=0, max=3, default=1)
 default_safeseeding_enabled = boolean(default=True)
+saveas = string(default=None)
+seeding_mode = string(default='ratio')
+seeding_ratio = float(default=2.0)
+seeding_time = integer(default=60)
+version = integer(default=16)
 
 [dispersy]
 enabled = boolean(default=True)

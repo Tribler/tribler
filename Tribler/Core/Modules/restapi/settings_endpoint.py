@@ -1,10 +1,5 @@
 import json
-import os
-from ConfigParser import RawConfigParser
 from twisted.web import resource
-
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.simpledefs import STATEDIR_GUICONFIG
 
 
 class SettingsEndpoint(resource.Resource):
@@ -15,11 +10,6 @@ class SettingsEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
-
-        # Load the Tribler GUI configuration file
-        self.gui_config_file_path = os.path.join(self.session.config.get_state_dir(), STATEDIR_GUICONFIG)
-        self.tribler_gui_config = CallbackConfigParser()
-        self.tribler_gui_config.read_file(self.gui_config_file_path, 'utf-8-sig')
 
     def render_GET(self, request):
         """
@@ -81,21 +71,10 @@ class SettingsEndpoint(resource.Resource):
         """
         Set a specific Tribler setting. Throw a ValueError if this setting is not available.
         """
-        if section == "Tribler" or section == "downloadconfig":
-            # Write to the Tribler GUI config file
-            if not self.tribler_gui_config.has_option(section, option):
-                raise ValueError("Section %s with option %s does not exist" % (section, option))
-            RawConfigParser.set(self.tribler_gui_config, section, option, value)
-            self.tribler_gui_config.write_file(self.gui_config_file_path)
-            return
-
         if section in self.session.config.config and option in self.session.config.config[section]:
             self.session.config.config[section][option] = value
         else:
             raise ValueError("Section %s with option %s does not exist" % (section, option))
-
-        # Reload the GUI settings in Tribler (there might have been download settings that have changed)
-        self.session.setup_tribler_gui_config()
 
         # Perform some actions when specific keys are set
         if section == "libtorrent" and (option == "max_download_rate" or option == "max_upload_rate"):
