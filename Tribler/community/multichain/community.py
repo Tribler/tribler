@@ -145,7 +145,7 @@ class MultiChainCommunity(Community):
         :param linked: The block that the requester is asking us to sign
         """
         # NOTE to the future: This method reads from the database, increments and then writes back. If in some future
-        # this method is allowed to execute in parallel, be sure to lock from before .create upto after .add_block
+        # this method is allowed to execute in parallel, be sure to lock from before .create up to after .add_block
         assert bytes_up is None and bytes_down is None and linked is not None or \
             bytes_up is not None and bytes_down is not None and linked is None, \
             "Either provide a linked block or byte counts, not both"
@@ -298,7 +298,7 @@ class MultiChainCommunity(Community):
     def on_tunnel_remove(self, subject, change_type, tunnel, candidate):
         """
         Handler for the remove event of a tunnel. This function will attempt to create a block for the amounts that
-        where transferred using the tunnel.
+        were transferred using the tunnel.
         :param subject: Category of the notifier event
         :param change_type: Type of the notifier event
         :param tunnel: The tunnel that was removed (closed)

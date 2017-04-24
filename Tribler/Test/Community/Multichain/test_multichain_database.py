@@ -66,12 +66,12 @@ class TestDatabase(MultiChainTestCase):
         # Act
         self.db.add_block(self.block1)
         # Assert
-        assert self.db.contains(self.block1)
+        self.assertTrue(self.db.contains(self.block1))
 
     @blocking_call_on_reactor_thread
     def test_contains_block_id_negative(self):
         # Act & Assert
-        assert not self.db.contains(self.block1)
+        self.assertFalse(self.db.contains(self.block1))
 
     @blocking_call_on_reactor_thread
     def test_get_linked_forward(self):

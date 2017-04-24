@@ -576,16 +576,16 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         TestMultiChainCommunity.transport_halfblocks(crawlee, crawler)
 
     @staticmethod
-    def transport_halfblocks(source, sink):
+    def transport_halfblocks(source, destination):
         count = -1
         while count != 0:
             count = 0
             try:
-                gen = sink.receive_message(names=[HALF_BLOCK])
+                gen = destination.receive_message(names=[HALF_BLOCK])
                 message = gen.next()[1]
                 while message:
                     count += 1
-                    sink.give_message(message, source)
+                    destination.give_message(message, source)
                     message = gen.next()[1]
             except StopIteration:
                 pass
@@ -600,10 +600,10 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
     def create_nodes(self, *args, **kwargs):
         nodes = yield super(TestMultiChainCommunity, self).create_nodes(*args, community_class=MultiChainCommunity,
                                                                  memory_database=False, **kwargs)
-        for x in nodes:
-            for y in nodes:
-                if x != y:
-                    x.send_identity(y)
+        for outer in nodes:
+            for inner in nodes:
+                if outer != inner:
+                    outer.send_identity(inner)
 
         returnValue(nodes)
 
