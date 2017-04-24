@@ -80,8 +80,8 @@ class StartDownloadDialog(DialogContainer):
         self.dialog_widget.torrent_name_label.setText(torrent_name)
 
         self.dialog_widget.anon_download_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
-        self.dialog_widget.safe_seed_checkbox.setChecked(self.window().tribler_settings['downloadconfig']['default_safeseeding_enabled'])
-        self.dialog_widget.safe_seed_checkbox.setChecked(self.window().tribler_settings['downloadconfig']['default_anonymity_enabled'])
+        self.dialog_widget.safe_seed_checkbox.setChecked(self.window().tribler_settings['downloadconfig']['safeseeding_enabled'])
+        self.dialog_widget.safe_seed_checkbox.setChecked(self.window().tribler_settings['downloadconfig']['anonymity_enabled'])
 
         self.dialog_widget.safe_seed_checkbox.setEnabled(self.dialog_widget.anon_download_checkbox.isChecked())
 

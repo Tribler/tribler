@@ -62,11 +62,11 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
                                         (self.torrent_info["infohash"], self.torrent_info['name'])).encode('utf-8'))
 
         self.window().perform_start_download_request(self.download_uri,
-                                                     self.window().tribler_settings['downloadconfig'][
-                                                         'default_anonymity_enabled'],
-                                                     self.window().tribler_settings['downloadconfig'][
-                                                         'default_safeseeding_enabled'],
-                                                     self.window().tribler_settings['downloadconfig']['saveas'],
+                                                     self.window().tribler_settings['download_defaults'][
+                                                         'anonymity_enabled'],
+                                                     self.window().tribler_settings['download_defaults'][
+                                                         'safeseeding_enabled'],
+                                                     self.window().tribler_settings['download_defaults']['saveas'],
                                                      [], 0, callback=self.on_play_request_done)
 
     def on_play_request_done(self, result):

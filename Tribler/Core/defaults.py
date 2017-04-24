@@ -39,15 +39,15 @@ DEFAULTPORT = 7760
 dldefaults = OrderedDict()
 
 # General download settings
-dldefaults['downloadconfig'] = OrderedDict()
-dldefaults['downloadconfig']['mode'] = 0
-dldefaults['downloadconfig']['hops'] = 0
-dldefaults['downloadconfig']['selected_files'] = []
-dldefaults['downloadconfig']['correctedfilename'] = None
-dldefaults['downloadconfig']['safe_seeding'] = False
+dldefaults['download_defaults'] = OrderedDict()
+dldefaults['download_defaults']['mode'] = 0
+dldefaults['download_defaults']['hops'] = 0
+dldefaults['download_defaults']['selected_files'] = []
+dldefaults['download_defaults']['correctedfilename'] = None
+dldefaults['download_defaults']['safe_seeding'] = False
 # Valid values: 'forever', 'never', 'ratio', 'time'
-dldefaults['downloadconfig']['user_stopped'] = False
-dldefaults['downloadconfig']['time_added'] = 0
+dldefaults['download_defaults']['user_stopped'] = False
+dldefaults['download_defaults']['time_added'] = 0
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None

@@ -54,13 +54,12 @@ class SettingsPage(QWidget):
         self.window().family_filter_checkbox.setChecked(settings['general']['family_filter'])
         self.window().use_monochrome_icon_checkbox.setChecked(get_gui_setting(gui_settings, "use_monochrome_icon",
                                                                                  False, is_bool=True))
-        self.window().download_location_input.setText(settings['downloadconfig']['saveas'])
+        self.window().download_location_input.setText(settings['download_defaults']['saveas'])
         self.window().always_ask_location_checkbox.setChecked(
             get_gui_setting(gui_settings, "ask_download_settings", True, is_bool=True))
-        self.window().download_settings_anon_checkbox.setChecked(settings['downloadconfig'][
-                                                                     'default_anonymity_enabled'])
-        self.window().download_settings_anon_seeding_checkbox.setChecked(settings['downloadconfig'][
-                                                                             'default_safeseeding_enabled'])
+        self.window().download_settings_anon_checkbox.setChecked(settings['download_defaults']['anonymity_enabled'])
+        self.window().download_settings_anon_seeding_checkbox.setChecked(settings['download_defaults'][
+                                                                             'safeseeding_enabled'])
         self.window().watchfolder_enabled_checkbox.setChecked(settings['watch_folder']['enabled'])
         self.window().watchfolder_location_input.setText(settings['watch_folder']['watch_folder_dir'])
 
@@ -85,15 +84,15 @@ class SettingsPage(QWidget):
         self.window().download_rate_limit_input.setText(str(settings['libtorrent']['max_download_rate'] / 1024))
 
         # Seeding settings
-        getattr(self.window(), "seeding_" + settings['downloadconfig']['seeding_mode'] + "_radio").setChecked(True)
-        self.window().seeding_time_input.setText(seconds_to_hhmm_string(settings['downloadconfig']['seeding_time']))
-        ind = self.window().seeding_ratio_combobox.findText(str(settings['downloadconfig']['seeding_ratio']))
+        getattr(self.window(), "seeding_" + settings['download_defaults']['seeding_mode'] + "_radio").setChecked(True)
+        self.window().seeding_time_input.setText(seconds_to_hhmm_string(settings['download_defaults']['seeding_time']))
+        ind = self.window().seeding_ratio_combobox.findText(str(settings['download_defaults']['seeding_ratio']))
         if ind != -1:
             self.window().seeding_ratio_combobox.setCurrentIndex(ind)
 
         # Anonymity settings
         self.window().allow_exit_node_checkbox.setChecked(settings['tunnel_community']['exitnode_enabled'])
-        self.window().number_hops_slider.setValue(int(settings['downloadconfig']['default_number_hops']) - 1)
+        self.window().number_hops_slider.setValue(int(settings['download_defaults']['number_hops']) - 1)
         self.window().multichain_enabled_checkbox.setChecked(settings['multichain']['enabled'])
 
     def load_settings(self):
@@ -114,10 +113,10 @@ class SettingsPage(QWidget):
 
     def save_settings(self):
         # Create a dictionary with all available settings
-        settings_data = {'general': {}, 'Tribler': {}, 'downloadconfig': {}, 'libtorrent': {}, 'watch_folder': {},
+        settings_data = {'general': {}, 'Tribler': {}, 'download_defaults': {}, 'libtorrent': {}, 'watch_folder': {},
                          'tunnel_community': {}, 'multichain': {}}
         settings_data['general']['family_filter'] = self.window().family_filter_checkbox.isChecked()
-        settings_data['downloadconfig']['saveas'] = self.window().download_location_input.text()
+        settings_data['download_defaults']['saveas'] = self.window().download_location_input.text()
 
         settings_data['watch_folder']['enabled'] = self.window().watchfolder_enabled_checkbox.isChecked()
         if settings_data['watch_folder']['enabled']:
@@ -160,11 +159,11 @@ class SettingsPage(QWidget):
             if getattr(self.window(), "seeding_" + seeding_mode + "_radio").isChecked():
                 selected_mode = seeding_mode
                 break
-        settings_data['downloadconfig']['seeding_mode'] = selected_mode
-        settings_data['downloadconfig']['seeding_ratio'] = self.window().seeding_ratio_combobox.currentText()
+        settings_data['download_defaults']['seeding_mode'] = selected_mode
+        settings_data['download_defaults']['seeding_ratio'] = self.window().seeding_ratio_combobox.currentText()
 
         try:
-            settings_data['downloadconfig']['seeding_time'] = string_to_seconds(self.window().seeding_time_input.text())
+            settings_data['download_defaults']['seeding_time'] = string_to_seconds(self.window().seeding_time_input.text())
         except ValueError:
             ConfirmationDialog.show_error(self.window(), "Invalid seeding time",
                                           "You've entered an invalid format for the seeding time (expected HH:MM)")
@@ -172,10 +171,10 @@ class SettingsPage(QWidget):
 
         settings_data['multichain']['enabled'] = self.window().multichain_enabled_checkbox.isChecked()
         settings_data['tunnel_community']['exitnode_enabled'] = self.window().allow_exit_node_checkbox.isChecked()
-        settings_data['downloadconfig']['default_number_hops'] = self.window().number_hops_slider.value() + 1
-        settings_data['downloadconfig']['default_anonymity_enabled'] = \
+        settings_data['download_defaults']['number_hops'] = self.window().number_hops_slider.value() + 1
+        settings_data['download_defaults']['anonymity_enabled'] = \
             self.window().download_settings_anon_checkbox.isChecked()
-        settings_data['downloadconfig']['default_safeseeding_enabled'] = \
+        settings_data['download_defaults']['safeseeding_enabled'] = \
             self.window().download_settings_anon_seeding_checkbox.isChecked()
 
         self.window().settings_save_button.setEnabled(False)

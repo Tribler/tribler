@@ -57,12 +57,12 @@ class DownloadConfigInterface(object):
         @param path A path of a directory.
         """
         assert isinstance(path, basestring), path
-        self.dlconfig.set('downloadconfig', 'saveas', path)
+        self.dlconfig.set('download_defaults', 'saveas', path)
 
     def get_dest_dir(self):
         """ Gets the directory where to save this Download.
         """
-        dest_dir = self.dlconfig.get('downloadconfig', 'saveas')
+        dest_dir = self.dlconfig.get('download_defaults', 'saveas')
 
         if not dest_dir:
             dest_dir = get_default_dest_dir()
@@ -73,41 +73,41 @@ class DownloadConfigInterface(object):
     def get_corrected_filename(self):
         """ Gets the directory name where to save this torrent
         """
-        return self.dlconfig.get('downloadconfig', 'correctedfilename')
+        return self.dlconfig.get('download_defaults', 'correctedfilename')
 
     def set_corrected_filename(self, correctedfilename):
         """ Sets the directory name where to save this torrent
         @param correctedfilename name for multifile directory
         """
-        self.dlconfig.set('downloadconfig', 'correctedfilename', correctedfilename)
+        self.dlconfig.set('download_defaults', 'correctedfilename', correctedfilename)
 
     def set_mode(self, mode):
         """ Sets the mode of this download.
         @param mode DLMODE_NORMAL/DLMODE_VOD """
-        self.dlconfig.set('downloadconfig', 'mode', mode)
+        self.dlconfig.set('download_defaults', 'mode', mode)
 
     def get_mode(self):
         """ Returns the mode of this download.
         @return DLMODE_NORMAL/DLMODE_VOD """
-        return self.dlconfig.get('downloadconfig', 'mode')
+        return self.dlconfig.get('download_defaults', 'mode')
 
     def set_hops(self, hops):
-        self.dlconfig.set('downloadconfig', 'hops', hops)
+        self.dlconfig.set('download_defaults', 'hops', hops)
 
     def get_hops(self):
-        return self.dlconfig.get('downloadconfig', 'hops')
+        return self.dlconfig.get('download_defaults', 'hops')
 
     def set_safe_seeding(self, value):
-        self.dlconfig.set('downloadconfig', 'safe_seeding', value)
+        self.dlconfig.set('download_defaults', 'safe_seeding', value)
 
     def get_safe_seeding(self):
-        return self.dlconfig.get('downloadconfig', 'safe_seeding')
+        return self.dlconfig.get('download_defaults', 'safe_seeding')
 
     def set_seeding_mode(self, value):
-        self.dlconfig.set('downloadconfig', 'seeding_mode', value)
+        self.dlconfig.set('download_defaults', 'seeding_mode', value)
 
     def get_seeding_mode(self):
-        return self.dlconfig.get('downloadconfig', 'seeding_mode')
+        return self.dlconfig.get('download_defaults', 'seeding_mode')
 
     def set_user_stopped(self, value):
         self.dlconfig.set('download_defaults', 'user_stopped', value)
@@ -116,10 +116,10 @@ class DownloadConfigInterface(object):
         return self.dlconfig.get('download_defaults', 'user_stopped')
 
     def set_time_added(self, value):
-        self.dlconfig.set('downloadconfig', 'time_added', value)
+        self.dlconfig.set('download_defaults', 'time_added', value)
 
     def get_time_added(self):
-        return self.dlconfig.get('downloadconfig', 'time_added')
+        return self.dlconfig.get('download_defaults', 'time_added')
 
     def set_selected_files(self, files):
         """ Select which files in the torrent to download. The filenames must
@@ -142,12 +142,12 @@ class DownloadConfigInterface(object):
         if self.get_mode() == DLMODE_VOD and len(files) > 1:
             raise ValueError("In Video-On-Demand mode only 1 file can be selected for download")
 
-        self.dlconfig.set('downloadconfig', 'selected_files', files)
+        self.dlconfig.set('download_defaults', 'selected_files', files)
 
     def get_selected_files(self):
         """ Returns the list of files selected for download.
         @return A list of strings. """
-        return self.dlconfig.get('downloadconfig', 'selected_files')
+        return self.dlconfig.get('download_defaults', 'selected_files')
 
 
 class DownloadStartupConfig(DownloadConfigInterface):
@@ -234,7 +234,7 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
 
     def copy(self):
         config = CallbackConfigParser()
-        config._sections = {'downloadconfig': copy.deepcopy(self.dlconfig._sections['downloadconfig'])}
+        config._sections = {'download_defaults': copy.deepcopy(self.dlconfig._sections['download_defaults'])}
         return DownloadStartupConfig(config)
 
 

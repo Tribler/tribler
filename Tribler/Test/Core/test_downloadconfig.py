@@ -75,7 +75,6 @@ class TestConfigParser(TriblerCoreTest):
 
     def test_get_default_dest_dir(self):
         self.assertIsInstance(get_default_dest_dir(), unicode)
-        self.assertIsInstance(os.path.join("", STATEDIR_DLCONFIG), str)
 
     @raises(RuntimeError)
     def test_default_download_startup_config_init(self):

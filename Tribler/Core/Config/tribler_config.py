@@ -431,13 +431,13 @@ class TriblerConfig(object):
         return self.config['tunnel_community']['exitnode_enabled']
 
     def get_default_number_hops(self):
-        return self.config['downloadconfig']['default_number_hops']
+        return self.config['download_defaults']['number_hops']
 
     def get_default_anonymity_enabled(self):
-        return self.config['downloadconfig']['default_anonymity_enabled']
+        return self.config['download_defaults']['anonymity_enabled']
 
     def get_default_safeseeding_enabled(self):
-        return self.config['downloadconfig']['default_safeseeding_enabled']
+        return self.config['download_defaults']['safeseeding_enabled']
 
     def set_default_destination_dir(self, value):
         self.config['download_defaults']['destination_dir'] = value

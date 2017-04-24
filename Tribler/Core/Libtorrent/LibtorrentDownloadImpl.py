@@ -342,7 +342,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
                 self.set_selected_files()
 
-                user_stopped = pstate.get('downloadconfig', 'user_stopped') if pstate else False
+                user_stopped = pstate.get('download_defaults', 'user_stopped') if pstate else False
 
                 # If we lost resume_data always resume download in order to force checking
                 if not user_stopped or not resume_data:
@@ -710,8 +710,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             mode = self.get_seeding_mode()
             if mode == 'never' \
                     or (mode == 'ratio' and
-                                self.all_time_ratio >= self.dlconfig.get('downloadconfig', 'seeding_ratio')) \
-                    or (mode == 'time' and self.finished_time >= self.dlconfig.get('downloadconfig', 'seeding_time')):
+                                self.all_time_ratio >= self.dlconfig.get('download_defaults', 'seeding_ratio')) \
+                    or (mode == 'time' and self.finished_time >= self.dlconfig.get('download_defaults', 'seeding_time')):
                 self.stop()
 
     def set_corrected_infoname(self):
@@ -1164,7 +1164,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
     def get_persistent_download_config(self):
         pstate = self.dlconfig.copy()
 
-        pstate.set('downloadconfig', 'mode', DLMODE_NORMAL)
+        pstate.set('download_defaults', 'mode', DLMODE_NORMAL)
 
         # Add state stuff
         if not pstate.has_section('state'):
@@ -1220,7 +1220,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             self.get_handle().addCallback(lambda handle: handle.set_upload_limit(int(new_value * 1024)))
         elif section == 'libtorrent' and name == 'max_download_rate':
             self.get_handle().addCallback(lambda handle: handle.set_download_limit(int(new_value * 1024)))
-        elif section == 'downloadconfig' and name in ['correctedfilename', 'super_seeder']:
+        elif section == 'download_defaults' and name in ['correctedfilename', 'super_seeder']:
             return False
         return True
 

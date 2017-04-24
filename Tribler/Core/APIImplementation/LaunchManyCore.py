@@ -615,9 +615,9 @@ class TriblerLaunchMany(TaskManager):
             else:
                 tdef = TorrentDef.load_from_dict(metainfo)
 
-            if pstate.has_option('downloadconfig', 'saveas') and \
-                    isinstance(pstate.get('downloadconfig', 'saveas'), tuple):
-                pstate.set('downloadconfig', 'saveas', pstate.get('downloadconfig', 'saveas')[-1])
+            if pstate.has_option('download_defaults', 'saveas') and \
+                    isinstance(pstate.get('download_defaults', 'saveas'), tuple):
+                pstate.set('download_defaults', 'saveas', pstate.get('download_defaults', 'saveas')[-1])
 
             dscfg = DownloadStartupConfig(pstate)
 

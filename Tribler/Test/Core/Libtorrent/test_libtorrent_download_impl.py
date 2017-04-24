@@ -313,7 +313,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.dlconfig_changed_callback('libtorrent', 'max_download_rate', 3, 4)
         self.assertTrue(mocked_set_download_limit)
         self.assertFalse(self.libtorrent_download_impl.dlconfig_changed_callback(
-            'downloadconfig', 'super_seeder', 3, 4))
+            'download_defaults', 'super_seeder', 3, 4))
 
     def test_add_trackers(self):
         """

@@ -24,7 +24,7 @@ enabled = boolean(default=True)
 enabled = boolean(default=True)
 socks5_listen_ports = string_list(default=list('-1', '-1', '-1', '-1', '-1'))
 exitnode_enabled = boolean(default=False)
-default_anonymity_enabled = boolean(default=True)
+anonymity_enabled = boolean(default=True)
 default_number_hops = integer(min=0, max=3, default=1)
 default_safeseeding_enabled = boolean(default=True)
 
@@ -69,10 +69,10 @@ anon_proxyserver_ip = ip_addr(default=127.0.0.1)
 anon_proxyserver_ports = string_list(default=list('-1', '-1', '-1', '-1', '-1'))
 anon_proxyauth = string(default='')
 
-[downloadconfig]
-default_anonymity_enabled = boolean(default=True)
-default_number_hops = integer(min=0, max=3, default=1)
-default_safeseeding_enabled = boolean(default=True)
+[download_defaults]
+anonymity_enabled = boolean(default=True)
+number_hops = integer(min=0, max=3, default=1)
+safeseeding_enabled = boolean(default=True)
 saveas = string(default=None)
 seeding_mode = string(default='ratio')
 seeding_ratio = float(default=2.0)
