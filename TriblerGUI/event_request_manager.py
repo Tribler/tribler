@@ -34,6 +34,8 @@ class EventRequestManager(QNetworkAccessManager):
         self.current_event_string = ""
         self.tribler_version = "Unknown"
         self.reply = None
+        self.emitted_tribler_started = False  # We should only emit tribler_started once
+        self.shutting_down = False
         self._logger = logging.getLogger('TriblerGUI')
 
     def on_error(self, error, reschedule_on_err):
@@ -47,10 +49,13 @@ class EventRequestManager(QNetworkAccessManager):
             if reschedule_on_err:
                 # Reschedule an attempt
                 self.connect_timer = QTimer()
+                self.connect_timer.setSingleShot(True)
                 self.connect_timer.timeout.connect(self.connect)
                 self.connect_timer.start(500)
 
     def on_read_data(self):
+        if self.receivers(self.finished) == 0:
+            self.finished.connect(lambda reply: self.on_finished())
         self.connect_timer.stop()
         data = self.reply.readAll()
         self.current_event_string += data
@@ -68,8 +73,9 @@ class EventRequestManager(QNetworkAccessManager):
                     self.received_search_result_channel.emit(json_dict["event"]["result"])
                 elif json_dict["type"] == "search_result_torrent":
                     self.received_search_result_torrent.emit(json_dict["event"]["result"])
-                elif json_dict["type"] == "tribler_started":
+                elif json_dict["type"] == "tribler_started" and not self.emitted_tribler_started:
                     self.tribler_started.emit()
+                    self.emitted_tribler_started = True
                 elif json_dict["type"] == "new_version_available":
                     self.new_version_available.emit(json_dict["event"]["version"])
                 elif json_dict["type"] == "upgrader_started":
@@ -84,8 +90,9 @@ class EventRequestManager(QNetworkAccessManager):
                     self.discovered_torrent.emit(json_dict["event"])
                 elif json_dict["type"] == "events_start":
                     self.tribler_version = json_dict["event"]["version"]
-                    if json_dict["event"]["tribler_started"]:
+                    if json_dict["event"]["tribler_started"] and not self.emitted_tribler_started:
                         self.tribler_started.emit()
+                        self.emitted_tribler_started = True
                 elif json_dict["type"] == "torrent_finished":
                     self.torrent_finished.emit(json_dict["event"])
                 elif json_dict["type"] == "tribler_exception":
@@ -96,9 +103,15 @@ class EventRequestManager(QNetworkAccessManager):
         """
         Somehow, the events connection dropped. Try to reconnect.
         """
+        if self.shutting_down:
+            return
         self._logger.warning("Events connection dropped, attempting to reconnect")
         self.failed_attempts = 0
-        self.connect()
+
+        self.connect_timer = QTimer()
+        self.connect_timer.setSingleShot(True)
+        self.connect_timer.timeout.connect(self.connect)
+        self.connect_timer.start(500)
 
     def connect(self, reschedule_on_err=True):
         self._logger.info("Will connect to events endpoint")

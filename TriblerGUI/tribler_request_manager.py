@@ -87,7 +87,12 @@ class TriblerRequestManager(QNetworkAccessManager):
         return "Unknown error"
 
     def on_finished(self, reply, capture_errors):
-        performed_requests[self.request_id][4] = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+        status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+        if not reply.isOpen() or not status_code:
+            self.received_json.emit(None, reply.error())
+            return
+
+        performed_requests[self.request_id][4] = status_code
 
         data = reply.readAll()
         try:
