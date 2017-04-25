@@ -1,11 +1,10 @@
 import os
-
 from M2Crypto.EC import EC
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core import permid
-from Tribler.dispersy.crypto import LibNaCLSK
 from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.dispersy.crypto import LibNaCLSK
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 

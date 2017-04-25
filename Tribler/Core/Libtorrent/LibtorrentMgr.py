@@ -5,29 +5,29 @@ Author(s): Egbert Bouman
 """
 import binascii
 import logging
+import os
 import random
-from urllib import url2pathname
 import tempfile
 import threading
-import os
 import time
 from binascii import hexlify
 from copy import deepcopy
 from shutil import rmtree
+from urllib import url2pathname
 
+import libtorrent as lt
 from twisted.internet import reactor, threads
 from twisted.internet.defer import succeed, fail
 from twisted.python.failure import Failure
 
-import libtorrent as lt
-from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
 from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
                                      NTFY_REACHABLE, NTFY_TORRENTS)
 from Tribler.Core.version import version_id
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.dispersy.taskmanager import LoopingCall, TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
@@ -38,14 +38,14 @@ DHT_CHECK_RETRIES = 1
 
 class LibtorrentMgr(TaskManager):
 
-    def __init__(self, trsession):
+    def __init__(self, tribler_session):
         super(LibtorrentMgr, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.trsession = trsession
+        self.tribler_session = tribler_session
         self.ltsessions = {}
 
-        self.notifier = trsession.notifier
+        self.notifier = tribler_session.notifier
 
         self.set_upload_rate_limit(0)
         self.set_download_rate_limit(0)
@@ -92,7 +92,7 @@ class LibtorrentMgr(TaskManager):
         self.get_session().stop_upnp()
 
         # Save libtorrent state
-        ltstate_file = open(os.path.join(self.trsession.get_state_dir(), LTSTATE_FILENAME), 'w')
+        ltstate_file = open(os.path.join(self.tribler_session.config.get_state_dir(), LTSTATE_FILENAME), 'w')
         ltstate_file.write(lt.bencode(self.get_session().save_state()))
         ltstate_file.close()
 
@@ -104,7 +104,7 @@ class LibtorrentMgr(TaskManager):
         rmtree(self.metadata_tmpdir)
         self.metadata_tmpdir = None
 
-        self.trsession = None
+        self.tribler_session = None
 
     def create_session(self, hops=0):
         settings = {}
@@ -120,7 +120,7 @@ class LibtorrentMgr(TaskManager):
             fingerprint = ['TL'] + map(int, version_id.split('-')[0].split('.')) + [0]
             # Workaround for libtorrent 0.16.3 segfault (see https://code.google.com/p/libtorrent/issues/detail?id=369)
             ltsession = lt.session(lt.fingerprint(*fingerprint), flags=1)
-            enable_utp = self.trsession.get_libtorrent_utp()
+            enable_utp = self.tribler_session.config.get_libtorrent_utp()
             settings['enable_outgoing_utp'] = enable_utp
             settings['enable_incoming_utp'] = enable_utp
 
@@ -149,21 +149,22 @@ class LibtorrentMgr(TaskManager):
 
         # Load proxy settings
         if hops == 0:
-            proxy_settings = self.trsession.get_libtorrent_proxy_settings()
+            proxy_settings = self.tribler_session.config.get_libtorrent_proxy_settings()
         else:
-            proxy_settings = list(self.trsession.get_anon_proxy_settings())
+            proxy_settings = list(self.tribler_session.config.get_anon_proxy_settings())
             proxy_host, proxy_ports = proxy_settings[1]
             proxy_settings[1] = (proxy_host, proxy_ports[hops - 1])
         self.set_proxy_settings(ltsession, *proxy_settings)
 
         # Set listen port & start the DHT
         if hops == 0:
-            listen_port = self.trsession.get_listen_port()
+            listen_port = self.tribler_session.config.get_libtorrent_port()
             ltsession.listen_on(listen_port, listen_port + 10)
             if listen_port != ltsession.listen_port():
-                self.trsession.set_listen_port_runtime(ltsession.listen_port())
+                self.tribler_session.config.set_libtorrent_port_runtime(ltsession.listen_port())
             try:
-                lt_state = lt.bdecode(open(os.path.join(self.trsession.get_state_dir(), LTSTATE_FILENAME)).read())
+                lt_state = lt.bdecode(
+                    open(os.path.join(self.tribler_session.config.get_state_dir(), LTSTATE_FILENAME)).read())
                 if lt_state is not None:
                     ltsession.load_state(lt_state)
                 else:
@@ -172,12 +173,13 @@ class LibtorrentMgr(TaskManager):
                 self._logger.info("could not load libtorrent state, got exception: %r. starting from scratch" % exc)
             ltsession.start_dht()
         else:
-            ltsession.listen_on(self.trsession.get_anon_listen_port(), self.trsession.get_anon_listen_port() + 20)
+            ltsession.listen_on(self.tribler_session.config.get_anon_listen_port(),
+                                self.tribler_session.config.get_anon_listen_port() + 20)
             ltsession.start_dht()
 
             ltsession_settings = ltsession.get_settings()
-            ltsession_settings['upload_rate_limit'] = self.trsession.get_libtorrent_max_upload_rate()
-            ltsession_settings['download_rate_limit'] = self.trsession.get_libtorrent_max_download_rate()
+            ltsession_settings['upload_rate_limit'] = self.tribler_session.config.get_libtorrent_max_upload_rate()
+            ltsession_settings['download_rate_limit'] = self.tribler_session.config.get_libtorrent_max_download_rate()
             ltsession.set_settings(ltsession_settings)
 
         ltsession.add_dht_router('router.bittorrent.com', 6881)
@@ -247,7 +249,7 @@ class LibtorrentMgr(TaskManager):
         libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
 
         # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
-        settings_dict = {'download_rate_limit': libtorrent_rate, 'outgoing_port': 0, 'num_outgoing_ports': 1}
+        settings_dict = {'download_rate_limit': libtorrent_rate}
         self._map_call_on_ltsessions(hops, 'set_settings', settings_dict)
 
     def get_download_rate_limit(self, hops=0):
@@ -554,7 +556,7 @@ class LibtorrentMgr(TaskManager):
         if tdef is None:
             if infohash is not None:
                 # try to get the torrent from torrent_store if the infohash is provided
-                torrent_data = self.trsession.get_collected_torrent(infohash)
+                torrent_data = self.tribler_session.get_collected_torrent(infohash)
                 if torrent_data is not None:
                     # use this torrent data for downloading
                     tdef = TorrentDef.load_from_memory(torrent_data)
@@ -570,7 +572,7 @@ class LibtorrentMgr(TaskManager):
 
         assert tdef is not None, "tdef MUST not be None after loading torrent"
 
-        d = self.trsession.get_download(tdef.get_infohash())
+        d = self.tribler_session.get_download(tdef.get_infohash())
         if d:
             new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(
                 d.get_def().get_trackers_as_single_tuple()))
@@ -578,7 +580,7 @@ class LibtorrentMgr(TaskManager):
                 raise DuplicateDownloadException("This download already exists.")
 
             else:
-                self.trsession.update_trackers(tdef.get_infohash(), new_trackers)
+                self.tribler_session.update_trackers(tdef.get_infohash(), new_trackers)
             return
 
         default_dl_config = DefaultDownloadStartupConfig.getInstance()
@@ -588,7 +590,7 @@ class LibtorrentMgr(TaskManager):
             dscfg = dconfig
 
         self._logger.info('start_download: Starting in VOD mode')
-        result = self.trsession.start_download_from_tdef(tdef, dscfg)
+        result = self.tribler_session.start_download_from_tdef(tdef, dscfg)
 
         return result
 
@@ -603,6 +605,18 @@ class LibtorrentMgr(TaskManager):
             # libtorrent.version is deprecated starting from 1.0
             return lt.version
 
+    def update_max_rates_from_config(self):
+        """
+        Set the maximum download and maximum upload rate limits with the value in the config.
+
+        This is the extra step necessary to apply a new maximum download/upload rate setting.
+        :return:
+        """
+        for lt_session in self.ltsessions.itervalues():
+            ltsession_settings = lt_session.get_settings()
+            ltsession_settings['download_rate_limit'] = self.tribler_session.config.get_libtorrent_max_download_rate()
+            ltsession_settings['upload_rate_limit'] = self.tribler_session.config.get_libtorrent_max_upload_rate()
+            lt_session.set_settings(ltsession_settings)
 
 def encode_atp(atp):
     for k, v in atp.iteritems():

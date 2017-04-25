@@ -3,6 +3,7 @@ import struct
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred
 from twisted.internet.protocol import DatagramProtocol
+
 from Tribler.Core.TorrentChecker.session import MAX_INT32
 from Tribler.Test.util.Tracker.TrackerInfo import TrackerInfo
 

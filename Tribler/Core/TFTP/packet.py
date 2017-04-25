@@ -3,7 +3,6 @@ from binascii import hexlify
 
 from .exception import InvalidStringException, InvalidPacketException, InvalidOptionException
 
-
 # OPCODE
 OPCODE_RRQ = 1
 OPCODE_WRQ = 2

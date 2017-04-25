@@ -23,7 +23,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
                         os.path.join(self.files_path, 'video.avi'))
         shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'video.avi.torrent'),
                         os.path.join(self.files_path, 'video.avi.torrent'))
-        self.config.set_libtorrent(True)
+        self.config.set_libtorrent_enabled(True)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks

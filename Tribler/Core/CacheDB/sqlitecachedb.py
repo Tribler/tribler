@@ -5,29 +5,24 @@ Author(s): Jie Yang
 """
 import logging
 import os
+from apsw import CantOpenError, SQLError
 from base64 import encodestring, decodestring
 from threading import currentThread, RLock
-
-import apsw
-from apsw import CantOpenError, SQLError
 from twisted.python.threadable import isInIOThread
 
+import apsw
+
+from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
-from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
-
-
-DB_SCRIPT_NAME = u"schema_sdb_v%s.sql" % str(LATEST_DB_VERSION)
-
-DB_FILE_NAME = u"tribler.sdb"
 DB_DIR_NAME = u"sqlite"
+DB_FILE_NAME = u"tribler.sdb"
 DB_FILE_RELATIVE_PATH = os.path.join(DB_DIR_NAME, DB_FILE_NAME)
-
+DB_SCRIPT_NAME = u"schema_sdb_v%s.sql" % str(LATEST_DB_VERSION)
+DB_SCRIPT_RELATIVE_PATH = os.path.join("Core/CacheDB/", DB_SCRIPT_NAME)
 
 DEFAULT_BUSY_TIMEOUT = 10000
-
-TRHEADING_DEBUG = False
 
 forceDBThread = call_on_reactor_thread
 forceAndReturnDBThread = blocking_call_on_reactor_thread

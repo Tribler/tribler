@@ -5,15 +5,15 @@ Author(s): Arno Bakker, Egbert Bouman
 """
 import copy
 import logging
-
 import os
 from ConfigParser import ParsingError, MissingSectionHeaderError
+
 from types import StringType
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.defaults import dldefaults
 from Tribler.Core.osutils import get_home_dir
-from Tribler.Core.simpledefs import DLMODE_VOD, STATEDIR_DLCONFIG, UPLOAD
+from Tribler.Core.simpledefs import DLMODE_VOD
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +49,6 @@ class DownloadConfigInterface(object):
         if write and self.dlconfig.filename:
             self.dlconfig.write_file()
 
-        if dlconfig:
-            # TODO(emilon): I guess this can be removed?
-            # modify/fix incorrectly saved dlconfigs
-            if dlconfig.has_option('downloadconfig', 'saveas') and isinstance(dlconfig.get('downloadconfig', 'saveas'), tuple):
-                dlconfig.set('downloadconfig', 'saveas', dlconfig.get('saveas')[-1])
-
     def copy(self):
         return DownloadConfigInterface(self.dlconfig.copy())
 
@@ -68,7 +62,6 @@ class DownloadConfigInterface(object):
     def get_dest_dir(self):
         """ Gets the directory where to save this Download.
         """
-
         dest_dir = self.dlconfig.get('downloadconfig', 'saveas')
 
         if not dest_dir:
@@ -156,24 +149,6 @@ class DownloadConfigInterface(object):
         """ Returns the list of files selected for download.
         @return A list of strings. """
         return self.dlconfig.get('downloadconfig', 'selected_files')
-
-    def set_max_speed(self, direct, speed):
-        """ Sets the maximum upload or download speed for this Download.
-        @param direct The direction (UPLOAD/DOWNLOAD)
-        @param speed The speed in KB/s.
-        """
-        if direct == UPLOAD:
-            self.dlconfig.set('downloadconfig', 'max_upload_rate', speed)
-        else:
-            self.dlconfig.set('downloadconfig', 'max_download_rate', speed)
-
-    def get_max_speed(self, direct):
-        """ Returns the configured maximum speed.
-        Returns the speed in KB/s. """
-        if direct == UPLOAD:
-            return self.dlconfig.get('downloadconfig', 'max_upload_rate')
-        else:
-            return self.dlconfig.get('downloadconfig', 'max_download_rate')
 
 
 class DownloadStartupConfig(DownloadConfigInterface):
@@ -272,7 +247,7 @@ def get_default_dest_dir():
     """
     t_downloaddir = u"TriblerDownloads"
 
-    # TODO(emilon): Is this here so the unit tests work?
+    # TODO: Is this here so the unit tests work?
     if os.path.isdir(t_downloaddir):
         return os.path.abspath(t_downloaddir)
 
@@ -281,7 +256,3 @@ def get_default_dest_dir():
         return os.path.join(downloads_dir, t_downloaddir)
     else:
         return os.path.join(get_home_dir(), t_downloaddir)
-
-
-def get_default_dscfg_filename(state_dir):
-    return os.path.join(state_dir, STATEDIR_DLCONFIG)

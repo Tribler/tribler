@@ -14,8 +14,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
     def setUpPreSession(self):
         super(TestDownloadsEndpoint, self).setUpPreSession()
-        self.config.set_libtorrent(True)
-        self.config.set_megacache(True)
+        self.config.set_libtorrent_enabled(True)
+        self.config.set_megacache_enabled(True)
 
     @deferred(timeout=10)
     def test_get_downloads_no_downloads(self):
@@ -316,8 +316,8 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
 
     def setUpPreSession(self):
         super(TestDownloadsDispersyEndpoint, self).setUpPreSession()
-        self.config.set_libtorrent(True)
-        self.config.set_dispersy(True)
+        self.config.set_libtorrent_enabled(True)
+        self.config.set_dispersy_enabled(True)
         self.config.set_tunnel_community_enabled(True)
 
     @deferred(timeout=10)

@@ -7,19 +7,16 @@ Author(s): Mihai Capota, Ardhi Putra
 import binascii
 import random
 import re
+from twisted.internet.defer import inlineCallbacks
 from unittest import skip
 
+import Tribler.Core.CreditMining.BoostingManager as bm
 from Tribler.Core.CreditMining.BoostingPolicy import CreationDatePolicy, SeederRatioPolicy, RandomPolicy
 from Tribler.Core.CreditMining.BoostingSource import ent2chr
 from Tribler.Core.CreditMining.credit_mining_util import levenshtein_dist, source_to_string
-from twisted.internet.defer import inlineCallbacks
-
-import Tribler.Core.CreditMining.BoostingManager as bm
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
-from Tribler.Core.SessionConfig import SessionConfigInterface
 from Tribler.Core.Utilities import utilities
-from Tribler.Core.defaults import sessdefaults
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockMeta, MockLtPeer, MockLtSession, MockLtTorrent, \
     MockPeerId
 from Tribler.Test.Core.base_test import TriblerCoreTest
@@ -137,7 +134,7 @@ class TestBoostingManagerUtilities(TriblerCoreTest):
 
         self.session.get_libtorrent = lambda: True
 
-        self.bsettings = bm.BoostingSettings(self.session)
+        self.bsettings = bm.BoostingSettings(SeederRatioPolicy(self.session))
         self.bsettings.credit_mining_path = self.session_base_dir
         self.bsettings.load_config = False
         self.bsettings.check_dependencies = False
@@ -163,12 +160,12 @@ class TestBoostingManagerUtilities(TriblerCoreTest):
         self.session.open_dbhandler = lambda _: None
         self.session.lm.ltmgr = MockLtSession()
 
-        self.session.get_torrent_checking = lambda: True
-        self.session.get_dispersy = lambda: True
-        self.session.get_torrent_store = lambda: True
-        self.session.get_enable_torrent_search = lambda: True
-        self.session.get_enable_channel_search = lambda: True
-        self.session.get_megacache = lambda: False
+        self.session.config.get_torrent_checking_enabled = lambda: True
+        self.session.config.get_dispersy_enabled = lambda: True
+        self.session.config.get_torrent_store_enabled = lambda: True
+        self.session.config.get_torrent_search_enabled = lambda: True
+        self.session.config.get_channel_search_enabled = lambda: True
+        self.session.get_megacache_enabled = lambda: False
 
         self.assertRaises(AssertionError, bm.BoostingManager, self.session, self.bsettings)
 
@@ -188,45 +185,11 @@ class TestBoostingManagerUtilities(TriblerCoreTest):
         boost_man = bm.BoostingManager(self.session, self.bsettings)
 
         # def validate(d_defer):
-        self.assertEqual(sessdefaults['credit_mining']['source_interval'], boost_man.settings.source_interval)
-        self.assertEqual(sessdefaults['credit_mining']['archive_sources'],
-                         [source_to_string(src.source) for src in boost_man.boosting_sources.values()
-                          if src.archive])
+        self.assertEqual(self.session.config.get_credit_mining_source_interval(), boost_man.settings.source_interval)
+        self.assertEqual(self.session.config.get_credit_mining_archive_sources(),
+                         [source_to_string(src.source) for src in boost_man.boosting_sources.values() if src.archive])
 
         boost_man.cancel_all_pending_tasks()
-
-    def test_sessionconfig(self):
-        """
-        test basic credit mining preferences
-        """
-        sci = SessionConfigInterface()
-
-        sci.set_cm_logging_interval(100)
-        self.assertEqual(sci.get_cm_logging_interval(), 100)
-
-        sci.set_cm_max_torrents_active(20)
-        self.assertEqual(sci.get_cm_max_torrents_active(), 20)
-
-        sci.set_cm_max_torrents_per_source(10)
-        self.assertEqual(sci.get_cm_max_torrents_per_source(), 10)
-
-        sci.set_cm_source_interval(100)
-        self.assertEqual(sci.get_cm_source_interval(), 100)
-
-        sci.set_cm_policy("random")
-        self.assertIs(sci.get_cm_policy(as_class=True), RandomPolicy)
-
-        sci.set_cm_policy(SeederRatioPolicy(self.session))
-        self.assertEqual(sci.get_cm_policy(as_class=False), "seederratio")
-
-        sci.set_cm_share_mode_target(2)
-        self.assertEqual(sci.get_cm_share_mode_target(), 2)
-
-        sci.set_cm_swarm_interval(200)
-        self.assertEqual(sci.get_cm_swarm_interval(), 200)
-
-        sci.set_cm_tracker_interval(300)
-        self.assertEqual(sci.get_cm_tracker_interval(), 300)
 
     def test_translate_peer_info(self):
         """
@@ -376,7 +339,7 @@ class TestBoostingManagerError(TriblerCoreTest):
         self.session.get_libtorrent = lambda: True
         self.session.lm.ltmgr = MockLtSession()
 
-        self.boost_setting = bm.BoostingSettings(self.session)
+        self.boost_setting = bm.BoostingSettings(SeederRatioPolicy(self.session))
         self.boost_setting.load_config = False
         self.boost_setting.initial_logging_interval = 900
         self.boost_setting.check_dependencies = False

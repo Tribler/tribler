@@ -63,6 +63,7 @@ class BoostingPolicy(object):
         """
         return False
 
+
 class RandomPolicy(BoostingPolicy):
     """
     A credit mining policy that chooses a swarm randomly

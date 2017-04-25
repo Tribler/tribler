@@ -3,8 +3,8 @@ Windows 32 bit register checker.
 
 Author(s): Arno Bakker
 """
-import sys
 import logging
+import sys
 
 if sys.platform == 'win32':
     import _winreg

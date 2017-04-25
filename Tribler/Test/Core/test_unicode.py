@@ -1,6 +1,7 @@
 import binascii
-from nose.tools import raises
 import sys
+from nose.tools import raises
+
 from Tribler.Core.Utilities.unicode import bin2unicode, str2unicode, dunno2unicode
 from Tribler.Test.Core.base_test import TriblerCoreTest
 

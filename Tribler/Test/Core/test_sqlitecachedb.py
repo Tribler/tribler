@@ -1,14 +1,14 @@
 import os
-import sys
 import shutil
+import sys
+from unittest import skipIf
 
 from apsw import SQLError, CantOpenError
-from unittest import skipIf
 from nose.tools import raises
 from twisted.internet.defer import inlineCallbacks
 
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_SCRIPT_RELATIVE_PATH, CorruptedDatabaseError
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_SCRIPT_NAME, CorruptedDatabaseError
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
@@ -29,7 +29,7 @@ class TestSqliteCacheDB(TriblerCoreTest):
         self.sqlite_test.initialize()
 
         import Tribler
-        self.tribler_db_script = os.path.join(os.path.dirname(Tribler.__file__), DB_SCRIPT_NAME)
+        self.tribler_db_script = os.path.join(os.path.dirname(Tribler.__file__), DB_SCRIPT_RELATIVE_PATH)
 
     def tearDown(self):
         super(TestSqliteCacheDB, self).tearDown()

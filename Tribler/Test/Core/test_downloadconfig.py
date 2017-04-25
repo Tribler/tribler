@@ -1,12 +1,11 @@
 import os
 from ConfigParser import MissingSectionHeaderError
-
 from nose.tools import raises
 
 from Tribler.Core.DownloadConfig import DownloadConfigInterface, DownloadStartupConfig, get_default_dest_dir, \
-    get_default_dscfg_filename, DefaultDownloadStartupConfig
+    DefaultDownloadStartupConfig
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.simpledefs import DLMODE_VOD, UPLOAD, DOWNLOAD
+from Tribler.Core.simpledefs import DLMODE_VOD, STATEDIR_DLCONFIG
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -52,11 +51,6 @@ class TestConfigParser(TriblerCoreTest):
         dlcfg.set_user_stopped(True)
         self.assertTrue(dlcfg.get_user_stopped())
 
-        dlcfg.set_max_speed(UPLOAD, 1337)
-        dlcfg.set_max_speed(DOWNLOAD, 1338)
-        self.assertEqual(dlcfg.get_max_speed(UPLOAD), 1337)
-        self.assertEqual(dlcfg.get_max_speed(DOWNLOAD), 1338)
-
     @raises(ValueError)
     def test_downloadconfig_set_vod_multiple_files(self):
         dlcfg = DownloadConfigInterface()
@@ -88,7 +82,7 @@ class TestConfigParser(TriblerCoreTest):
 
     def test_get_default_dest_dir(self):
         self.assertIsInstance(get_default_dest_dir(), unicode)
-        self.assertIsInstance(get_default_dscfg_filename(""), str)
+        self.assertIsInstance(os.path.join("", STATEDIR_DLCONFIG), str)
 
     @raises(RuntimeError)
     def test_default_download_startup_config_init(self):

@@ -4,7 +4,6 @@ from binascii import hexlify
 from struct import pack
 from time import time
 from traceback import print_stack
-
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
@@ -25,6 +24,7 @@ from .conversion import ChannelConversion
 from .message import DelayMessageReqChannelMessage
 from .payload import (ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload,
                       PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload)
+
 logger = logging.getLogger(__name__)
 
 

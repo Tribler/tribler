@@ -1,5 +1,4 @@
 import os
-
 from nose.tools import raises
 from twisted.internet.defer import inlineCallbacks
 

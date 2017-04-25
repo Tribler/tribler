@@ -1,0 +1,6 @@
+annotation start end
+1_test_cleanup 1493017983.58 1493017983.58
+2_test_watchfolder_invalid_dir 1493017984.43 1493017984.44
+3_test_watchfolder_no_files 1493017985.28 1493017985.28
+4_test_watchfolder_no_torrent_file 1493017986.12 1493017986.12
+5_test_watchfolder_torrent_file_one_corrupt 1493017986.99 1493017987.0

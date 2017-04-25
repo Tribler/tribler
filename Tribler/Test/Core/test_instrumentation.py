@@ -1,4 +1,5 @@
 from threading import Event, Thread
+
 from Tribler.Core.Utilities.instrumentation import synchronized, WatchDog
 from Tribler.Test.Core.base_test import TriblerCoreTest
 

@@ -1,5 +1,4 @@
 import json
-
 from twisted.web import resource
 
 from Tribler.Core.simpledefs import STATE_STARTING, STATE_UPGRADING, STATE_STARTED, NTFY_UPGRADER, NTFY_STARTED, \

@@ -1,17 +1,15 @@
-from distutils.version import LooseVersion
 import json
 import logging
-
+from distutils.version import LooseVersion
 from twisted.internet.error import ConnectError, DNSLookupError
 from twisted.internet.task import LoopingCall
 from twisted.web.error import SchemeNotSupported
 
+from Tribler.Core.Utilities.utilities import http_get
+from Tribler.Core.exceptions import HttpError
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_NEW_VERSION
 from Tribler.Core.version import version_id
 from Tribler.dispersy.taskmanager import TaskManager
-from Tribler.Core.Utilities.utilities import http_get
-from Tribler.Core.exceptions import HttpError
-
 
 VERSION_CHECK_URL = 'https://api.github.com/repos/tribler/tribler/releases/latest'
 

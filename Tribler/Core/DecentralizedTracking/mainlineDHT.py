@@ -1,10 +1,10 @@
 # written by Fabian van der Werf, Arno Bakker
 # Modified by Raul Jimenez to integrate KTH DHT
 # see LICENSE for license information
-import os
-
-import sys
 import logging
+import os
+import sys
+
 from Tribler.Core.Utilities.install_dir import get_lib_path
 
 logger = logging.getLogger(__name__)

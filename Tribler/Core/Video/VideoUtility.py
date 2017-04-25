@@ -4,12 +4,11 @@ Video utilities.
 Author(s): Egbert Bouman
 """
 import os
+import subprocess
 import sys
 import tempfile
-import subprocess
-
-from re import search
 from math import sqrt
+from re import search
 
 from PIL import Image
 

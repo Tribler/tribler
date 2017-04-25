@@ -1,5 +1,4 @@
 import json
-
 from twisted.web import http, resource
 
 from Tribler.community.multichain.community import MultiChainCommunity

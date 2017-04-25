@@ -1,5 +1,4 @@
 import json
-
 import logging
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
@@ -75,7 +74,7 @@ class TorrentsRandomEndpoint(resource.Resource):
         results_json = []
         for popular_torrent in popular_torrents:
             torrent_json = convert_db_torrent_to_json(popular_torrent)
-            if (self.session.tribler_config.get_family_filter_enabled() and
+            if (self.session.config.get_family_filter_enabled() and
                     self.session.lm.category.xxx_filter.isXXX(torrent_json['category'])) \
                     or torrent_json['name'] is None:
                 continue

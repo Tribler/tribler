@@ -57,10 +57,10 @@ class SettingsPage(QWidget):
         self.window().download_location_input.setText(settings['downloadconfig']['saveas'])
         self.window().always_ask_location_checkbox.setChecked(
             get_gui_setting(gui_settings, "ask_download_settings", True, is_bool=True))
-        self.window().download_settings_anon_checkbox.setChecked(get_gui_setting(
-            gui_settings, "default_anonymity_enabled", True, is_bool=True))
-        self.window().download_settings_anon_seeding_checkbox.setChecked(
-            get_gui_setting(gui_settings, "default_safeseeding_enabled", True, is_bool=True))
+        self.window().download_settings_anon_checkbox.setChecked(settings['downloadconfig'][
+                                                                     'default_anonymity_enabled'])
+        self.window().download_settings_anon_seeding_checkbox.setChecked(settings['downloadconfig'][
+                                                                             'default_safeseeding_enabled'])
         self.window().watchfolder_enabled_checkbox.setChecked(settings['watch_folder']['enabled'])
         self.window().watchfolder_location_input.setText(settings['watch_folder']['watch_folder_dir'])
 
@@ -93,7 +93,7 @@ class SettingsPage(QWidget):
 
         # Anonymity settings
         self.window().allow_exit_node_checkbox.setChecked(settings['tunnel_community']['exitnode_enabled'])
-        self.window().number_hops_slider.setValue(int(settings['Tribler']['default_number_hops']) - 1)
+        self.window().number_hops_slider.setValue(int(settings['downloadconfig']['default_number_hops']) - 1)
         self.window().multichain_enabled_checkbox.setChecked(settings['multichain']['enabled'])
 
     def load_settings(self):
@@ -170,9 +170,13 @@ class SettingsPage(QWidget):
                                           "You've entered an invalid format for the seeding time (expected HH:MM)")
             return
 
-        settings_data['tunnel_community']['exitnode_enabled'] = self.window().allow_exit_node_checkbox.isChecked()
-        settings_data['Tribler']['default_number_hops'] = self.window().number_hops_slider.value() + 1
         settings_data['multichain']['enabled'] = self.window().multichain_enabled_checkbox.isChecked()
+        settings_data['tunnel_community']['exitnode_enabled'] = self.window().allow_exit_node_checkbox.isChecked()
+        settings_data['downloadconfig']['default_number_hops'] = self.window().number_hops_slider.value() + 1
+        settings_data['downloadconfig']['default_anonymity_enabled'] = \
+            self.window().download_settings_anon_checkbox.isChecked()
+        settings_data['downloadconfig']['default_safeseeding_enabled'] = \
+            self.window().download_settings_anon_seeding_checkbox.isChecked()
 
         self.window().settings_save_button.setEnabled(False)
 
@@ -186,10 +190,6 @@ class SettingsPage(QWidget):
                                             self.window().always_ask_location_checkbox.isChecked())
         self.window().gui_settings.setValue("use_monochrome_icon",
                                             self.window().use_monochrome_icon_checkbox.isChecked())
-        self.window().gui_settings.setValue("default_anonymity_enabled",
-                                            self.window().download_settings_anon_checkbox.isChecked())
-        self.window().gui_settings.setValue("default_safeseeding_enabled",
-                                            self.window().download_settings_anon_seeding_checkbox.isChecked())
 
         self.saved_dialog = ConfirmationDialog(TriblerRequestManager.window, "Settings saved",
                                                "Your settings have been saved.", [('CLOSE', BUTTON_TYPE_NORMAL)])

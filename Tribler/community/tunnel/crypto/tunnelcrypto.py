@@ -1,7 +1,8 @@
 import struct
 
-from cryptowrapper import crypto_box_beforenm, crypto_auth, crypto_auth_verify, Cipher, algorithms, modes, HKDFExpand, hashes, default_backend
 from Tribler.dispersy.crypto import ECCrypto, LibNaCLPK
+from Tribler.community.tunnel.crypto.cryptowrapper import crypto_box_beforenm, crypto_auth, crypto_auth_verify, Cipher,\
+    algorithms, modes, HKDFExpand, hashes, default_backend
 
 
 class CryptoException(Exception):

@@ -14,9 +14,9 @@ from twisted.python import usage
 from twisted.python.log import msg
 from zope.interface import implements
 
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
 
 # Register yappi profiler
 from Tribler.community.allchannel.community import AllChannelCommunity
@@ -54,7 +54,7 @@ class TriblerServiceMaker(object):
 
     def log_incoming_remote_search(self, sock_addr, keywords):
         d = date.today()
-        with open(os.path.join(self.session.get_state_dir(), 'incoming-searches-%s' % d.isoformat()), 'a') as log_file:
+        with open(os.path.join(self.session.config.get_state_dir(), 'incoming-searches-%s' % d.isoformat()), 'a') as log_file:
             log_file.write("%s %s %s %s" % (time.time(), sock_addr[0], sock_addr[1], ";".join(keywords)))
 
     def shutdown_process(self, shutdown_message, code=1):
@@ -80,7 +80,7 @@ class TriblerServiceMaker(object):
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
-        config = SessionStartupConfig().load()  # Load the default configuration file
+        config = TriblerConfig()
 
         # Check if we are already running a Tribler instance
         self.process_checker = ProcessChecker()
@@ -100,8 +100,8 @@ class TriblerServiceMaker(object):
         if options["dispersy"] > 0:
             config.set_dispersy_port(options["dispersy"])
 
-        if options["libtorrent"] > 0:
-            config.set_listen_port(options["libtorrent"])
+        if options["libtorrent"] != -1 and options["libtorrent"] > 0:
+            config.set_libtorrent_port(options["libtorrent"])
 
         self.session = Session(config)
         self.session.start().addErrback(lambda failure: self.shutdown_process(failure.getErrorMessage()))

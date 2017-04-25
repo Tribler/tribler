@@ -5,8 +5,8 @@ Author(s): Ardhi Putra
 """
 from twisted.web.resource import Resource
 
+from Tribler.Core.CreditMining.BoostingManager import BoostingSettings
 from Tribler.Core.CreditMining.BoostingPolicy import SeederRatioPolicy
-from Tribler.Core.SessionConfig import SessionConfigInterface
 from Tribler.Test.Core.base_test import MockObject
 
 
@@ -133,17 +133,22 @@ class MockLtSession(object):
         self.lm.channelcast_db = MockObject()
         self.lm.torrent_store = MockObject()
 
-        sessconfig = SessionConfigInterface()
+        self.config = MockObject()
+        self.config.get_credit_mining_policy = lambda as_class=False: SeederRatioPolicy if as_class else "seederratio"
+        self.config.get_libtorrent_enabled = lambda: True
+        self.config.get_megacache_enabled = lambda: False
+        self.config.get_credit_mining_source_interval = lambda: 99
+        self.config.get_credit_mining_archive_sources = lambda: []
 
-        self.get_cm_policy = lambda _: SeederRatioPolicy
-        self.get_cm_max_torrents_per_source = sessconfig.get_cm_max_torrents_per_source
-        self.get_cm_max_torrents_active = sessconfig.get_cm_max_torrents_active
-        self.get_cm_source_interval = sessconfig.get_cm_source_interval
-        self.get_cm_swarm_interval = sessconfig.get_cm_swarm_interval
-        self.get_cm_share_mode_target = sessconfig.get_cm_share_mode_target
-        self.get_cm_tracker_interval = sessconfig.get_cm_tracker_interval
-        self.get_cm_logging_interval = sessconfig.get_cm_logging_interval
-        self.get_cm_sources = sessconfig.get_cm_sources
+        boosting_settings = BoostingSettings()
+        self.config.get_credit_mining_max_torrents_per_source = lambda: boosting_settings.max_torrents_per_source
+        self.config.get_credit_mining_max_torrents_active = lambda: boosting_settings.max_torrents_active
+        self.config.get_credit_mining_source_interval = lambda: boosting_settings.source_interval
+        self.config.get_credit_mining_swarm_interval = lambda: boosting_settings.swarm_interval
+        self.config.get_credit_mining_share_mode_target = lambda: boosting_settings.share_mode_target
+        self.config.get_credit_mining_tracker_interval = lambda: boosting_settings.tracker_interval
+        self.config.get_credit_mining_logging_interval = lambda: boosting_settings.logging_interval
+        self.config.get_credit_mining_sources = lambda: {}
 
         self.add_observer = lambda *_: None
 

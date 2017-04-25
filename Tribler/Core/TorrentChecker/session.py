@@ -1,9 +1,8 @@
-from abc import ABCMeta, abstractmethod, abstractproperty
 import logging
 import random
 import struct
 import time
-
+from abc import ABCMeta, abstractmethod, abstractproperty
 from libtorrent import bdecode
 from twisted.internet import reactor, defer
 from twisted.internet.defer import Deferred, maybeDeferred, DeferredList, inlineCallbacks, returnValue
