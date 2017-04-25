@@ -1,17 +1,16 @@
-import base64
 import json
-from urllib import quote_plus
 
 from twisted.internet.defer import inlineCallbacks
 
+from Tribler.community.multichain.block import MultiChainBlock
 from Tribler.community.multichain.community import MultiChainCommunity
+from Tribler.dispersy.community import Community
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
 from Tribler.dispersy.member import DummyMember
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.twisted_thread import deferred
 
 
@@ -36,7 +35,10 @@ class TestMultichainStatsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns error 404 if no multichain community is loaded
         """
-        self.dispersy.get_communities = lambda: []
+        dummy_master_member = DummyMember(self.dispersy, 1, "b" * 20)
+        Community.__abstractmethods__ = frozenset()
+        self.dispersy.get_communities = lambda: [Community(self.dispersy, dummy_master_member, self.member),
+                                                 Community(self.dispersy, dummy_master_member, self.member)]
         return self.do_request('multichain/statistics', expected_code=404)
 
     @deferred(timeout=10)
@@ -44,41 +46,36 @@ class TestMultichainStatsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns the correct statistics
         """
-        mock_block = MockObject()
-        mock_block.public_key_requester = self.member.public_key
-        mock_block.public_key_responder = "deadbeef".decode("HEX")
-        mock_block.up = 42
-        mock_block.down = 8
-        mock_block.total_up_requester = 1024
-        mock_block.total_down_requester = 2048
-        mock_block.sequence_number_requester = 3
-        mock_block.previous_hash_requester = "cafebabe".decode("HEX")
-        mock_block.hash_requester = "b19b00b5".decode("HEX")
-        mock_block.signature_requester = "deadbabe".decode("HEX")
-        mock_block.total_up_responder = 512
-        mock_block.total_down_responder = 256
-        mock_block.sequence_number_responder = 15
-        mock_block.previous_hash_responder = "cafef00d".decode("HEX")
-        mock_block.hash_responder = "baadf00d".decode("HEX")
-        mock_block.signature_responder = "deadf00d".decode("HEX")
-        self.mc_community.persistence.add_block(mock_block)
+        block = MultiChainBlock()
+        block.public_key = self.member.public_key
+        block.link_public_key = "deadbeef".decode("HEX")
+        block.link_sequence_number = 21
+        block.up = 42
+        block.down = 8
+        block.total_up = 1024
+        block.total_down = 2048
+        block.sequence_number = 3
+        block.previous_hash = "babecafe".decode("HEX")
+        block.signature = "babebeef".decode("HEX")
+        self.mc_community.persistence.add_block(block)
 
         def verify_response(response):
             response_json = json.loads(response)
             self.assertTrue("statistics" in response_json)
             stats = response_json["statistics"]
-            self.assertEqual(stats["self_id"], base64.encodestring(self.member.public_key).strip())
-            self.assertEqual(stats["self_total_blocks"], 3)
-            self.assertEqual(stats["self_total_up_mb"], 1024)
-            self.assertEqual(stats["self_total_down_mb"], 2048)
-            self.assertEqual(stats["self_peers_helped"], 1)
-            self.assertEqual(stats["self_peers_helped_you"], 1)
-            self.assertNotEqual(stats["latest_block_insert_time"], "")
-            self.assertEqual(stats["latest_block_id"], base64.encodestring("b19b00b5".decode("HEX")).strip())
-            self.assertEqual(stats["latest_block_requester_id"], base64.encodestring(self.member.public_key).strip())
-            self.assertEqual(stats["latest_block_responder_id"], base64.encodestring("deadbeef".decode("HEX")).strip())
-            self.assertEqual(stats["latest_block_up_mb"], "42")
-            self.assertEqual(stats["latest_block_down_mb"], "8")
+            self.assertEqual(stats["id"], self.member.public_key.encode("HEX"))
+            self.assertEqual(stats["total_blocks"], 3)
+            self.assertEqual(stats["total_up"], 1024)
+            self.assertEqual(stats["total_down"], 2048)
+            self.assertEqual(stats["peers_that_pk_helped"], 1)
+            self.assertEqual(stats["peers_that_helped_pk"], 1)
+            self.assertIn("latest_block", stats)
+            self.assertNotEqual(stats["latest_block"]["insert_time"], "")
+            self.assertEqual(stats["latest_block"]["hash"], block.hash.encode("HEX"))
+            self.assertEqual(stats["latest_block"]["link_public_key"], "deadbeef")
+            self.assertEqual(stats["latest_block"]["link_sequence_number"], 21)
+            self.assertEqual(stats["latest_block"]["up"], 42)
+            self.assertEqual(stats["latest_block"]["down"], 8)
 
         self.should_check_equality = False
         return self.do_request('multichain/statistics', expected_code=200).addCallback(verify_response)
@@ -93,18 +90,13 @@ class TestMultichainStatsEndpoint(AbstractApiTest):
             response_json = json.loads(response)
             self.assertTrue("statistics" in response_json)
             stats = response_json["statistics"]
-            self.assertEqual(stats["self_id"], base64.encodestring(self.member.public_key).strip())
-            self.assertEqual(stats["self_total_blocks"], -1)
-            self.assertEqual(stats["self_total_up_mb"], 0)
-            self.assertEqual(stats["self_total_down_mb"], 0)
-            self.assertEqual(stats["self_peers_helped"], 0)
-            self.assertEqual(stats["self_peers_helped_you"], 0)
-            self.assertEqual(stats["latest_block_insert_time"], "")
-            self.assertEqual(stats["latest_block_id"], "")
-            self.assertEqual(stats["latest_block_requester_id"], "")
-            self.assertEqual(stats["latest_block_responder_id"], "")
-            self.assertEqual(stats["latest_block_up_mb"], "")
-            self.assertEqual(stats["latest_block_down_mb"], "")
+            self.assertEqual(stats["id"], self.member.public_key.encode("HEX"))
+            self.assertEqual(stats["total_blocks"], 0)
+            self.assertEqual(stats["total_up"], 0)
+            self.assertEqual(stats["total_down"], 0)
+            self.assertEqual(stats["peers_that_pk_helped"], 0)
+            self.assertEqual(stats["peers_that_helped_pk"], 0)
+            self.assertNotIn("latest_block", stats)
 
         self.should_check_equality = False
         return self.do_request('multichain/statistics', expected_code=200).addCallback(verify_response)
@@ -128,7 +120,52 @@ class TestMultichainStatsEndpoint(AbstractApiTest):
 
         test_block = TestBlock()
         self.mc_community.persistence.add_block(test_block)
-        pub_key = quote_plus(base64.encodestring(test_block.public_key_requester))
         self.should_check_equality = False
-        return self.do_request('multichain/blocks/%s?limit=10' % pub_key, expected_code=200)\
-            .addCallback(verify_response)
+        return self.do_request('multichain/blocks/%s?limit=10' % test_block.public_key.encode("HEX"),
+                               expected_code=200).addCallback(verify_response)
+
+    @deferred(timeout=10)
+    def test_get_blocks_bad_limit_too_many(self):
+        """
+        Testing whether the API takes large values for the limit
+        """
+        self.should_check_equality = False
+        return self.do_request('multichain/blocks/%s?limit=10000000' % TestBlock().public_key.encode("HEX"),
+                               expected_code=400)
+
+
+    @deferred(timeout=10)
+    def test_get_blocks_bad_limit_negative(self):
+        """
+        Testing whether the API takes negative values for the limit
+        """
+        self.should_check_equality = False
+        return self.do_request('multichain/blocks/%s?limit=-10000000' % TestBlock().public_key.encode("HEX"),
+                               expected_code=400)
+
+    @deferred(timeout=10)
+    def test_get_blocks_bad_limit_nan(self):
+        """
+        Testing whether the API takes odd values for the limit
+        """
+        self.should_check_equality = False
+        return self.do_request('multichain/blocks/%s?limit=bla' % TestBlock().public_key.encode("HEX"),
+                               expected_code=400)
+
+    @deferred(timeout=10)
+    def test_get_blocks_bad_limit_nothing(self):
+        """
+        Testing whether the API takes no values for the limit
+        """
+        self.should_check_equality = False
+        return self.do_request('multichain/blocks/%s?limit=' % TestBlock().public_key.encode("HEX"),
+                               expected_code=400)
+
+    @deferred(timeout=10)
+    def test_get_blocks_unlimited(self):
+        """
+        Testing whether the API takes no limit argument
+        """
+        self.should_check_equality = False
+        return self.do_request('multichain/blocks/%s' % TestBlock().public_key.encode("HEX"),
+                               expected_code=200)

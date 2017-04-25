@@ -1,5 +1,3 @@
-import urllib
-
 import matplotlib
 matplotlib.use('Qt5Agg')
 
@@ -82,6 +80,7 @@ class TrustPage(QWidget):
         self.public_key = None
         self.request_mgr = None
         self.blocks = None
+        self.byte_scale = 1024 * 1024
 
     def initialize_trust_page(self):
         vlayout = self.window().plot_widget.layout()
@@ -94,17 +93,16 @@ class TrustPage(QWidget):
 
     def received_multichain_statistics(self, statistics):
         statistics = statistics["statistics"]
-        self.window().trust_contribution_amount_label.setText("%s MBytes" % statistics["self_total_up_mb"])
-        self.window().trust_consumption_amount_label.setText("%s MBytes" % statistics["self_total_down_mb"])
+        self.window().trust_contribution_amount_label.setText("%s MBytes" % (statistics["total_up"] / self.byte_scale))
+        self.window().trust_consumption_amount_label.setText("%s MBytes" % (statistics["total_down"] / self.byte_scale))
 
-        self.window().trust_people_helped_label.setText("%d" % statistics["self_peers_helped"])
-        self.window().trust_people_helped_you_label.setText("%d" % statistics["self_peers_helped_you"])
+        self.window().trust_people_helped_label.setText("%d" % statistics["peers_that_pk_helped"])
+        self.window().trust_people_helped_you_label.setText("%d" % statistics["peers_that_helped_pk"])
 
         # Fetch the latest blocks of this user
-        encoded_pub_key = urllib.quote_plus(statistics["self_id"])
-        self.public_key = statistics["self_id"]
+        self.public_key = statistics["id"]
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("multichain/blocks/%s" % encoded_pub_key, self.received_multichain_blocks)
+        self.request_mgr.perform_request("multichain/blocks/%s" % self.public_key, self.received_multichain_blocks)
 
     def received_multichain_blocks(self, blocks):
         self.blocks = blocks["blocks"]
@@ -120,12 +118,8 @@ class TrustPage(QWidget):
         for block in self.blocks:
             plot_data[1].append(datetime.datetime.strptime(block["insert_time"], "%Y-%m-%d %H:%M:%S"))
 
-            if block["public_key_requester"] == self.public_key:
-                plot_data[0][0].append(block["total_up_requester"])
-                plot_data[0][1].append(block["total_down_requester"])
-            else:
-                plot_data[0][0].append(block["total_up_responder"])
-                plot_data[0][1].append(block["total_down_responder"])
+            plot_data[0][0].append(block["total_up"] / self.byte_scale)
+            plot_data[0][1].append(block["total_down"] / self.byte_scale)
 
         if len(self.blocks) == 0:
             # Create on single data point with 0mb up and 0mb down

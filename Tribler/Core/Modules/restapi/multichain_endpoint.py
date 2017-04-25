@@ -1,4 +1,3 @@
-import base64
 import json
 
 from twisted.web import http, resource
@@ -58,21 +57,30 @@ class MultichainStatsEndpoint(MultichainBaseEndpoint):
 
             **Example response**:
 
+            Note: latest_block does not exist if there is no data
+
             .. sourcecode:: javascript
 
                 {
                     "statistics":
                     {
-                        "self_id": "TGliTmFDTFBLO...VGbxS406vrI=",
-                        "latest_block_insert_time": "2016-08-04 12:01:53",
-                        "self_total_blocks": 8537,
-                        "latest_block_id": "Sv03SmkiuL+F4NWxHYdeB6PQeQa/p74EEVQoOVuSz+k=",
-                        "latest_block_requester_id": "TGliTmFDTFBLO...nDwlVIk69tc=",
-                        "latest_block_up_mb": "19",
-                        "self_total_down_mb": 108904,
-                        "latest_block_down_mb": "0",
-                        "self_total_up_mb": 95138,
-                        "latest_block_responder_id": "TGliTmFDTFBLO...VGbxS406vrI="
+                        "id": "TGliTmFDTFBLO...VGbxS406vrI=",
+                        "total_blocks": 8537,
+                        "total_down": 108904042,
+                        "total_up": 95138354,
+                        "latest_block":
+                        {
+                            "hash": ab672fd6acc0...
+                            "up": 123,
+                            "down": 495,
+                            "total_up": 8393,
+                            "total_down": 8943,
+                            "link_public_key": 7324b765a98e,
+                            "sequence_number": 50,
+                            "link_public_key": 9a5572ec59bbf,
+                            "link_sequence_number": 3482,
+                            "previous_hash": bd7830e7bdd1...,
+                        }
                     }
                 }
         """
@@ -114,7 +122,7 @@ class MultichainBlocksIdentityEndpoint(MultichainBaseEndpoint):
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/multichain/blocks/TGliTmFDTFBLOVGbxS406vrI=?limit=10
+                curl -X GET http://localhost:8085/multichain/blocks/d78130e71bdd1...=?limit=10
 
             **Example response**:
 
@@ -122,14 +130,15 @@ class MultichainBlocksIdentityEndpoint(MultichainBaseEndpoint):
 
                 {
                     "blocks": [{
-                        "is_requester": True,
+                        "hash": ab672fd6acc0...
                         "up": 123,
                         "down": 495,
-                        "total_up_requester": 8393,
-                        "total_down_responder": 8943,
-                        "sequence_number_requester": 43,
-                        "sequence_number_responder": 96,
-                        "db_insert_time": 34893242,
+                        "total_up": 8393,
+                        "total_down": 8943,
+                        "sequence_number": 50,
+                        "link_public_key": 9a5572ec59bbf,
+                        "link_sequence_number": 3482,
+                        "previous_hash": bd7830e7bdd1...,
                     }, ...]
                 }
         """
@@ -140,8 +149,15 @@ class MultichainBlocksIdentityEndpoint(MultichainBaseEndpoint):
 
         limit_blocks = 100
 
-        if 'limit' in request.args and len(request.args['limit']) > 0:
-            limit_blocks = int(request.args['limit'][0])
+        if 'limit' in request.args:
+            try:
+                limit_blocks = int(request.args['limit'][0])
+            except ValueError:
+                limit_blocks = -1
 
-        blocks = mc_community.persistence.get_blocks(base64.decodestring(self.identity), limit_blocks)
-        return json.dumps({"blocks": [block.to_dictionary() for block in blocks]})
+        if limit_blocks < 1 or limit_blocks > 1000:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "limit parameter out of range"})
+
+        blocks = mc_community.persistence.get_latest_blocks(self.identity.decode("HEX"), limit_blocks)
+        return json.dumps({"blocks": [dict(block) for block in blocks]})
