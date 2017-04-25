@@ -68,8 +68,9 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
                                                      self.window().tribler_settings['download_defaults'][
                                                          'anonymity_enabled'],
                                                      self.window().tribler_settings['download_defaults'][
-                                                         'safeseeding_enabled'],
-                                                     self.window().tribler_settings['download_defaults']['saveas'],
+                                                         'safe_seeding_enabled'],
+                                                     self.window().tribler_settings['download_defaults'][
+                                                         'destination_dir'],
                                                      [], 0, callback=self.on_play_request_done)
 
     def on_play_request_done(self, result):

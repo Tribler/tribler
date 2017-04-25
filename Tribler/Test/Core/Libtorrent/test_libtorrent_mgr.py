@@ -179,7 +179,7 @@ class TestLibtorrentMgr(AbstractServer):
         """
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
         corrupt_file = os.path.join(self.LIBTORRENT_FILES_DIR, 'corrupt_torrent.torrent')
-        self.assertRaises(TorrentFileException, self.ltmgr.start_download, torrentfilename=corrupt_file)
+        self.assertRaises(TorrentFileException, self.ltmgr.start_download, torrent_filename=corrupt_file)
 
     def test_start_download_duplicate(self):
         """
@@ -211,4 +211,4 @@ class TestLibtorrentMgr(AbstractServer):
         mock_lt_session = MockObject()
         mock_lt_session.set_proxy = on_proxy_set
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
-        self.ltmgr.set_proxy_settings(mock_lt_session, 0, ('a', "1234"), ('abc', 'def'))
+        self.ltmgr.set_proxy_settings(mock_lt_session, 0, 'a', 1234, ('abc', 'def'))

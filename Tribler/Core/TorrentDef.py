@@ -190,9 +190,9 @@ class TorrentDef(object):
             tdef.add_content("c:\Videos\file.avi",playtime="1:59:20")
             tdef.set_tracker(s.get_internal_tracker_url())
             tdef.finalize()
-            dscfg = DownloadStartupConfig()
-            dscfg.set_dest_dir("c:\Video")
-            s.start_download(tdef,dscfg)
+            download_config = DownloadStartupConfig()
+            download_config.set_destination_dir("c:\Video")
+            s.start_download(tdef,download_config)
         </pre>
         @param inpath Absolute name of file or directory on local filesystem,
         as Unicode string.

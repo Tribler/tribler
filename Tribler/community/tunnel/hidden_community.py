@@ -224,11 +224,11 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
         for ds in dslist:
             download = ds.get_download()
-            if download.get_hops() > 0:
+            if download.config.get_number_hops() > 0:
                 # Convert the real infohash to the infohash used for looking up introduction points
                 real_info_hash = download.get_def().get_infohash()
                 info_hash = self.get_lookup_info_hash(real_info_hash)
-                hops[info_hash] = download.get_hops()
+                hops[info_hash] = download.config.get_number_hops()
                 new_states[info_hash] = ds.get_status()
 
         self.hops = hops

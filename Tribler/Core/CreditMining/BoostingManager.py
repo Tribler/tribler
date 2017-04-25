@@ -19,7 +19,7 @@ from Tribler.Core.CreditMining.credit_mining_util import source_to_string, strin
     validate_source_string
 from Tribler.Core.CreditMining.defs import SAVED_ATTR, CREDIT_MINING_FOLDER_DOWNLOAD, CONFIG_KEY_ARCHIVELIST, \
     CONFIG_KEY_SOURCELIST, CONFIG_KEY_ENABLEDLIST, CONFIG_KEY_DISABLEDLIST
-from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DownloadConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.Utilities import utilities
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
@@ -50,7 +50,7 @@ class BoostingSettings(object):
         self.initial_swarm_interval = 30
         self.min_connection_start = 5
         self.min_channels_start = 100
-        self.credit_mining_path = os.path.join(DefaultDownloadStartupConfig.getInstance().get_dest_dir(),
+        self.credit_mining_path = os.path.join(DownloadConfig().get_destination_dir(),
                                                CREDIT_MINING_FOLDER_DOWNLOAD)
         self.load_config = load_config
 
@@ -297,9 +297,9 @@ class BoostingManager(TaskManager):
         """
         Start downloading a particular torrent and add it to download list in Tribler
         """
-        dscfg = DownloadStartupConfig()
-        dscfg.set_dest_dir(self.settings.credit_mining_path)
-        dscfg.set_safe_seeding(False)
+        download_config = DownloadConfig()
+        download_config.set_destination_dir(self.settings.credit_mining_path)
+        download_config.set_safe_seeding_enabled(False)
 
         preload = torrent.get('preload', False)
 
@@ -311,7 +311,7 @@ class BoostingManager(TaskManager):
         self._logger.info("Starting %s preload %s",
                           hexlify(torrent["metainfo"].get_infohash()), preload)
 
-        torrent['download'] = self.session.lm.add(torrent['metainfo'], dscfg, hidden=True,
+        torrent['download'] = self.session.lm.add(torrent['metainfo'], download_config, hidden=True,
                                                   share_mode=not preload, checkpoint_disabled=True)
         torrent['download'].set_priority(torrent.get('prio', 1))
 

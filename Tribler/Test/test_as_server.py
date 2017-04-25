@@ -29,7 +29,7 @@ from twisted.web.server import Site
 from twisted.web.static import File
 
 from Tribler.Core.Config.tribler_config import TriblerConfig, CONFIG_SPEC_PATH
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.DownloadConfig import DownloadConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.instrumentation import WatchDog
@@ -97,7 +97,7 @@ class AbstractServer(BaseTestCase):
         self.annotate_dict = {}
 
         self.file_server = None
-        self.dscfg_seed = None
+        self.download_config_seed = None
 
         if annotate:
             self.annotate(self._testMethodName, start=True)
@@ -359,9 +359,11 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_state_dir(self.getStateDir(2))
 
         def start_seed_download(_):
-            self.dscfg_seed = DownloadStartupConfig()
-            self.dscfg_seed.set_dest_dir(seed_dir)
-            d = self.seeder_session.start_download_from_tdef(tdef, self.dscfg_seed)
+            self.download_config_seed = DownloadConfig()
+            self.download_config_seed.set_destination_dir(seed_dir)
+            self.download_config_seed.set_number_hops(0)
+            self.download_config_seed.set_safe_seeding_enabled(False)
+            d = self.seeder_session.start_download_from_tdef(tdef, self.download_config_seed)
             d.set_state_callback(self.seeder_state_callback)
 
         self._logger.debug("starting to wait for download to reach seeding state")

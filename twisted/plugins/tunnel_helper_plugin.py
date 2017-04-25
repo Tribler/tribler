@@ -26,7 +26,7 @@ from zope.interface import implements
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.Core.Config.tribler_config import TriblerConfig
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DownloadConfig
 from Tribler.Core.permid import read_keypair
 from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import dlstatus_strings
@@ -341,12 +341,11 @@ class LineHandler(LineReceiver):
                 tdef = TorrentDef.load(filename + '.torrent')
             logger.info("loading torrent done, infohash of torrent: %s" % (tdef.get_infohash().encode('hex')[:10]))
 
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            dscfg = defaultDLConfig.copy()
-            dscfg.set_hops(1)
-            dscfg.set_dest_dir(cur_path)
+            download_config = DownloadConfig()
+            download_config.set_number_hops(1)
+            download_config.set_destination_dir(cur_path)
 
-            reactor.callFromThread(anon_tunnel.session.start_download_from_tdef, tdef, dscfg)
+            reactor.callFromThread(anon_tunnel.session.start_download_from_tdef, tdef, download_config)
         elif line.startswith('i'):
             # Introduce dispersy port from other main peer to this peer
             line_split = line.split(' ')
@@ -362,10 +361,9 @@ class LineHandler(LineReceiver):
             tdef = TorrentDef.load(filename + '.torrent')
             logger.info("Loading torrent done")
 
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            dscfg = defaultDLConfig.copy()
-            dscfg.set_hops(1)
-            dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.config.get_dispersy_port()))
+            download_config = DownloadConfig()
+            download_config.set_number_hops(1)
+            download_config.set_destination_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.config.get_dispersy_port()))
 
             def start_download():
                 def cb(ds):
@@ -378,7 +376,7 @@ class LineHandler(LineReceiver):
                                  sum(1 for _ in anon_tunnel.community.dispersy_yield_verified_candidates())))
                     return 1.0, False
 
-                download = anon_tunnel.session.start_download_from_tdef(tdef, dscfg)
+                download = anon_tunnel.session.start_download_from_tdef(tdef, download_config)
                 download.set_state_callback(cb)
 
             reactor.callFromThread(start_download)

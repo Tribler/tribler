@@ -14,7 +14,6 @@ import Tribler.Core.CreditMining.BoostingManager as bm
 from Tribler.Core.CreditMining.BoostingPolicy import CreationDatePolicy, SeederRatioPolicy, RandomPolicy
 from Tribler.Core.CreditMining.BoostingSource import ent2chr
 from Tribler.Core.CreditMining.credit_mining_util import levenshtein_dist, source_to_string
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.Utilities import utilities
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockMeta, MockLtPeer, MockLtSession, MockLtTorrent, \
@@ -141,10 +140,6 @@ class TestBoostingManagerUtilities(TriblerCoreTest):
         self.bsettings.initial_logging_interval = 900
 
     def tearDown(self, annotate=True):
-        # TODO(ardhi) : remove it when Tribler free of singleton
-        # and 1 below
-        DefaultDownloadStartupConfig.delInstance()
-
         super(TestBoostingManagerUtilities, self).tearDown()
 
     def test_boosting_dependencies(self):
@@ -347,7 +342,6 @@ class TestBoostingManagerError(TriblerCoreTest):
         self.session.lm.boosting_manager = self.boosting_manager
 
     def tearDown(self, annotate=True):
-        DefaultDownloadStartupConfig.delInstance()
         self.session.lm.boosting_manager.cancel_all_pending_tasks()
         super(TestBoostingManagerError, self).tearDown()
 

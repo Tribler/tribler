@@ -42,8 +42,8 @@ class TestSeeding(TestAsServer):
 
         self.tdef.save(os.path.join(self.session.config.get_state_dir(), "gen.torrent"))
 
-    def start_download(self, dscfg):
-        download = self.session.start_download_from_tdef(self.tdef, dscfg)
+    def start_download(self, download_config):
+        download = self.session.start_download_from_tdef(self.tdef, download_config)
         download.set_state_callback(self.downloader_state_callback)
 
         download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
@@ -56,9 +56,9 @@ class TestSeeding(TestAsServer):
         self.generate_torrent()
 
         def start_download(_):
-            dscfg = self.dscfg_seed.copy()
-            dscfg.set_dest_dir(self.getDestDir())
-            self.start_download(dscfg)
+            download_config = self.download_config_seed.copy()
+            download_config.set_destination_dir(self.getDestDir())
+            self.start_download(download_config)
 
         self.setup_seeder(self.tdef, TESTS_DATA_DIR).addCallback(start_download)
         return self.test_deferred

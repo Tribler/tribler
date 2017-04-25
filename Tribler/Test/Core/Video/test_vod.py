@@ -4,7 +4,7 @@ from tempfile import mkstemp
 from M2Crypto import Rand
 from twisted.internet.defer import inlineCallbacks, Deferred
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.DownloadConfig import DownloadConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings, UPLOAD, DOWNLOAD, DLMODE_VOD
@@ -52,12 +52,12 @@ class TestVideoOnDemand(TestAsServer):
         torrentfn = os.path.join(self.session.config.get_state_dir(), "gen.torrent")
         self.tdef.save(torrentfn)
 
-        dscfg = DownloadStartupConfig()
+        download_config = DownloadConfig()
         destdir = os.path.dirname(sourcefn)
-        dscfg.set_dest_dir(destdir)
-        dscfg.set_mode(DLMODE_VOD)
+        download_config.set_destination_dir(destdir)
+        download_config.set_mode(DLMODE_VOD)
 
-        download = self.session.start_download_from_tdef(self.tdef, dscfg)
+        download = self.session.start_download_from_tdef(self.tdef, download_config)
         download.set_state_callback(self.state_callback)
 
         self.session.set_download_states_callback(self.states_callback)
