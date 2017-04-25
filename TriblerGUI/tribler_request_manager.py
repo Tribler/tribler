@@ -10,6 +10,7 @@ from TriblerGUI.defs import BUTTON_TYPE_NORMAL, API_PORT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 
 performed_requests = {}
+performed_requests_ids = []
 
 
 class TriblerRequestManager(QNetworkAccessManager):
@@ -37,6 +38,9 @@ class TriblerRequestManager(QNetworkAccessManager):
         :param capture_errors: whether errors should be handled by this class (defaults to True)
         """
         performed_requests[self.request_id] = [endpoint, method, data, time(), -1]
+        performed_requests_ids.append(self.request_id)
+        if len(performed_requests_ids) > 200:
+            del performed_requests[performed_requests_ids.pop(0)]
         url = self.base_url + endpoint
 
         if method == 'GET':

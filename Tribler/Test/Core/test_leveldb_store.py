@@ -3,6 +3,8 @@ Tests for the LevelDB.
 
 Author(s): Elric Milon
 """
+import os
+
 from nose.tools import raises
 
 from shutil import rmtree
@@ -112,3 +114,16 @@ class AbstractTestLevelDBStore(BaseTestCase):
 class TestLevelDBStore(AbstractTestLevelDBStore):
     __test__ = True
     _storetype = ClockedLevelDBStore
+
+    def test_invalid_handle(self):
+        self.store.close()
+
+        open(os.path.join(self.store_dir, 'test.txt'), 'a').close()
+
+        # Make the leveldb files corrupt
+        for dir_file in os.listdir(self.store_dir):
+            with open(os.path.join(self.store_dir, dir_file), 'a') as file_handler:
+                file_handler.write('abcde')
+
+        self.openStore(self.store_dir)
+        self.assertFalse(os.path.exists(os.path.join(self.store_dir, 'test.txt')))

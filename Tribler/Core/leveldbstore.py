@@ -7,6 +7,10 @@ from collections import MutableMapping
 from itertools import chain
 import os
 
+from shutil import rmtree
+
+import logging
+
 
 def get_write_batch_leveldb(self, _):
     from leveldb import WriteBatch
@@ -18,13 +22,15 @@ def get_write_batch_plyvel(self, db):
     return WriteBatch(db)
 
 try:
-    from leveldb import LevelDB
+    from leveldb import LevelDB, LevelDBError
 
+    use_leveldb = True
     get_write_batch = get_write_batch_leveldb
 
 except ImportError:
     from plyveladapter import LevelDB
 
+    use_leveldb = False
     get_write_batch = get_write_batch_plyvel
 
 from twisted.internet import reactor
@@ -49,6 +55,7 @@ class LevelDbStore(MutableMapping, TaskManager):
 
         self._store_dir = store_dir
         self._pending_torrents = {}
+        self._logger = logging.getLogger(self.__class__.__name__)
         # This is done to work around LevelDB's inability to deal with non-ascii paths on windows.
         try:
             self._db = self._leveldb(os.path.relpath(store_dir, os.getcwdu()))
@@ -56,6 +63,14 @@ class LevelDbStore(MutableMapping, TaskManager):
             # This can happen on Windows when the state dir and Tribler installation are on different disks.
             # In this case, hope for the best by using the full path.
             self._db = self._leveldb(store_dir)
+        except Exception as exc:
+            # We cannot simply catch LevelDBError since that class might not be available on some systems.
+            if use_leveldb and isinstance(exc, LevelDBError):
+                # The database might be corrupt, start with a fresh one
+                self._logger.error("Corrupt LevelDB store detected; recreating database")
+                rmtree(self._store_dir)
+                os.makedirs(self._store_dir)
+                self._db = self._leveldb(os.path.relpath(store_dir, os.getcwdu()))
 
         self._writeback_lc = self.register_task("flush cache ", LoopingCall(self.flush))
         self._writeback_lc.clock = self._reactor
