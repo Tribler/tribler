@@ -284,7 +284,7 @@ class TriblerConfig(object):
     def get_anon_listen_port(self):
         return self._obtain_port('libtorrent', 'anon_listen_port')
 
-    def set_libtorrent_proxy_settings(self, proxy_type, server=None, auth=None):
+    def set_libtorrent_proxy_settings(self, proxy_type, server_ip=None, server_port=None, auth=None):
         """
         Set which proxy LibTorrent should use (default = 0).
 
@@ -294,16 +294,19 @@ class TriblerConfig(object):
                                 3 = SOCKS5 + auth,
                                 4 = HTTP,
                                 5 = HTTP + auth)
-        :param server: (host, port) tuple or None
+        :param server_ip: a string
+        :param server_port: an int
         :param auth: (username, password) tuple or None
         """
         self.config['libtorrent']['proxy_type'] = proxy_type
-        self.config['libtorrent']['proxy_server'] = server if proxy_type else None
+        self.config['libtorrent']['proxy_server_ip'] = server_ip if proxy_type else ''
+        self.config['libtorrent']['proxy_server_port'] = server_port if proxy_type else -1
         self.config['libtorrent']['proxy_auth'] = auth if proxy_type in [3, 5] else None
 
     def get_libtorrent_proxy_settings(self):
         return (self.config['libtorrent']['proxy_type'],
-                self.config['libtorrent']['proxy_server'],
+                self.config['libtorrent']['proxy_server_ip'],
+                self.config['libtorrent']['proxy_server_port'],
                 self.config['libtorrent']['proxy_auth'])
 
     def set_anon_proxy_settings(self, proxy_type, server=None, auth=None):
@@ -452,11 +455,11 @@ class TriblerConfig(object):
     def get_default_anonymity_enabled(self):
         return self.config['download_defaults']['anonymity_enabled']
 
-    def set_default_safeseeding_enabled(self, value):
-        self.config['download_defaults']['safeseeding_enabled'] = value
+    def set_default_safe_seeding_enabled(self, value):
+        self.config['download_defaults']['safe_seeding_enabled'] = value
 
-    def get_default_safeseeding_enabled(self):
-        return self.config['download_defaults']['safeseeding_enabled']
+    def get_default_safe_seeding_enabled(self):
+        return self.config['download_defaults']['safe_seeding_enabled']
 
     def set_default_destination_dir(self, value):
         self.config['download_defaults']['destination_dir'] = value

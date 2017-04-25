@@ -12,6 +12,7 @@ class TestDownloadState(TriblerCoreTest):
     def setUp(self, annotate=True):
         TriblerCoreTest.setUp(self, annotate=annotate)
         self.mock_download = MockObject()
+        self.mock_download.config = MockObject()
         mocked_tdef = MockObject()
         mocked_tdef.get_name = lambda: "test"
         mocked_tdef.get_length = lambda _: 43
@@ -103,15 +104,14 @@ class TestDownloadState(TriblerCoreTest):
         self.assertEqual(download_state.get_pieces_complete(), [1, 2, 3])
         self.assertEqual(download_state.get_pieces_total_complete(), (3, 6))
 
-        self.mock_download.get_selected_files = lambda: ['test']
-        self.assertEqual(download_state.get_selected_files(), ['test'])
+        download_state.download.config.get_selected_files = lambda: [["testa"], 43]
         self.assertEqual(download_state.get_length(), 43)
 
     def test_get_files_completion(self):
         """
         Testing whether the right completion of files is returned
         """
-        self.mock_download.get_selected_files = lambda: [['test.txt', 42]]
+        self.mock_download.config.get_selected_files = lambda: [['test.txt', 42]]
         download_state = DownloadState(self.mock_download, DLSTATUS_DOWNLOADING, None, 0.6)
         self.assertEqual(download_state.get_files_completion(), [(['test.txt', 42], 0.6)])
         download_state.filepieceranges = [(5, 10, None, ['test.txt', 42])]

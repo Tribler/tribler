@@ -96,7 +96,7 @@ class DownloadState(object):
                 # For get_files_completion()
                 self.haveslice_total = stats['stats'].have
 
-                selected_files = self.download.get_selected_files()
+                selected_files = self.download.config.get_selected_files()
                 # Show only pieces complete for the selected ranges of files
                 totalpieces = 0
                 for t, tl, o, f in self.filepieceranges:
@@ -282,8 +282,9 @@ class DownloadState(object):
         for every file selected using set_selected_files. Progress is a float
         between 0 and 1
         """
-        if len(self.download.get_selected_files()) > 0:
-            files = self.download.get_selected_files()
+        selected_files = self.download.config.get_selected_files()
+        if len(selected_files) > 0:
+            files = selected_files
         else:
             files = self.download.get_def().get_files()
 
@@ -310,7 +311,7 @@ class DownloadState(object):
         return completion
 
     def get_selected_files(self):
-        selected_files = self.download.get_selected_files()
+        selected_files = self.download.config.get_selected_files()
         if len(selected_files) > 0:
             return selected_files
 
@@ -318,7 +319,7 @@ class DownloadState(object):
         # Niels: 28/08/2012 for larger .torrent this methods gets quite expensive,
         # cache the result to prevent us calculating this unnecessarily.
         if not self.length:
-            files = self.get_selected_files()
+            files = self.download.config.get_selected_files()
 
             tdef = self.download.get_def()
             self.length = tdef.get_length(files)

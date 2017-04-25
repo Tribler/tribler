@@ -206,10 +206,10 @@ class Session(object):
         :return: a deferred that fires when a download has been added to the Tribler core
         """
         if self.config.get_libtorrent_enabled():
-            return self.lm.ltmgr.start_download_from_uri(uri, dconfig=download_config)
+            return self.lm.ltmgr.start_download_from_uri(uri, download_config=download_config)
         raise OperationNotEnabledByConfigurationException()
 
-    def start_download_from_tdef(self, torrent_definition, download_startup_config=None, hidden=False):
+    def start_download_from_tdef(self, torrent_definition, download_config=None, hidden=False):
         """
         Creates a Download object and adds it to the session. The passed
         ContentDef and DownloadStartupConfig are copied into the new Download
@@ -221,14 +221,14 @@ class Session(object):
         Locking is done by LaunchManyCore.
 
         :param torrent_definition: a finalized TorrentDef
-        :param download_startup_config: a DownloadStartupConfig or None, in which case
+        :param download_config: a DownloadStartupConfig or None, in which case
         a new DownloadStartupConfig() is created with its default settings
         and the result becomes the runtime config of this Download
         :param hidden: whether this torrent should be added to the mypreference table
         :return: a Download
         """
         if self.config.get_libtorrent_enabled():
-            return self.lm.add(torrent_definition, download_startup_config, hidden=hidden)
+            return self.lm.add(torrent_definition, download_config, hidden=hidden)
         raise OperationNotEnabledByConfigurationException()
 
     def resume_download_from_file(self, filename):

@@ -14,7 +14,7 @@ from libtorrent import bencode, bdecode
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, Deferred
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.DownloadConfig import DownloadConfig
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
@@ -259,9 +259,11 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         self.tdef.set_piece_length(1)
         self.tdef.finalize()
 
-        self.dscfg = DownloadStartupConfig()
-        self.dscfg.set_dest_dir(TESTS_DATA_DIR)
-        self.download = self.session.start_download_from_tdef(self.tdef, self.dscfg)
+        self.download_config = DownloadConfig()
+        self.download_config.set_destination_dir(TESTS_DATA_DIR)
+        self.download_config.set_number_hops(0)
+        self.download_config.set_safe_seeding_enabled(False)
+        self.download = self.session.start_download_from_tdef(self.tdef, self.download_config)
         self.download.set_state_callback(self.seeder_state_callback)
 
         return self.seed_deferred

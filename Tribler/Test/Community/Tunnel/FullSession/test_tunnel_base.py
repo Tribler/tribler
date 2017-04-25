@@ -2,7 +2,7 @@ import os
 from twisted.internet.defer import returnValue, inlineCallbacks
 from twisted.python.threadable import isInIOThread
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.DownloadConfig import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
@@ -173,10 +173,11 @@ class TestTunnelBase(TestAsServer):
             while not list(self.tunnel_community_seeder.active_data_circuits()):
                 yield task.deferLater(reactor, .05, lambda: None)
 
-        dscfg = DownloadStartupConfig()
-        dscfg.set_dest_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
-        dscfg.set_hops(hops)
-        d = self.session2.start_download_from_tdef(tdef, dscfg)
+        download_config = DownloadConfig()
+        download_config.set_destination_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
+        download_config.set_number_hops(hops)
+        download_config.set_safe_seeding_enabled(False)
+        d = self.session2.start_download_from_tdef(tdef, download_config)
         d.set_state_callback(self.seeder_state_callback)
 
     def seeder_state_callback(self, ds):
@@ -195,9 +196,10 @@ class TestTunnelBase(TestAsServer):
         """
         Start an anonymous download in the main Tribler session.
         """
-        dscfg = DownloadStartupConfig()
-        dscfg.set_dest_dir(self.getDestDir())
-        dscfg.set_hops(hops)
-        download = self.session.start_download_from_tdef(self.seed_tdef, dscfg)
+        download_config = DownloadConfig()
+        download_config.set_destination_dir(self.getDestDir())
+        download_config.set_number_hops(hops)
+        download_config.set_safe_seeding_enabled(False)
+        download = self.session.start_download_from_tdef(self.seed_tdef, download_config)
         download.add_peer(("127.0.0.1", self.session2.config.get_libtorrent_port()))
         return download

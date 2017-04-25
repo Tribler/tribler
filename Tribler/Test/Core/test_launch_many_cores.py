@@ -1,13 +1,13 @@
 import os
+from configobj import ConfigObj
 from nose.tools import raises
 
 from twisted.internet.defer import Deferred
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
@@ -35,7 +35,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.lm.session.config = MockObject()
         self.lm.session.config.get_max_upload_rate = lambda: 100
         self.lm.session.config.get_max_download_rate = lambda: 100
-        self.lm.session.config.get_default_number_hops = lambda: 0
+        self.lm.session.config.get_number_hops = lambda: 0
 
         # Ignore notifications
         mock_notifier = MockObject()
@@ -59,7 +59,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         tdef.metainfo_valid = True
         tdef.infohash = "abcd"
 
-        self.lm.add(tdef, DefaultDownloadStartupConfig.getInstance())
+        self.lm.add(tdef, DownloadConfig())
 
     def test_load_download_pstate(self):
         """
@@ -67,8 +67,8 @@ class TestLaunchManyCore(TriblerCoreTest):
         """
         config_file_path = os.path.abspath(os.path.join(self.DATA_DIR, u"config_files", u"config1.conf"))
         config = self.lm.load_download_pstate(config_file_path)
-        self.assertIsInstance(config, CallbackConfigParser)
-        self.assertEqual(config.get('general', 'version'), 11)
+        self.assertIsInstance(config, ConfigObj)
+        self.assertEqual(config['general'].as_int('version'), 11)
 
     @deferred(timeout=10)
     def test_dlstates_cb_error(self):
@@ -124,9 +124,9 @@ class TestLaunchManyCore(TriblerCoreTest):
         def mocked_load_download_pstate(_):
             raise ValueError()
 
-        def mocked_add(tdef, dscfg, pstate, **_):
+        def mocked_add(tdef, download_config, pstate, **_):
             self.assertTrue(tdef)
-            self.assertTrue(dscfg)
+            self.assertTrue(download_config)
             self.assertIsNone(pstate)
             mocked_add.called = True
         mocked_add.called = False

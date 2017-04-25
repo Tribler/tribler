@@ -474,10 +474,11 @@ class TunnelCommunity(Community):
         This method is called when a download is removed. We check here whether we can stop building circuits for a
         specific number of hops in case it hasn't been finished yet.
         """
-        if download.get_hops() > 0:
-            self.num_hops_by_downloads[download.get_hops()] -= 1
-            if self.num_hops_by_downloads[download.get_hops()] == 0:
-                self.circuits_needed[download.get_hops()] = 0
+        number_hops = download.config.get_number_hops()
+        if number_hops > 0:
+            self.num_hops_by_downloads[number_hops] -= 1
+            if self.num_hops_by_downloads[number_hops] == 0:
+                self.circuits_needed[number_hops] = 0
 
     def do_remove(self):
         # Remove circuits that are inactive / are too old / have transferred too many bytes.

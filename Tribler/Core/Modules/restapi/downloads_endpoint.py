@@ -3,7 +3,7 @@ import logging
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.DownloadConfig import DownloadConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
@@ -54,30 +54,27 @@ class DownloadBaseEndpoint(resource.Resource):
         - safe_seeding: whether the seeding of the download should be anonymous or not (0 = off, 1 = on)
         - destination: the destination path of the torrent (where it is saved on disk)
         """
-        download_config = DownloadStartupConfig()
+        download_config = DownloadConfig()
 
         anon_hops = 0
         if 'anon_hops' in parameters and len(parameters['anon_hops']) > 0:
             if parameters['anon_hops'][0].isdigit():
                 anon_hops = int(parameters['anon_hops'][0])
 
-        safe_seeding = False
+        safe_seeding_enabled = False
         if 'safe_seeding' in parameters and len(parameters['safe_seeding']) > 0 \
                 and parameters['safe_seeding'][0] == "1":
-            safe_seeding = True
+            safe_seeding_enabled = True
 
-        if anon_hops > 0 and not safe_seeding:
+        if anon_hops > 0 and not safe_seeding_enabled:
             return None, "Cannot set anonymous download without safe seeding enabled"
 
-        if anon_hops > 0:
-            download_config.set_hops(anon_hops)
-
-        if safe_seeding:
-            download_config.set_safe_seeding(True)
+        download_config.set_number_hops(anon_hops)
+        download_config.set_safe_seeding_enabled(safe_seeding_enabled)
 
         if 'destination' in parameters and len(parameters['destination']) > 0:
-            dest_dir = unicode(parameters['destination'][0], 'utf-8')
-            download_config.set_dest_dir(dest_dir)
+            destination_dir = unicode(parameters['destination'][0], 'utf-8')
+            download_config.set_destination_dir(destination_dir)
 
         if 'selected_files[]' in parameters:
             selected_files_list = [unicode(f, 'utf-8') for f in parameters['selected_files[]']]
@@ -187,7 +184,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
             # Create files information of the download
             files_completion = dict((name, progress) for name, progress in state.get_files_completion())
-            selected_files = download.get_selected_files()
+            selected_files = download.config.get_selected_files()
             files_array = []
             file_index = 0
             for file, size in download.get_def().get_files_with_length():
@@ -213,17 +210,19 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                              "size": download.get_def().get_length(), "eta": download.network_calc_eta(),
                              "num_peers": stats.numPeers, "num_seeds": stats.numSeeds, "total_up": stats.upTotal,
                              "total_down": stats.downTotal, "ratio": ratio,
-                             "files": files_array, "trackers": tracker_info, "hops": download.get_hops(),
-                             "anon_download": download.get_anon_mode(), "safe_seeding": download.get_safe_seeding(),
+                             "files": files_array, "trackers": tracker_info, "hops": download.config.get_number_hops(),
+                             "anon_download": download.get_anon_mode(),
+                             "safe_seeding": download.config.get_safe_seeding_enabled(),
                              # Maximum upload/download rates are set for entire sessions
                              "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
                              "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
-                             "destination": download.get_dest_dir(), "availability": state.get_availability(),
-                             "total_pieces": download.get_num_pieces(), "vod_mode": download.get_mode() == DLMODE_VOD,
+                             "destination": download.config.get_destination_dir(),
+                             "availability": state.get_availability(), "total_pieces": download.get_num_pieces(),
+                             "vod_mode": download.config.get_mode() == DLMODE_VOD,
                              "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
                              "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec(),
                              "error": repr(state.get_error()) if state.get_error() else "",
-                             "time_added": download.get_time_added()}
+                             "time_added": download.config.get_time_added()}
 
             # Add peers information if requested
             if get_peers:

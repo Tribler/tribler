@@ -21,7 +21,7 @@ from twisted.internet import reactor, threads
 from twisted.internet.defer import succeed, fail
 from twisted.python.failure import Failure
 
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
@@ -223,22 +223,20 @@ class LibtorrentMgr(TaskManager):
 
         return self.ltsessions[hops]
 
-    def set_proxy_settings(self, ltsession, ptype, server=None, auth=None):
-        """
-        Apply the proxy settings to a libtorrent session. This mechanism changed significantly in libtorrent 1.1.0.
-        """
-        if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
-            settings = ltsession.get_settings()
-            settings["proxy_type"] = ptype
-            settings["proxy_hostnames"] = True
-            settings["proxy_peer_connections"] = True
-            if server and server[0] and server[1]:
-                settings["proxy_hostname"] = server[0]
-                settings["proxy_port"] = int(server[1])
-            if auth:
-                settings["proxy_username"] = auth[0]
-                settings["proxy_password"] = auth[1]
-            ltsession.set_settings(settings)
+    def set_proxy_settings(self, ltsession, ptype, proxy_server_ip=None, proxy_server_port=None, auth=None):
+        proxy_settings = lt.proxy_settings()
+        proxy_settings.type = lt.proxy_type(ptype)
+        if proxy_server_ip and proxy_server_port:
+            proxy_settings.hostname = proxy_server_ip
+            proxy_settings.port = proxy_server_port
+        if auth:
+            proxy_settings.username = auth[0]
+            proxy_settings.password = auth[1]
+        proxy_settings.proxy_hostnames = True
+        proxy_settings.proxy_peer_connections = True
+
+        if ltsession is not None:
+            ltsession.set_proxy(proxy_settings)
         else:
             proxy_settings = lt.proxy_settings()
             proxy_settings.type = lt.proxy_type(ptype)
@@ -588,38 +586,38 @@ class LibtorrentMgr(TaskManager):
         else:
             getattr(self.get_session(hops), funcname)(*args, **kwargs)
 
-    def start_download_from_uri(self, uri, dconfig=None):
+    def start_download_from_uri(self, uri, download_config=None):
         if uri.startswith("http"):
-            return self.start_download_from_url(bytes(uri), dconfig=dconfig)
+            return self.start_download_from_url(bytes(uri), download_config=download_config)
         if uri.startswith("magnet:"):
-            return succeed(self.start_download_from_magnet(uri, dconfig=dconfig))
+            return succeed(self.start_download_from_magnet(uri, download_config=download_config))
         if uri.startswith("file:"):
             argument = url2pathname(uri[5:])
-            return succeed(self.start_download(torrentfilename=argument, dconfig=dconfig))
+            return succeed(self.start_download(torrent_filename=argument, download_config=download_config))
 
         return fail(Failure(Exception("invalid uri")))
 
     @blocking_call_on_reactor_thread
-    def start_download_from_url(self, url, dconfig=None):
+    def start_download_from_url(self, url, download_config=None):
 
         def _on_loaded(tdef):
-            return self.start_download(torrentfilename=None, infohash=None, tdef=tdef, dconfig=dconfig)
+            return self.start_download(torrent_filename=None, infohash=None, tdef=tdef, download_config=download_config)
 
         deferred = TorrentDef.load_from_url(url)
         deferred.addCallback(_on_loaded)
         return deferred
 
-    def start_download_from_magnet(self, url, dconfig=None):
+    def start_download_from_magnet(self, url, download_config=None):
         name, infohash, _ = parse_magnetlink(url)
         if name is None:
             name = "Unknown name"
         if infohash is None:
             raise RuntimeError("Missing infohash")
         tdef = TorrentDefNoMetainfo(infohash, name, url=url)
-        return self.start_download(tdef=tdef, dconfig=dconfig)
+        return self.start_download(tdef=tdef, download_config=download_config)
 
-    def start_download(self, torrentfilename=None, infohash=None, tdef=None, dconfig=None):
-        self._logger.debug(u"starting download: filename: %s, torrent def: %s", torrentfilename, tdef)
+    def start_download(self, torrent_filename=None, infohash=None, tdef=None, download_config=None):
+        self._logger.debug(u"starting download: filename: %s, torrent def: %s", torrent_filename, tdef)
 
         if infohash is not None:
             assert isinstance(infohash, str), "infohash type: %s" % type(infohash)
@@ -636,9 +634,9 @@ class LibtorrentMgr(TaskManager):
                     tdef = TorrentDef.load_from_memory(torrent_data)
 
             if tdef is None:
-                assert torrentfilename is not None, "torrent file must be provided if tdef and infohash are not given"
+                assert torrent_filename is not None, "torrent file must be provided if tdef and infohash are not given"
                 # try to get the torrent from the given torrent file
-                torrent_data = fix_torrent(torrentfilename)
+                torrent_data = fix_torrent(torrent_filename)
                 if torrent_data is None:
                     raise TorrentFileException("error while decoding torrent file")
 
@@ -657,14 +655,10 @@ class LibtorrentMgr(TaskManager):
                 self.tribler_session.update_trackers(tdef.get_infohash(), new_trackers)
             return
 
-        default_dl_config = DefaultDownloadStartupConfig.getInstance()
-        dscfg = default_dl_config.copy()
-
-        if dconfig is not None:
-            dscfg = dconfig
+        download_config = download_config or DownloadConfig()
 
         self._logger.info('start_download: Starting in VOD mode')
-        result = self.tribler_session.start_download_from_tdef(tdef, dscfg)
+        result = self.tribler_session.start_download_from_tdef(tdef, download_config)
 
         return result
 

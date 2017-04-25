@@ -15,7 +15,6 @@ from twisted.web.static import File
 
 from Tribler.Core.CreditMining.BoostingManager import BoostingManager, BoostingSettings
 from Tribler.Core.CreditMining.BoostingPolicy import SeederRatioPolicy
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockLtTorrent, ResourceFailClass
@@ -87,7 +86,6 @@ class TestBoostingManagerSys(TestAsServer):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self, annotate=True):
-        DefaultDownloadStartupConfig.delInstance()
         self.boosting_manager.shutdown()
 
         yield super(TestBoostingManagerSys, self).tearDown(annotate=annotate)
