@@ -6,6 +6,7 @@ from twisted.application.service import IServiceMaker, MultiService
 from twisted.internet import reactor
 from twisted.plugin import IPlugin
 from twisted.python import usage
+from twisted.python.log import msg
 
 from zope.interface import implements
 
@@ -38,7 +39,6 @@ class MultichainCrawlerServiceMaker(object):
             logging.config.fileConfig("logger.conf")
         else:
             logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s", level=logging.DEBUG)
-        logger = logging.getLogger(__name__)
         tracker_service = MultiService()
         tracker_service.setName("Multichain Crawler")
 
@@ -57,10 +57,10 @@ class MultichainCrawlerServiceMaker(object):
             self._stopping = False
 
             def signal_handler(sig, frame):
-                logger.info("Received signal '%s' in %s (shutting down)" % (sig, frame))
+                msg("Received signal '%s' in %s (shutting down)" % (sig, frame))
                 if not self._stopping:
                     self._stopping = True
-                    dispersy.stop().addCallback(lambda _: reactor.stop)
+                    dispersy.stop().addCallback(lambda _: reactor.stop())
             signal.signal(signal.SIGINT, signal_handler)
             signal.signal(signal.SIGTERM, signal_handler)
 

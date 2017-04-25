@@ -5,8 +5,10 @@ After = network-online.target
 [Service]
 Type = simple
 Environment="PYTHONPATH=/opt/tribler"
+User=multichain_crawler
+Group=multichain_crawler
 WorkingDirectory=/opt/tribler
-ExecStart = /usr/bin/twistd -n multichain_crawler --statedir "."
+ExecStart = /usr/bin/twistd -n multichain_crawler
 Restart = always
 
 [Install]
