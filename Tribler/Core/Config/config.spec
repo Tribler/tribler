@@ -3,7 +3,6 @@ family_filter = boolean(default=True)
 state_dir = string(default='')
 install_dir = string(default=.)
 ec_keypair_filename = string(default='')
-ec_keypair_filename_multichain = string(default='')
 megacache = boolean(default=True)
 videoanalyserpath = string(default='')
 minport = integer(default=7760)
@@ -24,13 +23,10 @@ enabled = boolean(default=True)
 enabled = boolean(default=True)
 socks5_listen_ports = string_list(default=list('-1', '-1', '-1', '-1', '-1'))
 exitnode_enabled = boolean(default=False)
-anonymity_enabled = boolean(default=True)
-default_number_hops = integer(min=0, max=3, default=1)
-default_safeseeding_enabled = boolean(default=True)
 
 [multichain]
 enabled = boolean(default=True)
-ec_keypair_filename_multichain = string(default='')
+ec_keypair_filename = string(default='')
 
 [metadata]
 enabled = boolean(default=True)

@@ -197,10 +197,10 @@ class TriblerConfig(object):
         return file_name
 
     def set_multichain_permid_keypair_filename(self, keypairfilename):
-        self.config['multichain']['ec_keypair_filename_multichain'] = keypairfilename
+        self.config['multichain']['ec_keypair_filename'] = keypairfilename
 
     def get_multichain_permid_keypair_filename(self):
-        file_name = self.config['multichain']['ec_keypair_filename_multichain']
+        file_name = self.config['multichain']['ec_keypair_filename']
         if not file_name:
             file_name = os.path.join(self.get_state_dir(), 'ec_multichain.pem')
             self.set_multichain_permid_keypair_filename(file_name)
