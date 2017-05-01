@@ -11,13 +11,13 @@ from validate import Validator
 
 from Tribler.Core.CreditMining.BoostingPolicy import CreationDatePolicy, BoostingPolicy
 from Tribler.Core.CreditMining.BoostingPolicy import RandomPolicy, SeederRatioPolicy
-from Tribler.Core.Utilities.install_dir import determine_install_dir
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_appstate_dir, is_android
-from Tribler.Core.simpledefs import STATEDIR_CONFIG, STATEDIR_CONFIGSPEC
 
-CONFIG_SPEC_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), STATEDIR_CONFIGSPEC)
+FILENAME = 'triblerd.conf'
+SPEC_FILENAME = 'config.spec'
+CONFIG_SPEC_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), SPEC_FILENAME)
 
 
 class TriblerConfig(object):
@@ -52,7 +52,7 @@ class TriblerConfig(object):
         tribler_config = TriblerConfig()
 
         if not config_path:
-            config_path = os.path.join(TriblerConfig.get_default_state_dir(), STATEDIR_CONFIG)
+            config_path = os.path.join(TriblerConfig.get_default_state_dir(), FILENAME)
 
         if not os.path.exists(TriblerConfig.get_default_state_dir()):
             os.mkdir(TriblerConfig.get_default_state_dir())
@@ -156,7 +156,7 @@ class TriblerConfig(object):
 
     def write(self):
         """Write the configuration to the config file in the state dir as specified in the config."""
-        with open(os.path.join(self.get_state_dir(), STATEDIR_CONFIG), 'w') as outfile:
+        with open(os.path.join(self.get_state_dir(), FILENAME), 'w') as outfile:
             self.config.write(outfile=outfile)
 
     # General

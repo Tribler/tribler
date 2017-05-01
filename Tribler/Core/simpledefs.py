@@ -34,9 +34,6 @@ PERSISTENTSTATE_CURRENTVERSION = 5
 
 STATEDIR_DLPSTATE_DIR = u'dlcheckpoints'
 
-STATEDIR_CONFIG = 'triblerd.conf'
-STATEDIR_CONFIGSPEC = 'config.spec'
-
 # For observer/callback mechanism, see Session.add_observer()
 # subjects
 NTFY_PEERS = 'peers'

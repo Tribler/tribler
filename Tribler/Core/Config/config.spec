@@ -72,7 +72,6 @@ saveas = string(default=None)
 seeding_mode = string(default='ratio')
 seeding_ratio = float(default=2.0)
 seeding_time = integer(default=60)
-version = integer(default=16)
 
 [dispersy]
 enabled = boolean(default=True)

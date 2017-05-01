@@ -1,9 +1,8 @@
 import os
 import pickle
 
-from Tribler.Core.Config.tribler_config import TriblerConfig
+from Tribler.Core.Config.tribler_config import TriblerConfig, FILENAME as TRIBLER_CONFIG_FILENAME
 from Tribler.Core.Upgrade.pickle_converter import PickleConverter
-from Tribler.Core.simpledefs import STATEDIR_CONFIG
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 
 
@@ -32,11 +31,11 @@ class TestPickleConverter(TriblerCoreTest):
 
         PickleConverter(self.mock_session).convert_session_config()
 
-        self.assertTrue(os.path.exists(os.path.join(self.session_base_dir, STATEDIR_CONFIG)))
+        self.assertTrue(os.path.exists(os.path.join(self.session_base_dir, TRIBLER_CONFIG_FILENAME)))
         self.assertFalse(os.path.exists(os.path.join(self.session_base_dir, "sessconfig.pickle")))
 
         # Check the content of the config file
-        config = TriblerConfig.load(config_path=os.path.join(self.session_base_dir, STATEDIR_CONFIG))
+        config = TriblerConfig.load(config_path=os.path.join(self.session_base_dir, TRIBLER_CONFIG_FILENAME))
         self.assertEqual(config.get_state_dir(), '/')
         self.assertEqual(config.get_mainline_dht_port(), 1337)
         self.assertEqual(config.get_torrent_checking_enabled(), False)
@@ -65,4 +64,4 @@ class TestPickleConverter(TriblerCoreTest):
         PickleConverter(self.mock_session).convert_main_config()
 
         self.assertFalse(os.path.exists(os.path.join(self.session_base_dir, "user_download_choice.pickle")))
-        self.assertTrue(os.path.exists(os.path.join(self.session_base_dir, STATEDIR_CONFIG)))
+        self.assertTrue(os.path.exists(os.path.join(self.session_base_dir, TRIBLER_CONFIG_FILENAME)))
