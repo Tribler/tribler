@@ -43,7 +43,7 @@ store_dir = string(default=collected_torrents)
 
 [torrent_collecting]
 enabled = boolean(default=True)
-torrent_collecting_max_torrents = integer(default=50000)
+max_torrents = integer(default=50000)
 torrent_collecting_dir = string(default='')
 
 [libtorrent]
