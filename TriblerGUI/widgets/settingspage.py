@@ -64,13 +64,13 @@ class SettingsPage(QWidget):
         self.window().watchfolder_location_input.setText(settings['watch_folder']['watch_folder_dir'])
 
         # Connection settings
-        self.window().lt_proxy_type_combobox.setCurrentIndex(settings['libtorrent']['lt_proxytype'])
-        if settings['libtorrent']['lt_proxyserver']:
-            self.window().lt_proxy_server_input.setText(settings['libtorrent']['lt_proxyserver'][0])
-            self.window().lt_proxy_port_input.setText("%d" % settings['libtorrent']['lt_proxyserver'][1])
-        if settings['libtorrent']['lt_proxyauth']:
-            self.window().lt_proxy_username_input.setText(settings['libtorrent']['lt_proxyauth'][0])
-            self.window().lt_proxy_password_input.setText(settings['libtorrent']['lt_proxyauth'][1])
+        self.window().lt_proxy_type_combobox.setCurrentIndex(settings['libtorrent']['proxy_type'])
+        if settings['libtorrent']['proxy_server']:
+            self.window().lt_proxy_server_input.setText(settings['libtorrent']['proxy_server'][0])
+            self.window().lt_proxy_port_input.setText("%d" % settings['libtorrent']['proxy_server'][1])
+        if settings['libtorrent']['proxy_auth']:
+            self.window().lt_proxy_username_input.setText(settings['libtorrent']['proxy_auth'][0])
+            self.window().lt_proxy_password_input.setText(settings['libtorrent']['proxy_auth'][1])
         self.window().lt_utp_checkbox.setChecked(settings['libtorrent']['utp'])
 
         max_conn_download = settings['libtorrent']['max_connections_download']
@@ -121,18 +121,18 @@ class SettingsPage(QWidget):
         if settings_data['watch_folder']['enabled']:
             settings_data['watch_folder']['watch_folder_dir'] = self.window().watchfolder_location_input.text()
 
-        settings_data['libtorrent']['lt_proxytype'] = self.window().lt_proxy_type_combobox.currentIndex()
+        settings_data['libtorrent']['proxy_type'] = self.window().lt_proxy_type_combobox.currentIndex()
 
         if len(self.window().lt_proxy_server_input.text()) > 0 and len(self.window().lt_proxy_port_input.text()) > 0:
-            settings_data['libtorrent']['lt_proxyserver'] = [None, None]
-            settings_data['libtorrent']['lt_proxyserver'][0] = self.window().lt_proxy_server_input.text()
-            settings_data['libtorrent']['lt_proxyserver'][1] = self.window().lt_proxy_port_input.text()
+            settings_data['libtorrent']['proxy_server'] = [None, None]
+            settings_data['libtorrent']['proxy_server'][0] = self.window().lt_proxy_server_input.text()
+            settings_data['libtorrent']['proxy_server'][1] = self.window().lt_proxy_port_input.text()
 
         if len(self.window().lt_proxy_username_input.text()) > 0 and \
                         len(self.window().lt_proxy_password_input.text()) > 0:
-            settings_data['libtorrent']['lt_proxyauth'] = [None, None]
-            settings_data['libtorrent']['lt_proxyauth'][0] = self.window().lt_proxy_username_input.text()
-            settings_data['libtorrent']['lt_proxyauth'][1] = self.window().lt_proxy_password_input.text()
+            settings_data['libtorrent']['proxy_auth'] = [None, None]
+            settings_data['libtorrent']['proxy_auth'][0] = self.window().lt_proxy_username_input.text()
+            settings_data['libtorrent']['proxy_auth'][1] = self.window().lt_proxy_password_input.text()
         settings_data['libtorrent']['utp'] = self.window().lt_utp_checkbox.isChecked()
 
         try:

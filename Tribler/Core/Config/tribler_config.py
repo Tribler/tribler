@@ -286,14 +286,14 @@ class TriblerConfig(object):
         :param server: (host, port) tuple or None
         :param auth: (username, password) tuple or None
         """
-        self.config['libtorrent']['lt_proxytype'] = proxy_type
-        self.config['libtorrent']['lt_proxyserver'] = server if proxy_type else None
-        self.config['libtorrent']['lt_proxyauth'] = auth if proxy_type in [3, 5] else None
+        self.config['libtorrent']['proxy_type'] = proxy_type
+        self.config['libtorrent']['proxy_server'] = server if proxy_type else None
+        self.config['libtorrent']['proxy_auth'] = auth if proxy_type in [3, 5] else None
 
     def get_libtorrent_proxy_settings(self):
-        return (self.config['libtorrent']['lt_proxytype'],
-                self.config['libtorrent']['lt_proxyserver'],
-                self.config['libtorrent']['lt_proxyauth'])
+        return (self.config['libtorrent']['proxy_type'],
+                self.config['libtorrent']['proxy_server'],
+                self.config['libtorrent']['proxy_auth'])
 
     def set_anon_proxy_settings(self, proxy_type, server=None, auth=None):
         """
