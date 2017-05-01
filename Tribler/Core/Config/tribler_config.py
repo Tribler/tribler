@@ -486,10 +486,10 @@ class TriblerConfig(object):
         return self.config['torrent_collecting']['max_torrents']
 
     def set_torrent_collecting_dir(self, value):
-        self.config['torrent_collecting']['torrent_collecting_dir'] = value
+        self.config['torrent_collecting']['directory'] = value
 
     def get_torrent_collecting_dir(self):
-        return self.config['torrent_collecting']['torrent_collecting_dir']
+        return self.config['torrent_collecting']['directory']
 
     # Search Community
 
