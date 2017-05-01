@@ -58,10 +58,10 @@ max_upload_rate = integer(default=0)
 utp = boolean(default=True)
 
 anon_listen_port = integer(min=-1, max=65536, default=-1)
-anon_proxytype = integer(min=0, max=5, default=0)
-anon_proxyserver_ip = ip_addr(default=127.0.0.1)
-anon_proxyserver_ports = string_list(default=list('-1', '-1', '-1', '-1', '-1'))
-anon_proxyauth = string(default='')
+anon_proxy_type = integer(min=0, max=5, default=0)
+anon_proxy_server_ip = ip_addr(default=127.0.0.1)
+anon_proxy_server_ports = string_list(default=list('-1', '-1', '-1', '-1', '-1'))
+anon_proxy_auth = string(default='')
 
 [download_defaults]
 anonymity_enabled = boolean(default=True)

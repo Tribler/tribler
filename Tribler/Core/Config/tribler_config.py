@@ -306,19 +306,19 @@ class TriblerConfig(object):
         :param server: (host, [ports]) tuple or None
         :param auth: (username, password) tuple or None
         """
-        self.config['libtorrent']['anon_proxytype'] = proxy_type
+        self.config['libtorrent']['anon_proxy_type'] = proxy_type
         if server and proxy_type:
-            self.config['libtorrent']['anon_proxyserver_ip'] = server[0]
-            self.config['libtorrent']['anon_proxyserver_ports'] = server[1]
+            self.config['libtorrent']['anon_proxy_server_ip'] = server[0]
+            self.config['libtorrent']['anon_proxy_server_ports'] = server[1]
         else:
-            self.config['libtorrent']['anon_proxyserver_ip'] = None
-            self.config['libtorrent']['anon_proxyserver_ports'] = None
-        self.config['libtorrent']['anon_proxyauth'] = auth if proxy_type in [3, 5] else None
+            self.config['libtorrent']['anon_proxy_server_ip'] = None
+            self.config['libtorrent']['anon_proxy_server_ports'] = None
+        self.config['libtorrent']['anon_proxy_auth'] = auth if proxy_type in [3, 5] else None
 
     def get_anon_proxy_settings(self):
-        return (self.config['libtorrent']['anon_proxytype'],
-                (self.config['libtorrent']['anon_proxyserver_ip'], self.config['libtorrent']['anon_proxyserver_ports']),
-                self.config['libtorrent']['anon_proxyauth'])
+        return (self.config['libtorrent']['anon_proxy_type'],
+                (self.config['libtorrent']['anon_proxy_server_ip'], self.config['libtorrent']['anon_proxy_server_ports']),
+                self.config['libtorrent']['anon_proxy_auth'])
 
     def set_libtorrent_max_conn_download(self, value):
         """
