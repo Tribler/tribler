@@ -3,7 +3,7 @@ import shutil
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_SCRIPT_RELATIVE_PATH
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
 from Tribler.Test.Core.base_test import TriblerCoreTest
@@ -60,8 +60,7 @@ class AbstractUpgrader(TriblerCoreTest):
         shutil.copyfile(os.path.join(self.DATABASES_DIR, 'torrent_upgrade_64_dispersy.db'),
                         os.path.join(self.session.config.get_state_dir(), 'sqlite', 'dispersy.db'))
         db_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'tribler.sdb')
-        db_script_path = os.path.join(os.path.dirname(Tribler.__file__), DB_SCRIPT_RELATIVE_PATH)
-        self.sqlitedb = SQLiteCacheDB(db_path, db_script_path)
+        self.sqlitedb = SQLiteCacheDB(db_path)
         self.sqlitedb.initialize()
         self.sqlitedb.initial_begin()
         self.session.sqlite_db = self.sqlitedb

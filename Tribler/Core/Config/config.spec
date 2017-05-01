@@ -1,7 +1,6 @@
 [general]
 family_filter = boolean(default=True)
 state_dir = string(default='')
-install_dir = string(default=.)
 ec_keypair_filename = string(default='')
 megacache = boolean(default=True)
 videoanalyserpath = string(default='')

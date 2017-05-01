@@ -167,16 +167,6 @@ class TriblerConfig(object):
     def get_family_filter_enabled(self):
         return self.config['general'].as_bool('family_filter')
 
-    def set_install_dir(self, install_directory):
-        self.config['general']['install_dir'] = str(install_directory)
-
-    def get_install_dir(self):
-        install_dir = self.config['general']['install_dir']
-        if install_dir == '.':
-            install_dir = determine_install_dir()
-            self.set_install_dir(install_dir)
-        return install_dir
-
     def set_state_dir(self, state_dir):
         self.config["general"]["state_dir"] = state_dir
 

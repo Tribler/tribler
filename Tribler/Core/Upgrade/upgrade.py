@@ -87,7 +87,6 @@ class TriblerUpgrader(object):
 
     @blocking_call_on_reactor_thread
     def check_should_upgrade(self):
-
         self.failed = True
         should_upgrade = False
         if self.db.version > LATEST_DB_VERSION:

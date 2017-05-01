@@ -19,13 +19,12 @@ import Tribler.Core.permid as permid_module
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_FILE_RELATIVE_PATH, DB_SCRIPT_RELATIVE_PATH
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_FILE_RELATIVE_PATH
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.restapi.rest_manager import RESTManager
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.Utilities import torrent_utils
 from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
-from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
     DuplicateTorrentFileError
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_MYPREFERENCES, NTFY_PEERS,
@@ -168,9 +167,8 @@ class Session(object):
         assert isInIOThread()
 
         db_path = os.path.join(self.config.get_state_dir(), DB_FILE_RELATIVE_PATH)
-        db_script_path = os.path.join(self.config.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
 
-        self.sqlite_db = SQLiteCacheDB(db_path, db_script_path)
+        self.sqlite_db = SQLiteCacheDB(db_path)
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
 
@@ -473,9 +471,8 @@ class Session(object):
     def start_database(self):
         """Start the SQLite database."""
         db_path = os.path.join(self.config.get_state_dir(), DB_FILE_RELATIVE_PATH)
-        db_script_path = os.path.join(get_lib_path(), DB_SCRIPT_RELATIVE_PATH)
 
-        self.sqlite_db = SQLiteCacheDB(db_path, db_script_path)
+        self.sqlite_db = SQLiteCacheDB(db_path)
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
 

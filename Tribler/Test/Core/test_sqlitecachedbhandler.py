@@ -3,7 +3,6 @@ import tarfile
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import (BasicDBHandler, LimitedOrderedDict)
-from Tribler.Core.CacheDB.sqlitecachedb import DB_SCRIPT_RELATIVE_PATH
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
@@ -53,9 +52,8 @@ class AbstractDB(TriblerCoreTest):
         tar.extractall(self.session_base_dir)
 
         db_path = os.path.join(self.session_base_dir, 'bak_new_tribler.sdb')
-        db_script_path = os.path.join(self.session.config.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
 
-        self.sqlitedb = SQLiteCacheDB(db_path, db_script_path, busytimeout=BUSYTIMEOUT)
+        self.sqlitedb = SQLiteCacheDB(db_path, busytimeout=BUSYTIMEOUT)
         self.sqlitedb.initialize()
         self.session.sqlite_db = self.sqlitedb
 
