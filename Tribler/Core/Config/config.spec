@@ -4,7 +4,6 @@ state_dir = string(default='')
 ec_keypair_filename = string(default='')
 megacache = boolean(default=True)
 videoanalyserpath = string(default='')
-minport = integer(default=7760)
 
 [allchannel_community]
 enabled = boolean(default=True)

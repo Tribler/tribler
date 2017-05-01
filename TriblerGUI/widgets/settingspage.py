@@ -64,7 +64,6 @@ class SettingsPage(QWidget):
         self.window().watchfolder_location_input.setText(settings['watch_folder']['watch_folder_dir'])
 
         # Connection settings
-        self.window().firewall_current_port_input.setText(str(settings['general']['minport']))
         self.window().lt_proxy_type_combobox.setCurrentIndex(settings['libtorrent']['lt_proxytype'])
         if settings['libtorrent']['lt_proxyserver']:
             self.window().lt_proxy_server_input.setText(settings['libtorrent']['lt_proxyserver'][0])
@@ -122,7 +121,6 @@ class SettingsPage(QWidget):
         if settings_data['watch_folder']['enabled']:
             settings_data['watch_folder']['watch_folder_dir'] = self.window().watchfolder_location_input.text()
 
-        settings_data['general']['minport'] = self.window().firewall_current_port_input.text()
         settings_data['libtorrent']['lt_proxytype'] = self.window().lt_proxy_type_combobox.currentIndex()
 
         if len(self.window().lt_proxy_server_input.text()) > 0 and len(self.window().lt_proxy_port_input.text()) > 0:
