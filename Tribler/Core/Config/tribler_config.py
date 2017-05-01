@@ -540,10 +540,10 @@ class TriblerConfig(object):
         return self.config['watch_folder']['enabled']
 
     def set_watch_folder_path(self, value):
-        self.config['watch_folder']['watch_folder_dir'] = value
+        self.config['watch_folder']['directory'] = value
 
     def get_watch_folder_path(self):
-        return self.config['watch_folder']['watch_folder_dir']
+        return self.config['watch_folder']['directory']
 
     # Credit mining
     def set_credit_mining_enabled(self, value):

@@ -85,7 +85,7 @@ enabled = boolean(default=True)
 
 [watch_folder]
 enabled = boolean(default=False)
-watch_folder_dir = string(default='')
+directory = string(default='')
 
 [http_api]
 enabled = boolean(default=False)
