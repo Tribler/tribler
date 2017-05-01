@@ -241,7 +241,7 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
 def get_default_dest_dir():
     """
     Returns the default dir to save content to.
-    
+
     If Downloads/ exists: Downloads/TriblerDownloads
     else: Home/TriblerDownload
     """

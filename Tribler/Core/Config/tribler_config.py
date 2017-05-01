@@ -122,7 +122,7 @@ class TriblerConfig(object):
         Set the path of the video analyser.
 
         The path set depends on the current platform.
-        :return: 
+        :return:
         """
         if sys.platform == 'win32':
             # TODO: Remove this when migrating to Python 3
@@ -317,7 +317,8 @@ class TriblerConfig(object):
 
     def get_anon_proxy_settings(self):
         return (self.config['libtorrent']['anon_proxy_type'],
-                (self.config['libtorrent']['anon_proxy_server_ip'], self.config['libtorrent']['anon_proxy_server_ports']),
+                (self.config['libtorrent']['anon_proxy_server_ip'],
+                 self.config['libtorrent']['anon_proxy_server_ports']),
                 self.config['libtorrent']['anon_proxy_auth'])
 
     def set_libtorrent_max_conn_download(self, value):
@@ -338,9 +339,9 @@ class TriblerConfig(object):
     def set_libtorrent_max_upload_rate(self, value):
         """
         Sets the maximum upload rate (kB / s).
-        
+
         :param value: the new maximum upload rate in kB / s
-        :return: 
+        :return:
         """
         self.config['libtorrent']['max_upload_rate'] = value
 
@@ -357,7 +358,7 @@ class TriblerConfig(object):
         Sets the maximum download rate (kB / s).
 
         :param value: the new maximum download rate in kB / s
-        :return: 
+        :return:
         """
         self.config['libtorrent']['max_download_rate'] = value
 
