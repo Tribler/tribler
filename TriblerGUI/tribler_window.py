@@ -119,7 +119,7 @@ class TriblerWindow(QMainWindow):
 
         self.menu_buttons = [self.left_menu_button_home, self.left_menu_button_search, self.left_menu_button_my_channel,
                              self.left_menu_button_subscriptions, self.left_menu_button_video_player,
-                             self.left_menu_button_downloads, self.left_menu_button_discovered]
+                             self.left_menu_button_downloads, self.left_menu_button_discovered, self.left_menu_button_trust_display]
 
         self.video_player_page.initialize_player()
         self.search_results_page.initialize_search_results_page()
@@ -131,7 +131,6 @@ class TriblerWindow(QMainWindow):
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
         self.discovered_page.initialize_discovered_page()
-        self.trust_page.initialize_trust_page()
 
         self.stackedWidget.setCurrentIndex(PAGE_LOADING)
 
@@ -145,7 +144,6 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_debug.setHidden(True)
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
-        self.trust_button.setHidden(True)
         self.settings_button.setHidden(True)
         self.add_torrent_button.setHidden(True)
         self.top_search_bar.setHidden(True)
@@ -213,7 +211,6 @@ class TriblerWindow(QMainWindow):
     def show_loading_screen(self):
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
-        self.trust_button.setHidden(True)
         self.settings_button.setHidden(True)
         self.add_torrent_button.setHidden(True)
         self.top_search_bar.setHidden(True)
@@ -224,7 +221,6 @@ class TriblerWindow(QMainWindow):
 
         self.top_menu_button.setHidden(False)
         self.left_menu.setHidden(False)
-        self.trust_button.setHidden(False)
         self.settings_button.setHidden(False)
         self.add_torrent_button.setHidden(False)
         self.top_search_bar.setHidden(False)
@@ -366,7 +362,6 @@ class TriblerWindow(QMainWindow):
     def on_trust_button_click(self):
         self.deselect_all_menu_buttons()
         self.stackedWidget.setCurrentIndex(PAGE_TRUST)
-        self.trust_page.load_trust_statistics()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
@@ -546,6 +541,12 @@ class TriblerWindow(QMainWindow):
         self.deselect_all_menu_buttons(self.left_menu_button_subscriptions)
         self.subscribed_channels_page.load_subscribed_channels()
         self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
+        self.navigation_stack = []
+        self.hide_left_menu_playlist()
+
+    def clicked_menu_button_trust(self):
+        self.deselect_all_menu_buttons(self.left_menu_button_trust_display)
+        self.stackedWidget.setCurrentIndex(PAGE_TRUST)
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
