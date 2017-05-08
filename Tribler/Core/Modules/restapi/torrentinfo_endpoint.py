@@ -68,7 +68,7 @@ class TorrentInfoEndpoint(resource.Resource):
                     # TODO(Martijn): in libtorrent 1.1.1, bencode throws a TypeError which is a known bug
                     pass
 
-            request.write(json.dumps({"metainfo": fix_unicode_dict(metainfo)}))
+            request.write(json.dumps({"metainfo": metainfo}, ensure_ascii=False))
             self.finish_request(request)
 
         def on_metainfo_timeout(_):

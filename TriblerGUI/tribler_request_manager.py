@@ -96,7 +96,7 @@ class TriblerRequestManager(QNetworkAccessManager):
 
         data = reply.readAll()
         try:
-            json_result = json.loads(str(data))
+            json_result = json.loads(str(data), encoding='latin_1')
 
             if 'error' in json_result and capture_errors:
                 self.show_error(TriblerRequestManager.get_message_from_error(json_result))

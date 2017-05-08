@@ -36,7 +36,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         self.setUpFileServer(file_server_port, files_path)
 
         def verify_valid_dict(data):
-            metainfo_dict = json.loads(data)
+            metainfo_dict = json.loads(data, encoding='latin_1')
             self.assertTrue('metainfo' in metainfo_dict)
             self.assertTrue('info' in metainfo_dict['metainfo'])
 
