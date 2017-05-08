@@ -3,6 +3,7 @@ from random import sample
 from struct import pack, unpack_from
 
 from Tribler.Core.Utilities.encoding import encode, decode
+from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket, Packet, DelayPacketByMissingMessage, DelayPacketByMissingMember
 
@@ -74,30 +75,35 @@ class ChannelConversion(BinaryConversion):
         return self._decode_channel(placeholder, offset, data)
 
     def _encode_torrent(self, message):
-        max_len = self._community.dispersy_sync_bloom_filter_bits / 8
-
         files = message.payload.files
-        trackers = message.payload.trackers
+        trackers = list(message.payload.trackers)
+        name = message.payload.name
 
-        def create_msg():
-            normal_msg = (pack('!20sQ', message.payload.infohash, message.payload.timestamp), message.payload.name,
-                          tuple(files), tuple(trackers))
-            normal_msg = encode(normal_msg)
-            return zlib.compress(normal_msg)
+        # Filter out invalid trackers
+        for tracker in trackers:
+            if not get_uniformed_tracker_url(tracker) or len(tracker) > 200:
+                trackers.remove(tracker)
 
-        compressed_msg = create_msg()
-        while len(compressed_msg) > max_len:
-            if len(trackers) > 10:
-                # only use first 10 trackers, .torrents in the wild have been seen to have 1000+ trackers...
-                trackers = trackers[:10]
-            else:
-                # reduce files by the amount we are currently to big
-                reduce_by = max_len / (len(compressed_msg) * 1.0)
-                nr_files_to_include = int(len(files) * reduce_by)
-                files = sample(files, nr_files_to_include)
+        # files is a tuple of tuples (actually a list in tuple form)
+        max_len = self._community.dispersy_sync_bloom_filter_bits / 8
+        base_len = 20 + 8 + len(name)  # infohash, timestamp, name
+        tracker_len = sum([len(tracker) for tracker in trackers])
+        file_len = sum([len(f[0]) + 8 for f in files])  # file name, length
+        # Check if the message fits in the bloomfilter
+        if (base_len + tracker_len + file_len > max_len) and (len(trackers) > 10):
+            # only use first 10 trackers, .torrents in the wild have been seen to have 1000+ trackers...
+            trackers = trackers[:10]
+            tracker_len = sum([len(tracker) for tracker in trackers])
+        if base_len + tracker_len + file_len > max_len:
+            # reduce files by the amount we are currently to big
+            reduce_by = max_len / (base_len + tracker_len + file_len * 1.0)
+            nr_files_to_include = int(len(files) * reduce_by)
+            files = sample(files, nr_files_to_include)
 
-            compressed_msg = create_msg()
-        return compressed_msg,
+        normal_msg = (pack('!20sQ', message.payload.infohash, message.payload.timestamp), message.payload.name,
+                      tuple(files), tuple(trackers))
+
+        return zlib.compress(encode(normal_msg)),
 
     def _decode_torrent(self, placeholder, offset, data):
         try:
