@@ -22,6 +22,34 @@ class TestChannelConversion(AbstractTestChannelCommunity):
 
         self.placeholder = MockObject()
 
+    def test_encode_torrent(self):
+        """
+        Test the encoding of a torrent file
+        """
+        message = MockObject()
+        message.payload = MockObject()
+
+        message.payload.name = u'test'
+        message.payload.infohash = 'a' * 20
+        message.payload.timestamp = 1234
+        message.payload.files = [(u'a', 1234)]
+        message.payload.trackers = ['udp://tracker.openbittorrent.com:80/announce', 'http://google.com']
+
+        meta = self.channel_community.get_meta_message(u"torrent")
+        msg = MockObject()
+        msg.meta = meta
+
+        decoded_message = self.conversion._decode_torrent(msg, 0, self.conversion._encode_torrent(message)[0])[1]
+        self.assertEqual(len(decoded_message.files), 1)
+        self.assertEqual(len(decoded_message.trackers), 1)
+
+        message.payload.files = [(u'a', 1234)] * 1000
+        message.payload.trackers = ['udp://tracker.openbittorrent.com:80/announce'] * 100
+
+        decoded_message = self.conversion._decode_torrent(msg, 0, self.conversion._encode_torrent(message)[0])[1]
+        self.assertGreaterEqual(len(decoded_message.files), 133)
+        self.assertEqual(len(decoded_message.trackers), 10)
+
     def test_decode_torrent(self):
         """
         Test the decoding of a torrent message
