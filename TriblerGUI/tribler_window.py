@@ -458,6 +458,7 @@ class TriblerWindow(QMainWindow):
                                          [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
                                          show_input=True)
         self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
+        self.dialog.dialog_widget.dialog_input.setFocus()
         self.dialog.button_clicked.connect(self.on_torrent_from_url_dialog_done)
         self.dialog.show()
 
