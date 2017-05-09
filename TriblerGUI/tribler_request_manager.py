@@ -80,11 +80,15 @@ class TriblerRequestManager(QNetworkAccessManager):
 
     @staticmethod
     def get_message_from_error(error):
+        return_error = None
         if isinstance(error['error'], (str, unicode)):
-            return error['error']
+            return_error = error['error']
         elif 'message' in error['error']:
-            return error['error']['message']
-        return "Unknown error"
+            return_error = error['error']['message']
+
+        if not return_error:
+            return json.dumps(error)  # Just print the json object
+        return return_error
 
     def on_finished(self, reply, capture_errors):
         status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
