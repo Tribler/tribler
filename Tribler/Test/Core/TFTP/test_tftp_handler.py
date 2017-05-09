@@ -2,8 +2,8 @@ from nose.tools import raises
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TFTP.exception import FileNotFound
-from Tribler.Core.TFTP.handler import TftpHandler
-from Tribler.Core.TFTP.packet import OPCODE_OACK, OPCODE_ERROR
+from Tribler.Core.TFTP.handler import TftpHandler, METADATA_PREFIX
+from Tribler.Core.TFTP.packet import OPCODE_OACK, OPCODE_ERROR, OPCODE_RRQ
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -75,6 +75,31 @@ class TestTFTPHandler(TriblerCoreTest):
         self.handler._process_packet = mocked_process_packet
         self.handler._is_running = False
         self.handler.data_came_in(None, None)
+
+    def test_handle_new_request_no_metadata(self):
+        """
+        When the metadata_store from LaunchManyCore is not available, return
+        from the function rather than trying to load the metadata.
+
+        :return:
+        """
+        self.handler.session = MockObject()
+        # Make sure the packet appears to have the correct attributes
+        fake_packet = {"opcode": OPCODE_RRQ,
+                       "file_name": METADATA_PREFIX + "abc",
+                       "options": {"blksize": 1,
+                                   "timeout": 1},
+                       "session_id": 1}
+        self.handler._load_metadata = lambda _: self.fail("This line should not be called")
+
+        def test_function():
+            test_function.is_called = True
+            return False
+        test_function.is_called = False
+        self.handler.session.get_enable_metadata = test_function
+
+        self.handler._handle_new_request("123", "456", fake_packet)
+        self.assertTrue(test_function.is_called)
 
     @raises(FileNotFound)
     def test_load_metadata_not_found(self):
