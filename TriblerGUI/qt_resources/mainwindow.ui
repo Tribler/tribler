@@ -7781,8 +7781,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>653</width>
-                       <height>267</height>
+                       <width>133</width>
+                       <height>223</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -8844,22 +8844,28 @@ border-top: 1px solid #555;
             <property name="styleSheet">
              <string notr="true"/>
             </property>
-            <layout class="QHBoxLayout" name="horizontalLayout_39">
-             <property name="spacing">
-              <number>20</number>
-             </property>
-             <property name="leftMargin">
-              <number>20</number>
-             </property>
-             <property name="topMargin">
-              <number>20</number>
-             </property>
-             <property name="rightMargin">
-              <number>20</number>
-             </property>
-             <property name="bottomMargin">
-              <number>20</number>
-             </property>
+            <layout class="QVBoxLayout" name="verticalLayout_10">
+             <item>
+              <widget class="QWidget" name="network_widget" native="true">
+               <property name="styleSheet">
+                <string notr="true">border: none;</string>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_14">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+               </layout>
+              </widget>
+             </item>
             </layout>
            </widget>
           </item>

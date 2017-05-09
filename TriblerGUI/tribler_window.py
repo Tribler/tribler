@@ -131,6 +131,7 @@ class TriblerWindow(QMainWindow):
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
         self.discovered_page.initialize_discovered_page()
+        self.trust_page.initialize_trust_page()
 
         self.stackedWidget.setCurrentIndex(PAGE_LOADING)
 
