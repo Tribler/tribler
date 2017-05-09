@@ -102,7 +102,7 @@ class MockPeerId(object):
     def __init__(self, peer_id):
         self.peer_id = peer_id
 
-    def to_string(self):
+    def to_bytes(self):
         return self.peer_id
 
 
