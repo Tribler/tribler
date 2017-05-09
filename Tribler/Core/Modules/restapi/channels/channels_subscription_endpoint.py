@@ -95,7 +95,10 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
             request.write(json.dumps({"subscribed": True}))
             request.finish()
 
-        self.vote_for_channel(self.cid, VOTE_SUBSCRIBE).addCallback(on_vote_done)
+        def on_vote_error(failure):
+            request.processingFailed(failure)
+
+        self.vote_for_channel(self.cid, VOTE_SUBSCRIBE).addCallback(on_vote_done).addErrback(on_vote_error)
 
         return NOT_DONE_YET
 
