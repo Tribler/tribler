@@ -199,7 +199,7 @@ class LibtorrentMgr(TaskManager):
         proxy_settings.type = lt.proxy_type(ptype)
         if server:
             proxy_settings.hostname = server[0]
-            proxy_settings.port = server[1]
+            proxy_settings.port = int(server[1])
         if auth:
             proxy_settings.username = auth[0]
             proxy_settings.password = auth[1]
