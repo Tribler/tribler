@@ -88,7 +88,7 @@ class DisplayEndpoint(resource.Resource):
 
                 {
                     "focus_node": "xyz",
-                    "neighbor_level: 1
+                    "neighbor_level": 1,
                     "nodes": [{
                         "public_key": "xyz",
                         "total_up": 12736457,
