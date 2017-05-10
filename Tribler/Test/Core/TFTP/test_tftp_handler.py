@@ -101,6 +101,31 @@ class TestTFTPHandler(TriblerCoreTest):
         self.handler._handle_new_request("123", "456", fake_packet)
         self.assertTrue(test_function.is_called)
 
+    def test_handle_new_request_no_torrent_store(self):
+        """
+        When the torrent_store from LaunchManyCore is not available, return
+        from the function rather than trying to load the metadata.
+
+        :return:
+        """
+        self.handler.session = MockObject()
+        # Make sure the packet appears to have the correct attributes
+        fake_packet = {"opcode": OPCODE_RRQ,
+                       "file_name": "abc",
+                       "options": {"blksize": 1,
+                                   "timeout": 1},
+                       "session_id": 1}
+        self.handler._load_metadata = lambda _: self.fail("This line should not be called")
+
+        def test_function():
+            test_function.is_called = True
+            return False
+        test_function.is_called = False
+        self.handler.session.get_torrent_store = test_function
+
+        self.handler._handle_new_request("123", "456", fake_packet)
+        self.assertTrue(test_function.is_called)
+
     @raises(FileNotFound)
     def test_load_metadata_not_found(self):
         """
