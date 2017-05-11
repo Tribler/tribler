@@ -20,7 +20,7 @@ class TriblerRequestManager(QNetworkAccessManager):
     window = None
 
     received_json = pyqtSignal(object, int)
-    received_file = pyqtSignal(str, object)
+    received_file = pyqtSignal(object)
 
     def __init__(self):
         QNetworkAccessManager.__init__(self)
@@ -129,9 +129,8 @@ class TriblerRequestManager(QNetworkAccessManager):
         self.finished.connect(self.on_file_download_finished)
 
     def on_file_download_finished(self, reply):
-        content_header = str(reply.rawHeader("Content-Disposition"))
         data = reply.readAll()
-        self.received_file.emit(content_header.split("=")[1], data)
+        self.received_file.emit(data)
 
     def show_error(self, error_text):
         main_text = "An error occurred during the request:\n\n%s" % error_text
