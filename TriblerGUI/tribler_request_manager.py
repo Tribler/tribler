@@ -20,13 +20,17 @@ class TriblerRequestManager(QNetworkAccessManager):
     window = None
 
     received_json = pyqtSignal(object, int)
-    received_file = pyqtSignal(str, object)
+    received_file = pyqtSignal(object)
 
     def __init__(self):
         QNetworkAccessManager.__init__(self)
-        self.request_id = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+        self.request_id = None
         self.base_url = "http://localhost:%d/" % API_PORT
         self.reply = None
+        self.generate_request_id()
+
+    def generate_request_id(self):
+        self.request_id = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
 
     def perform_request(self, endpoint, read_callback, data="", method='GET', capture_errors=True):
         """
@@ -110,6 +114,14 @@ class TriblerRequestManager(QNetworkAccessManager):
             self.received_json.emit(None, reply.error())
             logging.error("No json object could be decoded from data: %s" % data)
 
+        # We disconnect the slot since we want the finished only to be emitted once. This allows us to reuse the
+        # request manager.
+        try:
+            self.finished.disconnect()
+            self.received_json.disconnect()
+        except TypeError:
+            pass  # We probably didn't have any connected slots.
+
     def download_file(self, endpoint, read_callback):
         url = self.base_url + endpoint
         self.reply = self.get(QNetworkRequest(QUrl(url)))
@@ -117,9 +129,8 @@ class TriblerRequestManager(QNetworkAccessManager):
         self.finished.connect(self.on_file_download_finished)
 
     def on_file_download_finished(self, reply):
-        content_header = str(reply.rawHeader("Content-Disposition"))
         data = reply.readAll()
-        self.received_file.emit(content_header.split("=")[1], data)
+        self.received_file.emit(data)
 
     def show_error(self, error_text):
         main_text = "An error occurred during the request:\n\n%s" % error_text

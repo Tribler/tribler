@@ -32,7 +32,7 @@ class DownloadsPage(QWidget):
         self.downloads_timeout_timer = QTimer()
         self.selected_item = None
         self.dialog = None
-        self.downloads_request_mgr = None
+        self.downloads_request_mgr = TriblerRequestManager()
         self.request_mgr = None
 
     def initialize_downloads_page(self):
@@ -90,7 +90,7 @@ class DownloadsPage(QWidget):
         if self.window().download_details_widget.currentIndex() == 3:
             url = "downloads?get_peers=1&get_pieces=1"
 
-        self.downloads_request_mgr = TriblerRequestManager()
+        self.downloads_request_mgr.generate_request_id()
         self.downloads_request_mgr.perform_request(url, self.on_received_downloads)
 
     def on_received_downloads(self, downloads):
@@ -289,9 +289,27 @@ class DownloadsPage(QWidget):
                                                            QFileDialog.ShowDirsOnly)
 
         if len(self.export_dir) > 0:
+            # Show confirmation dialog where we specify the name of the file
+            infohash = self.selected_item.download_info['infohash']
+            self.dialog = ConfirmationDialog(self, "Export torrent file",
+                                             "Please enter the name of the torrent file:",
+                                             [('SAVE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+                                             show_input=True)
+            self.dialog.dialog_widget.dialog_input.setPlaceholderText('Torrent file name')
+            self.dialog.dialog_widget.dialog_input.setText("%s.torrent" % infohash)
+            self.dialog.dialog_widget.dialog_input.setFocus()
+            self.dialog.button_clicked.connect(self.on_export_download_dialog_done)
+            self.dialog.show()
+
+    def on_export_download_dialog_done(self, action):
+        if action == 0:
+            filename = self.dialog.dialog_widget.dialog_input.text()
             self.request_mgr = TriblerRequestManager()
             self.request_mgr.download_file("downloads/%s/torrent" % self.selected_item.download_info['infohash'],
-                                           self.on_export_download_request_done)
+                                           lambda data: self.on_export_download_request_done(filename, data))
+
+        self.dialog.setParent(None)
+        self.dialog = None
 
     def on_export_download_request_done(self, filename, data):
         dest_path = os.path.join(self.export_dir, filename)
@@ -304,7 +322,8 @@ class DownloadsPage(QWidget):
                                           "Error when exporting file",
                                           "An error occurred when exporting the torrent file: %s" % str(exc))
         else:
-            self.window().tray_icon.showMessage("Torrent file exported", "Torrent file exported to %s" % dest_path)
+            if QSystemTrayIcon.isSystemTrayAvailable():
+                self.window().tray_icon.showMessage("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
     def on_right_click_item(self, pos):
         item_clicked = self.window().downloads_list.itemAt(pos)
