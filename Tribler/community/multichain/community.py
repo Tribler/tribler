@@ -4,6 +4,8 @@ This reputation system builds a tamper proof interaction history contained in a 
 Every node has a chain and these chains intertwine by blocks shared by chains.
 """
 import logging
+from itertools import combinations
+from networkx import Graph
 from twisted.internet.defer import inlineCallbacks
 
 from twisted.internet import reactor
@@ -23,6 +25,8 @@ from Tribler.community.multichain.block import MultiChainBlock, ValidationResult
 from Tribler.community.multichain.payload import HalfBlockPayload, CrawlRequestPayload
 from Tribler.community.multichain.database import MultiChainDB
 from Tribler.community.multichain.conversion import MultiChainConversion
+from Tribler.community.multichain.statistics.database_driver import DatabaseDriver
+from Tribler.community.multichain.statistics.page_rank import IncrementalPageRank
 
 HALF_BLOCK = u"half_block"
 CRAWL = u"crawl"
@@ -58,6 +62,9 @@ class MultiChainCommunity(Community):
 
         self.notifier = None
         self.persistence = MultiChainDB(self.dispersy.working_directory)
+        self.database = DatabaseDriver()
+        self.graph = Graph()
+        self.page_rank = IncrementalPageRank(self.graph)
 
         # We store the bytes send and received in the tunnel community in a dictionary.
         # The key is the public key of the peer being interacted with, the value a tuple of the up and down bytes
@@ -281,6 +288,93 @@ class MultiChainCommunity(Community):
             statistics["total_up"] = 0
             statistics["total_down"] = 0
         return statistics
+
+    @blocking_call_on_reactor_thread
+    def get_graph(self, public_key=None, neighbor_level=1):
+        """
+        Return a dictionary with the neighboring nodes and edges of a certain focus node within a certain radius,
+        regarding the local multichain database.
+
+        :param public_key: the public key of the focus node
+        :param neighbor_level: the radius within which the neighbors have to be returned
+        :return: a tuple of a dictionary with nodes and a dictionary with edges
+        """
+        if public_key is None:
+            public_key = self.my_member.public_key
+        list_of_nodes = self.get_list_of_nodes(public_key, neighbor_level)
+        nodes = []
+        for current_key in list_of_nodes:
+            # TODO: retrieve more information at once when appropriate queries are present in database_driver
+            nodes.append({"public_key": current_key, "total_up": self.database.total_up(current_key),
+                          "total_down": self.database.total_down(current_key)})
+            self.page_rank.add_node(current_key)
+        edges = self.get_edges(nodes)
+        for dic in nodes:
+            page_rank = self.get_page_rank(dic["public_key"])
+            dic["page_rank"] = page_rank
+        return nodes, edges
+
+    @blocking_call_on_reactor_thread
+    def get_list_of_nodes(self, public_key, neighbor_level):
+        """
+        Return a list of nodes surrounding a certain focus node.
+
+        :param public_key: the public key of the focus node
+        :param neighbor_level: the radius within which the neighbors have to be returned
+        :return: a list of neighbors within the given radius, or only the public key itself when radius is zero
+        """
+        if neighbor_level == 0:
+            return {public_key: {"up": self.database.total_up(public_key),
+                                 "down": self.database.total_down(public_key)}}
+        list_of_nodes = self.get_list_of_nodes(public_key, neighbor_level - 1)
+        for key in list_of_nodes:
+            new_neighbors = self.database.neighbor_list(key)
+            for new_key in new_neighbors:
+                if new_key not in list_of_nodes:
+                    list_of_nodes[new_key] = new_neighbors[new_key]
+        return list_of_nodes
+
+    @blocking_call_on_reactor_thread
+    def get_edges(self, nodes=None):
+        """
+        Return a dictionary with all edges between certain nodes around a certain focus node,
+        regarding the local multichain database.
+
+        :param public_key: the public key of the focus node
+        :param nodes: the dictionary of nodes between which the edges have to be returned
+        :return: a dictionary with edges
+        """
+        list_of_nodes = [node["public_key"] for node in nodes]
+        list_of_edges = []
+        for pair in combinations(list_of_nodes, 2):
+            current_neighbors = self.database.neighbor_list(pair[0])
+            list_of_edges.append(
+                [pair[0], pair[1], current_neighbors[pair[1]]["up"] or 0, current_neighbors[pair[1]]["down"] or 0])
+        edges = []
+        for edge in list_of_edges:
+            if edge[2] > 0:
+                edges.append({"from": edge[0], "to": edge[1],
+                              "amount": edge[2]})
+                self.page_rank.add_edge(edge[0], edge[1])
+            if edge[3] > 0:
+                edges.append({"from": edge[1], "to": edge[0],
+                              "amount": edge[3]})
+                self.page_rank.add_edge(edge[1], edge[0])
+        return edges
+
+    def get_page_rank(self, public_key):
+        """
+        Return the page rank of a certain node.
+
+        :param public_key: the public key of the given node
+        :return: the page rank of the given node
+        """
+        self.page_rank.initial_walk()
+        ranks = self.page_rank.get_ranks()
+        if public_key in ranks:
+            return ranks[public_key]
+        return 0
+
 
     @inlineCallbacks
     def unload_community(self):
