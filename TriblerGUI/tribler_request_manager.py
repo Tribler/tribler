@@ -24,9 +24,13 @@ class TriblerRequestManager(QNetworkAccessManager):
 
     def __init__(self):
         QNetworkAccessManager.__init__(self)
-        self.request_id = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+        self.request_id = None
         self.base_url = "http://localhost:%d/" % API_PORT
         self.reply = None
+        self.generate_request_id()
+
+    def generate_request_id(self):
+        self.request_id = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
 
     def perform_request(self, endpoint, read_callback, data="", method='GET', capture_errors=True):
         """
@@ -109,6 +113,14 @@ class TriblerRequestManager(QNetworkAccessManager):
         except ValueError:
             self.received_json.emit(None, reply.error())
             logging.error("No json object could be decoded from data: %s" % data)
+
+        # We disconnect the slot since we want the finished only to be emitted once. This allows us to reuse the
+        # request manager.
+        try:
+            self.finished.disconnect()
+            self.received_json.disconnect()
+        except TypeError:
+            pass  # We probably didn't have any connected slots.
 
     def download_file(self, endpoint, read_callback):
         url = self.base_url + endpoint

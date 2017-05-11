@@ -32,7 +32,7 @@ class DownloadsPage(QWidget):
         self.downloads_timeout_timer = QTimer()
         self.selected_item = None
         self.dialog = None
-        self.downloads_request_mgr = None
+        self.downloads_request_mgr = TriblerRequestManager()
         self.request_mgr = None
 
     def initialize_downloads_page(self):
@@ -90,7 +90,7 @@ class DownloadsPage(QWidget):
         if self.window().download_details_widget.currentIndex() == 3:
             url = "downloads?get_peers=1&get_pieces=1"
 
-        self.downloads_request_mgr = TriblerRequestManager()
+        self.downloads_request_mgr.generate_request_id()
         self.downloads_request_mgr.perform_request(url, self.on_received_downloads)
 
     def on_received_downloads(self, downloads):
