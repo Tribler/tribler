@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!-- This template is for creating an Internet Draft using xml2rfc,
+which is available here: http://xml.resource.org. -->
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd" [
+<!-- One method to get references from the online citation libraries.
+There has to be one entity for each item to be referenced. 
+An alternate method (rfc include) is described in the references. -->
+
+<!ENTITY RFC2119 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml">
+<!ENTITY RFC2629 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.2629.xml">
+<!ENTITY RFC3552 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.3552.xml">
+<!ENTITY RFC5226 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.5226.xml">
+]>
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
+<!-- used by XSLT processors -->
+<!-- For a complete list and description of processing instructions (PIs), 
+please see http://xml.resource.org/authoring/README.html. -->
+<!-- Below are generally applicable Processing Instructions (PIs) that most I-Ds might want to use.
+(Here they are set differently than their defaults in xml2rfc v1.32) -->
+<?rfc strict="yes" ?>
+<!-- give errors regarding ID-nits and DTD validation -->
+<!-- control the table of contents (ToC) -->
+<?rfc toc="yes"?>
+<!-- generate a ToC -->
+<?rfc tocdepth="4"?>
+<!-- the number of levels of subsections in ToC. default: 3 -->
+<?rfc symrefs="yes"?>
+<?rfc sortrefs="yes" ?>
+<?rfc compact="yes" ?>
+<?rfc subcompact="no" ?>
+<rfc category="info" docName="draft-pouwelse-trustchain-01" ipr="trust200902">
+
+  <front>
+   <title abbrev="Trustchain protocol">TrustChain protocol</title>
+   <author fullname="Dr. J.A. Pouwelse" initials="J.A." role="editor"
+     surname="Pouwelse">
+     <organization>Delft University of Technology</organization>
+     <address>
+       <postal>
+         <street></street>
+         <city>Delft</city>
+         <region></region>
+         <code></code>
+         <country>Netherlands</country>
+       </postal>
+       <phone>+44 7889 488 335</phone>
+       <email>elwynd@dial.pipex.com</email>
+     </address>
+   </author>
+
+   <date year="2017" />
+
+   <area>General</area>
+
+   <workgroup>Internet Engineering Task Force</workgroup>
+
+   <keyword>template</keyword>
+
+   <abstract>
+     <t>TrustChain is a novel implementation of blockchain technology specifically designed to create trust.
+       The structure and communications protocol version 0.1 are described.
+       It is specifically designed to created trusted transactions among strangers without central control.
+       This version includes recording transactions in an ordered list using blockchain structure.
+       The unique approach of TrustChain is that each participant creates their own genesis block, resulting in seamless scalability.
+     </t>
+   </abstract>
+ </front>
+
+ <middle>
+   <section title="Introduction">
+     <t>
+      We present TrustChain, blockhain technology specifically designed to help create trust.
+      The only mechanism used is recording transactions and signatures in a multi-chain manner.
+      By using ordered records of historical transactions it is possible to calculate reputations and be tamper-proof.
+    </t>
+    <t>
+      In essence, trust is a feeling of security, based on the belief that someone or something is knowledgeable, reliable, good, honest, and effective.
+      The Trustchain is an approach which holds the promise of reducing the cost of establishing and maintaining trust for both individuals and organizations. <!--~\cite{economist2015blockchain}.  %COPIED  -->
+      This blockchain implementation lets people who have no particular confidence in each other collaborate without having to go through a neutral central authority.
+      The main TrustChain design principle is having entities that would otherwise not trust each other agree on a common record of events in a continuous growing process, either by direct trust analysis or by using transitive trust.
+      Cryptographically signed records of events are used to create an unbroken, irrefutable, and sequential chain of evidence.
+      It is then possible to combine this chain-of-evidence with proven approaches to create trust, such as reputation systems.
+    </t>
+    <t>
+      The TrustChain work contributes to an ambitious goal: establishing a generic method to create trust, whilst bein resitant against sybil attacks and providing methods of coping with freeriding.
+      A generic method can be re-used in a wide range of contexts, can be applied in varying fields of applications, and provides a shared common infrastructure.
+    </t>
+    <t>
+      An Open Source implementation of TrustChain is available. It is used in an operational setting for a distributed video streaming system.
+      Specifically, it is used to record the bandwidth exchanges in Bittorrent swarms and relaying in an onion routing setting with the goal of prevent freeriding.
+    </t>
+
+    <section title="Requirements Language">
+     <t>
+      The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+      "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+      document are to be interpreted as described in <xref target="RFC2119">RFC 2119</xref>.
+    </t>
+  </section>
+</section>
+
+<section anchor="trustchain_architecture" title="Trustchain Architecture">
+ <t>
+  TrustChain is a simple blockchain-based data structure.
+  It can be used to record transactions and to make these transactions tamper-proof.
+  The design specifically strives for simplicity and avoids complexity.
+  TrustChain gives each node in the network their own chain of transactions, or genesis block.
+  Using what are essentially parallel chains yields inherent seamless scalability, removes the need for a proof-of-work mechanism, global transaction broadcasts, leadership elections, forks, or permissions.
+</t>
+
+<t>
+  The general architecture of TrustChain is illustrated in <xref target="fig_trustchain_architecture"></xref>.
+  Each element in the data structure represents a transaction between two participants.
+  When initiating new transactions, each participant includes the hash of their last interaction, creating a chain of temporally ordered interactions, or essentially a Directed Acyclic Graph.
+  In addition, each record is provided with a sequence number that is unique in the chain of each participant.
+  TrustChain records are cryptographically signed by both parties and together form a directed graph.
+</t>
+
+<t>
+  This agreement by <spanx style="strong">both parties</spanx> is a key novelty of TrustChain and a fundamental difference between our approach and related blockchain work.
+  The remarkable simplicity of TrustChain is a direct consequence of the hard requirement for agreement by both participating parties.
+  TrustChain records are tamper-proof and irrefutable since modification of a specific record can be detected by verification of the cryptographic signature or sequence numbers.
+  This removes the need for Bitcoin-like global consensus mechanisms and competing forks which may invalidate transactions.
+  The vulnerability of existing blockchains to the 51% attack is also addressed.
+  The validity of a block of transactions is easy to establish and immediate, confirmation time is avoided.
+  We call this a <spanx style="strong">bottom-up consensus model</spanx>.
+</t>
+
+<t>
+  In a directed graph representation each historical encounter in TrustChain has two incoming edges and two outgoing edges.
+  Violations of these rules can be efficiently detected, for instance, signing two records with the same prior record pointer or hiding a record by using the same pointer with another chain (see <xref target="attack_resistance"></xref>). This is due to the agents publishing their own unique chains, which can then be analysed and the immutable structure of the chain itself.
+</t>
+</section>
+
+<section anchor="trustchain_structure" title="Trustchain data structure">
+  <t>
+    As is mentioned, Trustchain depends on signatures from both participants in a transaction, creating a 2-to-2 multi-chain system.
+    Each transaction is stored in a block, signed and sequenced so that each sequence number is unique in both chains.
+    This general structure can be seen below.
+  </t>
+  <figure align="center" anchor="fig_trustchain_architecture">
+   <artwork align="left">
+    <![CDATA[
+    +---------+--+---------+
+    |                      |
+    | Transaction A with D |
+    |                      |
+    |                      |
+    +----------------------+
+    | sequence number A: 3 |
+    +----------------------+
+    | signed by A          |
+    +----------------------+
+    | sequence number D: 49|
+    +----------------------+
+    | signed by D          |
+    +---------+--+---------+
+              |  |
+              |  +----------------------+  
+              |                         |  |
+    +---------+--+---------+  +---------+--+---------+
+    |                      |  |                      |
+    | Transaction A with C |  | Transaction D with B |
+    |                      |  |                      |
+    |                      |  |                      |
+    +----------------------+  +----------------------+
+    | sequence number A: 2 |  | sequence number D: 48|
+    +----------------------+  +----------------------+
+    | signed by A          |  | signed by D          |
+    +----------------------+  +----------------------+
+    | sequence number C: 4 |  | sequence number B: 12|
+    +----------------------+  +----------------------+
+    | signed by C          |  | signed by B          |
+    +---------+--+---------+  +---------+--+---------+
+              |                         |  |
+              |  +----------------------+
+              |  |
+    +---------+--+---------+
+    |                      |
+    | Transaction A with B |
+    |                      |
+    |                      |
+    +----------------------+
+    | sequence number A: 1 |
+    +----------------------+
+    | signed by A          |
+    +----------------------+
+    | sequence number B: 11|
+    +----------------------+
+    | signed by B          |
+    +---------+--+---------+
+    ]]>
+  </artwork>
+</figure>
+</section>
+
+<section anchor="block_format" title="Block format">
+  <t>
+    The Trustchain is designed to be a non-blocking multichain format for peer that supports simultaeous interactions with other peers.
+    Non-blocking is a requirement rooted in the immutability of the chain and the strict ordering of the blocks.
+    To support this, the blocks are designed as half blocks, as is described in this section.
+  </t>
+  <section anchor="halfblock" title="A true half block">
+    <t>
+      Using the true half block format means singing the blocks on the current views of the respective parties: the requester and the responder.
+      Each party signs and fills the block with the information that it has at that specific point in time.
+      The requester fills the structure with his own previous hash and his own part of the transaction data, signs it and sends it to the responder, which in turn construct the other half of the block, if it agrees with the content before sending it back.
+      This nullifies any ordering and asynchronicity issues, since the requester constructs the block with the information that he has, and keeps it in memory while it waits on the responder to send the finished block back.
+    </t>
+  </section>
+  <section anchor="half_block_fields" title="Half block fields">
+    <t>
+      The current half block format used for Tribler is used as reference, including their  type and size:
+    </t>
+    <texttable anchor="table_half_block" title="Half block fields description">
+      <ttcol align='center'>Number</ttcol>
+      <ttcol align='center'>Description</ttcol>
+      <ttcol align='center'>Type</ttcol>
+      <ttcol align='center'>Size (bytes)</ttcol>
+      <c></c>
+      <c><spanx style="strong">Transaction:</spanx></c>
+      <c></c>
+      <c></c>
+
+      <c>1</c>
+      <c>Bytes uploaded</c>
+      <c>Unsigned int</c>
+      <c>8</c>
+
+      <c>2</c>
+      <c>Bytes downloaded</c>
+      <c>Unsigned int</c>
+      <c>8</c>
+
+      <c>3</c>
+      <c>Total Bytes uploaded</c>
+      <c>Unsigned int</c>
+      <c>8</c>
+
+      <c>4</c>
+      <c>Total Bytes downloaded</c>
+      <c>Unsigned int</c>
+      <c>8</c>
+
+      <c></c>
+      <c><spanx style="strong">Own dentity:</spanx></c>
+      <c></c>
+      <c></c>
+
+      <c>5</c>
+      <c>Public key</c>
+      <c>Character array</c>
+      <c>74</c>
+
+      <c>6</c>
+      <c>Sequence number</c>
+      <c>Unsigned int</c>
+      <c>4</c>
+
+      <c></c>
+      <c><spanx style="strong">Other identity:</spanx></c>
+      <c></c>
+      <c></c>
+
+      <c>7</c>
+      <c>Linked public key</c>
+      <c>Character array</c>
+      <c>74</c>
+
+      <c>8</c>
+      <c>Linked sequence number</c>
+      <c>Unsigned int</c>
+      <c>4</c>
+
+      <c></c>
+      <c><spanx style="strong">Validation:</spanx></c>
+      <c></c>
+      <c></c>
+
+      <c>9</c>
+      <c>Previous hash</c>
+      <c>Character array</c>
+      <c>32</c>
+
+      <c>10</c>
+      <c>Signature</c>
+      <c>Character array</c>
+      <c>64</c>
+
+      <c></c>
+      <c><spanx style="strong">Total:</spanx></c>
+      <c></c>
+      <c>284</c>
+      <postamble>TODO reference Pim Veldhuisens' msc thesis</postamble>
+    </texttable>
+  </section>
+  <section anchor="asynchronicity" title="Asynchronicity">
+    <t>
+      Because there is the need to communicate between the requester and responder, there will be a delay which may be significant.
+      To have a high level of asynchronicity and enable multiple peers interacting simultaneously, extending the chain should be able while waiting for a response.
+      In order to do this, the block refers to the previous block using the hash of the requesters part, since this is the only stable reference at that point.
+      The other hash reference (the "previous hash responder") can then be either the "hash requester" or "hash responder" part of the head-block of the responder chain.
+      Which one is used depends on whether the responder was the requester or responder in its previous interaction.
+      This mechanic is also used for the "previous hash requester" field, but this reference is known when the block is created.
+    </t>
+    <t>
+      One of the drawbacks of this mechanic is when the responders does not sign and respond, whether because it will/can not, there will be an orphan block.
+      While this is not a vulerability on itself, it might be the starting point of a certain type of attack (the other "normal" types of attacks used for blockchains can be mitigated, at elast to a certain level, as is described in <xref target="attack_resistance"></xref>.).
+      The adversary might let someone initiate a transaction an block creation, after which he will have to sign it. But when he does not, it will create an orphan.
+      Doing this multiple times in a short timespan will force the requester to use a considerable amount of processing power and memory, all the while injecting orphan block into his chain.
+      As mentioned before, this is not a vulnerability in itself, but might be a launchpad for a more elaborate attack.
+    </t>
+  </section>
+</section>
+
+<section anchor="attack_resistance" title="Attack resistance">
+  <t>
+    When dealing with trust, especially in an self-managed and peer-to-peer environment, unsupervised attack resistance is an important requirement.
+    Because Trustchain is a blockchain implementation, it will have to cope with the same difficulties and attacks that other blockchain implementations have to.
+    Some attacks and Trustchains resistance to them is detailed below, to give an insight how this novel approach can deal with attacks.
+  </t>
+  <section anchor="sybil_attack_resistance" title="Sybil attacks">
+    <t>
+      One of the most difficult attacks to repel for a blockchain is the sybil attack.
+      In a sybil attack, many peers are injected into the chain (where authenticity cannot easily be verified) to subvert a large portion of the systems trust.
+      Usually peer verification is used to cope with these attacks, such as proof-of-work validation by other peers, usually resulting in slow systems.
+      But when the influence of the attacker is large enough, even these methods will not be able to stop such an attack.
+    </t>
+    <t>
+      Trustchain deal with this problem by having an inherently different structure, where each peer has its own chain.
+      On top of that, transaction injection can only be done with two valid signatures, meaning a sybil attacker can only create trust with himself.
+      This results in a network of interconnected chains that contains clusters, and outliers can easily be identified.
+      Even when the sybils acquire some degree of trust outside of their cluster, using accounting mechanisms the profit from such an attack can only be weakly profitably benficial with bounded profit (using Netflow, not discussed in this paper).
+    </t>
+  </section>
+  <section anchor="branching_attack_resistance" title="Branching attack resistance">
+    <t>
+      TODO
+    </t>
+  </section>
+  <section anchor="replay_attack_resistance" title="Replay attack resistance">
+    <t>
+      TODO
+    </t>
+  </section>
+  <section anchor="tragedy_of_the_commons" title="Tragedy of the commons">
+    <t>
+      TODO
+    </t>
+  </section>
+</section>
+
+<section anchor="random_walk" title="Discovering the network using Random Walk">
+  <t>
+    TODO
+  </t>
+</section>
+
+<section anchor="Acknowledgements" title="Acknowledgements to Brussels">
+ <t>
+  We very much thank the EU for providing us the required funding.
+  An estimated 3.4 million Euro has been granted through.
+</t>
+
+</section>
+
+<section anchor="IANA" title="IANA Considerations">
+ <t>This memo includes no request to IANA.</t>
+ <t>
+  All drafts are required to have an IANA considerations section (see
+  <xref target="RFC5226">Guidelines for Writing an IANA Considerations Section in RFCs</xref> for a guide). If the draft does not require IANA to do
+  anything, the section contains an explicit statement that this is the
+  case (as above). If there are no requirements for IANA, the section will
+  be removed during conversion into an RFC by the RFC Editor.
+</t>
+</section>
+
+<section anchor="Security" title="Security Considerations">
+ <t>
+  All drafts are required to have a security considerations section.
+  See <xref target="RFC3552">RFC 3552</xref> for a guide.
+  See <xref target="min_ref">RFC min_ref</xref> for a guide.
+  See <xref target="DOMINATION">RFC DOMINATION</xref> for a guide.
+</t>
+</section>
+</middle>
+
+<back>
+
+  <references title="Normative References">
+   <!--?rfc include="http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml"?-->
+   &RFC2119;
+
+   <reference anchor="min_ref">
+     <front>
+       <title>Minimal Reference</title>
+
+       <author initials="authInitials" surname="authSurName">
+         <organization></organization>
+       </author>
+       <date year="2006" />
+     </front>
+   </reference>
+ </references>
+
+ <references title="Informative References">
+   &RFC3552;
+
+   &RFC5226;
+
+   <reference anchor="DOMINATION"
+    target="http://www.example.com/dominator.html">
+    <front>
+     <title>Ultimate Plan for Taking Over the World</title>
+
+     <author>
+       <organization>Mad Dominators, Inc.</organization>
+     </author>
+
+     <date year="1984" />
+   </front>
+ </reference>
+</references>
+
+<section anchor="app-additional" title="Additional Stuff">
+ <t>This becomes an Appendix.</t>
+</section>
+</back>
+</rfc>
