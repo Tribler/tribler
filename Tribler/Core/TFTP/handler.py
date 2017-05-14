@@ -300,6 +300,8 @@ class TftpHandler(TaskManager):
                     return
                 file_data, file_size = self._load_metadata(file_name[len(METADATA_PREFIX):])
             else:
+                if not self.session.get_torrent_store():
+                    return
                 file_data, file_size = self._load_torrent(file_name)
             checksum = b64encode(sha1(file_data).digest())
         except FileNotFound as e:
