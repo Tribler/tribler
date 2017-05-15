@@ -24,6 +24,7 @@ class DisplayEndpoint(resource.Resource):
         resource.Resource.__init__(self)
         self.session = session
 
+
     @staticmethod
     def return_error(request, status_code=http.BAD_REQUEST, message="your request seems to be wrong"):
         """
@@ -98,7 +99,8 @@ class DisplayEndpoint(resource.Resource):
                     "edges": [{
                         "from": "xyz",
                         "to": "xyz_n1",
-                        "size": 12384
+                        "amount": 12384
+
                     }, ...]
                 }
 
