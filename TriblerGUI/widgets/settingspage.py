@@ -118,9 +118,10 @@ class SettingsPage(QWidget):
         settings_data['general']['minport'] = self.window().firewall_current_port_input.text()
         settings_data['libtorrent']['lt_proxytype'] = self.window().lt_proxy_type_combobox.currentIndex()
 
-        settings_data['libtorrent']['lt_proxyserver'] = [None, None]
-        settings_data['libtorrent']['lt_proxyserver'][0] = self.window().lt_proxy_server_input.text()
-        if len(self.window().lt_proxy_port_input.text()) > 0:
+        settings_data['libtorrent']['lt_proxyserver'] = None
+        if self.window().lt_proxy_server_input.text() and len(self.window().lt_proxy_port_input.text()) > 0:
+            settings_data['libtorrent']['lt_proxyserver'] = [self.window().lt_proxy_server_input.text(), None]
+
             # The port should be a number
             try:
                 lt_proxy_port = int(self.window().lt_proxy_port_input.text())
