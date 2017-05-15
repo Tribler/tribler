@@ -26,6 +26,8 @@ class FakeScraper(object):
 
 class TestTorrentCheckerSession(TriblerCoreTest):
 
+    error = None
+
     def setUp(self, annotate=True):
         super(TestTorrentCheckerSession, self).setUp(annotate=annotate)
         self.mock_transport = MockObject()
@@ -66,6 +68,18 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session._infohash_list = []
         session._process_scrape_response(bencode({'failure reason': 'test'}))
         self.assertTrue(session.is_failed)
+
+    def test_httpsession_on_error(self):
+        session = HttpTrackerSession("retracker.local", ("retracker.local", 80),
+		u"/announce?size=33098770156&comment=%26%23%3B%28%2C%29%5B%5D%E3%5B%D4%E8%EB%FC%EC%EE%E2", 5)
+
+        def on_error(failure):
+            self.error = failure.value
+            failure.trap(UnicodeEncodeError)
+
+        session.connect_to_tracker().addErrback(on_error)
+        self.assertTrue(isinstance(self.error, UnicodeEncodeError))
+        self.assertEqual("ordinal not in range(128)", self.error.reason)
 
     @deferred(timeout=5)
     def test_httpsession_unicode_err(self):
