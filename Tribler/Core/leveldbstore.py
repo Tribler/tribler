@@ -6,6 +6,7 @@ Author(s): Elric Milon
 from collections import MutableMapping
 from itertools import chain
 import os
+import sys
 
 from shutil import rmtree
 
@@ -56,13 +57,28 @@ class LevelDbStore(MutableMapping, TaskManager):
         self._store_dir = store_dir
         self._pending_torrents = {}
         self._logger = logging.getLogger(self.__class__.__name__)
-        # This is done to work around LevelDB's inability to deal with non-ascii paths on windows.
         try:
-            self._db = self._leveldb(os.path.relpath(store_dir, os.getcwdu()))
-        except ValueError:
-            # This can happen on Windows when the state dir and Tribler installation are on different disks.
-            # In this case, hope for the best by using the full path.
-            self._db = self._leveldb(store_dir)
+            # This is done to work around LevelDB's inability to deal with non-ascii paths on windows.
+            if sys.platform == 'win32' and not all(ord(c) < 128 for c in store_dir):
+                # 1. Derive a >short< ASCII name from the unicode store directory
+                import hashlib
+                ascii_name = hashlib.md5(''.join([hex(ord(c)) for c in store_dir])).hexdigest()
+                # 2. Create a new folder for the symlink we will create, called ``leveldb``
+                ascii_name = os.path.join('leveldb', ascii_name)
+                if not os.path.isdir('leveldb'):
+                    os.mkdir('leveldb')
+                # 3. If we didn't already do this in the past, create a new symlink
+                if not os.path.isdir(ascii_name):
+                    from Tribler.Core.Utilities.win32admincommand import mklink
+                    # We need absolute and python compliant unicode paths
+                    store_dir = u''.join([unichr(ord(c)) for c in store_dir])
+                    ascii_dir = os.path.join(os.getcwdu(), ascii_name)
+                    mklink(ascii_dir, store_dir)
+                    # mklink can fail, in this case we (implicitly) create an actual folder with the ascii name
+                # 4. Load with the local ASCII folder/symlink name
+                self._db = self._leveldb(ascii_name)
+            else:
+                self._db = self._leveldb(store_dir)
         except Exception as exc:
             # We cannot simply catch LevelDBError since that class might not be available on some systems.
             if use_leveldb and isinstance(exc, LevelDBError):
@@ -71,6 +87,8 @@ class LevelDbStore(MutableMapping, TaskManager):
                 rmtree(self._store_dir)
                 os.makedirs(self._store_dir)
                 self._db = self._leveldb(os.path.relpath(store_dir, os.getcwdu()))
+            else:
+                self._logger.error("Uncaught exception when creating LevelDB database: " + str(exc))
 
         self._writeback_lc = self.register_task("flush cache ", LoopingCall(self.flush))
         self._writeback_lc.clock = self._reactor
