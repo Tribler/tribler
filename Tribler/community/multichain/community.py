@@ -290,21 +290,18 @@ class MultiChainCommunity(Community):
         return statistics
 
     @blocking_call_on_reactor_thread
-    def get_graph(self, public_key=None, neighbor_radius=1):
+    def get_graph(self, public_key=None, neighbor_level=1):
         """
         Return a dictionary with the neighboring nodes and edges of a certain focus node within a certain radius,
             regarding the local multichain database.
 
         :param public_key: the public key of the focus node
-        :param neighbor_radius: the radius within which the neighbors have to be returned
+        :param neighbor_level: the radius within which the neighbors have to be returned
         :return: a tuple of a dictionary with nodes and a dictionary with edges
         """
         if public_key is None:
             public_key = self.my_member.public_key
-        list_of_nodes = self.database.neighbor_list(public_key)
-        if public_key not in list_of_nodes:
-            list_of_nodes[public_key] = {"up": self.database.total_up(public_key),
-                                         "down": self.database.total_down(public_key)}
+        list_of_nodes = self.get_list_of_nodes(public_key, neighbor_level)
         nodes = []
         for current_key in list_of_nodes:
             nodes.append({"public_key": current_key, "total_up": self.database.total_up(current_key),
@@ -315,6 +312,26 @@ class MultiChainCommunity(Community):
             page_rank = self.get_page_rank(dic["public_key"])
             dic["page_rank"] = page_rank
         return nodes, edges
+
+    @blocking_call_on_reactor_thread
+    def get_list_of_nodes(self, public_key, neighbor_level):
+        """
+        Return a list of nodes surrounding a certain focus node.
+        
+        :param public_key: the public key of the focus node
+        :param neighbor_level: the radius within which the neighbors have to be returned
+        :return: a list of neighbors within the given radius
+        """
+        if neighbor_level == 0:
+            return {public_key: {"up": self.database.total_up(public_key),
+                                 "down": self.database.total_down(public_key)}}
+        list_of_nodes = self.get_list_of_nodes(public_key, neighbor_level - 1)
+        for key in list_of_nodes:
+            new_neighbors = self.database.neighbor_list(key)
+            for new_key in new_neighbors:
+                if new_key not in list_of_nodes:
+                    list_of_nodes[new_key] = new_neighbors[new_key]
+        return list_of_nodes
 
     @blocking_call_on_reactor_thread
     def get_edges(self, nodes=None):
