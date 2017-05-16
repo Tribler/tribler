@@ -516,8 +516,8 @@ class TriblerGUITest(AbstractTriblerGUITest):
         QTest.mouseClick(window.edit_channel_manage_playlist_save_button, Qt.LeftButton)
 
     def test_trust_page(self):
-        QTest.mouseClick(window.trust_button, Qt.LeftButton)
-        self.wait_for_variable("trust_page.blocks")
+        QTest.mouseClick(window.left_menu_button_trust_display, Qt.LeftButton)
+        # Since the trust page is rendered in JavaScript, it is tested there.
         self.screenshot(window, name="trust_page_values")
 
 if __name__ == "__main__":
