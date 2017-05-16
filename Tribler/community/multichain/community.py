@@ -370,6 +370,7 @@ class MultiChainCommunity(Community):
         :return: the page rank of the given node
         """
         self.page_rank.initial_walk()
+        self.page_rank.count()
         ranks = self.page_rank.get_ranks()
         if public_key in ranks:
             return ranks[public_key]
