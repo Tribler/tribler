@@ -4,6 +4,7 @@ This reputation system builds a tamper proof interaction history contained in a 
 Every node has a chain and these chains intertwine by blocks shared by chains.
 """
 import logging
+from copy import deepcopy
 from itertools import combinations
 from networkx import Graph
 from twisted.internet.defer import inlineCallbacks
@@ -327,12 +328,13 @@ class MultiChainCommunity(Community):
             return {public_key: {"up": self.database.total_up(public_key),
                                  "down": self.database.total_down(public_key)}}
         list_of_nodes = self.get_list_of_nodes(public_key, neighbor_level - 1)
+        return_list = deepcopy(list_of_nodes)
         for key in list_of_nodes:
             new_neighbors = self.database.neighbor_list(key)
             for new_key in new_neighbors:
-                if new_key not in list_of_nodes:
-                    list_of_nodes[new_key] = new_neighbors[new_key]
-        return list_of_nodes
+                if new_key not in return_list:
+                    return_list[new_key] = new_neighbors[new_key]
+        return return_list
 
     @blocking_call_on_reactor_thread
     def get_edges(self, nodes=None):
@@ -348,8 +350,12 @@ class MultiChainCommunity(Community):
         list_of_edges = []
         for pair in combinations(list_of_nodes, 2):
             current_neighbors = self.database.neighbor_list(pair[0])
-            list_of_edges.append(
-                [pair[0], pair[1], current_neighbors[pair[1]]["up"] or 0, current_neighbors[pair[1]]["down"] or 0])
+            if pair[1] in current_neighbors:
+                list_of_edges.append(
+                    [pair[0], pair[1], current_neighbors[pair[1]]["up"], current_neighbors[pair[1]]["down"]])
+            else:
+                list_of_edges.append(
+                    [pair[0], pair[1], 0, 0])
         edges = []
         for edge in list_of_edges:
             if edge[2] > 0:

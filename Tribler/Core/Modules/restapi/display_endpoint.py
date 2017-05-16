@@ -114,7 +114,7 @@ class DisplayEndpoint(resource.Resource):
             return DisplayEndpoint.return_error(request, message="focus_node parameter empty")
 
         focus_node = request.args["focus_node"][0]
-        if isinstance(focus_node, basestring) and not focus_node.lstrip("-").isdigit():
+        if isinstance(focus_node, basestring):
             if request.args["focus_node"][0] == "self":
                 try:
                     mc_community = self.get_multi_chain_community()
