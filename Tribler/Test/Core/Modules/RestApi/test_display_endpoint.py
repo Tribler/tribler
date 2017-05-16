@@ -72,10 +72,12 @@ class TestDisplayEndpoint(AbstractApiTest):
     @deferred(timeout=10)
     def test_get_int_focus_node(self):
         """
-        Evaluate whether the API returns a Bad Request error if the focus node is an integer.
+        Evaluate whether the API returns a correct response if the focus node is an integer.
         """
-        exp_message = {"error": "focus_node was not a string"}
-        return self.do_request('display?focus_node=-1&neighbor_level=1', expected_code=400, expected_json=exp_message)
+        exp_message = {"focus_node": "-1", "neighbor_level": 1, "nodes": [{"public_key": "xyz", "total_up": 0,
+                                                                           "total_down": 0, "page_rank": 0.5}],
+                       "edges": []}
+        return self.do_request('display?focus_node=-1&neighbor_level=1', expected_code=200, expected_json=exp_message)
 
         # TODO: Add method which tests:
         # Evaluate whether the API returns the information about the own node if self is used as focus_node parameter.
