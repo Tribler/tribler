@@ -63,6 +63,7 @@ class TestDisplayEndpoint(AbstractApiTest):
         display_endpoint = DisplayEndpoint(mocked_session)
         display_endpoint.get_multi_chain_community = lambda: self.mc_community
         request = MockObject()
+        request.setHeader = lambda header, flags: None
         request.args = {"focus_node": ['30'], "neighbor_level": ['1']}
         self.assertEqual(dumps(exp_message), display_endpoint.render_GET(request))
 
@@ -80,6 +81,7 @@ class TestDisplayEndpoint(AbstractApiTest):
         display_endpoint = DisplayEndpoint(mocked_session)
         display_endpoint.get_multi_chain_community = lambda: self.mc_community
         request = MockObject()
+        request.setHeader = lambda header, flags: None
         request.args = {"focus_node": ['30'], "neighbor_level": ['1']}
         self.assertEqual(dumps(exp_message), display_endpoint.render_GET(request))
 
@@ -94,5 +96,6 @@ class TestDisplayEndpoint(AbstractApiTest):
         display_endpoint = DisplayEndpoint(mocked_session)
         display_endpoint.get_multi_chain_community = lambda: self.mc_community
         request = MockObject()
+        request.setHeader = lambda header, flags: None
         request.args = {"focus_node": ['self'], "neighbor_level": ['1']}
         self.assertNotEquals(dumps(exp_message), display_endpoint.render_GET(request))

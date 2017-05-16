@@ -7,6 +7,7 @@ from unittest import skipUnless
 from PyQt5.QtCore import QPoint, Qt, QTimer
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
+# TODO: Fix GUI tests by importing PyQt5.QtWebEngineWidgets, this can be done after CI is updated.
 from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget
 
 from Tribler.Core.Utilities.network_utils import get_random_port

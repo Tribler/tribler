@@ -107,6 +107,9 @@ class DisplayEndpoint(resource.Resource):
         :param request: the HTTP GET request which specifies the focus node and optionally the neighbor level
         :return: the node data formatted in JSON
         """
+        # This header is needed because this request is not made from the same host
+        request.setHeader('Access-Control-Allow-Origin', '*')
+
         if "focus_node" not in request.args:
             return DisplayEndpoint.return_error(request, message="focus_node parameter missing")
 
@@ -134,6 +137,7 @@ class DisplayEndpoint(resource.Resource):
 
         mc_community = self.get_multi_chain_community()
         nodes, edges = mc_community.get_graph(focus_node, neighbor_level)
+
         return json.dumps({"focus_node": focus_node,
                            "neighbor_level": neighbor_level,
                            "nodes": nodes,

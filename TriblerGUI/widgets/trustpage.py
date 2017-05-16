@@ -1,10 +1,11 @@
 """
 Provides a class which initializes the Trust Display Qt elements.
 """
+import os
 from PyQt5.QtWidgets import QWidget
-from matplotlib.backends.backend_qt5agg import FigureCanvas
-
-from TriblerGUI.widgets.graph_provider import GraphProvider
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtCore import QUrl
+from TriblerGUI import utilities
 
 
 class TrustPage(QWidget):
@@ -24,6 +25,13 @@ class TrustPage(QWidget):
         Load the pyplot graph into the QWidget.
         """
         vertical_layout = self.window().network_widget.layout()
-        graph_data = GraphProvider()
-        self.network_graph = FigureCanvas(graph_data.provide_figure())
-        vertical_layout.addWidget(self.network_graph)
+
+        view = QWebEngineView()
+
+        # The path to the main html file
+        path = os.path.join(utilities.get_base_path(), "widgets/trustpage/index.html")
+
+        view.setUrl(QUrl.fromLocalFile(path))
+        view.show()
+
+        vertical_layout.addWidget(view)
