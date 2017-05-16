@@ -1,8 +1,4 @@
 /**
- * This file contains utility functions that are used by the rest of the application.
- */
-
-/**
  * Filters the nodes on which the given force is applied using a provided filter callback.
  *
  * @param force

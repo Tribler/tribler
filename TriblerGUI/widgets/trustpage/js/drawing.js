@@ -8,7 +8,11 @@ if (typeof require !== "undefined") {
 
 /**
  * Select all <svg.node> elements in .nodes
+<<<<<<< HEAD
  * @returns D3 Selection of <svg.node> elements
+=======
+ * @returns {*}
+>>>>>>> Trust window using QtWebEngine, HTML, Javascript and D3.js.
  */
 function selectNodes(svg) {
     return svg
@@ -18,10 +22,15 @@ function selectNodes(svg) {
 
 /**
  * Draw the nodes and their labels
+<<<<<<< HEAD
  * @param svg the svg from the body
  * @param data the JSON data of the graph
  * @param on_click the function that responds to the click
  * @returns D3 Selection of <svg.node> elements
+=======
+ * @param selection
+ * @returns {*}
+>>>>>>> Trust window using QtWebEngine, HTML, Javascript and D3.js.
  */
 function drawNodes(svg, data, on_click) {
 
@@ -92,7 +101,11 @@ function getNodeColor(node, data) {
 
 /**
  * Select all <svg.link> elements in .links
+<<<<<<< HEAD
  * @returns D3 Selection of <svg.link> elements
+=======
+ * @returns {*}
+>>>>>>> Trust window using QtWebEngine, HTML, Javascript and D3.js.
  */
 function selectLinks(svg) {
     return svg
@@ -102,9 +115,14 @@ function selectLinks(svg) {
 
 /**
  * Draw the links upon given data
+<<<<<<< HEAD
  * @param svg the svg from the body
  * @param data the JSON data of the graph
  * @returns D3 Selection of <svg.link> elements
+=======
+ * @param selection
+ * @returns {*}
+>>>>>>> Trust window using QtWebEngine, HTML, Javascript and D3.js.
  */
 function drawLinks(svg, data) {
 
