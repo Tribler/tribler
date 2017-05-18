@@ -5,9 +5,19 @@ from random import random, choice
 
 
 class IncrementalPageRank(object):
-
     """
     Class to compute page ranks according to a graph.
+
+    Incremental PageRank is an approximation for the actual PageRank score. It is computed using
+    a Monte Carlo method whereby random walks are performed across the graph. All these random
+    walks are then stored in nested lists after which the number of occurrences of every node are
+    counted. More random walks give a more precise approximation of the actual PageRank score.
+
+    We choose R to be the number of random walks performed starting from every node. The stopping
+    probability is c.
+
+    In order to avoid updating (which is expensive) too often, the update_walk and count method
+    have to be called manually before retrieving the computed ranks with the get_ranks method.
     """
     def __init__(self, graph, walks_per_node=2, stop_probability=0.1):
         """
