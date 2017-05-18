@@ -71,7 +71,7 @@ class IncrementalPageRank(object):
             walks = list()
             for _ in range(self.R):
                 new_walk = self._walk(node)
-                walks.append(self._walk(node))
+                walks.append(new_walk)
                 self.size += len(new_walk)
             self.walks.append(walks)
 
@@ -100,13 +100,14 @@ class IncrementalPageRank(object):
         :return: a list that represents the walk
         """
         walk = list()
+        walk.append(start)
         next_node = start
         while random() > self.c:
-            walk.append(next_node)
             neighbors = self.graph.neighbors(next_node)
             if len(neighbors) == 0:
-                continue
+                break
             next_node = choice(neighbors)
+            walk.append(next_node)
         return walk
 
     def count(self):
@@ -115,12 +116,18 @@ class IncrementalPageRank(object):
 
         :return: a dictionary in which the number of occurrences can be looked up by node name
         """
-        flat = list()
+        self.counts = dict()
+
+        def add_or_increment(node):
+            if node in self.counts:
+                self.counts[node] += 1
+            else:
+                self.counts[node] = 1
+
         for node_walk in self.walks:
             for walk in node_walk:
-                for hit in walk:
-                    flat.append(hit)
-        self.counts = {hop: flat.count(hop) for hop in self.graph.nodes()}
+                for hop in walk:
+                    add_or_increment(hop)
 
     def get_ranks(self):
         """
