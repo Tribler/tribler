@@ -24,9 +24,8 @@ from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.community.multichain.block import MultiChainBlock, ValidationResult, GENESIS_SEQ, UNKNOWN_SEQ
 from Tribler.community.multichain.payload import HalfBlockPayload, CrawlRequestPayload
-from Tribler.community.multichain.database import MultiChainDB
 from Tribler.community.multichain.conversion import MultiChainConversion
-from Tribler.community.multichain.statistics.database_driver import DatabaseDriver
+from Tribler.community.multichain.statistics.statistics_database import StatisticsTestDB
 from Tribler.community.multichain.statistics.page_rank import IncrementalPageRank
 
 HALF_BLOCK = u"half_block"
@@ -62,8 +61,10 @@ class MultiChainCommunity(Community):
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.notifier = None
-        self.persistence = MultiChainDB(self.dispersy.working_directory)
-        self.database = DatabaseDriver()
+
+        # TODO: Set self.persistence to the StatisticsDb (original was MultiChainDB)
+        self.persistence = StatisticsTestDB(self.dispersy.working_directory)
+        # self.persistence = StatisticsDb(self.dispersy.working_directory)
         self.graph = Graph()
         self.page_rank = IncrementalPageRank(self.graph)
 
@@ -306,8 +307,8 @@ class MultiChainCommunity(Community):
         nodes = []
         for current_key in list_of_nodes:
             # TODO: retrieve more information at once when appropriate queries are present in database_driver
-            nodes.append({"public_key": current_key, "total_up": self.database.total_up(current_key),
-                          "total_down": self.database.total_down(current_key)})
+            nodes.append({"public_key": current_key, "total_up": self.persistence.total_up(current_key),
+                          "total_down": self.persistence.total_down(current_key)})
             self.page_rank.add_node(current_key)
         edges = self.get_edges(nodes)
         for dic in nodes:
@@ -325,12 +326,12 @@ class MultiChainCommunity(Community):
         :return: a list of neighbors within the given radius, or only the public key itself when radius is zero
         """
         if neighbor_level == 0:
-            return {public_key: {"up": self.database.total_up(public_key),
-                                 "down": self.database.total_down(public_key)}}
+            return {public_key: {"up": self.persistence.total_up(public_key),
+                                 "down": self.persistence.total_down(public_key)}}
         list_of_nodes = self.get_list_of_nodes(public_key, neighbor_level - 1)
         return_list = deepcopy(list_of_nodes)
         for key in list_of_nodes:
-            new_neighbors = self.database.neighbor_list(key)
+            new_neighbors = self.persistence.neighbor_list(key)
             for new_key in new_neighbors:
                 if new_key not in return_list:
                     return_list[new_key] = new_neighbors[new_key]
@@ -349,7 +350,7 @@ class MultiChainCommunity(Community):
         list_of_nodes = [node["public_key"] for node in nodes]
         list_of_edges = []
         for pair in combinations(list_of_nodes, 2):
-            current_neighbors = self.database.neighbor_list(pair[0])
+            current_neighbors = self.persistence.neighbor_list(pair[0])
             if pair[1] in current_neighbors:
                 list_of_edges.append(
                     [pair[0], pair[1], current_neighbors[pair[1]]["up"], current_neighbors[pair[1]]["down"]])
