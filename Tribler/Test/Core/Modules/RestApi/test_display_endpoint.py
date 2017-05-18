@@ -1,8 +1,11 @@
 """
 This module validates the functions defined in the Display Endpoint
 """
+from json import dumps
 from twisted.internet.defer import inlineCallbacks
 
+from Tribler.Core.Modules.restapi.display_endpoint import DisplayEndpoint
+from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.multichain.community import MultiChainCommunity
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
@@ -47,37 +50,49 @@ class TestDisplayEndpoint(AbstractApiTest):
         exp_message = {"error": "focus_node parameter empty"}
         return self.do_request('display?focus_node=&neighbor_level=1', expected_code=400, expected_json=exp_message)
 
-    @deferred(timeout=10)
-    def test_get_neighbor_level_string(self):
+    def test_get_no_edges(self):
         """
-        Evaluate whether the API uses the default neighbor_level if the parameter is set to a string.
+        Evaluate whether the API passes the correct data if there are no edges returned.
         """
-        # TODO: The dummy data is now expected, make sure to rewrite test if actual implementation is used
-        exp_message = {"focus_node": "xyz", "neighbor_level": 1, "nodes": [{"public_key": "xyz", "total_up": 0,
-                                                                            "total_down": 0, "page_rank": 0.5}],
-                       "edges": []}
-        return self.do_request('display?focus_node=xyz&neighbor_level=x', expected_code=200, expected_json=exp_message)
-
-    @deferred(timeout=10)
-    def test_get_neighbor_level_zero(self):
-        """
-        Evaluate whether the API uses the actual neighbor_level if the parameter is set.
-        """
-        # TODO: The dummy data is now expected, make sure to rewrite test if actual implementation is used
-        exp_message = {"focus_node": "xyz", "neighbor_level": 0, "nodes": [{"public_key": "xyz", "total_up": 0,
-                                                                            "total_down": 0, "page_rank": 0.5}],
-                       "edges": []}
-        return self.do_request('display?focus_node=xyz&neighbor_level=0', expected_code=200, expected_json=exp_message)
-
-    @deferred(timeout=10)
-    def test_get_int_focus_node(self):
-        """
-        Evaluate whether the API returns a correct response if the focus node is an integer.
-        """
-        exp_message = {"focus_node": "-1", "neighbor_level": 1, "nodes": [{"public_key": "xyz", "total_up": 0,
+        self.mc_community.get_graph = lambda public_key, neighbor_level: (
+            [{"public_key": "xyz", "total_up": 0, "total_down": 0, "page_rank": 0.5}], [])
+        exp_message = {"focus_node": "30", "neighbor_level": 1, "nodes": [{"public_key": "xyz", "total_up": 0,
                                                                            "total_down": 0, "page_rank": 0.5}],
                        "edges": []}
-        return self.do_request('display?focus_node=-1&neighbor_level=1', expected_code=200, expected_json=exp_message)
+        mocked_session = MockObject()
+        display_endpoint = DisplayEndpoint(mocked_session)
+        display_endpoint.get_multi_chain_community = lambda: self.mc_community
+        request = MockObject()
+        request.args = {"focus_node": ['30'], "neighbor_level": ['1']}
+        self.assertEqual(dumps(exp_message), display_endpoint.render_GET(request))
 
-        # TODO: Add method which tests:
-        # Evaluate whether the API returns the information about the own node if self is used as focus_node parameter.
+    def test_get_edges(self):
+        """
+        Evaluate whether the API passes the correct data if there are edges returned.
+        """
+        self.mc_community.get_graph = lambda public_key, neighbor_level: (
+            [{"public_key": "xyz", "total_up": 0, "total_down": 0, "page_rank": 0.5}], [
+                {"from": "xyz", "to": "abc", "amount": 30}])
+        exp_message = {"focus_node": "30", "neighbor_level": 1, "nodes": [{"public_key": "xyz", "total_up": 0,
+                                                                           "total_down": 0, "page_rank": 0.5}],
+                       "edges": [{"from": "xyz", "to": "abc", "amount": 30}]}
+        mocked_session = MockObject()
+        display_endpoint = DisplayEndpoint(mocked_session)
+        display_endpoint.get_multi_chain_community = lambda: self.mc_community
+        request = MockObject()
+        request.args = {"focus_node": ['30'], "neighbor_level": ['1']}
+        self.assertEqual(dumps(exp_message), display_endpoint.render_GET(request))
+
+    def test_get_self(self):
+        """
+        Evaluate whether the API uses the own public key when public_key is set to 'self'.
+        """
+        self.mc_community.get_graph = lambda public_key, neighbor_level: (public_key, public_key)
+        exp_message = {"focus_node": "30", "neighbor_level": 1, "nodes": "self",
+                       "edges": "self"}
+        mocked_session = MockObject()
+        display_endpoint = DisplayEndpoint(mocked_session)
+        display_endpoint.get_multi_chain_community = lambda: self.mc_community
+        request = MockObject()
+        request.args = {"focus_node": ['self'], "neighbor_level": ['1']}
+        self.assertNotEquals(dumps(exp_message), display_endpoint.render_GET(request))
