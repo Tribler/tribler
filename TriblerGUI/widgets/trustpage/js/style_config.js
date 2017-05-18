@@ -27,7 +27,8 @@ var config = {
             domain : [0, 0.5, 1],
             range : ["red", "yellow", "green"]
         }
-    }
+    },
+    radius_step: 120
 };
 
 if (typeof module !== "undefined") {

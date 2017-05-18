@@ -24,9 +24,9 @@ function processData(response) {
         mapEdges,
         combineLinks,
         addMinMaxTransmission,
-        makeLocalKeyMap,
         focusNodePublicKey,
         sortNodes,
+        makeLocalKeyMap, // after sorting
         addNeighborsToNodes,
         addPageRank
     ];
@@ -370,6 +370,6 @@ if (typeof module !== 'undefined') {
         focusNodePublicKey: focusNodePublicKey,
         sortNodes: sortNodes,
         addNeighborsToNodes: addNeighborsToNodes,
-        addPageRank: addPageRank
+        addPageRank: addPageRank,
     };
 }

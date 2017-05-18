@@ -8,11 +8,7 @@ if (typeof require !== "undefined") {
 
 /**
  * Select all <svg.node> elements in .nodes
-<<<<<<< HEAD
  * @returns D3 Selection of <svg.node> elements
-=======
- * @returns {*}
->>>>>>> Trust window using QtWebEngine, HTML, Javascript and D3.js.
  */
 function selectNodes(svg) {
     return svg
@@ -22,25 +18,25 @@ function selectNodes(svg) {
 
 /**
  * Draw the nodes and their labels
-<<<<<<< HEAD
  * @param svg the svg from the body
  * @param data the JSON data of the graph
  * @param on_click the function that responds to the click
  * @returns D3 Selection of <svg.node> elements
-=======
- * @param selection
- * @returns {*}
->>>>>>> Trust window using QtWebEngine, HTML, Javascript and D3.js.
  */
 function drawNodes(svg, data, on_click) {
 
     // Always remove existing nodes before adding new ones
-    selectNodes(svg).remove();
+    var all = selectNodes(svg).data(data.nodes, function (d) {
+            return d.public_key;
+        }),
+        exit = all.exit(),
+        enter = all.enter();
 
-    var selection = selectNodes(svg).data(data.nodes).enter();
+    // Remove exit nodes
+    exit.remove();
 
     // Create an <svg.node> element.
-    var groups = selection
+    var groups = enter
         .append("svg")
         .attr("overflow", "visible")
         .attr("class", "node");
@@ -51,7 +47,7 @@ function drawNodes(svg, data, on_click) {
         .attr("fill", function (d) {
             return getNodeColor(d, data)
         })
-        .attr("r", config.node.circle.radius)
+        .attr("r", "0")
         .attr("cx", config.node.circle.cx)
         .attr("cy", config.node.circle.cy)
         .style("cursor", config.node.circle.cursor)
@@ -61,6 +57,11 @@ function drawNodes(svg, data, on_click) {
         }).on("mouseout", function () {
             d3.select(this).transition().ease(d3.easeElasticOut).delay(0).duration(300).attr("r", 20);
         });
+
+    // Transition the radius of the circles
+    circles.transition()
+        .duration(1000)
+        .attr("r", config.node.circle.radius)
 
     // Append a <text> element to it
     groups
@@ -101,11 +102,7 @@ function getNodeColor(node, data) {
 
 /**
  * Select all <svg.link> elements in .links
-<<<<<<< HEAD
  * @returns D3 Selection of <svg.link> elements
-=======
- * @returns {*}
->>>>>>> Trust window using QtWebEngine, HTML, Javascript and D3.js.
  */
 function selectLinks(svg) {
     return svg
@@ -115,24 +112,26 @@ function selectLinks(svg) {
 
 /**
  * Draw the links upon given data
-<<<<<<< HEAD
  * @param svg the svg from the body
  * @param data the JSON data of the graph
  * @returns D3 Selection of <svg.link> elements
-=======
- * @param selection
- * @returns {*}
->>>>>>> Trust window using QtWebEngine, HTML, Javascript and D3.js.
  */
 function drawLinks(svg, data) {
 
     selectLinks(svg).remove();
 
-    var selection = selectLinks(svg).data(data.links).enter();
+    // All lines, identified by source and target public_key
+    var all = selectLinks(svg).data(data.links, function (l) {
+        return l.source.public_key + "" + l.target.public_key
+    });
 
-    var links = selection
+    // Remove exit lines
+    all.exit().remove();
+
+    var links = all.enter()
         .append("svg")
-        .attr("class", "link");
+        .attr("class", "link")
+        .style("opacity", "0");
 
     links.append("line")
         .attr("class", "link-source")
@@ -148,6 +147,15 @@ function drawLinks(svg, data) {
         })
         .style("stroke", config.link.colorLinkTarget);
 
+    links.append("line")
+        .attr("class", "link-velocity")
+        .attr("stroke-width", 2)
+        .style("stroke", "white");
+
+    links.transition()
+        .duration(1000)
+        .style('opacity', '1');
+
     return links;
 }
 
@@ -159,6 +167,7 @@ function drawLinks(svg, data) {
  * @returns the width of the link
  */
 function getStrokeWidth(link, data) {
+
     // The difference between the minimum and maximum data links
     var transmissionDifference = data.max_transmission - data.min_transmission;
     
@@ -177,6 +186,30 @@ function getStrokeWidth(link, data) {
 
     // The width based on the fraction and the interval
     return fraction * widthDifference + config.link.strokeWidthMin;
+}
+
+/**
+ * Draw a ring around the center on which nodes can be put.
+ * @param svg
+ * @param center_x
+ * @param center_y
+ * @param radius
+ * @returns D3 Selection of a <circle.neighbor-ring> element
+ */
+function drawNeighborRing(svg, center_x, center_y, radius) {
+
+    return svg.append("circle")
+        .attr("class", "neighbor-ring")
+        .attr("r", 0)
+        .attr("cx", center_x)
+        .attr("cy", center_y)
+        .attr("stroke-width", 1)
+        .attr("fill", "transparent")
+        .style("stroke", "#333333")
+        .transition()
+        .duration(1000)
+        .attr("r", radius)
+
 }
 
 if (typeof module !== "undefined") {

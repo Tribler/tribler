@@ -148,13 +148,13 @@ describe('data_processor.js', function () {
 
     });
 
-    describe('addMinMaxTransmission', function(){
-        it('should return zero when no links are present', function(){
+    describe('addMinMaxTransmission', function () {
+        it('should return zero when no links are present', function () {
             var data = getTestData();
             var response = {
                 nodes: [data.node1],
                 edges: [],
-                focus_node : "aaa"
+                focus_node: "aaa"
             };
 
             var result = processor.convertResponse(response, [
@@ -168,12 +168,12 @@ describe('data_processor.js', function () {
             assert.equal(result.max_transmission, 0);
         });
 
-        it('should return the correct values', function(){
+        it('should return the correct values', function () {
             var data = getTestData();
             var response = {
                 nodes: [data.node1, data.node2, data.node3],
                 edges: [data.edge2to1, data.edge1to2, data.edge1to3],
-                focus_node : "aaa"
+                focus_node: "aaa"
             };
 
             var result = processor.convertResponse(response, [
@@ -222,7 +222,7 @@ describe('data_processor.js', function () {
             var data = getTestData();
             var response = {nodes: [data.node1, data.node2], focus_node: 'bbb'};
 
-            var result = processor.convertResponse(response,[
+            var result = processor.convertResponse(response, [
                 processor.mapNodes,
                 processor.focusNodePublicKey]);
 
@@ -231,21 +231,21 @@ describe('data_processor.js', function () {
         });
     });
 
-    describe('addNeighborsToNodes', function(){
+    describe('addNeighborsToNodes', function () {
 
-       it('should add neighbors to nodes', function(){
-           var data = getTestData();
-           var response = {nodes: [data.node1, data.node2], edges: [data.edge1to2, data.edge2to1]};
+        it('should add neighbors to nodes', function () {
+            var data = getTestData();
+            var response = {nodes: [data.node1, data.node2], edges: [data.edge1to2, data.edge2to1]};
 
-           var result = processor.convertResponse(response,[
+            var result = processor.convertResponse(response, [
                 processor.mapNodes,
                 processor.mapEdges,
                 processor.combineLinks,
                 processor.addNeighborsToNodes]);
 
-           assert.deepEqual(result.nodes[0].neighbors, [result.nodes[1]]);
-           assert.deepEqual(result.nodes[1].neighbors, [result.nodes[0]]);
-       });
+            assert.deepEqual(result.nodes[0].neighbors, [result.nodes[1]]);
+            assert.deepEqual(result.nodes[1].neighbors, [result.nodes[0]]);
+        });
     });
 
     function converter1() {
