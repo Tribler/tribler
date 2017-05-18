@@ -128,4 +128,4 @@ class IncrementalPageRank(object):
 
         :return: a dictionary in which a node's page rank can be looked up by its name
         """
-        return {hop: self.counts[hop] / self.size for hop in self.graph.nodes()}
+        return {hop: float(self.counts[hop]) / self.size for hop in self.graph.nodes()}
