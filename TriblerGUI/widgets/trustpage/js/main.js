@@ -91,15 +91,15 @@ function update(graph) {
     });
 
     // Set the focus node
-    state.focus_pk = +graph.focus_node;
+    state.focus_pk = graph.focus_node;
     state.focus_node = graph.nodes.filter(function (node) {
         return node.public_key == state.focus_pk;
     })[0];
 
     // List the neighbors in each node
     graph.nodes.forEach(function (node) {
-        node.neighbors = listNeighborsOf(graph.links, node.public_key).map(function (pk) {
-            return state.nodes[pk];
+        node.neighbors = listNeighborsOf(graph.links, node.public_key_string).map(function (pk) {
+            return state.nodes[graph.public_keys.indexOf(pk)];
         });
     });
 
@@ -114,7 +114,7 @@ function update(graph) {
     applyAlphaLinear(state.focus_node.neighbors, 0, 2*pi);
 
     // Draw all nodes
-    var nodes = drawNodes(svg, graph.nodes, function (d) {
+    var nodes = drawNodes(svg, graph, function (d) {
             handle_node_click(d.public_key_string)
         });
 
@@ -122,7 +122,7 @@ function update(graph) {
     var links = drawLinks(svg, graph.links);
 
     // Apply the nodes to the simulation
-    simulation.nodes(graph.nodes)
+    simulation.nodes(graph.nodes);
 
     // Reset the alpha to 1 (full energy)
     simulation.alpha(1);

@@ -24,7 +24,7 @@ function drawNodes(svg, data, on_click) {
     // Always remove existing nodes before adding new ones
     selectNodes(svg).remove();
 
-    var selection = selectNodes(svg).data(data).enter();
+    var selection = selectNodes(svg).data(data.nodes).enter();
 
     // Create an <svg.node> element.
     var groups = selection
@@ -35,7 +35,7 @@ function drawNodes(svg, data, on_click) {
     // Append a <circle> element to it.
     var circles = groups
         .append("circle")
-        .attr("fill", "#ff9b00")
+        .attr("fill", function(d) {return getNodeColor(d, data)})
         .attr("r", "20")
         .attr("cx", 0)
         .attr("cy", 0)
@@ -61,7 +61,27 @@ function drawNodes(svg, data, on_click) {
 
     // Return the group of <svg.node>
     return groups;
+}
 
+/**
+ * Get the color of a node based on the page rank score of the node
+ * @param node the node to get the color for
+ * @param data the JSON data of the graph
+ * @returns the color of the node
+ */
+function getNodeColor(node, data) {
+    // Use D3 color scale to map floats to colors
+    var nodeColor = d3.scaleLinear()
+        .domain([0, 0.5, 1])
+        .range(["red", "yellow", "green"]);
+
+    // Map relative to the minimum and maximum page rank of the graph
+    var rank_difference = data.max_page_rank - data.min_page_rank;
+    if (rank_difference === 0) {
+        return nodeColor(1);
+    }
+
+    return nodeColor((node.page_rank - data.min_page_rank) / rank_difference);
 }
 
 /**

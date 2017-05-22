@@ -6,11 +6,13 @@
  *      "focus_node": "xyz",
  *      "min_page_rank": 5,
  *      "max_page_rank": 5,
+ *      "min_transmission": 10,
+ *      "max_transmission": 115,
  *      "nodes": [{
  *          "public_key": "xyz",
  *          "total_up": 100,
  *          "total_down": 500,
- *          "page_rank": 5
+ *          "page_rank": 0.5
  *      }, ...],
  *          "links": [{
  *          "source_pk": "xyz",
@@ -31,6 +33,7 @@
  * @returns a dictionary in the form specified above
  */
 function processData(jsonData) {
+
     var data = JSON.parse(jsonData);
 
     // Map edges to links
@@ -80,8 +83,8 @@ function processData(jsonData) {
         return Object.assign({}, link, {
             source_pk : link.source,
             target_pk : link.target,
-            source: find(nodes, "public_key", link.source),
-            target: find(nodes, "public_key", link.target)
+            source: find(nodes, "public_key_string", link.source),
+            target: find(nodes, "public_key_string", link.target)
         });
     });
 
@@ -93,6 +96,8 @@ function processData(jsonData) {
             'public_keys' : public_keys,
             'min_page_rank': sortedPageRank[0],
             'max_page_rank': sortedPageRank[sortedPageRank.length - 1],
+            'min_transmission': combinedLinks[0].amount_up + combinedLinks[0].amount_down,
+            'max_transmission': combinedLinks.slice(-1)[0].amount_up + combinedLinks.slice(-1)[0].amount_down,
             'nodes': nodes,
             'links': combinedLinks}
 }
