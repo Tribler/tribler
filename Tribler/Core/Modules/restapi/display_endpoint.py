@@ -63,6 +63,11 @@ class DisplayEndpoint(resource.Resource):
         and the neighbors of those neighbors are taken into consideration).
 
         Note: the parameters are handled as follows:
+        - dataset
+            - Not given: Multichain data
+            - "static": Static dummy data
+            - "random": Random dummy data
+            - otherwise: Multichain data
         - focus_node
             - Not given: HTTP 400
             - Non-String value: HTTP 400
@@ -81,7 +86,7 @@ class DisplayEndpoint(resource.Resource):
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/display?focus_node=xyz
+                curl -X GET http://localhost:8085/display?dataset=static&focus_node=xyz
 
             **Example response**:
 
@@ -110,6 +115,14 @@ class DisplayEndpoint(resource.Resource):
         # This header is needed because this request is not made from the same host
         request.setHeader('Access-Control-Allow-Origin', '*')
 
+        if "dataset" in request.args and not (len(request.args["dataset"]) < 1 or len(request.args["dataset"][0]) == 0):
+            dataset = request.args["dataset"][0]
+            if isinstance(dataset, basestring):
+                if dataset == "static":
+                    self.get_multi_chain_community().persistence.use_dummy_data(use_random=False)
+                elif dataset == "random":
+                    self.get_multi_chain_community().persistence.use_dummy_data(use_random=True)
+
         if "focus_node" not in request.args:
             return DisplayEndpoint.return_error(request, message="focus_node parameter missing")
 
@@ -120,10 +133,13 @@ class DisplayEndpoint(resource.Resource):
         if isinstance(focus_node, basestring):
             if request.args["focus_node"][0] == "self":
                 try:
-                    mc_community = self.get_multi_chain_community()
+                    if self.get_multi_chain_community().persistence.dummy_setup:
+                        focus_node = "0"
+                    else:
+                        mc_community = self.get_multi_chain_community()
+                        focus_node = hexlify(mc_community.my_member.public_key)
                 except OperationNotEnabledByConfigurationException as exc:
                     return DisplayEndpoint.return_error(request, status_code=http.NOT_FOUND, message=exc.args)
-                focus_node = hexlify(mc_community.my_member.public_key)
             else:
                 focus_node = request.args["focus_node"][0]
         else:

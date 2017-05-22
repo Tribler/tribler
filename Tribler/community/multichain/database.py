@@ -2,6 +2,10 @@
 This file contains everything related to persistence for MultiChain.
 """
 from os import path
+from random import randint
+
+from sqlite3 import connect
+from networkx import random_regular_graph
 
 from Tribler.dispersy.database import Database
 from Tribler.community.multichain.block import MultiChainBlock
@@ -62,6 +66,7 @@ class MultiChainDB(Database):
         """
         super(MultiChainDB, self).__init__(path.join(working_directory, DATABASE_PATH))
         self.open()
+        self.dummy_setup = False
 
     def add_block(self, block):
         """
@@ -182,3 +187,106 @@ class MultiChainDB(Database):
             self.commit()
 
         return LATEST_DB_VERSION
+
+    def total_up(self, public_key):
+        """
+        Gets the total uploaded value from the focus.
+        :param public_key: public key of the focus node
+        :return: number representing the amount of uploaded data
+        """
+        block = self.get_latest(public_key)
+        return block.total_up if block else 0
+
+    def total_down(self, public_key):
+        """
+        Gets the total downloaded value from the focus.
+        :param public_key: public key of the focus node
+        :return: number representing the amount of uploaded data
+        """
+        block = self.get_latest(public_key)
+        return block.total_down if block else 0
+
+    def neighbor_list(self, public_key):
+        """
+        Return a dictionary containing information about all neighbors of the focus node.
+        For each neighbor, the dictionary contains a key equal to the primary key of the neighbor.
+        The value stored under that key is a dictionary containing how much data has been uploaded
+        and downloaded to and from that neighbor.
+        :param public_key: primary key of the focus node
+        :return: dictionary with for each neighbor of the focus a key, value entry: primary key neighbor, dictionary
+        containing the amount of data uploaded and downloaded from that neighbor
+        """
+        query = u"SELECT link_public_key, sum(up), sum(down) FROM multi_chain " \
+                u"WHERE public_key = ? GROUP BY link_public_key"
+        params = (buffer(public_key),)
+        db_result = self.execute(query, params).fetchall()
+
+        neighbors = {}
+        for row in db_result:
+            neighbor_pk = row[0] if isinstance(row[0], str) else str(row[0])
+            neighbors[neighbor_pk] = {"up": row[1] or 0, "down": row[2] or 0}
+
+        return neighbors
+
+    def use_dummy_data(self, use_random=True):
+        """
+        Creates a new database and fills it with dummy data.
+        :param use_random: true if you want randomly generated data
+        """
+        if self.dummy_setup:
+            return
+
+        self.dummy_setup = True
+
+        self.close()
+
+        self._connection = connect(":memory:")
+        self._cursor = self._connection.cursor()
+
+        self.check_database(u"0")
+        seq_num = 0
+
+        if use_random:
+            blocks = [[str(edge[0]), str(edge[1]), randint(101, 200), randint(121, 200)]
+                      for edge in random_regular_graph(4, 26).edges()]
+        else:
+            blocks = [
+                # from, to, up, down
+                ['0', '1', 10, 5],
+                ['1', '0', 3, 6],
+                ['1', '0', 46, 12],
+                ['0', '2', 123, 6],
+                ['2', '0', 21, 3],
+                ['0', '3', 22, 68],
+                ['3', '0', 234, 12],
+                ['0', '4', 57, 357],
+                ['4', '0', 223, 2],
+                ['1', '5', 13, 5],
+                ['5', '1', 14, 6],
+                ['1', '6', 234, 5],
+                ['1', '10', 102, 5],
+                ['10', '1', 123, 0],
+                ['2', '7', 87, 5],
+                ['7', '2', 342, 1],
+                ['2', '8', 0, 5],
+                ['2', '8', 78, 23],
+                ['3', '4', 20, 5],
+                ['4', '3', 3, 5],
+                ['4', '9', 650, 5],
+                ['9', '4', 650, 5],
+                ['5', '6', 234, 5],
+                ['6', '5', 5, 323],
+                ['6', '7', 12, 5],
+                ['7', '6', 12, 5],
+                ['9', '10', 51, 123],
+                ['10', '9', 76, 5]
+            ]
+
+        for block in blocks:
+            self.add_block(MultiChainBlock([block[2], block[3], self.total_up(block[0]) + block[2],
+                                            self.total_down(block[0]) + block[3], block[0], seq_num, block[1],
+                                            seq_num + 1, '', '', None]))
+            self.add_block(MultiChainBlock([block[3], block[2], self.total_up(block[1]) + block[3],
+                                            self.total_down(block[1]) + block[2], block[1], seq_num + 1, block[0],
+                                            seq_num, '', '', None]))
+            seq_num += 2

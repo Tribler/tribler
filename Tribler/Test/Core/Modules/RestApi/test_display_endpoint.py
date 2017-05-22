@@ -1,9 +1,11 @@
 """
 This module validates the functions defined in the Display Endpoint
 """
-from json import dumps
+from json import dumps, loads
 from twisted.internet.defer import inlineCallbacks
+from twisted.web import http
 
+from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.Modules.restapi.display_endpoint import DisplayEndpoint
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.multichain.community import MultiChainCommunity
@@ -50,7 +52,7 @@ class TestDisplayEndpoint(AbstractApiTest):
         exp_message = {"error": "focus_node parameter empty"}
         return self.do_request('display?focus_node=&neighbor_level=1', expected_code=400, expected_json=exp_message)
 
-    def set_up_endpoint_request(self, focus_node, neighbor_level):
+    def set_up_endpoint_request(self, dataset, focus_node, neighbor_level):
         """
         Create a mocked session, create a DisplayEndpoint instance and create a request from the provided parameters.
 
@@ -63,7 +65,9 @@ class TestDisplayEndpoint(AbstractApiTest):
         display_endpoint.get_multi_chain_community = lambda: self.mc_community
         request = MockObject()
         request.setHeader = lambda header, flags: None
-        request.args = {"focus_node": [str(focus_node)], "neighbor_level": [str(neighbor_level)]}
+        request.setResponseCode = lambda status_code: None
+        request.args = {"dataset": [str(dataset)], "focus_node": [str(focus_node)],
+                        "neighbor_level": [str(neighbor_level)]}
         return display_endpoint, request
 
     def test_get_no_edges(self):
@@ -75,7 +79,7 @@ class TestDisplayEndpoint(AbstractApiTest):
         exp_message = {"focus_node": "30", "neighbor_level": 1, "nodes": [{"public_key": "xyz", "total_up": 0,
                                                                            "total_down": 0, "page_rank": 0.5}],
                        "edges": []}
-        display_endpoint, request = self.set_up_endpoint_request(30, 1)
+        display_endpoint, request = self.set_up_endpoint_request("multichain", 30, 1)
         self.assertEqual(dumps(exp_message), display_endpoint.render_GET(request))
 
     def test_get_edges(self):
@@ -88,7 +92,7 @@ class TestDisplayEndpoint(AbstractApiTest):
         exp_message = {"focus_node": "30", "neighbor_level": 1, "nodes": [{"public_key": "xyz", "total_up": 0,
                                                                            "total_down": 0, "page_rank": 0.5}],
                        "edges": [{"from": "xyz", "to": "abc", "amount": 30}]}
-        display_endpoint, request = self.set_up_endpoint_request(30, 1)
+        display_endpoint, request = self.set_up_endpoint_request("multichain", 30, 1)
         self.assertEqual(dumps(exp_message), display_endpoint.render_GET(request))
 
     def test_get_self(self):
@@ -98,5 +102,72 @@ class TestDisplayEndpoint(AbstractApiTest):
         self.mc_community.get_graph = lambda public_key, neighbor_level: (public_key, public_key)
         exp_message = {"focus_node": "30", "neighbor_level": 1, "nodes": "self",
                        "edges": "self"}
-        display_endpoint, request = self.set_up_endpoint_request("self", 1)
+        display_endpoint, request = self.set_up_endpoint_request("multichain", "self", 1)
         self.assertNotEquals(dumps(exp_message), display_endpoint.render_GET(request))
+
+    def test_empty_dataset(self):
+        """
+        Evaluate whether the API sends a response when the dataset is not well-defined.
+        """
+        self.mc_community.get_graph = lambda public_key, neighbor_level: (public_key, public_key)
+        exp_message = {"focus_node": "30", "neighbor_level": 1, "nodes": "self",
+                       "edges": "self"}
+        display_endpoint, request = self.set_up_endpoint_request("", "self", 1)
+        self.assertNotEquals(dumps(exp_message), display_endpoint.render_GET(request))
+
+    def test_no_dataset(self):
+        """
+        Evaluate whether the API sends a response when the dataset is not defined.
+        """
+        self.mc_community.get_graph = lambda public_key, neighbor_level: (public_key, public_key)
+        exp_message = {"focus_node": "30", "neighbor_level": 1, "nodes": "self",
+                       "edges": "self"}
+        display_endpoint, request = self.set_up_endpoint_request("", "self", 1)
+        del request.args["dataset"]
+        self.assertNotEquals(dumps(exp_message), display_endpoint.render_GET(request))
+
+    @blocking_call_on_reactor_thread
+    def test_static_dataset(self):
+        """
+        Evaluate whether the API sends a response when the static dummy dataset is initialized.
+        """
+        display_endpoint, request = self.set_up_endpoint_request("static", "3", 1)
+        response = display_endpoint.render_GET(request)
+        self.assertTrue(self.mc_community.persistence.dummy_setup)
+        self.assertEqual(len(loads(response)["nodes"]), 3)
+
+    @blocking_call_on_reactor_thread
+    def test_random_dataset(self):
+        """
+        Evaluate whether the API sends a response when the random dummy dataset is initialized.
+        """
+        display_endpoint, request = self.set_up_endpoint_request("random", "25", 1)
+        response = display_endpoint.render_GET(request)
+        self.assertTrue(self.mc_community.persistence.dummy_setup)
+        self.assertEqual(len(loads(response)["nodes"]), 5)
+
+    @blocking_call_on_reactor_thread
+    def test_self_dummy_data(self):
+        """
+        Evaluate whether the API picks "0" as public key when dummy data is used.
+        """
+        display_endpoint, request = self.set_up_endpoint_request("static", "self", 1)
+        response = display_endpoint.render_GET(request)
+        self.assertEqual(loads(response)["focus_node"], "0")
+
+        del request.args["dataset"]
+        response = display_endpoint.render_GET(request)
+        self.assertEqual(loads(response)["focus_node"], "0")
+
+    @deferred(timeout=10)
+    def test_mc_community_exception(self):
+        """
+        Evaluate whether the API returns the correct error when the multichain community can't be found.
+        """
+        mocked_session = MockObject()
+        display_endpoint = DisplayEndpoint(mocked_session)
+        display_endpoint.get_multi_chain_community = lambda:\
+            (_ for _ in ()).throw(OperationNotEnabledByConfigurationException("multichain is not enabled"))
+
+        exp_message = {"error": "multichain is not enabled"}
+        return self.do_request('display?focus_node=self', expected_code=http.NOT_FOUND, expected_json=exp_message)

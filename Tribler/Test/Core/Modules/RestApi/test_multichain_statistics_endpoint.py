@@ -5,7 +5,6 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.twisted_thread import deferred
 from Tribler.community.multichain.community import MultiChainCommunity
-from Tribler.community.multichain.statistics.database_driver import DatabaseDriver
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
 from Tribler.dispersy.member import DummyMember
@@ -53,7 +52,7 @@ class TestMultichainStatisticsEndpoint(AbstractApiTest):
 
 
         self.should_check_equality = False
-        request = 'display?focus_node=' + public_key + '&neighbor_level=' + str(neighbor_level)
+        request = 'display?focus_node=' + public_key + '&neighbor_level=' + str(neighbor_level) + "&dataset=static"
         return self.do_request(request,
                                expected_code=200).addCallback(verify_response)
 
@@ -62,9 +61,8 @@ class TestMultichainStatisticsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns the correct statistics.
         """
-        public_key = '30'
+        public_key = '0'
         neighbor_level = 1
-        self.mc_community.persistence = DatabaseDriver()
 
         def verify_response(response):
             response_json = json.loads(response)
@@ -75,7 +73,7 @@ class TestMultichainStatisticsEndpoint(AbstractApiTest):
             self.assertEqual(response_json["neighbor_level"], neighbor_level)
             self.assertIn("nodes", response_json)
             list_of_nodes = response_json["nodes"]
-            expected_neighbors = [public_key, '31', '32', '33', '34']
+            expected_neighbors = [public_key, '1', '2', '3', '4']
             returned_neighbors = []
             for node in list_of_nodes:
                 self.assertIn("public_key", node)
@@ -94,6 +92,5 @@ class TestMultichainStatisticsEndpoint(AbstractApiTest):
                 self.assertIn("amount", edge)
 
         self.should_check_equality = False
-        request = 'display?focus_node=' + public_key + '&neighbor_level=' + str(neighbor_level)
-        return self.do_request(request,
-                               expected_code=200).addCallback(verify_response)
+        request = 'display?focus_node=' + public_key + '&neighbor_level=' + str(neighbor_level) + "&dataset=static"
+        return self.do_request(request, expected_code=200).addCallback(verify_response)
