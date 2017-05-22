@@ -58,23 +58,26 @@ var simulation = d3.forceSimulation()
 
 // Only apply the centering force on the focus node
 filterForceNodes(simulation.force("center"), function (n, i) {
-    return n.public_key == state.focus_pk;
+    return n.public_key == state.focus_node.public_key;
 });
 
 // Only apply the neighbor force on the neighbors
 filterForceNodes(simulation.force("neighbor_x"), function (n, i) {
-    return n.public_key != state.focus_pk;
+    return n.public_key != state.focus_node.public_key;
 });
 
 filterForceNodes(simulation.force("neighbor_y"), function (n, i) {
-    return n.public_key != state.focus_pk;
+    return n.public_key != state.focus_node.public_key;
 });
 
 /**
  * Update the visualization for the provided data set
- * @param graph
+ * @param {GraphData} graph
  */
 function update(graph) {
+
+    console.log(graph);
+    // return;
 
     // console.log("Updating the visualization", graph);
     console.log("Focus on", graph.focus_node);
@@ -84,24 +87,9 @@ function update(graph) {
 
     // Update the state
 
-    // Make hash of nodes
-    state.nodes = [];
-    graph.nodes.forEach(function (node) {
-        state.nodes[node.public_key] = node;
-    });
-
     // Set the focus node
-    state.focus_pk = graph.focus_node;
-    state.focus_node = graph.nodes.filter(function (node) {
-        return node.public_key == state.focus_pk;
-    })[0];
-
-    // List the neighbors in each node
-    graph.nodes.forEach(function (node) {
-        node.neighbors = listNeighborsOf(graph.links, node.public_key_string).map(function (pk) {
-            return state.nodes[graph.public_keys.indexOf(pk)];
-        });
-    });
+    state.focus_pk = graph.focus_pk;
+    state.focus_node = graph.focus_node;
 
     // All nodes start in the center (slightly off)
     graph.nodes.forEach(function (node, i) {
@@ -115,7 +103,7 @@ function update(graph) {
 
     // Draw all nodes
     var nodes = drawNodes(svg, graph, function (d) {
-            handle_node_click(d.public_key_string)
+            handle_node_click(d.public_key)
         });
 
     // Draw all links

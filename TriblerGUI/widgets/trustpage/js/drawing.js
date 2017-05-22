@@ -58,7 +58,7 @@ function drawNodes(svg, data, on_click) {
         .style("font-size", "12")
         .style("fill", "#ffff00")
         .text(function (d) {
-            return d.public_key_string.substr(-5);
+            return d.public_key.substr(-5);
         });
 
     // Return the group of <svg.node>
