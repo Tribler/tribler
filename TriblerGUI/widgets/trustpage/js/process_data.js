@@ -85,12 +85,14 @@ function processData(jsonData) {
         });
     });
 
-    var sortedPageRank = data.nodes.map(function(node) {return node.page_rank}).sort();
+    var sortedPageRank = data.nodes.map(function(node) {return node.page_rank}).sort(function (nodeOne, nodeTwo) {
+        return nodeOne - nodeTwo;
+    });
 
     return {'focus_node': public_keys.indexOf(data.focus_node),
             'public_keys' : public_keys,
             'min_page_rank': sortedPageRank[0],
-            'max_page-rank': sortedPageRank[sortedPageRank.length - 1],
+            'max_page_rank': sortedPageRank[sortedPageRank.length - 1],
             'nodes': nodes,
             'links': combinedLinks}
 }
