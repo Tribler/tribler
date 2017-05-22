@@ -50,6 +50,22 @@ class TestDisplayEndpoint(AbstractApiTest):
         exp_message = {"error": "focus_node parameter empty"}
         return self.do_request('display?focus_node=&neighbor_level=1', expected_code=400, expected_json=exp_message)
 
+    def set_up_endpoint_request(self, focus_node, neighbor_level):
+        """
+        Create a mocked session, create a DisplayEndpoint instance and create a request from the provided parameters.
+
+        :param focus_node: node for which to request the data
+        :param neighbor_level: amount of levels from this node to request
+        :return: a 2-tuple of the display endpoint and the request
+        """
+        mocked_session = MockObject()
+        display_endpoint = DisplayEndpoint(mocked_session)
+        display_endpoint.get_multi_chain_community = lambda: self.mc_community
+        request = MockObject()
+        request.setHeader = lambda header, flags: None
+        request.args = {"focus_node": [str(focus_node)], "neighbor_level": [str(neighbor_level)]}
+        return display_endpoint, request
+
     def test_get_no_edges(self):
         """
         Evaluate whether the API passes the correct data if there are no edges returned.
@@ -59,12 +75,7 @@ class TestDisplayEndpoint(AbstractApiTest):
         exp_message = {"focus_node": "30", "neighbor_level": 1, "nodes": [{"public_key": "xyz", "total_up": 0,
                                                                            "total_down": 0, "page_rank": 0.5}],
                        "edges": []}
-        mocked_session = MockObject()
-        display_endpoint = DisplayEndpoint(mocked_session)
-        display_endpoint.get_multi_chain_community = lambda: self.mc_community
-        request = MockObject()
-        request.setHeader = lambda header, flags: None
-        request.args = {"focus_node": ['30'], "neighbor_level": ['1']}
+        display_endpoint, request = self.set_up_endpoint_request(30, 1)
         self.assertEqual(dumps(exp_message), display_endpoint.render_GET(request))
 
     def test_get_edges(self):
@@ -77,12 +88,7 @@ class TestDisplayEndpoint(AbstractApiTest):
         exp_message = {"focus_node": "30", "neighbor_level": 1, "nodes": [{"public_key": "xyz", "total_up": 0,
                                                                            "total_down": 0, "page_rank": 0.5}],
                        "edges": [{"from": "xyz", "to": "abc", "amount": 30}]}
-        mocked_session = MockObject()
-        display_endpoint = DisplayEndpoint(mocked_session)
-        display_endpoint.get_multi_chain_community = lambda: self.mc_community
-        request = MockObject()
-        request.setHeader = lambda header, flags: None
-        request.args = {"focus_node": ['30'], "neighbor_level": ['1']}
+        display_endpoint, request = self.set_up_endpoint_request(30, 1)
         self.assertEqual(dumps(exp_message), display_endpoint.render_GET(request))
 
     def test_get_self(self):
@@ -92,10 +98,5 @@ class TestDisplayEndpoint(AbstractApiTest):
         self.mc_community.get_graph = lambda public_key, neighbor_level: (public_key, public_key)
         exp_message = {"focus_node": "30", "neighbor_level": 1, "nodes": "self",
                        "edges": "self"}
-        mocked_session = MockObject()
-        display_endpoint = DisplayEndpoint(mocked_session)
-        display_endpoint.get_multi_chain_community = lambda: self.mc_community
-        request = MockObject()
-        request.setHeader = lambda header, flags: None
-        request.args = {"focus_node": ['self'], "neighbor_level": ['1']}
+        display_endpoint, request = self.set_up_endpoint_request("self", 1)
         self.assertNotEquals(dumps(exp_message), display_endpoint.render_GET(request))
