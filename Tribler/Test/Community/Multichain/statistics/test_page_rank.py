@@ -13,7 +13,7 @@ class TestIncrementalPageRank(TestCase):
     As it is a Monte Carlo method, integration tests are often probabilistic in nature.
     That is, they might fail on rare occasions.
     """
-    def create_graph(self, nr_of_nodes, nr_of_edges):
+    def create_graph(self, nr_of_nodes, nr_of_edges, nr_of_times=1):
         """
         Helper method to create a random graph.
 
@@ -22,9 +22,10 @@ class TestIncrementalPageRank(TestCase):
         """
         self.graph = gnm_random_graph(nr_of_nodes, nr_of_edges)
         self.page_rank = IncrementalPageRank(self.graph)
-        self.page_rank.initial_walk()
-        self.page_rank.count()
-        self.ranks = self.page_rank.get_ranks()
+        for _ in range(nr_of_times):
+            self.page_rank.initial_walk()
+            self.page_rank.count()
+            self.ranks = self.page_rank.get_ranks()
 
     def test_single_node(self):
         """
@@ -56,3 +57,10 @@ class TestIncrementalPageRank(TestCase):
         """
         self.assertTrue(all(0 <= rank <= 1 for rank in self.ranks.values()))
         self.assertAlmostEqual(sum(self.ranks.values()), 1, delta=0.01)
+
+    def test_multiple_times(self):
+        """
+        All PageRank values should be between 0 and 1, even if called multiple times.
+        """
+        self.create_graph(10, 15, 10)
+        self.assertTrue(all(0 <= rank <= 1 for rank in self.ranks.values()))

@@ -67,6 +67,7 @@ class MultiChainCommunity(Community):
         # self.persistence = StatisticsDb(self.dispersy.working_directory)
         self.graph = Graph()
         self.page_rank = IncrementalPageRank(self.graph)
+        self.ranks = {}
 
         # We store the bytes send and received in the tunnel community in a dictionary.
         # The key is the public key of the peer being interacted with, the value a tuple of the up and down bytes
@@ -311,9 +312,12 @@ class MultiChainCommunity(Community):
                           "total_down": self.persistence.total_down(current_key)})
             self.page_rank.add_node(current_key)
         edges = self.get_edges(nodes)
+        if len(self.ranks) == 0:
+            self.get_page_ranks()
         for dic in nodes:
-            page_rank = self.get_page_rank(dic["public_key"])
-            dic["page_rank"] = page_rank
+            dic["page_rank"] = 0
+            if dic["public_key"] in self.ranks:
+                dic["page_rank"] = self.ranks[dic["public_key"]]
         return nodes, edges
 
     @blocking_call_on_reactor_thread
@@ -369,19 +373,14 @@ class MultiChainCommunity(Community):
                 self.page_rank.add_edge(edge[1], edge[0])
         return edges
 
-    def get_page_rank(self, public_key):
+    def get_page_ranks(self):
         """
-        Return the page rank of a certain node.
+        If the page ranks are not yet cached in self.ranks, then fetch and store them.
 
-        :param public_key: the public key of the given node
-        :return: the page rank of the given node
         """
         self.page_rank.initial_walk()
         self.page_rank.count()
-        ranks = self.page_rank.get_ranks()
-        if public_key in ranks:
-            return ranks[public_key]
-        return 0
+        self.ranks = self.page_rank.get_ranks()
 
 
     @inlineCallbacks

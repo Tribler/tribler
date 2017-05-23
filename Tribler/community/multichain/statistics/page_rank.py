@@ -67,6 +67,7 @@ class IncrementalPageRank(object):
         Perform the initial random walk.
         """
         self.size = 0
+        self.walks = list()
         for node in self.graph.nodes():
             walks = list()
             for _ in range(self.R):
