@@ -59,7 +59,7 @@ function processData(jsonData) {
     });
 
     // Map public keys to i
-    nodes.forEach(function(node, i){
+    nodes.forEach(function(node, i) {
         public_keys.push(node.public_key);
         node.public_key_string = node.public_key;
         node.public_key = i;
@@ -72,7 +72,7 @@ function processData(jsonData) {
      * @param val
      * @returns {*}
      */
-    function find(list, key, val){
+    function find(list, key, val) {
         return list.find(function(item){
             return item[key] === val;
         });

@@ -35,15 +35,17 @@ function drawNodes(svg, data, on_click) {
     // Append a <circle> element to it.
     var circles = groups
         .append("circle")
-        .attr("fill", function(d) {return getNodeColor(d, data)})
+        .attr("fill", function (d) {
+            return getNodeColor(d, data)
+        })
         .attr("r", "20")
         .attr("cx", 0)
         .attr("cy", 0)
-        .style("cursor","pointer")
+        .style("cursor", "pointer")
         .on("click", on_click)
-        .on("mouseenter", function(){
+        .on("mouseenter", function () {
             d3.select(this).transition().ease(d3.easeElasticOut).delay(0).duration(300).attr("r", 25);
-        }).on("mouseout", function(){
+        }).on("mouseout", function () {
             d3.select(this).transition().ease(d3.easeElasticOut).delay(0).duration(300).attr("r", 20);
         });
 
@@ -104,7 +106,7 @@ function drawLinks(svg, data) {
 
     selectLinks(svg).remove();
 
-    var selection = selectLinks(svg).data(data).enter();
+    var selection = selectLinks(svg).data(data.links).enter();
 
     var links = selection
         .append("svg")
@@ -112,13 +114,39 @@ function drawLinks(svg, data) {
 
     links.append("line")
         .attr("class", "link-source")
-        .attr("stroke-width", 2)
+        .attr("stroke-width", function (d) {
+            return getStrokeWidth(d, data)
+        })
         .style("stroke", "#ffff00");
 
     links.append("line")
         .attr("class", "link-target")
-        .attr("stroke-width", 2)
+        .attr("stroke-width", function (d) {
+            return getStrokeWidth(d, data)
+        })
         .style("stroke", "#ff0000");
 
     return links;
 }
+
+/**
+ * Get the stroke width based on the total amount of transmitted data over the link,
+ * relative to the other links in the graph
+ * @param link the link to get the width for
+ * @param data the JSON data of the graph
+ * @returns the width of the link
+ */
+function getStrokeWidth(link, data) {
+    // Map relative to the minimum and maximum total transition links of the graph
+    var difference = data.max_transmission - data.min_transmission;
+    if(difference === 0) {
+        return 6;
+    }
+    var linkTotal = link.amount_up + link.amount_down;
+    var normalizedTotal = (linkTotal - data.min_transmission) / difference;
+
+    // Width in [2, 10] px
+    return (normalizedTotal * 8) + 2;
+}
+
+module.exports = {getStrokeWidth: getStrokeWidth};
