@@ -11,3 +11,66 @@ svg {
     display: block;
     margin: 0 auto;
 }
+
+.tooltip {
+	position: absolute;
+	top: 18px;
+	right: 18px;
+	text-align: center;
+	background-color: #E67300;
+	border-radius: 50%;
+	width: 24px;
+	height: 24px;
+	font-size: 14px;
+	line-height: 26px;
+	cursor: default;
+}
+
+.tooltip:before {
+	content:'?';
+	font-weight: bold;
+	color: #282828;
+}
+
+.tooltip:hover #tooltip-content {
+	display:block;
+	transform-origin: 100% 0;
+
+	-webkit-animation: fadeIn 0.4s ease-in-out;
+	animation: fadeIn 0.4s ease-in-out;
+
+}
+
+.tooltip #tooltip-content {
+    opacity: 0.7;
+	display: none;
+	text-align: left;
+	background-color: #282828;
+	font-family: Arial, Helvetica, sans-serif;
+	padding: 20px;
+	min-width: 300px;
+	position: absolute;
+	border-radius: 3px;
+	box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+	right: -4px;
+	color: #B5B5B5;
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+@-webkit-keyframes fadeIn {
+	0% {
+		opacity:0;
+		transform: scale(0.6);
+	}
+
+	100% {
+		opacity:100%;
+		transform: scale(1);
+	}
+}
+
+@keyframes fadeIn {
+	0% { opacity:0; }
+	100% { opacity:100%; }
+}

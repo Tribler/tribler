@@ -11,7 +11,20 @@
 <body>
 <!-- THE GRAPH -->
 <svg id="graph" width="600" height="600"></svg>
-
+<div class="tooltip">
+    <div id="tooltip-content">
+        <p id="header">Nodes</p>
+        <ul>
+            <li>Color: the relative page rank in the network.</li>
+        </ul>
+        <p id="header">Edges</p>
+        <ul>
+            <li>Color: shows where the edge is divided between the two nodes.</li>
+            <li>Size: the relative size of the upload quantity to all available </li>
+            <li>Division point: the ratio between the amounts uploaded between two nodes.</li>
+        </ul>
+    </div>
+</div>
 <!-- MAIN -->
 <script src="js/drawing.js"></script>
 <script src="js/request_data.js"></script>
