@@ -2,6 +2,10 @@
  * These methods are concerned with drawing and styling SVG elements
  */
 
+if (typeof require !== "undefined") {
+    var config = require("./style_config.js");
+}
+
 /**
  * Select all <svg.node> elements in .nodes
  * @returns D3 Selection of <svg.node> elements
@@ -38,10 +42,10 @@ function drawNodes(svg, data, on_click) {
         .attr("fill", function (d) {
             return getNodeColor(d, data)
         })
-        .attr("r", "20")
-        .attr("cx", 0)
-        .attr("cy", 0)
-        .style("cursor", "pointer")
+        .attr("r", config.node.circle.radius)
+        .attr("cx", config.node.circle.cx)
+        .attr("cy", config.node.circle.cy)
+        .style("cursor", config.node.circle.cursor)
         .on("click", on_click)
         .on("mouseenter", function () {
             d3.select(this).transition().ease(d3.easeElasticOut).delay(0).duration(300).attr("r", 25);
@@ -52,11 +56,11 @@ function drawNodes(svg, data, on_click) {
     // Append a <text> element to it
     groups
         .append("text")
-        .attr("x", 24)
-        .attr("y", 24)
-        .style("font-family", "sans-serif")
-        .style("font-size", "12")
-        .style("fill", "#ffff00")
+        .attr("x", config.node.publicKeyLabel.x)
+        .attr("y", config.node.publicKeyLabel.y)
+        .style("font-family", config.node.publicKeyLabel.fontFamily)
+        .style("font-size", config.node.publicKeyLabel.fontSize)
+        .style("fill", config.node.publicKeyLabel.color)
         .text(function (d) {
             return d.public_key.substr(-5);
         });
@@ -74,8 +78,8 @@ function drawNodes(svg, data, on_click) {
 function getNodeColor(node, data) {
     // Use D3 color scale to map floats to colors
     var nodeColor = d3.scaleLinear()
-        .domain([0, 0.5, 1])
-        .range(["red", "yellow", "green"]);
+        .domain(config.node.color.domain)
+        .range(config.node.color.range);
 
     // Map relative to the minimum and maximum page rank of the graph
     var rank_difference = data.max_page_rank - data.min_page_rank;
@@ -117,14 +121,14 @@ function drawLinks(svg, data) {
         .attr("stroke-width", function (d) {
             return getStrokeWidth(d, data)
         })
-        .style("stroke", "#ffff00");
+        .style("stroke", config.link.colorLinkSource);
 
     links.append("line")
         .attr("class", "link-target")
         .attr("stroke-width", function (d) {
             return getStrokeWidth(d, data)
         })
-        .style("stroke", "#ff0000");
+        .style("stroke", config.link.colorLinkTarget);
 
     return links;
 }
@@ -137,16 +141,26 @@ function drawLinks(svg, data) {
  * @returns the width of the link
  */
 function getStrokeWidth(link, data) {
-    // Map relative to the minimum and maximum total transition links of the graph
-    var difference = data.max_transmission - data.min_transmission;
-    if(difference === 0) {
-        return 6;
-    }
-    var linkTotal = link.amount_up + link.amount_down;
-    var normalizedTotal = (linkTotal - data.min_transmission) / difference;
+    // The difference between the minimum and maximum data links
+    var transmissionDifference = data.max_transmission - data.min_transmission;
+    
+    // The difference between the minimum and maximum stroke width
+    var widthDifference = config.link.strokeWidthMax - config.link.strokeWidthMin;
 
-    // Width in [2, 10] px
-    return (normalizedTotal * 8) + 2;
+    // If exactly the same amount is transmitted between all peers, return the middle of the width interval
+    if (transmissionDifference === 0)
+        return (config.link.strokeWidthMax + config.link.strokeWidthMin) / 2;
+
+    // The total transmission of the current link
+    var linkTotal = link.amount_up + link.amount_down;
+
+    // The fraction of the current link in the network
+    var fraction = (linkTotal - data.min_transmission) / transmissionDifference;
+
+    // The width based on the fraction and the interval
+    return fraction * widthDifference + config.link.strokeWidthMin;
 }
 
-module.exports = {getStrokeWidth: getStrokeWidth};
+if (typeof module !== "undefined") {
+    module.exports = {getStrokeWidth: getStrokeWidth};
+}
