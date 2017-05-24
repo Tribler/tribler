@@ -6,7 +6,7 @@ Every node has a chain and these chains intertwine by blocks shared by chains.
 import logging
 from copy import deepcopy
 from itertools import combinations
-from networkx import Graph
+from networkx import DiGraph
 from twisted.internet.defer import inlineCallbacks
 
 from twisted.internet import reactor
@@ -63,7 +63,7 @@ class MultiChainCommunity(Community):
         self.notifier = None
 
         self.persistence = MultiChainDB(self.dispersy.working_directory)
-        self.graph = Graph()
+        self.graph = DiGraph()
         self.page_rank = IncrementalPageRank(self.graph)
         self.ranks = {}
 
@@ -364,11 +364,11 @@ class MultiChainCommunity(Community):
             if edge[2] > 0:
                 edges.append({"from": edge[0], "to": edge[1],
                               "amount": edge[2]})
-                self.page_rank.add_edge(edge[0], edge[1])
+                self.page_rank.add_edge(edge[0], edge[1], edge[2])
             if edge[3] > 0:
                 edges.append({"from": edge[1], "to": edge[0],
                               "amount": edge[3]})
-                self.page_rank.add_edge(edge[1], edge[0])
+                self.page_rank.add_edge(edge[1], edge[0], edge[3])
         return edges
 
     def get_page_ranks(self):

@@ -1,7 +1,9 @@
 """
 This file contains everything needed to compute page ranks.
 """
-from random import random, choice
+from random import random
+
+from numpy import array, cumsum
 
 
 class IncrementalPageRank(object):
@@ -40,17 +42,16 @@ class IncrementalPageRank(object):
 
         self.new_nodes = set()
 
-    def add_edge(self, source, destination):
+    def add_edge(self, source, destination, weight):
         """
         Add an edge to the graph.
 
         :param source: the source node of the new edge
         :param destination: the destination node of the new edge
         """
-        # TODO: Add the weights
         self.add_node(source)
         self.add_node(destination)
-        self.graph.add_edge(source, destination)
+        self.graph.add_edge(source, destination, weight=weight)
 
     def add_node(self, node):
         """
@@ -107,7 +108,10 @@ class IncrementalPageRank(object):
             neighbors = self.graph.neighbors(next_node)
             if len(neighbors) == 0:
                 break
-            next_node = choice(neighbors)
+            weights = array([self.graph.get_edge_data(next_node, neighbor)["weight"] for neighbor in neighbors])
+            cumulated_weights = cumsum(weights)
+            random_id = list(cumulated_weights < random() * cumulated_weights[-1]).index(False)
+            next_node = neighbors[random_id]
             walk.append(next_node)
         return walk
 
