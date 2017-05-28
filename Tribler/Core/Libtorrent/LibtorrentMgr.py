@@ -197,7 +197,7 @@ class LibtorrentMgr(TaskManager):
     def set_proxy_settings(self, ltsession, ptype, server=None, auth=None):
         proxy_settings = lt.proxy_settings()
         proxy_settings.type = lt.proxy_type(ptype)
-        if server:
+        if server and server[0] and server[1]:
             proxy_settings.hostname = server[0]
             proxy_settings.port = int(server[1])
         if auth:
