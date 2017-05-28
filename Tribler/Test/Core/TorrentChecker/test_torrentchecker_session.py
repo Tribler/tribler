@@ -104,7 +104,7 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session.scraper = ClockedUDPCrawler(session, "127.0.0.1", 4782, 5)
         # Advance 16 seconds so the timeout triggered
         session.scraper._reactor.advance(session.scraper.timeout + 1)
-        self.assertFalse(session.scraper.timeout_call.active(), "timeout was active while should've canceled")
+        self.assertIsNone(session.scraper)
 
     @deferred(timeout=5)
     def test_udp_scraper_stop_no_connection(self):
@@ -115,13 +115,11 @@ class TestTorrentCheckerSession(TriblerCoreTest):
 
         return DeferredList([stop_deferred, session.cleanup()])
 
-    @deferred(timeout=5)
     def test_udpsession_udp_tracker_connection_refused(self):
         session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
         session.scraper = UDPScraper(session, "127.0.0.1", 4782, 5)
         session.scraper.connectionRefused()
         self.assertTrue(session.is_failed, "Session did not fail while it should")
-        return session.scraper.stop()
 
     def test_udpsession_handle_response_wrong_len(self):
         session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
