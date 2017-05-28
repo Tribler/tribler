@@ -671,7 +671,8 @@ class UdpTrackerSession(TrackerSession):
         UdpTrackerSession.remove_transaction_id(self)
         self._is_finished = True
 
-        # Call the callback of the deferred with the result
+        # Stop the scraper and call the callback of the deferred with the result
+        self.scraper.stop()
         self.result_deferred.callback({self.tracker_url: response_list})
 
 
