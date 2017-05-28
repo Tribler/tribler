@@ -13,7 +13,7 @@ from TriblerGUI.utilities import get_ui_file_path
 
 class FeedbackDialog(QDialog):
 
-    def __init__(self, parent, exception_text, tribler_version):
+    def __init__(self, parent, exception_text, tribler_version, start_time):
         QDialog.__init__(self, parent)
 
         uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
@@ -47,6 +47,7 @@ class FeedbackDialog(QDialog):
         add_item_to_info_widget('platform.machine', platform.machine())
         add_item_to_info_widget('python.version', sys.version)
         add_item_to_info_widget('indebug', str(__debug__))
+        add_item_to_info_widget('tribler_uptime', "%s" % (time.time() - start_time))
 
         for argv in sys.argv:
             add_item_to_info_widget('sys.argv', '%s' % argv)
