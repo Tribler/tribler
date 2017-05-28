@@ -215,3 +215,19 @@ class TestLibtorrentMgr(TriblerCoreTest):
         self.ltmgr.trsession = self.tribler_session
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
         self.assertRaises(DuplicateDownloadException, self.ltmgr.start_download, infohash='a' * 20, tdef=mock_tdef)
+
+    def test_set_proxy_settings(self):
+        """
+        Test setting the proxy settings
+        """
+        def on_proxy_set(settings):
+            self.assertTrue(settings)
+            self.assertEqual(settings.hostname, 'a')
+            self.assertEqual(settings.port, 1234)
+            self.assertEqual(settings.username, 'abc')
+            self.assertEqual(settings.password, 'def')
+
+        mock_lt_session = MockObject()
+        mock_lt_session.set_proxy = on_proxy_set
+        self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
+        self.ltmgr.set_proxy_settings(mock_lt_session, 0, ('a', "1234"), ('abc', 'def'))
