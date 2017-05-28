@@ -439,7 +439,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
             self.screenshot(dialog, name="feedback_dialog")
             dialog.close()
 
-        dialog = FeedbackDialog(window, "test", "1.2.3")
+        dialog = FeedbackDialog(window, "test", "1.2.3", 23)
         dialog.closeEvent = lambda _: None  # Otherwise, the application will stop
         QTimer.singleShot(1000, screenshot_dialog)
         dialog.exec_()

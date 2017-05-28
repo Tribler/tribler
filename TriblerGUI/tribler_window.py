@@ -6,6 +6,7 @@ import traceback
 from urllib import quote_plus
 import signal
 
+import time
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication, pyqtSlot, QUrl, QObject
 from PyQt5.QtGui import QIcon, QDesktopServices
@@ -73,7 +74,8 @@ class TriblerWindow(QMainWindow):
         logging.error(exception_text)
 
         if not self.feedback_dialog_is_open:
-            dialog = FeedbackDialog(self, exception_text, self.core_manager.events_manager.tribler_version)
+            dialog = FeedbackDialog(self, exception_text, self.core_manager.events_manager.tribler_version,
+                                    self.start_time)
             self.feedback_dialog_is_open = True
             _ = dialog.exec_()
 
@@ -97,6 +99,7 @@ class TriblerWindow(QMainWindow):
         self.selected_torrent_files = []
         self.vlc_available = True
         self.has_search_results = False
+        self.start_time = time.time()
 
         sys.excepthook = self.on_exception
 
