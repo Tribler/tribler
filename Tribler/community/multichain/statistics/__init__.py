@@ -1,3 +1,3 @@
 """
-The statistics package provides the data for the trust display.
+The statistics package provides the data for the multichain network endpoint.
 """

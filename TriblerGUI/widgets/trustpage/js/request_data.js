@@ -49,7 +49,7 @@ function make_cors_request(method, url) {
  * @param callback The callback which is called with the GraphResponseData
  */
 function get_node_info(public_key, callback) {
-    var url = "http://localhost:8085/display?focus_node=" + public_key + "&neighbor_level=1";
+    var url = "http://localhost:8085/multichain/network?focus_node=" + public_key + "&neighbor_level=1";
 
     var response = make_cors_request('GET', url);
     if (!response) {

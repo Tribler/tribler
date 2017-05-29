@@ -50,11 +50,11 @@ class TestMultichainStatisticsEndpoint(AbstractApiTest):
             list_of_edges = response_json["edges"]
             self.assertListEqual(list_of_edges, [])
 
-
         self.should_check_equality = False
-        request = 'display?focus_node=' + public_key + '&neighbor_level=' + str(neighbor_level) + "&dataset=static"
-        return self.do_request(request,
-                               expected_code=200).addCallback(verify_response)
+        request = 'multichain/network?focus_node=' + public_key +\
+                  '&neighbor_level=' + str(neighbor_level) +\
+                  '&dataset=static'
+        return self.do_request(request, expected_code=200).addCallback(verify_response)
 
     @deferred(timeout=10)
     def test_get_statistics(self):
@@ -92,5 +92,7 @@ class TestMultichainStatisticsEndpoint(AbstractApiTest):
                 self.assertIn("amount", edge)
 
         self.should_check_equality = False
-        request = 'display?focus_node=' + public_key + '&neighbor_level=' + str(neighbor_level) + "&dataset=static"
+        request = 'multichain/network?focus_node=' + public_key +\
+                  '&neighbor_level=' + str(neighbor_level) +\
+                  "&dataset=static"
         return self.do_request(request, expected_code=200).addCallback(verify_response)
