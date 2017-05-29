@@ -30,6 +30,9 @@ if sys.platform.startswith('darwin'):
     with open('Tribler/Main/Build/Mac/Info.plist', 'w') as f:
         f.write(content)
 
+# We use plyvel on Windows since leveldb is unable to deal with unicode paths
+excluded_libs = ['wx', 'leveldb'] if sys.platform == 'win32' else ['wx']
+
 a = Analysis(['run_tribler.py'],
              pathex=['/Users/martijndevos/Documents/tribler'],
              binaries=None,
@@ -37,7 +40,7 @@ a = Analysis(['run_tribler.py'],
              hiddenimports=['csv'] + widget_files,
              hookspath=[],
              runtime_hooks=[],
-             excludes=['wx'],
+             excludes=excluded_libs,
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher)
