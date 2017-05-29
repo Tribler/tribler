@@ -5,6 +5,7 @@ import os
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import QUrl
+from PyQt5.QtGui import QColor
 from TriblerGUI import utilities
 
 
@@ -32,6 +33,7 @@ class TrustPage(QWidget):
         path = os.path.join(utilities.get_base_path(), "widgets/trustpage/index.html")
 
         view.setUrl(QUrl.fromLocalFile(path))
+        view.page().setBackgroundColor(QColor.fromRgb(0, 0, 0, 0))
         view.show()
 
         vertical_layout.addWidget(view)
