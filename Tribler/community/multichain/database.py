@@ -1,6 +1,7 @@
 """
 This file contains everything related to persistence for MultiChain.
 """
+from binascii import unhexlify
 from os import path
 from random import randint
 
@@ -247,46 +248,48 @@ class MultiChainDB(Database):
         seq_num = 0
 
         if use_random:
-            blocks = [[str(edge[0]), str(edge[1]), randint(101, 200), randint(121, 200)]
+            blocks = [[str(edge[0]) if len(str(edge[0])) > 1 else "0" + str(edge[0]),
+                       str(edge[1]) if len(str(edge[1])) > 1 else "0" + str(edge[1]),
+                       randint(101, 200), randint(121, 200)]
                       for edge in random_regular_graph(4, 26).edges()]
         else:
             blocks = [
                 # from, to, up, down
-                ['0', '1', 10, 5],
-                ['1', '0', 3, 6],
-                ['1', '0', 46, 12],
-                ['0', '2', 123, 6],
-                ['2', '0', 21, 3],
-                ['0', '3', 22, 68],
-                ['3', '0', 234, 12],
-                ['0', '4', 57, 357],
-                ['4', '0', 223, 2],
-                ['1', '5', 13, 5],
-                ['5', '1', 14, 6],
-                ['1', '6', 234, 5],
-                ['1', '10', 102, 5],
-                ['10', '1', 123, 0],
-                ['2', '7', 87, 5],
-                ['7', '2', 342, 1],
-                ['2', '8', 0, 5],
-                ['2', '8', 78, 23],
-                ['3', '4', 20, 5],
-                ['4', '3', 3, 5],
-                ['4', '9', 650, 5],
-                ['9', '4', 650, 5],
-                ['5', '6', 234, 5],
-                ['6', '5', 5, 323],
-                ['6', '7', 12, 5],
-                ['7', '6', 12, 5],
-                ['9', '10', 51, 123],
-                ['10', '9', 76, 5]
+                ['00', '01', 10, 5],
+                ['01', '00', 3, 6],
+                ['01', '00', 46, 12],
+                ['00', '02', 123, 6],
+                ['02', '00', 21, 3],
+                ['00', '03', 22, 68],
+                ['03', '00', 234, 12],
+                ['00', '04', 57, 357],
+                ['04', '00', 223, 2],
+                ['01', '05', 13, 5],
+                ['05', '01', 14, 6],
+                ['01', '06', 234, 5],
+                ['01', '10', 102, 5],
+                ['10', '01', 123, 0],
+                ['02', '07', 87, 5],
+                ['07', '02', 342, 1],
+                ['02', '08', 0, 5],
+                ['02', '08', 78, 23],
+                ['03', '04', 20, 5],
+                ['04', '03', 3, 5],
+                ['04', '09', 650, 5],
+                ['09', '04', 650, 5],
+                ['05', '06', 234, 5],
+                ['06', '05', 5, 323],
+                ['06', '07', 12, 5],
+                ['07', '06', 12, 5],
+                ['09', '10', 51, 123],
+                ['10', '09', 76, 5]
             ]
 
         for block in blocks:
             self.add_block(MultiChainBlock([block[2], block[3], self.total_up(block[0]) + block[2],
-                                            self.total_down(block[0]) + block[3], block[0], seq_num, block[1],
-                                            seq_num + 1, '', '', None]))
+                                            self.total_down(block[0]) + block[3], unhexlify(block[0]), seq_num,
+                                            unhexlify(block[1]), seq_num + 1, '', '', None]))
             self.add_block(MultiChainBlock([block[3], block[2], self.total_up(block[1]) + block[3],
-                                            self.total_down(block[1]) + block[2], block[1], seq_num + 1, block[0],
-                                            seq_num, '', '', None]))
+                                            self.total_down(block[1]) + block[2], unhexlify(block[1]), seq_num + 1,
+                                            unhexlify(block[0]), seq_num, '', '', None]))
             seq_num += 2

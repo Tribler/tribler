@@ -61,7 +61,7 @@ class TestMultichainStatisticsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns the correct statistics.
         """
-        public_key = '0'
+        public_key = '00'
         neighbor_level = 1
 
         def verify_response(response):
@@ -73,7 +73,7 @@ class TestMultichainStatisticsEndpoint(AbstractApiTest):
             self.assertEqual(response_json["neighbor_level"], neighbor_level)
             self.assertIn("nodes", response_json)
             list_of_nodes = response_json["nodes"]
-            expected_neighbors = [public_key, '1', '2', '3', '4']
+            expected_neighbors = [public_key, '01', '02', '03', '04']
             returned_neighbors = []
             for node in list_of_nodes:
                 self.assertIn("public_key", node)

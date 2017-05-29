@@ -1,5 +1,8 @@
+"""
+Handle HTTP requests for the trust display, whilst validating the arguments and using them in the query.
+"""
 import json
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 
 from twisted.web import http, resource
 
@@ -290,7 +293,7 @@ class MultichainNetworkEndpoint(resource.Resource):
             if request.args["focus_node"][0] == "self":
                 try:
                     if self.get_multi_chain_community().persistence.dummy_setup:
-                        focus_node = "0"
+                        focus_node = "00"
                     else:
                         mc_community = self.get_multi_chain_community()
                         focus_node = hexlify(mc_community.my_member.public_key)
@@ -308,8 +311,7 @@ class MultichainNetworkEndpoint(resource.Resource):
             neighbor_level = int(request.args["neighbor_level"][0])
 
         mc_community = self.get_multi_chain_community()
-        nodes, edges = mc_community.get_graph(focus_node, neighbor_level)
-
+        nodes, edges = mc_community.get_graph(unhexlify(focus_node), neighbor_level)
         return json.dumps({"focus_node": focus_node,
                            "neighbor_level": neighbor_level,
                            "nodes": nodes,

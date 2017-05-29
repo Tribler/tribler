@@ -1,6 +1,7 @@
 """
 This module validates the functions defined in the MultichainNetworkEndpoint Endpoint
 """
+from binascii import hexlify
 from json import dumps, loads
 
 from twisted.internet.defer import inlineCallbacks
@@ -103,39 +104,40 @@ class TestMultichainNetworkEndpoint(AbstractApiTest):
         """
         Evaluate whether the API uses the own public key when public_key is set to 'self'.
         """
-        self.mc_community.get_graph = lambda public_key, neighbor_level: (public_key, public_key)
-        exp_message = {"focus_node": "30", "neighbor_level": 1, "nodes": "self",
-                       "edges": "self"}
+        exp_message = {"focus_node": hexlify(self.member.public_key), "neighbor_level": 1, "nodes":
+                       [{"public_key": hexlify(self.member.public_key), "total_up": 0, "total_down": 0,
+                         "page_rank": 1.0}], "edges": []}
         network_endpoint, request = self.set_up_endpoint_request("multichain", "self", 1)
-        self.assertNotEquals(dumps(exp_message), network_endpoint.render_GET(request))
+        self.assertEquals(dumps(exp_message), network_endpoint.render_GET(request))
 
     def test_empty_dataset(self):
         """
         Evaluate whether the API sends a response when the dataset is not well-defined.
         """
-        self.mc_community.get_graph = lambda public_key, neighbor_level: (public_key, public_key)
-        exp_message = {"focus_node": "30", "neighbor_level": 1, "nodes": "self",
-                       "edges": "self"}
+        exp_message = {"focus_node": hexlify(self.member.public_key), "neighbor_level": 1, "nodes":
+                       [{"public_key": hexlify(self.member.public_key), "total_up": 0, "total_down": 0,
+                         "page_rank": 1.0}], "edges": []}
         network_endpoint, request = self.set_up_endpoint_request("", "self", 1)
-        self.assertNotEquals(dumps(exp_message), network_endpoint.render_GET(request))
+        self.assertEquals(dumps(exp_message), network_endpoint.render_GET(request))
 
     def test_no_dataset(self):
         """
         Evaluate whether the API sends a response when the dataset is not defined.
         """
-        self.mc_community.get_graph = lambda public_key, neighbor_level: (public_key, public_key)
-        exp_message = {"focus_node": "30", "neighbor_level": 1, "nodes": "self",
-                       "edges": "self"}
+        exp_message = {"nodes": [{"public_key": hexlify(self.member.public_key), "total_down": 0, "total_up": 0,
+                                  "page_rank": 1.0}], "neighbor_level": 1,
+                       "focus_node": hexlify(self.member.public_key), "edges": []}
+
         network_endpoint, request = self.set_up_endpoint_request("", "self", 1)
         del request.args["dataset"]
-        self.assertNotEquals(dumps(exp_message), network_endpoint.render_GET(request))
+        self.assertEquals(dumps(exp_message), network_endpoint.render_GET(request))
 
     @blocking_call_on_reactor_thread
     def test_static_dataset(self):
         """
         Evaluate whether the API sends a response when the static dummy dataset is initialized.
         """
-        network_endpoint, request = self.set_up_endpoint_request("static", "3", 1)
+        network_endpoint, request = self.set_up_endpoint_request("static", "03", 1)
         response = network_endpoint.render_GET(request)
         self.assertTrue(self.mc_community.persistence.dummy_setup)
         self.assertEqual(len(loads(response)["nodes"]), 3)
@@ -157,11 +159,11 @@ class TestMultichainNetworkEndpoint(AbstractApiTest):
         """
         network_endpoint, request = self.set_up_endpoint_request("static", "self", 1)
         response = network_endpoint.render_GET(request)
-        self.assertEqual(loads(response)["focus_node"], "0")
+        self.assertEqual(loads(response)["focus_node"], "00")
 
         del request.args["dataset"]
         response = network_endpoint.render_GET(request)
-        self.assertEqual(loads(response)["focus_node"], "0")
+        self.assertEqual(loads(response)["focus_node"], "00")
 
     @deferred(timeout=10)
     def test_mc_community_exception(self):

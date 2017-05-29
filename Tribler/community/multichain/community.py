@@ -3,9 +3,11 @@ The MultiChain Community is the first step in an incremental approach in buildin
 This reputation system builds a tamper proof interaction history contained in a chain data-structure.
 Every node has a chain and these chains intertwine by blocks shared by chains.
 """
-import logging
+from binascii import hexlify
 from copy import deepcopy
-from itertools import combinations
+from itertools import permutations
+import logging
+
 from networkx import DiGraph
 from twisted.internet.defer import inlineCallbacks
 
@@ -296,7 +298,7 @@ class MultiChainCommunity(Community):
         Return a dictionary with the neighboring nodes and edges of a certain focus node within a certain radius,
         regarding the local multichain database.
 
-        :param public_key: the public key of the focus node
+        :param public_key: the public key of the focus node in raw format
         :param neighbor_level: the radius within which the neighbors have to be returned
         :return: a tuple of a dictionary with nodes and a dictionary with edges
         """
@@ -306,10 +308,10 @@ class MultiChainCommunity(Community):
         nodes = []
         for current_key in list_of_nodes:
             # TODO: retrieve more information at once when appropriate queries are present in database_driver
-            nodes.append({"public_key": current_key, "total_up": self.persistence.total_up(current_key),
+            nodes.append({"public_key": hexlify(current_key), "total_up": self.persistence.total_up(current_key),
                           "total_down": self.persistence.total_down(current_key)})
-            self.page_rank.add_node(current_key)
-        edges = self.get_edges(nodes)
+            self.page_rank.add_node(hexlify(current_key))
+        edges = self.get_edges(list_of_nodes)
         if len(self.ranks) == 0:
             self.get_page_ranks()
         for dic in nodes:
@@ -340,7 +342,7 @@ class MultiChainCommunity(Community):
         return return_list
 
     @blocking_call_on_reactor_thread
-    def get_edges(self, nodes=None):
+    def get_edges(self, nodes):
         """
         Return a dictionary with all edges between certain nodes around a certain focus node,
         regarding the local multichain database.
@@ -349,9 +351,8 @@ class MultiChainCommunity(Community):
         :param nodes: the dictionary of nodes between which the edges have to be returned
         :return: a dictionary with edges
         """
-        list_of_nodes = [node["public_key"] for node in nodes]
         list_of_edges = []
-        for pair in combinations(list_of_nodes, 2):
+        for pair in permutations(nodes, 2):
             current_neighbors = self.persistence.neighbor_list(pair[0])
             if pair[1] in current_neighbors:
                 list_of_edges.append(
@@ -362,13 +363,13 @@ class MultiChainCommunity(Community):
         edges = []
         for edge in list_of_edges:
             if edge[2] > 0:
-                edges.append({"from": edge[0], "to": edge[1],
+                edges.append({"from": hexlify(edge[0]), "to": hexlify(edge[1]),
                               "amount": edge[2]})
-                self.page_rank.add_edge(edge[0], edge[1], edge[2])
+                self.page_rank.add_edge(hexlify(edge[0]), hexlify(edge[1]), edge[2])
             if edge[3] > 0:
-                edges.append({"from": edge[1], "to": edge[0],
+                edges.append({"from": hexlify(edge[1]), "to": hexlify(edge[0]),
                               "amount": edge[3]})
-                self.page_rank.add_edge(edge[1], edge[0], edge[3])
+                self.page_rank.add_edge(hexlify(edge[1]), hexlify(edge[0]), edge[3])
         return edges
 
     def get_page_ranks(self):
