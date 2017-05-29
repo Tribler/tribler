@@ -242,7 +242,7 @@ class MultichainNetworkEndpoint(resource.Resource):
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/display?dataset=static&focus_node=xyz
+                curl -X GET http://localhost:8085/multichain/network?dataset=static&focus_node=xyz
 
             **Example response**:
 
