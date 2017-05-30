@@ -5,11 +5,13 @@ html, body {
     height: 100%;
     /*display: table;*/
     background-color: #202020;
+    overflow: hidden;
 }
 
 svg {
     display: block;
     margin: 0 auto;
+    width: 100%;
 }
 
 .tooltip {
