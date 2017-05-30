@@ -173,7 +173,7 @@ class MultichainNetworkEndpoint(resource.Resource):
 
     def __init__(self, session):
         """
-        Initialize the DisplayEndpoint and make a session an attribute from the instance.
+        Initialize the MultichainNetworkEndpoint and make a session an attribute from the instance.
 
         :param session: the Session object where the aggregated data can be retrieved from
         """
@@ -196,7 +196,7 @@ class MultichainNetworkEndpoint(resource.Resource):
 
     def get_multi_chain_community(self):
         """
-        Get the MultiChain community from the session.
+        Get the MultiChain Community from the session.
 
         :raise: OperationNotEnabledByConfigurationException if the MultiChain Community cannot be found
         :return: the MultiChain community
@@ -209,9 +209,10 @@ class MultichainNetworkEndpoint(resource.Resource):
 
     def render_GET(self, request):
         """
-        Process the GET request which retrieves information about the multichain network.
+        Process the GET request which retrieves information about the MultiChain network.
 
-        .. http:get:: /multichain/network?focus_node=(string: public key)&neighbor_level=(int: neighbor_level)
+        .. http:get:: /multichain/network?dataset=(string: dataset)&focus_node=(string: public key)
+                                                                    &neighbor_level=(int: neighbor level)
 
         A GET request to this endpoint returns the data from the multichain. This data is retrieved from the multichain
         database and will be focused around the given focus node. The neighbor_level parameter specifies which nodes
@@ -220,14 +221,14 @@ class MultichainNetworkEndpoint(resource.Resource):
 
         Note: the parameters are handled as follows:
         - dataset
-            - Not given: Multichain data
+            - Not given: MultiChain data
             - "static": Static dummy data
             - "random": Random dummy data
-            - otherwise: Multichain data
+            - otherwise: MultiChain data
         - focus_node
             - Not given: HTTP 400
             - Non-String value: HTTP 400
-            - "self": Multichain Community public key
+            - "self": MultiChain Community public key
             - otherwise: Passed data, albeit a string
         - neighbor_level
             - Not given: 1
@@ -242,7 +243,7 @@ class MultichainNetworkEndpoint(resource.Resource):
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/multichain/network?dataset=static&focus_node=xyz
+                curl -X GET http://localhost:8085/multichain/network?dataset=static&focus_node=xyz&neighbor_level=1
 
             **Example response**:
 
@@ -261,7 +262,6 @@ class MultichainNetworkEndpoint(resource.Resource):
                         "from": "xyz",
                         "to": "xyz_n1",
                         "amount": 12384
-
                     }, ...]
                 }
 
