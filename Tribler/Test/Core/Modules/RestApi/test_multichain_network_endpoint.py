@@ -39,22 +39,23 @@ class TestMultichainNetworkEndpoint(AbstractApiTest):
         self.dispersy.get_communities = lambda: [self.mc_community]
         self.session.get_dispersy_instance = lambda: self.dispersy
 
-    @deferred(timeout=10)
     def test_get_no_focus_node(self):
         """
         Evaluate whether the API returns an Bad Request error if there is no focus node specified.
         """
         exp_message = {"error": "focus_node parameter missing"}
-        return self.do_request('multichain/network?neighbor_level=1', expected_code=400, expected_json=exp_message)
+        network_endpoint, request = self.set_up_endpoint_request("multichain", "X", 1)
+        del request.args["focus_node"]
+        self.assertEqual(dumps(exp_message), network_endpoint.render_GET(request))
 
-    @deferred(timeout=10)
     def test_get_empty_focus_node(self):
         """
         Evaluate whether the API returns a Bad Request error if the focus node is empty.
         """
         exp_message = {"error": "focus_node parameter empty"}
-        return self.do_request('multichain/network?focus_node=&neighbor_level=1',
-                               expected_code=400, expected_json=exp_message)
+        network_endpoint, request = self.set_up_endpoint_request("multichain", "X", 1)
+        request.args["focus_node"] = ""
+        self.assertEqual(dumps(exp_message), network_endpoint.render_GET(request))
 
     def set_up_endpoint_request(self, dataset, focus_node, neighbor_level):
         """
@@ -177,4 +178,18 @@ class TestMultichainNetworkEndpoint(AbstractApiTest):
 
         exp_message = {"error": "multichain is not enabled"}
         return self.do_request('multichain/network?focus_node=self',
+                               expected_code=http.NOT_FOUND, expected_json=exp_message)
+
+    @deferred(timeout=10)
+    def test_mc_community_exception_dummy_data(self):
+        """
+        Evaluate whether the API returns the correct error when the multichain community can't be found with dummy data.
+        """
+        mocked_session = MockObject()
+        network_endpoint = MultichainNetworkEndpoint(mocked_session)
+        network_endpoint.get_multi_chain_community = lambda:\
+            (_ for _ in ()).throw(OperationNotEnabledByConfigurationException("multichain is not enabled"))
+
+        exp_message = {"error": "multichain is not enabled"}
+        return self.do_request('multichain/network?dataset=static&focus_node=self',
                                expected_code=http.NOT_FOUND, expected_json=exp_message)

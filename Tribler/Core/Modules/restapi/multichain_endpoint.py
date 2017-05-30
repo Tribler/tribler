@@ -274,13 +274,18 @@ class MultichainNetworkEndpoint(resource.Resource):
         # This header is needed because this request is not made from the same host
         request.setHeader('Access-Control-Allow-Origin', '*')
 
+        try:
+            mc_community = self.get_multi_chain_community()
+        except OperationNotEnabledByConfigurationException as exc:
+            return MultichainNetworkEndpoint.return_error(request, status_code=http.NOT_FOUND, message=exc.args)
+
         if "dataset" in request.args and not (len(request.args["dataset"]) < 1 or len(request.args["dataset"][0]) == 0):
             dataset = request.args["dataset"][0]
             if isinstance(dataset, basestring):
                 if dataset == "static":
-                    self.get_multi_chain_community().persistence.use_dummy_data(use_random=False)
+                    mc_community.persistence.use_dummy_data(use_random=False)
                 elif dataset == "random":
-                    self.get_multi_chain_community().persistence.use_dummy_data(use_random=True)
+                    mc_community.persistence.use_dummy_data(use_random=True)
 
         if "focus_node" not in request.args:
             return MultichainNetworkEndpoint.return_error(request, message="focus_node parameter missing")
@@ -291,14 +296,10 @@ class MultichainNetworkEndpoint(resource.Resource):
         focus_node = request.args["focus_node"][0]
         if isinstance(focus_node, basestring):
             if request.args["focus_node"][0] == "self":
-                try:
-                    if self.get_multi_chain_community().persistence.dummy_setup:
-                        focus_node = "00"
-                    else:
-                        mc_community = self.get_multi_chain_community()
-                        focus_node = hexlify(mc_community.my_member.public_key)
-                except OperationNotEnabledByConfigurationException as exc:
-                    return MultichainNetworkEndpoint.return_error(request, status_code=http.NOT_FOUND, message=exc.args)
+                if mc_community.persistence.dummy_setup:
+                    focus_node = "00"
+                else:
+                    focus_node = hexlify(mc_community.my_member.public_key)
             else:
                 focus_node = request.args["focus_node"][0]
         else:
@@ -310,8 +311,8 @@ class MultichainNetworkEndpoint(resource.Resource):
                 request.args["neighbor_level"][0].isdigit():
             neighbor_level = int(request.args["neighbor_level"][0])
 
-        mc_community = self.get_multi_chain_community()
         nodes, edges = mc_community.get_graph(unhexlify(focus_node), neighbor_level)
+
         return json.dumps({"focus_node": focus_node,
                            "neighbor_level": neighbor_level,
                            "nodes": nodes,
