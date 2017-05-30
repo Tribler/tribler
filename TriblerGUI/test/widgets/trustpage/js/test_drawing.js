@@ -3,8 +3,8 @@
  */
 
 assert = require("assert");
-config = require("../../../../widgets/trustpage/js/style_config.js");
-drawing = require("../../../../widgets/trustpage/js/drawing.js");
+config = require("TriblerGUI/widgets/trustpage/js/style_config.js");
+drawing = require("TriblerGUI/widgets/trustpage/js/drawing.js");
 
 describe("drawing.js", function () {
     describe("getStrokeWidth", function () {

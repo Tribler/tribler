@@ -2,7 +2,7 @@
  * This file tests the data_processor.js file with unit tests
  */
 assert = require('assert');
-processor = require('../../../../widgets/trustpage/js/data_processor.js');
+processor = require('TriblerGUI/widgets/trustpage/js/data_processor.js');
 
 describe('data_processor.js', function () {
 
