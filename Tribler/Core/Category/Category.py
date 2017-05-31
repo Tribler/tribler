@@ -22,7 +22,7 @@ class Category(object):
     def __init__(self, ffEnabled=False):
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        filename = os.path.join(get_lib_path(), u'Core', u'Category', CATEGORY_CONFIG_FILE)
+        filename = os.path.join(get_lib_path(), 'Core', 'Category', CATEGORY_CONFIG_FILE)
         try:
             self.category_info = getCategoryInfo(filename)
             self.category_info.sort(cmp_rank)
