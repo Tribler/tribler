@@ -18,7 +18,7 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_react
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
 
 
-DB_SCRIPT_NAME = u"schema_sdb_v%s.sql" % str(LATEST_DB_VERSION)
+DB_SCRIPT_NAME = "schema_sdb_v%s.sql" % str(LATEST_DB_VERSION)
 
 DB_FILE_NAME = u"tribler.sdb"
 DB_DIR_NAME = u"sqlite"
