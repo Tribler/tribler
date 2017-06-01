@@ -133,11 +133,13 @@ function update(graph) {
         var previous_focus = state.tree.nodes.find(function(node){
             return node.graphNode.public_key === state.previous_focus_pk;
         });
-        var correction = target_angle - previous_focus.alpha;
+        if(previous_focus) {
+            var correction = target_angle - previous_focus.alpha;
 
-        state.tree.nodes.forEach(function (node) {
-            node.alpha += correction;
-        });
+            state.tree.nodes.forEach(function (node) {
+                node.alpha += correction;
+            });
+        }
     }
 
     // Draw all nodes
