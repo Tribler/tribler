@@ -34,6 +34,16 @@ class TestProcessChecker(AbstractServer):
         self.assertTrue(os.path.exists(os.path.join(self.state_dir, LOCK_FILE_NAME)))
         self.assertFalse(process_checker.already_running)
 
+    def test_invalid_pid_in_lock_file(self):
+        """
+        Test whether a new lock file is created when an invalid pid is written inside the current lock file
+        """
+        with open(os.path.join(self.state_dir, LOCK_FILE_NAME), 'wb') as lock_file:
+            lock_file.write("Hello world")
+
+        process_checker = ProcessChecker()
+        self.assertGreater(int(process_checker.get_pid_from_lock_file()), 0)
+
     def test_own_pid_in_lock_file(self):
         """
         Testing whether the process checker returns false when it finds its own pid in the lock file

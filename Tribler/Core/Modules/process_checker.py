@@ -22,11 +22,18 @@ class ProcessChecker(object):
         self.lock_file_path = os.path.join(self.statedir, LOCK_FILE_NAME)
 
         if os.path.exists(self.lock_file_path):
-            file_pid = self.get_pid_from_lock_file()
-            if file_pid == str(os.getpid()):
+            try:
+                file_pid = int(self.get_pid_from_lock_file())
+            except ValueError:
+                # Apparently, the data written inside the lock file is not an int, just remove the file and recreate it.
+                self.remove_lock_file()
+                self.create_lock_file()
+                return
+
+            if file_pid == os.getpid():
                 # Ignore when we find our own PID inside the lock file
                 self.already_running = False
-            elif file_pid != os.getpid() and not ProcessChecker.is_pid_running(int(file_pid)):
+            elif file_pid != os.getpid() and not ProcessChecker.is_pid_running(file_pid):
                 # The process ID written inside the lock file is old, just remove the lock file and create a new one.
                 self.remove_lock_file()
                 self.create_lock_file()
