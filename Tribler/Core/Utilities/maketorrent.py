@@ -248,6 +248,8 @@ def pathlist2filename(pathlist):
         return fullpath.decode('utf-8')
     except UnicodeDecodeError:
         charenc = chardet.detect(fullpath)['encoding']
+        if not charenc:
+            return fullpath  # Hope for the best
         return fullpath.decode(charenc)
 
 
