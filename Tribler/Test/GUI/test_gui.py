@@ -7,6 +7,7 @@ from unittest import skipUnless
 from PyQt5.QtCore import QPoint, Qt, QTimer
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
+# TODO: Fix GUI tests by importing PyQt5.QtWebEngineWidgets, this can be done after CI is updated.
 from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget
 
 from Tribler.Core.Utilities.network_utils import get_random_port
@@ -516,8 +517,8 @@ class TriblerGUITest(AbstractTriblerGUITest):
         QTest.mouseClick(window.edit_channel_manage_playlist_save_button, Qt.LeftButton)
 
     def test_trust_page(self):
-        QTest.mouseClick(window.trust_button, Qt.LeftButton)
-        self.wait_for_variable("trust_page.blocks")
+        QTest.mouseClick(window.left_menu_button_trust_display, Qt.LeftButton)
+        # Since the trust page is rendered in JavaScript, it is tested there.
         self.screenshot(window, name="trust_page_values")
 
 if __name__ == "__main__":

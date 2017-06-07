@@ -532,6 +532,26 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         assert isinstance(statistics, dict), type(statistics)
         assert len(statistics) > 0
 
+    def test_get_graph_without_ranks(self):
+        """
+        Test the get_graph method without cached ranks.
+        """
+        node, = self.create_nodes(1)
+        node.community.get_page_ranks()
+        node.community.ranks = {}
+        nodes, _ = node.community.get_graph()
+        self.assertGreater(len(nodes), 0)
+
+    def test_get_graph_with_ranks(self):
+        """
+        Test the get_graph method with cached ranks.
+        """
+        node, = self.create_nodes(1)
+        node.community.ranks = {node.community.my_member.public_key: 1}
+        nodes, _ = node.community.get_graph()
+        self.assertGreater(len(nodes), 0)
+
+
     @blocking_call_on_reactor_thread
     def assertBlocksInDatabase(self, node, amount):
         count = node.community.persistence.execute(u"SELECT COUNT(*) FROM multi_chain").fetchone()[0]

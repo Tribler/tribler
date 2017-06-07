@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Trust Page</title>
+
+    <!-- TODO Import file when shipping with Tribler -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.8.0/d3.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<!-- THE GRAPH -->
+<svg id="graph" width="600" height="600" viewBox="0 0 600 600"></svg>
+<div class="tooltip">
+    <div id="tooltip-content">
+        <p id="header">Nodes</p>
+        <ul>
+            <li>Color: the relative page rank in the network.</li>
+        </ul>
+        <p id="header">Edges</p>
+        <ul>
+            <li>Color: shows where the edge is divided between the two nodes.</li>
+            <li>Size: the relative size of the upload quantity to all available </li>
+            <li>Division point: the ratio between the amounts uploaded between two nodes.</li>
+        </ul>
+    </div>
+</div>
+<!-- MAIN -->
+<script src="js/style_config.js"></script>
+<script src="js/drawing.js"></script>
+<script src="js/request_data.js"></script>
+<script src="js/graph_to_tree.js"></script>
+<script src="js/radial.js"></script>
+<script src="js/utilities.js"></script>
+<script src="js/data_processor.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
