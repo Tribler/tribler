@@ -368,7 +368,7 @@ class Session(SessionConfigInterface):
         removed
         """
         # locking by lm
-        self.lm.remove(d, removecontent=removecontent, removestate=removestate, hidden=hidden)
+        return self.lm.remove(d, removecontent=removecontent, removestate=removestate, hidden=hidden)
 
     def remove_download_by_id(self, infohash, removecontent=False, removestate=True):
         """
@@ -382,9 +382,7 @@ class Session(SessionConfigInterface):
         downloadList = self.get_downloads()
         for download in downloadList:
             if download.get_def().get_infohash() == infohash:
-                self.remove_download(download, removecontent, removestate)
-                self.tribler_config.remove_download_state(infohash)
-                return
+                return self.remove_download(download, removecontent, removestate)
 
         self.lm.remove_id(infohash)
 

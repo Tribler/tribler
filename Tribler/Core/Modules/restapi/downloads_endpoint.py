@@ -6,6 +6,7 @@ from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
+from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, NTFY_TORRENTS, DLMODE_VOD
@@ -317,9 +318,28 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             return DownloadSpecificEndpoint.return_404(request)
 
         remove_data = parameters['remove_data'][0] == "1"
-        self.session.remove_download(download, removecontent=remove_data)
 
-        return json.dumps({"removed": True})
+        def _on_torrent_removed(_):
+            """
+            Success callback
+            """
+            request.write(json.dumps({"removed": True}))
+            request.finish()
+
+        def _on_remove_failure(failure):
+            """
+            Error callback
+            :param failure: from remove_download
+            """
+            self._logger.exception(failure)
+            request.write(return_handled_exception(request, failure.value))
+            request.finish()
+
+        deferred = self.session.remove_download(download, removecontent=remove_data)
+        deferred.addCallback(_on_torrent_removed)
+        deferred.addErrback(_on_remove_failure)
+
+        return NOT_DONE_YET
 
     def render_PATCH(self, request):
         """
