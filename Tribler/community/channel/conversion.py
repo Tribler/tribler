@@ -6,7 +6,6 @@ from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket, Packet, DelayPacketByMissingMessage, DelayPacketByMissingMember
 
-
 DEBUG = False
 
 

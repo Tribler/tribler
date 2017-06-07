@@ -1,4 +1,5 @@
 import os
+
 from Tribler.Core.Utilities.install_dir import determine_install_dir
 from Tribler.Test.Core.base_test import TriblerCoreTest
 

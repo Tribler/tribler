@@ -2,26 +2,23 @@
 This file contains the tests for the community.py for MultiChain community.
 """
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import returnValue
 from twisted.internet.task import deferLater
 
 from Tribler.Core.Session import Session
-
 from Tribler.Test.Community.Multichain.test_multichain_utilities import MultiChainTestCase
-
-from Tribler.community.multichain.block import MultiChainBlock, GENESIS_SEQ
-from Tribler.community.multichain.community import (MultiChainCommunity, MultiChainCommunityCrawler, HALF_BLOCK, CRAWL,
-                                                    PendingBytes)
-from Tribler.community.tunnel.routing import Circuit
-
 from Tribler.Test.test_as_server import AbstractServer
-
+from Tribler.community.multichain.block import MultiChainBlock, GENESIS_SEQ
+from Tribler.community.multichain.community import (HALF_BLOCK, CRAWL,
+                                                    PendingBytes)
+from Tribler.community.multichain.community import (MultiChainCommunity, MultiChainCommunityCrawler)
+from Tribler.community.tunnel.routing import Circuit
 from Tribler.dispersy.message import DelayPacketByMissingMember
+from Tribler.dispersy.requestcache import IntroductionRequestCache
+from Tribler.dispersy.tests.debugcommunity.node import DebugNode
 from Tribler.dispersy.tests.dispersytestclass import DispersyTestFunc
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from Tribler.dispersy.tests.debugcommunity.node import DebugNode
-from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.requestcache import IntroductionRequestCache
 
 
 class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):

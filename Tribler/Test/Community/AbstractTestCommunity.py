@@ -1,4 +1,5 @@
 from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint

@@ -3,19 +3,18 @@ from hashlib import sha1
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
-
-from Tribler.community.multichain.conversion import MultiChainConversion
 from Tribler.community.multichain.community import HALF_BLOCK, CRAWL
-from Tribler.community.multichain.payload import HalfBlockPayload, CrawlRequestPayload
-
-from Tribler.dispersy.community import Community
+from Tribler.community.multichain.conversion import MultiChainConversion
+from Tribler.community.multichain.payload import CrawlRequestPayload
+from Tribler.community.multichain.payload import HalfBlockPayload
 from Tribler.dispersy.authentication import NoAuthentication
-from Tribler.dispersy.resolution import PublicResolution
-from Tribler.dispersy.distribution import DirectDistribution
-from Tribler.dispersy.destination import CandidateDestination
-from Tribler.dispersy.message import Message, DropPacket
+from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.crypto import ECCrypto
+from Tribler.dispersy.destination import CandidateDestination
+from Tribler.dispersy.distribution import DirectDistribution
+from Tribler.dispersy.message import Message, DropPacket
+from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 

@@ -3,6 +3,7 @@ Supported boosting sources.
 
 Author(s): Egbert Bouman, Mihai Capota, Elric Milon, Ardhi Putra
 """
+import feedparser
 import glob
 import logging
 import os
@@ -10,9 +11,6 @@ import re
 import urllib
 from binascii import hexlify, unhexlify
 from hashlib import sha1
-
-import feedparser
-import libtorrent as lt
 from twisted.internet import defer
 from twisted.internet import reactor
 from twisted.internet.defer import CancelledError
@@ -20,6 +18,8 @@ from twisted.internet.task import LoopingCall
 from twisted.web.client import Agent, readBody, getPage
 from twisted.web.error import Error
 from twisted.web.http_headers import Headers
+
+import libtorrent as lt
 
 from Tribler.Core.CreditMining.credit_mining_util import ent2chr
 from Tribler.Core.TorrentDef import TorrentDef

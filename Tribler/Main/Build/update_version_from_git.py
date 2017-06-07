@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
+import logging
+import sys
+from os import path, linesep
 from subprocess import Popen, PIPE
 from time import ctime
-from os import path, linesep
-import sys
-import logging
 
 logger = logging.getLogger(__name__)
 

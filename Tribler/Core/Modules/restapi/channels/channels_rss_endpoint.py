@@ -1,5 +1,6 @@
 import json
 from twisted.web import http
+
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 
 

@@ -3,9 +3,9 @@ from twisted.internet.defer import Deferred
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 from Tribler.Core.Category.Category import Category
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.tracker_manager import TrackerManager
 from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentChecker.session import HttpTrackerSession
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.simpledefs import NTFY_TORRENTS
@@ -22,9 +22,9 @@ class TestTorrentChecker(TriblerCoreTest):
     def setUp(self, annotate=True):
         super(TestTorrentChecker, self).setUp(annotate=annotate)
 
-        config = SessionStartupConfig()
+        config = TriblerConfig()
         config.set_state_dir(self.getStateDir())
-        config.set_megacache(True)
+        config.set_megacache_enabled(True)
 
         self.session = Session(config, ignore_singleton=True)
         self.session.start_database()

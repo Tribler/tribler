@@ -1,5 +1,6 @@
 import json
 from twisted.web import http
+
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json
 
@@ -51,7 +52,7 @@ class ChannelsPopularEndpoint(BaseChannelsEndpoint):
         results_json = []
         for channel in popular_channels:
             channel_json = convert_db_channel_to_json(channel)
-            if self.session.tribler_config.get_family_filter_enabled() and \
+            if self.session.config.get_family_filter_enabled() and \
                     self.session.lm.category.xxx_filter.isXXX(channel_json['name']):
                 continue
 

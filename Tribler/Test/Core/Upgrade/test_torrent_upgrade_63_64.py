@@ -1,6 +1,5 @@
 import os
 import shutil
-
 from apsw import Connection
 from nose.tools import raises
 from twisted.internet.defer import inlineCallbacks

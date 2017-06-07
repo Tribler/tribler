@@ -3,13 +3,13 @@ Category.
 
 Author(s):  Yuan Yuan, Jelle Roozenburg
 """
+import logging
 import os
 import re
-import logging
 from ConfigParser import MissingSectionHeaderError, ParsingError
 
-from Tribler.Core.Category.init_category import getCategoryInfo
 from Tribler.Core.Category.FamilyFilter import XXXFilter
+from Tribler.Core.Category.init_category import getCategoryInfo
 from Tribler.Core.Utilities.install_dir import get_lib_path
 
 CATEGORY_CONFIG_FILE = "category.conf"

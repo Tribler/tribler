@@ -1,6 +1,5 @@
-from struct import pack
 import zlib
-
+from struct import pack
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Utilities.encoding import encode

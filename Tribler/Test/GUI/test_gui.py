@@ -9,9 +9,9 @@ from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget
 
-from Tribler.Core.Utilities.network_utils import get_random_port
 import TriblerGUI.core_manager as core_manager
 import TriblerGUI.defs as gui_defs
+from Tribler.Core.Utilities.network_utils import get_random_port
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.widgets.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
@@ -53,7 +53,6 @@ class AbstractTriblerGUITest(unittest.TestCase):
         self.old_main = sys.modules["__main__"]
         self.old_main_file = sys.modules["__main__"].__file__
 
-        from TriblerGUI.scripts import start_fake_core  # So the module is loaded
         sys.modules["__main__"] = sys.modules["TriblerGUI.scripts.start_fake_core"]
         sys.modules["__main__"].__file__ = sys.modules["TriblerGUI.scripts.start_fake_core"].__file__
 

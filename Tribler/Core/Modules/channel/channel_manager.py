@@ -1,12 +1,11 @@
-from binascii import hexlify
 import logging
+from binascii import hexlify
 
+from Tribler.Core.Modules.channel.channel import ChannelObject
+from Tribler.Core.exceptions import DuplicateChannelNameError
+from Tribler.community.channel.community import ChannelCommunity
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
-from Tribler.community.channel.community import ChannelCommunity
-
-from Tribler.Core.exceptions import DuplicateChannelNameError
-from Tribler.Core.Modules.channel.channel import ChannelObject
 
 
 class ChannelManager(TaskManager):

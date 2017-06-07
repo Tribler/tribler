@@ -1,8 +1,6 @@
 import json
-
 from twisted.web import http
 
-from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json
 
@@ -65,7 +63,7 @@ class ChannelsPlaylistsEndpoint(BaseChannelsEndpoint):
         req_columns_torrents = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
                                 'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.inserted']
 
-        should_filter = self.session.tribler_config.get_family_filter_enabled()
+        should_filter = self.session.config.get_family_filter_enabled()
         if 'disable_filter' in request.args and len(request.args['disable_filter']) > 0 \
                 and request.args['disable_filter'][0] == "1":
             should_filter = False

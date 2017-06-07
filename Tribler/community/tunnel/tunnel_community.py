@@ -3,15 +3,14 @@ The tunnel community.
 
 Author(s): Egbert Bouman
 """
+import logging
 import random
 import socket
 import time
-import logging
-
-from itertools import chain
 from collections import defaultdict
-from cryptography.exceptions import InvalidTag
+from itertools import chain
 
+from cryptography.exceptions import InvalidTag
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred, succeed, inlineCallbacks, returnValue
 from twisted.internet.error import MessageLengthError
@@ -234,9 +233,9 @@ class TunnelSettings(object):
         self.dht_lookup_interval = 30
 
         if tribler_session:
-            self.socks_listen_ports = tribler_session.get_tunnel_community_socks5_listen_ports()
-            self.become_exitnode = tribler_session.get_tunnel_community_exitnode_enabled()
-            self.enable_multichain = tribler_session.get_enable_multichain()
+            self.socks_listen_ports = tribler_session.config.get_tunnel_community_socks5_listen_ports()
+            self.become_exitnode = tribler_session.config.get_tunnel_community_exitnode_enabled()
+            self.enable_multichain = tribler_session.config.get_multichain_enabled()
         else:
             self.socks_listen_ports = range(1080, 1085)
             self.become_exitnode = False
@@ -295,10 +294,10 @@ class TunnelCommunity(Community):
                              'e79efd8853cef1640b93c149d7b0f067f6ccf221'.decode('hex')]
         self.bittorrent_peers = {}
 
-        self.trsession = self.settings = self.socks_server = None
+        self.tribler_session = self.settings = self.socks_server = None
 
     def initialize(self, tribler_session=None, settings=None):
-        self.trsession = tribler_session
+        self.tribler_session = tribler_session
         self.settings = settings if settings else TunnelSettings(tribler_session=tribler_session)
 
         self.tunnel_logger.info("TunnelCommunity: setting become_exitnode = %s" % self.settings.become_exitnode)
@@ -317,9 +316,9 @@ class TunnelCommunity(Community):
         self.socks_server = Socks5Server(self, self.settings.socks_listen_ports)
         self.socks_server.start()
 
-        if self.trsession:
-            self.notifier = self.trsession.notifier
-            self.trsession.lm.tunnel_community = self
+        if self.tribler_session:
+            self.notifier = self.tribler_session.notifier
+            self.tribler_session.lm.tunnel_community = self
 
     def self_is_connectable(self):
         return self._dispersy._connection_type == u"public"
@@ -618,7 +617,8 @@ class TunnelCommunity(Community):
             circuit.destroy()
 
             affected_peers = self.socks_server.circuit_dead(circuit)
-            ltmgr = self.trsession.lm.ltmgr if self.trsession and self.trsession.get_libtorrent() else None
+            ltmgr = self.tribler_session.lm.ltmgr \
+                if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled() else None
             if ltmgr:
                 affected_torrents = {d: affected_peers.intersection(peer.ip for peer in d.handle.get_peer_info())
                                      for d, s in ltmgr.torrents.values() if s == ltmgr.get_session(d.get_hops())}

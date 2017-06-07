@@ -2,16 +2,17 @@ import os
 import sys
 from binascii import hexlify
 from hashlib import sha1
+from threading import Event
 from unittest import skipIf
 
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.Session import Session
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from Tribler.dispersy.candidate import Candidate
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
+from Tribler.dispersy.candidate import Candidate
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestRemoteTorrentHandler(TestAsServer):
@@ -28,12 +29,14 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.test_deferred = Deferred()
         self.config2 = None
         self.session2 = None
+        self.session1_port = None
+        self.session2_state_dir = None
 
     def setUpPreSession(self):
         super(TestRemoteTorrentHandler, self).setUpPreSession()
-        self.config.set_dispersy(True)
-        self.config.set_torrent_store(True)
-        self.config.set_enable_metadata(True)
+        self.config.set_dispersy_enabled(True)
+        self.config.set_torrent_store_enabled(True)
+        self.config.set_metadata_enabled(True)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -43,11 +46,11 @@ class TestRemoteTorrentHandler(TestAsServer):
 
     def setup_downloader(self):
         self.config2 = self.config.copy()
-        self.config2.set_megacache(True)
-        self.config2.set_torrent_collecting(True)
+        self.config2.set_megacache_enabled(True)
+        self.config2.set_torrent_collecting_enabled(True)
         self.config2.set_torrent_store_dir(None)
         self.config2.set_metadata_store_dir(None)
-        self.config2.set_enable_metadata(True)
+        self.config2.set_metadata_enabled(True)
         self.config2.set_state_dir(self.getStateDir(2))
 
         self.session2 = Session(self.config2, ignore_singleton=True)
@@ -59,8 +62,7 @@ class TestRemoteTorrentHandler(TestAsServer):
         """
         Testing whether downloading a torrent from another peer is successful
         """
-        self._logger.info(u"Start torrent download test...")
-        session1_port = self.session.get_dispersy_port()
+        session1_port = self.session.config.get_dispersy_port()
 
         def start_download(_):
             candidate = Candidate(("127.0.0.1", session1_port), False)
@@ -96,10 +98,8 @@ class TestRemoteTorrentHandler(TestAsServer):
     def test_metadata_download(self):
         """
         Testing whether downloading torrent metadata from another peer is successful
-        Testing whether downloading torrent metadata from another peer is successful
         """
-        self._logger.info(u"Start metadata download test...")
-        session1_port = self.session.get_dispersy_port()
+        session1_port = self.session.config.get_dispersy_port()
 
         # Add thumbnails to the store of the second session
         thumb_file = os.path.join(unicode(TESTS_DATA_DIR), u"41aea20908363a80d44234e8fef07fab506cd3b4",
@@ -121,6 +121,48 @@ class TestRemoteTorrentHandler(TestAsServer):
             retrieved_data = self.session2.lm.rtorrent_handler.get_metadata(thumb_hash)
             self.assertEqual(retrieved_data, self.thumb_data, "metadata doesn't match")
             self.test_deferred.callback(None)
+
+        self.setup_downloader().addCallback(start_download)
+        return self.test_deferred
+
+    def setup_metadata_downloader(self):
+        self.download_event = Event()
+        self.session1_port = self.session.config.get_dispersy_port()
+
+        # load thumbnail, calculate hash, and save into the metadata_store
+        infohash_str = "41aea20908363a80d44234e8fef07fab506cd3b4"
+        self.infohash = infohash_str.decode('hex')
+        self.metadata_dir = u"%s" % infohash_str
+
+        self.thumb_file = os.path.join(unicode(TESTS_DATA_DIR), self.metadata_dir, u"421px-Pots_10k_100k.jpeg")
+        with open(self.thumb_file, 'rb') as f:
+            self.thumb_data = f.read()
+        thumb_hash = sha1(self.thumb_data).digest()
+
+        thumb_hash_str = hexlify(thumb_hash)
+        self.session.lm.metadata_store[thumb_hash_str] = self.thumb_data
+
+        def start_download(_):
+            candidate = Candidate(("127.0.0.1", self.session1_port), False)
+            self.session2.lm.rtorrent_handler.download_metadata(candidate, thumb_hash,
+                                                                usercallback=do_check_download)
+        self.config2 = self.config.copy()
+        self.config2.set_megacache_enabled(True)
+        self.config2.set_torrent_collecting_enabled(True)
+        self.config2.set_metadata_enabled(True)
+
+        self.session2_state_dir = self.session.config.get_state_dir() + u"2"
+        self.config2.set_state_dir(self.session2_state_dir)
+
+        def do_check_download(_):
+            self.assertTrue(self.session2.lm.rtorrent_handler.has_metadata(thumb_hash))
+            retrieved_data = self.session2.lm.rtorrent_handler.get_metadata(thumb_hash)
+            self.assertEqual(retrieved_data, self.thumb_data, "metadata doesn't match")
+            self.test_deferred.callback(None)
+
+        self._logger.info(u"Downloader's torrent_collect_dir = %s", u"")
+        self._logger.info(u"Uploader port: %s, Downloader port: %s",
+                          self.session1_port, self.session2.config.get_dispersy_port())
 
         self.setup_downloader().addCallback(start_download)
         return self.test_deferred

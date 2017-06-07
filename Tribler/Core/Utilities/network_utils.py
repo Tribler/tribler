@@ -1,10 +1,10 @@
 """
 This module contains some utility functions for networking.
 """
+import logging
+import random
 import socket
 import struct
-import random
-import logging
 import sys
 
 logger = logging.getLogger(__name__)

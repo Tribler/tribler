@@ -31,7 +31,7 @@ class TriblerStatistics(object):
 
                       "num_channels": channel_db_handler.getNrChannels(),
                       "database_size": os.path.getsize(
-                          os.path.join(self.session.get_state_dir(), DB_FILE_RELATIVE_PATH))}
+                          os.path.join(self.session.config.get_state_dir(), DB_FILE_RELATIVE_PATH))}
 
         if self.session.lm.rtorrent_handler:
             torrent_queue_stats = self.session.lm.rtorrent_handler.get_queue_stats()

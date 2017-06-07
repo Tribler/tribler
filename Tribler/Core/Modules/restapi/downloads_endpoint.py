@@ -1,14 +1,11 @@
 import json
-import os
-
 import logging
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
+
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
-from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-
-from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, NTFY_TORRENTS, DLMODE_VOD
+from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
 
 
 class DownloadBaseEndpoint(resource.Resource):
@@ -198,8 +195,9 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                              "total_down": stats.downTotal, "ratio": ratio,
                              "files": files_array, "trackers": tracker_info, "hops": download.get_hops(),
                              "anon_download": download.get_anon_mode(), "safe_seeding": download.get_safe_seeding(),
-                             "max_upload_speed": download.get_max_speed(UPLOAD),
-                             "max_download_speed": download.get_max_speed(DOWNLOAD),
+                             # Maximum upload/download rates are set for entire sessions
+                             "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
+                             "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
                              "destination": download.get_dest_dir(), "availability": state.get_availability(),
                              "total_pieces": download.get_num_pieces(), "vod_mode": download.get_mode() == DLMODE_VOD,
                              "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
@@ -317,7 +315,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             return DownloadSpecificEndpoint.return_404(request)
 
         remove_data = parameters['remove_data'][0] == "1"
-        self.session.remove_download(download, removecontent=remove_data)
+        self.session.remove_download(download, remove_content=remove_data)
 
         return json.dumps({"removed": True})
 

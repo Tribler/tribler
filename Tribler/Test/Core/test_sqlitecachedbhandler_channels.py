@@ -1,5 +1,4 @@
 from binascii import unhexlify
-
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, VoteCastDBHandler

@@ -1,21 +1,20 @@
 import logging
+from base64 import b64encode
+from binascii import hexlify
+from hashlib import sha1
+from random import randint
 from socket import inet_aton
 from struct import unpack
-from random import randint
-from binascii import hexlify
 from time import time
-from hashlib import sha1
-from base64 import b64encode
 from twisted.internet import reactor
 
-from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
 from Tribler.dispersy.candidate import Candidate
+from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
 from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread, attach_runtime_statistics
-from .session import Session, DEFAULT_BLOCK_SIZE, DEFAULT_TIMEOUT
+from .exception import InvalidPacketException, FileNotFound
 from .packet import (encode_packet, decode_packet, OPCODE_RRQ, OPCODE_WRQ, OPCODE_ACK, OPCODE_DATA, OPCODE_OACK,
                      OPCODE_ERROR, ERROR_DICT)
-from .exception import InvalidPacketException, FileNotFound
-
+from .session import Session, DEFAULT_BLOCK_SIZE, DEFAULT_TIMEOUT
 
 MAX_INT16 = 2 ** 16 - 1
 

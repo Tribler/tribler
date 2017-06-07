@@ -8,9 +8,9 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings, UPLOAD, DOWNLOAD, DLMODE_VOD
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestVideoOnDemand(TestAsServer):
@@ -35,7 +35,7 @@ class TestVideoOnDemand(TestAsServer):
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
-        self.config.set_libtorrent(True)
+        self.config.set_libtorrent_enabled(True)
 
     def create_torrent(self):
         [srchandle, sourcefn] = mkstemp()
@@ -49,7 +49,7 @@ class TestVideoOnDemand(TestAsServer):
         self.tdef.set_tracker("http://127.0.0.1:12/announce")
         self.tdef.finalize()
 
-        torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
+        torrentfn = os.path.join(self.session.config.get_state_dir(), "gen.torrent")
         self.tdef.save(torrentfn)
 
         dscfg = DownloadStartupConfig()

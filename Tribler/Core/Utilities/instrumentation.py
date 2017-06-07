@@ -4,11 +4,10 @@ instrumentation.
 Author(s): Elric Milon
 """
 import threading
+from decorator import decorator
 from os import sys
 from threading import Lock, RLock, Thread
 from time import sleep, time
-
-from decorator import decorator
 
 MAX_SAME_STACK_TIME = 60
 

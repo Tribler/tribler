@@ -1,15 +1,13 @@
-import os
 import logging
+import os
 
-from Tribler.dispersy.taskmanager import TaskManager
-from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
-
-from Tribler.community.search.community import SearchCommunity
-from Tribler.community.allchannel.community import AllChannelCommunity
-
+from Tribler.Core.Utilities.search_utils import split_into_keywords
 from Tribler.Core.simpledefs import (SIGNAL_SEARCH_COMMUNITY, SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS,
                                      NTFY_CHANNELCAST, SIGNAL_TORRENT, SIGNAL_CHANNEL)
-from Tribler.Core.Utilities.search_utils import split_into_keywords
+from Tribler.community.allchannel.community import AllChannelCommunity
+from Tribler.community.search.community import SearchCommunity
+from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
 
 class SearchManager(TaskManager):

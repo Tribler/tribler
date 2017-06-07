@@ -1,9 +1,8 @@
 import logging
 import time
 
-from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
-
+from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
 MAX_TRACKER_FAILURES = 5
 TRACKER_RETRY_INTERVAL = 60    # A "dead" tracker will be retired every 60 seconds

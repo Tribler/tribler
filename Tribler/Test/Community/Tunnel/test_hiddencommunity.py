@@ -1,11 +1,9 @@
 import time
 
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING
-
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
-
-from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.Community.Tunnel.test_tunnel_base import AbstractTestTunnelCommunity
+from Tribler.Test.Core.base_test import MockObject
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestHiddenCommunity(AbstractTestTunnelCommunity):

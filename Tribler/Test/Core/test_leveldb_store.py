@@ -4,13 +4,11 @@ Tests for the LevelDB.
 Author(s): Elric Milon
 """
 from nose.tools import raises
-
 from shutil import rmtree
 from tempfile import mkdtemp
-
 from twisted.internet.task import Clock
 
-from Tribler.Core.leveldbstore import LevelDbStore, WRITEBACK_PERIOD, get_write_batch_plyvel, get_write_batch_leveldb
+from Tribler.Core.leveldbstore import LevelDbStore, WRITEBACK_PERIOD, get_write_batch_leveldb
 from Tribler.Test.test_as_server import BaseTestCase
 
 

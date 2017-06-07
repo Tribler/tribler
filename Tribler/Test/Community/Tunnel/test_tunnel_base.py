@@ -1,4 +1,5 @@
 from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Test.Community.AbstractTestCommunity import AbstractTestCommunity
 from Tribler.community.tunnel.Socks5.server import Socks5Server
 from Tribler.community.tunnel.conversion import TunnelConversion

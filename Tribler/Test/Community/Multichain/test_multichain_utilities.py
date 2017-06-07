@@ -3,9 +3,10 @@ File containing utilities used in testing the MultiChain community.
 """
 import random
 from hashlib import sha256
-from Tribler.dispersy.crypto import ECCrypto
+
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.community.multichain.block import MultiChainBlock
+from Tribler.dispersy.crypto import ECCrypto
 
 
 class TestBlock(MultiChainBlock):
