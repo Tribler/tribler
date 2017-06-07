@@ -532,6 +532,52 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         assert isinstance(statistics, dict), type(statistics)
         assert len(statistics) > 0
 
+    def test_get_graph_no_public_key(self):
+        """
+        Test the get_graph method where public_key is None.
+        """
+        node, = self.create_nodes(1)
+        (nodes, edges) = node.community.get_graph(None)
+        self.assertTrue(isinstance(nodes, dict))
+        self.assertTrue(type(nodes))
+        self.assertTrue(isinstance(edges, dict))
+        self.assertTrue(type(edges))
+        self.assertGreater(len(nodes), 0)
+        self.assertGreater(len(edges), 0)
+
+    def test_get_edges_no_public_key(self):
+        """
+        Test the get_edges method where public_key is None.
+        """
+        node, = self.create_nodes(1)
+        edges = node.community.get_edges(None)
+        self.assertTrue(isinstance(edges, dict))
+        self.assertTrue(type(edges))
+        self.assertGreater(len(edges), 0)
+
+    def test_get_graph_public_key(self):
+        """
+        Test the get_nodes method where public_key is defined.
+        """
+        node, = self.create_nodes(1)
+        (nodes, edges) = node.community.get_graph()
+        self.assertTrue(isinstance(nodes, dict))
+        self.assertTrue(type(nodes))
+        self.assertTrue(isinstance(edges, dict))
+        self.assertTrue(type(edges))
+        self.assertGreater(len(nodes), 0)
+        self.assertGreater(len(edges), 0)
+
+    def test_get_edges_public_key(self):
+        """
+        Test the get_edges method where public_key is defined.
+        """
+        node, = self.create_nodes(1)
+        edges = node.community.get_edges()
+        self.assertTrue(isinstance(edges, dict))
+        self.assertTrue(type(edges))
+        self.assertGreater(len(edges), 0)
+
     @blocking_call_on_reactor_thread
     def assertBlocksInDatabase(self, node, amount):
         count = node.community.persistence.execute(u"SELECT COUNT(*) FROM multi_chain").fetchone()[0]
