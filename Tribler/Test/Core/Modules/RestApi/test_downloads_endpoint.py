@@ -3,6 +3,8 @@ import os
 from binascii import hexlify
 from urllib import pathname2url
 
+from twisted.internet.defer import fail
+
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -331,3 +333,17 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
 
         return self.do_request('downloads/%s' % infohash, post_data={'anon_hops': 1},
                                expected_code=200, expected_json={'modified': True}, request_type='PATCH')
+
+    @deferred(timeout=10)
+    def test_change_hops_fail(self):
+        def on_remove_download(d, remove_content=False, remove_state=True, hidden=False):
+            return fail(RuntimeError())
+        self.session.remove_download = on_remove_download
+
+        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        infohash = video_tdef.get_infohash().encode('hex')
+
+        return self.do_request('downloads/%s' % infohash, post_data={"remove_data": True}, expected_code=500,
+                               expected_json={u'error': {u'message': u'', u'code': u'RuntimeError', u'handled': True}},
+                               request_type='DELETE')

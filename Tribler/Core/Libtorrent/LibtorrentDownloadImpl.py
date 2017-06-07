@@ -159,6 +159,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         self.deferreds_resume = []
         self.deferreds_handle = []
+        self.deferred_removed = Deferred()
 
         self.handle_check_lc = self.register_task("handle_check", LoopingCall(self.check_handle))
 
@@ -1049,15 +1050,16 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     def stop(self):
         self.set_user_stopped(True)
-        self.stop_remove(removestate=False, removecontent=False)
+        return self.stop_remove(removestate=False, removecontent=False)
 
     def stop_remove(self, removestate=False, removecontent=False):
         """ Called by any thread. Called on Session.remove_download() """
         self.done = removestate
-        self.network_stop(removestate=removestate, removecontent=removecontent)
+        return self.network_stop(removestate=removestate, removecontent=removecontent)
 
     def network_stop(self, removestate, removecontent):
         """ Called by network thread, but safe for any """
+        out = None
         with self.dllock:
             self._logger.debug("LibtorrentDownloadImpl: network_stop %s", self.tdef.get_name())
             self.cancel_all_pending_tasks()
@@ -1067,7 +1069,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 self._logger.debug("LibtorrentDownloadImpl: network_stop: engineresumedata from torrent handle")
                 self.pstate_for_restart = pstate
                 if removestate:
-                    self.ltmgr.remove_torrent(self, removecontent)
+                    out = self.ltmgr.remove_torrent(self, removecontent)
                     self.handle = None
                 else:
                     self.set_vod_mode(False)
@@ -1098,6 +1100,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
             if removestate:
                 self.session.lm.remove_pstate(self.tdef.get_infohash())
+
+        return out or succeed(None)
 
     def get_content_dest(self):
         """ Returns the file to which the downloaded content is saved. """

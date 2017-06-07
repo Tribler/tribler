@@ -173,6 +173,26 @@ class TestLibtorrentMgr(AbstractServer):
         self.assertEqual(self.ltmgr.add_torrent(None, {'ti': infohash}), mock_handle)
         self.assertRaises(DuplicateDownloadException, self.ltmgr.add_torrent, None, {'ti': infohash})
 
+    def test_remove_invalid_torrent(self):
+        """
+        Tests a successful removal status of torrents without a handle
+        """
+        self.ltmgr.initialize()
+        mock_dl = MockObject()
+        mock_dl.handle = None
+        self.assertTrue(self.ltmgr.remove_torrent(mock_dl).called)
+
+    def test_remove_invalid_handle_torrent(self):
+        """
+        Tests a successful removal status of torrents with an invalid handle
+        """
+        self.ltmgr.initialize()
+        mock_handle = MockObject()
+        mock_handle.is_valid = lambda: False
+        mock_dl = MockObject()
+        mock_dl.handle = mock_handle
+        self.assertTrue(self.ltmgr.remove_torrent(mock_dl).called)
+
     def test_start_download_corrupt(self):
         """
         Testing whether starting the download of a corrupt torrent file raises an exception

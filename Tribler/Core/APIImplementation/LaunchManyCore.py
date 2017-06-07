@@ -13,7 +13,7 @@ from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList
+from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, returnValue, succeed
 from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
@@ -433,8 +433,9 @@ class TriblerLaunchMany(TaskManager):
 
     def remove(self, d, removecontent=False, removestate=True, hidden=False):
         """ Called by any thread """
+        out = None
         with self.session_lock:
-            d.stop_remove(removestate=removestate, removecontent=removecontent)
+            out = d.stop_remove(removestate=removestate, removecontent=removecontent)
             infohash = d.get_def().get_infohash()
             if infohash in self.downloads:
                 del self.downloads[infohash]
@@ -444,6 +445,8 @@ class TriblerLaunchMany(TaskManager):
 
         if self.tunnel_community:
             self.tunnel_community.on_download_removed(d)
+
+        return out or succeed(None)
 
     def remove_id(self, infohash):
         @forceDBThread
@@ -469,20 +472,21 @@ class TriblerLaunchMany(TaskManager):
         with self.session_lock:
             return infohash in self.downloads
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def update_download_hops(self, download, new_hops):
         """
         Update the amount of hops for a specified download. This can be done on runtime.
         """
         infohash = binascii.hexlify(download.tdef.get_infohash())
         self._logger.info("Updating the amount of hops of download %s", infohash)
-        self.session.remove_download(download)
+        yield self.session.remove_download(download)
 
         # copy the old download_config and change the hop count
         dscfg = download.copy()
         dscfg.set_hops(new_hops)
 
-        self.register_task("reschedule_download_%s" % infohash,
-                           reactor.callLater(3, self.session.start_download_from_tdef, download.tdef, dscfg))
+        self.session.start_download_from_tdef(download.tdef, dscfg)
 
     def update_trackers(self, infohash, trackers):
         """ Update the trackers for a download.
@@ -567,6 +571,8 @@ class TriblerLaunchMany(TaskManager):
 
         return deferToThread(callback, dslist).addCallback(on_cb_done)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def sesscb_states_callback(self, states_list):
         """
         This method is periodically (every second) called with a list of the download states of the active downloads.
@@ -602,15 +608,13 @@ class TriblerLaunchMany(TaskManager):
                     hops = self.session.config.get_default_number_hops()
                     self._logger.info("Moving completed torrent to tunneled session %d for hidden seeding %r",
                                       hops, download)
-                    self.session.remove_download(download)
+                    yield self.session.remove_download(download)
 
                     # copy the old download_config and change the hop count
                     dscfg = download.copy()
                     dscfg.set_hops(hops)
 
-                    # TODO: That's a hack to work around the fact that removing a torrent is racy.
-                    self.register_task("reschedule_download_%s" % tdef.get_infohash(),
-                                       reactor.callLater(5, self.session.start_download_from_tdef, tdef, dscfg))
+                    self.session.start_download_from_tdef(tdef, dscfg)
 
         self.previous_active_downloads = new_active_downloads
         if do_checkpoint:
@@ -619,7 +623,7 @@ class TriblerLaunchMany(TaskManager):
         if self.state_cb_count % 4 == 0 and self.tunnel_community:
             self.tunnel_community.monitor_downloads(states_list)
 
-        return []
+        returnValue([])
 
     #
     # Persistence methods
