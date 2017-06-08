@@ -111,13 +111,13 @@ class TriblerChainCommunity(TrustChainCommunity):
         block = message.payload.block
         pend = self.pending_bytes.get(block.public_key)
         if not pend or not (pend.up - block.transaction['down'] >= 0 and pend.down - block.transaction['up'] >= 0):
-            self.logger.info("Request block counter party does not have enough bytes pending.")
+            self.logger.info("Request block counter party does not have enough bytes pending. U: %d D: %d",
+                             pend.up if pend is not None else 0, pend.down if pend is not None else 0)
 
             # These bytes might have been bought on the market so we store this message and process it when we
             # receive a payment message that confirms we have bought these bytes.
             block_id = "%s.%s" % (block.public_key.encode('hex'), block.sequence_number)
             self.pending_sign_messages[block_id] = message
-
             return False
         return True
 

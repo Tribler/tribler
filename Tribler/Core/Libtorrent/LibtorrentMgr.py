@@ -34,6 +34,17 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_react
 LTSTATE_FILENAME = "lt.state"
 METAINFO_CACHE_PERIOD = 5 * 60
 DHT_CHECK_RETRIES = 1
+DEFAULT_DHT_ROUTERS = [
+    ("dht.libtorrent.org", 25401),
+    ("router.bittorrent.com", 6881),
+    ("router.utorrent.com", 6881)
+]
+DEFAULT_LT_EXTENSIONS = [
+    lt.create_metadata_plugin,
+    lt.create_ut_metadata_plugin,
+    lt.create_ut_pex_plugin,
+    lt.create_smart_ban_plugin
+]
 
 
 class LibtorrentMgr(TaskManager):
@@ -63,6 +74,11 @@ class LibtorrentMgr(TaskManager):
 
         self.process_alerts_lc = self.register_task("process_alerts", LoopingCall(self._task_process_alerts))
         self.check_reachability_lc = self.register_task("check_reachability", LoopingCall(self._check_reachability))
+
+        self.default_alert_mask = lt.alert.category_t.stats_notification | lt.alert.category_t.error_notification | \
+                                  lt.alert.category_t.status_notification | lt.alert.category_t.storage_notification | \
+                                  lt.alert.category_t.performance_warning | lt.alert.category_t.tracker_notification
+        self.alert_callback = None
 
     @blocking_call_on_reactor_thread
     def initialize(self):
@@ -114,12 +130,15 @@ class LibtorrentMgr(TaskManager):
         settings['outgoing_port'] = 0
         settings['num_outgoing_ports'] = 1
 
+        # Copy construct so we don't modify the default list
+        extensions = list(DEFAULT_LT_EXTENSIONS)
+
         if hops == 0:
             settings['user_agent'] = 'Tribler/' + version_id
             # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
             fingerprint = ['TL'] + map(int, version_id.split('-')[0].split('.')) + [0]
             # Workaround for libtorrent 0.16.3 segfault (see https://code.google.com/p/libtorrent/issues/detail?id=369)
-            ltsession = lt.session(lt.fingerprint(*fingerprint), flags=1)
+            ltsession = lt.session(lt.fingerprint(*fingerprint), flags=0)
             enable_utp = self.tribler_session.config.get_libtorrent_utp()
             settings['enable_outgoing_utp'] = enable_utp
             settings['enable_incoming_utp'] = enable_utp
@@ -134,18 +153,13 @@ class LibtorrentMgr(TaskManager):
             settings['enable_incoming_tcp'] = False
             settings['anonymous_mode'] = True
             settings['force_proxy'] = True
-            # No PEX for anonymous sessions
             ltsession = lt.session(flags=0)
-            ltsession.add_extension(lt.create_ut_metadata_plugin)
-            ltsession.add_extension(lt.create_smart_ban_plugin)
+            # No PEX for anonymous sessions
+            if lt.create_ut_pex_plugin in extensions:
+                extensions.remove(lt.create_ut_pex_plugin)
 
         ltsession.set_settings(settings)
-        ltsession.set_alert_mask(lt.alert.category_t.stats_notification |
-                                 lt.alert.category_t.error_notification |
-                                 lt.alert.category_t.status_notification |
-                                 lt.alert.category_t.storage_notification |
-                                 lt.alert.category_t.performance_warning |
-                                 lt.alert.category_t.tracker_notification)
+        ltsession.set_alert_mask(self.default_alert_mask)
 
         # Load proxy settings
         if hops == 0:
@@ -155,6 +169,9 @@ class LibtorrentMgr(TaskManager):
             proxy_host, proxy_ports = proxy_settings[1]
             proxy_settings[1] = (proxy_host, proxy_ports[hops - 1])
         self.set_proxy_settings(ltsession, *proxy_settings)
+
+        for extension in extensions:
+            ltsession.add_extension(extension)
 
         # Set listen port & start the DHT
         if hops == 0:
@@ -182,9 +199,8 @@ class LibtorrentMgr(TaskManager):
             ltsession_settings['download_rate_limit'] = self.tribler_session.config.get_libtorrent_max_download_rate()
             ltsession.set_settings(ltsession_settings)
 
-        ltsession.add_dht_router('router.bittorrent.com', 6881)
-        ltsession.add_dht_router('router.utorrent.com', 6881)
-        ltsession.add_dht_router('router.bitcomet.com', 6881)
+        for router in DEFAULT_DHT_ROUTERS:
+            ltsession.add_dht_router(*router)
 
         self._logger.debug("Started libtorrent session for %d hops on port %d", hops, ltsession.listen_port())
 
@@ -347,6 +363,8 @@ class LibtorrentMgr(TaskManager):
                         del self.torrents[info_hash]
                         deferred.callback(None)
                 self._logger.debug("Alert for invalid torrent")
+        if self.alert_callback:
+            self.alert_callback(alert)
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, timeout_callback=None, notify=True):
         if not self.is_dht_ready() and timeout > 5:

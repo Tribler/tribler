@@ -16,7 +16,8 @@ from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
     NTFY_TUNNEL, NTFY_IP_REMOVED, NTFY_RP_REMOVED, NTFY_IP_RECREATE, \
     NTFY_DHT_LOOKUP, NTFY_KEY_REQUEST, NTFY_KEY_RESPOND, NTFY_KEY_RESPONSE, \
-    NTFY_CREATE_E2E, NTFY_ONCREATED_E2E, NTFY_IP_CREATED, DLSTATUS_DOWNLOADING
+    NTFY_CREATE_E2E, NTFY_ONCREATED_E2E, NTFY_IP_CREATED, NTFY_RP_CREATED, DLSTATUS_DOWNLOADING
+
 from Tribler.community.tunnel import CIRCUIT_TYPE_IP, CIRCUIT_TYPE_RP, CIRCUIT_TYPE_RENDEZVOUS, \
     EXIT_NODE, EXIT_NODE_SALT, CIRCUIT_ID_PORT
 from Tribler.community.tunnel.payload import (EstablishIntroPayload, IntroEstablishedPayload,
@@ -333,7 +334,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def on_dht_response(self, messages):
         for message in messages:
-            self.request_cache.pop(u"dht-request", message.payload.identifier)
+            self.request_cache.get(u"dht-request", message.payload.identifier)
 
             info_hash = message.payload.info_hash
             _, peers = decode(message.payload.peers)
@@ -611,6 +612,10 @@ class HiddenTunnelCommunity(TunnelCommunity):
             cache = self.request_cache.pop(u"link-request", message.payload.identifier)
             download = self.find_download(cache.info_hash)
             if download:
+                self.tunnel_logger.info('On linked e2e: added peer to download, circuit id %s, ip %s, port %s',
+                                        str(cache.circuit.circuit_id),
+                                        str(self.circuit_id_to_ip(cache.circuit.circuit_id)),
+                                        str(CIRCUIT_ID_PORT))
                 download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), CIRCUIT_ID_PORT))
             else:
                 self.tunnel_logger.error('On linked e2e: could not find download!')
@@ -691,7 +696,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
             cache = self.request_cache.add(RPRequestCache(self, rp))
             if self.notifier:
-                self.notifier.notify(NTFY_TUNNEL, NTFY_IP_CREATED, info_hash.encode('hex')[:6], circuit_id)
+                self.notifier.notify(NTFY_TUNNEL, NTFY_RP_CREATED, info_hash.encode('hex')[:6], circuit_id)
 
             self.send_cell([Candidate(circuit.first_hop, False)],
                            u'establish-rendezvous', (circuit_id, cache.number, rp.cookie))

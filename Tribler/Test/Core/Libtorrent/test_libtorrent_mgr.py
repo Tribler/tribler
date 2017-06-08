@@ -306,3 +306,16 @@ class TestLibtorrentMgr(AbstractServer):
         filename = os.path.join(download.session.get_downloads_pstate_dir(), basename)
 
         self.assertTrue(os.path.isfile(filename))
+
+    def test_callback_on_alert(self):
+        """
+        Test whether the alert callback is called when a libtorrent alert is posted
+        """
+        self.ltmgr.default_alert_mask = 0xffffffff
+        mutable_container = [False]
+        def callback(*args):
+            mutable_container[0] = True
+        self.ltmgr.alert_callback = callback
+        self.ltmgr.initialize()
+        self.ltmgr._task_process_alerts()
+        self.assertTrue(mutable_container[0])
