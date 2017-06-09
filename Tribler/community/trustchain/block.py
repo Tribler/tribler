@@ -17,13 +17,13 @@ block_pack_format = "! Q Q Q Q {0}s I {0}s I {1}s {2}s".format(PK_LENGTH, HASH_L
 block_pack_size = calcsize(block_pack_format)
 
 
-class MultiChainBlock(object):
+class TrustChainBlock(object):
     """
-    Container for MultiChain block information
+    Container for TrustChain block information
     """
 
     def __init__(self, data=None):
-        super(MultiChainBlock, self).__init__()
+        super(TrustChainBlock, self).__init__()
         if data is None:
             # data
             self.up = self.down = 0
@@ -186,7 +186,7 @@ class MultiChainBlock(object):
                 err("Genesis block invalid total_down and/or down")
 
         # Step 4: does the database already know about this block? If so it should be equal or else we caught a
-        # branch in someones multichain.
+        # branch in someones trustchain.
         if blk:
             # Sanity check to see if the database returned the expected block, we want to cover all our bases before
             # crying wolf and making a fraud claim.
@@ -325,9 +325,9 @@ class MultiChainBlock(object):
         Unpacks a block from a buffer
         :param data: The buffer to unpack from
         :param offset: Optionally, the offset at which to start unpacking
-        :return: The MultiChainBlock that was unpacked from the buffer
+        :return: The TrustChainBlock that was unpacked from the buffer
         """
-        ret = MultiChainBlock()
+        ret = TrustChainBlock()
         (ret.up, ret.down, ret.total_up, ret.total_down, ret.public_key, ret.sequence_number, ret.link_public_key,
          ret.link_sequence_number, ret.previous_hash, ret.signature) = unpack_from(block_pack_format, data, offset)
         return ret

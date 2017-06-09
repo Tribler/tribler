@@ -1,12 +1,12 @@
 import logging
 from hashlib import sha1
+
+from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TrustChainTestCase, TestBlock
+from Tribler.community.trustchain.community import HALF_BLOCK, CRAWL
+from Tribler.community.trustchain.conversion import TrustChainConversion
+from Tribler.community.trustchain.payload import HalfBlockPayload, CrawlRequestPayload
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
-from Tribler.community.multichain.community import HALF_BLOCK, CRAWL
-from Tribler.community.multichain.conversion import MultiChainConversion
-from Tribler.community.multichain.payload import CrawlRequestPayload
-from Tribler.community.multichain.payload import HalfBlockPayload
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
@@ -18,7 +18,7 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-class TestConversion(MultiChainTestCase):
+class TestConversion(TrustChainTestCase):
     def __init__(self, *args, **kwargs):
         super(TestConversion, self).__init__(*args, **kwargs)
         self.community = TestCommunity()
@@ -27,7 +27,7 @@ class TestConversion(MultiChainTestCase):
     @inlineCallbacks
     def setUp(self):
         yield super(TestConversion, self).setUp()
-        self.converter = MultiChainConversion(self.community)
+        self.converter = TrustChainConversion(self.community)
         self.block = TestBlock()
 
     def test_encoding_decoding_half_block(self):
@@ -159,4 +159,4 @@ class TestCommunity(Community):
                     lambda: None)]
 
     def initiate_conversions(self):
-        return [DefaultConversion(self), MultiChainConversion(self)]
+        return [DefaultConversion(self), TrustChainConversion(self)]

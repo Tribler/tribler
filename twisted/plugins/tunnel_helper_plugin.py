@@ -82,7 +82,7 @@ check_json_port.coerceDoc = "Json API port must be greater than 0."
 class Options(usage.Options):
     optFlags = [
         ["exit", "x", "Allow being an exit-node"],
-        ["multichain", "M", "Enable the multichain community"]
+        ["trustchain", "M", "Enable the trustchain community"]
     ]
 
     optParameters = [
@@ -225,7 +225,7 @@ class Tunnel(object):
         config.set_dispersy_port(self.dispersy_port)
         config.set_torrent_search_enabled(False)
         config.set_channel_search_enabled(False)
-        config.set_multichain_enabled(self.settings.enable_multichain)
+        config.set_trustchain_enabled(self.settings.enable_trustchain)
 
         # We do not want to load the TunnelCommunity in the session but instead our own community
         config.set_tunnel_community_enabled(False)
@@ -241,10 +241,10 @@ class Tunnel(object):
                 member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
                 cls = TunnelCommunityCrawler
             else:
-                if self.settings.enable_multichain:
-                    from Tribler.community.multichain.community import MultiChainCommunity
-                    member = self.dispersy.get_member(private_key=self.session.multichain_keypair.key_to_bin())
-                    self.dispersy.define_auto_load(MultiChainCommunity, member, load=True)
+                if self.settings.enable_trustchain:
+                    from Tribler.community.trustchain.community import TrustChainCommunity
+                    member = self.dispersy.get_member(private_key=self.session.trustchain_keypair.key_to_bin())
+                    self.dispersy.define_auto_load(TrustChainCommunity, member, load=True)
                 else:
                     member = self.dispersy.get_new_member(u"curve25519")
                 cls = HiddenTunnelCommunity
@@ -435,11 +435,11 @@ class TunnelHelperServiceMaker(object):
         else:
             logger.info("Exit-node disabled")
 
-        settings.enable_multichain = bool(options["multichain"])
-        if settings.enable_multichain:
-            logger.info("Multichain enabled")
+        settings.enable_trustchain = bool(options["trustchain"])
+        if settings.enable_trustchain:
+            logger.info("Trustchain enabled")
         else:
-            logger.info("Multichain disabled")
+            logger.info("Trustchain disabled")
 
         tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
         StandardIO(LineHandler(tunnel))

@@ -235,11 +235,11 @@ class TunnelSettings(object):
         if tribler_session:
             self.socks_listen_ports = tribler_session.config.get_tunnel_community_socks5_listen_ports()
             self.become_exitnode = tribler_session.config.get_tunnel_community_exitnode_enabled()
-            self.enable_multichain = tribler_session.config.get_multichain_enabled()
+            self.enable_trustchain = tribler_session.config.get_trustchain_enabled()
         else:
             self.socks_listen_ports = range(1080, 1085)
             self.become_exitnode = False
-            self.enable_multichain = False
+            self.enable_trustchain = False
 
 
 class RoundRobin(object):
@@ -601,7 +601,7 @@ class TunnelCommunity(Community):
     def remove_circuit(self, circuit_id, additional_info='', destroy=False):
         assert isinstance(circuit_id, (long, int)), type(circuit_id)
 
-        self.tunnel_logger.info("MULTICHAIN: Removing circuit")
+        self.tunnel_logger.info("TRUSTCHAIN: Removing circuit")
 
         if circuit_id in self.circuits:
             self.tunnel_logger.info("removing circuit %d " + additional_info, circuit_id)
@@ -639,7 +639,7 @@ class TunnelCommunity(Community):
 
     def remove_relay(self, circuit_id, additional_info='', destroy=False, got_destroy_from=None, both_sides=True):
 
-        self.tunnel_logger.info("MULTICHAIN: Removing relay")
+        self.tunnel_logger.info("TRUSTCHAIN: Removing relay")
 
         # Find other side of relay
         to_remove = [circuit_id]
@@ -669,7 +669,7 @@ class TunnelCommunity(Community):
 
     def remove_exit_socket(self, circuit_id, additional_info='', destroy=False):
 
-        self.tunnel_logger.info("MULTICHAIN: Removing exit socket")
+        self.tunnel_logger.info("TRUSTCHAIN: Removing exit socket")
 
         if circuit_id in self.exit_sockets:
             if destroy:

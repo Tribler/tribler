@@ -22,7 +22,7 @@ enabled = boolean(default=True)
 socks5_listen_ports = string_list(default=list('-1', '-1', '-1', '-1', '-1'))
 exitnode_enabled = boolean(default=False)
 
-[multichain]
+[trustchain]
 enabled = boolean(default=True)
 ec_keypair_filename = string(default='')
 

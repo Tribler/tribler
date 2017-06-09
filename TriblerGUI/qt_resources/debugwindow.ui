@@ -114,7 +114,7 @@
       </widget>
       <widget class="QWidget" name="tab_3">
        <attribute name="title">
-        <string>Multichain</string>
+        <string>Trustchain</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <property name="spacing">
@@ -133,7 +133,7 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="QTreeWidget" name="multichain_tree_widget">
+         <widget class="QTreeWidget" name="trustchain_tree_widget">
           <property name="columnCount">
            <number>2</number>
           </property>

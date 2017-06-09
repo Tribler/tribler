@@ -196,7 +196,7 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
 
         The notification should still have a valid Candidate object for the reference of third parties.
         For example, Dispersy might determine a Candidate is no longer needed for the TunnelCommunity, but the
-        MultiChainCommunity will still be interested in the Candidate object tied to a removed circuit.
+        TrustChainCommunity will still be interested in the Candidate object tied to a removed circuit.
         """
 
         class MockNotifier(object):
@@ -239,7 +239,7 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
 
         The notification should still have a valid Candidate object for the reference of third parties.
         For example, Dispersy might determine a Candidate is no longer needed for the TunnelCommunity, but the
-        MultiChainCommunity will still be interested in the Candidate object tied to a removed circuit.
+        TrustChainCommunity will still be interested in the Candidate object tied to a removed circuit.
         """
 
         class MockNotifier(object):

@@ -3,17 +3,17 @@ import random
 from hashlib import sha256
 
 from Tribler.dispersy.crypto import ECCrypto
-from Tribler.community.multichain.block import (MultiChainBlock, GENESIS_HASH, EMPTY_SIG, GENESIS_SEQ, EMPTY_PK,
+from Tribler.community.trustchain.block import (TrustChainBlock, GENESIS_HASH, EMPTY_SIG, GENESIS_SEQ, EMPTY_PK,
                                                 ValidationResult)
-from Tribler.Test.Community.Multichain.test_multichain_utilities import MultiChainTestCase, TestBlock
+from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TrustChainTestCase, TestBlock
 
 
-class TestBlocks(MultiChainTestCase):
+class TestBlocks(TrustChainTestCase):
     def __init__(self, *args, **kwargs):
         super(TestBlocks, self).__init__(*args, **kwargs)
 
     def test_hash(self):
-        block = MultiChainBlock()
+        block = TrustChainBlock()
         self.assertEqual(block.hash, "\xa1c!\x14\x11\x14\xe4\xb1g\xebB\xae\xc1y-\x0eF\x1d\x94'\x1co\xc5\xe4g\x80\xf1"
                                      "\xc1z\xb0\x12\xd7")
 
@@ -25,7 +25,7 @@ class TestBlocks(MultiChainTestCase):
     def test_create_genesis(self):
         key = ECCrypto().generate_key(u"curve25519")
         db = self.MockDatabase()
-        block = MultiChainBlock.create(db, key.pub().key_to_bin(), link=None)
+        block = TrustChainBlock.create(db, key.pub().key_to_bin(), link=None)
         self.assertEqual(block.previous_hash, GENESIS_HASH)
         self.assertEqual(block.sequence_number, GENESIS_SEQ)
         self.assertEqual(block.public_key, key.pub().key_to_bin())
@@ -36,7 +36,7 @@ class TestBlocks(MultiChainTestCase):
         prev = TestBlock()
         prev.sequence_number = GENESIS_SEQ
         db.add_block(prev)
-        block = MultiChainBlock.create(db, prev.public_key, link=None)
+        block = TrustChainBlock.create(db, prev.public_key, link=None)
         self.assertEqual(block.previous_hash, prev.hash)
         self.assertEqual(block.sequence_number, 2)
         self.assertEqual(block.public_key, prev.public_key)
@@ -46,7 +46,7 @@ class TestBlocks(MultiChainTestCase):
         db = self.MockDatabase()
         link = TestBlock()
         db.add_block(link)
-        block = MultiChainBlock.create(db, key.pub().key_to_bin(), link=link)
+        block = TrustChainBlock.create(db, key.pub().key_to_bin(), link=link)
         self.assertEqual(block.previous_hash, GENESIS_HASH)
         self.assertEqual(block.sequence_number, GENESIS_SEQ)
         self.assertEqual(block.public_key, key.pub().key_to_bin())
@@ -60,7 +60,7 @@ class TestBlocks(MultiChainTestCase):
         db.add_block(prev)
         link = TestBlock()
         db.add_block(link)
-        block = MultiChainBlock.create(db, prev.public_key, link=link)
+        block = TrustChainBlock.create(db, prev.public_key, link=link)
         self.assertEqual(block.previous_hash, prev.hash)
         self.assertEqual(block.sequence_number, 2)
         self.assertEqual(block.public_key, prev.public_key)
@@ -68,7 +68,7 @@ class TestBlocks(MultiChainTestCase):
         self.assertEqual(block.link_sequence_number, link.sequence_number)
 
     def test_pack(self):
-        block = MultiChainBlock()
+        block = TrustChainBlock()
         block.up = 3251690667711950702
         block.down = 7431046511915463784
         block.total_up = 7020667011326177138
@@ -85,7 +85,7 @@ class TestBlocks(MultiChainTestCase):
                                        '. - So long, so long, and thanks for all the fish')
 
     def test_unpack(self):
-        block = MultiChainBlock.unpack('- So long and thanks for all the fish, so sad that it should come to this. - '
+        block = TrustChainBlock.unpack('- So long and thanks for all the fish, so sad that it should come to this. - '
                                        'We tried to warn you all but oh dear! - You may not share our intellect, which '
                                        'might explain your disrespect, for all the natural wonders that grow around '
                                        'you. - So long, so long, and thanks for all the fish')
@@ -243,7 +243,7 @@ class TestBlocks(MultiChainTestCase):
         db.add_block(block2)
         db.add_block(block3)
         # Act
-        block2 = MultiChainBlock(block2.pack_db_insert())
+        block2 = TrustChainBlock(block2.pack_db_insert())
         block2.up += 10
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
@@ -259,7 +259,7 @@ class TestBlocks(MultiChainTestCase):
         db.add_block(block2)
         db.add_block(block3)
         # Act
-        block2 = MultiChainBlock(block2.pack_db_insert())
+        block2 = TrustChainBlock(block2.pack_db_insert())
         block2.down += 10
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
@@ -275,7 +275,7 @@ class TestBlocks(MultiChainTestCase):
         db.add_block(block2)
         db.add_block(block3)
         # Act
-        block2 = MultiChainBlock(block2.pack_db_insert())
+        block2 = TrustChainBlock(block2.pack_db_insert())
         block2.total_up += 10
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
@@ -291,7 +291,7 @@ class TestBlocks(MultiChainTestCase):
         db.add_block(block2)
         db.add_block(block3)
         # Act
-        block2 = MultiChainBlock(block2.pack_db_insert())
+        block2 = TrustChainBlock(block2.pack_db_insert())
         block2.total_down += 10
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
@@ -307,7 +307,7 @@ class TestBlocks(MultiChainTestCase):
         db.add_block(block2)
         db.add_block(block3)
         # Act
-        block2 = MultiChainBlock(block2.pack_db_insert())
+        block2 = TrustChainBlock(block2.pack_db_insert())
         block2.link_public_key = EMPTY_PK
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
@@ -323,7 +323,7 @@ class TestBlocks(MultiChainTestCase):
         db.add_block(block2)
         db.add_block(block3)
         # Act
-        block2 = MultiChainBlock(block2.pack_db_insert())
+        block2 = TrustChainBlock(block2.pack_db_insert())
         block2.link_sequence_number += 100
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
@@ -339,7 +339,7 @@ class TestBlocks(MultiChainTestCase):
         db.add_block(block2)
         db.add_block(block3)
         # Act
-        block2 = MultiChainBlock(block2.pack_db_insert())
+        block2 = TrustChainBlock(block2.pack_db_insert())
         block2.previous_hash = sha256(str(random.randint(0, 100000))).digest()
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
@@ -354,7 +354,7 @@ class TestBlocks(MultiChainTestCase):
         db.add_block(block1)
         db.add_block(block2)
         # Act
-        block3 = MultiChainBlock(block2.pack_db_insert())
+        block3 = TrustChainBlock(block2.pack_db_insert())
         block3.previous_hash = sha256(str(random.randint(0, 100000))).digest()
         block3.sign(block2.key)
         result = block3.validate(db)
@@ -480,7 +480,7 @@ class TestBlocks(MultiChainTestCase):
 
     def test_validate_not_sane_negatives(self):
         db = self.MockDatabase()
-        block1 = MultiChainBlock()
+        block1 = TrustChainBlock()
         # Act
         block1.up = -10
         block1.down = -20
@@ -495,7 +495,7 @@ class TestBlocks(MultiChainTestCase):
 
     def test_validate_not_sane_zeroes(self):
         db = self.MockDatabase()
-        block1 = MultiChainBlock()
+        block1 = TrustChainBlock()
         # Act
         block1.up = 0
         block1.down = 0
@@ -566,7 +566,7 @@ class TestBlocks(MultiChainTestCase):
         (block1, block2, _, _) = TestBlocks.setup_validate()
         db.add_block(block2)
         # Act
-        db.add_block(MultiChainBlock.create(db, block1.link_public_key, block1))
+        db.add_block(TrustChainBlock.create(db, block1.link_public_key, block1))
         result = block1.validate(db)
         self.assertEqual(result[0], ValidationResult.valid)
 
@@ -575,7 +575,7 @@ class TestBlocks(MultiChainTestCase):
         (block1, block2, _, _) = TestBlocks.setup_validate()
         db.add_block(block2)
         # Act
-        db.add_block(MultiChainBlock.create(db, block1.link_public_key, block1))
+        db.add_block(TrustChainBlock.create(db, block1.link_public_key, block1))
         block1.up += 5
         result = block1.validate(db)
         self.assertEqual(result[0], ValidationResult.invalid)
@@ -586,7 +586,7 @@ class TestBlocks(MultiChainTestCase):
         (block1, block2, _, _) = TestBlocks.setup_validate()
         db.add_block(block2)
         # Act
-        db.add_block(MultiChainBlock.create(db, block1.link_public_key, block1))
+        db.add_block(TrustChainBlock.create(db, block1.link_public_key, block1))
         block1.down -= 5
         result = block1.validate(db)
         self.assertEqual(result[0], ValidationResult.invalid)
@@ -596,9 +596,8 @@ class TestBlocks(MultiChainTestCase):
         db = self.MockDatabase()
         (block1, block2, _, _) = TestBlocks.setup_validate()
         # Act
-        # db.add_block(MultiChainBlock.create(db, block1.link_public_key, block1))
         db.add_block(block1)
-        block3 = MultiChainBlock.create(db, block2.link_public_key, block1)
+        block3 = TrustChainBlock.create(db, block2.link_public_key, block1)
         result = block3.validate(db)
         self.assertEqual(result[0], ValidationResult.invalid)
         self.assertIn("Public key mismatch on linked block", result[1])
@@ -608,8 +607,8 @@ class TestBlocks(MultiChainTestCase):
         (block1, _, _, _) = TestBlocks.setup_validate()
         # Act
         db.add_block(block1)
-        db.add_block(MultiChainBlock.create(db, block1.link_public_key, block1))
-        block2 = MultiChainBlock.create(db, block1.link_public_key, block1)
+        db.add_block(TrustChainBlock.create(db, block1.link_public_key, block1))
+        block2 = TrustChainBlock.create(db, block1.link_public_key, block1)
         result = block2.validate(db)
         self.assertEqual(result[0], ValidationResult.invalid)
         self.assertIn("Double countersign fraud", result[1])

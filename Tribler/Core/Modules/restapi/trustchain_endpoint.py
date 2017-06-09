@@ -1,58 +1,58 @@
 import json
 from twisted.web import http, resource
 
-from Tribler.community.multichain.community import MultiChainCommunity
+from Tribler.community.trustchain.community import TrustChainCommunity
 
 
-class MultichainEndpoint(resource.Resource):
+class TrustchainEndpoint(resource.Resource):
     """
-    This endpoint is responsible for handing requests for multichain data.
+    This endpoint is responsible for handing requests for trustchain data.
     """
 
     def __init__(self, session):
         resource.Resource.__init__(self)
 
-        child_handler_dict = {"statistics": MultichainStatsEndpoint, "blocks": MultichainBlocksEndpoint}
+        child_handler_dict = {"statistics": TrustchainStatsEndpoint, "blocks": TrustchainBlocksEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
 
 
-class MultichainBaseEndpoint(resource.Resource):
+class TrustchainBaseEndpoint(resource.Resource):
     """
-    This class represents the base class of the multichain community.
+    This class represents the base class of the trustchain community.
     """
 
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
 
-    def get_multichain_community(self):
+    def get_trustchain_community(self):
         """
-        Search for the multichain community in the dispersy communities.
+        Search for the trustchain community in the dispersy communities.
         """
         for community in self.session.get_dispersy_instance().get_communities():
-            if isinstance(community, MultiChainCommunity):
+            if isinstance(community, TrustChainCommunity):
                 return community
         return None
 
 
-class MultichainStatsEndpoint(MultichainBaseEndpoint):
+class TrustchainStatsEndpoint(TrustchainBaseEndpoint):
     """
-    This class handles requests regarding the multichain community information.
+    This class handles requests regarding the trustchain community information.
     """
 
     def render_GET(self, request):
         """
-        .. http:get:: /multichain/statistics
+        .. http:get:: /trustchain/statistics
 
-        A GET request to this endpoint returns statistics about the multichain community
+        A GET request to this endpoint returns statistics about the trustchain community
 
             **Example request**:
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/multichain/statistics
+                curl -X GET http://localhost:8085/trustchain/statistics
 
             **Example response**:
 
@@ -83,35 +83,35 @@ class MultichainStatsEndpoint(MultichainBaseEndpoint):
                     }
                 }
         """
-        mc_community = self.get_multichain_community()
+        mc_community = self.get_trustchain_community()
         if not mc_community:
             request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "multichain community not found"})
+            return json.dumps({"error": "trustchain community not found"})
 
         return json.dumps({'statistics': mc_community.get_statistics()})
 
 
-class MultichainBlocksEndpoint(MultichainBaseEndpoint):
+class TrustchainBlocksEndpoint(TrustchainBaseEndpoint):
     """
-    This class handles requests regarding the multichain community blocks.
+    This class handles requests regarding the trustchain community blocks.
     """
 
     def getChild(self, path, request):
-        return MultichainBlocksIdentityEndpoint(self.session, path)
+        return TrustchainBlocksIdentityEndpoint(self.session, path)
 
 
-class MultichainBlocksIdentityEndpoint(MultichainBaseEndpoint):
+class TrustchainBlocksIdentityEndpoint(TrustchainBaseEndpoint):
     """
     This class represents requests for blocks of a specific identity.
     """
 
     def __init__(self, session, identity):
-        MultichainBaseEndpoint.__init__(self, session)
+        TrustchainBaseEndpoint.__init__(self, session)
         self.identity = identity
 
     def render_GET(self, request):
         """
-        .. http:get:: /multichain/blocks/TGliTmFDTFBLOVGbxS406vrI=?limit=(int: max nr of returned blocks)
+        .. http:get:: /trustchain/blocks/TGliTmFDTFBLOVGbxS406vrI=?limit=(int: max nr of returned blocks)
 
         A GET request to this endpoint returns all blocks of a specific identity, both that were signed and responded
         by him. You can optionally limit the amount of blocks returned, this will only return some of the most recent
@@ -121,7 +121,7 @@ class MultichainBlocksIdentityEndpoint(MultichainBaseEndpoint):
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/multichain/blocks/d78130e71bdd1...=?limit=10
+                curl -X GET http://localhost:8085/trustchain/blocks/d78130e71bdd1...=?limit=10
 
             **Example response**:
 
@@ -141,10 +141,10 @@ class MultichainBlocksIdentityEndpoint(MultichainBaseEndpoint):
                     }, ...]
                 }
         """
-        mc_community = self.get_multichain_community()
+        mc_community = self.get_trustchain_community()
         if not mc_community:
             request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "multichain community not found"})
+            return json.dumps({"error": "trustchain community not found"})
 
         limit_blocks = 100
 

@@ -92,7 +92,7 @@ class SettingsPage(QWidget):
         # Anonymity settings
         self.window().allow_exit_node_checkbox.setChecked(settings['tunnel_community']['exitnode_enabled'])
         self.window().number_hops_slider.setValue(int(settings['download_defaults']['number_hops']) - 1)
-        self.window().multichain_enabled_checkbox.setChecked(settings['multichain']['enabled'])
+        self.window().trustchain_enabled_checkbox.setChecked(settings['trustchain']['enabled'])
 
     def load_settings(self):
         self.settings_request_mgr = TriblerRequestManager()
@@ -113,7 +113,7 @@ class SettingsPage(QWidget):
     def save_settings(self):
         # Create a dictionary with all available settings
         settings_data = {'general': {}, 'Tribler': {}, 'download_defaults': {}, 'libtorrent': {}, 'watch_folder': {},
-                         'tunnel_community': {}, 'multichain': {}}
+                         'tunnel_community': {}, 'trustchain': {}}
         settings_data['general']['family_filter'] = self.window().family_filter_checkbox.isChecked()
         settings_data['download_defaults']['saveas'] = self.window().download_location_input.text()
 
@@ -172,7 +172,7 @@ class SettingsPage(QWidget):
                                           "You've entered an invalid format for the seeding time (expected HH:MM)")
             return
 
-        settings_data['multichain']['enabled'] = self.window().multichain_enabled_checkbox.isChecked()
+        settings_data['trustchain']['enabled'] = self.window().trustchain_enabled_checkbox.isChecked()
         settings_data['tunnel_community']['exitnode_enabled'] = self.window().allow_exit_node_checkbox.isChecked()
         settings_data['download_defaults']['number_hops'] = self.window().number_hops_slider.value() + 1
         settings_data['download_defaults']['anonymity_enabled'] = \

@@ -1,18 +1,17 @@
 """
-This file contains the tests for the community.py for MultiChain community.
+This file contains the tests for the community.py for TrustChain community.
 """
+from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TrustChainTestCase
+from Tribler.Test.test_as_server import AbstractServer
+from Tribler.community.trustchain.block import TrustChainBlock, GENESIS_SEQ
+from Tribler.community.trustchain.community import HALF_BLOCK, CRAWL, TrustChainCommunityCrawler, PendingBytes, \
+    TrustChainCommunity
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.defer import returnValue
 from twisted.internet.task import deferLater
 
 from Tribler.Core.Session import Session
-from Tribler.Test.Community.Multichain.test_multichain_utilities import MultiChainTestCase
-from Tribler.Test.test_as_server import AbstractServer
-from Tribler.community.multichain.block import MultiChainBlock, GENESIS_SEQ
-from Tribler.community.multichain.community import (HALF_BLOCK, CRAWL,
-                                                    PendingBytes)
-from Tribler.community.multichain.community import (MultiChainCommunity, MultiChainCommunityCrawler)
 from Tribler.community.tunnel.routing import Circuit
 from Tribler.dispersy.message import DelayPacketByMissingMember
 from Tribler.dispersy.requestcache import IntroductionRequestCache
@@ -21,9 +20,9 @@ from Tribler.dispersy.tests.dispersytestclass import DispersyTestFunc
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
+class TestTrustChainCommunity(TrustChainTestCase, DispersyTestFunc):
     """
-    Class that tests the MultiChainCommunity on an integration level.
+    Class that tests the TrustChainCommunity on an integration level.
     """
 
     class MockSession():
@@ -168,7 +167,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node, other = self.create_nodes(2)
 
         # Act
-        TestMultiChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
 
         # Assert
         self.assertBlocksInDatabase(other, 2)
@@ -190,7 +189,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         # Arrange
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
-        TestMultiChainCommunity.set_expectation(other, node, 10, 5)
+        TestTrustChainCommunity.set_expectation(other, node, 10, 5)
         node.call(node.community.sign_block, target_other, other.my_member.public_key, 10, 5)
         _, block_req = other.receive_message(names=[HALF_BLOCK]).next()
         # Act
@@ -220,7 +219,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         # Arrange
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
-        TestMultiChainCommunity.create_block(node, other, target_other, 10, 5)
+        TestTrustChainCommunity.create_block(node, other, target_other, 10, 5)
 
         # construct faked block
         block = node.call(node.community.persistence.get_latest, node.my_member.public_key)
@@ -246,7 +245,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         # Arrange
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
-        TestMultiChainCommunity.set_expectation(other, node, 3, 3)
+        TestTrustChainCommunity.set_expectation(other, node, 3, 3)
         node.call(node.community.sign_block, target_other, other.my_member.public_key, 10, 5)
         # Act
         other.give_message(other.receive_message(names=[HALF_BLOCK]).next()[1], node)
@@ -287,13 +286,13 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node, other = self.create_nodes(2)
 
         # Act
-        TestMultiChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
 
         # Assert
-        block = node.call(MultiChainBlock.create, node.community.persistence, node.community.my_member.public_key)
+        block = node.call(TrustChainBlock.create, node.community.persistence, node.community.my_member.public_key)
         self.assertEqual(10, block.total_up)
         self.assertEqual(5, block.total_down)
-        block = other.call(MultiChainBlock.create, other.community.persistence, other.community.my_member.public_key)
+        block = other.call(TrustChainBlock.create, other.community.persistence, other.community.my_member.public_key)
         self.assertEqual(5, block.total_up)
         self.assertEqual(10, block.total_down)
 
@@ -306,7 +305,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node.call(node.community.sign_block, self._create_target(node, other), other.my_member.public_key,  10, 5)
 
         # Assert
-        block = node.call(MultiChainBlock.create, node.community.persistence, node.community.my_member.public_key)
+        block = node.call(TrustChainBlock.create, node.community.persistence, node.community.my_member.public_key)
         self.assertEqual(10, block.total_up)
         self.assertEqual(5, block.total_down)
 
@@ -318,9 +317,9 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node, other, another = self.create_nodes(3)
 
         # Act
-        TestMultiChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
 
-        TestMultiChainCommunity.set_expectation(another, node, 30, 20)
+        TestTrustChainCommunity.set_expectation(another, node, 30, 20)
         node.call(node.community.sign_block, self._create_target(node, another), another.my_member.public_key, 30, 20)
         another.give_message(another.receive_message(names=[HALF_BLOCK]).next()[1], node)
 
@@ -336,13 +335,13 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node, other, another = self.create_nodes(3)
 
         # Act
-        TestMultiChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
-        TestMultiChainCommunity.set_expectation(another, node, 30, 20)
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
+        TestTrustChainCommunity.set_expectation(another, node, 30, 20)
         node.call(node.community.sign_block, self._create_target(node, another), another.my_member.public_key, 30, 20)
         message = another.receive_message(names=[HALF_BLOCK]).next()[1]
         # this triggers the crawl
         another.give_message(message, node)
-        TestMultiChainCommunity.clean_database(another)
+        TestTrustChainCommunity.clean_database(another)
         # this should not trigger another crawl
         another.give_message(message, node)
 
@@ -359,8 +358,8 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node, other, another = self.create_nodes(3)
 
         # Act
-        TestMultiChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
-        TestMultiChainCommunity.create_block(node, another, self._create_target(node, another), 20, 30)
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
+        TestTrustChainCommunity.create_block(node, another, self._create_target(node, another), 20, 30)
 
         # Assert
         self.assertBlocksInDatabase(node, 4)
@@ -376,8 +375,8 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node, other, crawler = self.create_nodes(3)
 
         # Act
-        TestMultiChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
-        TestMultiChainCommunity.crawl_node(crawler, node, self._create_target(crawler, node))
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
+        TestTrustChainCommunity.crawl_node(crawler, node, self._create_target(crawler, node))
 
         # Assert
         self.assertBlocksInDatabase(node, 2)
@@ -392,8 +391,8 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node, other, crawler = self.create_nodes(3)
 
         # Act
-        TestMultiChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
-        TestMultiChainCommunity.crawl_node(crawler, node, self._create_target(crawler, node), GENESIS_SEQ)
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
+        TestTrustChainCommunity.crawl_node(crawler, node, self._create_target(crawler, node), GENESIS_SEQ)
 
         # Assert
         self.assertBlocksInDatabase(node, 2)
@@ -408,7 +407,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node, crawler = self.create_nodes(2)
 
         # Act
-        TestMultiChainCommunity.crawl_node(crawler, node, self._create_target(crawler, node))
+        TestTrustChainCommunity.crawl_node(crawler, node, self._create_target(crawler, node))
 
         self.assertBlocksInDatabase(node, 0)
         self.assertBlocksInDatabase(crawler, 0)
@@ -420,12 +419,12 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         # Arrange
         node, other, crawler = self.create_nodes(3)
 
-        TestMultiChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
-        TestMultiChainCommunity.crawl_node(crawler, other, self._create_target(crawler, other))
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
+        TestTrustChainCommunity.crawl_node(crawler, other, self._create_target(crawler, other))
 
         # Act
         # Request the same blocks form different node
-        TestMultiChainCommunity.crawl_node(crawler, node, self._create_target(crawler, node))
+        TestTrustChainCommunity.crawl_node(crawler, node, self._create_target(crawler, node))
 
         # Assert
         self.assertBlocksInDatabase(node, 2)
@@ -440,12 +439,12 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         node, other, crawler = self.create_nodes(3)
         target_other = self._create_target(node, other)
 
-        TestMultiChainCommunity.create_block(node, other, target_other, 10, 5)
-        TestMultiChainCommunity.create_block(node, other, target_other, 20, 30)
+        TestTrustChainCommunity.create_block(node, other, target_other, 10, 5)
+        TestTrustChainCommunity.create_block(node, other, target_other, 20, 30)
 
         # Act
         # Request the same block
-        TestMultiChainCommunity.crawl_node(crawler, node, self._create_target(crawler, node))
+        TestTrustChainCommunity.crawl_node(crawler, node, self._create_target(crawler, node))
 
         # Assert
         self.assertBlocksInDatabase(node, 4)
@@ -460,8 +459,8 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         Test the crawler takes a step when an introduction is made by the walker
         """
         # Arrange
-        MultiChainCommunityCrawler.CrawlerDelay = 10000000
-        crawler = super(TestMultiChainCommunity, self).create_nodes(1, community_class=MultiChainCommunityCrawler,
+        TrustChainCommunityCrawler.CrawlerDelay = 10000000
+        crawler = super(TestTrustChainCommunity, self).create_nodes(1, community_class=TrustChainCommunityCrawler,
                                                                     memory_database=False)[0]
         node, = self.create_nodes(1)
         node._community.cancel_pending_task("take fast steps")
@@ -509,7 +508,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         """
         # Arrange
         node, other = self.create_nodes(2)
-        TestMultiChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
 
         # Get statistics
         statistics = node.community.get_statistics()
@@ -522,7 +521,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         """
         # Arrange
         node, other = self.create_nodes(2)
-        TestMultiChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), 10, 5)
 
         # Get statistics
         statistics = node.community.get_statistics(public_key=other.community.my_member.public_key)
@@ -553,7 +552,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
 
     @staticmethod
     def create_block(req, resp, target_resp, up, down):
-        TestMultiChainCommunity.set_expectation(resp, req, up, down)
+        TestTrustChainCommunity.set_expectation(resp, req, up, down)
         req.call(req.community.sign_block, target_resp, resp.my_member.public_key, up, down)
 
         # Process packets until there are no more to process. This should give enough margin to allow for a crawl
@@ -571,7 +570,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
         crawler.call(crawler.community.send_crawl_request,
                      target_to_crawlee, crawlee.my_member.public_key, sequence_number)
         crawlee.give_message(crawlee.receive_message(names=[CRAWL]).next()[1], crawler)
-        TestMultiChainCommunity.transport_halfblocks(crawlee, crawler)
+        TestTrustChainCommunity.transport_halfblocks(crawlee, crawler)
 
     @staticmethod
     def transport_halfblocks(source, destination):
@@ -596,8 +595,8 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def create_nodes(self, *args, **kwargs):
-        nodes = yield super(TestMultiChainCommunity, self).create_nodes(*args, community_class=MultiChainCommunity,
-                                                                 memory_database=False, **kwargs)
+        nodes = yield super(TestTrustChainCommunity, self).create_nodes(*args, community_class=TrustChainCommunity,
+                                                                        memory_database=False, **kwargs)
         for outer in nodes:
             for inner in nodes:
                 if outer != inner:

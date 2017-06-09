@@ -1,17 +1,18 @@
 """
-This file contains everything related to persistence for MultiChain.
+This file contains everything related to persistence for TrustChain.
 """
 import os
 
-from Tribler.community.multichain.block import MultiChainBlock
 from Tribler.dispersy.database import Database
+from Tribler.community.trustchain.block import TrustChainBlock
+
 
 DATABASE_DIRECTORY = os.path.join(u"sqlite")
 
 
-class MultiChainDB(Database):
+class TrustChainDB(Database):
     """
-    Persistence layer for the MultiChain Community.
+    Persistence layer for the TrustChain Community.
     Connection layer to SQLiteDB.
     Ensures a proper DB schema on startup.
     """
@@ -24,7 +25,7 @@ class MultiChainDB(Database):
         that will contain the the db at working directory/DATABASE_PATH
         :param db_name: The name of the database
         """
-        super(MultiChainDB, self).__init__(os.path.join(
+        super(TrustChainDB, self).__init__(os.path.join(
             working_directory, os.path.join(DATABASE_DIRECTORY, u"%s.db" % db_name)))
         self.db_name = db_name
         self.open()
@@ -42,11 +43,11 @@ class MultiChainDB(Database):
 
     def _get(self, query, params):
         db_result = self.execute(self.get_sql_header() + query, params).fetchone()
-        return MultiChainBlock(db_result) if db_result else None
+        return TrustChainBlock(db_result) if db_result else None
 
     def _getall(self, query, params):
         db_result = self.execute(self.get_sql_header() + query, params).fetchall()
-        return [MultiChainBlock(db_item) for db_item in db_result]
+        return [TrustChainBlock(db_item) for db_item in db_result]
 
     def get(self, public_key, sequence_number):
         """
@@ -170,10 +171,10 @@ class MultiChainDB(Database):
             """ % self.db_name
 
     def open(self, initial_statements=True, prepare_visioning=True):
-        return super(MultiChainDB, self).open(initial_statements, prepare_visioning)
+        return super(TrustChainDB, self).open(initial_statements, prepare_visioning)
 
     def close(self, commit=True):
-        return super(MultiChainDB, self).close(commit)
+        return super(TrustChainDB, self).close(commit)
 
     def check_database(self, database_version):
         """

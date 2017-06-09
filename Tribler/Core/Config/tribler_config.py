@@ -186,14 +186,14 @@ class TriblerConfig(object):
             self.set_permid_keypair_filename(file_name)
         return file_name
 
-    def set_multichain_permid_keypair_filename(self, keypairfilename):
-        self.config['multichain']['ec_keypair_filename'] = keypairfilename
+    def set_trustchain_permid_keypair_filename(self, keypairfilename):
+        self.config['trustchain']['ec_keypair_filename'] = keypairfilename
 
-    def get_multichain_permid_keypair_filename(self):
-        file_name = self.config['multichain']['ec_keypair_filename']
+    def get_trustchain_permid_keypair_filename(self):
+        file_name = self.config['trustchain']['ec_keypair_filename']
         if not file_name:
             file_name = os.path.join(self.get_state_dir(), 'ec_multichain.pem')
-            self.set_multichain_permid_keypair_filename(file_name)
+            self.set_trustchain_permid_keypair_filename(file_name)
         return file_name
 
     def set_megacache_enabled(self, value):
@@ -541,13 +541,13 @@ class TriblerConfig(object):
     def get_preview_channel_community_enabled(self):
         return self.config['preview_channel_community']['enabled']
 
-    # Multichain Community
+    # Trustchain Community
 
-    def set_multichain_enabled(self, value):
-        self.config['multichain']['enabled'] = value
+    def set_trustchain_enabled(self, value):
+        self.config['trustchain']['enabled'] = value
 
-    def get_multichain_enabled(self):
-        return self.config['multichain']['enabled']
+    def get_trustchain_enabled(self):
+        return self.config['trustchain']['enabled']
 
     # Watch folder
 

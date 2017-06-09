@@ -6258,14 +6258,14 @@ High anonymity</string>
 color: white;</string>
                 </property>
                 <property name="text">
-                 <string>Multichain</string>
+                 <string>Trustchain</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QCheckBox" name="multichain_enabled_checkbox">
+               <widget class="QCheckBox" name="trustchain_enabled_checkbox">
                 <property name="text">
-                 <string>Enable multichain</string>
+                 <string>Enable trustchain</string>
                 </property>
                </widget>
               </item>
@@ -6278,7 +6278,7 @@ color: white;</string>
                  </sizepolicy>
                 </property>
                 <property name="text">
-                 <string>Multichain is a blockchain-based way to keep track of sharing ratio, and eventually prevent freeriding. It is currently still in an early phase of development.</string>
+                 <string>Trustchain is a blockchain-based way to keep track of sharing ratio, and eventually prevent freeriding. It is currently still in an early phase of development.</string>
                 </property>
                 <property name="wordWrap">
                  <bool>true</bool>

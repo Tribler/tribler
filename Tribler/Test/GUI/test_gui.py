@@ -467,8 +467,8 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window.debug_window, name="debug_panel_requests_tab")
 
         window.debug_window.debug_tab_widget.setCurrentIndex(2)
-        self.wait_for_list_populated(window.debug_window.multichain_tree_widget)
-        self.screenshot(window.debug_window, name="debug_panel_multichain_tab")
+        self.wait_for_list_populated(window.debug_window.trustchain_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_trustchain_tab")
 
         window.debug_window.debug_tab_widget.setCurrentIndex(3)
         self.wait_for_list_populated(window.debug_window.dispersy_general_tree_widget)

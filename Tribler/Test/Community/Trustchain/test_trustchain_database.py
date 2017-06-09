@@ -3,14 +3,14 @@ import os
 from math import pow
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
+from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TestBlock, TrustChainTestCase
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from Tribler.community.multichain.database import MultiChainDB, DATABASE_DIRECTORY
+from Tribler.community.trustchain.database import TrustChainDB, DATABASE_DIRECTORY
 
 
-class TestDatabase(MultiChainTestCase):
+class TestDatabase(TrustChainTestCase):
     """
-    Tests the Database for MultiChain community.
+    Tests the Database for TrustChain community.
     """
 
     def __init__(self, *args, **kwargs):
@@ -23,7 +23,7 @@ class TestDatabase(MultiChainTestCase):
         path = os.path.join(self.getStateDir(), DATABASE_DIRECTORY)
         if not os.path.exists(path):
             os.makedirs(path)
-        self.db = MultiChainDB(self.getStateDir(), u'multichain')
+        self.db = TrustChainDB(self.getStateDir(), u'trustchain')
         self.block1 = TestBlock()
         self.block2 = TestBlock()
 
@@ -166,7 +166,7 @@ class TestDatabase(MultiChainTestCase):
     def set_db_version(self, version):
         self.db.executescript(u"UPDATE option SET value = '%d' WHERE key = 'database_version';" % version)
         self.db.close(commit=True)
-        self.db = MultiChainDB(self.getStateDir(), u'multichain')
+        self.db = TrustChainDB(self.getStateDir(), u'trustchain')
 
     @blocking_call_on_reactor_thread
     def test_database_upgrade(self):

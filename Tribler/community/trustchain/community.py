@@ -1,5 +1,5 @@
 """
-The MultiChain Community is the first step in an incremental approach in building a new reputation system.
+The TrustChain Community is the first step in an incremental approach in building a new reputation system.
 This reputation system builds a tamper proof interaction history contained in a chain data-structure.
 Every node has a chain and these chains intertwine by blocks shared by chains.
 """
@@ -20,10 +20,10 @@ from Tribler.dispersy.message import Message, DelayPacketByMissingMember
 from Tribler.dispersy.resolution import PublicResolution
 
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from Tribler.community.multichain.block import MultiChainBlock, ValidationResult, GENESIS_SEQ, UNKNOWN_SEQ
-from Tribler.community.multichain.payload import HalfBlockPayload, CrawlRequestPayload
-from Tribler.community.multichain.database import MultiChainDB
-from Tribler.community.multichain.conversion import MultiChainConversion
+from Tribler.community.trustchain.block import TrustChainBlock, ValidationResult, GENESIS_SEQ, UNKNOWN_SEQ
+from Tribler.community.trustchain.payload import HalfBlockPayload, CrawlRequestPayload
+from Tribler.community.trustchain.database import TrustChainDB
+from Tribler.community.trustchain.conversion import TrustChainConversion
 
 HALF_BLOCK = u"half_block"
 CRAWL = u"crawl"
@@ -48,15 +48,15 @@ class PendingBytes(object):
             return False
 
 
-class MultiChainCommunity(Community):
+class TrustChainCommunity(Community):
     """
-    Community for reputation based on MultiChain tamper proof interaction history.
+    Community for reputation based on TrustChain tamper proof interaction history.
     """
-    DB_CLASS = MultiChainDB
-    DB_NAME = 'multichain'
+    DB_CLASS = TrustChainDB
+    DB_NAME = 'trustchain'
 
     def __init__(self, *args, **kwargs):
-        super(MultiChainCommunity, self).__init__(*args, **kwargs)
+        super(TrustChainCommunity, self).__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.notifier = None
@@ -67,11 +67,11 @@ class MultiChainCommunity(Community):
         # This data is not used to create outgoing requests, but _only_ to verify incoming requests
         self.pending_bytes = dict()
 
-        self.logger.debug("The multichain community started with Public Key: %s",
+        self.logger.debug("The trustchain community started with Public Key: %s",
                           self.my_member.public_key.encode("hex"))
 
     def initialize(self, tribler_session=None):
-        super(MultiChainCommunity, self).initialize()
+        super(TrustChainCommunity, self).initialize()
         if tribler_session:
             self.notifier = tribler_session.notifier
             self.notifier.add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
@@ -103,7 +103,7 @@ class MultiChainCommunity(Community):
         Setup all message that can be received by this community and the super classes.
         :return: list of meta messages.
         """
-        return super(MultiChainCommunity, self).initiate_meta_messages() + [
+        return super(TrustChainCommunity, self).initiate_meta_messages() + [
             Message(self, HALF_BLOCK,
                     NoAuthentication(),
                     PublicResolution(),
@@ -122,7 +122,7 @@ class MultiChainCommunity(Community):
                     self.received_crawl_request)]
 
     def initiate_conversions(self):
-        return [DefaultConversion(self), MultiChainConversion(self)]
+        return [DefaultConversion(self), TrustChainConversion(self)]
 
     def send_block(self, candidate, block):
         if candidate.get_member():
@@ -137,7 +137,7 @@ class MultiChainCommunity(Community):
         try:
             self.dispersy.store_update_forward([message], False, False, True)
         except DelayPacketByMissingMember:
-            self.logger.warn("Missing member in MultiChain community to send signature request to")
+            self.logger.warn("Missing member in TrustChain community to send signature request to")
 
     def sign_block(self, candidate, public_key=None, bytes_up=None, bytes_down=None, linked=None):
         """
@@ -157,7 +157,7 @@ class MultiChainCommunity(Community):
         assert linked is None or linked.link_sequence_number == UNKNOWN_SEQ, \
             "Cannot counter sign block that is not a request"
 
-        block = MultiChainBlock.create(self.persistence, self.my_member.public_key, linked)
+        block = TrustChainBlock.create(self.persistence, self.my_member.public_key, linked)
         if linked is None:
             block.up = bytes_up
             block.down = bytes_down
@@ -263,7 +263,7 @@ class MultiChainCommunity(Community):
     @blocking_call_on_reactor_thread
     def get_statistics(self, public_key=None):
         """
-        Returns a dictionary with some statistics regarding the local multichain database
+        Returns a dictionary with some statistics regarding the local trustchain database
         :returns a dictionary with statistics
         """
         if public_key is None:
@@ -287,13 +287,13 @@ class MultiChainCommunity(Community):
 
     @inlineCallbacks
     def unload_community(self):
-        self.logger.debug("Unloading the MultiChain Community.")
+        self.logger.debug("Unloading the TrustChain Community.")
         if self.notifier:
             self.notifier.remove_observer(self.on_tunnel_remove)
         for pk in self.pending_bytes:
             if self.pending_bytes[pk].clean is not None:
                 self.pending_bytes[pk].clean.reset(0)
-        yield super(MultiChainCommunity, self).unload_community()
+        yield super(TrustChainCommunity, self).unload_community()
         # Close the persistence layer
         self.persistence.close()
 
@@ -337,17 +337,17 @@ class MultiChainCommunity(Community):
         self.pending_bytes.pop(public_key, None)
 
 
-class MultiChainCommunityCrawler(MultiChainCommunity):
+class TrustChainCommunityCrawler(TrustChainCommunity):
     """
-    Extended MultiChainCommunity that also crawls other MultiChainCommunities.
-    It requests the chains of other MultiChains.
+    Extended TrustChainCommunity that also crawls other TrustChainCommunities.
+    It requests the chains of other TrustChains.
     """
 
     # Time the crawler waits between crawling a new candidate.
     CrawlerDelay = 5.0
 
     def on_introduction_response(self, messages):
-        super(MultiChainCommunityCrawler, self).on_introduction_response(messages)
+        super(TrustChainCommunityCrawler, self).on_introduction_response(messages)
         for message in messages:
             self.send_crawl_request(message.candidate, message.candidate.get_member().public_key)
 
