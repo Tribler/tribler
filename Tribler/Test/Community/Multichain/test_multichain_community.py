@@ -531,7 +531,8 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
 
     @blocking_call_on_reactor_thread
     def assertBlocksInDatabase(self, node, amount):
-        count = node.community.persistence.execute(u"SELECT COUNT(*) FROM multi_chain").fetchone()[0]
+        db_name = node.community.persistence.db_name
+        count = node.community.persistence.execute(u"SELECT COUNT(*) FROM %s" % db_name).fetchone()[0]
         assert count == amount, "Wrong number of blocks in database, was {0} but expected {1}".format(count, amount)
 
     @blocking_call_on_reactor_thread
@@ -590,7 +591,7 @@ class TestMultiChainCommunity(MultiChainTestCase, DispersyTestFunc):
     @staticmethod
     @blocking_call_on_reactor_thread
     def clean_database(node):
-        node.community.persistence.execute(u"DELETE FROM multi_chain;")
+        node.community.persistence.execute(u"DELETE FROM %s;" % node.community.persistence.db_name)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks

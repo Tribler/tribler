@@ -52,13 +52,15 @@ class MultiChainCommunity(Community):
     """
     Community for reputation based on MultiChain tamper proof interaction history.
     """
+    DB_CLASS = MultiChainDB
+    DB_NAME = 'multichain'
 
     def __init__(self, *args, **kwargs):
         super(MultiChainCommunity, self).__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.notifier = None
-        self.persistence = MultiChainDB(self.dispersy.working_directory)
+        self.persistence = self.DB_CLASS(self.dispersy.working_directory, self.DB_NAME)
 
         # We store the bytes send and received in the tunnel community in a dictionary.
         # The key is the public key of the peer being interacted with, the value a tuple of the up and down bytes

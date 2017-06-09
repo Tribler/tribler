@@ -23,7 +23,7 @@ class TestDatabase(MultiChainTestCase):
         path = os.path.join(self.getStateDir(), DATABASE_DIRECTORY)
         if not os.path.exists(path):
             os.makedirs(path)
-        self.db = MultiChainDB(self.getStateDir())
+        self.db = MultiChainDB(self.getStateDir(), u'multichain')
         self.block1 = TestBlock()
         self.block2 = TestBlock()
 
@@ -166,19 +166,19 @@ class TestDatabase(MultiChainTestCase):
     def set_db_version(self, version):
         self.db.executescript(u"UPDATE option SET value = '%d' WHERE key = 'database_version';" % version)
         self.db.close(commit=True)
-        self.db = MultiChainDB(self.getStateDir())
+        self.db = MultiChainDB(self.getStateDir(), u'multichain')
 
     @blocking_call_on_reactor_thread
     def test_database_upgrade(self):
         self.set_db_version(1)
         version, = next(self.db.execute(u"SELECT value FROM option WHERE key = 'database_version' LIMIT 1"))
-        self.assertEqual(version, u"3")
+        self.assertEqual(version, u"4")
 
     @blocking_call_on_reactor_thread
     def test_database_create(self):
         self.set_db_version(0)
         version, = next(self.db.execute(u"SELECT value FROM option WHERE key = 'database_version' LIMIT 1"))
-        self.assertEqual(version, u"3")
+        self.assertEqual(version, u"4")
 
     @blocking_call_on_reactor_thread
     def test_database_no_downgrade(self):
