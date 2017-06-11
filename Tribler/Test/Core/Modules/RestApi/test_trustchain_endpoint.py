@@ -2,8 +2,8 @@ import json
 
 from twisted.internet.defer import inlineCallbacks
 
+from Tribler.community.triblerchain.community import TriblerChainCommunity
 from Tribler.community.trustchain.block import TrustChainBlock
-from Tribler.community.trustchain.community import TrustChainCommunity
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
@@ -26,8 +26,8 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         master_member = DummyMember(self.dispersy, 1, "a" * 20)
         self.member = self.dispersy.get_new_member(u"curve25519")
 
-        self.mc_community = TrustChainCommunity(self.dispersy, master_member, self.member)
-        self.dispersy.get_communities = lambda: [self.mc_community]
+        self.tc_community = TriblerChainCommunity(self.dispersy, master_member, self.member)
+        self.dispersy.get_communities = lambda: [self.tc_community]
         self.session.get_dispersy_instance = lambda: self.dispersy
 
     @deferred(timeout=10)
@@ -50,14 +50,11 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         block.public_key = self.member.public_key
         block.link_public_key = "deadbeef".decode("HEX")
         block.link_sequence_number = 21
-        block.up = 42
-        block.down = 8
-        block.total_up = 1024
-        block.total_down = 2048
+        block.transaction = {"up": 42, "down": 8, "total_up": 1024, "total_down": 2048}
         block.sequence_number = 3
         block.previous_hash = "babecafe".decode("HEX")
         block.signature = "babebeef".decode("HEX")
-        self.mc_community.persistence.add_block(block)
+        self.tc_community.persistence.add_block(block)
 
         def verify_response(response):
             response_json = json.loads(response)
@@ -119,7 +116,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             self.assertEqual(len(response_json["blocks"]), 1)
 
         test_block = TestBlock()
-        self.mc_community.persistence.add_block(test_block)
+        self.tc_community.persistence.add_block(test_block)
         self.should_check_equality = False
         return self.do_request('trustchain/blocks/%s?limit=10' % test_block.public_key.encode("HEX"),
                                expected_code=200).addCallback(verify_response)

@@ -16,7 +16,7 @@ class TrustChainDB(Database):
     Connection layer to SQLiteDB.
     Ensures a proper DB schema on startup.
     """
-    LATEST_DB_VERSION = 4
+    LATEST_DB_VERSION = 1
 
     def __init__(self, working_directory, db_name):
         """
@@ -25,8 +25,9 @@ class TrustChainDB(Database):
         that will contain the the db at working directory/DATABASE_PATH
         :param db_name: The name of the database
         """
-        super(TrustChainDB, self).__init__(os.path.join(
-            working_directory, os.path.join(DATABASE_DIRECTORY, u"%s.db" % db_name)))
+        db_path = os.path.join(working_directory, os.path.join(DATABASE_DIRECTORY, u"%s.db" % db_name))
+        super(TrustChainDB, self).__init__(db_path)
+        self._logger.debug("TrustChain database path: %s", db_path)
         self.db_name = db_name
         self.open()
 
@@ -36,8 +37,8 @@ class TrustChainDB(Database):
         :param block: The data that will be saved.
         """
         self.execute(
-            u"INSERT INTO %s (up, down, total_up, total_down, public_key, sequence_number, link_public_key,"
-            u"link_sequence_number, previous_hash, signature, block_hash) VALUES(?,?,?,?,?,?,?,?,?,?,?)" % self.db_name,
+            u"INSERT INTO %s (tx, public_key, sequence_number, link_public_key,"
+            u"link_sequence_number, previous_hash, signature, block_hash) VALUES(?,?,?,?,?,?,?,?)" % self.db_name,
             block.pack_db_insert())
         self.commit()
 
@@ -113,22 +114,11 @@ class TrustChainDB(Database):
                             u"ORDER BY insert_time ASC LIMIT ?" % self.db_name,
                             (buffer(public_key), sequence_number, buffer(public_key), buffer(public_key), limit))
 
-    def get_num_unique_interactors(self, public_key):
-        """
-        Returns the number of people you interacted with (either helped or that have helped you)
-        :param public_key: The public key of the member of which we want the information
-        :return: A tuple of unique number of interactors that helped you and that you have helped respectively
-        """
-        db_query = u"SELECT SUM(CASE WHEN up > 0 THEN 1 ELSE 0 END) AS pk_helped, SUM(CASE WHEN down > 0 THEN 1 ELSE " \
-                   u"0 END) AS helped_pk FROM (SELECT link_public_key, SUM(up) AS up, SUM(down) AS down FROM " \
-                   u"%s WHERE public_key = ? GROUP BY link_public_key) helpers" % self.db_name
-        return self.execute(db_query, (buffer(public_key),)).fetchone()
-
     def get_sql_header(self):
         """
         Return the first part of a generic sql select query.
         """
-        _columns = u"up, down, total_up, total_down, public_key, sequence_number, link_public_key, link_sequence_number, " \
+        _columns = u"tx, public_key, sequence_number, link_public_key, link_sequence_number, " \
                    u"previous_hash, signature, insert_time"
         return u"SELECT " + _columns + u" FROM %s " % self.db_name
 
@@ -138,10 +128,7 @@ class TrustChainDB(Database):
         """
         return u"""
         CREATE TABLE IF NOT EXISTS %s(
-         up                   INTEGER NOT NULL,
-         down                 INTEGER NOT NULL,
-         total_up             UNSIGNED BIG INT NOT NULL,
-         total_down           UNSIGNED BIG INT NOT NULL,
+         tx                   TEXT NOT NULL,
          public_key           TEXT NOT NULL,
          sequence_number      INTEGER NOT NULL,
          link_public_key      TEXT NOT NULL,
@@ -164,11 +151,7 @@ class TrustChainDB(Database):
         Return the upgrade script for a specific version.
         :param current_version: the version of the script to return.
         """
-        if current_version == 2 or current_version == 3:
-            return u"""
-            DROP TABLE IF EXISTS %s;
-            DROP TABLE IF EXISTS option;
-            """ % self.db_name
+        raise NotImplementedError("This method should be implemented in a subclass")
 
     def open(self, initial_statements=True, prepare_visioning=True):
         return super(TrustChainDB, self).open(initial_statements, prepare_visioning)
@@ -182,15 +165,7 @@ class TrustChainDB(Database):
         :param database_version: Current version of the database.
         :return:
         """
-        assert isinstance(database_version, unicode)
-        assert database_version.isdigit()
-        assert int(database_version) >= 0
-        database_version = int(database_version)
-
-        if database_version < self.LATEST_DB_VERSION:
-            # Remove all previous data, since we have only been testing so far, and previous blocks might not be
-            # reliable. In the future, we should implement an actual upgrade procedure
-            self.executescript(self.get_upgrade_script(current_version=2))
+        if int(database_version) < self.LATEST_DB_VERSION:
             self.executescript(self.get_schema())
             self.commit()
 

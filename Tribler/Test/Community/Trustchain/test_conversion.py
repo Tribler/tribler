@@ -5,8 +5,6 @@ from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TrustCha
 from Tribler.community.trustchain.community import HALF_BLOCK, CRAWL
 from Tribler.community.trustchain.conversion import TrustChainConversion
 from Tribler.community.trustchain.payload import HalfBlockPayload, CrawlRequestPayload
-from twisted.internet.defer import inlineCallbacks
-
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
@@ -16,6 +14,7 @@ from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.message import Message, DropPacket
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from twisted.internet.defer import inlineCallbacks
 
 
 class TestConversion(TrustChainTestCase):
@@ -25,8 +24,8 @@ class TestConversion(TrustChainTestCase):
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self):
-        yield super(TestConversion, self).setUp()
+    def setUp(self, annotate=True):
+        yield super(TestConversion, self).setUp(annotate=annotate)
         self.converter = TrustChainConversion(self.community)
         self.block = TestBlock()
 
@@ -78,7 +77,10 @@ class TestConversion(TrustChainTestCase):
         encoded_message = self.converter._encode_half_block(message)[0]
         # Act & Assert
         with self.assertRaises(DropPacket):
-            # Remove a bit of message.
+            # Remove a bit of the message.
+            self.converter._decode_half_block(TestPlaceholder(meta), 0, encoded_message[:-60])
+        with self.assertRaises(DropPacket):
+            # Remove a bit of the message.
             self.converter._decode_half_block(TestPlaceholder(meta), 0, encoded_message[:-10])
 
     def test_encoding_decoding_crawl_request(self):

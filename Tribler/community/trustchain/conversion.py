@@ -48,8 +48,12 @@ class TrustChainConversion(BinaryConversion):
         if len(data) < offset + block_pack_size:
             raise DropPacket("Unable to decode the payload")
 
-        return offset + block_pack_size, placeholder.meta.payload.implement(
-            TrustChainBlock.unpack(data, offset))
+        try:
+            block = TrustChainBlock.unpack(data, offset)
+        except IndexError:
+            raise DropPacket("Invalid block contents")
+
+        return len(data), placeholder.meta.payload.implement(block)
 
     @staticmethod
     def _encode_crawl_request(message):

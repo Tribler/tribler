@@ -1,6 +1,5 @@
 import datetime
 import os
-from math import pow
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TestBlock, TrustChainTestCase
@@ -12,9 +11,6 @@ class TestDatabase(TrustChainTestCase):
     """
     Tests the Database for TrustChain community.
     """
-
-    def __init__(self, *args, **kwargs):
-        super(TestDatabase, self).__init__(*args, **kwargs)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -36,14 +32,8 @@ class TestDatabase(TrustChainTestCase):
         self.assertEqual_block(self.block1, result)
 
     @blocking_call_on_reactor_thread
-    def test_get_num_interactors(self):
-        """
-        Test whether the right number of interactors is returned
-        """
-        self.block2 = TestBlock(previous=self.block1)
-        self.db.add_block(self.block1)
-        self.db.add_block(self.block2)
-        self.assertEqual((2, 2), self.db.get_num_unique_interactors(self.block1.public_key))
+    def test_get_upgrade_script(self):
+        self.assertRaises(NotImplementedError, self.db.get_upgrade_script, 42)
 
     @blocking_call_on_reactor_thread
     def test_add_two_blocks(self):
@@ -76,7 +66,7 @@ class TestDatabase(TrustChainTestCase):
     @blocking_call_on_reactor_thread
     def test_get_linked_forward(self):
         # Arrange
-        self.block2 = TestBlock.create(self.db, self.block2.public_key, link=self.block1)
+        self.block2 = TestBlock.create({"id": 42}, self.db, self.block2.public_key, link=self.block1)
         self.db.add_block(self.block1)
         self.db.add_block(self.block2)
         # Act
@@ -87,7 +77,7 @@ class TestDatabase(TrustChainTestCase):
     @blocking_call_on_reactor_thread
     def test_get_linked_backwards(self):
         # Arrange
-        self.block2 = TestBlock.create(self.db, self.block2.public_key, link=self.block1)
+        self.block2 = TestBlock.create({"id": 42}, self.db, self.block2.public_key, link=self.block1)
         self.db.add_block(self.block1)
         self.db.add_block(self.block2)
         # Act
@@ -172,13 +162,7 @@ class TestDatabase(TrustChainTestCase):
     def test_database_upgrade(self):
         self.set_db_version(1)
         version, = next(self.db.execute(u"SELECT value FROM option WHERE key = 'database_version' LIMIT 1"))
-        self.assertEqual(version, u"4")
-
-    @blocking_call_on_reactor_thread
-    def test_database_create(self):
-        self.set_db_version(0)
-        version, = next(self.db.execute(u"SELECT value FROM option WHERE key = 'database_version' LIMIT 1"))
-        self.assertEqual(version, u"4")
+        self.assertEqual(version, u"1")
 
     @blocking_call_on_reactor_thread
     def test_database_no_downgrade(self):
@@ -192,6 +176,5 @@ class TestDatabase(TrustChainTestCase):
         Test whether a block is correctly represented when converted to a dictionary
         """
         block_dict = dict(self.block1)
-        self.assertEqual(block_dict["up"], self.block1.up)
-        self.assertEqual(block_dict["down"], self.block1.down)
+        self.assertDictEqual(block_dict["transaction"], {"id": 42})
         self.assertEqual(block_dict["insert_time"], self.block1.insert_time)

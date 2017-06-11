@@ -1,27 +1,27 @@
 """
-This file test whether Tribler is able to start when trustchain is enabled.
+This file test whether Tribler is able to start when TriblerChain is enabled.
 """
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.community.trustchain.community import TrustChainCommunity, TrustChainCommunityCrawler
+from Tribler.community.triblerchain.community import TriblerChainCommunity, TriblerChainCommunityCrawler
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestTrustchainStartup(TestAsServer):
     """
-    Start a Tribler session and initialize the trustchain community to ensure it does not crash.
+    Start a Tribler session and initialize the TriblerChain community to ensure it does not crash.
     """
 
     def test_trustchain_startup_no_crawler(self):
         self.load_communities(self.session, self.dispersy, False)
         communities = [type(community) for community in self.dispersy._communities.values()]
-        assert TrustChainCommunity in communities
+        assert TriblerChainCommunity in communities
 
     def test_trustchain_startup_crawler(self):
         self.load_communities(self.session, self.dispersy, True)
         communities = [type(community) for community in self.dispersy._communities.values()]
-        assert TrustChainCommunityCrawler in communities
+        assert TriblerChainCommunityCrawler in communities
 
     def setUpPreSession(self):
         super(TestTrustchainStartup, self).setUpPreSession()
@@ -36,12 +36,12 @@ class TestTrustchainStartup(TestAsServer):
         dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
         kwargs = {'tribler_session': session}
         if crawler:
-            dispersy.define_auto_load(TrustChainCommunityCrawler, dispersy_member, load=True, kargs=kwargs)
+            dispersy.define_auto_load(TriblerChainCommunityCrawler, dispersy_member, load=True, kargs=kwargs)
         else:
-            dispersy.define_auto_load(TrustChainCommunity, dispersy_member, load=True, kargs=kwargs)
+            dispersy.define_auto_load(TriblerChainCommunity, dispersy_member, load=True, kargs=kwargs)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self):
-        yield super(TestTrustchainStartup, self).setUp()
+    def setUp(self, autoload_discovery=True):
+        yield super(TestTrustchainStartup, self).setUp(autoload_discovery=autoload_discovery)
         self.dispersy = self.session.get_dispersy_instance()
