@@ -3,9 +3,10 @@ Permanent Identifier.
 
 Author(s): Arno Bakker
 """
-import os
 import logging
+import os
 from M2Crypto import Rand, EC, BIO
+
 from Tribler.dispersy.crypto import LibNaCLSK
 
 logger = logging.getLogger(__name__)

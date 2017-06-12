@@ -3,21 +3,21 @@ This module mainly provides validation and correction for both metainfo and urls
 provides a method for HTTP GET requests as well as a function to translate peers into health.
 Author(s): Jie Yang
 """
-from base64 import b32decode
-from types import StringType, LongType, IntType, ListType, DictType
-import urlparse
-from urlparse import urlsplit, parse_qsl
 import binascii
 import logging
-from libtorrent import bencode, bdecode
+import urlparse
+from base64 import b32decode
+from types import StringType, LongType, IntType, ListType, DictType
+from urlparse import urlsplit, parse_qsl
 
+from libtorrent import bencode, bdecode
 from twisted.internet import reactor
 from twisted.web import http
 from twisted.web.client import Agent, readBody
 from twisted.web.http_headers import Headers
 
-from Tribler.Core.version import version_id
 from Tribler.Core.exceptions import HttpError
+from Tribler.Core.version import version_id
 
 logger = logging.getLogger(__name__)
 

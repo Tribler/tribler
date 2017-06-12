@@ -1,5 +1,4 @@
 import logging
-
 from twisted.internet import reactor
 from twisted.internet.defer import DeferredList, maybeDeferred
 from twisted.internet.protocol import Protocol, DatagramProtocol, connectionDone, Factory
@@ -116,7 +115,7 @@ class Socks5Connection(Protocol):
                 if not self._try_request():
                     break  # Not enough bytes so wait till we got more
             else:
-                self.logger.error("Throwing away buffer, not in CONNECTED or BEFORE_METHOD_REQUEST state")
+                self._logger.error("Throwing away buffer, not in CONNECTED or BEFORE_METHOD_REQUEST state")
                 self.buffer = ''
 
     def _try_handshake(self):

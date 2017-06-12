@@ -11,11 +11,11 @@ import sys
 import time
 from binascii import hexlify
 from traceback import print_exc
-
-import libtorrent as lt
 from twisted.internet import defer, reactor
 from twisted.internet.defer import Deferred, CancelledError, succeed
 from twisted.internet.task import LoopingCall
+
+import libtorrent as lt
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
@@ -267,7 +267,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 if not self.cew_scheduled:
                     self.ltmgr = self.session.lm.ltmgr
                     dht_ok = not isinstance(self.tdef, TorrentDefNoMetainfo) or self.ltmgr.is_dht_ready()
-                    tunnel_community = self.ltmgr.trsession.lm.tunnel_community
+                    tunnel_community = self.ltmgr.tribler_session.lm.tunnel_community
                     tunnels_ready = tunnel_community.tunnels_ready(self.get_hops()) if tunnel_community else 1
 
                     if not self.ltmgr or not dht_ok or tunnels_ready < 1:
@@ -342,7 +342,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
                 self.set_selected_files()
 
-                user_stopped = pstate.get('downloadconfig', 'user_stopped') if pstate else False
+                user_stopped = pstate.get('download_defaults', 'user_stopped') if pstate else False
 
                 # If we lost resume_data always resume download in order to force checking
                 if not user_stopped or not resume_data:
@@ -355,8 +355,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     self.set_vod_mode(True)
 
                 # Limit the amount of connections if we have specified that
-                if self.session.get_libtorrent_max_conn_download() != -1:
-                    self.handle.set_max_connections(max(2, self.session.get_libtorrent_max_conn_download()))
+                max_conn_download = self.session.config.get_libtorrent_max_conn_download()
+                if max_conn_download != -1:
+                    self.handle.set_max_connections(max(2, max_conn_download))
 
                 self.handle.resolve_countries(True)
 
@@ -708,9 +709,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         if self.dlstate == DLSTATUS_SEEDING:
             mode = self.get_seeding_mode()
             if mode == 'never' \
-                    or (mode == 'ratio' and
-                                self.all_time_ratio >= self.dlconfig.get('downloadconfig', 'seeding_ratio')) \
-                    or (mode == 'time' and self.finished_time >= self.dlconfig.get('downloadconfig', 'seeding_time')):
+                    or (mode == 'ratio' and self.all_time_ratio >= self.dlconfig.get('download_defaults',
+                                                                                     'seeding_ratio')) \
+                    or (mode == 'time' and self.finished_time >= self.dlconfig.get('download_defaults',
+                                                                                   'seeding_time')):
                 self.stop()
 
     def set_corrected_infoname(self):
@@ -1014,7 +1016,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 if self.dlstate != DLSTATUS_CIRCUITS:
                     progress = self.progressbeforestop
                 else:
-                    tunnel_community = self.ltmgr.trsession.lm.tunnel_community
+                    tunnel_community = self.ltmgr.tribler_session.lm.tunnel_community
                     progress = tunnel_community.tunnels_ready(self.get_hops()) if tunnel_community else 1
 
                 ds = DownloadState(self, self.dlstate, self.error, progress)
@@ -1163,7 +1165,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
     def get_persistent_download_config(self):
         pstate = self.dlconfig.copy()
 
-        pstate.set('downloadconfig', 'mode', DLMODE_NORMAL)
+        pstate.set('download_defaults', 'mode', DLMODE_NORMAL)
 
         # Add state stuff
         if not pstate.has_section('state'):
@@ -1215,11 +1217,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.get_handle().addCallback(lambda handle: handle.set_priority(prio))
 
     def dlconfig_changed_callback(self, section, name, new_value, old_value):
-        if section == 'downloadconfig' and name == 'max_upload_rate':
+        if section == 'libtorrent' and name == 'max_upload_rate':
             self.get_handle().addCallback(lambda handle: handle.set_upload_limit(int(new_value * 1024)))
-        elif section == 'downloadconfig' and name == 'max_download_rate':
+        elif section == 'libtorrent' and name == 'max_download_rate':
             self.get_handle().addCallback(lambda handle: handle.set_download_limit(int(new_value * 1024)))
-        elif section == 'downloadconfig' and name in ['correctedfilename', 'super_seeder']:
+        elif section == 'download_defaults' and name in ['correctedfilename', 'super_seeder']:
             return False
         return True
 

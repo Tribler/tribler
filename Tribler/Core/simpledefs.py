@@ -31,28 +31,10 @@ DLMODE_NORMAL = 0
 DLMODE_VOD = 1
 
 PERSISTENTSTATE_CURRENTVERSION = 5
-"""
-V1 = SwarmPlayer 1.0.0
-V2 = Tribler 4.5.0: SessionConfig: Added NAT fields
-V3 = SessionConfig: Added multicast_local_peer_discovery,
-     Removed rss_reload_frequency + rss_check_frequency.
-V4 = ... + added pickled SwiftDef
-V5 = no longer pickling data
-For details see API.py
-"""
 
 STATEDIR_DLPSTATE_DIR = u'dlcheckpoints'
-STATEDIR_PEERICON_DIR = u'icons'
-STATEDIR_TORRENT_STORE_DIR = u'collected_torrents'
-STATEDIR_METADATA_STORE_DIR = u'collected_metadata'
-
-STATEDIR_SESSCONFIG = 'libtribler.conf'
-STATEDIR_DLCONFIG = 'tribler.conf'
-STATEDIR_GUICONFIG = 'tribler.conf'
-STATEDIR_CONFIG = 'triblerd.conf'
 
 # For observer/callback mechanism, see Session.add_observer()
-
 # subjects
 NTFY_PEERS = 'peers'
 NTFY_TORRENTS = 'torrents'

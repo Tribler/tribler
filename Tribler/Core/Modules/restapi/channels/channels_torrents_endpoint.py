@@ -1,6 +1,5 @@
 import base64
 import json
-
 from twisted.internet.defer import Deferred
 from twisted.web import http
 from twisted.web.server import NOT_DONE_YET
@@ -71,7 +70,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         results_local_torrents_channel = self.channel_db_handler\
             .getTorrentsFromChannelId(channel_info[0], True, torrent_db_columns)
 
-        should_filter = self.session.tribler_config.get_family_filter_enabled()
+        should_filter = self.session.config.get_family_filter_enabled()
         if 'disable_filter' in request.args and len(request.args['disable_filter']) > 0 \
                 and request.args['disable_filter'][0] == "1":
             should_filter = False
@@ -79,7 +78,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         results_json = []
         for torrent_result in results_local_torrents_channel:
             torrent_json = convert_db_torrent_to_json(torrent_result)
-            if (should_filter and torrent_json['category'] == 'xxx') or torrent_json['name'] is None:
+            if torrent_json['name'] is None or (should_filter and torrent_json['category'] == 'xxx'):
                 continue
 
             results_json.append(torrent_json)

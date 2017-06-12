@@ -5,12 +5,12 @@ Author(s): Jie Yang
 """
 import logging
 import os
+from apsw import CantOpenError, SQLError
 from base64 import encodestring, decodestring
 from threading import currentThread, RLock
+from twisted.python.threadable import isInIOThread
 
 import apsw
-from apsw import CantOpenError, SQLError
-from twisted.python.threadable import isInIOThread
 
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
@@ -20,14 +20,13 @@ from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
 
 DB_SCRIPT_NAME = "schema_sdb_v%s.sql" % str(LATEST_DB_VERSION)
 
-DB_FILE_NAME = u"tribler.sdb"
 DB_DIR_NAME = u"sqlite"
+DB_FILE_NAME = u"tribler.sdb"
 DB_FILE_RELATIVE_PATH = os.path.join(DB_DIR_NAME, DB_FILE_NAME)
-
+DB_SCRIPT_NAME = u"schema_sdb_v%s.sql" % str(LATEST_DB_VERSION)
+DB_SCRIPT_ABSOLUTE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), DB_SCRIPT_NAME)
 
 DEFAULT_BUSY_TIMEOUT = 10000
-
-TRHEADING_DEBUG = False
 
 forceDBThread = call_on_reactor_thread
 forceAndReturnDBThread = blocking_call_on_reactor_thread
@@ -47,7 +46,7 @@ def str2bin(str_data):
 
 class SQLiteCacheDB(TaskManager):
 
-    def __init__(self, db_path, db_script_path=None, busytimeout=DEFAULT_BUSY_TIMEOUT):
+    def __init__(self, db_path, db_script_path=DB_SCRIPT_ABSOLUTE_PATH, busytimeout=DEFAULT_BUSY_TIMEOUT):
         super(SQLiteCacheDB, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)

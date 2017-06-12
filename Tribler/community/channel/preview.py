@@ -1,5 +1,6 @@
-from Tribler.community.channel.community import ChannelCommunity
 from time import time
+
+from Tribler.community.channel.community import ChannelCommunity
 
 
 class PreviewChannelCommunity(ChannelCommunity):

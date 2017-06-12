@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import QWidget
 from TriblerGUI.defs import STATUS_GOOD, STATUS_DEAD
 from TriblerGUI.defs import STATUS_UNKNOWN
 
-from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.tribler_window import fc_channel_torrent_list_item
 from TriblerGUI.utilities import format_size, get_image_path, get_gui_setting
@@ -62,16 +61,15 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         self.window().start_download_from_uri(self.download_uri)
 
     def on_play_button_clicked(self):
-        gui_settings = self.window().gui_settings
         self.download_uri = quote_plus((u"magnet:?xt=urn:btih:%s&dn=%s" %
                                         (self.torrent_info["infohash"], self.torrent_info['name'])).encode('utf-8'))
 
         self.window().perform_start_download_request(self.download_uri,
-                                                     get_gui_setting(gui_settings, "default_anonymity_enabled",
-                                                                     True, is_bool=True),
-                                                     get_gui_setting(gui_settings, "default_safeseeding_enabled",
-                                                                     True, is_bool=True),
-                                                     self.window().tribler_settings['downloadconfig']['saveas'],
+                                                     self.window().tribler_settings['download_defaults'][
+                                                         'anonymity_enabled'],
+                                                     self.window().tribler_settings['download_defaults'][
+                                                         'safeseeding_enabled'],
+                                                     self.window().tribler_settings['download_defaults']['saveas'],
                                                      [], 0, callback=self.on_play_request_done)
 
     def on_play_request_done(self, result):

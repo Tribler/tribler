@@ -2,6 +2,7 @@ import logging
 from twisted.internet.error import ReactorAlreadyInstalledError
 
 # We always use a selectreactor
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from TriblerGUI.defs import API_PORT
 
 try:
@@ -18,7 +19,6 @@ from PyQt5.QtWidgets import QApplication
 import signal
 from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
 
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -45,12 +45,12 @@ def start_tribler_core(base_path):
     sys.path.insert(0, base_path)
 
     def start_tribler():
-        config = SessionStartupConfig().load()
+        config = TriblerConfig()
         config.set_http_api_port(API_PORT)
         config.set_http_api_enabled(True)
 
         # Check if we are already running a Tribler instance
-        process_checker = ProcessChecker()
+        process_checker = ProcessChecker(config.get_state_dir())
         if process_checker.already_running:
             return
 

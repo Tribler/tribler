@@ -1,5 +1,5 @@
-from urlparse import urlparse
 from httplib import HTTP_PORT
+from urlparse import urlparse
 
 
 class MalformedTrackerURLException(Exception):

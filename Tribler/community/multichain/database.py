@@ -3,9 +3,8 @@ This file contains everything related to persistence for MultiChain.
 """
 from os import path
 
-from Tribler.dispersy.database import Database
 from Tribler.community.multichain.block import MultiChainBlock
-
+from Tribler.dispersy.database import Database
 
 DATABASE_DIRECTORY = path.join(u"sqlite")
 # Path to the database location + dispersy._workingdirectory

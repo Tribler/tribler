@@ -1,11 +1,9 @@
 from random import sample
 from time import time
 from twisted.internet.defer import returnValue, inlineCallbacks
-
 from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
 
-from .conversion import AllChannelConversion
 from Tribler.community.allchannel.message import DelayMessageReqChannelMessage
 from Tribler.community.allchannel.payload import (ChannelCastRequestPayload, ChannelCastPayload, VoteCastPayload,
                                                   ChannelSearchPayload, ChannelSearchResponsePayload)
@@ -20,7 +18,7 @@ from Tribler.dispersy.distribution import FullSyncDistribution, DirectDistributi
 from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.message import Message, BatchConfiguration
 from Tribler.dispersy.resolution import PublicResolution
-
+from .conversion import AllChannelConversion
 
 CHANNELCAST_FIRST_MESSAGE = 3.0
 CHANNELCAST_INTERVAL = 15.0

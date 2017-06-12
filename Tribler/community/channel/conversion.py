@@ -7,7 +7,6 @@ from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket, Packet, DelayPacketByMissingMessage, DelayPacketByMissingMember
 
-
 DEBUG = False
 
 

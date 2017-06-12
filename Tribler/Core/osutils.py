@@ -6,12 +6,10 @@ The function get_home_dir returns CSIDL_APPDATA i.e. App data directory on win32
 Author(s): Arno Bakker
 """
 
-import sys
-import os
-import time
-import binascii
-import subprocess
 import logging
+import os
+import subprocess
+import sys
 
 logger = logging.getLogger(__name__)
 

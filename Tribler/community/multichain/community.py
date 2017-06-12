@@ -4,19 +4,20 @@ This reputation system builds a tamper proof interaction history contained in a 
 Every node has a chain and these chains intertwine by blocks shared by chains.
 """
 import logging
-from twisted.internet.defer import inlineCallbacks
-
 from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
+
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-from Tribler.dispersy.authentication import NoAuthentication, MemberAuthentication
-from Tribler.dispersy.resolution import PublicResolution
-from Tribler.dispersy.distribution import DirectDistribution
-from Tribler.dispersy.destination import CandidateDestination
+from Tribler.dispersy.authentication import MemberAuthentication
+from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.community import Community
-from Tribler.dispersy.message import Message, DelayPacketByMissingMember
 from Tribler.dispersy.conversion import DefaultConversion
+from Tribler.dispersy.destination import CandidateDestination
+from Tribler.dispersy.distribution import DirectDistribution
+from Tribler.dispersy.message import Message, DelayPacketByMissingMember
+from Tribler.dispersy.resolution import PublicResolution
 
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.community.multichain.block import MultiChainBlock, ValidationResult, GENESIS_SEQ, UNKNOWN_SEQ
