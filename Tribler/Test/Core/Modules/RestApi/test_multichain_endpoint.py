@@ -2,6 +2,9 @@ import json
 
 from twisted.internet.defer import inlineCallbacks
 
+from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock
+from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.twisted_thread import deferred
 from Tribler.community.multichain.block import MultiChainBlock
 from Tribler.community.multichain.community import MultiChainCommunity
 from Tribler.dispersy.community import Community
@@ -9,9 +12,6 @@ from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
 from Tribler.dispersy.member import DummyMember
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock
-from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from Tribler.Test.twisted_thread import deferred
 
 
 class TestMultichainStatsEndpoint(AbstractApiTest):

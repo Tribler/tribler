@@ -1,14 +1,14 @@
 import os
-import sys
 import shutil
+import sys
+from unittest import skipIf
 
 from apsw import SQLError, CantOpenError
-from unittest import skipIf
 from nose.tools import raises
 from twisted.internet.defer import inlineCallbacks
 
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_SCRIPT_ABSOLUTE_PATH, CorruptedDatabaseError
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_SCRIPT_NAME, CorruptedDatabaseError
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
@@ -27,9 +27,6 @@ class TestSqliteCacheDB(TriblerCoreTest):
         self.sqlite_test = SQLiteCacheDB(db_path)
         self.sqlite_test.set_show_sql(True)
         self.sqlite_test.initialize()
-
-        import Tribler
-        self.tribler_db_script = os.path.join(os.path.dirname(Tribler.__file__), DB_SCRIPT_NAME)
 
     def tearDown(self):
         super(TestSqliteCacheDB, self).tearDown()
@@ -72,7 +69,7 @@ class TestSqliteCacheDB(TriblerCoreTest):
 
     @blocking_call_on_reactor_thread
     def test_open_db_script_file(self):
-        sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"), self.tribler_db_script)
+        sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"), DB_SCRIPT_ABSOLUTE_PATH)
         sqlite_test_2.initialize()
 
         sqlite_test_2.initial_begin()
@@ -86,7 +83,7 @@ class TestSqliteCacheDB(TriblerCoreTest):
     @blocking_call_on_reactor_thread
     @raises(SQLError)
     def test_failed_commit(self):
-        sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"), self.tribler_db_script)
+        sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"), DB_SCRIPT_ABSOLUTE_PATH)
         sqlite_test_2.initialize()
         sqlite_test_2.write_version(4)
 
@@ -103,7 +100,7 @@ class TestSqliteCacheDB(TriblerCoreTest):
     def test_no_permission_on_script(self):
         db_path = os.path.join(self.session_base_dir, "test_db.db")
         new_script_path = os.path.join(self.session_base_dir, "script.sql")
-        shutil.copyfile(self.tribler_db_script, new_script_path)
+        shutil.copyfile(DB_SCRIPT_ABSOLUTE_PATH, new_script_path)
         os.chmod(new_script_path, 0)
         sqlite_test_2 = SQLiteCacheDB(db_path, new_script_path)
         sqlite_test_2.initialize()
@@ -117,7 +114,7 @@ class TestSqliteCacheDB(TriblerCoreTest):
 
     @blocking_call_on_reactor_thread
     def test_clean_db(self):
-        sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"), self.tribler_db_script)
+        sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"), DB_SCRIPT_ABSOLUTE_PATH)
         sqlite_test_2.initialize()
         sqlite_test_2.initial_begin()
         sqlite_test_2.clean_db(vacuum=True, exiting=True)

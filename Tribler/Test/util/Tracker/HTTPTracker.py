@@ -2,6 +2,7 @@ from libtorrent import bencode
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred
 from twisted.web import http, resource, server
+
 from Tribler.Test.util.Tracker.TrackerInfo import TrackerInfo
 
 

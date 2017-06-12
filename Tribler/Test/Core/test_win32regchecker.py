@@ -1,4 +1,5 @@
 import sys
+
 from Tribler.Core.Utilities.win32regchecker import Win32RegChecker
 from Tribler.Test.Core.base_test import TriblerCoreTest
 

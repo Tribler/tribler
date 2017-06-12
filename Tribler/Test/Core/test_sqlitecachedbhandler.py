@@ -1,13 +1,13 @@
 import os
-
 import tarfile
+
+from configobj import ConfigObj
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import (BasicDBHandler, LimitedOrderedDict)
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_SCRIPT_NAME
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+from Tribler.Core.Config.tribler_config import TriblerConfig, CONFIG_SPEC_PATH
 from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -31,18 +31,16 @@ class TestLimitedOrderedDict(TriblerCoreTest):
 class AbstractDB(TriblerCoreTest):
 
     def setUpPreSession(self):
-        self.config = SessionStartupConfig()
+        self.config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH))
         self.config.set_state_dir(self.getStateDir())
-        self.config.set_torrent_checking(False)
-        self.config.set_multicast_local_peer_discovery(False)
-        self.config.set_megacache(False)
-        self.config.set_dispersy(False)
-        self.config.set_mainline_dht(False)
-        self.config.set_torrent_collecting(False)
-        self.config.set_libtorrent(False)
-        self.config.set_dht_torrent_collecting(False)
-        self.config.set_videoserver_enabled(False)
-        self.config.set_torrent_store(False)
+        self.config.set_torrent_checking_enabled(False)
+        self.config.set_megacache_enabled(False)
+        self.config.set_dispersy_enabled(False)
+        self.config.set_mainline_dht_enabled(False)
+        self.config.set_torrent_collecting_enabled(False)
+        self.config.set_libtorrent_enabled(False)
+        self.config.set_video_server_enabled(False)
+        self.config.set_torrent_store_enabled(False)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -56,9 +54,8 @@ class AbstractDB(TriblerCoreTest):
         tar.extractall(self.session_base_dir)
 
         db_path = os.path.join(self.session_base_dir, 'bak_new_tribler.sdb')
-        db_script_path = os.path.join(get_lib_path(), DB_SCRIPT_NAME)
 
-        self.sqlitedb = SQLiteCacheDB(db_path, db_script_path, busytimeout=BUSYTIMEOUT)
+        self.sqlitedb = SQLiteCacheDB(db_path, busytimeout=BUSYTIMEOUT)
         self.sqlitedb.initialize()
         self.session.sqlite_db = self.sqlitedb
 

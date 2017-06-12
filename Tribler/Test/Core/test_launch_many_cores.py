@@ -29,8 +29,12 @@ class TestLaunchManyCore(TriblerCoreTest):
     def setUp(self, annotate=True):
         TriblerCoreTest.setUp(self, annotate=annotate)
         self.lm = TriblerLaunchMany()
-        self.lm.sesslock = NoDispersyRLock()
+        self.lm.session_lock = NoDispersyRLock()
         self.lm.session = MockObject()
+        self.lm.session.config = MockObject()
+        self.lm.session.config.get_max_upload_rate = lambda: 100
+        self.lm.session.config.get_max_download_rate = lambda: 100
+        self.lm.session.config.get_default_number_hops = lambda: 0
 
         # Ignore notifications
         mock_notifier = MockObject()
@@ -65,23 +69,6 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.assertIsInstance(config, CallbackConfigParser)
         self.assertEqual(config.get('general', 'version'), 11)
 
-    def test_sessconfig_changed_cb(self):
-        """
-        Testing whether the callback works correctly when changing session config parameters
-        """
-        self.assertFalse(self.lm.sessconfig_changed_callback('blabla', 'fancyname', '3', '4'))
-        self.lm.ltmgr = MockObject()
-
-        def mocked_set_utp(val):
-            self.assertEqual(val, '42')
-            mocked_set_utp.called = True
-
-        self.lm.ltmgr.set_utp = mocked_set_utp
-        mocked_set_utp.called = False
-        self.assertTrue(self.lm.sessconfig_changed_callback('libtorrent', 'utp', '42', '3'))
-        self.assertTrue(mocked_set_utp.called)
-        self.assertTrue(self.lm.sessconfig_changed_callback('libtorrent', 'anon_listen_port', '42', '43'))
-
     @deferred(timeout=10)
     def test_dlstates_cb_error(self):
         """
@@ -114,6 +101,11 @@ class TestLaunchManyCore(TriblerCoreTest):
         """
         Testing whether a download is readded when safe seeding in the download states callback in LaunchManyCore
         """
+        self.lm.session.config = MockObject()
+        self.lm.session.config.get_max_upload_rate = lambda: 100
+        self.lm.session.config.get_max_download_rate = lambda: 100
+        self.lm.session.config.get_default_number_hops = lambda: 0
+
         readd_deferred = Deferred()
 
         def mocked_start_download(tdef, dscfg):
@@ -202,11 +194,11 @@ class TestLaunchManyCoreFullSession(TestAsServer):
                            'preview_channel_community', 'tunnel_community', 'dispersy']
 
         for section in config_sections:
-            self.config.sessconfig.set(section, 'enabled', True)
+            self.config.config[section]['enabled'] = True
 
-        self.config.set_megacache(True)
+        self.config.set_megacache_enabled(True)
         self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
-        self.config.set_mainline_dht(True)
+        self.config.set_mainline_dht_enabled(True)
 
     def get_community(self, community_cls):
         for community in self.session.get_dispersy_instance().get_communities():

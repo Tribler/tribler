@@ -8,12 +8,10 @@ Author(s): Elric Milon
 import logging
 import os
 import sys
-
 # logging.basicConfig()
 from twisted.python.log import addObserver
 
 from Tribler.Core.Utilities.network_utils import get_random_port
-
 
 __all__ = ["process_unhandled_exceptions"]
 

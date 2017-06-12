@@ -13,6 +13,7 @@ from twisted.web.server import Site
 from twisted.web.static import File
 
 from Tribler.Core.CreditMining.BoostingManager import BoostingManager, BoostingSettings
+from Tribler.Core.CreditMining.BoostingPolicy import SeederRatioPolicy
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
@@ -37,6 +38,7 @@ class TestBoostingManagerSys(TestAsServer):
         super(TestBoostingManagerSys, self).__init__(*argv, **kwargs)
         self._check_source_lc = None
         self._check_torrents_lc = None
+        self.check_loaded_lc = None
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -55,7 +57,7 @@ class TestBoostingManagerSys(TestAsServer):
         """
         set settings in credit mining
         """
-        self.bsettings = BoostingSettings(self.session)
+        self.bsettings = BoostingSettings(policy=SeederRatioPolicy(self.session))
         self.bsettings.credit_mining_path = os.path.join(self.session_base_dir, "credit_mining")
         self.bsettings.load_config = False
         self.bsettings.check_dependencies = False
@@ -73,13 +75,13 @@ class TestBoostingManagerSys(TestAsServer):
     def setUpPreSession(self):
         super(TestBoostingManagerSys, self).setUpPreSession()
 
-        self.config.set_torrent_checking(True)
-        self.config.set_megacache(True)
-        self.config.set_dispersy(True)
-        self.config.set_torrent_store(True)
-        self.config.set_enable_torrent_search(True)
-        self.config.set_enable_channel_search(True)
-        self.config.set_libtorrent(True)
+        self.config.set_torrent_checking_enabled(True)
+        self.config.set_megacache_enabled(True)
+        self.config.set_dispersy_enabled(True)
+        self.config.set_torrent_store_enabled(True)
+        self.config.set_torrent_search_enabled(True)
+        self.config.set_channel_search_enabled(True)
+        self.config.set_libtorrent_enabled(True)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -288,6 +290,10 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
         yield super(TestBoostingManagerSysChannel, self).setUp()
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
+        self.session.config.get_dispersy_enabled = lambda: True
+        self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
+        self.dispersy_cid_hex = "abcd" * 9 + "0012"
+        self.dispersy_cid = binascii.unhexlify(self.dispersy_cid_hex)
 
     def set_boosting_settings(self):
         super(TestBoostingManagerSysChannel, self).set_boosting_settings()
@@ -300,7 +306,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
         super(TestBoostingManagerSysChannel, self).setUpPreSession()
 
         # we use dummy dispersy here
-        self.config.set_dispersy(False)
+        self.config.set_dispersy_enabled(False)
 
     def _load(self, _):
         """
@@ -331,17 +337,12 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
 
         It includes finding and downloading actual torrent
         """
-        self.session.get_dispersy = lambda: True
-        self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
-        dispersy_cid_hex = "abcd" * 9 + "0012"
-        dispersy_cid = binascii.unhexlify(dispersy_cid_hex)
-
         # create channel and insert torrent
         self.create_fake_allchannel_community()
-        self.create_torrents_in_channel(dispersy_cid_hex)
+        self.create_torrents_in_channel(self.dispersy_cid_hex)
 
-        self.boosting_manager.add_source(dispersy_cid)
-        chn_obj = self.boosting_manager.get_source_object(dispersy_cid)
+        self.boosting_manager.add_source(self.dispersy_cid)
+        chn_obj = self.boosting_manager.get_source_object(self.dispersy_cid)
 
         def check_torrents_channel(src, defer_param=None, target=1):
             """
@@ -375,7 +376,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
 
         chn_obj._load_torrent = self._load
 
-        d = self.check_source(dispersy_cid)
+        d = self.check_source(self.dispersy_cid)
         d.addCallback(check_torrents_channel, target=1)
         return d
 
@@ -387,18 +388,13 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
         It also tests how boosting manager cope with unknown channel with retrying
         the lookup
         """
-        self.session.get_dispersy = lambda: True
-        self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
-        dispersy_cid_hex = "abcd" * 9 + "0012"
-        dispersy_cid = binascii.unhexlify(dispersy_cid_hex)
-
         # create channel and insert torrent
         self.create_fake_allchannel_community()
-        self.create_torrents_in_channel(dispersy_cid_hex)
+        self.create_torrents_in_channel(self.dispersy_cid_hex)
 
         # channel is exist
         community = ChannelCommunity.init_community(self.session.lm.dispersy,
-                                                    self.session.lm.dispersy.get_member(mid=dispersy_cid),
+                                                    self.session.lm.dispersy.get_member(mid=self.dispersy_cid),
                                                     self.session.lm.dispersy._communities['allchannel']._my_member,
                                                     self.session)
 
@@ -414,8 +410,8 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
 
         reactor.callLater(5, _set_id_channel, id_tmp)
 
-        self.boosting_manager.add_source(dispersy_cid)
-        chn_obj = self.boosting_manager.get_source_object(dispersy_cid)
+        self.boosting_manager.add_source(self.dispersy_cid)
+        chn_obj = self.boosting_manager.get_source_object(self.dispersy_cid)
 
         chn_obj._load_torrent = self._load
 
@@ -428,8 +424,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
 
             chn_obj.kill_tasks()
 
-
-        d = self.check_source(dispersy_cid)
+        d = self.check_source(self.dispersy_cid)
         d.addCallback(clean_community)
         return d
 
@@ -438,14 +433,9 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
         """
         Test the restriction of max_torrents in a source.
         """
-        self.session.get_dispersy = lambda: True
-        self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
-        dispersy_cid_hex = "abcd" * 9 + "0012"
-        dispersy_cid = binascii.unhexlify(dispersy_cid_hex)
-
         # create channel and insert torrent
         self.create_fake_allchannel_community()
-        self.create_torrents_in_channel(dispersy_cid_hex)
+        self.create_torrents_in_channel(self.dispersy_cid_hex)
 
         pioneer_file = os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E06.720p.x264-VODO.torrent")
         pioneer_tdef = TorrentDef.load(pioneer_file)
@@ -455,8 +445,8 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
                          pioneer_tdef.get_files_with_length(), pioneer_tdef.get_trackers_as_single_tuple()]]
         self.insert_torrents_into_channel(torrent_list)
 
-        self.boosting_manager.add_source(dispersy_cid)
-        chn_obj = self.boosting_manager.get_source_object(dispersy_cid)
+        self.boosting_manager.add_source(self.dispersy_cid)
+        chn_obj = self.boosting_manager.get_source_object(self.dispersy_cid)
         chn_obj.max_torrents = 2
         chn_obj._load_torrent = lambda _: defer.Deferred()
 
@@ -496,20 +486,15 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
 
             return defer_param
 
-        d = self.check_source(dispersy_cid)
+        d = self.check_source(self.dispersy_cid)
         d.addCallback(check_torrents_channel)
         return d
 
     @deferred(timeout=40)
     def test_chn_native_load(self):
-        self.session.get_dispersy = lambda: True
-        self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
-        dispersy_cid_hex = "abcd" * 9 + "0012"
-        dispersy_cid = binascii.unhexlify(dispersy_cid_hex)
-
         # create channel and insert torrent
         self.create_fake_allchannel_community()
-        self.create_torrents_in_channel(dispersy_cid_hex)
+        self.create_torrents_in_channel(self.dispersy_cid_hex)
 
         self.session.download_torrentfile = \
             lambda dummy_ihash, function, _: function(binascii.hexlify(TORRENT_UBUNTU_FILE_INFOHASH))
@@ -525,7 +510,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
 
         self.session.get_collected_torrent = get_bin_torrent
 
-        self.boosting_manager.add_source(dispersy_cid)
+        self.boosting_manager.add_source(self.dispersy_cid)
 
         def _loop_check(_):
             defer_param = defer.Deferred()
@@ -542,12 +527,12 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
                     self.check_loaded_lc = None
                     defer_param.callback(src)
 
-            self.check_loaded_lc = LoopingCall(check_loaded, dispersy_cid)
+            self.check_loaded_lc = LoopingCall(check_loaded, self.dispersy_cid)
             self.check_loaded_lc.start(1, now=True)
 
             return defer_param
 
-        defer_ret = self.check_source(dispersy_cid)
+        defer_ret = self.check_source(self.dispersy_cid)
         defer_ret.addCallback(_loop_check)
 
         return defer_ret

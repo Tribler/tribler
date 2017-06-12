@@ -15,10 +15,10 @@ from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.utilities import create_valid_metainfo, valid_torrent_file
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, HttpError
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import BaseTestCase
 from Tribler.Test.twisted_thread import deferred
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 TRACKER = 'http://www.tribler.org/announce'
 

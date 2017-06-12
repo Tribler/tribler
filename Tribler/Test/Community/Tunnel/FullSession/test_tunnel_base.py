@@ -1,5 +1,4 @@
 import os
-
 from twisted.internet.defer import returnValue, inlineCallbacks
 from twisted.python.threadable import isInIOThread
 
@@ -53,8 +52,8 @@ class TestTunnelBase(TestAsServer):
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
-        self.config.set_dispersy(True)
-        self.config.set_libtorrent(True)
+        self.config.set_dispersy_enabled(True)
+        self.config.set_libtorrent_enabled(True)
         self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
     @blocking_call_on_reactor_thread
@@ -131,8 +130,8 @@ class TestTunnelBase(TestAsServer):
 
         self.setUpPreSession()
         config = self.config.copy()
-        config.set_libtorrent(True)
-        config.set_dispersy(True)
+        config.set_libtorrent_enabled(True)
+        config.set_dispersy_enabled(True)
         config.set_state_dir(self.getStateDir(index))
         config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
@@ -152,7 +151,7 @@ class TestTunnelBase(TestAsServer):
 
         self.seed_config = self.config.copy()
         self.seed_config.set_state_dir(self.getStateDir(2))
-        self.seed_config.set_megacache(True)
+        self.seed_config.set_megacache_enabled(True)
         self.seed_config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
         if self.session2 is None:
             self.session2 = Session(self.seed_config, ignore_singleton=True, autoload_discovery=False)
@@ -162,7 +161,7 @@ class TestTunnelBase(TestAsServer):
         tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))
         tdef.set_tracker("http://localhost/announce")
         tdef.finalize()
-        torrentfn = os.path.join(self.session2.get_state_dir(), "gen.torrent")
+        torrentfn = os.path.join(self.session2.config.get_state_dir(), "gen.torrent")
         tdef.save(torrentfn)
         self.seed_tdef = tdef
 
@@ -200,5 +199,5 @@ class TestTunnelBase(TestAsServer):
         dscfg.set_dest_dir(self.getDestDir())
         dscfg.set_hops(hops)
         download = self.session.start_download_from_tdef(self.seed_tdef, dscfg)
-        download.add_peer(("127.0.0.1", self.session2.get_listen_port()))
+        download.add_peer(("127.0.0.1", self.session2.config.get_libtorrent_port()))
         return download

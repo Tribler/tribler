@@ -7,11 +7,11 @@ from unittest import skipIf
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.Session import Session
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from Tribler.dispersy.candidate import Candidate
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
+from Tribler.dispersy.candidate import Candidate
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestRemoteTorrentHandler(TestAsServer):
@@ -28,12 +28,14 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.test_deferred = Deferred()
         self.config2 = None
         self.session2 = None
+        self.session1_port = None
+        self.session2_state_dir = None
 
     def setUpPreSession(self):
         super(TestRemoteTorrentHandler, self).setUpPreSession()
-        self.config.set_dispersy(True)
-        self.config.set_torrent_store(True)
-        self.config.set_enable_metadata(True)
+        self.config.set_dispersy_enabled(True)
+        self.config.set_torrent_store_enabled(True)
+        self.config.set_metadata_enabled(True)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -43,11 +45,9 @@ class TestRemoteTorrentHandler(TestAsServer):
 
     def setup_downloader(self):
         self.config2 = self.config.copy()
-        self.config2.set_megacache(True)
-        self.config2.set_torrent_collecting(True)
-        self.config2.set_torrent_store_dir(None)
-        self.config2.set_metadata_store_dir(None)
-        self.config2.set_enable_metadata(True)
+        self.config2.set_megacache_enabled(True)
+        self.config2.set_torrent_collecting_enabled(True)
+        self.config2.set_metadata_enabled(True)
         self.config2.set_state_dir(self.getStateDir(2))
 
         self.session2 = Session(self.config2, ignore_singleton=True)
@@ -59,8 +59,7 @@ class TestRemoteTorrentHandler(TestAsServer):
         """
         Testing whether downloading a torrent from another peer is successful
         """
-        self._logger.info(u"Start torrent download test...")
-        session1_port = self.session.get_dispersy_port()
+        session1_port = self.session.config.get_dispersy_port()
 
         def start_download(_):
             candidate = Candidate(("127.0.0.1", session1_port), False)
@@ -96,10 +95,8 @@ class TestRemoteTorrentHandler(TestAsServer):
     def test_metadata_download(self):
         """
         Testing whether downloading torrent metadata from another peer is successful
-        Testing whether downloading torrent metadata from another peer is successful
         """
-        self._logger.info(u"Start metadata download test...")
-        session1_port = self.session.get_dispersy_port()
+        session1_port = self.session.config.get_dispersy_port()
 
         # Add thumbnails to the store of the second session
         thumb_file = os.path.join(unicode(TESTS_DATA_DIR), u"41aea20908363a80d44234e8fef07fab506cd3b4",

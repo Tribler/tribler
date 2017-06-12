@@ -3,11 +3,11 @@ BitTorrent connections.
 
 Author(s): Arno Bakker, Jie Yang
 """
-import socket
 import logging
+import socket
+from StringIO import StringIO
 from binascii import b2a_hex
 from struct import pack, unpack
-from StringIO import StringIO
 
 current_version = 3  # TODO: Fix this temporary hack.
 lowest_version = 2

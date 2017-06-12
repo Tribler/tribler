@@ -2,7 +2,6 @@ import os
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
-
 from Tribler.Core.Upgrade.db_upgrader import DBUpgrader, VersionNoLongerSupportedError, DatabaseUpgradeError
 from Tribler.Core.Utilities.utilities import fix_torrent
 from Tribler.Core.leveldbstore import LevelDbStore
@@ -24,12 +23,12 @@ class TestDBUpgrader(AbstractUpgrader):
         db_migrator = DBUpgrader(self.session, self.sqlitedb, torrent_store=MockTorrentStore())
         db_migrator.start_migrate()
         self.assertEqual(self.sqlitedb.version, LATEST_DB_VERSION)
-        self.assertFalse(os.path.exists(os.path.join(self.session.get_torrent_collecting_dir(), 'dir1')))
+        self.assertFalse(os.path.exists(os.path.join(self.session.config.get_torrent_collecting_dir(), 'dir1')))
 
     def test_upgrade_17_to_latest_no_dispersy(self):
         # upgrade without dispersy DB should not raise an error
         self.copy_and_initialize_upgrade_database('tribler_v17.sdb')
-        os.unlink(os.path.join(self.session.get_state_dir(), 'sqlite', 'dispersy.db'))
+        os.unlink(os.path.join(self.session.config.get_state_dir(), 'sqlite', 'dispersy.db'))
         db_migrator = DBUpgrader(self.session, self.sqlitedb, torrent_store=MockTorrentStore())
         db_migrator.start_migrate()
         self.assertEqual(self.sqlitedb.version, LATEST_DB_VERSION)
@@ -51,7 +50,7 @@ class TestDBUpgrader(AbstractUpgrader):
 
     def test_reimport_torrents(self):
         self.copy_and_initialize_upgrade_database('tribler_v17.sdb')
-        self.torrent_store = LevelDbStore(self.session.get_torrent_store_dir())
+        self.torrent_store = LevelDbStore(self.session.config.get_torrent_store_dir())
         db_migrator = DBUpgrader(self.session, self.sqlitedb, torrent_store=self.torrent_store)
         db_migrator.start_migrate()
 

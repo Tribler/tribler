@@ -1,11 +1,11 @@
-from binascii import unhexlify
 import os
+from binascii import unhexlify
 from shutil import copy as copyfile
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, ChannelCastDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
+from Tribler.Core.Category.Category import Category
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
@@ -20,7 +20,7 @@ class TestTorrentFullSessionDBHandler(AbstractDB):
 
     def setUpPreSession(self):
         super(TestTorrentFullSessionDBHandler, self).setUpPreSession()
-        self.config.set_megacache(True)
+        self.config.set_megacache_enabled(True)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -40,8 +40,8 @@ class TestTorrentDBHandler(AbstractDB):
 
     def setUpPreSession(self):
         super(TestTorrentDBHandler, self).setUpPreSession()
-        self.config.set_megacache(True)
-        self.config.set_torrent_store(True)
+        self.config.set_megacache_enabled(True)
+        self.config.set_torrent_store_enabled(True)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -237,7 +237,7 @@ class TestTorrentDBHandler(AbstractDB):
     @blocking_call_on_reactor_thread
     def test_freeSpace(self):
         # Manually set the torrent store because register is not called.
-        self.session.lm.torrent_store = LevelDbStore(self.session.get_torrent_store_dir())
+        self.session.lm.torrent_store = LevelDbStore(self.session.config.get_torrent_store_dir())
         old_res = self.tdb.getNumberCollectedTorrents()
         self.tdb.freeSpace(20)
         res = self.tdb.getNumberCollectedTorrents()

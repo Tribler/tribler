@@ -2,8 +2,8 @@ from binascii import hexlify
 from nose.tools import raises
 from twisted.internet.defer import Deferred, inlineCallbacks
 
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session, SOCKET_BLOCK_ERRORCODE
-from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException, DuplicateTorrentFileError
 from Tribler.Core.leveldbstore import LevelDbStore
@@ -19,17 +19,19 @@ class TestSession(TriblerCoreTest):
 
     @raises(OperationNotEnabledByConfigurationException)
     def test_torrent_store_not_enabled(self):
-        config = SessionStartupConfig()
-        config.set_torrent_store(False)
+        config = TriblerConfig()
+        config.set_state_dir(self.getStateDir())
+        config.set_torrent_store_enabled(False)
         session = Session(config, ignore_singleton=True)
         session.delete_collected_torrent(None)
 
     def test_torrent_store_delete(self):
-        config = SessionStartupConfig()
-        config.set_torrent_store(True)
+        config = TriblerConfig()
+        config.set_state_dir(self.getStateDir())
+        config.set_torrent_store_enabled(True)
         session = Session(config, ignore_singleton=True)
         # Manually set the torrent store as we don't want to start the session.
-        session.lm.torrent_store = LevelDbStore(session.get_torrent_store_dir())
+        session.lm.torrent_store = LevelDbStore(session.config.get_torrent_store_dir())
         session.lm.torrent_store[hexlify("fakehash")] = "Something"
         self.assertEqual("Something", session.lm.torrent_store[hexlify("fakehash")])
         session.delete_collected_torrent("fakehash")
@@ -64,7 +66,8 @@ class TestSession(TriblerCoreTest):
 
             channel_manager = ChannelManager()
 
-        config = SessionStartupConfig()
+        config = TriblerConfig()
+        config.set_state_dir(self.getStateDir())
         session = Session(config, ignore_singleton=True)
         session.lm = LmMock()
         session.lm.api_manager = None
@@ -79,16 +82,17 @@ class TestSessionAsServer(TestAsServer):
 
     def setUpPreSession(self):
         super(TestSessionAsServer, self).setUpPreSession()
-        self.config.set_megacache(True)
-        self.config.set_torrent_collecting(True)
-        self.config.set_enable_channel_search(True)
-        self.config.set_dispersy(True)
+        self.config.set_megacache_enabled(True)
+        self.config.set_torrent_collecting_enabled(True)
+        self.config.set_channel_search_enabled(True)
+        self.config.set_dispersy_enabled(True)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self, autoload_discovery=True):
         yield super(TestSessionAsServer, self).setUp(autoload_discovery=autoload_discovery)
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
+        self.called = None
 
     def mock_endpoints(self):
         self.session.lm.api_manager = MockObject()
@@ -187,3 +191,157 @@ class TestSessionAsServer(TestAsServer):
         self.session.lm.load_checkpoint = verify_load_checkpoint_call
         self.session.load_checkpoint()
         self.assertTrue(self.load_checkpoint_called)
+
+    @raises(OperationNotEnabledByConfigurationException)
+    def test_get_libtorrent_process_not_enabled(self):
+        """
+        When libtorrent is not enabled, an exception should be thrown when getting the libtorrent instance.
+        """
+        self.session.config.get_libtorrent_enabled = lambda: False
+        self.session.get_libtorrent_process()
+
+    @raises(OperationNotEnabledByConfigurationException)
+    def test_open_dbhandler(self):
+        """
+        Opening the database without the megacache enabled should raise an exception.
+        """
+        self.session.config.get_megacache_enabled = lambda: False
+        self.session.open_dbhandler("x")
+
+    def test_close_dbhandler(self):
+        handler = MockObject()
+        self.called = False
+
+        def verify_close_called():
+            self.called = True
+        handler.close = verify_close_called
+        Session.close_dbhandler(handler)
+        self.assertTrue(self.called)
+
+    def test_download_torrentfile(self):
+        """
+        When libtorrent is not enabled, an exception should be thrown when downloading a torrentfile.
+        """
+        self.called = False
+
+        def verify_download_torrentfile_call(*args, **kwargs):
+            self.called = True
+        self.session.lm.rtorrent_handler.download_torrent = verify_download_torrentfile_call
+
+        self.session.download_torrentfile()
+        self.assertTrue(self.called)
+
+    def test_download_torrentfile_from_peer(self):
+        """
+        When libtorrent is not enabled, an exception should be thrown when downloading a torrentfile from a peer.
+        """
+        self.called = False
+
+        def verify_download_torrentfile_call(*args, **kwargs):
+            self.called = True
+        self.session.lm.rtorrent_handler.download_torrent = verify_download_torrentfile_call
+
+        self.session.download_torrentfile_from_peer("a")
+        self.assertTrue(self.called)
+
+    def test_download_torrentmessage_from_peer(self):
+        """
+        When libtorrent is not enabled, an exception should be thrown when downloading a torrentfile from a peer.
+        """
+        self.called = False
+
+        def verify_download_torrentmessage_call(*args, **kwargs):
+            self.called = True
+        self.session.lm.rtorrent_handler.download_torrentmessage = verify_download_torrentmessage_call
+
+        self.session.download_torrentmessage_from_peer("a", "b", "c")
+        self.assertTrue(self.called)
+
+    def test_get_permid(self):
+        """
+        Retrieving the string encoded permid should be successful.
+        """
+        self.assertIsInstance(self.session.get_permid(), str)
+
+    def test_remove_download_by_id_empty(self):
+        """
+        Remove downloads method when empty.
+        """
+        self.session.remove_download_by_id("nonexisting_infohash")
+        self.assertEqual(len(self.session.get_downloads()), 0)
+
+    def test_remove_download_by_id_nonempty(self):
+        """
+        Remove an existing download.
+        """
+        infohash = "abc"
+        download = MockObject()
+        torrent_def = MockObject()
+        torrent_def.get_infohash = lambda: infohash
+        download.get_def = lambda: torrent_def
+        self.session.get_downloads = lambda: [download]
+
+        self.called = False
+
+        def verify_remove_download_called(*args, **kwargs):
+            self.called = True
+
+        self.session.remove_download = verify_remove_download_called
+        self.session.remove_download_by_id(infohash)
+        self.assertTrue(self.called)
+
+    @raises(OperationNotEnabledByConfigurationException)
+    def test_get_dispersy_instance(self):
+        """
+        Test whether the get dispersy instance throws an exception if dispersy is not enabled.
+        """
+        self.session.config.get_dispersy_enabled = lambda: False
+        self.session.get_dispersy_instance()
+
+    @raises(OperationNotEnabledByConfigurationException)
+    def test_has_collected_torrent(self):
+        """
+        Test whether the has_collected_torrent throws an exception if dispersy is not enabled.
+        """
+        self.session.config.get_torrent_store_enabled = lambda: False
+        self.session.has_collected_torrent(None)
+
+    @raises(OperationNotEnabledByConfigurationException)
+    def test_get_collected_torrent(self):
+        """
+        Test whether the get_collected_torrent throws an exception if dispersy is not enabled.
+        """
+        self.session.config.get_torrent_store_enabled = lambda: False
+        self.session.get_collected_torrent(None)
+
+    @raises(OperationNotEnabledByConfigurationException)
+    def test_save_collected_torrent(self):
+        """
+        Test whether the save_collected_torrent throws an exception if dispersy is not enabled.
+        """
+        self.session.config.get_torrent_store_enabled = lambda: False
+        self.session.save_collected_torrent(None, None)
+
+    @raises(OperationNotEnabledByConfigurationException)
+    def test_delete_collected_torrent(self):
+        """
+        Test whether the delete_collected_torrent throws an exception if dispersy is not enabled.
+        """
+        self.session.config.get_torrent_store_enabled = lambda: False
+        self.session.delete_collected_torrent(None)
+
+    @raises(OperationNotEnabledByConfigurationException)
+    def test_search_remote_channels(self):
+        """
+        Test whether the search_remote_channels throws an exception if dispersy is not enabled.
+        """
+        self.session.config.get_channel_search_enabled = lambda: False
+        self.session.search_remote_channels(None)
+
+    @raises(OperationNotEnabledByConfigurationException)
+    def test_get_thumbnail_data(self):
+        """
+        Test whether the get_thumbnail_data throws an exception if dispersy is not enabled.
+        """
+        self.session.lm.metadata_store = None
+        self.session.get_thumbnail_data(None)

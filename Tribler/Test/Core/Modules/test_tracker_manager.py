@@ -1,6 +1,6 @@
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.tracker_manager import TrackerManager
 from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -8,7 +8,7 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 class TestTrackerManager(TriblerCoreTest):
 
     def setUpPreSession(self):
-        self.config = SessionStartupConfig()
+        self.config = TriblerConfig()
         self.config.set_state_dir(self.getStateDir())
 
     def setUp(self, annotate=True):
