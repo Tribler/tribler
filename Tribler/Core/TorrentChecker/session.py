@@ -486,6 +486,7 @@ class UdpTrackerSession(TrackerSession):
         self._is_failed = True
         if self.scraper:
             self.scraper.stop()
+            self.scraper = None
 
         if self.result_deferred:
             result_msg = "UDP tracker failed for url %s" % self._tracker_url
@@ -530,7 +531,7 @@ class UdpTrackerSession(TrackerSession):
 
         if self.scraper:
             self.clean_defer_list.append(self.scraper.stop())
-            del self.scraper
+            self.scraper = None
 
         # Return a deferredlist with all clean deferreds we have to wait on
         res = yield DeferredList(self.clean_defer_list)
@@ -671,7 +672,9 @@ class UdpTrackerSession(TrackerSession):
         UdpTrackerSession.remove_transaction_id(self)
         self._is_finished = True
 
-        # Call the callback of the deferred with the result
+        # Stop the scraper and call the callback of the deferred with the result
+        self.scraper.stop()
+        self.scraper = None
         self.result_deferred.callback({self.tracker_url: response_list})
 
 

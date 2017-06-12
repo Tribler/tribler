@@ -3,13 +3,16 @@ import json
 import os
 from urllib import pathname2url, quote_plus
 import shutil
+
 from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import UBUNTU_1504_INFOHASH, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
+from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
@@ -33,7 +36,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         self.setUpFileServer(file_server_port, files_path)
 
         def verify_valid_dict(data):
-            metainfo_dict = json.loads(data)
+            metainfo_dict = json.loads(data, encoding='latin_1')
             self.assertTrue('metainfo' in metainfo_dict)
             self.assertTrue('info' in metainfo_dict['metainfo'])
 
@@ -87,3 +90,19 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
 
         path = 'http://fdsafksdlafdslkdksdlfjs9fsafasdf7lkdzz32.n38/324.torrent'
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
+
+    @deferred(timeout=10)
+    def test_on_got_invalid_metainfo(self):
+        """
+        Test whether the right operations happen when we receive an invalid metainfo object
+        """
+        def get_metainfo(infohash, callback, **_):
+            callback("abcd")
+
+        self.session.lm.ltmgr = MockObject()
+        self.session.lm.ltmgr.get_metainfo = get_metainfo
+        self.session.lm.ltmgr.shutdown = lambda: None
+        path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH), quote_plus('test torrent'))
+
+        self.should_check_equality = False
+        return self.do_request('torrentinfo?uri=%s' % path, expected_code=500)

@@ -10,6 +10,7 @@ from TriblerGUI.defs import BUTTON_TYPE_NORMAL, API_PORT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 
 performed_requests = {}
+performed_requests_ids = []
 
 
 class TriblerRequestManager(QNetworkAccessManager):
@@ -19,13 +20,17 @@ class TriblerRequestManager(QNetworkAccessManager):
     window = None
 
     received_json = pyqtSignal(object, int)
-    received_file = pyqtSignal(str, object)
+    received_file = pyqtSignal(object)
 
     def __init__(self):
         QNetworkAccessManager.__init__(self)
-        self.request_id = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+        self.request_id = None
         self.base_url = "http://localhost:%d/" % API_PORT
         self.reply = None
+        self.generate_request_id()
+
+    def generate_request_id(self):
+        self.request_id = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
 
     def perform_request(self, endpoint, read_callback, data="", method='GET', capture_errors=True):
         """
@@ -37,6 +42,9 @@ class TriblerRequestManager(QNetworkAccessManager):
         :param capture_errors: whether errors should be handled by this class (defaults to True)
         """
         performed_requests[self.request_id] = [endpoint, method, data, time(), -1]
+        performed_requests_ids.append(self.request_id)
+        if len(performed_requests_ids) > 200:
+            del performed_requests[performed_requests_ids.pop(0)]
         url = self.base_url + endpoint
 
         if method == 'GET':
@@ -76,18 +84,27 @@ class TriblerRequestManager(QNetworkAccessManager):
 
     @staticmethod
     def get_message_from_error(error):
+        return_error = None
         if isinstance(error['error'], (str, unicode)):
-            return error['error']
+            return_error = error['error']
         elif 'message' in error['error']:
-            return error['error']['message']
-        return "Unknown error"
+            return_error = error['error']['message']
+
+        if not return_error:
+            return json.dumps(error)  # Just print the json object
+        return return_error
 
     def on_finished(self, reply, capture_errors):
-        performed_requests[self.request_id][4] = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+        status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+        if not reply.isOpen() or not status_code:
+            self.received_json.emit(None, reply.error())
+            return
+
+        performed_requests[self.request_id][4] = status_code
 
         data = reply.readAll()
         try:
-            json_result = json.loads(str(data))
+            json_result = json.loads(str(data), encoding='latin_1')
 
             if 'error' in json_result and capture_errors:
                 self.show_error(TriblerRequestManager.get_message_from_error(json_result))
@@ -97,6 +114,14 @@ class TriblerRequestManager(QNetworkAccessManager):
             self.received_json.emit(None, reply.error())
             logging.error("No json object could be decoded from data: %s" % data)
 
+        # We disconnect the slot since we want the finished only to be emitted once. This allows us to reuse the
+        # request manager.
+        try:
+            self.finished.disconnect()
+            self.received_json.disconnect()
+        except TypeError:
+            pass  # We probably didn't have any connected slots.
+
     def download_file(self, endpoint, read_callback):
         url = self.base_url + endpoint
         self.reply = self.get(QNetworkRequest(QUrl(url)))
@@ -104,9 +129,8 @@ class TriblerRequestManager(QNetworkAccessManager):
         self.finished.connect(self.on_file_download_finished)
 
     def on_file_download_finished(self, reply):
-        content_header = str(reply.rawHeader("Content-Disposition"))
         data = reply.readAll()
-        self.received_file.emit(content_header.split("=")[1], data)
+        self.received_file.emit(data)
 
     def show_error(self, error_text):
         main_text = "An error occurred during the request:\n\n%s" % error_text

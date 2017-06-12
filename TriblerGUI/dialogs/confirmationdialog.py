@@ -26,6 +26,8 @@ class ConfirmationDialog(DialogContainer):
 
         if not show_input:
             self.dialog_widget.dialog_input.setHidden(True)
+        else:
+            self.dialog_widget.dialog_input.returnPressed.connect(lambda: self.button_clicked.emit(0))
 
         hspacer_left = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.dialog_widget.dialog_button_container.layout().addSpacerItem(hspacer_left)

@@ -41,8 +41,6 @@ class VideoPlayerPage(QWidget):
 
         if vlc and vlc.plugin_path:
             os.environ['VLC_PLUGIN_PATH'] = vlc.plugin_path
-        else:
-            vlc_available = False
 
         if not vlc_available:
             # VLC is not available, we hide the video player button

@@ -88,6 +88,8 @@ class CoreManager(QObject):
         self.stop_timer = QTimer()
         self.stop_timer.timeout.connect(self.check_stopped)
 
+        self.check_state_timer = QTimer()
+
     def check_stopped(self):
         if not self.core_process.is_alive():
             self.stop_timer.stop()
@@ -121,16 +123,23 @@ class CoreManager(QObject):
 
     def on_received_state(self, state):
         if not state:
-            self.check_core_ready()
+            self.check_state_timer = QTimer()
+            self.check_state_timer.setSingleShot(True)
+            self.check_state_timer.timeout.connect(self.check_core_ready)
+            self.check_state_timer.start(50)
         elif state['state'] == 'STARTED':
             self.events_manager.connect(reschedule_on_err=False)
         elif state['state'] == 'EXCEPTION':
             raise RuntimeError(state['last_exception'])
         else:
-            self.check_core_ready()
+            self.check_state_timer = QTimer()
+            self.check_state_timer.setSingleShot(True)
+            self.check_state_timer.timeout.connect(self.check_core_ready)
+            self.check_state_timer.start(50)
 
     def stop(self, stop_app_on_shutdown=True):
         if self.core_process:
+            self.events_manager.shutting_down = True
             self.request_mgr = TriblerRequestManager()
             self.request_mgr.perform_request("shutdown", lambda _: None, method="PUT")
 

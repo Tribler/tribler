@@ -6,6 +6,7 @@ import traceback
 from urllib import quote_plus
 import signal
 
+import time
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication, pyqtSlot, QUrl, QObject
 from PyQt5.QtGui import QIcon, QDesktopServices
@@ -73,7 +74,8 @@ class TriblerWindow(QMainWindow):
         logging.error(exception_text)
 
         if not self.feedback_dialog_is_open:
-            dialog = FeedbackDialog(self, exception_text, self.core_manager.events_manager.tribler_version)
+            dialog = FeedbackDialog(self, exception_text, self.core_manager.events_manager.tribler_version,
+                                    self.start_time)
             self.feedback_dialog_is_open = True
             _ = dialog.exec_()
 
@@ -97,6 +99,7 @@ class TriblerWindow(QMainWindow):
         self.selected_torrent_files = []
         self.vlc_available = True
         self.has_search_results = False
+        self.start_time = time.time()
 
         sys.excepthook = self.on_exception
 
@@ -208,7 +211,9 @@ class TriblerWindow(QMainWindow):
         self.tray_icon.show()
 
     def on_torrent_finished(self, torrent_info):
-        self.window().tray_icon.showMessage("Download finished", "Download of %s has finished." % torrent_info["name"])
+        if QSystemTrayIcon.isSystemTrayAvailable():
+            self.window().tray_icon.showMessage("Download finished",
+                                                "Download of %s has finished." % torrent_info["name"])
 
     def show_loading_screen(self):
         self.top_menu_button.setHidden(True)
@@ -463,6 +468,7 @@ class TriblerWindow(QMainWindow):
                                          [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
                                          show_input=True)
         self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
+        self.dialog.dialog_widget.dialog_input.setFocus()
         self.dialog.button_clicked.connect(self.on_torrent_from_url_dialog_done)
         self.dialog.show()
 

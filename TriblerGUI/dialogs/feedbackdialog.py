@@ -1,7 +1,7 @@
 import os
 from urllib import quote_plus
 from PyQt5 import uic
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QDialog, QTreeWidgetItem, QAction
 import sys
 import platform
@@ -13,7 +13,7 @@ from TriblerGUI.utilities import get_ui_file_path
 
 class FeedbackDialog(QDialog):
 
-    def __init__(self, parent, exception_text, tribler_version):
+    def __init__(self, parent, exception_text, tribler_version, start_time):
         QDialog.__init__(self, parent)
 
         uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
@@ -47,6 +47,7 @@ class FeedbackDialog(QDialog):
         add_item_to_info_widget('platform.machine', platform.machine())
         add_item_to_info_widget('python.version', sys.version)
         add_item_to_info_widget('indebug', str(__debug__))
+        add_item_to_info_widget('tribler_uptime', "%s" % (time.time() - start_time))
 
         for argv in sys.argv:
             add_item_to_info_widget('sys.argv', '%s' % argv)
@@ -85,10 +86,10 @@ class FeedbackDialog(QDialog):
         menu.exec_(self.env_variables_list.mapToGlobal(pos))
 
     def on_cancel_clicked(self):
-        QCoreApplication.instance().quit()
+        QApplication.quit()
 
     def on_report_sent(self, _):
-        QCoreApplication.instance().quit()
+        QApplication.quit()
 
     def on_send_clicked(self):
         self.request_mgr = TriblerRequestManager()
@@ -113,5 +114,5 @@ class FeedbackDialog(QDialog):
         self.request_mgr.perform_request("report", self.on_report_sent, data=str(post_data), method='POST')
 
     def closeEvent(self, close_event):
-        QCoreApplication.instance().quit()
+        QApplication.quit()
         close_event.ignore()

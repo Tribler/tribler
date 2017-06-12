@@ -32,8 +32,10 @@ class RootEndpoint(resource.Resource):
         self.session = session
         self.events_endpoint = EventsEndpoint(self.session)
         self.state_endpoint = StateEndpoint(self.session)
+        self.shutdown_endpoint = ShutdownEndpoint(self.session)
         self.putChild("events", self.events_endpoint)
         self.putChild("state", self.state_endpoint)
+        self.putChild("shutdown", self.shutdown_endpoint)
 
     def start_endpoints(self):
         """
@@ -43,9 +45,8 @@ class RootEndpoint(resource.Resource):
         child_handler_dict = {"search": SearchEndpoint, "channels": ChannelsEndpoint, "mychannel": MyChannelEndpoint,
                               "settings": SettingsEndpoint, "variables": VariablesEndpoint,
                               "downloads": DownloadsEndpoint, "createtorrent": CreateTorrentEndpoint,
-                              "torrents": TorrentsEndpoint, "debug": DebugEndpoint, "shutdown": ShutdownEndpoint,
-                              "multichain": MultichainEndpoint, "statistics": StatisticsEndpoint,
-                              "torrentinfo": TorrentInfoEndpoint}
+                              "torrents": TorrentsEndpoint, "debug": DebugEndpoint, "multichain": MultichainEndpoint,
+                              "statistics": StatisticsEndpoint, "torrentinfo": TorrentInfoEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(self.session))
