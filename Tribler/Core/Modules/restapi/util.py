@@ -2,9 +2,8 @@
 This file contains some utility methods that are used by the API.
 """
 import json
-from struct import unpack_from
 import math
-
+from struct import unpack_from
 from twisted.web import http
 
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE
@@ -60,7 +59,7 @@ def can_edit_channel(channel_id, channel_vote):
     This method returns whether the channel can be edited or not.
     """
     from Tribler.Core.Session import Session
-    if Session.get_instance().get_dispersy():
+    if Session.get_instance().config.get_dispersy_enabled():
         dispersy = Session.get_instance().get_dispersy_instance()
         try:
             cmty = dispersy.get_community(channel_id)

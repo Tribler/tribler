@@ -1,8 +1,7 @@
-import struct
-import socket
-
 # Some constants used in the RFC 1928 specification
 import logging
+import socket
+import struct
 
 SOCKS_VERSION = 0x05
 

@@ -3,8 +3,8 @@ Core functionality of the Tribler.
 
 Author(s): Arno Bakker
 """
-from threading import RLock
 import logging
+from threading import RLock
 
 logger = logging.getLogger(__name__)
 

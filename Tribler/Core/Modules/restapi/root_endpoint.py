@@ -14,7 +14,6 @@ from Tribler.Core.Modules.restapi.state_endpoint import StateEndpoint
 from Tribler.Core.Modules.restapi.statistics_endpoint import StatisticsEndpoint
 from Tribler.Core.Modules.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
 from Tribler.Core.Modules.restapi.torrents_endpoint import TorrentsEndpoint
-from Tribler.Core.Modules.restapi.variables_endpoint import VariablesEndpoint
 
 
 class RootEndpoint(resource.Resource):
@@ -43,9 +42,9 @@ class RootEndpoint(resource.Resource):
         on a fully started Tribler.
         """
         child_handler_dict = {"search": SearchEndpoint, "channels": ChannelsEndpoint, "mychannel": MyChannelEndpoint,
-                              "settings": SettingsEndpoint, "variables": VariablesEndpoint,
-                              "downloads": DownloadsEndpoint, "createtorrent": CreateTorrentEndpoint,
-                              "torrents": TorrentsEndpoint, "debug": DebugEndpoint, "multichain": MultichainEndpoint,
+                              "settings": SettingsEndpoint, "downloads": DownloadsEndpoint,
+                              "createtorrent": CreateTorrentEndpoint, "torrents": TorrentsEndpoint,
+                              "debug": DebugEndpoint, "shutdown": ShutdownEndpoint, "multichain": MultichainEndpoint,
                               "statistics": StatisticsEndpoint, "torrentinfo": TorrentInfoEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():

@@ -83,7 +83,6 @@ class TestTFTPHandler(TriblerCoreTest):
 
         :return:
         """
-        self.handler.session = MockObject()
         # Make sure the packet appears to have the correct attributes
         fake_packet = {"opcode": OPCODE_RRQ,
                        "file_name": METADATA_PREFIX + "abc",
@@ -96,7 +95,9 @@ class TestTFTPHandler(TriblerCoreTest):
             test_function.is_called = True
             return False
         test_function.is_called = False
-        self.handler.session.get_enable_metadata = test_function
+        self.handler.session = MockObject()
+        self.handler.session.config = MockObject()
+        self.handler.session.config.get_metadata_enabled = test_function
 
         self.handler._handle_new_request("123", "456", fake_packet)
         self.assertTrue(test_function.is_called)
@@ -121,7 +122,8 @@ class TestTFTPHandler(TriblerCoreTest):
             test_function.is_called = True
             return False
         test_function.is_called = False
-        self.handler.session.get_torrent_store = test_function
+        self.handler.session.config = MockObject()
+        self.handler.session.config.get_torrent_store_enabled = test_function
 
         self.handler._handle_new_request("123", "456", fake_packet)
         self.assertTrue(test_function.is_called)

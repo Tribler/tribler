@@ -75,15 +75,13 @@ class StartDownloadDialog(DialogContainer):
                 self.dialog_widget.destination_input.addItems(recent_locations)
             else:
                 self.dialog_widget.destination_input.setCurrentText(
-                    self.window().tribler_settings['downloadconfig']['saveas'])
+                    self.window().tribler_settings['download_defaults']['saveas'])
 
         self.dialog_widget.torrent_name_label.setText(torrent_name)
 
         self.dialog_widget.anon_download_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
-        self.dialog_widget.safe_seed_checkbox.setChecked(get_gui_setting(gui_settings, "default_safeseeding_enabled",
-                                                                         True, is_bool=True))
-        self.dialog_widget.anon_download_checkbox.setChecked(get_gui_setting(gui_settings, "default_anonymity_enabled",
-                                                                             True, is_bool=True))
+        self.dialog_widget.safe_seed_checkbox.setChecked(self.window().tribler_settings['download_defaults']['safeseeding_enabled'])
+        self.dialog_widget.safe_seed_checkbox.setChecked(self.window().tribler_settings['download_defaults']['anonymity_enabled'])
 
         self.dialog_widget.safe_seed_checkbox.setEnabled(self.dialog_widget.anon_download_checkbox.isChecked())
 

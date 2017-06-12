@@ -25,7 +25,7 @@ class TestLoadUnloadTunnelCommunity(TestAsServer):
 
     def setUpPreSession(self):
         super(TestLoadUnloadTunnelCommunity, self).setUpPreSession()
-        self.config.set_dispersy(True)
+        self.config.set_dispersy_enabled(True)
         self.config.set_tunnel_community_enabled(True)
 
     def create_valid_packet(self, community):

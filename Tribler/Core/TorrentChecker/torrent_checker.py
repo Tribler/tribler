@@ -1,19 +1,16 @@
-from binascii import hexlify
 import logging
 import time
-from twisted.internet.error import ConnectingCancelledError
-
-from twisted.internet.defer import DeferredList, CancelledError, fail, succeed
-
+from binascii import hexlify
 from twisted.internet import reactor
+from twisted.internet.defer import DeferredList, CancelledError, fail, succeed
+from twisted.internet.error import ConnectingCancelledError
 from twisted.python.failure import Failure
 
-from Tribler.dispersy.taskmanager import TaskManager
-from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
-
-from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
+from Tribler.Core.simpledefs import NTFY_TORRENTS
+from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
 # some settings
 DEFAULT_TORRENT_SELECTION_INTERVAL = 20  # every 20 seconds, the thread will select torrents to check

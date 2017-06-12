@@ -2,6 +2,7 @@
 This file test whether Tribler is able to start when multichain is enabled.
 """
 from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.multichain.community import MultiChainCommunity, MultiChainCommunityCrawler
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -24,10 +25,10 @@ class TestMultichainStartup(TestAsServer):
 
     def setUpPreSession(self):
         super(TestMultichainStartup, self).setUpPreSession()
-        self.config.set_enable_multichain(False)
-        self.config.set_dispersy(True)
-        self.config.set_megacache(True)
-        self.config.set_enable_channel_search(True)
+        self.config.set_multichain_enabled(False)
+        self.config.set_dispersy_enabled(True)
+        self.config.set_megacache_enabled(True)
+        self.config.set_channel_search_enabled(True)
 
     @blocking_call_on_reactor_thread
     def load_communities(self, session, dispersy, crawler=False):

@@ -1,4 +1,5 @@
 from nose.tools import raises
+
 from Tribler.Core.Utilities.encoding import (_a_encode_int, _a_encode_long, _a_encode_float, _a_encode_unicode,
                                              _a_encode_bytes, _a_encode_list, _a_decode_true, _a_decode_false,
                                              _a_decode_none, _a_encode_set, _a_encode_none,

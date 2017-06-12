@@ -3,9 +3,9 @@ LevelDBStore.
 
 Author(s): Elric Milon
 """
+import os
 from collections import MutableMapping
 from itertools import chain
-import os
 
 from shutil import rmtree
 

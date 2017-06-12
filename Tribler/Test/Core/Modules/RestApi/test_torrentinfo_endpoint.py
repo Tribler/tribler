@@ -1,8 +1,8 @@
-from binascii import hexlify
 import json
 import os
-from urllib import pathname2url, quote_plus
 import shutil
+from binascii import hexlify
+from urllib import pathname2url, quote_plus
 
 from twisted.internet.defer import inlineCallbacks
 
@@ -20,7 +20,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
 
     def setUpPreSession(self):
         super(TestTorrentInfoEndpoint, self).setUpPreSession()
-        self.config.set_torrent_store(True)
+        self.config.set_torrent_store_enabled(True)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks

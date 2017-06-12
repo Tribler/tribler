@@ -7,8 +7,8 @@ import os
 from binascii import hexlify
 from shutil import rmtree
 
-from .torrent_upgrade64 import TorrentMigrator64
 from Tribler.Core.TorrentDef import TorrentDef
+from .torrent_upgrade64 import TorrentMigrator64
 
 
 class TorrentMigrator65(TorrentMigrator64):

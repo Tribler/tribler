@@ -8,8 +8,8 @@ class TestStatisticsEndpoint(AbstractApiTest):
 
     def setUpPreSession(self):
         super(TestStatisticsEndpoint, self).setUpPreSession()
-        self.config.set_dispersy(True)
-        self.config.set_torrent_collecting(True)
+        self.config.set_dispersy_enabled(True)
+        self.config.set_torrent_collecting_enabled(True)
 
     @deferred(timeout=10)
     def test_get_tribler_statistics(self):

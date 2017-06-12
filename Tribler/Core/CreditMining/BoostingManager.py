@@ -10,17 +10,17 @@ from binascii import hexlify, unhexlify
 from twisted.internet.task import LoopingCall
 
 import libtorrent as lt
+
 from Tribler.Core.CreditMining.BoostingPolicy import SeederRatioPolicy
 from Tribler.Core.CreditMining.BoostingSource import ChannelSource
 from Tribler.Core.CreditMining.BoostingSource import DirectorySource
 from Tribler.Core.CreditMining.BoostingSource import RSSFeedSource
 from Tribler.Core.CreditMining.credit_mining_util import source_to_string, string_to_source, compare_torrents, \
     validate_source_string
-
-from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
-from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.CreditMining.defs import SAVED_ATTR, CREDIT_MINING_FOLDER_DOWNLOAD, CONFIG_KEY_ARCHIVELIST, \
     CONFIG_KEY_SOURCELIST, CONFIG_KEY_ENABLEDLIST, CONFIG_KEY_DISABLEDLIST
+from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
+from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.Utilities import utilities
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
@@ -31,9 +31,7 @@ class BoostingSettings(object):
     """
     This class contains settings used by the boosting manager
     """
-    def __init__(self, session, policy=SeederRatioPolicy, load_config=True):
-        self.session = session
-
+    def __init__(self, policy=SeederRatioPolicy, load_config=True):
         # Configurable parameter (changeable in runtime -plus sources-)
         self.max_torrents_active = 20
         self.max_torrents_per_source = 10
@@ -44,7 +42,7 @@ class BoostingSettings(object):
         self.tracker_interval = 200
         self.logging_interval = 60
         self.share_mode_target = 3
-        self.policy = policy(session)
+        self.policy = policy
 
         # Non-Configurable
         self.initial_logging_interval = 20
@@ -77,16 +75,16 @@ class BoostingManager(TaskManager):
         self.session = session
 
         # use provided settings or a default one
-        self.settings = settings or BoostingSettings(session, load_config=True)
+        self.settings = settings or BoostingSettings(policy=SeederRatioPolicy(session), load_config=True)
 
         if self.settings.check_dependencies:
-            assert self.session.get_libtorrent()
-            assert self.session.get_torrent_checking()
-            assert self.session.get_dispersy()
-            assert self.session.get_torrent_store()
-            assert self.session.get_enable_torrent_search()
-            assert self.session.get_enable_channel_search()
-            assert self.session.get_megacache()
+            assert self.session.config.get_libtorrent_enabled()
+            assert self.session.config.get_torrent_checking_enabled()
+            assert self.session.config.get_dispersy_enabled()
+            assert self.session.config.get_torrent_store_enabled()
+            assert self.session.config.get_torrent_search_enabled()
+            assert self.session.config.get_channel_search_enabled()
+            assert self.session.config.get_megacache_enabled()
 
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
@@ -350,8 +348,7 @@ class BoostingManager(TaskManager):
 
         if self.settings.policy is not None and torrents:
             # Determine which torrent to start and which to stop.
-            torrents_start, torrents_stop = self.settings.policy.apply(
-                torrents, self.settings.max_torrents_active)
+            torrents_start, torrents_stop = self.settings.policy.apply(torrents, self.settings.max_torrents_active)
             for torrent in torrents_stop:
                 self.stop_download(torrent)
             for torrent in torrents_start:
@@ -392,13 +389,13 @@ class BoostingManager(TaskManager):
                 self.boosting_sources[boosting_source].enabled = enabled
 
         # set policy
-        self.settings.policy = self.session.get_cm_policy(True)(self.session)
+        self.settings.policy = self.session.config.get_credit_mining_policy(True)(self.session)
 
         for k in SAVED_ATTR:
             # see the session configuration
-            object.__setattr__(self.settings, k, getattr(self.session, "get_cm_%s" %k)())
+            object.__setattr__(self.settings, k, getattr(self.session.config, "get_credit_mining_%s" % k)())
 
-        for k, val in self.session.get_cm_sources().items():
+        for k, val in self.session.config.get_credit_mining_sources().items():
             if k is "boosting_sources":
                 _add_sources(val)
             elif k is "archive_sources":
@@ -437,12 +434,12 @@ class BoostingManager(TaskManager):
             if boosting_source.archive:
                 archive_sources.append(bsname)
 
-        self.session.set_cm_sources(lboosting_sources, CONFIG_KEY_SOURCELIST)
-        self.session.set_cm_sources(flag_enabled_sources, CONFIG_KEY_ENABLEDLIST)
-        self.session.set_cm_sources(flag_disabled_sources, CONFIG_KEY_DISABLEDLIST)
-        self.session.set_cm_sources(archive_sources, CONFIG_KEY_ARCHIVELIST)
+        self.session.config.set_credit_mining_sources(lboosting_sources, CONFIG_KEY_SOURCELIST)
+        self.session.config.set_credit_mining_sources(flag_enabled_sources, CONFIG_KEY_ENABLEDLIST)
+        self.session.config.set_credit_mining_sources(flag_disabled_sources, CONFIG_KEY_DISABLEDLIST)
+        self.session.config.set_credit_mining_sources(archive_sources, CONFIG_KEY_ARCHIVELIST)
 
-        self.session.save_session_config()
+        self.session.config.write()
 
     def log_statistics(self):
         """Log transfer statistics"""

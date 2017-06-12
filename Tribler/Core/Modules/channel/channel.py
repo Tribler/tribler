@@ -1,17 +1,15 @@
-from binascii import hexlify
 import codecs
 import collections
 import json
 import logging
 import os
-
+from binascii import hexlify
 from twisted.internet import reactor
 
+from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser
+from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_CREATED, SIGNAL_RSS_FEED, SIGNAL_ON_UPDATED
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
-
-from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_CREATED, SIGNAL_RSS_FEED, SIGNAL_ON_UPDATED
-from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser
 
 
 class ChannelObject(TaskManager):
@@ -26,7 +24,7 @@ class ChannelObject(TaskManager):
         self._rss_feed_dict = collections.OrderedDict()
 
         rss_name = u"channel_rss_%s.json" % hexlify(self._channel_community.cid)
-        self._rss_file_path = os.path.join(self._session.get_state_dir(), rss_name)
+        self._rss_file_path = os.path.join(self._session.config.get_state_dir(), rss_name)
 
     @property
     def channel_id(self):

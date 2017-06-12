@@ -234,9 +234,9 @@ class TriblerWindow(QMainWindow):
         self.add_torrent_button.setHidden(False)
         self.top_search_bar.setHidden(False)
 
-        # fetch the variables, needed for the video player port
+        # fetch the settings, needed for the video player port
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("variables", self.received_variables)
+        self.fetch_settings()
 
         self.downloads_page.start_loading_downloads()
         self.home_page.load_popular_torrents()
@@ -264,7 +264,7 @@ class TriblerWindow(QMainWindow):
         if len(selected_files) != total_files:  # Not all files included
             selected_files_uri = u'&' + u''.join(u"selected_files[]=%s&" % file for file in selected_files)[:-1]
 
-        anon_hops = int(self.tribler_settings['Tribler']['default_number_hops']) if anon_download else 0
+        anon_hops = int(self.tribler_settings['download_defaults']['number_hops']) if anon_download else 0
         safe_seeding = 1 if safe_seeding else 0
         post_data = "uri=%s&anon_hops=%d&safe_seeding=%d&destination=%s%s" % (uri, anon_hops, safe_seeding,
                                                                                    destination, selected_files_uri)
@@ -328,10 +328,6 @@ class TriblerWindow(QMainWindow):
         self.received_search_completions.emit(completions)
         self.search_completion_model.setStringList(completions["completions"])
 
-    def received_variables(self, variables):
-        self.video_player_page.video_player_port = variables["variables"]["ports"]["video~port"]
-        self.fetch_settings()
-
     def fetch_settings(self):
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("settings", self.received_settings, capture_errors=False)
@@ -346,8 +342,11 @@ class TriblerWindow(QMainWindow):
         # Disable various components based on the settings
         if not self.tribler_settings['search_community']['enabled']:
             self.window().top_search_bar.setHidden(True)
-        if not self.tribler_settings['video']['enabled']:
+        if not self.tribler_settings['video_server']['enabled']:
             self.left_menu_button_video_player.setHidden(True)
+
+        # Set the video server port
+        self.video_player_page.video_player_port = self.tribler_settings["video_server"]["port"]
 
         # process pending file requests (i.e. someone clicked a torrent file when Tribler was closed)
         # We do this after receiving the settings so we have the default download location.
@@ -409,13 +408,11 @@ class TriblerWindow(QMainWindow):
             self.start_download_dialog_active = True
         else:
             self.window().perform_start_download_request(self.download_uri,
-                                                         get_gui_setting(self.gui_settings,
-                                                                         "default_anonymity_enabled", True,
-                                                                         is_bool=True),
-                                                         get_gui_setting(self.gui_settings,
-                                                                         "default_safeseeding_enabled", True,
-                                                                         is_bool=True),
-                                                         self.tribler_settings['downloadconfig']['saveas'], [], 0)
+                                                         self.window().tribler_settings['download_defaults'][
+                                                             'anonymity_enabled'],
+                                                         self.window().tribler_settings['download_defaults'][
+                                                             'safeseeding_enabled'],
+                                                         self.tribler_settings['download_defaults']['saveas'], [], 0)
             self.process_uri_request()
 
     def on_start_download_action(self, action):
@@ -453,11 +450,11 @@ class TriblerWindow(QMainWindow):
             for torrent_file in self.selected_torrent_files:
                 escaped_uri = quote_plus((u"file:%s" % torrent_file).encode('utf-8'))
                 self.perform_start_download_request(escaped_uri,
-                                                    get_gui_setting(self.gui_settings,
-                                                                    "default_anonymity_enabled", True, is_bool=True),
-                                                    get_gui_setting(self.gui_settings,
-                                                                    "default_safeseeding_enabled", True, is_bool=True),
-                                                    self.tribler_settings['downloadconfig']['saveas'], [], 0)
+                                                    self.window().tribler_settings['download_defaults'][
+                                                         'anonymity_enabled'],
+                                                    self.window().tribler_settings['download_defaults'][
+                                                         'safeseeding_enabled'],
+                                                    self.tribler_settings['download_defaults']['saveas'], [], 0)
 
         self.dialog.setParent(None)
         self.dialog = None
@@ -600,7 +597,6 @@ class TriblerWindow(QMainWindow):
         for i in range(0, 3):
             self.home_page_table_view.setColumnWidth(i, cell_width)
             self.home_page_table_view.setRowHeight(i, cell_height)
-
         self.resize_event.emit()
 
     def exit_full_screen(self):

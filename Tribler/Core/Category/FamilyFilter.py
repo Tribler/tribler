@@ -3,9 +3,9 @@ The FamilyFilter filters out nsfw content if enabled.
 
 Author(s): Jelle Roozenburg
 """
-import re
-import os
 import logging
+import os
+import re
 
 from Tribler.Core.Utilities.install_dir import get_lib_path
 

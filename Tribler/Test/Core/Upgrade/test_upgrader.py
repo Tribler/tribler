@@ -29,24 +29,25 @@ class TestUpgrader(AbstractUpgrader):
     @blocking_call_on_reactor_thread
     def test_should_upgrade(self):
         self.sqlitedb._version = LATEST_DB_VERSION + 1
-        self.assertTrue(self.upgrader.check_should_upgrade()[0])
-        self.assertFalse(self.upgrader.check_should_upgrade()[1])
+        self.assertTrue(self.upgrader.check_should_upgrade_database()[0])
+        self.assertFalse(self.upgrader.check_should_upgrade_database()[1])
 
         self.sqlitedb._version = LOWEST_SUPPORTED_DB_VERSION - 1
-        self.assertTrue(self.upgrader.check_should_upgrade()[0])
-        self.assertFalse(self.upgrader.check_should_upgrade()[1])
+        self.assertTrue(self.upgrader.check_should_upgrade_database()[0])
+        self.assertFalse(self.upgrader.check_should_upgrade_database()[1])
 
         self.sqlitedb._version = LATEST_DB_VERSION
-        self.assertFalse(self.upgrader.check_should_upgrade()[0])
-        self.assertFalse(self.upgrader.check_should_upgrade()[1])
+        self.assertFalse(self.upgrader.check_should_upgrade_database()[0])
+        self.assertFalse(self.upgrader.check_should_upgrade_database()[1])
 
         self.sqlitedb._version = LATEST_DB_VERSION - 1
-        self.assertFalse(self.upgrader.check_should_upgrade()[0])
-        self.assertTrue(self.upgrader.check_should_upgrade()[1])
+        self.assertFalse(self.upgrader.check_should_upgrade_database()[0])
+        self.assertTrue(self.upgrader.check_should_upgrade_database()[1])
 
     @blocking_call_on_reactor_thread
     def test_upgrade_with_upgrader_enabled(self):
         self.upgrader.run()
+
         self.assertTrue(self.upgrader.is_done)
         self.assertFalse(self.upgrader.failed)
 
@@ -58,8 +59,8 @@ class TestUpgrader(AbstractUpgrader):
         def check_should_upgrade():
             self.upgrader.failed = True
             return True, False
-
-        self.upgrader.check_should_upgrade = check_should_upgrade
+        self.upgrader.session.config.get_upgrader_enabled = lambda: True
+        self.upgrader.check_should_upgrade_database = check_should_upgrade
 
         self.upgrader.run()
         self.assertTrue(self.upgrader.notified)
@@ -88,6 +89,7 @@ class TestUpgraderDisabled(AbstractUpgrader):
 
     @blocking_call_on_reactor_thread
     def test_upgrade_with_upgrader_disabled(self):
+        self.upgrader.session.config.get_upgrader_enabled = lambda: False
+        self.upgrader.check_should_upgrade_database = lambda: self.fail("This function should not be called")
+
         self.upgrader.run()
-        self.assertTrue(self.upgrader.is_done)
-        self.assertFalse(self.upgrader.failed)

@@ -3,11 +3,10 @@ Peer to peer search functionality and discovering new torrents.
 
 Author(s): Niels Zeilemaker
 """
+from binascii import hexlify
 from random import shuffle
 from time import time
-from binascii import hexlify
 from traceback import print_exc
-
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
@@ -30,7 +29,6 @@ from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.requestcache import RandomNumberCache, IntroductionRequestCache
 from Tribler.dispersy.resolution import PublicResolution
-
 
 DEBUG = False
 SWIFT_INFOHASHES = 0

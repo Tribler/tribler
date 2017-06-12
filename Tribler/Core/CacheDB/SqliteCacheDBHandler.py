@@ -16,7 +16,6 @@ from pprint import pformat
 from struct import unpack_from
 from time import time
 from traceback import print_exc
-
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
@@ -647,7 +646,7 @@ class TorrentDBHandler(BasicDBHandler):
             self._db.executemany(sql, new_mapping_list)
 
         # add trackers into the torrent file if it has been collected
-        if not self.session.get_torrent_store() or self.session.lm.torrent_store is None:
+        if not self.session.config.get_torrent_store_enabled() or self.session.lm.torrent_store is None:
             return
 
         infohash = self.getInfohash(torrent_id)

@@ -5,9 +5,9 @@ Author(s): Elric Milon
 """
 import os.path
 import sys
-import Tribler
 
-from Tribler.Core.osutils import is_android, get_home_dir
+import Tribler
+from Tribler.Core.osutils import is_android
 
 
 def is_frozen():

@@ -4,8 +4,8 @@ from twisted.internet.defer import Deferred, DeferredList
 from twisted.internet.task import Clock
 from twisted.python.failure import Failure
 
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentChecker.session import FakeDHTSession, DHT_TRACKER_MAX_RETRIES, DHT_TRACKER_RECHECK_INTERVAL, \
     UdpTrackerSession, UDPScraper, HttpTrackerSession
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
@@ -284,7 +284,7 @@ class TestDHTSession(TriblerCoreTest):
     def setUp(self, annotate=True):
         super(TestDHTSession, self).setUp(annotate=annotate)
 
-        config = SessionStartupConfig()
+        config = TriblerConfig()
         config.set_state_dir(self.getStateDir())
 
         self.session = Session(config, ignore_singleton=True)

@@ -1,6 +1,5 @@
 import os
 import shutil
-
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65

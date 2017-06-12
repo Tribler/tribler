@@ -4,7 +4,6 @@ Contains a snapshot of the state of the Download at a specific point in time.
 Author(s): Arno Bakker
 """
 import logging
-import sys
 
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
                                      DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, UPLOAD)

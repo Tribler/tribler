@@ -1,10 +1,10 @@
+import logging
 import time
 
 from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, \
     CIRCUIT_TYPE_DATA
-from Tribler.dispersy.crypto import LibNaCLPK
 from Tribler.dispersy.candidate import Candidate
-import logging
+from Tribler.dispersy.crypto import LibNaCLPK
 
 __author__ = 'chris'
 

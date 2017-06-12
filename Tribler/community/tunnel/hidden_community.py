@@ -3,42 +3,38 @@ The hidden tunnel community.
 
 Author(s): Egbert Bouman
 """
-import time
-import os
-import struct
-import socket
 import hashlib
-
+import logging
+import os
+import socket
+import struct
+import time
 from collections import defaultdict
 
+from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
+from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
     NTFY_TUNNEL, NTFY_IP_REMOVED, NTFY_RP_REMOVED, NTFY_IP_RECREATE, \
     NTFY_DHT_LOOKUP, NTFY_KEY_REQUEST, NTFY_KEY_RESPOND, NTFY_KEY_RESPONSE, \
     NTFY_CREATE_E2E, NTFY_ONCREATED_E2E, NTFY_IP_CREATED, DLSTATUS_DOWNLOADING
-from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
-from Tribler.Core.Utilities.encoding import encode, decode
-
 from Tribler.community.tunnel import CIRCUIT_TYPE_IP, CIRCUIT_TYPE_RP, CIRCUIT_TYPE_RENDEZVOUS, \
     EXIT_NODE, EXIT_NODE_SALT, CIRCUIT_ID_PORT
-
 from Tribler.community.tunnel.payload import (EstablishIntroPayload, IntroEstablishedPayload,
                                               EstablishRendezvousPayload, RendezvousEstablishedPayload,
                                               KeyResponsePayload, KeyRequestPayload, CreateE2EPayload,
                                               CreatedE2EPayload, LinkE2EPayload, LinkedE2EPayload,
                                               DHTRequestPayload, DHTResponsePayload)
 from Tribler.community.tunnel.routing import RelayRoute, RendezvousPoint, Hop
-
+from Tribler.community.tunnel.tunnel_community import TunnelCommunity
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.endpoint import TUNNEL_PREFIX
 from Tribler.dispersy.message import Message, DropMessage
+from Tribler.dispersy.requestcache import RandomNumberCache
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
-from Tribler.community.tunnel.tunnel_community import TunnelCommunity
-from Tribler.dispersy.requestcache import RandomNumberCache
-import logging
 
 
 class IPRequestCache(RandomNumberCache):
@@ -620,7 +616,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 self.tunnel_logger.error('On linked e2e: could not find download!')
 
     def find_download(self, lookup_info_hash):
-        for download in self.trsession.get_downloads():
+        for download in self.tribler_session.get_downloads():
             if lookup_info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
                 return download
 
@@ -741,18 +737,18 @@ class HiddenTunnelCommunity(TunnelCommunity):
             rp.finished_callback(rp)
 
     def dht_lookup(self, info_hash, cb):
-        if self.trsession:
-            self.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb)
+        if self.tribler_session:
+            self.tribler_session.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb)
         else:
             self.tunnel_logger.error("Need a Tribler session to lookup to the DHT")
 
     def dht_announce(self, info_hash):
-        if self.trsession:
+        if self.tribler_session:
             def cb(info_hash, peers, source):
                 self.tunnel_logger.info("Announced %s to the DHT", info_hash.encode('hex'))
 
-            port = self.trsession.get_dispersy_port()
-            self.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
+            port = self.tribler_session.config.get_dispersy_port()
+            self.tribler_session.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
         else:
             self.tunnel_logger.error("Need a Tribler session to announce to the DHT")
 
