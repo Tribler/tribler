@@ -53,6 +53,7 @@ class AbstractTriblerGUITest(unittest.TestCase):
         self.old_main = sys.modules["__main__"]
         self.old_main_file = sys.modules["__main__"].__file__
 
+        from TriblerGUI.scripts import start_fake_core  # So the module is loaded
         sys.modules["__main__"] = sys.modules["TriblerGUI.scripts.start_fake_core"]
         sys.modules["__main__"].__file__ = sys.modules["TriblerGUI.scripts.start_fake_core"].__file__
 
