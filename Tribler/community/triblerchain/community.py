@@ -122,9 +122,9 @@ class TriblerChainCommunity(TrustChainCommunity):
             else:
                 pend = self.pending_bytes.get(pk)
                 if not pend:
-                    self.pending_bytes[pk] = PendingBytes(up,
-                                                          down,
-                                                          reactor.callLater(2 * 60, self.cleanup_pending, pk))
+                    task = self.register_task("cleanup_pending_%s" % tunnel.circuit_id,
+                                              reactor.callLater(2 * 60, self.cleanup_pending, pk))
+                    self.pending_bytes[pk] = PendingBytes(up, down, task)
                 else:
                     pend.add(up, down)
 
