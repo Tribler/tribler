@@ -46,6 +46,28 @@ class TriblerChainCommunity(TrustChainCommunity):
         # This data is not used to create outgoing requests, but _only_ to verify incoming requests
         self.pending_bytes = dict()
 
+    @classmethod
+    def get_master_members(cls, dispersy):
+        # generated: Sun Apr 23 10:06:29 2017
+        # curve: None
+        # len: 571 bits ~ 144 bytes signature
+        # pub: 170 3081a7301006072a8648ce3d020106052b8104002703819200040503dac58c19267f12cb0cf667e480816cd2574acae5293b5
+        # 9d7c3da32e02b4747f7e2e9e9c880d2e5e2ba8b7fcc9892cb39b797ef98483ffd58739ed20990f8e3df7d1ec5a7ad2c0338dc206c4383a
+        # 943e3e2c682ac4b585880929a947ffd50057b575fc30ec88eada3ce6484e5e4d6fdf41984cd1e51aaacc5f9a51bcc8393aea1f786fc47c
+        # bf994cb1339f706df4a
+        # pub-sha1 b78a5e252bf2f7be8716c383734f325b9aaff844
+        # -----BEGIN PUBLIC KEY-----
+        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQFA9rFjBkmfxLLDPZn5ICBbNJXSsrl
+        # KTtZ18PaMuArR0f34unpyIDS5eK6i3/MmJLLObeX75hIP/1Yc57SCZD44999HsWn
+        # rSwDONwgbEODqUPj4saCrEtYWICSmpR//VAFe1dfww7Ijq2jzmSE5eTW/fQZhM0e
+        # UaqsxfmlG8yDk66h94b8R8v5lMsTOfcG30o=
+        # -----END PUBLIC KEY-----
+        master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040503dac58c19267f12cb0cf667e480816cd2574acae" \
+                     "5293b59d7c3da32e02b4747f7e2e9e9c880d2e5e2ba8b7fcc9892cb39b797ef98483ffd58739ed20990f8e3df7d1ec5" \
+                     "a7ad2c0338dc206c4383a943e3e2c682ac4b585880929a947ffd50057b575fc30ec88eada3ce6484e5e4d6fdf41984c" \
+                     "d1e51aaacc5f9a51bcc8393aea1f786fc47cbf994cb1339f706df4a"
+        return [dispersy.get_member(public_key=master_key.decode("HEX"))]
+
     def initialize(self, tribler_session=None):
         super(TriblerChainCommunity, self).initialize()
         if tribler_session:
