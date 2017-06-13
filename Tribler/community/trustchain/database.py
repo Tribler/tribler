@@ -151,7 +151,7 @@ class TrustChainDB(Database):
         Return the upgrade script for a specific version.
         :param current_version: the version of the script to return.
         """
-        raise NotImplementedError("This method should be implemented in a subclass")
+        return None
 
     def open(self, initial_statements=True, prepare_visioning=True):
         return super(TrustChainDB, self).open(initial_statements, prepare_visioning)
@@ -165,7 +165,17 @@ class TrustChainDB(Database):
         :param database_version: Current version of the database.
         :return:
         """
-        if int(database_version) < self.LATEST_DB_VERSION:
+        assert isinstance(database_version, unicode)
+        assert database_version.isdigit()
+        assert int(database_version) >= 0
+        database_version = int(database_version)
+
+        if database_version < self.LATEST_DB_VERSION:
+            while database_version < self.LATEST_DB_VERSION:
+                upgrade_script = self.get_upgrade_script(current_version=database_version)
+                if upgrade_script:
+                    self.executescript(upgrade_script)
+                database_version += 1
             self.executescript(self.get_schema())
             self.commit()
 

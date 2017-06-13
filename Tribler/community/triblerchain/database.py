@@ -32,27 +32,3 @@ class TriblerChainDB(TrustChainDB):
             DROP TABLE IF EXISTS %s;
             DROP TABLE IF EXISTS option;
             """ % self.db_name
-
-    def check_database(self, database_version):
-        """
-        Ensure the proper schema is used by the database.
-        :param database_version: Current version of the database.
-        :return:
-        """
-        assert isinstance(database_version, unicode)
-        assert database_version.isdigit()
-        assert int(database_version) >= 0
-        database_version = int(database_version)
-
-        if database_version < self.LATEST_DB_VERSION:
-            # Remove all previous data, since we have only been testing so far, and previous blocks might not be
-            # reliable. In the future, we should implement an actual upgrade procedure
-            while database_version < self.LATEST_DB_VERSION:
-                upgrade_script = self.get_upgrade_script(current_version=database_version)
-                if upgrade_script:
-                    self.executescript(upgrade_script)
-                database_version += 1
-            self.executescript(self.get_schema())
-            self.commit()
-
-        return self.LATEST_DB_VERSION

@@ -33,7 +33,7 @@ class TestDatabase(TrustChainTestCase):
 
     @blocking_call_on_reactor_thread
     def test_get_upgrade_script(self):
-        self.assertRaises(NotImplementedError, self.db.get_upgrade_script, 42)
+        self.assertIsNone(self.db.get_upgrade_script(42))
 
     @blocking_call_on_reactor_thread
     def test_add_two_blocks(self):
