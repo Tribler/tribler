@@ -295,7 +295,7 @@ class TestAsServer(AbstractServer):
         self.config.set_http_api_enabled(False)
         self.config.set_tunnel_community_enabled(False)
         self.config.set_credit_mining_enabled(False)
-        self.config.set_multichain_enabled(False)
+        self.config.set_trustchain_enabled(False)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks

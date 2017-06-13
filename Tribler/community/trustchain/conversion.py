@@ -1,9 +1,9 @@
 """
-All conversions for the MultiChain Community.
+All conversions for the TrustChain Community.
 """
 from struct import pack, unpack_from, calcsize
 
-from Tribler.community.multichain.block import MultiChainBlock, block_pack_size, PK_LENGTH, EMPTY_PK
+from Tribler.community.trustchain.block import TrustChainBlock, block_pack_size, PK_LENGTH, EMPTY_PK
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 
@@ -13,13 +13,13 @@ crawl_request_format = "! {0}s I I ".format(PK_LENGTH)
 crawl_request_size = calcsize(crawl_request_format)
 
 
-class MultiChainConversion(BinaryConversion):
+class TrustChainConversion(BinaryConversion):
     """
-    Class that handles all encoding and decoding of MultiChain messages.
+    Class that handles all encoding and decoding of TrustChain messages.
     """
     def __init__(self, community):
-        super(MultiChainConversion, self).__init__(community, "\x01")
-        from Tribler.community.multichain.community import HALF_BLOCK, CRAWL
+        super(TrustChainConversion, self).__init__(community, "\x01")
+        from Tribler.community.trustchain.community import HALF_BLOCK, CRAWL
 
         # Define Request Signature.
         self.define_meta_message(chr(1), community.get_meta_message(HALF_BLOCK),
@@ -48,8 +48,12 @@ class MultiChainConversion(BinaryConversion):
         if len(data) < offset + block_pack_size:
             raise DropPacket("Unable to decode the payload")
 
-        return offset + block_pack_size, placeholder.meta.payload.implement(
-            MultiChainBlock.unpack(data, offset))
+        try:
+            block = TrustChainBlock.unpack(data, offset)
+        except IndexError:
+            raise DropPacket("Invalid block contents")
+
+        return len(data), placeholder.meta.payload.implement(block)
 
     @staticmethod
     def _encode_crawl_request(message):

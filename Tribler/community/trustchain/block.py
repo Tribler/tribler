@@ -1,6 +1,8 @@
 from hashlib import sha256
 from struct import pack_into, unpack_from, calcsize
 
+import struct
+from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.crypto import ECCrypto
 
 HASH_LENGTH = 32
@@ -13,21 +15,20 @@ UNKNOWN_SEQ = 0
 EMPTY_SIG = '0'*SIG_LENGTH
 EMPTY_PK = '0'*PK_LENGTH
 
-block_pack_format = "! Q Q Q Q {0}s I {0}s I {1}s {2}s".format(PK_LENGTH, HASH_LENGTH, SIG_LENGTH)
+block_pack_format = "! {0}s I {0}s I {1}s {2}s".format(PK_LENGTH, HASH_LENGTH, SIG_LENGTH)
 block_pack_size = calcsize(block_pack_format)
 
 
-class MultiChainBlock(object):
+class TrustChainBlock(object):
     """
-    Container for MultiChain block information
+    Container for TrustChain block information
     """
 
     def __init__(self, data=None):
-        super(MultiChainBlock, self).__init__()
+        super(TrustChainBlock, self).__init__()
         if data is None:
             # data
-            self.up = self.down = 0
-            self.total_up = self.total_down = 0
+            self.transaction = {}
             # identity
             self.public_key = EMPTY_PK
             self.sequence_number = GENESIS_SEQ
@@ -40,10 +41,9 @@ class MultiChainBlock(object):
             # debug stuff
             self.insert_time = None
         else:
-            (self.up, self.down, self.total_up, self.total_down, self.public_key, self.sequence_number,
-             self.link_public_key, self.link_sequence_number, self.previous_hash, self.signature,
-             self.insert_time) = (data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8],
-                                  data[9], data[10])
+            _, self.transaction = decode(str(data[0]))
+            (self.public_key, self.sequence_number, self.link_public_key, self.link_sequence_number, self.previous_hash,
+             self.signature, self.insert_time) = (data[1], data[2], data[3], data[4], data[5], data[6], data[7])
             if isinstance(self.public_key, buffer):
                 self.public_key = str(self.public_key)
             if isinstance(self.link_public_key, buffer):
@@ -55,18 +55,25 @@ class MultiChainBlock(object):
 
     def __str__(self):
         # This makes debugging and logging easier
-        return "Block {0} from ...{1}:{2} links ...{3}:{4} for {5}u:{6}d".format(
+        return "Block {0} from ...{1}:{2} links ...{3}:{4} for {5}".format(
             self.hash.encode("hex")[-8:],
             self.public_key.encode("hex")[-8:],
             self.sequence_number,
             self.link_public_key.encode("hex")[-8:],
             self.link_sequence_number,
-            self.up,
-            self.down)
+            self.transaction)
 
     @property
     def hash(self):
         return sha256(self.pack()).digest()
+
+    def validate_transaction(self, database):
+        """
+        Validates the transaction of this block
+        :param database: the database to check against
+        :return: A tuple consisting of a ValidationResult and a list of user string errors
+        """
+        return ValidationResult.valid, []
 
     def validate(self, database):
         """
@@ -139,21 +146,15 @@ class MultiChainBlock(object):
             elif is_next_gap:
                 result[0] = ValidationResult.partial_next
 
-        # Step 3: validate that the block is sane
+        # Step 3: validate that the block is sane, including the validity of the transaction
         # Some basic self tests. It is possible to violate these when constructing a block in code or getting a block
         # from the database. The wire format is such that it impossible to hit many of these for blocks that went over
         # the network.
-        if self.up < 0:
-            err("Up field is negative")
-        if self.down < 0:
-            err("Down field is negative")
-        if self.down == 0 and self.up == 0:
-            # In this case the block doesn't modify any counters, these block are without purpose and are thus invalid.
-            err("Up and down are zero")
-        if self.total_up < 0:
-            err("Total up field is negative")
-        if self.total_down < 0:
-            err("Total down field is negative")
+        tx_validate_res, tx_errors = self.validate_transaction(database)
+        if tx_validate_res != ValidationResult.valid:
+            result[0] = tx_validate_res
+            errors += tx_errors
+
         if self.sequence_number < GENESIS_SEQ:
             err("Sequence number is prior to genesis")
         if self.link_sequence_number < GENESIS_SEQ and self.link_sequence_number != UNKNOWN_SEQ:
@@ -180,26 +181,14 @@ class MultiChainBlock(object):
                 err("Sequence number implies previous hash should be Genesis ID")
             if self.sequence_number != GENESIS_SEQ and self.previous_hash == GENESIS_HASH:
                 err("Sequence number implies previous hash should not be Genesis ID")
-            if self.total_up != self.up:
-                err("Genesis block invalid total_up and/or up")
-            if self.total_down != self.down:
-                err("Genesis block invalid total_down and/or down")
 
         # Step 4: does the database already know about this block? If so it should be equal or else we caught a
-        # branch in someones multichain.
+        # branch in someones trustchain.
         if blk:
             # Sanity check to see if the database returned the expected block, we want to cover all our bases before
             # crying wolf and making a fraud claim.
             assert blk.public_key == self.public_key and blk.sequence_number == self.sequence_number, \
                 "Database returned unexpected block"
-            if blk.up != self.up:
-                err("Up does not match known block")
-            if blk.down != self.down:
-                err("Down does not match known block")
-            if blk.total_up != self.total_up:
-                err("Total up does not match known block")
-            if blk.total_down != self.total_down:
-                err("Total down does not match known block")
             if blk.link_public_key != self.link_public_key:
                 err("Link public key does not match known block")
             if blk.link_sequence_number != self.link_sequence_number:
@@ -230,20 +219,12 @@ class MultiChainBlock(object):
                 linklinked = database.get_linked(link)
                 if linklinked is not None and linklinked.hash != self.hash:
                     err("Double countersign fraud")
-            if self.up != link.down:
-                err("Up/down mismatch on linked block")
-            if self.down != link.up:
-                err("Down/up mismatch on linked block")
 
         # Step 6: Did we get blocks from the database before or after self? They should be checked for violations too.
         if prev_blk:
             # Sanity check of the block the database gave us.
             assert prev_blk.public_key == self.public_key and prev_blk.sequence_number < self.sequence_number,\
                 "Database returned unexpected block"
-            if prev_blk.total_up + self.up > self.total_up:
-                err("Total up is lower than expected compared to the preceding block")
-            if prev_blk.total_down + self.down > self.total_down:
-                err("Total down is lower than expected compared to the preceding block")
             if not is_prev_gap and prev_blk.hash != self.previous_hash:
                 err("Previous hash is not equal to the hash id of the previous block")
                 # Is this fraud? It is certainly an error, but fixing it would require a different signature on the same
@@ -253,15 +234,6 @@ class MultiChainBlock(object):
             # Sanity check of the block the database gave us.
             assert next_blk.public_key == self.public_key and next_blk.sequence_number > self.sequence_number,\
                 "Database returned unexpected block"
-            if self.total_up + next_blk.up > next_blk.total_up:
-                err("Total up is higher than expected compared to the next block")
-                # In this case we could say there is fraud too, since the counters are too high. Also anyone that
-                # counter signed any such counters should be suspected since they apparently failed to validate or put
-                # their signature on it regardless of validation status. But it is not immediately clear where this
-                # error occurred, it might be lower on the chain than self. So it is hard to create a fraud proof here
-            if self.total_down + next_blk.down > next_blk.total_down:
-                err("Total down is higher than expected compared to the next block")
-                # See previous comment
             if not is_next_gap and next_blk.previous_hash != self.hash:
                 err("Next hash is not equal to the hash id of the block")
                 # Again, this might not be fraud, but fixing it can only result in fraud.
@@ -277,47 +249,46 @@ class MultiChainBlock(object):
         self.signature = crypto.create_signature(key, self.pack(signature=False))
 
     @classmethod
-    def create(cls, database, public_key, link=None):
+    def create(cls, transaction, database, public_key, link=None, link_pk=None):
         """
-        Create next block. Initializes a new block based on the latest information in the database
-        and optional linked block
+        Create an empty next block.
         :param database: the database to use as information source
+        :param transaction: the transaction to use in this block
         :param public_key: the public key to use for this block
         :param link: optionally create the block as a linked block to this block
+        :param link_pk: the public key of the counterparty in this transaction
         :return: A newly created block
         """
         blk = database.get_latest(public_key)
         ret = cls()
         if link:
-            ret.up = link.down
-            ret.down = link.up
+            ret.transaction = link.transaction
             ret.link_public_key = link.public_key
             ret.link_sequence_number = link.sequence_number
+        else:
+            ret.transaction = transaction
+            ret.link_public_key = link_pk
+
         if blk:
-            ret.total_up = blk.total_up + ret.up
-            ret.total_down = blk.total_down + ret.down
             ret.sequence_number = blk.sequence_number + 1
             ret.previous_hash = blk.hash
-        else:
-            ret.total_up = ret.up
-            ret.total_down = ret.down
+
         ret.public_key = public_key
         ret.signature = EMPTY_SIG
         return ret
 
-    def pack(self, data=None, offset=0, signature=True):
+    def pack(self, signature=True):
         """
         Encode this block for transport
-        :param data: optionally specify the buffer this block should be packed into
-        :param offset: optionally specifies the offset at which the packing should begin
         :param signature: False to pack EMPTY_SIG in the signature location, true to pack the signature field
         :return: the buffer the data was packed into
         """
-        buff = data if data else bytearray(block_pack_size)
-        pack_into(block_pack_format, buff, offset, self.up, self.down, self.total_up, self.total_down, self.public_key,
-                  self.sequence_number, self.link_public_key, self.link_sequence_number, self.previous_hash,
-                  self.signature if signature else EMPTY_SIG)
-        return str(buff)
+        encoded_tx = encode(self.transaction)
+
+        buff = bytearray(block_pack_size)
+        pack_into(block_pack_format, buff, 0, self.public_key, self.sequence_number, self.link_public_key,
+                  self.link_sequence_number, self.previous_hash, self.signature if signature else EMPTY_SIG)
+        return str(buff) + struct.pack("!I", len(encoded_tx)) + encoded_tx
 
     @classmethod
     def unpack(cls, data, offset=0):
@@ -325,11 +296,17 @@ class MultiChainBlock(object):
         Unpacks a block from a buffer
         :param data: The buffer to unpack from
         :param offset: Optionally, the offset at which to start unpacking
-        :return: The MultiChainBlock that was unpacked from the buffer
+        :return: The TrustChainBlock that was unpacked from the buffer
         """
-        ret = MultiChainBlock()
-        (ret.up, ret.down, ret.total_up, ret.total_down, ret.public_key, ret.sequence_number, ret.link_public_key,
+        ret = TrustChainBlock()
+        (ret.public_key, ret.sequence_number, ret.link_public_key,
          ret.link_sequence_number, ret.previous_hash, ret.signature) = unpack_from(block_pack_format, data, offset)
+
+        offset += block_pack_size
+        tx_len, = struct.unpack("!I", data[offset:offset + 4])
+        offset += 4
+        _, ret.transaction = decode(data[offset:offset + tx_len])
+
         return ret
 
     def pack_db_insert(self):
@@ -337,7 +314,7 @@ class MultiChainBlock(object):
         Prepare a tuple to use for inserting into the database
         :return: A database insertable tuple
         """
-        return (self.up, self.down, self.total_up, self.total_down, buffer(self.public_key), self.sequence_number,
+        return (buffer(encode(self.transaction)), buffer(self.public_key), self.sequence_number,
                 buffer(self.link_public_key), self.link_sequence_number, buffer(self.previous_hash),
                 buffer(self.signature), buffer(self.hash))
 

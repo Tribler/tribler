@@ -89,9 +89,9 @@ class TrustPage(QWidget):
 
     def load_trust_statistics(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("multichain/statistics", self.received_multichain_statistics)
+        self.request_mgr.perform_request("trustchain/statistics", self.received_trustchain_statistics)
 
-    def received_multichain_statistics(self, statistics):
+    def received_trustchain_statistics(self, statistics):
         statistics = statistics["statistics"]
         self.window().trust_contribution_amount_label.setText("%s MBytes" % (statistics["total_up"] / self.byte_scale))
         self.window().trust_consumption_amount_label.setText("%s MBytes" % (statistics["total_down"] / self.byte_scale))
@@ -102,9 +102,9 @@ class TrustPage(QWidget):
         # Fetch the latest blocks of this user
         self.public_key = statistics["id"]
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("multichain/blocks/%s" % self.public_key, self.received_multichain_blocks)
+        self.request_mgr.perform_request("trustchain/blocks/%s" % self.public_key, self.received_trustchain_blocks)
 
-    def received_multichain_blocks(self, blocks):
+    def received_trustchain_blocks(self, blocks):
         self.blocks = blocks["blocks"]
         self.plot_absolute_values()
 

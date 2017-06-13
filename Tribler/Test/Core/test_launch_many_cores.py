@@ -14,7 +14,7 @@ from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
 from Tribler.community.allchannel.community import AllChannelCommunity
-from Tribler.community.multichain.community import MultiChainCommunity
+from Tribler.community.trustchain.community import TrustChainCommunity
 from Tribler.community.search.community import SearchCommunity
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.dispersy.discovery.community import DiscoveryCommunity
@@ -190,7 +190,7 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         TestAsServer.setUpPreSession(self)
 
         # Enable all communities
-        config_sections = ['search_community', 'multichain', 'allchannel_community', 'channel_community',
+        config_sections = ['search_community', 'trustchain', 'allchannel_community', 'channel_community',
                            'preview_channel_community', 'tunnel_community', 'dispersy']
 
         for section in config_sections:
@@ -214,4 +214,4 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         self.assertTrue(self.get_community(SearchCommunity))
         self.assertTrue(self.get_community(AllChannelCommunity))
         self.assertTrue(self.get_community(HiddenTunnelCommunity))
-        self.assertTrue(self.get_community(MultiChainCommunity))
+        self.assertTrue(self.get_community(TrustChainCommunity))

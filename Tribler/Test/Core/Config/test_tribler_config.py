@@ -129,11 +129,11 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_permid_keypair_filename("TEST")
         self.assertEqual(self.tribler_config.get_permid_keypair_filename(), "TEST")
 
-        self.tribler_config.set_multichain_permid_keypair_filename(None)
-        self.assertEqual(self.tribler_config.get_multichain_permid_keypair_filename(),
+        self.tribler_config.set_trustchain_permid_keypair_filename(None)
+        self.assertEqual(self.tribler_config.get_trustchain_permid_keypair_filename(),
                          os.path.join("TEST", "ec_multichain.pem"))
-        self.tribler_config.set_multichain_permid_keypair_filename("TEST")
-        self.assertEqual(self.tribler_config.get_multichain_permid_keypair_filename(), "TEST")
+        self.tribler_config.set_trustchain_permid_keypair_filename("TEST")
+        self.assertEqual(self.tribler_config.get_trustchain_permid_keypair_filename(), "TEST")
 
         self.tribler_config.set_megacache_enabled(True)
         self.assertEqual(self.tribler_config.get_megacache_enabled(), True)
@@ -298,12 +298,12 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_preview_channel_community_enabled(True)
         self.assertEqual(self.tribler_config.get_preview_channel_community_enabled(), True)
 
-    def test_get_set_methods_multichain_community(self):
+    def test_get_set_methods_trustchain_community(self):
         """
-        Check whether multichain community get and set methods are working as expected.
+        Check whether trustchain community get and set methods are working as expected.
         """
-        self.tribler_config.set_multichain_enabled(True)
-        self.assertEqual(self.tribler_config.get_multichain_enabled(), True)
+        self.tribler_config.set_trustchain_enabled(True)
+        self.assertEqual(self.tribler_config.get_trustchain_enabled(), True)
 
     def test_get_set_methods_watch_folder(self):
         """

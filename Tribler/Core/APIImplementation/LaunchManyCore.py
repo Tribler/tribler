@@ -219,19 +219,19 @@ class TriblerLaunchMany(TaskManager):
             tunnel_settings = TunnelSettings(tribler_session=self.session)
             tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
 
-            if self.session.config.get_multichain_enabled():
-                multichain_kwargs = {'tribler_session': self.session}
+            if self.session.config.get_trustchain_enabled():
+                trustchain_kwargs = {'tribler_session': self.session}
 
-                # If the multichain is enabled, we use the permanent multichain keypair
-                # for both the multichain and the tunnel community
-                keypair = self.session.multichain_keypair
+                # If the trustchain is enabled, we use the permanent trustchain keypair
+                # for both the trustchain and the tunnel community
+                keypair = self.session.trustchain_keypair
                 dispersy_member = self.dispersy.get_member(private_key=keypair.key_to_bin())
 
-                from Tribler.community.multichain.community import MultiChainCommunity
-                self.dispersy.define_auto_load(MultiChainCommunity,
+                from Tribler.community.triblerchain.community import TriblerChainCommunity
+                self.dispersy.define_auto_load(TriblerChainCommunity,
                                                dispersy_member,
                                                load=True,
-                                               kargs=multichain_kwargs)
+                                               kargs=trustchain_kwargs)
 
             else:
                 keypair = self.dispersy.crypto.generate_key(u"curve25519")

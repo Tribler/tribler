@@ -1,12 +1,10 @@
 import logging
 from hashlib import sha1
-from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
-from Tribler.community.multichain.community import HALF_BLOCK, CRAWL
-from Tribler.community.multichain.conversion import MultiChainConversion
-from Tribler.community.multichain.payload import CrawlRequestPayload
-from Tribler.community.multichain.payload import HalfBlockPayload
+from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TrustChainTestCase, TestBlock
+from Tribler.community.trustchain.community import HALF_BLOCK, CRAWL
+from Tribler.community.trustchain.conversion import TrustChainConversion
+from Tribler.community.trustchain.payload import HalfBlockPayload, CrawlRequestPayload
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
@@ -16,18 +14,19 @@ from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.message import Message, DropPacket
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from twisted.internet.defer import inlineCallbacks
 
 
-class TestConversion(MultiChainTestCase):
+class TestConversion(TrustChainTestCase):
     def __init__(self, *args, **kwargs):
         super(TestConversion, self).__init__(*args, **kwargs)
         self.community = TestCommunity()
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self):
-        yield super(TestConversion, self).setUp()
-        self.converter = MultiChainConversion(self.community)
+    def setUp(self, annotate=True):
+        yield super(TestConversion, self).setUp(annotate=annotate)
+        self.converter = TrustChainConversion(self.community)
         self.block = TestBlock()
 
     def test_encoding_decoding_half_block(self):
@@ -78,7 +77,10 @@ class TestConversion(MultiChainTestCase):
         encoded_message = self.converter._encode_half_block(message)[0]
         # Act & Assert
         with self.assertRaises(DropPacket):
-            # Remove a bit of message.
+            # Remove a bit of the message.
+            self.converter._decode_half_block(TestPlaceholder(meta), 0, encoded_message[:-60])
+        with self.assertRaises(DropPacket):
+            # Remove a bit of the message.
             self.converter._decode_half_block(TestPlaceholder(meta), 0, encoded_message[:-10])
 
     def test_encoding_decoding_crawl_request(self):
@@ -159,4 +161,4 @@ class TestCommunity(Community):
                     lambda: None)]
 
     def initiate_conversions(self):
-        return [DefaultConversion(self), MultiChainConversion(self)]
+        return [DefaultConversion(self), TrustChainConversion(self)]

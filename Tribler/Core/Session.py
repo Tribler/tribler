@@ -141,17 +141,17 @@ class Session(object):
             permid_module.save_keypair(self.keypair, pair_filename)
             permid_module.save_pub_key(self.keypair, public_key_filename)
 
-        multichain_pairfilename = self.config.get_multichain_permid_keypair_filename()
+        trustchain_pairfilename = self.config.get_trustchain_permid_keypair_filename()
 
-        if os.path.exists(multichain_pairfilename):
-            self.multichain_keypair = permid_module.read_keypair_multichain(multichain_pairfilename)
+        if os.path.exists(trustchain_pairfilename):
+            self.trustchain_keypair = permid_module.read_keypair_trustchain(trustchain_pairfilename)
         else:
-            self.multichain_keypair = permid_module.generate_keypair_multichain()
+            self.trustchain_keypair = permid_module.generate_keypair_trustchain()
 
             # Save keypair
-            multichain_pubfilename = os.path.join(self.config.get_state_dir(), 'ecpub_multichain.pem')
-            permid_module.save_keypair_multichain(self.multichain_keypair, multichain_pairfilename)
-            permid_module.save_pub_key_multichain(self.multichain_keypair, multichain_pubfilename)
+            trustchain_pubfilename = os.path.join(self.config.get_state_dir(), 'ecpub_multichain.pem')
+            permid_module.save_keypair_trustchain(self.trustchain_keypair, trustchain_pairfilename)
+            permid_module.save_pub_key_trustchain(self.trustchain_keypair, trustchain_pubfilename)
 
     #
     # Class methods

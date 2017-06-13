@@ -1,20 +1,16 @@
 import datetime
 import os
-from math import pow
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
+from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TestBlock, TrustChainTestCase
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from Tribler.community.multichain.database import MultiChainDB, DATABASE_DIRECTORY
+from Tribler.community.trustchain.database import TrustChainDB, DATABASE_DIRECTORY
 
 
-class TestDatabase(MultiChainTestCase):
+class TestDatabase(TrustChainTestCase):
     """
-    Tests the Database for MultiChain community.
+    Tests the Database for TrustChain community.
     """
-
-    def __init__(self, *args, **kwargs):
-        super(TestDatabase, self).__init__(*args, **kwargs)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -23,7 +19,7 @@ class TestDatabase(MultiChainTestCase):
         path = os.path.join(self.getStateDir(), DATABASE_DIRECTORY)
         if not os.path.exists(path):
             os.makedirs(path)
-        self.db = MultiChainDB(self.getStateDir())
+        self.db = TrustChainDB(self.getStateDir(), u'trustchain')
         self.block1 = TestBlock()
         self.block2 = TestBlock()
 
@@ -36,14 +32,8 @@ class TestDatabase(MultiChainTestCase):
         self.assertEqual_block(self.block1, result)
 
     @blocking_call_on_reactor_thread
-    def test_get_num_interactors(self):
-        """
-        Test whether the right number of interactors is returned
-        """
-        self.block2 = TestBlock(previous=self.block1)
-        self.db.add_block(self.block1)
-        self.db.add_block(self.block2)
-        self.assertEqual((2, 2), self.db.get_num_unique_interactors(self.block1.public_key))
+    def test_get_upgrade_script(self):
+        self.assertRaises(NotImplementedError, self.db.get_upgrade_script, 42)
 
     @blocking_call_on_reactor_thread
     def test_add_two_blocks(self):
@@ -76,7 +66,7 @@ class TestDatabase(MultiChainTestCase):
     @blocking_call_on_reactor_thread
     def test_get_linked_forward(self):
         # Arrange
-        self.block2 = TestBlock.create(self.db, self.block2.public_key, link=self.block1)
+        self.block2 = TestBlock.create({"id": 42}, self.db, self.block2.public_key, link=self.block1)
         self.db.add_block(self.block1)
         self.db.add_block(self.block2)
         # Act
@@ -87,7 +77,7 @@ class TestDatabase(MultiChainTestCase):
     @blocking_call_on_reactor_thread
     def test_get_linked_backwards(self):
         # Arrange
-        self.block2 = TestBlock.create(self.db, self.block2.public_key, link=self.block1)
+        self.block2 = TestBlock.create({"id": 42}, self.db, self.block2.public_key, link=self.block1)
         self.db.add_block(self.block1)
         self.db.add_block(self.block2)
         # Act
@@ -166,19 +156,13 @@ class TestDatabase(MultiChainTestCase):
     def set_db_version(self, version):
         self.db.executescript(u"UPDATE option SET value = '%d' WHERE key = 'database_version';" % version)
         self.db.close(commit=True)
-        self.db = MultiChainDB(self.getStateDir())
+        self.db = TrustChainDB(self.getStateDir(), u'trustchain')
 
     @blocking_call_on_reactor_thread
     def test_database_upgrade(self):
         self.set_db_version(1)
         version, = next(self.db.execute(u"SELECT value FROM option WHERE key = 'database_version' LIMIT 1"))
-        self.assertEqual(version, u"3")
-
-    @blocking_call_on_reactor_thread
-    def test_database_create(self):
-        self.set_db_version(0)
-        version, = next(self.db.execute(u"SELECT value FROM option WHERE key = 'database_version' LIMIT 1"))
-        self.assertEqual(version, u"3")
+        self.assertEqual(version, u"1")
 
     @blocking_call_on_reactor_thread
     def test_database_no_downgrade(self):
@@ -192,6 +176,5 @@ class TestDatabase(MultiChainTestCase):
         Test whether a block is correctly represented when converted to a dictionary
         """
         block_dict = dict(self.block1)
-        self.assertEqual(block_dict["up"], self.block1.up)
-        self.assertEqual(block_dict["down"], self.block1.down)
+        self.assertDictEqual(block_dict["transaction"], {"id": 42})
         self.assertEqual(block_dict["insert_time"], self.block1.insert_time)

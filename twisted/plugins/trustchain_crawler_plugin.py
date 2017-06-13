@@ -10,7 +10,7 @@ from twisted.python.log import msg
 
 from zope.interface import implements
 
-from Tribler.community.multichain.community import MultiChainCommunityCrawler
+from Tribler.community.triblerchain.community import TriblerChainCommunityCrawler
 from Tribler.dispersy.crypto import ECCrypto
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import StandaloneEndpoint
@@ -18,17 +18,17 @@ from Tribler.dispersy.endpoint import StandaloneEndpoint
 
 class Options(usage.Options):
     optParameters = [
-        ["statedir", "s", os.path.join(unicode(os.environ.get('HOME')), u'.multichain')
-          if os.environ.get('HOME') else u'.multichain', "Use an alternate statedir"    , unicode],
+        ["statedir", "s", os.path.join(unicode(os.environ.get('HOME')), u'.trustchain')
+          if os.environ.get('HOME') else u'.trustchain', "Use an alternate statedir"    , unicode],
         ["ip"      , "i", "0.0.0.0" ,  "Dispersy uses this ip"                          , str],
         ["port"    , "p", 6421      ,  "Dispersy uses this UDP port"                    , int],
     ]
 
 
-class MultichainCrawlerServiceMaker(object):
+class TrustchainCrawlerServiceMaker(object):
     implements(IServiceMaker, IPlugin)
-    tapname = "multichain_crawler"
-    description = "A MultichainCommunity crawler"
+    tapname = "trustchain_crawler"
+    description = "A TrustChainCommunity crawler"
     options = Options
 
     def makeService(self, options):
@@ -40,7 +40,7 @@ class MultichainCrawlerServiceMaker(object):
         else:
             logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s", level=logging.DEBUG)
         tracker_service = MultiService()
-        tracker_service.setName("Multichain Crawler")
+        tracker_service.setName("Trustchain Crawler")
 
         def run():
             crypto = ECCrypto()
@@ -50,9 +50,9 @@ class MultichainCrawlerServiceMaker(object):
                                 crypto)
             if not dispersy.start():
                 raise RuntimeError("Unable to start Dispersy")
-            master_member = MultiChainCommunityCrawler.get_master_members(dispersy)[0]
+            master_member = TriblerChainCommunityCrawler.get_master_members(dispersy)[0]
             my_member = dispersy.get_member(private_key=crypto.key_to_bin(crypto.generate_key(u"curve25519")))
-            MultiChainCommunityCrawler.init_community(dispersy, master_member, my_member)
+            TriblerChainCommunityCrawler.init_community(dispersy, master_member, my_member)
 
             self._stopping = False
 
@@ -72,4 +72,4 @@ class MultichainCrawlerServiceMaker(object):
 # Now construct an object which *provides* the relevant interfaces
 # The name of this variable is irrelevant, as long as there is *some*
 # name bound to a provider of IPlugin and IServiceMaker.
-serviceMaker = MultichainCrawlerServiceMaker()
+serviceMaker = TrustchainCrawlerServiceMaker()

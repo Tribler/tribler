@@ -66,7 +66,7 @@ class TriblerUpgrader(object):
         This method performs actions necessary to upgrade to Tribler 7.
         """
         self.session.config = convert_config_to_tribler71()
-        self.session.config.set_multichain_enabled(True)
+        self.session.config.set_trustchain_enabled(True)
         self.session.config.set_upgrader_enabled(False)
         self.session.config.write()
 

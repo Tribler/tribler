@@ -31,7 +31,7 @@ class DebugWindow(QMainWindow):
         self.window().events_tree_widget.itemClicked.connect(self.on_event_clicked)
         self.load_general_tab()
 
-        if not settings['multichain']['enabled']:
+        if not settings['trustchain']['enabled']:
             self.window().debug_tab_widget.setTabEnabled(2, False)
 
     def tab_changed(self, index):
@@ -40,7 +40,7 @@ class DebugWindow(QMainWindow):
         elif index == 1:
             self.load_requests_tab()
         elif index == 2:
-            self.load_multichain_tab()
+            self.load_trustchain_tab()
         elif index == 3:
             self.dispersy_tab_changed(self.window().dispersy_tab_widget.currentIndex())
         elif index == 4:
@@ -85,14 +85,14 @@ class DebugWindow(QMainWindow):
             item.setText(2, "%s" % strftime("%H:%M:%S", localtime(timestamp)))
             self.window().requests_tree_widget.addTopLevelItem(item)
 
-    def load_multichain_tab(self):
+    def load_trustchain_tab(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("multichain/statistics", self.on_multichain_statistics)
+        self.request_mgr.perform_request("trustchain/statistics", self.on_trustchain_statistics)
 
-    def on_multichain_statistics(self, data):
-        self.window().multichain_tree_widget.clear()
+    def on_trustchain_statistics(self, data):
+        self.window().trustchain_tree_widget.clear()
         for key, value in data["statistics"].iteritems():
-            self.create_and_add_widget_item(key, value, self.window().multichain_tree_widget)
+            self.create_and_add_widget_item(key, value, self.window().trustchain_tree_widget)
 
     def load_dispersy_general_tab(self):
         self.request_mgr = TriblerRequestManager()

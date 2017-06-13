@@ -78,7 +78,7 @@ class TestLoadUnloadTunnelCommunity(TestAsServer):
         # Load/unload this community so we have a classification
         dispersy = self.session.lm.dispersy
         master_member = DummyTunnelCommunity.get_master_members(dispersy)[0]
-        keypair = self.session.multichain_keypair
+        keypair = self.session.trustchain_keypair
         dispersy_member = dispersy.get_member(private_key=keypair.key_to_bin())
         community = DummyTunnelCommunity.init_community(dispersy, master_member, dispersy_member,
                                                         tribler_session=self.session, settings=TunnelSettings())
