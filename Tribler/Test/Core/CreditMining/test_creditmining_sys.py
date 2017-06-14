@@ -6,6 +6,7 @@ Author(s): Ardhi Putra
 import binascii
 import os
 import shutil
+from unittest import skip
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
@@ -141,6 +142,7 @@ class TestBoostingManagerSys(TestAsServer):
         return defer_param
 
 
+@skip("Credit mining tests are not reliable")
 class TestBoostingManagerSysRSS(TestBoostingManagerSys):
     """
     testing class for RSS (dummy) source
@@ -222,6 +224,7 @@ class TestBoostingManagerSysRSS(TestBoostingManagerSys):
         return self.rss_error_deferred
 
 
+@skip("Credit mining tests are not reliable")
 class TestBoostingManagerSysDir(TestBoostingManagerSys):
     """
     testing class for directory source
@@ -270,6 +273,7 @@ class TestBoostingManagerSysDir(TestBoostingManagerSys):
         return d
 
 
+@skip("Credit mining tests are not reliable")
 class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
     """
     testing class for channel source
