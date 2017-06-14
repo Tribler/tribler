@@ -7,21 +7,16 @@ import os
 import socket
 import threading
 from binascii import hexlify
-from unittest.case import skip
 
-import libtorrent as lt
 from libtorrent import bencode, bdecode
-from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
 from Tribler.Test.common import TESTS_DATA_DIR, UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from Tribler.Test.btconn import BTConnection
 
 DEBUG = True
 EXTEND = chr(20)
@@ -202,48 +197,6 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
             url += "&tr=" + tracker
         return url
 
-    @skip("not working, seems to return binary data")
-    def test_good_transfer(self):
-        def torrentdef_retrieved(meta_info):
-            tags["metainfo"] = meta_info
-            tags["retrieved"].set()
-
-        tags = {"retrieved": threading.Event()}
-
-        self.session.lm.ltmgr.get_metainfo(self.create_good_url(), torrentdef_retrieved, timeout=60)
-
-        def do_supply():
-            # supply fake addresses (regular dht obviously wont work here)
-            ltmgr = LibtorrentMgr.getInstance()
-            for infohash in ltmgr.metainfo_requests:
-                handle = ltmgr.ltsession.find_torrent(lt.big_number(infohash.decode('hex')))
-                handle.connect_peer(("127.0.0.1", self.session.config.get_libtorrent_port()), 0)
-        reactor.callFromThread(reactor.callLater(5, do_supply))
-
-        # accept incoming connection
-        # self.server.settimeout(10.0)
-        sock, address = self.server.accept()
-        assert sock, "No incoming connection"
-
-        # handshakes
-        conn = BTConnection(address[0], address[1], opensock=sock, user_infohash=self.tdef.get_infohash())
-        conn.send(self.create_good_extend_handshake())
-        conn.read_handshake_medium_rare()
-        metadata_id = self.read_extend_handshake(conn)
-
-        # serve pieces
-        for counter in xrange(len(self.metadata_list)):
-            piece = self.read_extend_metadata_request(conn)
-            assert 0 <= piece < len(self.metadata_list)
-            conn.send(self.create_good_extend_metadata_reply(metadata_id, piece))
-
-        # no more metadata request may be send and the connection must
-        # be closed
-        self.read_extend_metadata_close(conn)
-
-        assert tags["retrieved"].wait(5)
-        assert tags["metainfo"]["info"] == self.tdef.get_metainfo()["info"]
-
 
 class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
 
@@ -291,54 +244,3 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()),
                            dlstatus_strings[ds.get_status()], ds.get_progress())
         return 1.0, False
-
-    def test_good_request(self):
-        conn = BTConnection("localhost", self.session.config.get_libtorrent_port(),
-                            user_infohash=self.tdef.get_infohash())
-        conn.send(self.create_good_extend_handshake())
-        conn.read_handshake_medium_rare()
-        metadata_id = self.read_extend_handshake(conn)
-
-        # request metadata block 0, 2, 3, and the last
-        conn.send(self.create_good_extend_metadata_request(metadata_id, 0))
-        conn.send(self.create_good_extend_metadata_request(metadata_id, 2))
-        conn.send(self.create_good_extend_metadata_request(metadata_id, 3))
-        conn.send(self.create_good_extend_metadata_request(metadata_id, len(self.metadata_list) - 1))
-
-        self.read_extend_metadata_reply(conn, 0)
-        self.read_extend_metadata_reply(conn, 2)
-        self.read_extend_metadata_reply(conn, 3)
-        self.read_extend_metadata_reply(conn, len(self.metadata_list) - 1)
-
-    def test_good_flood(self):
-        conn = BTConnection("localhost", self.session.config.get_libtorrent_port(),
-                            user_infohash=self.tdef.get_infohash())
-        conn.send(self.create_good_extend_handshake())
-        conn.read_handshake_medium_rare()
-        metadata_id = self.read_extend_handshake(conn)
-
-        for counter in xrange(len(self.metadata_list) * 2):
-            piece = counter % len(self.metadata_list)
-            conn.send(self.create_good_extend_metadata_request(metadata_id, piece))
-
-            if counter > len(self.metadata_list):
-                self.read_extend_metadata_reject(conn, piece)
-            else:
-                self.read_extend_metadata_reply(conn, piece)
-
-    def test_bad_request(self):
-        self.bad_request_and_disconnect({"msg_type": 0, "piece": len(self.metadata_list)})
-        self.bad_request_and_disconnect({"msg_type": 0, "piece": -1})
-        self.bad_request_and_disconnect({"msg_type": 0, "piece": "1"})
-        self.bad_request_and_disconnect({"msg_type": 0, "piece": [1, 2]})
-        self.bad_request_and_disconnect({"msg_type": 0, "PIECE": 1})
-
-    def bad_request_and_disconnect(self, payload):
-        conn = BTConnection("localhost", self.session.config.get_libtorrent_port(),
-                            user_infohash=self.tdef.get_infohash())
-        conn.send(self.create_good_extend_handshake())
-        conn.read_handshake_medium_rare()
-        metadata_id = self.read_extend_handshake(conn)
-
-        conn.send(EXTEND + chr(metadata_id) + bencode(payload))
-        self.read_extend_metadata_close(conn)
