@@ -326,7 +326,7 @@ class TrustChainBlock(object):
         for key, value in self.__dict__.iteritems():
             if key == 'key':
                 continue
-            if isinstance(value, basestring):
+            if isinstance(value, basestring) and key != "insert_time":
                 yield key, value.encode("hex")
             else:
                 yield key, value
