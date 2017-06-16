@@ -1,7 +1,8 @@
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 from nose.tools import raises
 from twisted.internet.defer import Deferred, inlineCallbacks
 
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Session import Session, SOCKET_BLOCK_ERRORCODE
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
@@ -187,3 +188,26 @@ class TestSessionAsServer(TestAsServer):
         self.session.lm.load_checkpoint = verify_load_checkpoint_call
         self.session.load_checkpoint()
         self.assertTrue(self.load_checkpoint_called)
+
+
+class TestSessionWithLibTorrent(TestSessionAsServer):
+
+    def setUpPreSession(self):
+        super(TestSessionWithLibTorrent, self).setUpPreSession()
+        self.config.set_libtorrent(True)
+
+    @deferred(timeout=10)
+    def test_remove_torrent_id(self):
+        """
+        Test whether removing a torrent id works.
+        """
+        torrent_def = TorrentDef.load(TORRENT_UBUNTU_FILE)
+        dcfg = DownloadStartupConfig()
+        dcfg.set_dest_dir(self.getDestDir())
+
+        download = self.session.start_download_from_tdef(torrent_def, dcfg=dcfg, hidden=True)
+
+        # Create a deferred which forwards the unhexlified string version of the download's infohash
+        download_started = download.get_handle().addCallback(lambda handle: unhexlify(str(handle.info_hash())))
+
+        return download_started.addCallback(self.session.remove_download_by_id)
