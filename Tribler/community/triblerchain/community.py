@@ -48,24 +48,25 @@ class TriblerChainCommunity(TrustChainCommunity):
 
     @classmethod
     def get_master_members(cls, dispersy):
-        # generated: Sun Apr 23 10:06:29 2017
+        # generated: Mon Jun 19 09:25:14 2017
         # curve: None
         # len: 571 bits ~ 144 bytes signature
-        # pub: 170 3081a7301006072a8648ce3d020106052b8104002703819200040503dac58c19267f12cb0cf667e480816cd2574acae5293b5
-        # 9d7c3da32e02b4747f7e2e9e9c880d2e5e2ba8b7fcc9892cb39b797ef98483ffd58739ed20990f8e3df7d1ec5a7ad2c0338dc206c4383a
-        # 943e3e2c682ac4b585880929a947ffd50057b575fc30ec88eada3ce6484e5e4d6fdf41984cd1e51aaacc5f9a51bcc8393aea1f786fc47c
-        # bf994cb1339f706df4a
-        # pub-sha1 b78a5e252bf2f7be8716c383734f325b9aaff844
+        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000403a4cf6036eb2a9daa0ae4bd23c1be5343c0b2d30fa85
+        # da2554532e3e73ba1fde4db0c8864c7f472ce688afef5a9f7ccfe1396bb5ef09be80e00e0a5ab4814f43166d086720af10807dbb1f
+        # a71c06040bb4aadc85fdffe69cdc6125f5b5f81c785f6b3fece98c5ecfa6de61432822e52a049850d11802dc1050a60f6983ac3eed
+        # b8172ebc47e3cd50f1d97bfffe187b5
+        # pub-sha1 1742feacab3bcc3ee8c4d7ee16d9c0b57e0bb266
+        # prv-sha1 2d4025490ef949ea7347d020f09403c46222483a
         # -----BEGIN PUBLIC KEY-----
-        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQFA9rFjBkmfxLLDPZn5ICBbNJXSsrl
-        # KTtZ18PaMuArR0f34unpyIDS5eK6i3/MmJLLObeX75hIP/1Yc57SCZD44999HsWn
-        # rSwDONwgbEODqUPj4saCrEtYWICSmpR//VAFe1dfww7Ijq2jzmSE5eTW/fQZhM0e
-        # UaqsxfmlG8yDk66h94b8R8v5lMsTOfcG30o=
+        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQDpM9gNusqnaoK5L0jwb5TQ8Cy0w+o
+        # XaJVRTLj5zuh/eTbDIhkx/RyzmiK/vWp98z+E5a7XvCb6A4A4KWrSBT0MWbQhnIK
+        # 8QgH27H6ccBgQLtKrchf3/5pzcYSX1tfgceF9rP+zpjF7Ppt5hQygi5SoEmFDRGA
+        # LcEFCmD2mDrD7tuBcuvEfjzVDx2Xv//hh7U=
         # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040503dac58c19267f12cb0cf667e480816cd2574acae" \
-                     "5293b59d7c3da32e02b4747f7e2e9e9c880d2e5e2ba8b7fcc9892cb39b797ef98483ffd58739ed20990f8e3df7d1ec5" \
-                     "a7ad2c0338dc206c4383a943e3e2c682ac4b585880929a947ffd50057b575fc30ec88eada3ce6484e5e4d6fdf41984c" \
-                     "d1e51aaacc5f9a51bcc8393aea1f786fc47cbf994cb1339f706df4a"
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403a4cf6036eb2a9daa0ae4bd23c1be5343c0b2d30f" \
+                     "a85da2554532e3e73ba1fde4db0c8864c7f472ce688afef5a9f7ccfe1396bb5ef09be80e00e0a5ab4814f43166d086" \
+                     "720af10807dbb1fa71c06040bb4aadc85fdffe69cdc6125f5b5f81c785f6b3fece98c5ecfa6de61432822e52a04985" \
+                     "0d11802dc1050a60f6983ac3eedb8172ebc47e3cd50f1d97bfffe187b5"
         return [dispersy.get_member(public_key=master_key.decode("HEX"))]
 
     def initialize(self, tribler_session=None):
