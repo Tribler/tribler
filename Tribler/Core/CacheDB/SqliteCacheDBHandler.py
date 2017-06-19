@@ -349,8 +349,8 @@ class TorrentDBHandler(BasicDBHandler):
                 sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
                 self._db.executemany(sql_insert_files, insert_files)
             except:
-                self._logger.error("Could not create a TorrentDef instance %r %r %r %r %r %r", infohash, timestamp, name, files, trackers, extra_info)
-                print_exc()
+                self._logger.exception("Could not create a TorrentDef instance %r %r %r %r %r %r",
+                                       infohash, timestamp, name, files, trackers, extra_info)
 
     def addOrGetTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
