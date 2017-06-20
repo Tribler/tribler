@@ -6,6 +6,11 @@ from urlparse import urlparse, parse_qsl, ParseResult
 logger = logging.getLogger(__name__)
 
 
+def _get_mapping(mapping, value):
+    if value in mapping:
+        return mapping[value]
+    raise ValueError("Unknown value mapping: %s not found in %s" % (value, mapping.keys()))
+
 def _a_encode_int(value, mapping):
     """
     42 --> ('2', 'i', '42')
@@ -58,7 +63,7 @@ def _a_encode_list(values, mapping):
     encoded = [str(len(values)).encode("UTF-8"), "l"]
     extend = encoded.extend
     for value in values:
-        extend(mapping[type(value)](value, mapping))
+        extend(_get_mapping(mapping, type(value))(value, mapping))
     return encoded
 
 
@@ -70,7 +75,7 @@ def _a_encode_set(values, mapping):
     encoded = [str(len(values)).encode("UTF-8"), "L"]
     extend = encoded.extend
     for value in values:
-        extend(mapping[type(value)](value, mapping))
+        extend(_get_mapping(mapping, type(value))(value, mapping))
     return encoded
 
 
@@ -82,7 +87,7 @@ def _a_encode_tuple(values, mapping):
     encoded = [str(len(values)).encode("UTF-8"), "t"]
     extend = encoded.extend
     for value in values:
-        extend(mapping[type(value)](value, mapping))
+        extend(_get_mapping(mapping, type(value))(value, mapping))
     return encoded
 
 
@@ -96,8 +101,8 @@ def _a_encode_dictionary(values, mapping):
     for key, value in sorted(values.items()):
         assert type(key) in mapping, (key, values)
         assert type(value) in mapping, (value, values)
-        extend(mapping[type(key)](key, mapping))
-        extend(mapping[type(value)](value, mapping))
+        extend(_get_mapping(mapping, type(key))(key, mapping))
+        extend(_get_mapping(mapping, type(value))(value, mapping))
     return encoded
 
 
@@ -160,7 +165,7 @@ def encode(data, version="a"):
     """
     assert isinstance(version, str)
     if version == "a":
-        return "a" + "".join(_a_encode_mapping[type(data)](data, _a_encode_mapping))
+        return "a" + "".join(_get_mapping(_a_encode_mapping, type(data))(data, _a_encode_mapping))
 
     raise ValueError("Unknown encode version")
 
@@ -217,7 +222,7 @@ def _a_decode_list(stream, offset, count, mapping):
         index = offset
         while 48 <= ord(stream[index]) <= 57:
             index += 1
-        offset, value = mapping[stream[index]](stream, index + 1, int(stream[offset:index]), mapping)
+        offset, value = _get_mapping(mapping, stream[index])(stream, index + 1, int(stream[offset:index]), mapping)
         container.append(value)
 
     return offset, container
@@ -234,7 +239,7 @@ def _a_decode_set(stream, offset, count, mapping):
         index = offset
         while 48 <= ord(stream[index]) <= 57:
             index += 1
-        offset, value = mapping[stream[index]](stream, index + 1, int(stream[offset:index]), mapping)
+        offset, value = _get_mapping(mapping, stream[index])(stream, index + 1, int(stream[offset:index]), mapping)
         container.add(value)
 
     return offset, container
@@ -251,7 +256,7 @@ def _a_decode_tuple(stream, offset, count, mapping):
         index = offset
         while 48 <= ord(stream[index]) <= 57:
             index += 1
-        offset, value = mapping[stream[index]](stream, index + 1, int(stream[offset:index]), mapping)
+        offset, value = _get_mapping(mapping, stream[index])(stream, index + 1, int(stream[offset:index]), mapping)
         container.append(value)
 
     return offset, tuple(container)
@@ -267,12 +272,12 @@ def _a_decode_dictionary(stream, offset, count, mapping):
         index = offset
         while 48 <= ord(stream[index]) <= 57:
             index += 1
-        offset, key = mapping[stream[index]](stream, index + 1, int(stream[offset:index]), mapping)
+        offset, key = _get_mapping(mapping, stream[index])(stream, index + 1, int(stream[offset:index]), mapping)
 
         index = offset
         while 48 <= ord(stream[index]) <= 57:
             index += 1
-        offset, value = mapping[stream[index]](stream, index + 1, int(stream[offset:index]), mapping)
+        offset, value = _get_mapping(mapping, stream[index])(stream, index + 1, int(stream[offset:index]), mapping)
 
         container[key] = value
 
@@ -334,7 +339,8 @@ def decode(stream, offset=0):
         index = offset + 1
         while 48 <= ord(stream[index]) <= 57:
             index += 1
-        return _a_decode_mapping[stream[index]](stream, index + 1, int(stream[offset + 1:index]), _a_decode_mapping)
+        return _get_mapping(_a_decode_mapping, stream[index])(stream, index + 1,
+                                                              int(stream[offset + 1:index]), _a_decode_mapping)
 
     raise ValueError("Unknown version found")
 
