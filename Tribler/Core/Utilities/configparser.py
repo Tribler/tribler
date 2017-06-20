@@ -77,7 +77,7 @@ class CallbackConfigParser(RawConfigParser):
     def get_literal_value(value):
         try:
             return ast.literal_eval(value)
-        except (ValueError, SyntaxError):
+        except (ValueError, SyntaxError, TypeError):
             return value
 
     def get_config_as_json(self):

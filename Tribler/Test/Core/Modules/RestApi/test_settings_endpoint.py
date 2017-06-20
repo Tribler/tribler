@@ -25,6 +25,26 @@ class TestSettingsEndpoint(AbstractApiTest):
             self.assertTrue(settings_json['settings'][section])
 
     @deferred(timeout=10)
+    def test_unicode_chars(self):
+        """
+        Test setting watch_folder to a unicode path.
+        """
+        self.should_check_equality = False
+        post_data_dict = {'watch_folder': {'directory': "".join([unichr(i) for i in range(256)])}}
+        post_data = json.dumps(post_data_dict, ensure_ascii=False)
+
+        def check_settings(settings):
+            watch_folder = json.loads(settings)['settings']['watch_folder']['directory']
+            self.assertEqual(watch_folder, post_data_dict['watch_folder']['directory'])
+
+        def verify_response(_):
+            getter_deferred = self.do_request('settings')
+            return getter_deferred.addCallback(check_settings)
+
+        return self.do_request('settings', expected_code=200, request_type='POST',
+                               post_data=post_data.encode('latin_1'), raw_data=True).addCallback(verify_response)
+
+    @deferred(timeout=10)
     def test_get_settings(self):
         """
         Testing whether the API returns a correct settings dictionary when the settings are requested
