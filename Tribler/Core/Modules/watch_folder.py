@@ -59,5 +59,5 @@ class WatchFolder(TaskManager):
                     anon_enabled = self.session.config.get_default_anonymity_enabled()
                     default_num_hops = self.session.config.get_default_number_hops()
                     dl_config.set_hops(default_num_hops if anon_enabled else 0)
-                    dl_config.set_safe_seeding(self.session.config.get_default_safeseeding_enabled)
+                    dl_config.set_safe_seeding(self.session.config.get_default_safeseeding_enabled())
                     self.session.lm.ltmgr.start_download(tdef=tdef, dconfig=dl_config)
