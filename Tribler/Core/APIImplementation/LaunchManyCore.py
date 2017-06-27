@@ -32,7 +32,11 @@ from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,
                                      NTFY_FINISHED, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
-                                     DLSTATUS_SEEDING, NTFY_TORRENT)
+                                     DLSTATUS_SEEDING, NTFY_TORRENT, NTFY_MARKET_IOM_INPUT_REQUIRED)
+from Tribler.community.market.wallet.btc_wallet import BitcoinWallet
+from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
+from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
+from Tribler.community.tradechain.community import TradeChainCommunity
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
@@ -93,6 +97,7 @@ class TriblerLaunchMany(TaskManager):
         self.startup_deferred = Deferred()
 
         self.boosting_manager = None
+        self.market_community = None
 
     def register(self, session, session_lock):
         assert isInIOThread()
@@ -215,6 +220,7 @@ class TriblerLaunchMany(TaskManager):
                                            self.session.dispersy_member, kargs=default_kwargs)
 
         # Tunnel Community
+        mc_community = None
         if self.session.config.get_tunnel_community_enabled():
             tunnel_settings = TunnelSettings(tribler_session=self.session)
             tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
@@ -228,10 +234,10 @@ class TriblerLaunchMany(TaskManager):
                 dispersy_member = self.dispersy.get_member(private_key=keypair.key_to_bin())
 
                 from Tribler.community.triblerchain.community import TriblerChainCommunity
-                self.dispersy.define_auto_load(TriblerChainCommunity,
-                                               dispersy_member,
-                                               load=True,
-                                               kargs=trustchain_kwargs)
+                mc_community = self.dispersy.define_auto_load(TriblerChainCommunity,
+                                                              dispersy_member,
+                                                              load=True,
+                                                              kargs=trustchain_kwargs)[0]
 
             else:
                 keypair = self.dispersy.crypto.generate_key(u"curve25519")
@@ -243,6 +249,40 @@ class TriblerLaunchMany(TaskManager):
 
             # We don't want to automatically load other instances of this community with other master members.
             self.dispersy.undefine_auto_load(HiddenTunnelCommunity)
+
+        # Use the permanent TrustChain ID for Market community/TradeChain if it's available
+        if self.session.config.get_market_community_enabled():
+            wallets = {}
+            btc_wallet = BitcoinWallet(os.path.join(self.session.config.get_state_dir(), 'wallet'),
+                                       testnet=self.session.config.get_btc_testnet())
+            wallets[btc_wallet.get_identifier()] = btc_wallet
+
+            mc_wallet = TrustchainWallet(mc_community)
+            wallets[mc_wallet.get_identifier()] = mc_wallet
+
+            if self.session.config.get_dummy_wallets_enabled():
+                # For debugging purposes, we create dummy wallets
+                dummy_wallet1 = DummyWallet1()
+                wallets[dummy_wallet1.get_identifier()] = dummy_wallet1
+
+                dummy_wallet2 = DummyWallet2()
+                wallets[dummy_wallet2.get_identifier()] = dummy_wallet2
+
+            from Tribler.community.market.community import MarketCommunity
+            keypair = self.session.tradechain_keypair
+            dispersy_member = self.dispersy.get_member(private_key=keypair.key_to_bin())
+
+            tradechain_community = self.dispersy.define_auto_load(TradeChainCommunity,
+                                                                  dispersy_member, load=True,
+                                                                  kargs={})[0]
+            market_kwargs = {'tribler_session': self.session, 'wallets': wallets,
+                             'tradechain_community': tradechain_community}
+            self.market_community = self.dispersy.define_auto_load(MarketCommunity, dispersy_member,
+                                                                   load=True, kargs=market_kwargs)[0]
+            tradechain_community.market_community = self.market_community
+
+        self.session.config.set_anon_proxy_settings(2, ("127.0.0.1",
+                                                        self.session.config.get_tunnel_community_socks5_listen_ports()))
 
         self._logger.info("tribler: communities are ready in %.2f seconds", timemod.time() - now_time)
 

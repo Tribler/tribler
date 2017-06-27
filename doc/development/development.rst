@@ -9,8 +9,8 @@ Windows
 
 .. include:: development_on_windows.rst
 
-OS X
-====
+MacOS
+=====
 
 .. include:: development_on_osx.rst
 

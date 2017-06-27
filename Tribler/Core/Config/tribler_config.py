@@ -202,6 +202,16 @@ class TriblerConfig(object):
     def get_trustchain_live_edges_enabled(self):
         return self.config['trustchain']['live_edges_enabled']
 
+    def set_tradechain_permid_keypair_filename(self, keypairfilename):
+        self.config['tradechain']['ec_keypair_filename'] = keypairfilename
+
+    def get_tradechain_permid_keypair_filename(self):
+        file_name = self.config['tradechain']['ec_keypair_filename']
+        if not file_name:
+            file_name = os.path.join(self.get_state_dir(), 'ec_tradechain.pem')
+            self.set_tradechain_permid_keypair_filename(file_name)
+        return file_name
+
     def set_megacache_enabled(self, value):
         self.config['general']['megacache'] = value
 
@@ -458,6 +468,28 @@ class TriblerConfig(object):
 
     def get_default_destination_dir(self):
         return self.config['download_defaults']['destination_dir']
+
+    # Market Community
+
+    def set_market_community_enabled(self, value):
+        self.config['market_community']['enabled'] = value
+
+    def get_market_community_enabled(self):
+        return self.config['market_community']['enabled']
+
+    # Wallets
+
+    def set_btc_testnet(self, value):
+        self.config['wallets']['btc_testnet'] = value
+
+    def get_btc_testnet(self):
+        return self.config['wallets']['btc_testnet']
+
+    def set_dummy_wallets_enabled(self, value):
+        self.config['wallets']['dummy_wallets_enabled'] = value
+
+    def get_dummy_wallets_enabled(self):
+        return self.config['wallets']['dummy_wallets_enabled']
 
     # Upgrader
 

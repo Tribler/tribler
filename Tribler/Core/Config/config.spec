@@ -22,10 +22,20 @@ enabled = boolean(default=True)
 socks5_listen_ports = string_list(default=list('-1', '-1', '-1', '-1', '-1'))
 exitnode_enabled = boolean(default=False)
 
+[market_community]
+enabled = boolean(default=True)
+
 [trustchain]
 enabled = boolean(default=True)
 ec_keypair_filename = string(default='')
 live_edges_enabled = boolean(default=True)
+
+[tradechain]
+ec_keypair_filename = string(default='')
+
+[wallets]
+btc_testnet = boolean(default=False)
+dummy_wallets_enabled = boolean(default=False)
 
 [metadata]
 enabled = boolean(default=True)

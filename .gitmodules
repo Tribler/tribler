@@ -4,3 +4,6 @@
 [submodule "Tribler/Core/DecentralizedTracking/pymdht"]
 	path = Tribler/Core/DecentralizedTracking/pymdht
 	url = https://github.com/devos50/pymdht.git
+[submodule "electrum"]
+	path = electrum
+	url = https://github.com/spesmilo/electrum

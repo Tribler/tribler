@@ -33,6 +33,7 @@ DLMODE_VOD = 1
 PERSISTENTSTATE_CURRENTVERSION = 5
 
 STATEDIR_DLPSTATE_DIR = u'dlcheckpoints'
+STATEDIR_WALLET_DIR = u'wallet'
 
 # For observer/callback mechanism, see Session.add_observer()
 # subjects
@@ -69,6 +70,15 @@ NTFY_UPGRADER_TICK = 'upgradertick'
 
 NTFY_STARTUP_TICK = 'startuptick'
 NTFY_CLOSE_TICK = 'closetick'
+
+NTFY_MARKET_ON_ASK = 'onmarketask'
+NTFY_MARKET_ON_BID = 'onmarketbid'
+NTFY_MARKET_ON_ASK_TIMEOUT = 'onmarketasktimeout'
+NTFY_MARKET_ON_BID_TIMEOUT = 'onmarketbidtimeout'
+NTFY_MARKET_ON_TRANSACTION_COMPLETE = 'onmarkettransactioncomplete'
+NTFY_MARKET_ON_PAYMENT_RECEIVED = 'onmarketpaymentreceived'
+NTFY_MARKET_ON_PAYMENT_SENT = 'onmarketpaymentsent'
+NTFY_MARKET_IOM_INPUT_REQUIRED = 'onmarketiominputrequired'
 
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)

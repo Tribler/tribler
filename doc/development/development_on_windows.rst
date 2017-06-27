@@ -130,7 +130,7 @@ There are some additional packages which should be installed. They can easily be
 
 .. code-block:: none
 
-    pip install cherrypy chardet configobj cryptography decorator feedparser netifaces pillow twisted
+    pip install cherrypy chardet configobj cryptography decorator dnspython ecdsa feedparser jsonrpclib netifaces pbkdf2 pillow protobuf pysocks requests twisted win_inet_pton
 
 Running Tribler
 ---------------

@@ -8,9 +8,12 @@ from random import randint
 from time import time
 
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import succeed, Deferred, inlineCallbacks
 
+from Tribler.community.trustchain.block import TrustChainBlock, ValidationResult, GENESIS_SEQ, UNKNOWN_SEQ
+from Tribler.community.trustchain.conversion import TrustChainConversion
 from Tribler.community.trustchain.database import TrustChainDB
+from Tribler.community.trustchain.payload import HalfBlockPayload, CrawlRequestPayload
 from Tribler.dispersy.authentication import NoAuthentication, MemberAuthentication
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.community import Community
@@ -19,10 +22,6 @@ from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.message import Message, DelayPacketByMissingMember
 from Tribler.dispersy.resolution import PublicResolution
-
-from Tribler.community.trustchain.block import TrustChainBlock, ValidationResult, GENESIS_SEQ, UNKNOWN_SEQ
-from Tribler.community.trustchain.payload import HalfBlockPayload, CrawlRequestPayload
-from Tribler.community.trustchain.conversion import TrustChainConversion
 
 HALF_BLOCK = u"half_block"
 CRAWL = u"crawl"
@@ -49,6 +48,10 @@ class TrustChainCommunity(Community):
 
         self.logger.debug("The trustchain community started with Public Key: %s",
                           self.my_member.public_key.encode("hex"))
+
+        self.expected_intro_responses = {}
+        self.expected_sig_requests = {}
+        self.received_block_ids = set()
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -103,10 +106,10 @@ class TrustChainCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), TrustChainConversion(self)]
 
-    def should_sign(self, block):
+    def should_sign(self, message):
         """
-        Return whether we should sign the passed block.
-        @param block: the block that we should sign or not.
+        Return whether we should sign the block in the passed message.
+        @param message: the message containing a block we want to sign or not.
         """
         return True
 
@@ -124,6 +127,32 @@ class TrustChainCommunity(Community):
             self.dispersy.store_update_forward([message], False, False, True)
         except DelayPacketByMissingMember:
             self.logger.warn("Missing member in TrustChain community to send signature request to")
+
+    def on_introduction_response(self, messages):
+        super(TrustChainCommunity, self).on_introduction_response(messages)
+        for message in messages:
+            if message.candidate.sock_addr in self.expected_intro_responses:
+                self.expected_intro_responses[message.candidate.sock_addr].callback(None)
+                del self.expected_intro_responses[message.candidate.sock_addr]
+
+    def wait_for_intro_of_candidate(self, candidate):
+        """
+        Returns a Deferred that fires when we receive an introduction response from a given candidate.
+        """
+        response_deferred = Deferred()
+        self.expected_intro_responses[candidate.sock_addr] = response_deferred
+        return response_deferred
+
+    def wait_for_signature_request(self, block_id):
+        """
+        Returns a Deferred that fires when we receive a signature request with a specific block hash.
+        """
+        if block_id in self.received_block_ids:
+            return succeed(None)
+
+        response_deferred = Deferred()
+        self.expected_sig_requests[block_id] = response_deferred
+        return response_deferred
 
     def sign_block(self, candidate, public_key=None, transaction=None, linked=None):
         """
@@ -171,6 +200,14 @@ class TrustChainCommunity(Community):
             else:
                 self.logger.debug("Received already known block (%s)", blk)
 
+            # Check if we are waiting for this block
+            block_id = "%s.%s" % (blk.public_key.encode('hex'), blk.sequence_number)
+            if block_id in self.expected_sig_requests:
+                self.expected_sig_requests[block_id].callback(block_id)
+                del self.expected_sig_requests[block_id]
+
+            self.received_block_ids.add(block_id)
+
             # Is this a request, addressed to us, and have we not signed it already?
             if blk.link_sequence_number != UNKNOWN_SEQ or \
                     blk.link_public_key != self.my_member.public_key or \
@@ -180,7 +217,7 @@ class TrustChainCommunity(Community):
             self.logger.info("Received request block addressed to us (%s)", blk)
 
             # determine if we want to sign this block
-            if not self.should_sign(blk):
+            if not self.should_sign(message):
                 continue
 
             crawl_task = "crawl_%s" % blk.hash

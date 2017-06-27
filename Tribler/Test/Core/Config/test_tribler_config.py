@@ -249,6 +249,15 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_state_dir("TEST")
         self.assertEqual(self.tribler_config.get_torrent_store_dir(), os.path.join("TEST", "TESTDIR"))
 
+    def test_get_set_methods_wallets(self):
+        """
+        Check whether wallet get and set methods are working as expected.
+        """
+        self.tribler_config.set_btc_testnet(True)
+        self.assertTrue(self.tribler_config.get_btc_testnet())
+        self.tribler_config.set_dummy_wallets_enabled(True)
+        self.assertTrue(self.tribler_config.get_dummy_wallets_enabled())
+
     def test_get_set_methods_metadata(self):
         """
         Check whether metadata get and set methods are working as expected.

@@ -8,6 +8,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.threads import blockingCallFromThread
 
 from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TrustChainTestCase
+from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.community.trustchain.block import GENESIS_SEQ
 from Tribler.community.trustchain.community import (TrustChainCommunity, HALF_BLOCK, CRAWL)
@@ -504,3 +505,27 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
 
         # Assert
         self.assertTrue(check_live_edge.called)
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def test_wait_for_intro_candidate(self):
+        """
+        Test the waiting for an introduction candidate
+        """
+        mock_candidate = MockObject()
+        mock_candidate.sock_addr = None
+        node, = yield self.create_nodes(1)
+        deferred = node.community.wait_for_intro_of_candidate(mock_candidate)
+        node.community.expected_intro_responses[mock_candidate.sock_addr].callback(None)
+        yield deferred
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def test_wait_for_signature_request(self):
+        """
+        Test the waiting for a signature request
+        """
+        node, = yield self.create_nodes(1)
+        deferred = node.community.wait_for_signature_request('a')
+        node.community.expected_sig_requests['a'].callback(None)
+        yield deferred
