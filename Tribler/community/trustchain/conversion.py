@@ -9,7 +9,7 @@ from Tribler.dispersy.message import DropPacket
 
 
 # The crawl message format permits future extensions by providing space for a public key and response limit
-crawl_request_format = "! {0}s I I ".format(PK_LENGTH)
+crawl_request_format = "! {0}s l I ".format(PK_LENGTH)
 crawl_request_size = calcsize(crawl_request_format)
 
 

@@ -1,15 +1,22 @@
 """
 This file contains the tests for the community.py for TrustChain community.
 """
+import time
+
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.threads import blockingCallFromThread
+
 from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TrustChainTestCase
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.community.trustchain.block import GENESIS_SEQ
 from Tribler.community.trustchain.community import (TrustChainCommunity, HALF_BLOCK, CRAWL)
+from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.message import DelayPacketByMissingMember
+from Tribler.dispersy.requestcache import IntroductionRequestCache
 from Tribler.dispersy.tests.debugcommunity.node import DebugNode
 from Tribler.dispersy.tests.dispersytestclass import DispersyTestFunc
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from twisted.internet.defer import inlineCallbacks, returnValue
 
 
 class BaseTestTrustChainCommunity(TrustChainTestCase, DispersyTestFunc):
@@ -41,6 +48,10 @@ class BaseTestTrustChainCommunity(TrustChainTestCase, DispersyTestFunc):
         map(self.assertEqual_block,
             node.community.persistence.crawl(other.community.my_member.public_key, 0),
             other.community.persistence.crawl(other.community.my_member.public_key, 0))
+
+    @blocking_call_on_reactor_thread
+    def get_node_sq_from_db(self, node, sq_owner_node, sequence_number):
+        return node.community.persistence.get(sq_owner_node.community.my_member.public_key, sequence_number)
 
     @staticmethod
     def create_block(req, resp, target_resp, transaction):
@@ -266,6 +277,32 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         self.assertBlocksInDatabase(crawler, 2)
         self.assertBlocksAreEqual(node, crawler)
 
+    def test_crawl_blocks_negative_sequence_number(self):
+        """
+        Test the crawler to fetch blocks starting from a negative sequence number.
+        """
+        # Arrange
+        node, other, crawler = self.create_nodes(3)
+
+        # Act
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), {}) # sq 1
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), {}) # sq 2
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), {}) # sq 3
+
+        self.clean_database(crawler)
+        self.assertBlocksInDatabase(crawler, 0)
+        TestTrustChainCommunity.crawl_node(crawler, node, self._create_target(crawler, node), -2)
+
+        # Assert
+        self.assertBlocksInDatabase(node, 6)
+        self.assertBlocksInDatabase(crawler, 4)
+        self.assertIsNone(self.get_node_sq_from_db(crawler, node, 1))
+        self.assertIsNone(self.get_node_sq_from_db(crawler, other, 1))
+        self.assertIsNotNone(self.get_node_sq_from_db(crawler, node, 2))
+        self.assertIsNotNone(self.get_node_sq_from_db(crawler, other, 2))
+        self.assertIsNotNone(self.get_node_sq_from_db(crawler, node, 3))
+        self.assertIsNotNone(self.get_node_sq_from_db(crawler, other, 3))
+
     def test_crawl_no_block(self):
         """
         Test crawl without a block.
@@ -320,3 +357,150 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         self.assertBlocksAreEqual(node, other)
         self.assertBlocksAreEqual(node, crawler)
         self.assertBlocksAreEqual(other, crawler)
+
+    def test_get_trust(self):
+        """
+        Test that the trust nodes have for each other is the sum of the length of both chains.
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+        transaction = {}
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), transaction)
+        TestTrustChainCommunity.create_block(other, node, self._create_target(other, node), transaction)
+
+        # Get statistics
+        node_trust = blockingCallFromThread(reactor, node.community.get_trust, other.community.my_member)
+        other_trust = blockingCallFromThread(reactor, other.community.get_trust, node.community.my_member)
+        self.assertEqual(node_trust, 2)
+        self.assertEqual(other_trust, 2)
+
+    def test_get_default_trust(self):
+        """
+        Test that the trust between nodes without blocks is 1.
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+
+        # Get statistics
+        node_trust = blockingCallFromThread(reactor, node.community.get_trust, other.community.my_member)
+        other_trust = blockingCallFromThread(reactor, other.community.get_trust, node.community.my_member)
+        self.assertEqual(node_trust, 1)
+        self.assertEqual(other_trust, 1)
+
+    def test_live_edge_bootstrapping(self):
+        """
+        A node without trust for anyone should still find a candidate.
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+        candidate = node.community.create_or_update_walkcandidate(other.my_candidate.sock_addr,
+                                                                  other.my_candidate.sock_addr,
+                                                                  ('0.0.0.0', 0),
+                                                                  other.my_candidate.tunnel,
+                                                                  u"unknown")
+        candidate.associate(other.community.my_member)
+        candidate.walk_response(time.time())
+
+        # Assert
+        intro = blockingCallFromThread(reactor, node.community.dispersy_get_introduce_candidate,
+                                       node.my_candidate)
+        self.assertIsNotNone(intro)
+        self.assertIsInstance(intro, Candidate)
+        self.assertEqual(intro, candidate)
+
+    def test_live_edge_recommend_valid(self):
+        """
+        Live edges should never include invalid/old candidates.
+        """
+        # Arrange
+        node, other, another = self.create_nodes(3)
+
+        # Stop the community from walking/crawling once it gets reactor control
+        node.community.cancel_all_pending_tasks()
+        node.community.reset_live_edges()
+        node.community.candidates.clear()
+
+        candidate = node.community.create_or_update_walkcandidate(other.my_candidate.sock_addr,
+                                                                  other.my_candidate.sock_addr,
+                                                                  ('0.0.0.0', 0),
+                                                                  other.my_candidate.tunnel,
+                                                                  u"unknown")
+        candidate.associate(other.community.my_member)
+        candidate.walk_response(time.time())
+
+        node.community.create_or_update_walkcandidate(another.my_candidate.sock_addr,
+                                                      another.my_candidate.sock_addr,
+                                                      ('0.0.0.0', 0),
+                                                      another.my_candidate.tunnel,
+                                                      u"unknown")
+
+        # Assert
+        intro = blockingCallFromThread(reactor, node.community.dispersy_get_introduce_candidate,
+                                       node.my_candidate)
+        self.assertIsNotNone(intro)
+        self.assertIsInstance(intro, Candidate)
+        self.assertEqual(intro, candidate)
+
+    def test_live_edge_callback_no_candidates(self):
+        """
+        Test live edges start with my member.
+        """
+        # Arrange
+        node, = self.create_nodes(1)
+
+        def check_live_edge(edge_id, candidates):
+            self.assertEqual(1, edge_id)
+            self.assertEqual(node.my_member.mid, candidates[0].get_member().mid)
+            check_live_edge.called = True
+
+        node.community.set_live_edge_callback(check_live_edge)
+
+        # Stop the community from walking/crawling once it gets reactor control
+        node.community.cancel_all_pending_tasks()
+        node.community.reset_live_edges()
+
+        # Act
+        node.community.take_step()
+
+        # Assert
+        self.assertTrue(check_live_edge.called)
+
+    def test_live_edge_callback(self):
+        """
+        Test creation and handling of a new live edge.
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+
+        # Create a cache, so our introduction response is expected by the node
+        cache = object.__new__(IntroductionRequestCache)
+        blockingCallFromThread(reactor, IntroductionRequestCache.__init__, cache,
+                               node.community, other.my_candidate.sock_addr)
+        cache = blockingCallFromThread(reactor, node.community.request_cache.add, cache)
+
+        # Create the actual response message
+        response = other.create_introduction_response(node.my_candidate,
+                                                      other.my_candidate.sock_addr,
+                                                      other.my_candidate.sock_addr,
+                                                      ("0.0.0.0", 0),
+                                                      ("0.0.0.0", 0),
+                                                      u"unknown",
+                                                      False,
+                                                      cache.number)
+        response._candidate = other.my_candidate # Fake its arrival from other
+
+        def check_live_edge(edge_id, candidates):
+            # We have no more valid candidates, increment id
+            self.assertEqual(1, edge_id)
+            # Start with our member
+            self.assertEqual(node.my_member.mid, candidates[0].get_member().mid)
+            # End with new member
+            self.assertEqual(other.my_member.mid, candidates[1].get_member().mid)
+            check_live_edge.called = True
+        node.community.set_live_edge_callback(check_live_edge)
+
+        # Act
+        blockingCallFromThread(reactor, node.community.on_introduction_response, [response])
+
+        # Assert
+        self.assertTrue(check_live_edge.called)

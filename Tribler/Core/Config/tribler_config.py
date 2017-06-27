@@ -196,6 +196,12 @@ class TriblerConfig(object):
             self.set_trustchain_permid_keypair_filename(file_name)
         return file_name
 
+    def set_trustchain_live_edges_enabled(self, value):
+        self.config['trustchain']['live_edges_enabled'] = value
+
+    def get_trustchain_live_edges_enabled(self):
+        return self.config['trustchain']['live_edges_enabled']
+
     def set_megacache_enabled(self, value):
         self.config['general']['megacache'] = value
 
