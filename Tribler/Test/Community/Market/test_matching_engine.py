@@ -63,50 +63,61 @@ class PriceTimeStrategyTestSuite(AbstractServer):
         yield super(PriceTimeStrategyTestSuite, self).tearDown(annotate=annotate)
 
     def test_empty_match_order(self):
-        # Test for match order with an empty order book
-        self.assertEquals([], self.price_time_strategy.match_order(self.bid_order))
-        self.assertEquals([], self.price_time_strategy.match_order(self.ask_order))
+        """
+        Test for match order with an empty order book
+        """
+        self.assertEquals([], self.price_time_strategy.match(self.bid_order.price,
+                                                             self.bid_order.available_quantity, False))
+        self.assertEquals([], self.price_time_strategy.match(self.ask_order.price,
+                                                             self.ask_order.available_quantity, True))
 
     def test_match_order_other_price(self):
         """
         Test whether two ticks with different price types are not matched
         """
         self.order_book.insert_ask(self.ask5)
-        self.assertEqual([], self.price_time_strategy.match_order(self.bid_order))
+        self.assertEqual([], self.price_time_strategy.match(self.bid_order.price,
+                                                            self.bid_order.available_quantity, False))
 
     def test_match_order_other_quantity(self):
         """
         Test whether two ticks with different quantity types are not matched
         """
         self.order_book.insert_ask(self.ask6)
-        self.assertEqual([], self.price_time_strategy.match_order(self.bid_order))
+        self.assertEqual([], self.price_time_strategy.match(self.bid_order.price,
+                                                            self.bid_order.available_quantity, False))
 
     def test_match_order_ask(self):
-        # Test for match order
+        """
+        Test for match ask order
+        """
         self.order_book.insert_bid(self.bid)
-        proposed_trades = self.price_time_strategy.match_order(self.ask_order)
-        self.assertEquals(1, len(proposed_trades))
-        self.assertEquals(Price(100, 'BTC'), proposed_trades[0].price)
-        self.assertEquals(Quantity(30, 'MC'), proposed_trades[0].quantity)
+        matching_ticks = self.price_time_strategy.match(self.ask_order.price, self.ask_order.available_quantity, True)
+        self.assertEquals(1, len(matching_ticks))
+        self.assertEquals(self.bid, matching_ticks[0][0])
+        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][1])
 
     def test_match_order_bid(self):
-        # Test for match order
+        """
+        Test for match bid order
+        """
         self.order_book.insert_ask(self.ask)
-        proposed_trades = self.price_time_strategy.match_order(self.bid_order)
-        self.assertEquals(1, len(proposed_trades))
-        self.assertEquals(Price(100, 'BTC'), proposed_trades[0].price)
-        self.assertEquals(Quantity(30, 'MC'), proposed_trades[0].quantity)
+        matching_ticks = self.price_time_strategy.match(self.bid_order.price, self.bid_order.available_quantity, False)
+        self.assertEquals(1, len(matching_ticks))
+        self.assertEquals(self.ask, matching_ticks[0][0])
+        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][1])
 
     def test_match_order_divided(self):
-        # Test for match order divided over two ticks
+        """
+        Test for match order divided over two ticks
+        """
         self.order_book.insert_ask(self.ask)
         self.order_book.insert_ask(self.ask2)
-        proposed_trades = self.price_time_strategy.match_order(self.bid_order2)
-        self.assertEquals(2, len(proposed_trades))
-        self.assertEquals(Price(100, 'BTC'), proposed_trades[0].price)
-        self.assertEquals(Quantity(30, 'MC'), proposed_trades[0].quantity)
-        self.assertEquals(Price(100, 'BTC'), proposed_trades[1].price)
-        self.assertEquals(Quantity(30, 'MC'), proposed_trades[1].quantity)
+        matching_ticks = self.price_time_strategy.match(self.bid_order2.price,
+                                                        self.bid_order2.available_quantity, False)
+        self.assertEquals(2, len(matching_ticks))
+        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][1])
+        self.assertEquals(Quantity(30, 'MC'), matching_ticks[1][1])
 
     def test_match_order_partial_ask(self):
         """
@@ -114,8 +125,10 @@ class PriceTimeStrategyTestSuite(AbstractServer):
         """
         self.ask._quantity = Quantity(20, 'MC')
         self.order_book.insert_ask(self.ask)
-        proposed_trades = self.price_time_strategy.match_order(self.bid_order2)
-        self.assertEquals(1, len(proposed_trades))
+        matching_ticks = self.price_time_strategy.match(self.bid_order2.price,
+                                                        self.bid_order2.available_quantity, False)
+        self.assertEquals(1, len(matching_ticks))
+        self.assertEquals(Quantity(20, 'MC'), matching_ticks[0][1])
 
     def test_match_order_partial_bid(self):
         """
@@ -123,64 +136,70 @@ class PriceTimeStrategyTestSuite(AbstractServer):
         """
         self.bid._quantity = Quantity(20, 'MC')
         self.order_book.insert_bid(self.bid)
-        proposed_trades = self.price_time_strategy.match_order(self.ask_order2)
-        self.assertEquals(1, len(proposed_trades))
+        matching_ticks = self.price_time_strategy.match(self.ask_order2.price,
+                                                        self.ask_order2.available_quantity, True)
+        self.assertEquals(1, len(matching_ticks))
+        self.assertEquals(Quantity(20, 'MC'), matching_ticks[0][1])
 
     def test_match_order_different_price_level(self):
-        # Test for match order given an ask order and bid in different price levels
+        """
+        Test for match order given an ask order and bid in different price levels
+        """
         self.order_book.insert_bid(self.bid2)
-        proposed_trades = self.price_time_strategy.match_order(self.ask_order)
-        self.assertEquals(1, len(proposed_trades))
-        self.assertEquals(Price(200, 'BTC'), proposed_trades[0].price)
-        self.assertEquals(Quantity(30, 'MC'), proposed_trades[0].quantity)
+        matching_ticks = self.price_time_strategy.match(self.ask_order.price, self.ask_order.available_quantity, True)
+        self.assertEquals(1, len(matching_ticks))
+        self.assertEquals(Price(200, 'BTC'), self.bid2.price)
+        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][1])
 
     def test_search_for_quantity_in_order_book_partial_ask_low(self):
-        # Test for protected search for quantity in order book partial ask when price is too low
+        """
+        Test for protected search for quantity in order book partial ask when price is too low
+        """
         self.order_book.insert_bid(self.bid)
         self.order_book.insert_bid(self.bid2)
         self.order_book.insert_bid(self.bid3)
         self.order_book.insert_bid(self.bid4)
-        quantity_to_trade, proposed_trades = self.price_time_strategy._search_for_quantity_in_order_book_partial_ask(
-            Price(100, 'BTC'), Quantity(30, 'MC'), [],
-            self.ask_order2)
-        self.assertEquals(1, len(proposed_trades))
-        self.assertEquals(Quantity(0, 'MC'), quantity_to_trade)
+        matching_ticks = self.price_time_strategy._search_for_quantity_in_order_book_partial_ask(
+            Price(100, 'BTC'), Quantity(30, 'MC'), [], self.ask_order2.price, True)
+        self.assertEquals(1, len(matching_ticks))
+        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][1])
 
     def test_search_for_quantity_in_order_book_partial_ask(self):
-        # Test for protected search for quantity in order book partial ask
+        """
+        Test for protected search for quantity in order book partial ask
+        """
         self.order_book.insert_bid(self.bid)
         self.order_book.insert_bid(self.bid2)
         self.order_book.insert_bid(self.bid3)
         self.order_book.insert_bid(self.bid4)
-        quantity_to_trade, proposed_trades = self.price_time_strategy._search_for_quantity_in_order_book_partial_ask(
-            Price(100, 'BTC'), Quantity(30, 'MC'), [],
-            self.ask_order)
-        self.assertEquals(0, len(proposed_trades))
-        self.assertEquals(Quantity(30, 'MC'), quantity_to_trade)
+        matching_ticks = self.price_time_strategy._search_for_quantity_in_order_book_partial_ask(
+            Price(100, 'BTC'), Quantity(30, 'MC'), [], self.ask_order.price, True)
+        self.assertEquals(0, len(matching_ticks))
 
     def test_search_for_quantity_in_order_book_partial_bid_high(self):
-        # Test for protected search for quantity in order book partial bid when price is too high
+        """
+        Test for protected search for quantity in order book partial bid when price is too high
+        """
         self.order_book.insert_ask(self.ask)
         self.order_book.insert_ask(self.ask2)
         self.order_book.insert_ask(self.ask3)
         self.order_book.insert_ask(self.ask4)
-        quantity_to_trade, proposed_trades = self.price_time_strategy._search_for_quantity_in_order_book_partial_bid(
-            Price(100, 'BTC'), Quantity(30, 'MC'), [],
-            self.bid_order)
-        self.assertEquals(0, len(proposed_trades))
-        self.assertEquals(Quantity(30, 'MC'), quantity_to_trade)
+        matching_ticks = self.price_time_strategy._search_for_quantity_in_order_book_partial_bid(
+            Price(100, 'BTC'), Quantity(30, 'MC'), [], self.bid_order.price, False)
+        self.assertEquals(0, len(matching_ticks))
 
     def test_search_for_quantity_in_order_book_partial_bid(self):
-        # Test for protected search for quantity in order book partial bid
+        """
+        Test for protected search for quantity in order book partial bid
+        """
         self.order_book.insert_ask(self.ask)
         self.order_book.insert_ask(self.ask2)
         self.order_book.insert_ask(self.ask3)
         self.order_book.insert_ask(self.ask4)
-        quantity_to_trade, proposed_trades = self.price_time_strategy._search_for_quantity_in_order_book_partial_bid(
-            Price(50, 'BTC'), Quantity(30, 'MC'), [],
-            self.bid_order)
-        self.assertEquals(1, len(proposed_trades))
-        self.assertEquals(Quantity(0, 'MC'), quantity_to_trade)
+        matching_ticks = self.price_time_strategy._search_for_quantity_in_order_book_partial_bid(
+            Price(50, 'BTC'), Quantity(30, 'MC'), [], self.bid_order.price, False)
+        self.assertEquals(1, len(matching_ticks))
+        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][1])
 
     def test_search_for_quantity_in_price_level(self):
         """
@@ -189,18 +208,9 @@ class PriceTimeStrategyTestSuite(AbstractServer):
         self.bid_order._order_id = self.ask.order_id
         self.order_book.insert_ask(self.ask)
         self.order_book.insert_ask(self.ask2)
-        _, trades = self.price_time_strategy._search_for_quantity_in_price_level(
-            None, Quantity(10, 'MC'), self.bid_order)
-        self.assertFalse(trades)
-
-        _, trades = self.price_time_strategy._search_for_quantity_in_price_level(
-            self.order_book.get_tick(self.bid_order.order_id), Quantity(10, 'MC'), self.bid_order)
-        self.assertFalse(trades)
-
-        self.bid_order2.reserve_quantity_for_tick(self.ask2.order_id, Quantity(60, 'MC'))
-        _, trades = self.price_time_strategy._search_for_quantity_in_price_level(
-            self.order_book.get_tick(self.ask2.order_id), Quantity(10, 'MC'), self.bid_order2)
-        self.assertFalse(trades)
+        matching_ticks = self.price_time_strategy._search_for_quantity_in_price_level(
+            None, Quantity(10, 'MC'), self.bid_order.price, False)
+        self.assertFalse(matching_ticks)
 
 
 class MatchingEngineTestSuite(AbstractServer):
@@ -232,21 +242,21 @@ class MatchingEngineTestSuite(AbstractServer):
 
     def test_empty_match_order_empty(self):
         # Test for match order with an empty order book
-        self.assertEquals([], self.matching_engine.match_order(self.bid_order))
-        self.assertEquals([], self.matching_engine.match_order(self.ask_order))
+        self.assertEquals([], self.matching_engine.match(self.bid_order.price,
+                                                         self.bid_order.available_quantity, False))
+        self.assertEquals([], self.matching_engine.match(self.ask_order.price,
+                                                         self.ask_order.available_quantity, True))
 
     def test_match_order_bid(self):
         # Test for match bid order
         self.order_book.insert_ask(self.ask)
-        proposed_trades = self.matching_engine.match_order(self.bid_order)
-        self.assertEquals(1, len(proposed_trades))
-        self.assertEquals(Price(100, 'BTC'), proposed_trades[0].price)
-        self.assertEquals(Quantity(30, 'MC'), proposed_trades[0].quantity)
+        matching_ticks = self.matching_engine.match(self.bid_order.price, self.bid_order.available_quantity, False)
+        self.assertEquals(1, len(matching_ticks))
+        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][1])
 
     def test_match_order_ask(self):
         # Test for match ask order
         self.order_book.insert_bid(self.bid)
-        proposed_trades = self.matching_engine.match_order(self.ask_order)
-        self.assertEquals(1, len(proposed_trades))
-        self.assertEquals(Price(100, 'BTC'), proposed_trades[0].price)
-        self.assertEquals(Quantity(30, 'MC'), proposed_trades[0].quantity)
+        matching_ticks = self.matching_engine.match(self.ask_order.price, self.ask_order.available_quantity, True)
+        self.assertEquals(1, len(matching_ticks))
+        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][1])

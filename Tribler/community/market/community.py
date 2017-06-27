@@ -378,7 +378,21 @@ class MarketCommunity(Community):
         if not self.matching_enabled:
             return
 
-        proposed_trades = self.matching_engine.match_order(order)
+        matched_ticks = self.matching_engine.match(order.price, order.available_quantity, order.is_ask())
+
+        # Create proposed trade messages and reserve quantity
+        proposed_trades = []
+        for matched_tick, quantity in matched_ticks:
+            order.reserve_quantity_for_tick(matched_tick.order_id, quantity)
+            proposed_trades.append(Trade.propose(
+                self.order_book.message_repository.next_identity(),
+                order.order_id,
+                matched_tick.order_id,
+                matched_tick.price,
+                quantity,
+                Timestamp.now()
+            ))
+
         if proposed_trades:
             self.order_manager.order_repository.update(order)
         self.send_proposed_trade_messages(proposed_trades)
