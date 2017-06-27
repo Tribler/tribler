@@ -28,7 +28,8 @@ from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
     DuplicateTorrentFileError
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_MYPREFERENCES, NTFY_PEERS,
-                                     NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR)
+                                     NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
+                                     STATEDIR_WALLET_DIR)
 from Tribler.Core.statistics import TriblerStatistics
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -110,6 +111,7 @@ class Session(object):
         create_dir(self.config.get_metadata_store_dir())
         create_in_state_dir(DB_DIR_NAME)
         create_in_state_dir(STATEDIR_DLPSTATE_DIR)
+        create_in_state_dir(STATEDIR_WALLET_DIR)
 
     def get_ports_in_config(self):
         """Claim all required random ports."""
@@ -152,6 +154,18 @@ class Session(object):
             trustchain_pubfilename = os.path.join(self.config.get_state_dir(), 'ecpub_multichain.pem')
             permid_module.save_keypair_trustchain(self.trustchain_keypair, trustchain_pairfilename)
             permid_module.save_pub_key_trustchain(self.trustchain_keypair, trustchain_pubfilename)
+
+        tradechain_pairfilename = self.config.get_tradechain_permid_keypair_filename()
+
+        if os.path.exists(tradechain_pairfilename):
+            self.tradechain_keypair = permid_module.read_keypair_trustchain(tradechain_pairfilename)
+        else:
+            self.tradechain_keypair = permid_module.generate_keypair_trustchain()
+
+            # Save keypair
+            tradechain_pubfilename = os.path.join(self.config.get_state_dir(), 'ecpub_tradechain.pem')
+            permid_module.save_keypair_trustchain(self.tradechain_keypair, tradechain_pairfilename)
+            permid_module.save_pub_key_trustchain(self.tradechain_keypair, tradechain_pubfilename)
 
     #
     # Class methods

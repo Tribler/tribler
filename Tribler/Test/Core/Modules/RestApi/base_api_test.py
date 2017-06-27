@@ -1,6 +1,7 @@
 import json
 import os
 import urllib
+
 from twisted.internet.defer import succeed, inlineCallbacks
 from twisted.python.threadable import isInIOThread
 from twisted.web.client import Agent, readBody, HTTPConnectionPool
@@ -8,6 +9,7 @@ from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
 from zope.interface import implements
 
+from Tribler.Core.Modules.restapi import get_param
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.version import version_id
 from Tribler.Test.test_as_server import TestAsServer
@@ -104,3 +106,17 @@ class AbstractApiTest(AbstractBaseApiTest):
         return super(AbstractApiTest, self).do_request(endpoint, request_type, post_data, raw_data)\
                                            .addCallback(self.parse_response)\
                                            .addCallback(self.parse_body)
+
+
+class TestBaseApi(TestAsServer):
+    """
+    Test some basic functionality of the restful API
+    """
+
+    def test_get_parameters(self):
+        """
+        Test the get_parameters method
+        """
+        parameters = {'abc': [3]}
+        self.assertIsNone(get_param(parameters, 'abcd'))
+        self.assertIsNotNone(get_param(parameters, 'abc'))

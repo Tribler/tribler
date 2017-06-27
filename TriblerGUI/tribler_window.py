@@ -105,6 +105,7 @@ class TriblerWindow(QMainWindow):
 
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
         TriblerRequestManager.window = self
+        self.tribler_status_bar.hide()
 
         self.magnet_handler = MagnetHandler(self.window)
         QDesktopServices.setUrlHandler("magnet", self.magnet_handler, "on_open_magnet_link")
@@ -246,6 +247,13 @@ class TriblerWindow(QMainWindow):
             self.stackedWidget.setCurrentIndex(PAGE_DISCOVERING)
         else:
             self.clicked_menu_button_home()
+
+    def show_status_bar(self, message):
+        self.tribler_status_bar_label.setText(message)
+        self.tribler_status_bar.show()
+
+    def hide_status_bar(self):
+        self.tribler_status_bar.hide()
 
     def process_uri_request(self):
         """
