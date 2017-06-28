@@ -266,14 +266,13 @@ class TrustChainCommunity(Community):
             self.logger.info("Received crawl request from node %s for sequence number %d",
                              message.candidate.get_member().public_key.encode("hex")[-8:],
                              message.payload.requested_sequence_number)
-            blocks = self.persistence.crawl(self.my_member.public_key, message.payload.requested_sequence_number)
             sq = message.payload.requested_sequence_number
             if sq < 0:
                 last_block = self.persistence.get_latest(self.my_member.public_key)
                 # The -1 element is the last_block.seq_nr
                 # The -2 element is the last_block.seq_nr - 1
                 # Etc. until the genesis seq_nr
-                sq = max(GENESIS_SEQ, last_block.sequence_number + (sq + 1))
+                sq = max(GENESIS_SEQ, last_block.sequence_number + (sq + 1)) if last_block else GENESIS_SEQ
             blocks = self.persistence.crawl(self.my_member.public_key, sq)
             count = len(blocks)
             for blk in blocks:
