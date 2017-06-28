@@ -205,6 +205,9 @@ class TriblerWindow(QMainWindow):
         self.show()
 
     def update_tray_icon(self, use_monochrome_icon):
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            return
+
         if use_monochrome_icon:
             self.tray_icon.setIcon(QIcon(QPixmap(get_image_path('monochrome_tribler.png'))))
         else:
