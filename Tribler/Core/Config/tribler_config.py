@@ -478,6 +478,12 @@ class TriblerConfig(object):
     def get_market_community_enabled(self):
         return self.config['market_community']['enabled']
 
+    def set_is_matchmaker(self, value):
+        self.config['market_community']['matchmaker'] = value
+
+    def get_is_matchmaker(self):
+        return self.config['market_community']['matchmaker']
+
     # Wallets
 
     def set_btc_testnet(self, value):

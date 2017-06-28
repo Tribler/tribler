@@ -145,6 +145,7 @@ class Transaction(object):
         self.outgoing_address = None
         self.partner_incoming_address = None
         self.partner_outgoing_address = None
+        self.match_id = ''
 
         self._payments = []
         self._current_payment = 0
@@ -157,7 +158,7 @@ class Transaction(object):
         trader_id, transaction_number, order_trader_id, order_number, partner_trader_id, partner_order_number, price,\
         price_type, transferred_price, quantity, quantity_type, transferred_quantity, transaction_timestamp,\
         sent_wallet_info, received_wallet_info, incoming_address, outgoing_address, partner_incoming_address,\
-        partner_outgoing_address = data
+        partner_outgoing_address, match_id = data
 
         transaction_id = TransactionId(TraderId(str(trader_id)), TransactionNumber(transaction_number))
         transaction = cls(transaction_id, Price(price, str(price_type)),
@@ -174,6 +175,7 @@ class Transaction(object):
         transaction.outgoing_address = WalletAddress(str(outgoing_address))
         transaction.partner_incoming_address = WalletAddress(str(partner_incoming_address))
         transaction.partner_outgoing_address = WalletAddress(str(partner_outgoing_address))
+        transaction.match_id = str(match_id)
         transaction._payments = payments
 
         return transaction
@@ -190,7 +192,7 @@ class Transaction(object):
                 unicode(self.total_quantity.wallet_id), float(self.transferred_quantity), float(self.timestamp),
                 self.sent_wallet_info, self.received_wallet_info, unicode(self.incoming_address),
                 unicode(self.outgoing_address), unicode(self.partner_incoming_address),
-                unicode(self.partner_outgoing_address))
+                unicode(self.partner_outgoing_address), unicode(self.match_id))
 
     @classmethod
     def from_proposed_trade(cls, proposed_trade, transaction_id):

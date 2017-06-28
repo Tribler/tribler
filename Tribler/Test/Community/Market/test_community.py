@@ -199,7 +199,7 @@ class CommunityTestSuite(AbstractTestCommunity):
         Test sending a proposed trade
         """
         self.market_community.update_ip(TraderId(self.market_community.mid), ('127.0.0.1', 1234))
-        self.assertEqual(self.market_community.send_proposed_trade_messages([self.proposed_trade]), [True])
+        self.assertEqual(self.market_community.send_proposed_trade(self.proposed_trade), [True])
 
     @blocking_call_on_reactor_thread
     def test_send_counter_trade(self):

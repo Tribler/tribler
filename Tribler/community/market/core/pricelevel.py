@@ -10,6 +10,7 @@ class PriceLevel(object):
         self._tail_tick = None  # Last tick of the double linked list
         self._length = 0  # The number of ticks in the price level
         self._depth = Quantity(0, quantity_wallet_id)  # Total amount of quantity contained in this price level
+        self._reserved = Quantity(0, quantity_wallet_id)  # Total amount of reserved quantity in this price level
         self._last = None  # The current tick of the iterator
         self._quantity_wallet_id = quantity_wallet_id  # The quantity wallet ID of the price level
 
@@ -45,6 +46,23 @@ class PriceLevel(object):
         assert isinstance(new_depth, Quantity), type(new_depth)
 
         self._depth = new_depth
+
+    @property
+    def reserved(self):
+        """
+        The amount of reserved quantity (for matching) in this price level
+        """
+        return self._reserved
+
+    @reserved.setter
+    def reserved(self, new_reserved):
+        """
+        :param new_reserved: The new amount of quantity to reserve
+        :type new_reserved: Quantity
+        """
+        assert isinstance(new_reserved, Quantity), type(new_reserved)
+
+        self._reserved = new_reserved
 
     def __len__(self):
         """
@@ -97,6 +115,7 @@ class PriceLevel(object):
 
         # Update the counters
         self._depth -= tick.quantity
+        self._reserved -= tick.reserved_for_matching
         self._length -= 1
 
         if self._length == 0:  # Was the only tick in this price level

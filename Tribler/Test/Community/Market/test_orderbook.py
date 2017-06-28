@@ -50,7 +50,7 @@ class AbstractTestOrderBook(AbstractServer):
                                    OrderId(TraderId('0'), OrderNumber(1)),
                                    OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'),
                                    Quantity(30, 'MC'), Timestamp(1462224447.117))
-        self.order_book = OrderBook(MemoryMessageRepository('0'))
+        self.order_book = OrderBook()
 
     def tearDown(self, annotate=True):
         self.order_book.cancel_all_pending_tasks()
@@ -231,7 +231,7 @@ class TestDatabaseOrderBook(AbstractTestOrderBook):
             os.makedirs(path)
 
         self.database = MarketDB(self.getStateDir())
-        self.order_book = DatabaseOrderBook(MemoryMessageRepository('0'), self.database)
+        self.order_book = DatabaseOrderBook(self.database)
 
     @blocking_call_on_reactor_thread
     def test_save_to_db(self):

@@ -17,12 +17,20 @@ class MarketIntroPayload(IntroductionRequestPayload):
     class Implementation(IntroductionRequestPayload.Implementation):
 
         def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type,
-                     sync, identifier, orders_bloom_filter=None):
+                     sync, identifier, is_matchmaker=False, orders_bloom_filter=None):
             IntroductionRequestPayload.Implementation.__init__(self, meta, destination_address, source_lan_address,
                                                                source_wan_address, advice, connection_type, sync,
                                                                identifier)
 
+            self._is_matchmaker = is_matchmaker
             self._orders_bloom_filter = orders_bloom_filter
+
+        def set_is_matchmaker(self, is_matchmaker):
+            self._is_matchmaker = is_matchmaker
+
+        @property
+        def is_matchmaker(self):
+            return self._is_matchmaker
 
         def set_orders_bloom_filter(self, bloom_filter):
             self._orders_bloom_filter = bloom_filter
@@ -146,6 +154,82 @@ class OfferSyncPayload(OfferPayload):
             return self._is_ask
 
 
+class MatchPayload(OfferPayload):
+    class Implementation(OfferPayload.Implementation):
+        def __init__(self, meta, trader_id, message_number, order_number, price, quantity, timeout, timestamp,
+                     public_key, signature, ttl, ip, port, recipient_order_number, match_quantity, match_trader_id,
+                     matchmaker_trader_id, match_id):
+            assert isinstance(recipient_order_number, OrderNumber), type(recipient_order_number)
+            assert isinstance(match_quantity, Quantity), type(match_quantity)
+            assert isinstance(match_trader_id, TraderId), type(match_trader_id)
+            assert isinstance(matchmaker_trader_id, TraderId), type(matchmaker_trader_id)
+            assert isinstance(match_id, str), type(match_id)
+            super(MatchPayload.Implementation, self).__init__(meta, trader_id, message_number, order_number, price,
+                                                              quantity, timeout, timestamp, public_key, signature,
+                                                              ttl, ip, port)
+            self._recipient_order_number = recipient_order_number
+            self._match_quantity = match_quantity
+            self._match_trader_id = match_trader_id
+            self._matchmaker_trader_id = matchmaker_trader_id
+            self._match_id = match_id
+
+        @property
+        def recipient_order_number(self):
+            return self._recipient_order_number
+
+        @property
+        def match_quantity(self):
+            return self._match_quantity
+
+        @property
+        def match_trader_id(self):
+            return self._match_trader_id
+
+        @property
+        def matchmaker_trader_id(self):
+            return self._matchmaker_trader_id
+
+        @property
+        def match_id(self):
+            return self._match_id
+
+
+class AcceptMatchPayload(MessagePayload):
+    class Implementation(MessagePayload.Implementation):
+        def __init__(self, meta, trader_id, message_number, timestamp, match_id, quantity):
+            assert isinstance(match_id, str), type(match_id)
+            assert isinstance(quantity, Quantity), type(quantity)
+            super(AcceptMatchPayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
+            self._match_id = match_id
+            self._quantity = quantity
+
+        @property
+        def match_id(self):
+            return self._match_id
+
+        @property
+        def quantity(self):
+            return self._quantity
+
+
+class DeclineMatchPayload(MessagePayload):
+    class Implementation(MessagePayload.Implementation):
+        def __init__(self, meta, trader_id, message_number, timestamp, match_id, decline_reason):
+            assert isinstance(match_id, str), type(match_id)
+            assert isinstance(decline_reason, int), type(decline_reason)
+            super(DeclineMatchPayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
+            self._match_id = match_id
+            self._decline_reason = decline_reason
+
+        @property
+        def match_id(self):
+            return self._match_id
+
+        @property
+        def decline_reason(self):
+            return self._decline_reason
+
+
 class TradePayload(MessagePayload):
     class Implementation(MessagePayload.Implementation):
         def __init__(self, meta, trader_id, message_number, order_number, recipient_trader_id, recipient_order_number,
@@ -198,16 +282,18 @@ class TradePayload(MessagePayload):
 class DeclinedTradePayload(MessagePayload):
     class Implementation(MessagePayload.Implementation):
         def __init__(self, meta, trader_id, message_number, order_number, recipient_trader_id, recipient_order_number,
-                     proposal_id, timestamp):
+                     proposal_id, timestamp, decline_reason):
             assert isinstance(order_number, OrderNumber), type(order_number)
             assert isinstance(recipient_trader_id, TraderId), type(recipient_trader_id)
             assert isinstance(recipient_order_number, OrderNumber), type(recipient_order_number)
             assert isinstance(proposal_id, int), type(proposal_id)
+            assert isinstance(decline_reason, int), type(decline_reason)
             super(DeclinedTradePayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
             self._order_number = order_number
             self._recipient_trader_id = recipient_trader_id
             self._recipient_order_number = recipient_order_number
             self._proposal_id = proposal_id
+            self._decline_reason = decline_reason
 
         @property
         def order_number(self):
@@ -224,6 +310,10 @@ class DeclinedTradePayload(MessagePayload):
         @property
         def proposal_id(self):
             return self._proposal_id
+
+        @property
+        def decline_reason(self):
+            return self._decline_reason
 
 
 class TransactionPayload(MessagePayload):
@@ -242,6 +332,70 @@ class TransactionPayload(MessagePayload):
         @property
         def transaction_number(self):
             return self._transaction_number
+
+
+class TransactionCompletedPayload(TransactionPayload):
+    class Implementation(TransactionPayload.Implementation):
+        def __init__(self, meta, trader_id, message_number, transaction_trader_id, transaction_number, order_trader_id,
+                     order_number, recipient_trader_id, recipient_order_number, match_id, quantity, timestamp):
+            assert isinstance(order_trader_id, TraderId), type(order_trader_id)
+            assert isinstance(order_number, OrderNumber), type(order_number)
+            assert isinstance(recipient_trader_id, TraderId), type(recipient_trader_id)
+            assert isinstance(recipient_order_number, OrderNumber), type(recipient_order_number)
+            assert isinstance(match_id, str), type(match_id)
+            assert isinstance(quantity, Quantity), type(quantity)
+            super(TransactionCompletedPayload.Implementation, self).__init__(meta, trader_id, message_number,
+                                                                             transaction_trader_id, transaction_number,
+                                                                             timestamp)
+            self._order_trader_id = order_trader_id
+            self._order_number = order_number
+            self._recipient_trader_id = recipient_trader_id
+            self._recipient_order_number = recipient_order_number
+            self._match_id = match_id
+            self._quantity = quantity
+
+        @property
+        def order_trader_id(self):
+            return self._order_trader_id
+
+        @property
+        def order_number(self):
+            return self._order_number
+
+        @property
+        def recipient_trader_id(self):
+            return self._recipient_trader_id
+
+        @property
+        def recipient_order_number(self):
+            return self._recipient_order_number
+
+        @property
+        def match_id(self):
+            return self._match_id
+
+        @property
+        def quantity(self):
+            return self._quantity
+
+
+class TransactionCompletedBCPayload(TransactionCompletedPayload):
+    class Implementation(TransactionCompletedPayload.Implementation):
+        def __init__(self, meta, trader_id, message_number, transaction_trader_id, transaction_number, order_trader_id,
+                     order_number, recipient_trader_id, recipient_order_number, match_id, quantity, timestamp, ttl):
+            assert isinstance(ttl, Ttl), type(ttl)
+            super(TransactionCompletedBCPayload.Implementation, self).__init__(meta, trader_id, message_number,
+                                                                               transaction_trader_id,
+                                                                               transaction_number,
+                                                                               order_trader_id, order_number,
+                                                                               recipient_trader_id,
+                                                                               recipient_order_number,
+                                                                               match_id, quantity, timestamp)
+            self._ttl = ttl
+
+        @property
+        def ttl(self):
+            return self._ttl
 
 
 class StartTransactionPayload(TransactionPayload):

@@ -6,7 +6,6 @@ from twisted.internet.defer import fail
 from twisted.internet.task import deferLater
 from twisted.python.failure import Failure
 
-from Tribler.community.market.core.message_repository import MessageRepository
 from Tribler.community.market.core.order import OrderId
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
@@ -22,15 +21,13 @@ class OrderBook(TaskManager):
     are out there.
     """
 
-    def __init__(self, message_repository):
+    def __init__(self):
         super(OrderBook, self).__init__()
+
         self._logger = logging.getLogger(self.__class__.__name__)
-
-        assert isinstance(message_repository, MessageRepository), type(message_repository)
-
-        self.message_repository = message_repository
         self._bids = Side()
         self._asks = Side()
+        self.completed_orders = []
 
     def timeout_ask(self, order_id):
         ask = self.get_ask(order_id).tick
@@ -54,7 +51,7 @@ class OrderBook(TaskManager):
         """
         assert isinstance(ask, Ask), type(ask)
 
-        if not self._asks.tick_exists(ask.order_id) and ask.is_valid():
+        if not self._asks.tick_exists(ask.order_id) and ask.order_id not in self.completed_orders and ask.is_valid():
             self._asks.insert_tick(ask)
             timeout_delay = float(ask.timestamp) + float(ask.timeout) - time.time()
             task = deferLater(reactor, timeout_delay, self.timeout_ask, ask.order_id)
@@ -78,7 +75,7 @@ class OrderBook(TaskManager):
         """
         assert isinstance(bid, Bid), type(bid)
 
-        if not self._bids.tick_exists(bid.order_id) and bid.is_valid():
+        if not self._bids.tick_exists(bid.order_id) and bid.order_id not in self.completed_orders and bid.is_valid():
             self._bids.insert_tick(bid)
             timeout_delay = float(bid.timestamp) + float(bid.timeout) - time.time()
             task = deferLater(reactor, timeout_delay, self.timeout_bid, bid.order_id)
@@ -96,26 +93,36 @@ class OrderBook(TaskManager):
             self.cancel_pending_task("bid_%s_timeout" % order_id)
             self._bids.remove_tick(order_id)
 
-    def trade_tick(self, order_id, recipient_order_id, quantity, end_transaction_timestamp):
+    def trade_tick(self, order_id, recipient_order_id, quantity, unreserve=True):
         """
         :type order_id: OrderId
         :type recipient_order_id: OrderId
         :type quantity: Quantity
-        :type end_transaction_timestamp: Timestamp
+        :type unreserve: bool
         """
         assert isinstance(order_id, OrderId), type(order_id)
         assert isinstance(recipient_order_id, OrderId), type(recipient_order_id)
         assert isinstance(quantity, Quantity), type(quantity)
+        assert isinstance(unreserve, bool), type(unreserve)
         self._logger.debug("Trading tick in order book for own order %s vs order %s (quantity: %s)",
                            str(order_id), str(recipient_order_id), str(quantity))
 
         if self.tick_exists(order_id):
             tick = self.get_tick(order_id)
             tick.quantity -= quantity
+            if unreserve:
+                tick.release_for_matching(quantity)
+            if tick.quantity == Quantity(0, quantity.wallet_id):
+                self.remove_tick(tick.order_id)
+                self.completed_orders.append(tick.order_id)
         if self.tick_exists(recipient_order_id):
             tick = self.get_tick(recipient_order_id)
-            if tick.tick.timestamp < end_transaction_timestamp:
-                tick.quantity -= quantity
+            tick.quantity -= quantity
+            if unreserve:
+                tick.release_for_matching(quantity)
+            if tick.quantity == Quantity(0, quantity.wallet_id):
+                self.remove_tick(tick.order_id)
+                self.completed_orders.append(tick.order_id)
 
     def tick_exists(self, order_id):
         """
@@ -189,6 +196,8 @@ class OrderBook(TaskManager):
         :type order_id: OrderId
         """
         assert isinstance(order_id, OrderId), type(order_id)
+
+        self._logger.debug("Removing tick %s from order book", order_id)
 
         self.remove_ask(order_id)
         self.remove_bid(order_id)
@@ -342,12 +351,20 @@ class OrderBook(TaskManager):
 
         :rtype: [OrderId]
         """
+        return sorted(self.get_bid_ids() + self.get_ask_ids())
+
+    def get_ask_ids(self):
         ids = []
 
         for price_wallet_id, quantity_wallet_id in self.asks.get_price_level_list_wallets():
             for _, price_level in self.asks.get_price_level_list(price_wallet_id, quantity_wallet_id).items():
                 for ask in price_level:
                     ids.append(ask.tick.order_id)
+
+        return sorted(ids)
+
+    def get_bid_ids(self):
+        ids = []
 
         for price_wallet_id, quantity_wallet_id in self.bids.get_price_level_list_wallets():
             for _, price_level in self.bids.get_price_level_list(price_wallet_id, quantity_wallet_id).items():
@@ -369,14 +386,19 @@ class OrderBook(TaskManager):
         res_str += "\n"
         return res_str
 
+    def cancel_all_pending_tasks(self):
+        super(OrderBook, self).cancel_all_pending_tasks()
+        for order_id in self.get_order_ids():
+            self.get_tick(order_id).cancel_all_pending_tasks()
+
 
 class DatabaseOrderBook(OrderBook):
     """
     This class adds support for a persistency backend to store ticks.
     For now, it only provides methods to save all ticks to the database or to restore all ticks from the database.
     """
-    def __init__(self, message_repository, database):
-        super(DatabaseOrderBook, self).__init__(message_repository)
+    def __init__(self, database):
+        super(DatabaseOrderBook, self).__init__()
 
         assert isinstance(database, MarketDB)
 
