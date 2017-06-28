@@ -23,7 +23,6 @@ DB_SCRIPT_NAME = "schema_sdb_v%s.sql" % str(LATEST_DB_VERSION)
 DB_DIR_NAME = u"sqlite"
 DB_FILE_NAME = u"tribler.sdb"
 DB_FILE_RELATIVE_PATH = os.path.join(DB_DIR_NAME, DB_FILE_NAME)
-DB_SCRIPT_NAME = u"schema_sdb_v%s.sql" % str(LATEST_DB_VERSION)
 DB_SCRIPT_ABSOLUTE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), DB_SCRIPT_NAME)
 
 DEFAULT_BUSY_TIMEOUT = 10000
