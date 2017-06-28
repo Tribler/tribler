@@ -1,7 +1,8 @@
 import json
+
 from twisted.web import http, resource
 
-from Tribler.community.trustchain.community import TrustChainCommunity
+from Tribler.community.triblerchain.community import TriblerChainCommunity
 
 
 class TrustchainEndpoint(resource.Resource):
@@ -32,7 +33,7 @@ class TrustchainBaseEndpoint(resource.Resource):
         Search for the trustchain community in the dispersy communities.
         """
         for community in self.session.get_dispersy_instance().get_communities():
-            if isinstance(community, TrustChainCommunity):
+            if isinstance(community, TriblerChainCommunity):
                 return community
         return None
 
