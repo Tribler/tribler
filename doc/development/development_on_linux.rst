@@ -63,4 +63,4 @@ Execute the following command in your terminal:
 
 .. code-block:: none
 
-    pacman -S libsodium libtorrent-rasterbar python2-pyqt5 qt5-svg phonon-qt5-vlc python2-apsw python2-cherrypy python2-cryptography python2-decorator python2-dnspython python2-ecdsa python2-feedparser python2-chardet python2-jsonrpclib python2-keyring python2-keyrings.alt python2-m2crypto python2-netifaces python2-pbkdf2 python2-plyvel python2-protobuf python2-pysocks python2-requests python2-pyaes python2-twisted python2-configobj python2-matplotlib
+    pacman -S libsodium libtorrent-rasterbar python2-pyqt5 qt5-svg phonon-qt5-vlc python2-apsw python2-cherrypy python2-cryptography python2-decorator python2-dnspython python2-ecdsa python2-feedparser python2-chardet python2-jsonrpclib python2-keyring python2-keyrings-alt python2-m2crypto python2-netifaces python2-pbkdf2 python2-plyvel python2-protobuf python2-pysocks python2-requests python2-pyaes python2-twisted python2-configobj python2-matplotlib
