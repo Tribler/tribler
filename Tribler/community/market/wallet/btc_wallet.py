@@ -4,15 +4,14 @@ from threading import Thread
 
 import imp
 import keyring
+from Tribler.Core.Utilities.install_dir import get_base_path
 from twisted.internet.defer import Deferred, succeed, fail, inlineCallbacks
 from twisted.internet.task import LoopingCall
 
-import Tribler
-
-# Make sure we can find the electrum wallet
 from Tribler.community.market.wallet.wallet import InsufficientFunds, Wallet
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(Tribler.__file__)), '..', 'electrum'))
+# Make sure we can find the electrum wallet
+sys.path.append(os.path.join(get_base_path(), 'electrum'))
 
 imp.load_module('electrum', *imp.find_module('lib'))
 
