@@ -17,7 +17,7 @@ for file in os.listdir("TriblerGUI/widgets"):
     if file.endswith(".py"):
         widget_files.append('TriblerGUI.widgets.%s' % file[:-3])
 
-data_to_copy = [('Tribler/dispersy/libnacl/libnacl', 'libnacl'), ('TriblerGUI/qt_resources', 'qt_resources'), ('TriblerGUI/images', 'images'), ('TriblerGUI/scripts', 'scripts'), ('twisted', 'twisted'), ('Tribler', 'tribler_source/Tribler')]
+data_to_copy = [('Tribler/dispersy/libnacl/libnacl', 'libnacl'), ('electrum', 'electrum'), ('TriblerGUI/qt_resources', 'qt_resources'), ('TriblerGUI/images', 'images'), ('TriblerGUI/scripts', 'scripts'), ('twisted', 'twisted'), ('Tribler', 'tribler_source/Tribler')]
 if sys.platform.startswith('darwin'):
     data_to_copy += [('/Applications/VLC.app/Contents/MacOS/lib', 'vlc/lib'), ('/Applications/VLC.app/Contents/MacOS/plugins', 'vlc/plugins')]
 
@@ -33,7 +33,9 @@ if sys.platform.startswith('darwin'):
 # We use plyvel on Windows since leveldb is unable to deal with unicode paths
 excluded_libs = ['wx', 'leveldb'] if sys.platform == 'win32' else ['wx']
 
-a = Analysis(['run_tribler.py'],
+electrum_files = ['electrum/electrum', 'electrum/lib/util.py', 'electrum/lib/wallet.py', 'electrum/lib/simple_config.py', 'electrum/lib/bitcoin.py', 'electrum/lib/dnssec.py', 'electrum/lib/commands.py']
+
+a = Analysis(['run_tribler.py'] + electrum_files,
              pathex=['/Users/martijndevos/Documents/tribler'],
              binaries=None,
              datas=data_to_copy,

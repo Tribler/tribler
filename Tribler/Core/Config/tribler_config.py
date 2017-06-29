@@ -6,6 +6,7 @@ import os
 import sys
 from distutils.spawn import find_executable
 
+from Tribler.Core.Utilities.install_dir import get_lib_path
 from configobj import ConfigObj
 from validate import Validator
 
@@ -17,7 +18,7 @@ from Tribler.Core.osutils import get_appstate_dir, is_android
 
 FILENAME = 'triblerd.conf'
 SPEC_FILENAME = 'config.spec'
-CONFIG_SPEC_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), SPEC_FILENAME)
+CONFIG_SPEC_PATH = os.path.join(get_lib_path(), 'Core', 'Config', SPEC_FILENAME)
 
 
 class TriblerConfig(object):
