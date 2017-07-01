@@ -7,10 +7,6 @@ from struct import unpack_from
 from twisted.web import http
 
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE
-from Tribler.Core.simpledefs import NTFY_TORRENTS
-from Tribler.community.channel.community import ChannelCommunity
-from Tribler.dispersy.exception import CommunityNotFoundException
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 def return_handled_exception(request, exception):
@@ -29,13 +25,13 @@ def return_handled_exception(request, exception):
     })
 
 
-def convert_search_torrent_to_json(torrent):
+def convert_search_torrent_to_json(torrent, latest_matchinfo_torrent):
     """
     Converts a given torrent to a JSON dictionary. Note that the torrent might be either a result from the local
     database in which case it is a tuple or a remote search result in which case it is a dictionary.
     """
     if isinstance(torrent, dict):
-        return convert_remote_torrent_to_json(torrent)
+        return convert_remote_torrent_to_json(torrent, latest_matchinfo_torrent)
     return convert_db_torrent_to_json(torrent, include_rel_score=True)
 
 
@@ -51,24 +47,6 @@ def convert_db_channel_to_json(channel, include_rel_score=False):
         res_json["relevance_score"] = channel[9]
 
     return res_json
-
-
-@blocking_call_on_reactor_thread
-def can_edit_channel(channel_id, channel_vote):
-    """
-    This method returns whether the channel can be edited or not.
-    """
-    from Tribler.Core.Session import Session
-    if Session.get_instance().config.get_dispersy_enabled():
-        dispersy = Session.get_instance().get_dispersy_instance()
-        try:
-            cmty = dispersy.get_community(channel_id)
-            channel_type, is_mod = cmty.get_channel_mode()
-            if is_mod or channel_vote == VOTE_SUBSCRIBE and channel_type == ChannelCommunity.CHANNEL_OPEN:
-                return True
-        except CommunityNotFoundException:
-            return False
-    return False
 
 
 def convert_db_torrent_to_json(torrent, include_rel_score=False):
@@ -89,14 +67,14 @@ def convert_db_torrent_to_json(torrent, include_rel_score=False):
     return res_json
 
 
-def convert_remote_torrent_to_json(torrent):
+def convert_remote_torrent_to_json(torrent, latest_matchinfo_torrent):
     """
     This method converts a torrent that has been received by remote peers in the network to a JSON dictionary.
     """
     torrent_name = torrent['name']
     if torrent_name is None or len(torrent_name.strip()) == 0:
         torrent_name = "Unnamed torrent"
-    relevance_score = relevance_score_remote_torrent(torrent_name)
+    relevance_score = relevance_score_remote_torrent(torrent_name, latest_matchinfo_torrent)
 
     return {'id': torrent['torrent_id'], "infohash": torrent['infohash'].encode('hex'), "name": torrent_name,
             'size': torrent['length'], 'category': torrent['category'], 'num_seeders': torrent['num_seeders'],
@@ -113,17 +91,15 @@ def get_parameter(parameters, name):
     return parameters[name][0]
 
 
-def relevance_score_remote_torrent(torrent_name):
+def relevance_score_remote_torrent(torrent_name, latest_matchinfo_torrent):
     """
     Calculate the relevance score of a remote torrent, based on the name and the matchinfo object
     of the last torrent from the database.
     The algorithm used is the same one as in search_in_local_torrents_db in SqliteCacheDBHandler.py.
     """
-    from Tribler.Core.Session import Session
-    torrent_db = Session.get_instance().open_dbhandler(NTFY_TORRENTS)
-    if torrent_db.latest_matchinfo_torrent is None:
+    if latest_matchinfo_torrent is None:
         return 0.0
-    matchinfo, keywords = torrent_db.latest_matchinfo_torrent
+    matchinfo, keywords = latest_matchinfo_torrent
 
     num_phrases, num_cols, num_rows = unpack_from('III', matchinfo)
     unpack_str = 'I' * (3 * num_cols * num_phrases)

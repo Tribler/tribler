@@ -77,6 +77,10 @@ class TestUpgrader(AbstractUpgrader):
         self.upgrader.update_status("12345")
         return test_deferred
 
+    def tearDown(self):
+        self.session.shutdown()
+        self.session = None
+
 
 class TestUpgraderDisabled(AbstractUpgrader):
 
@@ -93,3 +97,7 @@ class TestUpgraderDisabled(AbstractUpgrader):
         self.upgrader.check_should_upgrade_database = lambda: self.fail("This function should not be called")
 
         self.upgrader.run()
+
+    def tearDown(self):
+        self.session.shutdown()
+        self.session = None

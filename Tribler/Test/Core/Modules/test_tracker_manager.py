@@ -15,7 +15,7 @@ class TestTrackerManager(TriblerCoreTest):
         super(TestTrackerManager, self).setUp(annotate=annotate)
 
         self.setUpPreSession()
-        self.session = Session(self.config, ignore_singleton=True)
+        self.session = Session(self.config)
         self.session.start_database()
         self.tracker_manager = TrackerManager(self.session)
 
@@ -94,3 +94,7 @@ class TestTrackerManager(TriblerCoreTest):
         self.tracker_manager._tracker_dict["http://test1.com/announce"]['last_check'] = 0
         self.tracker_manager._tracker_dict["DHT"]['last_check'] = 1000
         self.assertEqual('http://test1.com/announce', self.tracker_manager.get_next_tracker_for_auto_check()[0])
+
+    def tearDown(self, annotate=True):
+        self.session.shutdown()
+        self.session = None

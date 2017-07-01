@@ -9,7 +9,7 @@ from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON
                                      NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_DELETE, NTFY_MARKET_ON_ASK,
                                      NTFY_UPDATE, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_TRANSACTION_COMPLETE,
                                      NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID_TIMEOUT,
-                                     NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT)
+                                     NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT, NTFY_TORRENTS)
 from Tribler.Core.version import version_id
 
 
@@ -131,7 +131,9 @@ class EventsEndpoint(resource.Resource):
         query = ' '.join(results['keywords'])
 
         for torrent in results['result_list']:
-            torrent_json = convert_search_torrent_to_json(torrent)
+            # Also pass the latest torrent in the database for the relevance score
+            latest_matchinfo_torrent = self.session.open_dbhandler(NTFY_TORRENTS).latest_matchinfo_torrent
+            torrent_json = convert_search_torrent_to_json(torrent, latest_matchinfo_torrent)
 
             if self.session.config.get_family_filter_enabled() and torrent_json['category'] == 'xxx':
                 continue

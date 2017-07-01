@@ -287,7 +287,7 @@ class TestDHTSession(TriblerCoreTest):
         config = TriblerConfig()
         config.set_state_dir(self.getStateDir())
 
-        self.session = Session(config, ignore_singleton=True)
+        self.session = Session(config)
 
         self.dht_session = FakeDHTSession(self.session, 'a' * 20, 10)
 
@@ -313,6 +313,7 @@ class TestDHTSession(TriblerCoreTest):
 
         self.session.lm.ltmgr = MockObject()
         self.session.lm.ltmgr.get_metainfo = get_metainfo
+        self.session.lm.ltmgr.shutdown = lambda: None
         return self.dht_session.connect_to_tracker().addCallback(verify_metainfo)
 
     @deferred(timeout=10)
@@ -331,6 +332,7 @@ class TestDHTSession(TriblerCoreTest):
 
         self.session.lm.ltmgr = MockObject()
         self.session.lm.ltmgr.get_metainfo = get_metainfo_timeout
+        self.session.lm.ltmgr.shutdown = lambda: None
         self.dht_session.connect_to_tracker().addErrback(on_timeout)
         return test_deferred
 
@@ -344,3 +346,7 @@ class TestDHTSession(TriblerCoreTest):
         self.assertEqual(self.dht_session.max_retries, DHT_TRACKER_MAX_RETRIES)
         self.assertEqual(self.dht_session.retry_interval, DHT_TRACKER_RECHECK_INTERVAL)
         self.assertGreater(self.dht_session.last_contact, 0)
+
+    def tearDown(self, annotate=True):
+        self.session.shutdown()
+        self.session = None

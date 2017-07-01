@@ -48,7 +48,7 @@ class AbstractDB(TriblerCoreTest):
         yield super(AbstractDB, self).setUp()
 
         self.setUpPreSession()
-        self.session = Session(self.config, ignore_singleton=True)
+        self.session = Session(self.config)
 
         tar = tarfile.open(os.path.join(TESTS_DATA_DIR, 'bak_new_tribler.sdb.tar.gz'), 'r|gz')
         tar.extractall(self.session_base_dir)
@@ -62,7 +62,6 @@ class AbstractDB(TriblerCoreTest):
     def tearDown(self):
         self.sqlitedb.close()
         self.sqlitedb = None
-        self.session.del_instance()
         self.session = None
 
         super(AbstractDB, self).tearDown(self)
