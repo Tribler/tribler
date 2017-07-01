@@ -1,5 +1,5 @@
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 from twisted.internet.task import deferLater
 from twisted.internet.threads import blockingCallFromThread
 
@@ -30,7 +30,7 @@ class TestPendingBytes(TrustChainTestCase):
 
 class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
     """
-    Class that tests the TrustChainCommunity on an integration level.
+    Class that tests the TriblerChainCommunity on an integration level.
     """
 
     @staticmethod
@@ -386,3 +386,192 @@ class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
         other_trust = blockingCallFromThread(reactor, other.community.get_trust, node.community.my_member)
         self.assertEqual(node_trust, 1)
         self.assertEqual(other_trust, 1)
+
+    def test_get_node_empty(self):
+        """
+        Check whether get_node returns the correct node if no past data is given.
+        """
+        node, = self.create_nodes(1)
+        self.assertEqual({"total_up": 3, "total_down": 5, "total_neighbors": 2},
+                         node.community.get_node("test", [], 3, 5, 2))
+
+    def test_get_node_maximum(self):
+        """
+        Check whether get_node returns the maximum of total_up and total_down.
+        """
+        node, = self.create_nodes(1)
+        nodes = {"test": {"total_up": 1, "total_down": 10, "total_neighbors": 2}}
+        self.assertEqual({"total_up": 3, "total_down": 10, "total_neighbors": 2},
+                         node.community.get_node("test", nodes, 3, 5, 1))
+
+    def test_get_node_request_total_traffic(self):
+        """
+        Check whether get_node requires a total_traffic method if no total_up and total_down is given.
+        """
+        node, = self.create_nodes(1)
+        node.community.persistence.total_traffic = lambda _: [5, 6, 2]
+        self.assertEqual({"total_up": 5, "total_down": 6, "total_neighbors": 2},
+                         node.community.get_node('74657374', []))
+
+    def test_format_edges(self):
+        """
+        Verify whether format_edges returns the correct nodes and edges
+        """
+        node, = self.create_nodes(1)
+        edge_list = [
+            # [pk_a, pk_b, a->b, b->a, a_up, a_down, a_neighbors]
+            ("aa", "bb", 10, 15, 10, 15, 1),
+            ("bb", "cc", 8, 3, 23, 13, 2)
+        ]
+        node.community.persistence.total_traffic = lambda pk: (0, 0, 1)
+
+        expected_nodes = {
+            "aa": {"total_up": 10, "total_down": 15, "total_neighbors": 1},
+            "bb": {"total_up": 23, "total_down": 13, "total_neighbors": 2},
+            "cc": {"total_up": 0, "total_down": 0, "total_neighbors": 1}
+        }
+
+        expected_edges = {
+            "aa": [("bb", 10, 15)],
+            "bb": [("aa", 15, 10), ("cc", 8, 3)],
+            "cc": [("bb", 3, 8)]
+        }
+
+        nodes, edges = node.community.format_edges(edge_list, "aa")
+        self.assertDictEqual(nodes, expected_nodes)
+        self.assertDictEqual(expected_edges, edges)
+
+    def test_build_graph_no_edges(self):
+        """
+        Verify whether get_graph returns a correct result if no edges are present.
+        """
+        node, = self.create_nodes(1)
+        nodes = {
+            "aa": {"total_up": 0, "total_down": 0, "total_neighbors": 0}
+        }
+        edges = {}
+
+        expected_nodes = [
+            {"public_key": "aa", "total_up": 0, "total_down": 0, "total_neighbors": 0, "score": 0.5}
+        ]
+        expected_edges = []
+
+        actual_nodes, actual_edges = node.community.build_graph((nodes, edges), "aa", 2, 0, [])
+        self.assertListEqual(expected_nodes, actual_nodes)
+        self.assertListEqual(expected_edges, actual_edges)
+
+    def test_build_graph(self):
+        """
+        Verify whether get_graph returns a correct list of nodes and edges
+        """
+        node, = self.create_nodes(1)
+        nodes = {
+            "aa": {"total_up": 0, "total_down": 0, "total_neighbors": 2},
+            "bb": {"total_up": 1, "total_down": 1, "total_neighbors": 5},
+            "cc": {"total_up": 2, "total_down": 2, "total_neighbors": 2},
+            "dd": {"total_up": 3, "total_down": 3, "total_neighbors": 1},
+            "ee": {"total_up": 4, "total_down": 4, "total_neighbors": 1},
+            "ff": {"total_up": 5, "total_down": 5, "total_neighbors": 1}
+        }
+        edges = {
+            "aa": [("bb", 0, 0), ("cc", 0, 0), ("ff", 0, 0)],
+            "bb": [("aa", 0, 0), ("cc", 0, 0), ("ee", 0, 0), ("ff", 0, 0), ("dd", 0, 0)],
+            "cc": [("aa", 0, 0), ("bb", 0, 0)],
+        }
+
+        expected_nodes = [
+            {"public_key": "aa", "total_up": 0, "total_down": 0, "total_neighbors": 2, "score": 0.5},
+            {"public_key": "bb", "total_up": 1, "total_down": 1, "total_neighbors": 5, "score": 0.5},
+            {"public_key": "cc", "total_up": 2, "total_down": 2, "total_neighbors": 2, "score": 0.5},
+        ]
+        expected_edges = [
+            {"from": "aa", "to": "bb", "amount": 0},
+            {"from": "bb", "to": "aa", "amount": 0},
+            {"from": "aa", "to": "cc", "amount": 0},
+            {"from": "cc", "to": "aa", "amount": 0},
+            {"from": "bb", "to": "cc", "amount": 0},
+            {"from": "cc", "to": "bb", "amount": 0},
+        ]
+
+        actual_nodes, actual_edges = node.community.build_graph((nodes, edges), "aa", 1, 1, ["cc"])
+        self.assertItemsEqual(expected_nodes, actual_nodes)
+        self.assertItemsEqual(expected_edges, actual_edges)
+
+    def test_get_graph_circular(self):
+        """
+        Verify whether get_graph returns a correct list of nodes and edges when of circular form
+        """
+        node, = self.create_nodes(1)
+        nodes = {
+            "aa": {"total_up": 0, "total_down": 0, "total_neighbors": 2},
+            "bb": {"total_up": 1, "total_down": 1, "total_neighbors": 5},
+            "cc": {"total_up": 2, "total_down": 2, "total_neighbors": 2},
+        }
+        edges = {
+            "aa": [("bb", 0, 0), ("cc", 0, 0)],
+            "bb": [("aa", 0, 0), ("cc", 0, 0)],
+            "cc": [("aa", 0, 0), ("bb", 0, 0)]
+        }
+
+        expected_nodes = [
+            {"public_key": "aa", "total_up": 0, "total_down": 0, "total_neighbors": 2, "score": 0.5},
+            {"public_key": "bb", "total_up": 1, "total_down": 1, "total_neighbors": 5, "score": 0.5},
+            {"public_key": "cc", "total_up": 2, "total_down": 2, "total_neighbors": 2, "score": 0.5},
+        ]
+        expected_edges = [
+            {"from": "aa", "to": "bb", "amount": 0},
+            {"from": "bb", "to": "aa", "amount": 0},
+            {"from": "aa", "to": "cc", "amount": 0},
+            {"from": "cc", "to": "aa", "amount": 0},
+            {"from": "bb", "to": "cc", "amount": 0},
+            {"from": "cc", "to": "bb", "amount": 0},
+        ]
+
+        def verify_result((actual_nodes, actual_edges)):
+            self.assertItemsEqual(expected_nodes, actual_nodes)
+            self.assertItemsEqual(expected_edges, actual_edges)
+
+        node, = self.create_nodes(1)
+        node.community.persistence.get_graph_edges = lambda _1, _2: Deferred()
+        node.community.format_edges = lambda _1, _2: (nodes, edges)
+
+        d = node.community.get_graph("aa", 1, 2, [])
+        d.addCallback(verify_result)
+        d.callback("test")
+        return d
+
+    def test_get_graph(self):
+        """
+        Verify whether the get_graph method adds the two callbacks correctly
+        """
+        test_result = "test_1"
+        test_public_key = "test_2"
+        test_neighbor_level = "test_3"
+        test_max_neighbors = "test_4"
+        test_mandatory_nodes = "test_5"
+        test_nodes_edges = ("test_6", "test_7")
+        test_final_result = "test_8"
+
+        def mock_format(result, public_key):
+            self.assertEqual(result, test_result)
+            self.assertEqual(public_key, test_public_key)
+            return test_nodes_edges
+
+        def mock_build((nodes, edges), public_key, neighbor_level, max_neighbors, mandatory_nodes):
+            self.assertEqual(nodes, test_nodes_edges[0])
+            self.assertEqual(edges, test_nodes_edges[1])
+            self.assertEqual(public_key, test_public_key)
+            self.assertEqual(neighbor_level, test_neighbor_level)
+            self.assertEqual(max_neighbors, test_max_neighbors)
+            self.assertEqual(mandatory_nodes, test_mandatory_nodes)
+            return test_final_result
+
+        node, = self.create_nodes(1)
+        node.community.persistence.get_graph_edges = lambda _1, _2: Deferred()
+        node.community.format_edges = mock_format
+        node.community.build_graph = mock_build
+
+        d = node.community.get_graph(test_public_key, test_neighbor_level, test_max_neighbors, test_mandatory_nodes)
+        d.addCallback(self.assertEqual, test_final_result)
+        d.callback(test_result)
+        return d

@@ -1,4 +1,4 @@
-import random
+from random import randint
 
 from hashlib import sha256
 
@@ -13,12 +13,17 @@ class TriblerTestBlock(TriblerChainBlock):
     Also used in other test files for TriblerChain.
     """
 
-    def __init__(self, previous=None):
+    def __init__(self, previous=None, transaction=None):
         super(TriblerTestBlock, self).__init__()
         crypto = ECCrypto()
         other = crypto.generate_key(u"curve25519").pub().key_to_bin()
 
-        transaction = {'up': random.randint(201, 220), 'down': random.randint(221, 240), 'total_up': 0, 'total_down': 0}
+        transaction = transaction or {'up': randint(201, 220), 'down': randint(221, 240)}
+
+        if 'total_up' not in self.transaction:
+            transaction['total_up'] = randint(241, 260)
+        if 'total_down' not in self.transaction:
+            transaction['total_down'] = randint(261, 280)
 
         if previous:
             self.key = previous.key
@@ -27,10 +32,8 @@ class TriblerTestBlock(TriblerChainBlock):
             TriblerChainBlock.__init__(self, (encode(transaction), previous.public_key, previous.sequence_number + 1,
                                               other, 0, previous.hash, 0, 0))
         else:
-            transaction['total_up'] = random.randint(241, 260)
-            transaction['total_down'] = random.randint(261, 280)
             self.key = crypto.generate_key(u"curve25519")
             TriblerChainBlock.__init__(self, (
-                encode(transaction), self.key.pub().key_to_bin(), random.randint(50, 100), other, 0,
-                sha256(str(random.randint(0, 100000))).digest(), 0, 0))
+                encode(transaction), self.key.pub().key_to_bin(), randint(50, 100), other, 0,
+                sha256(str(randint(0, 100000))).digest(), 0, 0))
         self.sign(self.key)

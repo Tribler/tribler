@@ -1,33 +1,31 @@
 import json
 
+from nose.tools import raises
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.community.triblerchain.community import TriblerChainCommunity
-from Tribler.community.trustchain.block import TrustChainBlock
-from Tribler.dispersy.community import Community
-from Tribler.dispersy.dispersy import Dispersy
-from Tribler.dispersy.endpoint import ManualEnpoint
-from Tribler.dispersy.member import DummyMember
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.Core.Modules.restapi.trustchain_endpoint import TrustChainNetworkEndpoint
+from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
+from Tribler.Test.Community.AbstractTestCommunity import AbstractTestCommunity
+from Tribler.Test.Community.Triblerchain.test_triblerchain_utilities import TriblerTestBlock
 from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TestBlock
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.twisted_thread import deferred
+from Tribler.community.triblerchain.community import TriblerChainCommunity
+from Tribler.community.trustchain.block import TrustChainBlock
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-class TestTrustchainStatsEndpoint(AbstractApiTest):
+class TestTrustchainStatsEndpoint(AbstractApiTest, AbstractTestCommunity):
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self, autoload_discovery=True):
         yield super(TestTrustchainStatsEndpoint, self).setUp(autoload_discovery=autoload_discovery)
 
-        self.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
-        self.dispersy._database.open()
-        master_member = DummyMember(self.dispersy, 1, "a" * 20)
-        self.member = self.dispersy.get_new_member(u"curve25519")
-
-        self.tc_community = TriblerChainCommunity(self.dispersy, master_member, self.member)
-        self.dispersy.get_communities = lambda: [self.tc_community]
+        self.tc_community = TriblerChainCommunity(self.dispersy, self.master_member, self.member)
+        self.dispersy._communities["a" * 20] = self.tc_community
+        self.tc_community.initialize()
         self.session.get_dispersy_instance = lambda: self.dispersy
 
     @deferred(timeout=10)
@@ -35,10 +33,9 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns error 404 if no trustchain community is loaded
         """
-        dummy_master_member = DummyMember(self.dispersy, 1, "b" * 20)
-        Community.__abstractmethods__ = frozenset()
-        self.dispersy.get_communities = lambda: [Community(self.dispersy, dummy_master_member, self.member),
-                                                 Community(self.dispersy, dummy_master_member, self.member)]
+        # Manually unload triblerchain community, as it won't be reachable by tearDown()
+        self.tc_community.unload_community()
+        self.dispersy._communities = {}
         return self.do_request('trustchain/statistics', expected_code=404)
 
     @deferred(timeout=10)
@@ -103,7 +100,9 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns error 404 if no trustchain community is loaded when requesting blocks
         """
-        self.dispersy.get_communities = lambda: []
+        # Manually unload triblerchain community, as it won't be reachable by tearDown()
+        self.tc_community.unload_community()
+        self.dispersy._communities = {}
         return self.do_request('trustchain/blocks/aaaaa', expected_code=404)
 
     @deferred(timeout=10)
@@ -115,7 +114,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             response_json = json.loads(response)
             self.assertEqual(len(response_json["blocks"]), 1)
 
-        test_block = TestBlock()
+        test_block = TriblerTestBlock()
         self.tc_community.persistence.add_block(test_block)
         self.should_check_equality = False
         return self.do_request('trustchain/blocks/%s?limit=10' % test_block.public_key.encode("HEX"),
@@ -166,3 +165,32 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('trustchain/blocks/%s' % TestBlock().public_key.encode("HEX"),
                                expected_code=200)
+
+    def test_get_tribler_chain_community_positive(self):
+        """
+        Should return the TriblerChainCommunity when enabled.
+        """
+        session = MockObject()
+        session.config = MockObject()
+        session.config.get_trustchain_enabled = lambda: True
+
+        dispersy = MockObject()
+        dispersy.get_communities = lambda: [self.tc_community]
+        session.get_dispersy_instance = lambda: dispersy
+
+        endpoint = TrustChainNetworkEndpoint(session)
+
+        result = endpoint.get_tribler_chain_community()
+
+        self.assertEqual(result, self.tc_community)
+
+    @raises(OperationNotEnabledByConfigurationException)
+    def test_get_tribler_chain_community_negative(self):
+        """
+        Should throw an exception as the TriblerChainCommunity is not enabled
+        """
+        session = MockObject()
+        session.config = MockObject()
+        session.config.get_trustchain_enabled = lambda: False
+
+        TrustChainNetworkEndpoint(session).get_tribler_chain_community()

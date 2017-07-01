@@ -1,0 +1,89 @@
+.help-svg {
+    width: 500px;
+    height: 100px;
+}
+
+.reputation-label {
+    fill: #FFFFFF;
+}
+
+.data-swatch {
+    fill: #E67300;
+}
+
+.data-label {
+    fill: #FFFFFF;
+}
+
+.connection-swatch {
+    stroke: #22FFD5;
+}
+
+.connection-label {
+    fill: #FFFFFF;
+}
+
+#help-overlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    cursor: pointer;
+    background: #202020;
+    opacity: .5;
+}
+
+#help-page {
+    font-family: sans-serif;
+    display: none;
+    position: absolute;
+    top: 65px;
+    bottom: 65px;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    background: #333333;
+    width: 600px;
+    z-index: 200;
+    overflow: auto;
+    border: 1px solid #FFFFFF;
+    color: #FFFFFF;
+}
+
+.show-help-page #help-page {
+    display: block;
+}
+
+.show-help-page #help-overlay {
+    display: block;
+}
+
+#help-page-content {
+    padding: 10px;
+}
+
+#help-page-title {
+    text-align: center;
+}
+
+::-webkit-scrollbar-track {
+    background-color: #202020;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    background-color: #333333;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #FFFFFF;
+}
+
+@media (max-width: 640px) {
+    #help-button {
+        display: none;
+    }
+}

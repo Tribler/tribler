@@ -2,6 +2,16 @@ import os
 
 from PyQt5.QtCore import QEvent
 from TriblerGUI.single_application import QtSingleApplication
+# QtWebEngineWidgets must be imported before a QCoreApplication instance is created, otherwise an import error occurs
+# see: https://stackoverflow.com/questions/41172301/pyqt-modules-cant-be-imported-after-qtwidgets-qapplicationsys-argv
+# TODO: Remove this if-statement when QtWebEngineWidgets is available for the GUI tests
+if os.environ.get("TEST_GUI") != "yes":
+    # TODO: Remove this try-except clause when QtWebEngineWidgets is a hard dependency
+    try:
+        from PyQt5.QtWebEngineWidgets import QWebEngineView
+    except ImportError:
+        # In the case QWebEngineView is not available, render the graph trust page.
+        pass
 
 
 class TriblerApplication(QtSingleApplication):

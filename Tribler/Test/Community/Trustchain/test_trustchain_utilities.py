@@ -4,10 +4,10 @@ File containing utilities used in testing the TrustChain community.
 import random
 from hashlib import sha256
 
+from Tribler.community.trustchain.block import TrustChainBlock
 from Tribler.Core.Utilities.encoding import encode
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.dispersy.crypto import ECCrypto
-from Tribler.community.trustchain.block import TrustChainBlock
 
 
 class TestBlock(TrustChainBlock):

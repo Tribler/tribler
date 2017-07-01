@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>855</width>
-    <height>655</height>
+    <height>709</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -304,42 +304,6 @@ color: black;
           </size>
          </property>
         </spacer>
-       </item>
-       <item>
-        <widget class="QToolButton" name="trust_button">
-         <property name="minimumSize">
-          <size>
-           <width>22</width>
-           <height>22</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>22</width>
-           <height>22</height>
-          </size>
-         </property>
-         <property name="cursor">
-          <cursorShape>PointingHandCursor</cursorShape>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">border: none;
-background: none;</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset>
-           <normaloff>../images/trust.png</normaloff>../images/trust.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>20</width>
-           <height>20</height>
-          </size>
-         </property>
-        </widget>
        </item>
        <item>
         <spacer name="horizontalSpacer_68">
@@ -921,6 +885,70 @@ color: white;
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="left_menu_button_trust_display">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>26</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="cursor">
+            <cursorShape>PointingHandCursor</cursorShape>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="text">
+            <string> Network Explorer</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>../images/network_explorer.png</normaloff>../images/network_explorer.png</iconset>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="left_menu_button_market">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>26</height>
+            </size>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="text">
+            <string> Marketplace</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>../images/marketplace.png</normaloff>../images/marketplace.png</iconset>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="checked">
+            <bool>false</bool>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QWidget" name="left_menu_playlist_container" native="true">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
@@ -961,7 +989,7 @@ color: white;
               <property name="maximumSize">
                <size>
                 <width>16777215</width>
-                <height>2</height>
+                <height>30</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -1015,7 +1043,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>4</number>
+         <number>13</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1329,7 +1357,7 @@ margin: 10px;</string>
           <item>
            <widget class="QStackedWidget" name="edit_channel_stacked_widget">
             <property name="currentIndex">
-             <number>1</number>
+             <number>2</number>
             </property>
             <widget class="QWidget" name="no_channel_intro_page">
              <layout class="QVBoxLayout" name="verticalLayout">
@@ -7736,8 +7764,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>131</width>
-                       <height>236</height>
+                       <width>128</width>
+                       <height>244</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -8683,7 +8711,150 @@ border-top: 1px solid #555;
           </item>
          </layout>
         </widget>
-        <widget class="TrustPage" name="trust_page">
+        <widget class="NetworkExplorerPage" name="network_explorer_page">
+         <property name="styleSheet">
+          <string notr="true">QLabel { color: #eee; }</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QWidget" name="trust_statistics_header" native="true">
+            <layout class="QHBoxLayout" name="horizontalLayout_13">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QLabel" name="subscribed_channels_header_label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>50</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>50</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">color: #eee;
+                                            background-color: transparent;
+                                            font-size: 20px;
+                                            font-weight: bold;
+                                            margin: 10px;</string>
+               </property>
+               <property name="text">
+                <string>Network Explorer</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_20">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer_16">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>6</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QWidget" name="trust_top_container" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_10">
+             <item>
+              <widget class="QWidget" name="network_widget" native="true">
+               <property name="styleSheet">
+                <string notr="true">border: none;</string>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_14">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="TrustPagePlot" name="trust_page_plot">
          <property name="styleSheet">
           <string notr="true">QLabel { color: #eee; }</string>
          </property>
@@ -8753,60 +8924,6 @@ border-top: 1px solid #555;
                </property>
               </widget>
              </item>
-             <item>
-              <spacer name="horizontalSpacer_69">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>10</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="EllipseButton" name="trade_button">
-               <property name="minimumSize">
-                <size>
-                 <width>50</width>
-                 <height>24</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>50</width>
-                 <height>24</height>
-                </size>
-               </property>
-               <property name="cursor">
-                <cursorShape>PointingHandCursor</cursorShape>
-               </property>
-               <property name="text">
-                <string>TRADE</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="horizontalSpacer_20">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>10</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
             </layout>
            </widget>
           </item>
@@ -8832,9 +8949,12 @@ border-top: 1px solid #555;
              <string notr="true">padding-left: 10px; padding-right: 10px;</string>
             </property>
             <property name="text">
-             <string>You can build trust by contributing to the Tribler network. This is done by exchanging data anonymously or by letting Tribler run idle.</string>
+             <string>You can build trust by contributing to the Tribler network. This is done by exchanging data anonymously or by letting Tribler run idle. The trust network is visualized on &lt;a href=LINK_PLACEHOLDER&gt;&lt;font color=white&gt;&lt;u&gt;this webpage&lt;/u&gt;&lt;/font&gt;&lt;/a&gt;.</string>
             </property>
             <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="openExternalLinks">
              <bool>true</bool>
             </property>
            </widget>
@@ -8869,7 +8989,7 @@ border-top: 1px solid #555;
              <item>
               <widget class="QWidget" name="trust_general_stats_box" native="true">
                <property name="styleSheet">
-                <string notr="true">QWidget { 
+                <string notr="true">QWidget {
 background-color: #282828; border: 1px solid #555;
 }
 QLabel {
@@ -8971,7 +9091,7 @@ border: none;
              <item>
               <widget class="QWidget" name="trust_interactions_stats_box" native="true">
                <property name="styleSheet">
-                <string notr="true">QWidget { 
+                <string notr="true">QWidget {
 background-color: #282828; border: 1px solid #555;
 }
 QLabel {
@@ -9231,48 +9351,7 @@ background-color: transparent;
                </property>
                <property name="sizeHint" stdset="0">
                 <size>
-                 <width>10</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="QToolButton" name="market_back_button">
-               <property name="minimumSize">
-                <size>
                  <width>16</width>
-                 <height>18</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16</width>
-                 <height>18</height>
-                </size>
-               </property>
-               <property name="cursor">
-                <cursorShape>PointingHandCursor</cursorShape>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">border: none;</string>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="horizontalSpacer_77">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Minimum</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>10</width>
                  <height>20</height>
                 </size>
                </property>
@@ -11314,9 +11393,15 @@ color: #eee;</string>
    <header>TriblerGUI.widgets.videoplayerinfobutton.h</header>
   </customwidget>
   <customwidget>
-   <class>TrustPage</class>
+   <class>NetworkExplorerPage</class>
    <extends>QWidget</extends>
-   <header>TriblerGUI.widgets.trustpage.h</header>
+   <header>TriblerGUI.widgets.networkexplorerpage.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>TrustPagePlot</class>
+   <extends>QWidget</extends>
+   <header>TriblerGUI.widgets.trustpageplot.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
@@ -11651,22 +11736,6 @@ color: #eee;</string>
    </hints>
   </connection>
   <connection>
-   <sender>trust_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_trust_button_click()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>757</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>left_menu_button_search</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
@@ -11683,14 +11752,14 @@ color: #eee;</string>
    </hints>
   </connection>
   <connection>
-   <sender>market_back_button</sender>
+   <sender>left_menu_button_trust_display</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
-   <slot>on_page_back_clicked()</slot>
+   <slot>clicked_menu_button_trust_network()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>218</x>
-     <y>75</y>
+     <x>96</x>
+     <y>360</y>
     </hint>
     <hint type="destinationlabel">
      <x>427</x>
@@ -11743,6 +11812,22 @@ color: #eee;</string>
     <hint type="destinationlabel">
      <x>427</x>
      <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_market</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_market()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>96</x>
+     <y>423</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>332</y>
     </hint>
    </hints>
   </connection>

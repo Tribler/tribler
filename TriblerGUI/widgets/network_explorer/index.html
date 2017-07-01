@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Network Explorer</title>
+    <script src="js/d3/d3.v4.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" type="text/css" href="help_page.css">
+</head>
+<body>
+
+<!-- GRAPH -->
+<svg id="graph" width="600" height="600" viewBox="0 0 600 600"></svg>
+<div id="nav-bar">
+    <button id="help-button" onclick="controller.toggleHelpPage()">Help</button>
+    <button id="back-to-you-button" onclick="controller.backToYou()">Back To You</button>
+</div>
+<div id="help-overlay" onclick="controller.toggleHelpPage()"></div>
+
+<div id="help-page">
+    <div id="help-page-content">
+        <h2 id="help-page-title">Visualization of the Tribler Network</h2>
+        <p>In the Tribler network, users exchange content anonymously by uploading and downloading. This only works if
+            everyone makes content available by uploading. Users that decide not to upload at least as much as they
+            download, are prevented from downloading until they start uploading again.</p>
+        <h3>Users as circles</h3>
+        <p>Users are depicted as circles. You are placed in the center. Each circle has:</p>
+        <ul>
+            <li>Its anonymous identity in the center</li>
+            <svg id="help-circle-text" class="help-svg"></svg>
+            <li>A color representing its reputation</li>
+            <svg id="help-circle-color" class="help-svg"></svg>
+            <li>A size representing the amount of exchanged content</li>
+            <svg id="help-circle-size" class="help-svg"></svg>
+        </ul>
+        <h3>Exchanged data as lines</h3>
+        <p>Exchanged data between users is depicted by lines. Each line has:</p>
+        <ul>
+            <li>A width representing the amount of content exchanged between these users</li>
+            <svg id="help-connection-transmission" class="help-svg"></svg>
+            <li>A marker indicating which user uploaded more</li>
+            <svg id="help-connection-balance" class="help-svg"></svg>
+        </ul>
+        <h3>Actions</h3>
+        <ul>
+            <li>Get details about a user or a connection by mousing over it</li>
+            <li>Explore other parts of the network by clicking on other users</li>
+            <li>Navigate back to yourself by clicking on ‘Back To You’</li>
+        </ul>
+    </div>
+</div>
+
+<!-- INSPECTOR -->
+<div id="inspector">
+    <h2 class="title">
+        <span class="title"></span>
+        <span class="subtitle"></span>
+    </h2>
+</div>
+
+<!-- JAVASCRIPTS -->
+<script src="js/style_config.js"></script>
+<script src="js/radial_view/radial_controller.js"></script>
+<script src="js/radial_view/radial_navigation.js"></script>
+<script src="js/radial_view/radial_stepping_animation.js"></script>
+<script src="js/radial_view/radial_link.js"></script>
+<script src="js/radial_view/radial_node.js"></script>
+<script src="js/radial_view/radial_inspector.js"></script>
+<script src="js/radial_view/radial_positioning.js"></script>
+<script src="js/radial_view/radial_view.js"></script>
+<script src="js/support/eventful_mixin.js"></script>
+<script src="js/request_data.js"></script>
+<script src="js/radial_view/radial_simulation.js"></script>
+<script src="js/radial.js"></script>
+<script src="js/utilities.js"></script>
+<script src="js/data_processor.js"></script>
+<script src="js/help_page.js"></script>
+<script>
+    // Initialize the controller and then start the animation
+    var controller = new RadialController().initialize().start();
+</script>
+</body>
+</html>

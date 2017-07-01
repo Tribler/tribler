@@ -43,8 +43,6 @@ class MarketPage(QWidget):
     def initialize_market_page(self):
 
         if not self.initialized:
-            self.window().market_back_button.setIcon(QIcon(get_image_path('page_back.png')))
-
             self.window().core_manager.events_manager.received_market_ask.connect(self.on_ask)
             self.window().core_manager.events_manager.received_market_bid.connect(self.on_bid)
             self.window().core_manager.events_manager.expired_market_ask.connect(self.on_ask_timeout)

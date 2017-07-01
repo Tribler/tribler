@@ -5,6 +5,7 @@ from twisted.internet.task import LoopingCall
 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
 from Tribler.community.triblerchain.block import TriblerChainBlock
 from Tribler.community.triblerchain.database import TriblerChainDB
+from Tribler.community.triblerchain.score import calculate_score
 from Tribler.community.trustchain.community import TrustChainCommunity
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -215,6 +216,154 @@ class TriblerChainCommunity(TrustChainCommunity):
             # We need a minimum of 1 trust to have a chance to be selected in the categorical distribution.
             return 1
 
+    def get_node(self, public_key, nodes, total_up=None, total_down=None, total_neighbors=None):
+        """
+        Get a node in an encoded format and with the maximum values given the current dictionary of nodes.
+
+        The format is described as follows:
+            { "public_key": public_key, "total_up": total_up, "total_down": total_down }
+        This function checks whether the given total up and download amounts are higher than the current recorded (if
+        any). Moreover, if the public key does not exist in the nodes list and no total_up or total_down is given, the
+        latest block from the database is retrieved.
+
+        :param public_key: the public key for which a node dictionary has to be created
+        :param nodes: the dictionary of currently recorded nodes
+        :param total_up: the total up amount
+        :param total_down: the total down amount
+        :return: a dictionary corresponding to the node in the correct format
+        """
+        if public_key in nodes:
+            return {"total_up": max(total_up, nodes[public_key]["total_up"]),
+                    "total_down": max(total_down, nodes[public_key]["total_down"]),
+                    "total_neighbors": max(total_neighbors, nodes[public_key]["total_neighbors"])}
+        else:
+            if total_up and total_down:
+                return {"total_up": total_up, "total_down": total_down,
+                        "total_neighbors": total_neighbors}
+            else:
+                total_traffic = self.persistence.total_traffic(public_key)
+                return {"total_up": total_traffic[0], "total_down": total_traffic[1],
+                        "total_neighbors": total_traffic[2]}
+
+    def format_edges(self, edge_list, public_key):
+        """
+        Get all the relevant edges from the local TrustChain database.
+        :param edge_list: intermediate result from the database
+        :param public_key: public key of the focus node
+        :return: a tuple with a dict of nodes and a dict with a list of edges per public key
+        """
+        nodes = {public_key: self.get_node(public_key, {})}
+        edges = {}
+
+        # Find all nodes and all edges in the result
+        for edge in edge_list:
+            from_pk = str(edge[0])
+            to_pk = str(edge[1])
+            amount_up = edge[2]
+            amount_down = edge[3]
+            nodes[from_pk] = self.get_node(from_pk, nodes, total_up=edge[4], total_down=edge[5],
+                                           total_neighbors=edge[6])
+            nodes[to_pk] = self.get_node(to_pk, nodes)
+            if from_pk not in edges:
+                edges[from_pk] = []
+            edges[from_pk].append((to_pk, amount_up, amount_down))
+            if to_pk not in edges:
+                edges[to_pk] = []
+            edges[to_pk].append((from_pk, amount_down, amount_up))
+
+        return nodes, edges
+
+    @staticmethod
+    def build_graph((nodes, edges), public_key, neighbor_level, max_neighbors, mandatory_nodes):
+        """
+        Create a graph representing the network.
+        :param public_key: public key of the focus node
+        :param neighbor_level: the radius within which the neighbors have to be returned
+        :param max_neighbors: the maximum amount of higher level neighbors one node may have
+        :param mandatory_nodes: list of nodes that have to be in the visualization if possible
+        :return: a tuple containing the list of nodes and list of edges respectively
+        """
+        return_nodes = []
+        return_edges = []
+
+        nodes_visited = set()
+        this_level = set()
+        this_level.add(public_key)
+        # If the focus is in the list, always add it to the view
+        next_level = set()
+
+        # Check if the list of edges is empty
+        if not edges:
+            return_nodes.append({"public_key": public_key, "total_up": nodes[public_key]["total_up"],
+                                 "total_down": nodes[public_key]["total_down"],
+                                 "total_neighbors": nodes[public_key]["total_neighbors"],
+                                 "score": calculate_score(nodes[public_key]["total_up"],
+                                                          nodes[public_key]["total_down"])})
+            return return_nodes, return_edges
+
+        # Limit the number of higher-level neighbors per node in the graph
+        for current_level in range(neighbor_level + 1):
+            for node in this_level:
+                return_nodes.append({"public_key": node, "total_up": nodes[node]["total_up"],
+                                     "total_down": nodes[node]["total_down"],
+                                     "total_neighbors": nodes[node]["total_neighbors"],
+                                     "score": calculate_score(nodes[node]["total_up"], nodes[node]["total_down"])})
+                nodes_visited.add(node)
+                num_edges = 0
+
+                for edge in edges[node]:
+                    # Free edge, opposite node in same level
+                    if edge[0] in this_level:
+                        TriblerChainCommunity.add_edges(edge, return_edges, node, next_level)
+
+                    # Edge to next level
+                    elif edge[0] not in nodes_visited and current_level != neighbor_level:
+                        # If the node is not a mandatory node, comply to max_neighbors
+                        if edge[0] not in mandatory_nodes:
+                            if num_edges >= max_neighbors:
+                                continue
+                            num_edges += 1
+                        TriblerChainCommunity.add_edges(edge, return_edges, node, next_level, True)
+
+                    # Else the node is in a lower level and thus the edge is not shown
+            this_level = next_level
+            next_level = set()
+
+        return return_nodes, return_edges
+
+    @staticmethod
+    def add_edges(edge, return_edges, node, next_level, add_next_level=False):
+        """
+        Add edges to return_edges when they are not existing yet.
+
+        :param edge: the edge which has to be added
+        :param return_edges: the current list of edges which are to be returned
+        :param node: the current focused node
+        :param next_level: the nodes which are in the next level
+        :param add_next_level: whether to add the destination node to next_level
+        """
+        if add_next_level:
+            next_level.add(edge[0])
+        new_edge = {"from": node, "to": edge[0], "amount": edge[1]}
+        if new_edge not in return_edges:
+            return_edges.append(new_edge)
+            return_edges.append({"from": edge[0], "to": node, "amount": edge[2]})
+
+    def get_graph(self, public_key, neighbor_level, max_neighbors, mandatory_nodes):
+        """
+        Return a dictionary with the neighboring nodes and edges of a certain focus node within a certain radius,
+        regarding the local TrustChain database, limited in the amount of higher level neighbors per node.
+
+        :param public_key: the public key of the focus node in raw format
+        :param neighbor_level: the radius within which the neighbors have to be returned
+        :param max_neighbors: the maximum amount of higher level neighbors one node may have
+        :param mandatory_nodes: list of nodes that have to be in the visualization if possible
+        :return: a deferred object with callbacks to format the data
+        """
+        d = self.persistence.get_graph_edges(public_key, neighbor_level)
+        d.addCallback(self.format_edges, public_key)
+        d.addCallback(self.build_graph, public_key, neighbor_level, max_neighbors, mandatory_nodes)
+        return d
 
 class TriblerChainCommunityCrawler(TriblerChainCommunity):
     """
