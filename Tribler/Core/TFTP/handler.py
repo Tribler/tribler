@@ -101,7 +101,7 @@ class TftpHandler(TaskManager):
 
         target_ip = unpack('!L', inet_aton(ip))[0]
         target_port = port
-        self_ip, self_port = self.session.lm.dispersy.wan_address
+        self_ip, self_port = self.session.download_manager.dispersy.wan_address
         self_ip = unpack('!L', inet_aton(self_ip))[0]
         if target_ip > self_ip:
             generate_session = lambda: randint(0, MAX_INT16) & 0xfff0
@@ -331,7 +331,7 @@ class TftpHandler(TaskManager):
         """ Loads a thumbnail into memory.
         :param thumb_hash: The thumbnail hash.
         """
-        file_data = self.session.lm.metadata_store.get(thumb_hash.encode('utf8'))
+        file_data = self.session.download_manager.metadata_store.get(thumb_hash.encode('utf8'))
         # check if file exists
         if not file_data:
             msg = u"Metadata not in store: %s" % thumb_hash
@@ -345,7 +345,7 @@ class TftpHandler(TaskManager):
         """
         infohash = (file_name[:-8]).encode('utf8')  # len('.torrent') = 8
 
-        file_data = self.session.lm.torrent_store.get(infohash)
+        file_data = self.session.download_manager.torrent_store.get(infohash)
         # check if file exists
         if not file_data:
             msg = u"Torrent not in store: %s" % infohash

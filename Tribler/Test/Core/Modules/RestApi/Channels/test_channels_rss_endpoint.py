@@ -18,7 +18,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         expected_json = {u'rssfeeds': [{u'url': u'http://test1.com/feed.xml'}, {u'url': u'http://test2.com/feed.xml'}]}
         channel_name = "my channel"
         self.create_fake_channel(channel_name, "this is a short description")
-        channel_obj = self.session.lm.channel_manager.get_channel(channel_name)
+        channel_obj = self.session.download_manager.channel_manager.get_channel(channel_name)
         for rss_item in expected_json[u'rssfeeds']:
             channel_obj.create_rss_feed(rss_item[u'url'])
 
@@ -30,7 +30,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         """
         Testing whether the API returns a 404 if no channel has been created when adding a rss feed
         """
-        self.session.lm.channel_manager = ChannelManager(self.session)
+        self.session.download_manager.channel_manager = ChannelManager(self.session)
         channel_cid = 'fakedispersyid'.encode('hex')
         expected_json = {"error": UNKNOWN_CHANNEL_RESPONSE_MSG}
         return self.do_request('channels/discovered/' + channel_cid +
@@ -44,7 +44,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         """
         expected_json = {"error": "this rss feed already exists"}
         my_channel_id = self.create_fake_channel("my channel", "this is a short description")
-        channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
+        channel_obj = self.session.download_manager.channel_manager.get_my_channel(my_channel_id)
         channel_obj.create_rss_feed("http://rssfeed.com/rss.xml")
 
         return self.do_request('channels/discovered/' + 'fakedispersyid'.encode('hex') +
@@ -58,7 +58,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         """
 
         def verify_rss_added(_):
-            channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
+            channel_obj = self.session.download_manager.channel_manager.get_my_channel(my_channel_id)
             self.assertEqual(channel_obj.get_rss_feed_url_list(), ["http://rssfeed.com/rss.xml"])
 
         expected_json = {"added": True}
@@ -73,7 +73,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         """
         Testing whether the API returns a 404 if no channel has been created when adding a rss feed
         """
-        self.session.lm.channel_manager = ChannelManager(self.session)
+        self.session.download_manager.channel_manager = ChannelManager(self.session)
         expected_json = {"error": UNKNOWN_CHANNEL_RESPONSE_MSG}
         return self.do_request('channels/discovered/' + 'fakedispersyid'.encode('hex') +
                                '/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml',
@@ -96,12 +96,12 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         Testing whether the API returns a 200 if a channel has been created and when removing a rss feed
         """
         def verify_rss_removed(_):
-            channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
+            channel_obj = self.session.download_manager.channel_manager.get_my_channel(my_channel_id)
             self.assertEqual(channel_obj.get_rss_feed_url_list(), [])
 
         expected_json = {"removed": True}
         my_channel_id = self.create_fake_channel("my channel", "this is a short description")
-        channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
+        channel_obj = self.session.download_manager.channel_manager.get_my_channel(my_channel_id)
         channel_obj.create_rss_feed("http://rssfeed.com/rss.xml")
 
         return self.do_request('channels/discovered/' + 'fakedispersyid'.encode('hex') +
@@ -113,7 +113,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         """
         Testing whether the API returns a 404 if no channel has been created when rechecking rss feeds
         """
-        self.session.lm.channel_manager = ChannelManager(self.session)
+        self.session.download_manager.channel_manager = ChannelManager(self.session)
         expected_json = {"error": UNKNOWN_CHANNEL_RESPONSE_MSG}
         return self.do_request('channels/discovered/%s/recheckfeeds' % 'fakedispersyid'.encode('hex'),
                                expected_code=404, expected_json=expected_json, request_type='POST')
@@ -125,7 +125,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         """
         expected_json = {"rechecked": True}
         my_channel_id = self.create_fake_channel("my channel", "this is a short description")
-        channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
+        channel_obj = self.session.download_manager.channel_manager.get_my_channel(my_channel_id)
         channel_obj._is_created = True
         channel_obj.create_rss_feed(os.path.join(TESTS_DATA_DIR, 'test_rss_empty.xml'))
 
@@ -150,7 +150,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         Testing whether the API returns error 404 if no channel object exists in the channel manager
         """
         self.create_fake_channel("my channel", "this is a short description")
-        self.session.lm.channel_manager._channel_list = []
+        self.session.download_manager.channel_manager._channel_list = []
 
         expected_json = {"error": UNKNOWN_CHANNEL_RESPONSE_MSG}
 

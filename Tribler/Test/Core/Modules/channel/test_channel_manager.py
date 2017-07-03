@@ -18,7 +18,7 @@ class TestChannelManager(TriblerCoreTest):
         class LmMock(object):
             channel_manager = ChannelManager(session)
 
-        session.lm = LmMock()
+        session.download_manager = LmMock()
 
         class MockCommunity(object):
             cid = ""
@@ -27,8 +27,8 @@ class TestChannelManager(TriblerCoreTest):
                 return "Channel name"
 
         channel_obj = ChannelObject(session, MockCommunity(), is_created=True)
-        session.lm.channel_manager._channel_list = [channel_obj]
+        session.download_manager.channel_manager._channel_list = [channel_obj]
 
         with self.assertRaises(DuplicateChannelNameError) as cm:
-            session.lm.channel_manager.create_channel("Channel name", "description", "open")
+            session.download_manager.channel_manager.create_channel("Channel name", "description", "open")
         self.assertEqual(cm.exception.message, u"Channel name already exists: Channel name")

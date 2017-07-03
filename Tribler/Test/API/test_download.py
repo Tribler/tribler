@@ -27,12 +27,12 @@ class TestDownload(TestAsServer):
     def setUpPreSession(self):
         super(TestDownload, self).setUpPreSession()
 
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_downloading_enabled(True)
         self.config.set_dispersy_enabled(False)
         self.config.set_libtorrent_max_conn_download(2)
 
     def on_download(self, download):
-        self._logger.debug("Download started: %s", download)
+        self._logger.debug("download started: %s", download)
         download.set_state_callback(self.downloader_state_callback)
 
     @deferred(timeout=60)

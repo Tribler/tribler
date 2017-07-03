@@ -42,8 +42,8 @@ class TestLoadUnloadTunnelCommunity(TestAsServer):
         """
         Testing whether the TunnelCommunity does not reload itself after unloading
         """
-        tunnel_community = self.session.lm.tunnel_community
-        dispersy = self.session.lm.dispersy
+        tunnel_community = self.session.download_manager.tunnel_community
+        dispersy = self.session.download_manager.dispersy
 
         some_candidate = Candidate(("1.2.3.4", 1234), False)
         some_packet = self.create_valid_packet(tunnel_community)
@@ -76,7 +76,7 @@ class TestLoadUnloadTunnelCommunity(TestAsServer):
         """
 
         # Load/unload this community so we have a classification
-        dispersy = self.session.lm.dispersy
+        dispersy = self.session.download_manager.dispersy
         master_member = DummyTunnelCommunity.get_master_members(dispersy)[0]
         keypair = self.session.trustchain_keypair
         dispersy_member = dispersy.get_member(private_key=keypair.key_to_bin())

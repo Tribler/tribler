@@ -31,20 +31,20 @@ class TestSession(TriblerCoreTest):
         config.set_torrent_store_enabled(True)
         session = Session(config, ignore_singleton=True)
         # Manually set the torrent store as we don't want to start the session.
-        session.lm.torrent_store = LevelDbStore(session.config.get_torrent_store_dir())
-        session.lm.torrent_store[hexlify("fakehash")] = "Something"
-        self.assertEqual("Something", session.lm.torrent_store[hexlify("fakehash")])
+        session.download_manager.torrent_store = LevelDbStore(session.config.get_torrent_store_dir())
+        session.download_manager.torrent_store[hexlify("fakehash")] = "Something"
+        self.assertEqual("Something", session.download_manager.torrent_store[hexlify("fakehash")])
         session.delete_collected_torrent("fakehash")
 
         raised_key_error = False
         # This structure is needed because if we add a @raises above the test, we cannot close the DB
         # resulting in a dirty reactor.
         try:
-            self.assertRaises(KeyError,session.lm.torrent_store[hexlify("fakehash")])
+            self.assertRaises(KeyError, session.download_manager.torrent_store[hexlify("fakehash")])
         except KeyError:
             raised_key_error = True
         finally:
-            session.lm.torrent_store.close()
+            session.download_manager.torrent_store.close()
 
         self.assertTrue(raised_key_error)
 
@@ -69,13 +69,13 @@ class TestSession(TriblerCoreTest):
         config = TriblerConfig()
         config.set_state_dir(self.getStateDir())
         session = Session(config, ignore_singleton=True)
-        session.lm = LmMock()
-        session.lm.api_manager = None
+        session.download_manager = LmMock()
+        session.download_manager.api_manager = None
 
         session.create_channel("name", "description", "open")
-        self.assertEqual(session.lm.channel_manager.invoked_name, "name")
-        self.assertEqual(session.lm.channel_manager.invoked_desc, "description")
-        self.assertEqual(session.lm.channel_manager.invoked_mode, "open")
+        self.assertEqual(session.download_manager.channel_manager.invoked_name, "name")
+        self.assertEqual(session.download_manager.channel_manager.invoked_desc, "description")
+        self.assertEqual(session.download_manager.channel_manager.invoked_mode, "open")
 
 
 class TestSessionAsServer(TestAsServer):
@@ -95,11 +95,11 @@ class TestSessionAsServer(TestAsServer):
         self.called = None
 
     def mock_endpoints(self):
-        self.session.lm.api_manager = MockObject()
-        self.session.lm.api_manager.stop = lambda: None
-        self.session.lm.api_manager.root_endpoint = MockObject()
-        self.session.lm.api_manager.root_endpoint.events_endpoint = MockObject()
-        self.session.lm.api_manager.root_endpoint.state_endpoint = MockObject()
+        self.session.download_manager.api_manager = MockObject()
+        self.session.download_manager.api_manager.stop = lambda: None
+        self.session.download_manager.api_manager.root_endpoint = MockObject()
+        self.session.download_manager.api_manager.root_endpoint.events_endpoint = MockObject()
+        self.session.download_manager.api_manager.root_endpoint.state_endpoint = MockObject()
 
     def test_unhandled_error_observer(self):
         """
@@ -113,8 +113,8 @@ class TestSessionAsServer(TestAsServer):
             self.assertEqual(exception_text, expected_text)
 
         on_tribler_exception.called = 0
-        self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception = on_tribler_exception
-        self.session.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception = on_tribler_exception
+        self.session.download_manager.api_manager.root_endpoint.events_endpoint.on_tribler_exception = on_tribler_exception
+        self.session.download_manager.api_manager.root_endpoint.state_endpoint.on_tribler_exception = on_tribler_exception
         expected_text = "abcd"
         self.session.unhandled_error_observer({'isError': True, 'log_legacy': True, 'log_text': 'abcd'})
         expected_text = "defg"
@@ -129,8 +129,8 @@ class TestSessionAsServer(TestAsServer):
         def on_tribler_exception(_):
             raise RuntimeError("This method cannot be called!")
 
-        self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception = on_tribler_exception
-        self.session.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception = on_tribler_exception
+        self.session.download_manager.api_manager.root_endpoint.events_endpoint.on_tribler_exception = on_tribler_exception
+        self.session.download_manager.api_manager.root_endpoint.state_endpoint.on_tribler_exception = on_tribler_exception
 
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 113]'})
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 51]'})
@@ -188,7 +188,7 @@ class TestSessionAsServer(TestAsServer):
         def verify_load_checkpoint_call():
             self.load_checkpoint_called = True
 
-        self.session.lm.load_checkpoint = verify_load_checkpoint_call
+        self.session.download_manager.load_checkpoint = verify_load_checkpoint_call
         self.session.load_checkpoint()
         self.assertTrue(self.load_checkpoint_called)
 
@@ -197,7 +197,7 @@ class TestSessionAsServer(TestAsServer):
         """
         When libtorrent is not enabled, an exception should be thrown when getting the libtorrent instance.
         """
-        self.session.config.get_libtorrent_enabled = lambda: False
+        self.session.config.get_downloading_enabled = lambda: False
         self.session.get_libtorrent_process()
 
     @raises(OperationNotEnabledByConfigurationException)
@@ -226,7 +226,7 @@ class TestSessionAsServer(TestAsServer):
 
         def verify_download_torrentfile_call(*args, **kwargs):
             self.called = True
-        self.session.lm.rtorrent_handler.download_torrent = verify_download_torrentfile_call
+        self.session.download_manager.rtorrent_handler.download_torrent = verify_download_torrentfile_call
 
         self.session.download_torrentfile()
         self.assertTrue(self.called)
@@ -239,7 +239,7 @@ class TestSessionAsServer(TestAsServer):
 
         def verify_download_torrentfile_call(*args, **kwargs):
             self.called = True
-        self.session.lm.rtorrent_handler.download_torrent = verify_download_torrentfile_call
+        self.session.download_manager.rtorrent_handler.download_torrent = verify_download_torrentfile_call
 
         self.session.download_torrentfile_from_peer("a")
         self.assertTrue(self.called)
@@ -252,7 +252,7 @@ class TestSessionAsServer(TestAsServer):
 
         def verify_download_torrentmessage_call(*args, **kwargs):
             self.called = True
-        self.session.lm.rtorrent_handler.download_torrentmessage = verify_download_torrentmessage_call
+        self.session.download_manager.rtorrent_handler.download_torrentmessage = verify_download_torrentmessage_call
 
         self.session.download_torrentmessage_from_peer("a", "b", "c")
         self.assertTrue(self.called)
@@ -343,5 +343,5 @@ class TestSessionAsServer(TestAsServer):
         """
         Test whether the get_thumbnail_data throws an exception if dispersy is not enabled.
         """
-        self.session.lm.metadata_store = None
+        self.session.download_manager.metadata_store = None
         self.session.get_thumbnail_data(None)

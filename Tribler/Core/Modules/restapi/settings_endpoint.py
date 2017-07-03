@@ -78,7 +78,7 @@ class SettingsEndpoint(resource.Resource):
 
         # Perform some actions when specific keys are set
         if section == "libtorrent" and (option == "max_download_rate" or option == "max_upload_rate"):
-            self.session.lm.ltmgr.update_max_rates_from_config()
+            self.session.download_manager.ltmgr.update_max_rates_from_config()
 
     def parse_settings_dict(self, settings_dict, depth=1, root_key=None):
         """

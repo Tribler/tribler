@@ -101,7 +101,7 @@ class TriblerServiceMaker(object):
             config.set_dispersy_port(options["dispersy"])
 
         if options["libtorrent"] != -1 and options["libtorrent"] > 0:
-            config.set_libtorrent_port(options["libtorrent"])
+            config.set_downloading_port(options["libtorrent"])
 
         self.session = Session(config)
         self.session.start().addErrback(lambda failure: self.shutdown_process(failure.getErrorMessage()))

@@ -58,7 +58,7 @@ class DownloadConfig(object):
 
     def set_destination_dir(self, path):
         """
-        Sets the directory where to save this Download. This should be an absolute path.
+        Sets the directory where to save this download. This should be an absolute path.
 
         :param path: a path of a directory.
         """
@@ -66,7 +66,7 @@ class DownloadConfig(object):
 
     def get_destination_dir(self):
         """
-        Gets the absolute path of the directory where to save this Download.
+        Gets the absolute path of the directory where to save this download.
 
         If the destination directory is not yet set, the path is created from
         a default and set in the config.

@@ -16,7 +16,7 @@ from collections import defaultdict
 from threading import Event, Thread, RLock
 from traceback import print_exc
 
-from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
+from Tribler.Core.download.Download import VODFile
 from Tribler.Core.simpledefs import DLMODE_VOD, DLMODE_NORMAL
 
 

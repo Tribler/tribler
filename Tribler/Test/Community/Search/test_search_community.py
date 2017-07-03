@@ -83,8 +83,8 @@ class TestSearchCommunity(AbstractTestCommunity):
         mock_session.get_collected_torrent = lambda _: torrent_data
         mock_session.open_dbhandler = lambda _: None
         mock_session.notifier = None
-        mock_session.lm = MockObject()
-        mock_session.lm.rtorrent_handler = None
+        mock_session.download_manager = MockObject()
+        mock_session.download_manager.rtorrent_handler = None
 
         self.search_community.initialize(mock_session)
         self.search_community._torrent_db = MockObject()

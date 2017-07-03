@@ -111,7 +111,7 @@ class ChannelRssParser(TaskManager):
 
         # save torrent
         tdef = TorrentDef.load_from_memory(torrent_data)
-        self.session.lm.rtorrent_handler.save_torrent(tdef)
+        self.session.download_manager.rtorrent_handler.save_torrent(tdef)
 
         # add metadata pending request
         info_hash = tdef.get_infohash()
@@ -146,7 +146,7 @@ class ChannelRssParser(TaskManager):
     def on_got_metadata(self, metadata_data, rss_item=None):
         # save metadata
         thumb_hash = hashlib.sha1(metadata_data).digest()
-        self.session.lm.rtorrent_handler.save_metadata(thumb_hash, metadata_data)
+        self.session.download_manager.rtorrent_handler.save_metadata(thumb_hash, metadata_data)
 
         # create modification message for channel
         modifications = {u'metadata-json': json.dumps({u'title': rss_item['title'][:64],

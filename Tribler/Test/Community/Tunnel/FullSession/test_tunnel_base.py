@@ -1,8 +1,9 @@
 import os
+
 from twisted.internet.defer import returnValue, inlineCallbacks
 from twisted.python.threadable import isInIOThread
 
-from Tribler.Core.DownloadConfig import DownloadConfig
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
@@ -53,7 +54,7 @@ class TestTunnelBase(TestAsServer):
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
         self.config.set_dispersy_enabled(True)
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_downloading_enabled(True)
         self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
     @blocking_call_on_reactor_thread
@@ -130,7 +131,7 @@ class TestTunnelBase(TestAsServer):
 
         self.setUpPreSession()
         config = self.config.copy()
-        config.set_libtorrent_enabled(True)
+        config.set_downloading_enabled(True)
         config.set_dispersy_enabled(True)
         config.set_state_dir(self.getStateDir(index))
         config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
@@ -201,5 +202,5 @@ class TestTunnelBase(TestAsServer):
         download_config.set_number_hops(hops)
         download_config.set_safe_seeding_enabled(False)
         download = self.session.start_download_from_tdef(self.seed_tdef, download_config)
-        download.add_peer(("127.0.0.1", self.session2.config.get_libtorrent_port()))
+        download.add_peer(("127.0.0.1", self.session2.config.get_downloading_port()))
         return download

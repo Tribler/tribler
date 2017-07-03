@@ -27,8 +27,8 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         fake_community = self.create_fake_allchannel_community()
         fake_community.disp_create_votecast = self.on_dispersy_create_votecast
         self.session.config.get_dispersy_enabled = lambda: True
-        self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
-        self.session.lm.dispersy.attach_community(fake_community)
+        self.session.download_manager.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
+        self.session.download_manager.dispersy.attach_community(fake_community)
         for i in xrange(0, 10):
             self.insert_channel_in_db('rand%d' % i, 42 + i, 'Test channel %d' % i, 'Test description %d' % i)
 
@@ -78,7 +78,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
 
         mod_sub_endpoint = ChannelsModifySubscriptionEndpoint(self.session, '')
         mod_sub_endpoint.vote_for_channel = mocked_vote
-        subscribed_endpoint = self.session.lm.api_manager.root_endpoint.children['channels'].children["subscribed"]
+        subscribed_endpoint = self.session.download_manager.api_manager.root_endpoint.children['channels'].children["subscribed"]
         subscribed_endpoint.getChild = lambda *_: mod_sub_endpoint
 
         self.should_check_equality = False

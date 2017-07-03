@@ -22,7 +22,7 @@ class SearchManager(TaskManager):
         self._current_keywords = None
 
     def initialize(self):
-        self.dispersy = self.session.lm.dispersy
+        self.dispersy = self.session.download_manager.dispersy
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
 
         self.session.add_observer(self._on_torrent_search_results,

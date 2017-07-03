@@ -261,38 +261,40 @@ class TriblerConfig(object):
     def get_dispersy_port(self):
         return self._obtain_port('dispersy', 'port')
 
-    # Libtorrent
+    # Downloading
 
-    def set_libtorrent_enabled(self, value):
-        self.config['libtorrent']['enabled'] = value
+    def set_downloading_enabled(self, value):
+        self.config['downloading']['enabled'] = value
 
-    def get_libtorrent_enabled(self):
-        return self.config['libtorrent']['enabled']
+    def get_downloading_enabled(self):
+        return self.config['downloading']['enabled']
 
-    def set_libtorrent_utp(self, value):
-        self.config['libtorrent']['utp'] = value
+    def set_downloading_utp_enabled(self, value):
+        self.config['downloading']['utp'] = value
 
-    def get_libtorrent_utp(self):
-        return self.config['libtorrent']['utp']
+    def get_downloading_utp_enabled(self):
+        return self.config['downloading']['utp']
 
-    def set_libtorrent_port(self, port):
-        self.config['libtorrent']['port'] = port
+    def set_downloading_port(self, port):
+        self.config['downloading']['port'] = port
 
-    def set_libtorrent_port_runtime(self, port):
-        self.selected_ports['~'.join(('libtorrent', 'port'))] = port
+    def set_downloading_port_runtime(self, port):
+        self.selected_ports['~'.join(('downloading', 'port'))] = port
 
-    def get_libtorrent_port(self):
-        return self._obtain_port('libtorrent', 'port')
+    def get_downloading_port(self):
+        return self._obtain_port('downloading', 'port')
 
     def set_anon_listen_port(self, listen_port=None):
-        self.config['libtorrent']['anon_listen_port'] = listen_port
+        self.config['downloading']['anon_listen_port'] = listen_port
 
     def get_anon_listen_port(self):
-        return self._obtain_port('libtorrent', 'anon_listen_port')
+        return self._obtain_port('downloading', 'anon_listen_port')
 
-    def set_libtorrent_proxy_settings(self, proxy_type, server_ip=None, server_port=None, auth=None):
+    def set_downloading_proxy_settings(self, proxy_type, server_ip=None, server_port=None, auth=None):
         """
-        Set which proxy LibTorrent should use (default = 0).
+        Set which proxy should be used while downloading.
+        
+        Default is no proxy.
 
         :param proxy_type: int (0 = no proxy server,
                                 1 = SOCKS4,
@@ -304,16 +306,16 @@ class TriblerConfig(object):
         :param server_port: an int
         :param auth: (username, password) tuple or None
         """
-        self.config['libtorrent']['proxy_type'] = proxy_type
-        self.config['libtorrent']['proxy_server_ip'] = server_ip if proxy_type else ''
-        self.config['libtorrent']['proxy_server_port'] = server_port if proxy_type else -1
-        self.config['libtorrent']['proxy_auth'] = auth if proxy_type in [3, 5] else None
+        self.config['downloading']['proxy_type'] = proxy_type
+        self.config['downloading']['proxy_server_ip'] = server_ip if proxy_type else ''
+        self.config['downloading']['proxy_server_port'] = server_port if proxy_type else -1
+        self.config['downloading']['proxy_auth'] = auth if proxy_type in [3, 5] else None
 
-    def get_libtorrent_proxy_settings(self):
-        return (self.config['libtorrent']['proxy_type'],
-                self.config['libtorrent']['proxy_server_ip'],
-                self.config['libtorrent']['proxy_server_port'],
-                self.config['libtorrent']['proxy_auth'])
+    def get_downloading_proxy_settings(self):
+        return (self.config['downloading']['proxy_type'],
+                self.config['downloading']['proxy_server_ip'],
+                self.config['downloading']['proxy_server_port'],
+                self.config['downloading']['proxy_auth'])
 
     def set_anon_proxy_settings(self, proxy_type, server=None, auth=None):
         """
@@ -326,15 +328,15 @@ class TriblerConfig(object):
         :param server: (host, [ports]) tuple or None
         :param auth: (username, password) tuple or None
         """
-        self.config['libtorrent']['anon_proxy_type'] = proxy_type
+        self.config['downloading']['anon_proxy_type'] = proxy_type
         if server and proxy_type:
-            self.config['libtorrent']['anon_proxy_server_ip'] = server[0]
+            self.config['downloading']['anon_proxy_server_ip'] = server[0]
             # Convert the integers into strings for the config
-            self.config['libtorrent']['anon_proxy_server_ports'] = [str(i) for i in server[1]]
+            self.config['downloading']['anon_proxy_server_ports'] = [str(i) for i in server[1]]
         else:
-            self.config['libtorrent']['anon_proxy_server_ip'] = None
-            self.config['libtorrent']['anon_proxy_server_ports'] = None
-        self.config['libtorrent']['anon_proxy_auth'] = auth if proxy_type in [3, 5] else None
+            self.config['downloading']['anon_proxy_server_ip'] = None
+            self.config['downloading']['anon_proxy_server_ports'] = None
+        self.config['downloading']['anon_proxy_auth'] = auth if proxy_type in [3, 5] else None
 
     def get_anon_proxy_settings(self):
         """
@@ -342,61 +344,61 @@ class TriblerConfig(object):
 
         :return: a 4-tuple with the proxytype in int, (ip as string, list of ports in int), auth
         """
-        server_ports = self.config['libtorrent']['anon_proxy_server_ports']
-        return (self.config['libtorrent']['anon_proxy_type'],
-                (self.config['libtorrent']['anon_proxy_server_ip'],
+        server_ports = self.config['downloading']['anon_proxy_server_ports']
+        return (self.config['downloading']['anon_proxy_type'],
+                (self.config['downloading']['anon_proxy_server_ip'],
                  # Convert the strings from the config into ints
                  [int(s) for s in server_ports] if server_ports else None),
-                self.config['libtorrent']['anon_proxy_auth'])
+                self.config['downloading']['anon_proxy_auth'])
 
-    def set_libtorrent_max_conn_download(self, value):
+    def set_downloading_max_conn_download(self, value):
         """
         Set the maximum amount of connections for each download.
 
         By default, this is -1, unlimited.
         :param value: int.
         """
-        self.config['libtorrent']['max_connections_download'] = value
+        self.config['downloading']['max_connections_download'] = value
 
-    def get_libtorrent_max_conn_download(self):
+    def get_downloading_max_connections_per_download(self):
         """ Returns the maximum amount of connections per download
         :return: int.
         """
-        return self.config['libtorrent']['max_connections_download']
+        return self.config['downloading']['max_connections_download']
 
-    def set_libtorrent_max_upload_rate(self, value):
+    def set_downloading_max_upload_rate(self, value):
         """
         Sets the maximum upload rate (kB / s).
 
         :param value: the new maximum upload rate in kB / s
         :return:
         """
-        self.config['libtorrent']['max_upload_rate'] = value
+        self.config['downloading']['max_upload_rate'] = value
 
-    def get_libtorrent_max_upload_rate(self):
+    def get_downloading_max_upload_rate(self):
         """
         Gets the maximum upload rate (kB / s).
 
         :return: the maximum upload rate in kB / s
         """
-        return self.config['libtorrent'].as_int('max_upload_rate')
+        return self.config['downloading'].as_int('max_upload_rate')
 
-    def set_libtorrent_max_download_rate(self, value):
+    def set_downloading_max_download_rate(self, value):
         """
         Sets the maximum download rate (kB / s).
 
         :param value: the new maximum download rate in kB / s
         :return:
         """
-        self.config['libtorrent']['max_download_rate'] = value
+        self.config['downloading']['max_download_rate'] = value
 
-    def get_libtorrent_max_download_rate(self):
+    def get_downloading_max_download_rate(self):
         """
         Gets the maximum download rate (kB / s).
 
         :return: the maximum download rate in kB / s
         """
-        return self.config['libtorrent'].as_int('max_download_rate')
+        return self.config['downloading'].as_int('max_download_rate')
 
     # Mainline DHT
 

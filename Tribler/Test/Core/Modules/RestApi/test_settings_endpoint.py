@@ -9,7 +9,7 @@ class TestSettingsEndpoint(AbstractApiTest):
 
     def setUpPreSession(self):
         super(TestSettingsEndpoint, self).setUpPreSession()
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_downloading_enabled(True)
 
     def verify_settings(self, settings):
         """

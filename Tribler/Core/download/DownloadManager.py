@@ -1,18 +1,16 @@
 """
-LaunchManyCore
-
-Author(s): Arno Bakker, Niels Zeilemaker
+Manages everything related to non-tunnel downloading.
 """
 import logging
 import os
 import sys
 import time as timemod
 from binascii import hexlify, unhexlify
-from configobj import ConfigObj
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
+from configobj import ConfigObj
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList
 from twisted.internet.task import LoopingCall
@@ -20,19 +18,18 @@ from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.DownloadConfig import DownloadConfig
 from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Modules.watch_folder import WatchFolder
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
-
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Video.VideoServer import VideoServer
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,
                                      NTFY_FINISHED, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
-                                     DLSTATUS_SEEDING, NTFY_TORRENT, NTFY_MARKET_IOM_INPUT_REQUIRED)
+                                     DLSTATUS_SEEDING, NTFY_TORRENT)
 from Tribler.community.market.wallet.btc_wallet import BitcoinWallet
 from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
@@ -42,11 +39,13 @@ from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
 
 
-class TriblerLaunchMany(TaskManager):
-
+class DownloadManager(TaskManager):
+    """
+    The DownloadSessionHandle manages everything
+    """
     def __init__(self):
         """ Called only once (unless we have multiple Sessions) by MainThread """
-        super(TriblerLaunchMany, self).__init__()
+        super(DownloadManager, self).__init__()
 
         self.initComplete = False
         self.registered = False
@@ -335,9 +334,9 @@ class TriblerLaunchMany(TaskManager):
                                                  self.session.config.get_state_dir())
             self.upnp_ports.append((self.session.config.get_mainline_dht_port(), 'UDP'))
 
-        if self.session.config.get_libtorrent_enabled():
-            from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-            self.ltmgr = LibtorrentMgr(self.session)
+        if self.session.config.get_downloading_enabled():
+            from Tribler.Core.download.DownloadSessionHandle import DownloadSessionHandle
+            self.ltmgr = DownloadSessionHandle(self.session)
             self.ltmgr.initialize()
             for port, protocol in self.upnp_ports:
                 self.ltmgr.add_upnp_mapping(port, protocol)
@@ -390,8 +389,8 @@ class TriblerLaunchMany(TaskManager):
             if infohash in self.downloads:
                 raise DuplicateDownloadException("This download already exists.")
 
-            from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
-            download = LibtorrentDownloadImpl(self.session, tdef)
+            from Tribler.Core.download.Download import Download
+            download = Download(self.session, tdef)
 
             if pstate is None:  # not already resuming
                 pstate = self.load_download_pstate_noexc(infohash)

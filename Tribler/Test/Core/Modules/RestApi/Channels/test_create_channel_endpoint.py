@@ -13,7 +13,7 @@ class TestCreateChannelEndpoint(AbstractTestChannelsEndpoint):
         """
 
         def verify_channel_created(body):
-            channel_obj = self.session.lm.channel_manager._channel_list[0]
+            channel_obj = self.session.download_manager.channel_manager._channel_list[0]
             self.assertEqual(channel_obj.name, post_data["name"])
             self.assertEqual(channel_obj.description, post_data["description"])
             self.assertEqual(channel_obj.mode, post_data["mode"])
@@ -36,7 +36,7 @@ class TestCreateChannelEndpoint(AbstractTestChannelsEndpoint):
          """
 
         def verify_channel_created(body):
-            channel_obj = self.session.lm.channel_manager._channel_list[0]
+            channel_obj = self.session.download_manager.channel_manager._channel_list[0]
             self.assertEqual(channel_obj.name, post_data["name"])
             self.assertEqual(channel_obj.description, post_data["description"])
             self.assertEqual(channel_obj.mode, u'closed')
@@ -97,7 +97,7 @@ class TestCreateChannelEndpoint(AbstractTestChannelsEndpoint):
         Testing whether the API returns the right JSON data if description parameter is not passed
         """
         def verify_channel_created(body):
-            channel_obj = self.session.lm.channel_manager._channel_list[0]
+            channel_obj = self.session.download_manager.channel_manager._channel_list[0]
             self.assertEqual(channel_obj.name, post_data["name"])
             self.assertEqual(channel_obj.description, u'')
             self.assertEqual(channel_obj.mode, post_data["mode"])

@@ -164,8 +164,8 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
 
     def setUp(self, autoload_discovery=True):
         super(TestModifyChannelTorrentEndpoint, self).setUp(autoload_discovery)
-        self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.shutdown = lambda: True
+        self.session.download_manager.ltmgr = MockObject()
+        self.session.download_manager.ltmgr.shutdown = lambda: True
 
     @deferred(timeout=10)
     def test_add_torrent_from_url_to_channel_with_description(self):
@@ -205,7 +205,7 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
             meta_info = TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo()
             callback(meta_info)
 
-        self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
+        self.session.download_manager.ltmgr.get_metainfo = fake_get_metainfo
 
         def verify_method_invocation(channel_id, torrent_def, extra_info=None, forward=True):
             self.assertEqual(my_channel_id, channel_id)
@@ -238,7 +238,7 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         def fake_get_metainfo(_, callback, timeout=10, timeout_callback=None, notify=True):
             raise ValueError(u"Test error")
 
-        self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
+        self.session.download_manager.ltmgr.get_metainfo = fake_get_metainfo
 
         def verify_error_message(body):
             error_response = json.loads(body)

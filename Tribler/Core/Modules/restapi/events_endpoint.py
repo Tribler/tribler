@@ -117,7 +117,7 @@ class EventsEndpoint(resource.Resource):
             channel_json = convert_db_channel_to_json(channel, include_rel_score=True)
 
             if self.session.config.get_family_filter_enabled() and \
-                    self.session.lm.category.xxx_filter.isXXX(channel_json['name']):
+                    self.session.download_manager.category.xxx_filter.isXXX(channel_json['name']):
                 continue
 
             if channel_json['dispersy_cid'] not in self.channel_cids_sent:
@@ -216,6 +216,6 @@ class EventsEndpoint(resource.Resource):
         request.notifyFinish().addCallbacks(on_request_finished, on_request_finished)
 
         request.write(json.dumps({"type": "events_start", "event": {
-            "tribler_started": self.session.lm.initComplete, "version": version_id}}) + '\n')
+            "tribler_started": self.session.download_manager.initComplete, "version": version_id}}) + '\n')
 
         return server.NOT_DONE_YET
