@@ -31,7 +31,7 @@ class TestSeeding(TestAsServer):
 
     def setUpPreSession(self):
         super(TestSeeding, self).setUpPreSession()
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_downloading_enabled(True)
 
     def generate_torrent(self):
         self.tdef = TorrentDef()
@@ -46,7 +46,7 @@ class TestSeeding(TestAsServer):
         download = self.session.start_download_from_tdef(self.tdef, download_config)
         download.set_state_callback(self.downloader_state_callback)
 
-        download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
+        download.add_peer(("127.0.0.1", self.seeder_session.config.get_downloading_port()))
 
     @deferred(timeout=60)
     def test_seeding(self):

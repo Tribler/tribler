@@ -253,9 +253,9 @@ class TriblerWindow(QMainWindow):
         self.tray_icon.show()
 
     def on_torrent_finished(self, torrent_info):
-        if self.tray_icon:
-            self.window().tray_icon.showMessage("Download finished",
-                                                "Download of %s has finished." % torrent_info["name"])
+        if QSystemTrayIcon.isSystemTrayAvailable():
+            self.window().tray_icon.showMessage("download finished",
+                                                "download of %s has finished." % torrent_info["name"])
 
     def show_loading_screen(self):
         self.top_menu_button.setHidden(True)

@@ -1,7 +1,8 @@
 import os
+
 from nose.tools import raises
 
-from Tribler.Core.DownloadConfig import DownloadConfig
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.simpledefs import DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest
 

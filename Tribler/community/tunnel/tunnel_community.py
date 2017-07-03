@@ -323,7 +323,7 @@ class TunnelCommunity(Community):
 
         if self.tribler_session:
             self.notifier = self.tribler_session.notifier
-            self.tribler_session.lm.tunnel_community = self
+            self.tribler_session.download_manager.tunnel_community = self
 
     def self_is_connectable(self):
         return self._dispersy._connection_type == u"public"
@@ -625,8 +625,8 @@ class TunnelCommunity(Community):
             circuit.destroy()
 
             affected_peers = self.socks_server.circuit_dead(circuit)
-            ltmgr = self.tribler_session.lm.ltmgr \
-                if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled() else None
+            ltmgr = self.tribler_session.download_manager.ltmgr \
+                if self.tribler_session and self.tribler_session.config.get_downloading_enabled() else None
             if ltmgr:
                 def update_torrents(handle, download):
                     peers = affected_peers.intersection(handle.get_peer_info())

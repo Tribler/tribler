@@ -46,10 +46,10 @@ class AbstractTestChannelsEndpoint(AbstractApiTest, BaseTestChannel):
     def create_fake_channel(self, name, description, mode=u'closed'):
         # Use a fake ChannelCommunity object (we don't actually want to create a Dispersy community)
         my_channel_id = self.create_my_channel(name, description)
-        self.session.lm.channel_manager = ChannelManager(self.session)
+        self.session.download_manager.channel_manager = ChannelManager(self.session)
 
         channel_obj = ChannelObject(self.session, ChannelCommunityMock(my_channel_id, name, description, mode))
-        self.session.lm.channel_manager._channel_list.append(channel_obj)
+        self.session.download_manager.channel_manager._channel_list.append(channel_obj)
         return my_channel_id
 
     def create_fake_channel_with_existing_name(self, name, description, mode=u'closed'):

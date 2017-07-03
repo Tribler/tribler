@@ -140,14 +140,14 @@ class RemoteTorrentHandler(TaskManager):
         infohash = tdef.get_infohash()
         infohash_str = hexlify(infohash)
 
-        if self.session.lm.torrent_store is None:
+        if self.session.download_manager.torrent_store is None:
             self._logger.error("Torrent store is not loaded")
             return
 
         # TODO(emilon): could we check the database instead of the store?
         # Checking if a key is present fetches the whole torrent from disk if its
         # not on the writeback cache.
-        if infohash_str not in self.session.lm.torrent_store:
+        if infohash_str not in self.session.download_manager.torrent_store:
             # save torrent to file
             try:
                 bdata = tdef.encode()
@@ -156,7 +156,7 @@ class RemoteTorrentHandler(TaskManager):
                 self._logger.error(u"failed to encode torrent %s: %s", infohash_str, e)
                 return
             try:
-                self.session.lm.torrent_store[infohash_str] = bdata
+                self.session.download_manager.torrent_store[infohash_str] = bdata
             except Exception as e:
                 self._logger.error(u"failed to store torrent data for %s, exception was: %s", infohash_str, e)
 
@@ -190,11 +190,11 @@ class RemoteTorrentHandler(TaskManager):
 
     def has_metadata(self, thumb_hash):
         thumb_hash_str = hexlify(thumb_hash)
-        return thumb_hash_str in self.session.lm.metadata_store
+        return thumb_hash_str in self.session.download_manager.metadata_store
 
     def get_metadata(self, thumb_hash):
         thumb_hash_str = hexlify(thumb_hash)
-        return self.session.lm.metadata_store[thumb_hash_str]
+        return self.session.download_manager.metadata_store[thumb_hash_str]
 
     @call_on_reactor_thread
     def download_metadata(self, candidate, thumb_hash, usercallback=None, timeout=None):
@@ -212,8 +212,8 @@ class RemoteTorrentHandler(TaskManager):
     def save_metadata(self, thumb_hash, data):
         # save data to a temporary tarball and extract it to the torrent collecting directory
         thumb_hash_str = hexlify(thumb_hash)
-        if thumb_hash_str not in self.session.lm.metadata_store:
-            self.session.lm.metadata_store[thumb_hash_str] = data
+        if thumb_hash_str not in self.session.download_manager.metadata_store:
+            self.session.download_manager.metadata_store[thumb_hash_str] = data
 
         # notify about the new metadata
         if thumb_hash in self.metadata_callbacks:
@@ -386,7 +386,7 @@ class TorrentMessageRequester(Requester):
     def _do_request(self):
         # find search community
         if not self._search_community:
-            for community in self._session.lm.dispersy.get_communities():
+            for community in self._session.download_manager.dispersy.get_communities():
                 from Tribler.community.search.community import SearchCommunity
                 if isinstance(community, SearchCommunity):
                     self._search_community = community
@@ -457,7 +457,7 @@ class MagnetRequester(Requester):
             self._logger.debug(u"requesting %s priority %s through magnet link %s",
                                infohash_str, self._priority, magnetlink)
 
-            self._session.lm.ltmgr.get_metainfo(magnetlink, self._success_callback,
+            self._session.download_manager.ltmgr.get_metainfo(magnetlink, self._success_callback,
                                                 timeout=self.TIMEOUT, timeout_callback=self._failure_callback)
             self._running_requests.append(infohash)
 
@@ -566,9 +566,9 @@ class TftpRequester(Requester):
         self._logger.debug(u"start TFTP download for %s from %s:%s", file_name, ip, port)
 
         # do not download if TFTP has been shutdown
-        if self._session.lm.tftp_handler is None:
+        if self._session.download_manager.tftp_handler is None:
             return
-        self._session.lm.tftp_handler.download_file(file_name, ip, port, extra_info=extra_info,
+        self._session.download_manager.tftp_handler.download_file(file_name, ip, port, extra_info=extra_info,
                                                     success_callback=self._on_download_successful,
                                                     failure_callback=self._on_download_failed)
         self._active_request_list.append(key)

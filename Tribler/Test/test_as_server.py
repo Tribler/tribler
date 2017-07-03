@@ -7,8 +7,6 @@ Author(s): Arno Bakker, Jie Yang, Niels Zeilemaker
 """
 import functools
 import inspect
-import keyring
-from keyrings.alt.file import PlaintextKeyring
 import logging
 import os
 import re
@@ -18,7 +16,9 @@ import unittest
 from tempfile import mkdtemp
 from threading import enumerate as enumerate_threads
 
+import keyring
 from configobj import ConfigObj
+from keyrings.alt.file import PlaintextKeyring
 from twisted.internet import interfaces
 from twisted.internet.base import BasePort
 from twisted.internet.defer import maybeDeferred, inlineCallbacks, Deferred, succeed
@@ -29,7 +29,7 @@ from twisted.web.server import Site
 from twisted.web.static import File
 
 from Tribler.Core.Config.tribler_config import TriblerConfig, CONFIG_SPEC_PATH
-from Tribler.Core.DownloadConfig import DownloadConfig
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.instrumentation import WatchDog
@@ -272,9 +272,9 @@ class TestAsServer(AbstractServer):
         self.tribler_started_deferred = self.session.start()
         yield self.tribler_started_deferred
 
-        self.assertTrue(self.session.lm.initComplete)
+        self.assertTrue(self.session.download_manager.initComplete)
 
-        self.hisport = self.session.config.get_libtorrent_port()
+        self.hisport = self.session.config.get_downloading_port()
 
         self.annotate(self._testMethodName, start=True)
 
@@ -290,7 +290,7 @@ class TestAsServer(AbstractServer):
         self.config.set_torrent_search_enabled(False)
         self.config.set_channel_search_enabled(False)
         self.config.set_torrent_collecting_enabled(False)
-        self.config.set_libtorrent_enabled(False)
+        self.config.set_downloading_enabled(False)
         self.config.set_video_server_enabled(False)
         self.config.set_metadata_enabled(False)
         self.config.set_http_api_enabled(False)
@@ -346,7 +346,7 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_channel_search_enabled(False)
         self.seed_config.set_http_api_enabled(False)
         self.seed_config.set_torrent_collecting_enabled(False)
-        self.seed_config.set_libtorrent_enabled(True)
+        self.seed_config.set_downloading_enabled(True)
         self.seed_config.set_video_server_enabled(False)
         self.seed_config.set_metadata_enabled(False)
         self.seed_config.set_tunnel_community_enabled(False)

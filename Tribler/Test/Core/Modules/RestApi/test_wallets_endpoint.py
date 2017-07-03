@@ -52,7 +52,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         """
         Test creating a BTC wallet
         """
-        self.session.lm.market_community.wallets['BTC'].create_wallet = lambda password='': succeed(None)
+        self.session.download_manager.market_community.wallets['BTC'].create_wallet = lambda password='': succeed(None)
         self.should_check_equality = False
         return self.do_request('wallets/BTC', expected_code=200, request_type='PUT', post_data={'password': 'a'})
 
@@ -61,7 +61,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         """
         Testing whether we can create a wallet
         """
-        self.session.lm.market_community.wallets['DUM1'].created = False
+        self.session.download_manager.market_community.wallets['DUM1'].created = False
         self.should_check_equality = False
         return self.do_request('wallets/DUM1', expected_code=200, request_type='PUT')
 
@@ -111,7 +111,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         """
         Test transferring assets when providing wrong parameters
         """
-        self.session.lm.market_community.wallets['BTC'].created = True
+        self.session.download_manager.market_community.wallets['BTC'].created = True
         self.should_check_equality = False
         return self.do_request('wallets/BTC/transfer', expected_code=400, request_type='POST')
 
@@ -120,8 +120,8 @@ class TestWalletsEndpoint(AbstractApiTest):
         """
         Test whether we receive the right response when we try a transfer that errors
         """
-        self.session.lm.market_community.wallets['BTC'].transfer = lambda *_: fail(Failure(RuntimeError("error")))
-        self.session.lm.market_community.wallets['BTC'].created = True
+        self.session.download_manager.market_community.wallets['BTC'].transfer = lambda *_: fail(Failure(RuntimeError("error")))
+        self.session.download_manager.market_community.wallets['BTC'].created = True
         self.should_check_equality = False
         post_data = {'amount': 3, 'destination': 'abc'}
         return self.do_request('wallets/BTC/transfer', expected_code=500, request_type='POST', post_data=post_data)
@@ -131,8 +131,8 @@ class TestWalletsEndpoint(AbstractApiTest):
         """
         Test transferring assets
         """
-        self.session.lm.market_community.wallets['BTC'].created = True
-        self.session.lm.market_community.wallets['BTC'].transfer = lambda *_: succeed('abcd')
+        self.session.download_manager.market_community.wallets['BTC'].created = True
+        self.session.download_manager.market_community.wallets['BTC'].transfer = lambda *_: succeed('abcd')
         self.should_check_equality = False
         post_data = {'amount': 3, 'destination': 'abc'}
         return self.do_request('wallets/BTC/transfer', expected_code=200, request_type='POST', post_data=post_data)

@@ -1,12 +1,13 @@
 import os
+
 from configobj import ConfigObj
 from nose.tools import raises
 
 from twisted.internet.defer import Deferred
 
 from Tribler.Core import NoDispersyRLock
-from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
-from Tribler.Core.DownloadConfig import DownloadConfig
+from Tribler.Core.download.DownloadConfig import DownloadConfig
+from Tribler.Core.download.DownloadManager import DownloadManager
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR
@@ -15,8 +16,8 @@ from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
 from Tribler.community.allchannel.community import AllChannelCommunity
-from Tribler.community.trustchain.community import TrustChainCommunity
 from Tribler.community.search.community import SearchCommunity
+from Tribler.community.trustchain.community import TrustChainCommunity
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.dispersy.discovery.community import DiscoveryCommunity
 
@@ -29,7 +30,7 @@ class TestLaunchManyCore(TriblerCoreTest):
 
     def setUp(self, annotate=True):
         TriblerCoreTest.setUp(self, annotate=annotate)
-        self.lm = TriblerLaunchMany()
+        self.lm = DownloadManager()
         self.lm.session_lock = NoDispersyRLock()
         self.lm.session = MockObject()
         self.lm.session.config = MockObject()
@@ -170,7 +171,7 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         Testing whether all Dispersy communities can be succesfully loaded
         """
         self.assertTrue(self.get_community(DiscoveryCommunity))
-        self.assertTrue(self.session.lm.initComplete)
+        self.assertTrue(self.session.download_manager.initComplete)
         self.assertTrue(self.get_community(SearchCommunity))
         self.assertTrue(self.get_community(AllChannelCommunity))
         self.assertTrue(self.get_community(HiddenTunnelCommunity))

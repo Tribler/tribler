@@ -57,7 +57,7 @@ enabled = boolean(default=True)
 max_torrents = integer(default=50000)
 directory = string(default='')
 
-[libtorrent]
+[downloading]
 enabled = boolean(default=True)
 port = integer(min=-1, max=65536, default=-1)
 max_connections_download = integer(default=-1)

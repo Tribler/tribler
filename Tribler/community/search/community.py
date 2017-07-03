@@ -95,7 +95,7 @@ class SearchCommunity(Community):
             self._notifier = tribler_session.notifier
 
             # torrent collecting
-            self._rtorrent_handler = tribler_session.lm.rtorrent_handler
+            self._rtorrent_handler = tribler_session.download_manager.rtorrent_handler
         else:
             self._channelcast_db = ChannelCastDBStub(self._dispersy)
             self._torrent_db = None

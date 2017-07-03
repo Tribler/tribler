@@ -1,11 +1,9 @@
 """
-The Libtorrent package contains code to manage the torrent library.
-
-Author(s): Egbert Bouman
+Contains everything related to non-tunnel downloading.
 """
 
 
-def checkHandleAndSynchronize(default=None):
+def check_handle_and_synchronize(default=None):
     """
     Return the libtorrent handle if it's available, else return the default value.
     """

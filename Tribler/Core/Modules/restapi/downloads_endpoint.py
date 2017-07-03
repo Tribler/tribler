@@ -3,9 +3,9 @@ import logging
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
-from Tribler.Core.DownloadConfig import DownloadConfig
-from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
 from Tribler.Core.Modules.restapi.util import return_handled_exception
+from Tribler.Core.download.Download import LibtorrentStatisticsResponse
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
 import Tribler.Core.Utilities.json_util as json
 
@@ -214,8 +214,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                              "anon_download": download.get_anon_mode(),
                              "safe_seeding": download.config.get_safe_seeding_enabled(),
                              # Maximum upload/download rates are set for entire sessions
-                             "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
-                             "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
+                             "max_upload_speed": self.session.config.get_downloading_max_upload_rate(),
+                             "max_download_speed": self.session.config.get_downloading_max_download_rate(),
                              "destination": download.config.get_destination_dir(),
                              "availability": state.get_availability(), "total_pieces": download.get_num_pieces(),
                              "vod_mode": download.config.get_mode() == DLMODE_VOD,
@@ -401,31 +401,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             return json.dumps({"error": "anon_hops must be the only parameter in this request"})
         elif 'anon_hops' in parameters:
             anon_hops = int(parameters['anon_hops'][0])
-            deferred = self.session.lm.update_download_hops(download, anon_hops)
-
-            def _on_download_readded(_):
-                """
-                Success callback
-                """
-                request.write(json.dumps({"modified": True}))
-                request.finish()
-
-            def _on_download_readd_failure(failure):
-                """
-                Error callback
-                :param failure: from LibtorrentDownloadImp.setup()
-                """
-                self._logger.exception(failure)
-                request.write(return_handled_exception(request, failure.value))
-                # If the above request.write failed, the request will have already been finished
-                if not request.finished:
-                    request.finish()
-
-            deferred.addCallback(_on_download_readded)
-            deferred.addErrback(_on_download_readd_failure)
-            # As we already checked for len(parameters) > 1, we know there are no other parameters.
-            # As such, we can return immediately.
-            return NOT_DONE_YET
+            self.session.download_manager.update_download_hops(download, anon_hops)
 
         if 'selected_files[]' in parameters:
             selected_files_list = []

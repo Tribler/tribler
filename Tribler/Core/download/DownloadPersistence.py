@@ -11,7 +11,7 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
 
 class DownloadState(object):
     """
-    Contains a snapshot of the state of the Download at a specific
+    Contains a snapshot of the state of the download at a specific
     point in time. Using a snapshot instead of providing live data and
     protecting access via locking should be faster.
 
@@ -21,10 +21,10 @@ class DownloadState(object):
     def __init__(self, download, status, error, progress, stats=None, seeding_stats=None, filepieceranges=None, logmsgs=None, peerid=None, videoinfo=None):
         """
         Internal constructor.
-        @param download The Download this state belongs too.
-        @param status The status of the Download (DLSTATUS_*)
-        @param progress The general progress of the Download.
-        @param stats The BT engine statistics for the Download.
+        @param download The download this state belongs too.
+        @param status The status of the download (DLSTATUS_*)
+        @param progress The general progress of the download.
+        @param stats The BT engine statistics for the download.
         @param filepieceranges The range of pieces that we are interested in.
         The get_pieces_complete() returns only completeness information about
         this range. This is used for playing a video in a multi-torrent file.
@@ -122,11 +122,11 @@ class DownloadState(object):
                     self.progress = 1.0
 
     def get_download(self):
-        """ Returns the Download object of which this is the state """
+        """ Returns the download object of which this is the state """
         return self.download
 
     def get_progress(self):
-        """ The general progress of the Download as a percentage. When status is
+        """ The general progress of the download as a percentage. When status is
          * DLSTATUS_HASHCHECKING it is the percentage of already downloaded
            content checked for integrity.
          * DLSTATUS_DOWNLOADING/SEEDING it is the percentage downloaded.
@@ -242,7 +242,7 @@ class DownloadState(object):
     def get_num_seeds_peers(self):
         """
         Returns the sum of the number of seeds and peers. This function
-        works only if the Download.set_state_callback() /
+        works only if the download.set_state_callback() /
         Session.set_download_states_callback() was called with the getpeerlist
         parameter set to True, otherwise returns (None,None)
         @return A tuple (num seeds, num peers)
@@ -411,10 +411,10 @@ class DownloadState(object):
         'uchoked' = Upload Choked: True/False
         'uhasqueries' = Upload has requests in buffer and not choked
         'uflushed' = Upload is not flushed
-        'downrate' = Download rate in KB/s
-        'dinterested' = Download interested: True/Flase
-        'dchoked' = Download choked: True/False
-        'snubbed' = Download snubbed: True/False
+        'downrate' = download rate in KB/s
+        'dinterested' = download interested: True/Flase
+        'dchoked' = download choked: True/False
+        'snubbed' = download snubbed: True/False
         'utotal' = Total uploaded from peer in KB
         'dtotal' = Total downloaded from peer in KB
         'completed' = Fraction of download completed by peer (0-1.0)

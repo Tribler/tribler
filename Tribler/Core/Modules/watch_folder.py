@@ -1,8 +1,9 @@
 import logging
 import os
+
 from twisted.internet.task import LoopingCall
 
-from Tribler.Core.DownloadConfig import DownloadConfig
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import fix_torrent
 from Tribler.Core.simpledefs import NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT
@@ -60,4 +61,4 @@ class WatchFolder(TaskManager):
                     default_num_hops = self.session.config.get_default_number_hops()
                     download_config.set_number_hops(default_num_hops if anon_enabled else 0)
                     download_config.set_safe_seeding_enabled(self.session.config.get_default_safe_seeding_enabled())
-                    self.session.lm.ltmgr.start_download(tdef=tdef, download_config=download_config)
+                    self.session.download_manager.ltmgr.start_download(tdef=tdef, download_config=download_config)

@@ -15,29 +15,28 @@ from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred, succeed
 from twisted.internet.stdio import StandardIO
 from twisted.internet.task import LoopingCall
-from twisted.web import server, resource
 from twisted.plugin import IPlugin
 from twisted.protocols.basic import LineReceiver
 from twisted.python import usage
 from twisted.python.log import msg
+from twisted.web import server, resource
 from zope.interface import implements
 
-from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.Core.Config.tribler_config import TriblerConfig
-from Tribler.Core.DownloadConfig import DownloadConfig
-from Tribler.Core.permid import read_keypair
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.permid import read_keypair
+from Tribler.Core.simpledefs import dlstatus_strings
+from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
 from Tribler.dispersy.util import blockingCallFromThread
 
 
 # Register yappi profiler
-from Tribler.dispersy.utils import twistd_yappi
 
 
 def check_socks5_port(val):
@@ -177,7 +176,7 @@ class Tunnel(object):
         self.current_stats = [0, 0, 0]
         self.history_stats = deque(maxlen=180)
         self.start_tribler()
-        self.dispersy = self.session.lm.dispersy
+        self.dispersy = self.session.download_manager.dispersy
         self.community = None
         self.clean_messages_lc = LoopingCall(self.clean_messages)
         self.clean_messages_lc.start(1800)
@@ -229,7 +228,7 @@ class Tunnel(object):
         config.set_dispersy_enabled(True)
         config.set_mainline_dht_enabled(True)
         config.set_torrent_collecting_enabled(False)
-        config.set_libtorrent_enabled(True)
+        config.set_downloading_enabled(True)
         config.set_video_server_enabled(False)
         config.set_dispersy_port(self.dispersy_port)
         config.set_torrent_search_enabled(False)
@@ -376,7 +375,7 @@ class LineHandler(LineReceiver):
 
             def start_download():
                 def cb(ds):
-                    logger.info('Download infohash=%s, down=%s, progress=%s, status=%s, seedpeers=%s, candidates=%d' %
+                    logger.info('download infohash=%s, down=%s, progress=%s, status=%s, seedpeers=%s, candidates=%d' %
                                 (tdef.get_infohash().encode('hex')[:10],
                                  ds.get_current_speed('down'),
                                  ds.get_progress(),

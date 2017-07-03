@@ -45,7 +45,7 @@ class BaseTestChannel(TestAsServer):
         self.votecast_db_handler = self.session.open_dbhandler(NTFY_VOTECAST)
 
         self.session.get_dispersy = lambda: True
-        self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
+        self.session.download_manager.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
 
     def setUpPreSession(self):
         super(BaseTestChannel, self).setUpPreSession()
@@ -63,16 +63,16 @@ class BaseTestChannel(TestAsServer):
         This method creates a fake AllChannel community so we can check whether a request is made in the community
         when doing stuff with a channel.
         """
-        self.session.lm.dispersy._database.open()
-        fake_member = DummyMember(self.session.lm.dispersy, 1, "a" * 20)
-        member = self.session.lm.dispersy.get_new_member(u"curve25519")
-        fake_community = AllChannelCommunity(self.session.lm.dispersy, fake_member, member)
-        self.session.lm.dispersy._communities = {"allchannel": fake_community}
+        self.session.download_manager.dispersy._database.open()
+        fake_member = DummyMember(self.session.download_manager.dispersy, 1, "a" * 20)
+        member = self.session.download_manager.dispersy.get_new_member(u"curve25519")
+        fake_community = AllChannelCommunity(self.session.download_manager.dispersy, fake_member, member)
+        self.session.download_manager.dispersy._communities = {"allchannel": fake_community}
         return fake_community
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self, annotate=True):
-        self.session.lm.dispersy.cancel_all_pending_tasks()
-        self.session.lm.dispersy = None
+        self.session.download_manager.dispersy.cancel_all_pending_tasks()
+        self.session.download_manager.dispersy = None
         yield super(BaseTestChannel, self).tearDown()

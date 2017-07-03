@@ -7,21 +7,21 @@ import os
 import socket
 import threading
 from binascii import hexlify
+from libtorrent import bencode, bdecode
 from unittest.case import skip
 
 import libtorrent as lt
-from libtorrent import bencode, bdecode
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, Deferred
 
-from Tribler.Core.DownloadConfig import DownloadConfig
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.download.DownloadConfig import DownloadConfig
+from Tribler.Core.download.DownloadSessionHandle import DownloadSessionHandle
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
+from Tribler.Test.btconn import BTConnection
 from Tribler.Test.common import TESTS_DATA_DIR, UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from Tribler.Test.btconn import BTConnection
 
 DEBUG = True
 EXTEND = chr(20)
@@ -142,6 +142,22 @@ class MagnetHelpers(object):
             assert not (response[0] == EXTEND and response[1] == 3)
 
 
+class TestMagnet(TestAsServer):
+
+    def setUpPreSession(self):
+        TestAsServer.setUpPreSession(self)
+        self.config.set_downloading_enabled(True)
+
+    def test_good_transfer(self):
+        def torrentdef_retrieved(tdef):
+            event.set()
+
+        event = threading.Event()
+        magnet_link = 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH)
+        self.session.download_manager.ltmgr.get_metainfo(magnet_link, torrentdef_retrieved, timeout=120)
+        assert event.wait(120)
+
+
 class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
 
     """
@@ -152,7 +168,7 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
     def setUp(self):
         # listener for incoming connections from MiniBitTorrent
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.bind(("", self.session.config.get_libtorrent_port()))
+        self.server.bind(("", self.session.config.get_downloading_port()))
         self.server.listen(5)
 
         TestAsServer.setUp(self)
@@ -169,7 +185,7 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_downloading_enabled(True)
 
     def create_good_url(self, infohash=None, title=None, tracker=None):
         url = "magnet:?xt=urn:btih:"
@@ -194,14 +210,14 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
 
         tags = {"retrieved": threading.Event()}
 
-        self.session.lm.ltmgr.get_metainfo(self.create_good_url(), torrentdef_retrieved, timeout=60)
+        self.session.download_manager.ltmgr.get_metainfo(self.create_good_url(), torrentdef_retrieved, timeout=60)
 
         def do_supply():
             # supply fake addresses (regular dht obviously wont work here)
-            ltmgr = LibtorrentMgr.getInstance()
+            ltmgr = DownloadSessionHandle.getInstance()
             for infohash in ltmgr.metainfo_requests:
                 handle = ltmgr.ltsession.find_torrent(lt.big_number(infohash.decode('hex')))
-                handle.connect_peer(("127.0.0.1", self.session.config.get_libtorrent_port()), 0)
+                handle.connect_peer(("127.0.0.1", self.session.config.get_downloading_port()), 0)
         reactor.callFromThread(reactor.callLater(5, do_supply))
 
         # accept incoming connection
@@ -248,7 +264,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_downloading_enabled(True)
 
     def start_seeding(self):
         # the metadata that we want to transfer
@@ -279,7 +295,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         return 1.0, False
 
     def test_good_request(self):
-        conn = BTConnection("localhost", self.session.config.get_libtorrent_port(),
+        conn = BTConnection("localhost", self.session.config.get_downloading_port(),
                             user_infohash=self.tdef.get_infohash())
         conn.send(self.create_good_extend_handshake())
         conn.read_handshake_medium_rare()
@@ -297,7 +313,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         self.read_extend_metadata_reply(conn, len(self.metadata_list) - 1)
 
     def test_good_flood(self):
-        conn = BTConnection("localhost", self.session.config.get_libtorrent_port(),
+        conn = BTConnection("localhost", self.session.config.get_downloading_port(),
                             user_infohash=self.tdef.get_infohash())
         conn.send(self.create_good_extend_handshake())
         conn.read_handshake_medium_rare()
@@ -320,7 +336,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         self.bad_request_and_disconnect({"msg_type": 0, "PIECE": 1})
 
     def bad_request_and_disconnect(self, payload):
-        conn = BTConnection("localhost", self.session.config.get_libtorrent_port(),
+        conn = BTConnection("localhost", self.session.config.get_downloading_port(),
                             user_infohash=self.tdef.get_infohash())
         conn.send(self.create_good_extend_handshake())
         conn.read_handshake_medium_rare()

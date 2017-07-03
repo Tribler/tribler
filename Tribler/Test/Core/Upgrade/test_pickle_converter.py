@@ -40,9 +40,9 @@ class TestPickleConverter(TriblerCoreTest):
         self.assertEqual(config.get_mainline_dht_port(), 1337)
         self.assertEqual(config.get_torrent_checking_enabled(), False)
         self.assertEqual(config.get_torrent_collecting_enabled(), True)
-        self.assertFalse(config.get_libtorrent_enabled())
+        self.assertFalse(config.get_downloading_enabled())
         self.assertEqual(config.get_dispersy_port(), 1337)
-        self.assertEqual(config.get_libtorrent_port(), 1234)
+        self.assertEqual(config.get_downloading_port(), 1234)
 
     def test_convert_download_checkpoints(self):
         with open(os.path.join(self.session_base_dir, 'corrupt.pickle'), 'wb') as corrupt_file:

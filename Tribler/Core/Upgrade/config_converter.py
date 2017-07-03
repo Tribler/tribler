@@ -159,11 +159,11 @@ def add_libtribler_config(new_config, old_config):
             elif section == "libtorrent" and name == "max_connections_download":
                 temp_config.set_libtorrent_max_conn_download(value)
             elif section == "libtorrent" and name == "max_download_rate":
-                temp_config.set_libtorrent_max_download_rate(value)
+                temp_config.set_downloading_max_download_rate(value)
             elif section == "libtorrent" and name == "max_upload_rate":
-                temp_config.set_libtorrent_max_upload_rate(value)
+                temp_config.set_downloading_max_upload_rate(value)
             elif section == "libtorrent" and name == "utp":
-                temp_config.set_libtorrent_utp(value)
+                temp_config.set_downloading_utp_enabled(value)
             elif section == "libtorrent" and name == "anon_listen_port":
                 temp_config.set_anon_listen_port(value)
             elif section == "libtorrent" and name == "anon_proxytype":

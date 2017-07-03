@@ -4,10 +4,10 @@ from urllib import pathname2url
 
 from twisted.internet.defer import fail
 
-from Tribler.Core.DownloadConfig import DownloadConfig
-from Tribler.Core.DownloadState import DownloadState
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.download.DownloadPersistence import DownloadState
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.common import UBUNTU_1504_INFOHASH, TESTS_DATA_DIR
 from Tribler.Test.twisted_thread import deferred
@@ -17,7 +17,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
     def setUpPreSession(self):
         super(TestDownloadsEndpoint, self).setUpPreSession()
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_downloading_enabled(True)
         self.config.set_megacache_enabled(True)
 
     @deferred(timeout=10)
@@ -434,7 +434,7 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
 
     def setUpPreSession(self):
         super(TestDownloadsDispersyEndpoint, self).setUpPreSession()
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_downloading_enabled(True)
         self.config.set_dispersy_enabled(True)
         self.config.set_tunnel_community_enabled(True)
 

@@ -743,7 +743,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def dht_lookup(self, info_hash, cb):
         if self.tribler_session:
-            self.tribler_session.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb)
+            self.tribler_session.download_manager.mainline_dht.get_peers(info_hash, Id(info_hash), cb)
         else:
             self.tunnel_logger.error("Need a Tribler session to lookup to the DHT")
 
@@ -753,7 +753,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 self.tunnel_logger.info("Announced %s to the DHT", info_hash.encode('hex'))
 
             port = self.tribler_session.config.get_dispersy_port()
-            self.tribler_session.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
+            self.tribler_session.download_manager.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
         else:
             self.tunnel_logger.error("Need a Tribler session to announce to the DHT")
 

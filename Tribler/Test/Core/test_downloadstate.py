@@ -1,4 +1,4 @@
-from Tribler.Core.DownloadState import DownloadState
+from Tribler.Core.download.DownloadPersistence import DownloadState
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, UPLOAD, DOWNLOAD, DLSTATUS_STOPPED, DLSTATUS_SEEDING, \
     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject

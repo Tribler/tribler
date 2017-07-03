@@ -50,7 +50,7 @@ class TestVersionCheck(TestAsServer):
         return maybeDeferred(self.server.stopListening)
 
     def check_version(self):
-        return self.session.lm.version_check_manager.check_new_version().addCallback(self.assert_new_version_called)
+        return self.session.download_manager.version_check_manager.check_new_version().addCallback(self.assert_new_version_called)
 
     @deferred(timeout=10)
     def test_old_version(self):
