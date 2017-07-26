@@ -337,7 +337,7 @@ class HttpTrackerSession(TrackerSession):
 class UDPScraper(DatagramProtocol):
     """
     The UDP scraper connects to a UDP tracker and queries
-    seeders and leechers for every infohash appended to the UDPsession.
+    seeders and leechers for every infohash appended to the UDP session.
     All data received is given to the UDP session it's associated with.
     """
 
@@ -554,7 +554,7 @@ class UdpTrackerSession(TrackerSession):
     def connect_to_tracker(self):
         """
         Connects to the tracker and starts querying for seed and leech data.
-        :return: A deferred that will fire with a dictionary containg seed/leech information per infohash
+        :return: A deferred that will fire with a dictionary containing seed/leech information per infohash
         """
         # no more requests can be appended to this session
         self._is_initiated = True
