@@ -275,6 +275,17 @@ class TestTorrentCheckerSession(TriblerCoreTest):
 
         return test_deferred
 
+    import mock
+
+    def dummy_is_pending_task_active(*args, **kwargs):
+        return True
+
+    @mock.patch("Tribler.Core.TorrentChecker.session.UdpTrackerSession.is_pending_task_active",
+                side_effect=dummy_is_pending_task_active)
+    def test_udpsession_cancel_pending_task(self, placeholder):
+        session = UdpTrackerSession("localhost", ("localhost", 8475), "/announce", 5)
+        session.connect_to_tracker()
+
 
 class TestDHTSession(TriblerCoreTest):
     """
