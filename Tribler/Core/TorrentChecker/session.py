@@ -558,10 +558,12 @@ class UdpTrackerSession(TrackerSession):
         """
         # no more requests can be appended to this session
         self._is_initiated = True
+        # clean old Deferreds if present
+        if self.is_pending_task_active("result"):
+            self.cancel_pending_task("result")
 
-        # clean old deferreds if present
-        self.cancel_pending_task("result")
-        self.cancel_pending_task("resolve")
+        if self.is_pending_task_active("resolve"):
+            self.cancel_pending_task("resolve")
 
         # Resolve the hostname to an IP address if not done already
         self.ip_resolve_deferred = self.register_task("resolve", reactor.resolve(self._tracker_address[0]))
