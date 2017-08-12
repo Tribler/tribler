@@ -36,6 +36,7 @@ class TestDatabase(AbstractServer):
         self.order_id2 = OrderId(TraderId('4'), OrderNumber(5))
         self.order1 = Order(self.order_id1, Price(5, 'EUR'), Quantity(6, 'BTC'), Timeout(3600), Timestamp.now(), True)
         self.order2 = Order(self.order_id2, Price(5, 'EUR'), Quantity(6, 'BTC'), Timeout(3600), Timestamp.now(), False)
+        self.order2.reserve_quantity_for_tick(OrderId(TraderId('3'), OrderNumber(4)), Quantity(3, 'BTC'))
 
         self.transaction_id1 = TransactionId(TraderId("0"), TransactionNumber(4))
         self.transaction1 = Transaction(self.transaction_id1, Price(100, 'BTC'), Quantity(30, 'MC'),
@@ -54,8 +55,9 @@ class TestDatabase(AbstractServer):
         Test the insertion and retrieval of an order in the database
         """
         self.database.add_order(self.order1)
+        self.database.add_order(self.order2)
         orders = self.database.get_all_orders()
-        self.assertEqual(len(orders), 1)
+        self.assertEqual(len(orders), 2)
 
     @blocking_call_on_reactor_thread
     def test_get_specific_order(self):

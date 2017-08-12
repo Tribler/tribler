@@ -1,5 +1,6 @@
-import unittest
+from twisted.internet.defer import inlineCallbacks
 
+from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.price import Price
@@ -9,12 +10,17 @@ from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.tickentry import TickEntry
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-class TickEntryTestSuite(unittest.TestCase):
+class TickEntryTestSuite(TestAsServer):
     """TickEntry test cases."""
 
-    def setUp(self):
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def setUp(self, autoload_discovery=True):
+        yield super(TickEntryTestSuite, self).setUp(autoload_discovery=autoload_discovery)
+
         # Object creation
         tick = Tick(MessageId(TraderId('0'), MessageNumber('message_number')),
                     OrderId(TraderId('0'), OrderNumber(1)), Price(63400, 'BTC'), Quantity(30, 'MC'),
@@ -26,6 +32,13 @@ class TickEntryTestSuite(unittest.TestCase):
         self.price_level = PriceLevel('MC')
         self.tick_entry = TickEntry(tick, self.price_level)
         self.tick_entry2 = TickEntry(tick2, self.price_level)
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self, annotate=True):
+        self.tick_entry.cancel_all_pending_tasks()
+        self.tick_entry2.cancel_all_pending_tasks()
+        yield super(TickEntryTestSuite, self).tearDown(annotate=annotate)
 
     def test_price_level(self):
         self.assertEquals(self.price_level, self.tick_entry.price_level())
@@ -59,3 +72,14 @@ class TickEntryTestSuite(unittest.TestCase):
         self.price_level.append_tick(self.tick_entry2)
         self.tick_entry.quantity = Quantity(15, 'MC')
         self.assertEquals(Quantity(15, 'MC'), self.tick_entry.quantity)
+
+    def test_block_for_matching(self):
+        """
+        Test blocking of a match
+        """
+        self.tick_entry.block_for_matching(OrderId(TraderId("abc"), OrderNumber(3)))
+        self.assertEqual(len(self.tick_entry._blocked_for_matching), 1)
+
+        # Try to add it again - should be ignored
+        self.tick_entry.block_for_matching(OrderId(TraderId("abc"), OrderNumber(3)))
+        self.assertEqual(len(self.tick_entry._blocked_for_matching), 1)

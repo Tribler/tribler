@@ -1,5 +1,7 @@
 import unittest
 
+from Tribler.community.market.core.payment import Payment
+from Tribler.community.market.core.payment_id import PaymentId
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.timeout import Timestamp
@@ -9,6 +11,7 @@ from Tribler.community.market.core.transaction_manager import TransactionManager
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
 from Tribler.community.market.core.trade import Trade
+from Tribler.community.market.core.wallet_address import WalletAddress
 
 
 class TransactionManagerTestSuite(unittest.TestCase):
@@ -35,7 +38,7 @@ class TransactionManagerTestSuite(unittest.TestCase):
 
     def test_create_from_proposed_trade(self):
         # Test for create from a proposed trade
-        transaction = self.transaction_manager.create_from_proposed_trade(self.proposed_trade)
+        transaction = self.transaction_manager.create_from_proposed_trade(self.proposed_trade, 'a')
         self.assertEquals(transaction, self.transaction_manager.find_by_id(transaction.transaction_id))
 
     def test_find_by_id(self):
@@ -52,5 +55,19 @@ class TransactionManagerTestSuite(unittest.TestCase):
 
     def test_create_from_start_transaction(self):
         # Test for create from start transaction
-        transaction = self.transaction_manager.create_from_start_transaction(self.start_transaction)
+        transaction = self.transaction_manager.create_from_start_transaction(self.start_transaction, 'a')
         self.assertEquals(transaction, self.transaction_manager.find_by_id(transaction.transaction_id))
+
+    def test_create_payment_message(self):
+        """
+        Test the creation of a payment message
+        """
+        self.transaction.incoming_address = WalletAddress('abc')
+        self.transaction.outgoing_address = WalletAddress('def')
+        self.transaction.partner_incoming_address = WalletAddress('ghi')
+        self.transaction.partner_outgoing_address = WalletAddress('jkl')
+        payment_msg = self.transaction_manager.create_payment_message(MessageId(TraderId("0"), MessageNumber('3')),
+                                                                      PaymentId('abc'), self.transaction,
+                                                                      (Quantity(3, 'MC'), Price(4, 'BTC')),
+                                                                      True)
+        self.assertIsInstance(payment_msg, Payment)

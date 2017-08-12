@@ -182,19 +182,23 @@ class TestOrderBook(AbstractTestOrderBook):
         self.order_book.insert_ask(self.ask2)
         self.order_book.insert_bid(self.bid2)
 
+        # Reserve quantities for matching
+        self.order_book.get_tick(self.ask.order_id).reserve_for_matching(Quantity(20, 'MC'))
+        self.order_book.get_tick(self.bid.order_id).reserve_for_matching(Quantity(20, 'MC'))
+        self.order_book.get_tick(self.ask2.order_id).reserve_for_matching(Quantity(30, 'MC'))
+        self.order_book.get_tick(self.bid2.order_id).reserve_for_matching(Quantity(30, 'MC'))
+
         # Trade self.ask <-> self.bid
-        self.order_book.trade_tick(self.ask.order_id, self.bid.order_id, Quantity(20, 'MC'), Timestamp.now())
+        self.order_book.trade_tick(self.ask.order_id, self.bid.order_id, Quantity(20, 'MC'), unreserve=True)
         self.assertTrue(self.order_book.tick_exists(self.ask.order_id))
         self.assertTrue(self.order_book.tick_exists(self.bid.order_id))
         self.assertEqual(self.order_book.get_tick(self.ask.order_id).tick.quantity, Quantity(10, 'MC'))
         self.assertEqual(self.order_book.get_tick(self.bid.order_id).tick.quantity, Quantity(10, 'MC'))
 
         # Trade self.bid2 <-> self.ask2
-        self.order_book.trade_tick(self.bid2.order_id, self.ask2.order_id, Quantity(30, 'MC'), Timestamp.now())
-        self.assertTrue(self.order_book.tick_exists(self.ask2.order_id))
-        self.assertTrue(self.order_book.tick_exists(self.bid2.order_id))
-        self.assertEqual(self.order_book.get_tick(self.ask2.order_id).tick.quantity, Quantity(0, 'MC'))
-        self.assertEqual(self.order_book.get_tick(self.bid2.order_id).tick.quantity, Quantity(0, 'MC'))
+        self.order_book.trade_tick(self.bid2.order_id, self.ask2.order_id, Quantity(30, 'MC'), unreserve=True)
+        self.assertFalse(self.order_book.tick_exists(self.ask2.order_id))
+        self.assertFalse(self.order_book.tick_exists(self.bid2.order_id))
 
     def test_get_order_ids(self):
         """

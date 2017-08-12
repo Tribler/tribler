@@ -258,6 +258,13 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_dummy_wallets_enabled(True)
         self.assertTrue(self.tribler_config.get_dummy_wallets_enabled())
 
+    def test_get_set_is_matchmaker(self):
+        """
+        Check whether matchmaker get and set methods are working as expected.
+        """
+        self.tribler_config.set_is_matchmaker(False)
+        self.assertFalse(self.tribler_config.get_is_matchmaker())
+
     def test_get_set_methods_metadata(self):
         """
         Check whether metadata get and set methods are working as expected.

@@ -48,7 +48,8 @@ class TestMarketEndpoint(AbstractApiTest):
                                        OrderId(TraderId('0'), OrderNumber(1)),
                                        OrderId(TraderId('1'), OrderNumber(2)),
                                        Price(63400, 'BTC'), Quantity(30, 'MC'), Timestamp(1462224447.117))
-        transaction = self.session.lm.market_community.transaction_manager.create_from_proposed_trade(proposed_trade)
+        transaction = self.session.lm.market_community.transaction_manager.create_from_proposed_trade(
+            proposed_trade, 'abcd')
 
         payment = Payment(MessageId(TraderId("0"), MessageNumber("1")), transaction.transaction_id,
                           Quantity(0, 'MC'), Price(20, 'BTC'), WalletAddress('a'), WalletAddress('b'),
