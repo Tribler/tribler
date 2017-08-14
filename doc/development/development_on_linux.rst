@@ -11,6 +11,14 @@ First, install the required dependencies by executing the following command in y
 
 Next, download the latest .deb file from `here <https://jenkins.tribler.org/job/Build-Tribler_Ubuntu-64_devel/lastStableBuild/>`_.
 
+Installing the python-socks on Ubuntu >= 16.10
+--------------------------------------------------------------
+The python-pysocks package was renamed to python-socks in the Ubuntu repositories from version 16.10 (Yakkety Yak) onwards. Use the following command to resolve this dependency:
+
+.. code-block:: none
+
+    sudo apt-get install python-socks python-networkx python-libnacl
+
 Installing libsodium13 and python-cryptography on Ubuntu 14.04
 --------------------------------------------------------------
 
