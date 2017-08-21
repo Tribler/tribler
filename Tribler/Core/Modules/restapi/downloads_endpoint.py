@@ -333,7 +333,9 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             """
             self._logger.exception(failure)
             request.write(return_handled_exception(request, failure.value))
-            request.finish()
+            # If the above request.write failed, the request will have already been finished
+            if not request.finished:
+                request.finish()
 
         deferred = self.session.remove_download(download, removecontent=remove_data)
         deferred.addCallback(_on_torrent_removed)
