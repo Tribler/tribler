@@ -335,8 +335,9 @@ class LibtorrentMgr(TaskManager):
             else:
                 if alert_type == 'torrent_removed_alert':
                     info_hash = str(alert.info_hash)
-                    self.torrents[info_hash][0].deferred_removed.callback(None)
-                    del self.torrents[info_hash]
+                    if info_hash in self.torrents:
+                        self.torrents[info_hash][0].deferred_removed.callback(None)
+                        del self.torrents[info_hash]
                 self._logger.debug("Alert for invalid torrent")
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, timeout_callback=None, notify=True):

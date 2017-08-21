@@ -193,6 +193,18 @@ class TestLibtorrentMgr(AbstractServer):
         mock_dl.handle = mock_handle
         self.assertTrue(self.ltmgr.remove_torrent(mock_dl).called)
 
+    def test_remove_unregistered_torrent(self):
+        """
+        Tests a successful removal status of torrents which aren't known
+        """
+        self.ltmgr.initialize()
+        mock_handle = MockObject()
+        mock_handle.is_valid = lambda: False
+        alert = type('torrent_removed_alert', (object, ), dict(handle=mock_handle, info_hash='0'*20))
+        self.ltmgr.process_alert(alert())
+
+        self.assertNotIn('0'*20, self.ltmgr.torrents)
+
     def test_start_download_corrupt(self):
         """
         Testing whether starting the download of a corrupt torrent file raises an exception
