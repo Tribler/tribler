@@ -29,7 +29,7 @@ class TestMarketEndpoint(AbstractApiTest):
         dummy1_wallet = DummyWallet1()
         dummy2_wallet = DummyWallet2()
 
-        self.session.lm.market_community.wallets = {dummy1_wallet.get_identifier(): dummy1_wallet,
+        self.session.download_manager.market_community.wallets = {dummy1_wallet.get_identifier(): dummy1_wallet,
                                                     dummy2_wallet.get_identifier(): dummy2_wallet}
 
     def test_get_market_community(self):
@@ -48,13 +48,13 @@ class TestMarketEndpoint(AbstractApiTest):
                                        OrderId(TraderId('0'), OrderNumber(1)),
                                        OrderId(TraderId('1'), OrderNumber(2)),
                                        Price(63400, 'BTC'), Quantity(30, 'MC'), Timestamp(1462224447.117))
-        transaction = self.session.lm.market_community.transaction_manager.create_from_proposed_trade(proposed_trade)
+        transaction = self.session.download_manager.market_community.transaction_manager.create_from_proposed_trade(proposed_trade)
 
         payment = Payment(MessageId(TraderId("0"), MessageNumber("1")), transaction.transaction_id,
                           Quantity(0, 'MC'), Price(20, 'BTC'), WalletAddress('a'), WalletAddress('b'),
                           PaymentId('aaa'), Timestamp(4.0), True)
         transaction.add_payment(payment)
-        self.session.lm.market_community.transaction_manager.transaction_repository.update(transaction)
+        self.session.download_manager.market_community.transaction_manager.transaction_repository.update(transaction)
 
         return transaction
 
@@ -75,7 +75,7 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertIn('ticks', json_response['asks'][0])
             self.assertEqual(len(json_response['asks'][0]['ticks']), 1)
 
-        self.session.lm.market_community.create_ask(10, 'DUM1', 10, 'DUM2', 3600)
+        self.session.download_manager.market_community.create_ask(10, 'DUM1', 10, 'DUM2', 3600)
         self.should_check_equality = False
         return self.do_request('market/asks', expected_code=200).addCallback(on_response)
 
@@ -85,7 +85,7 @@ class TestMarketEndpoint(AbstractApiTest):
         Test whether we can create an ask using the API
         """
         def on_response(_):
-            self.assertEqual(len(self.session.lm.market_community.order_book.asks), 1)
+            self.assertEqual(len(self.session.download_manager.market_community.order_book.asks), 1)
 
         self.should_check_equality = False
         post_data = {'price': 10, 'quantity': 10, 'price_type': 'DUM1', 'quantity_type': 'DUM2', 'timeout': 3400}
@@ -122,7 +122,7 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertIn('ticks', json_response['bids'][0])
             self.assertEqual(len(json_response['bids'][0]['ticks']), 1)
 
-        self.session.lm.market_community.create_bid(10, 'DUM1', 10, 'DUM2', 3600)
+        self.session.download_manager.market_community.create_bid(10, 'DUM1', 10, 'DUM2', 3600)
         self.should_check_equality = False
         return self.do_request('market/bids', expected_code=200).addCallback(on_response)
 
@@ -132,7 +132,7 @@ class TestMarketEndpoint(AbstractApiTest):
         Test whether we can create a bid using the API
         """
         def on_response(_):
-            self.assertEqual(len(self.session.lm.market_community.order_book.bids), 1)
+            self.assertEqual(len(self.session.download_manager.market_community.order_book.bids), 1)
 
         self.should_check_equality = False
         post_data = {'price': 10, 'quantity': 10, 'price_type': 'DUM1', 'quantity_type': 'DUM2'}
@@ -189,7 +189,7 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertIn('orders', json_response)
             self.assertEqual(len(json_response['orders']), 1)
 
-        self.session.lm.market_community.order_manager.create_ask_order(
+        self.session.download_manager.market_community.order_manager.create_ask_order(
             Price(3, 'DUM1'), Quantity(4, 'DUM2'), Timeout(3600))
 
         self.should_check_equality = False
@@ -216,7 +216,7 @@ class TestMarketEndpoint(AbstractApiTest):
         """
         Test whether a 404 is returned when we try to cancel an order that does not exist
         """
-        self.session.lm.market_community.order_manager.create_ask_order(
+        self.session.download_manager.market_community.order_manager.create_ask_order(
             Price(3, 'DUM1'), Quantity(4, 'DUM2'), Timeout(3600))
         self.should_check_equality = False
         return self.do_request('market/orders/1234/cancel', request_type='POST', expected_code=404)
@@ -226,7 +226,7 @@ class TestMarketEndpoint(AbstractApiTest):
         """
         Test whether an error is returned when we try to cancel an order that has expired
         """
-        self.session.lm.market_community.order_manager.create_ask_order(
+        self.session.download_manager.market_community.order_manager.create_ask_order(
             Price(3, 'DUM1'), Quantity(4, 'DUM2'), Timeout(0))
         self.should_check_equality = False
         return self.do_request('market/orders/1/cancel', request_type='POST', expected_code=400)
@@ -236,13 +236,13 @@ class TestMarketEndpoint(AbstractApiTest):
         """
         Test whether an error is returned when we try to cancel an order that has expired
         """
-        order = self.session.lm.market_community.order_manager.create_ask_order(
+        order = self.session.download_manager.market_community.order_manager.create_ask_order(
             Price(3, 'DUM1'), Quantity(4, 'DUM2'), Timeout(3600))
 
         def on_response(response):
             json_response = json.loads(response)
             self.assertTrue(json_response['cancelled'])
-            cancelled_order = self.session.lm.market_community.order_manager.order_repository.find_by_id(order.order_id)
+            cancelled_order = self.session.download_manager.market_community.order_manager.order_repository.find_by_id(order.order_id)
             self.assertTrue(cancelled_order.cancelled)
 
         self.should_check_equality = False

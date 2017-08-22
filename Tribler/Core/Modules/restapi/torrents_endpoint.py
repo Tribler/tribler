@@ -75,7 +75,7 @@ class TorrentsRandomEndpoint(resource.Resource):
         for popular_torrent in popular_torrents:
             torrent_json = convert_db_torrent_to_json(popular_torrent)
             if (self.session.config.get_family_filter_enabled() and
-                    self.session.lm.category.xxx_filter.isXXX(torrent_json['category'])) \
+                    self.session.download_manager.category.xxx_filter.isXXX(torrent_json['category'])) \
                     or torrent_json['name'] is None:
                 continue
 

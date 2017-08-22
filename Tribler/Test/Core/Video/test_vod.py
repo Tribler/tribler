@@ -4,8 +4,8 @@ from tempfile import mkstemp
 from M2Crypto import Rand
 from twisted.internet.defer import inlineCallbacks, Deferred
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
+from Tribler.Core.download.Download import VODFile
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings, UPLOAD, DOWNLOAD, DLMODE_VOD
 from Tribler.Test.test_as_server import TestAsServer
@@ -35,7 +35,7 @@ class TestVideoOnDemand(TestAsServer):
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_downloading_enabled(True)
 
     def create_torrent(self):
         [srchandle, sourcefn] = mkstemp()
@@ -52,12 +52,12 @@ class TestVideoOnDemand(TestAsServer):
         torrentfn = os.path.join(self.session.config.get_state_dir(), "gen.torrent")
         self.tdef.save(torrentfn)
 
-        dscfg = DownloadStartupConfig()
+        download_config = DownloadConfig()
         destdir = os.path.dirname(sourcefn)
-        dscfg.set_dest_dir(destdir)
-        dscfg.set_mode(DLMODE_VOD)
+        download_config.set_destination_dir(destdir)
+        download_config.set_mode(DLMODE_VOD)
 
-        download = self.session.start_download_from_tdef(self.tdef, dscfg)
+        download = self.session.start_download_from_tdef(self.tdef, download_config)
         download.set_state_callback(self.state_callback)
 
         self.session.set_download_states_callback(self.states_callback)
@@ -118,7 +118,7 @@ class TestVideoOnDemand(TestAsServer):
         self.piecelen = 16
         self.create_torrent()
 
-        self._logger.debug("Letting network thread create Download, sleeping")
+        self._logger.debug("Letting network thread create download, sleeping")
         return self.test_deferred
 
     @deferred(timeout=10)
@@ -127,7 +127,7 @@ class TestVideoOnDemand(TestAsServer):
         self.piecelen = 16
         self.create_torrent()
 
-        self._logger.debug("Letting network thread create Download, sleeping")
+        self._logger.debug("Letting network thread create download, sleeping")
         return self.test_deferred
 
     @deferred(timeout=10)
@@ -136,5 +136,5 @@ class TestVideoOnDemand(TestAsServer):
         self.piecelen = 16
         self.create_torrent()
 
-        self._logger.debug("Letting network thread create Download, sleeping")
+        self._logger.debug("Letting network thread create download, sleeping")
         return self.test_deferred

@@ -53,7 +53,7 @@ class ChannelsPopularEndpoint(BaseChannelsEndpoint):
         for channel in popular_channels:
             channel_json = convert_db_channel_to_json(channel)
             if self.session.config.get_family_filter_enabled() and \
-                    self.session.lm.category.xxx_filter.isXXX(channel_json['name']):
+                    self.session.download_manager.category.xxx_filter.isXXX(channel_json['name']):
                 continue
 
             results_json.append(channel_json)

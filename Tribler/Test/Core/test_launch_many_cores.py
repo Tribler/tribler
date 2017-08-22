@@ -1,12 +1,13 @@
 import os
+
+from configobj import ConfigObj
 from nose.tools import raises
 from twisted.internet.defer import Deferred
 
 from Tribler.Core import NoDispersyRLock
-from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
+from Tribler.Core.download.DownloadConfig import DownloadConfig
+from Tribler.Core.download.DownloadManager import DownloadManager
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_SEEDING
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
@@ -14,8 +15,8 @@ from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
 from Tribler.community.allchannel.community import AllChannelCommunity
-from Tribler.community.trustchain.community import TrustChainCommunity
 from Tribler.community.search.community import SearchCommunity
+from Tribler.community.trustchain.community import TrustChainCommunity
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.dispersy.discovery.community import DiscoveryCommunity
 
@@ -28,13 +29,13 @@ class TestLaunchManyCore(TriblerCoreTest):
 
     def setUp(self, annotate=True):
         TriblerCoreTest.setUp(self, annotate=annotate)
-        self.lm = TriblerLaunchMany()
+        self.lm = DownloadManager()
         self.lm.session_lock = NoDispersyRLock()
         self.lm.session = MockObject()
         self.lm.session.config = MockObject()
         self.lm.session.config.get_max_upload_rate = lambda: 100
         self.lm.session.config.get_max_download_rate = lambda: 100
-        self.lm.session.config.get_default_number_hops = lambda: 0
+        self.lm.session.config.get_number_hops = lambda: 0
 
         # Ignore notifications
         mock_notifier = MockObject()
@@ -58,7 +59,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         tdef.metainfo_valid = True
         tdef.infohash = "abcd"
 
-        self.lm.add(tdef, DefaultDownloadStartupConfig.getInstance())
+        self.lm.add(tdef, DownloadConfig())
 
     def test_load_download_pstate(self):
         """
@@ -66,8 +67,8 @@ class TestLaunchManyCore(TriblerCoreTest):
         """
         config_file_path = os.path.abspath(os.path.join(self.DATA_DIR, u"config_files", u"config1.conf"))
         config = self.lm.load_download_pstate(config_file_path)
-        self.assertIsInstance(config, CallbackConfigParser)
-        self.assertEqual(config.get('general', 'version'), 11)
+        self.assertIsInstance(config, ConfigObj)
+        self.assertEqual(config['general'].as_int('version'), 11)
 
     @deferred(timeout=10)
     def test_dlstates_cb_error(self):
@@ -108,9 +109,9 @@ class TestLaunchManyCore(TriblerCoreTest):
 
         readd_deferred = Deferred()
 
-        def mocked_start_download(tdef, dscfg):
+        def mocked_start_download(tdef, download_config):
             self.assertEqual(tdef, seed_tdef)
-            self.assertEqual(dscfg, seed_download)
+            self.assertEqual(download_config, seed_download.config)
             readd_deferred.callback(None)
 
         def mocked_remove_download(download):
@@ -124,10 +125,11 @@ class TestLaunchManyCore(TriblerCoreTest):
         seed_download = MockObject()
         seed_download.get_def = lambda: seed_tdef
         seed_download.get_def().get_name_as_unicode = lambda: "test.iso"
-        seed_download.get_hops = lambda: 0
-        seed_download.get_safe_seeding = lambda: True
-        seed_download.copy = lambda: seed_download
-        seed_download.set_hops = lambda _: None
+        seed_download.config = MockObject()
+        seed_download.config.get_number_hops = lambda: 0
+        seed_download.config.get_safe_seeding_enabled = lambda: True
+        seed_download.config.copy = lambda: seed_download.config
+        seed_download.config.set_number_hops = lambda _: None
         fake_seed_download_state = MockObject()
         fake_seed_download_state.get_infohash = lambda: 'aaaa'
         fake_seed_download_state.get_status = lambda: DLSTATUS_SEEDING
@@ -164,9 +166,9 @@ class TestLaunchManyCore(TriblerCoreTest):
         def mocked_load_download_pstate(_):
             raise ValueError()
 
-        def mocked_add(tdef, dscfg, pstate, **_):
+        def mocked_add(tdef, download_config, pstate, **_):
             self.assertTrue(tdef)
-            self.assertTrue(dscfg)
+            self.assertTrue(download_config)
             self.assertIsNone(pstate)
             mocked_add.called = True
         mocked_add.called = False
@@ -210,7 +212,7 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         Testing whether all Dispersy communities can be succesfully loaded
         """
         self.assertTrue(self.get_community(DiscoveryCommunity))
-        self.assertTrue(self.session.lm.initComplete)
+        self.assertTrue(self.session.download_manager.initComplete)
         self.assertTrue(self.get_community(SearchCommunity))
         self.assertTrue(self.get_community(AllChannelCommunity))
         self.assertTrue(self.get_community(HiddenTunnelCommunity))

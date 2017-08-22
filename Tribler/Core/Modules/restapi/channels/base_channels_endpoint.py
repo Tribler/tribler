@@ -63,7 +63,7 @@ class BaseChannelsEndpoint(resource.Resource):
         Returns the Channel object associated with a channel that is used to manage rss feeds.
         """
         my_channel_id = self.channel_db_handler.getMyChannelId()
-        return self.session.lm.channel_manager.get_my_channel(my_channel_id)
+        return self.session.download_manager.channel_manager.get_my_channel(my_channel_id)
 
     def vote_for_channel(self, cid, vote):
         """

@@ -311,8 +311,8 @@ class TestDHTSession(TriblerCoreTest):
             self.assertEqual(metainfo['DHT'][0]['leechers'], 2)
             self.assertEqual(metainfo['DHT'][0]['seeders'], 1)
 
-        self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.get_metainfo = get_metainfo
+        self.session.download_manager.ltmgr = MockObject()
+        self.session.download_manager.ltmgr.get_metainfo = get_metainfo
         return self.dht_session.connect_to_tracker().addCallback(verify_metainfo)
 
     @deferred(timeout=10)
@@ -329,8 +329,8 @@ class TestDHTSession(TriblerCoreTest):
         def on_timeout(failure):
             test_deferred.callback(None)
 
-        self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.get_metainfo = get_metainfo_timeout
+        self.session.download_manager.ltmgr = MockObject()
+        self.session.download_manager.ltmgr.get_metainfo = get_metainfo_timeout
         self.dht_session.connect_to_tracker().addErrback(on_timeout)
         return test_deferred
 

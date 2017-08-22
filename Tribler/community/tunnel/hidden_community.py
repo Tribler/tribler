@@ -224,11 +224,11 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
         for ds in dslist:
             download = ds.get_download()
-            if download.get_hops() > 0:
+            if download.config.get_number_hops() > 0:
                 # Convert the real infohash to the infohash used for looking up introduction points
                 real_info_hash = download.get_def().get_infohash()
                 info_hash = self.get_lookup_info_hash(real_info_hash)
-                hops[info_hash] = download.get_hops()
+                hops[info_hash] = download.config.get_number_hops()
                 new_states[info_hash] = ds.get_status()
 
         self.hops = hops
@@ -738,7 +738,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def dht_lookup(self, info_hash, cb):
         if self.tribler_session:
-            self.tribler_session.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb)
+            self.tribler_session.download_manager.mainline_dht.get_peers(info_hash, Id(info_hash), cb)
         else:
             self.tunnel_logger.error("Need a Tribler session to lookup to the DHT")
 
@@ -748,7 +748,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 self.tunnel_logger.info("Announced %s to the DHT", info_hash.encode('hex'))
 
             port = self.tribler_session.config.get_dispersy_port()
-            self.tribler_session.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
+            self.tribler_session.download_manager.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
         else:
             self.tunnel_logger.error("Need a Tribler session to announce to the DHT")
 

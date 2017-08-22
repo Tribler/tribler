@@ -1,17 +1,16 @@
 """
-LaunchManyCore
-
-Author(s): Arno Bakker, Niels Zeilemaker
+Manages everything related to non-tunnel downloading.
 """
-import binascii
 import logging
 import os
 import sys
 import time as timemod
+from binascii import hexlify, unhexlify
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
+from configobj import ConfigObj
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList
 from twisted.internet.task import LoopingCall
@@ -19,20 +18,18 @@ from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
 from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Modules.watch_folder import WatchFolder
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
-
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Video.VideoServer import VideoServer
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,
                                      NTFY_FINISHED, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
-                                     DLSTATUS_SEEDING, NTFY_TORRENT, NTFY_MARKET_IOM_INPUT_REQUIRED)
+                                     DLSTATUS_SEEDING, NTFY_TORRENT)
 from Tribler.community.market.wallet.btc_wallet import BitcoinWallet
 from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
@@ -42,11 +39,13 @@ from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
 
 
-class TriblerLaunchMany(TaskManager):
-
+class DownloadManager(TaskManager):
+    """
+    The DownloadSessionHandle manages everything
+    """
     def __init__(self):
         """ Called only once (unless we have multiple Sessions) by MainThread """
-        super(TriblerLaunchMany, self).__init__()
+        super(DownloadManager, self).__init__()
 
         self.initComplete = False
         self.registered = False
@@ -335,9 +334,9 @@ class TriblerLaunchMany(TaskManager):
                                                  self.session.config.get_state_dir())
             self.upnp_ports.append((self.session.config.get_mainline_dht_port(), 'UDP'))
 
-        if self.session.config.get_libtorrent_enabled():
-            from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-            self.ltmgr = LibtorrentMgr(self.session)
+        if self.session.config.get_downloading_enabled():
+            from Tribler.Core.download.DownloadSessionHandle import DownloadSessionHandle
+            self.ltmgr = DownloadSessionHandle(self.session)
             self.ltmgr.initialize()
             for port, protocol in self.upnp_ports:
                 self.ltmgr.add_upnp_mapping(port, protocol)
@@ -366,10 +365,10 @@ class TriblerLaunchMany(TaskManager):
 
         self.initComplete = True
 
-    def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,
+    def add(self, tdef, download_config, pstate=None, setupDelay=0, hidden=False,
             share_mode=False, checkpoint_disabled=False):
         """ Called by any thread """
-        d = None
+        download = None
         with self.session_lock:
             if not isinstance(tdef, TorrentDefNoMetainfo) and not tdef.is_finalized():
                 raise ValueError("TorrentDef not finalized")
@@ -378,38 +377,38 @@ class TriblerLaunchMany(TaskManager):
 
             # Create the destination directory if it does not exist yet
             try:
-                if not os.path.isdir(dscfg.get_dest_dir()):
-                    os.makedirs(dscfg.get_dest_dir())
+                if not os.path.isdir(download_config.get_destination_dir()):
+                    os.makedirs(download_config.get_destination_dir())
             except OSError:
                 self._logger.error("Unable to create the download destination directory.")
 
-            if dscfg.get_time_added() == 0:
-                dscfg.set_time_added(int(timemod.time()))
+            if not download_config.has_time_added():
+                download_config.set_time_added(int(timemod.time()))
 
             # Check if running or saved on disk
             if infohash in self.downloads:
                 raise DuplicateDownloadException("This download already exists.")
 
-            from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
-            d = LibtorrentDownloadImpl(self.session, tdef)
+            from Tribler.Core.download.Download import Download
+            download = Download(self.session, tdef)
 
             if pstate is None:  # not already resuming
                 pstate = self.load_download_pstate_noexc(infohash)
                 if pstate is not None:
-                    self._logger.debug("tlm: add: pstate is %s %s",
-                                       pstate.get('dlstate', 'status'), pstate.get('dlstate', 'progress'))
+                    self._logger.debug("tlm: add: pstate is %s %s", pstate['dlstate']['status'],
+                                       pstate['dlstate']['progress'])
 
             # Store in list of Downloads, always.
-            self.downloads[infohash] = d
-            setup_deferred = d.setup(dscfg, pstate, wrapperDelay=setupDelay,
-                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled)
+            self.downloads[infohash] = download
+            setup_deferred = download.setup(download_config, pstate, wrapperDelay=setupDelay, share_mode=share_mode,
+                                            checkpoint_disabled=checkpoint_disabled)
             setup_deferred.addCallback(self.on_download_handle_created)
 
-        if d and not hidden and self.session.config.get_megacache_enabled():
+        if download and not hidden and self.session.config.get_megacache_enabled():
             @forceDBThread
             def write_my_pref():
                 torrent_id = self.torrent_db.getTorrentID(infohash)
-                data = {'destination_path': d.get_dest_dir()}
+                data = {'destination_path': download.config.get_destination_dir()}
                 self.mypref_db.addMyPreference(torrent_id, data)
 
             if isinstance(tdef, TorrentDefNoMetainfo):
@@ -422,7 +421,7 @@ class TriblerLaunchMany(TaskManager):
                 self.torrent_db.addExternalTorrent(tdef, extra_info={'status': 'good'})
                 write_my_pref()
 
-        return d
+        return download
 
     def on_download_handle_created(self, download):
         """
@@ -473,16 +472,16 @@ class TriblerLaunchMany(TaskManager):
         """
         Update the amount of hops for a specified download. This can be done on runtime.
         """
-        infohash = binascii.hexlify(download.tdef.get_infohash())
+        infohash = hexlify(download.tdef.get_infohash())
         self._logger.info("Updating the amount of hops of download %s", infohash)
         self.session.remove_download(download)
 
         # copy the old download_config and change the hop count
-        dscfg = download.copy()
-        dscfg.set_hops(new_hops)
+        download_config = download.config.copy()
+        download_config.set_number_hops(new_hops)
 
         self.register_task("reschedule_download_%s" % infohash,
-                           reactor.callLater(3, self.session.start_download_from_tdef, download.tdef, dscfg))
+                           reactor.callLater(3, self.session.start_download_from_tdef, download.tdef, download_config))
 
     def update_trackers(self, infohash, trackers):
         """ Update the trackers for a download.
@@ -598,19 +597,20 @@ class TriblerLaunchMany(TaskManager):
                     self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, tdef.get_infohash(), safename)
                     do_checkpoint = True
 
-                elif download.get_hops() == 0 and download.get_safe_seeding():
+                elif download.config.get_number_hops() == 0 and download.config.get_safe_seeding_enabled():
                     hops = self.session.config.get_default_number_hops()
                     self._logger.info("Moving completed torrent to tunneled session %d for hidden seeding %r",
                                       hops, download)
                     self.session.remove_download(download)
 
                     # copy the old download_config and change the hop count
-                    dscfg = download.copy()
-                    dscfg.set_hops(hops)
+                    download_config = download.config.copy()
+                    download_config.set_number_hops(hops)
 
                     # TODO: That's a hack to work around the fact that removing a torrent is racy.
                     self.register_task("reschedule_download_%s" % tdef.get_infohash(),
-                                       reactor.callLater(5, self.session.start_download_from_tdef, tdef, dscfg))
+                                       reactor.callLater(5, self.session.start_download_from_tdef,
+                                                         tdef, download_config))
 
         self.previous_active_downloads = new_active_downloads
         if do_checkpoint:
@@ -640,7 +640,7 @@ class TriblerLaunchMany(TaskManager):
     def load_download_pstate_noexc(self, infohash):
         """ Called by any thread, assume session_lock already held """
         try:
-            basename = binascii.hexlify(infohash) + '.state'
+            basename = hexlify(infohash) + '.state'
             filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
             if os.path.exists(filename):
                 return self.load_download_pstate(filename)
@@ -651,64 +651,61 @@ class TriblerLaunchMany(TaskManager):
             self._logger.exception("Exception while loading pstate: %s", infohash)
 
     def resume_download(self, filename, setupDelay=0):
-        tdef = dscfg = pstate = None
+        tdef = download_config = pstate = None
 
         try:
             pstate = self.load_download_pstate(filename)
 
             # SWIFTPROC
-            metainfo = pstate.get('state', 'metainfo')
+            metainfo = pstate['state']['metainfo']
             if 'infohash' in metainfo:
-                tdef = TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'], metainfo.get('url', None))
+                url = metainfo['url'] if 'url' in metainfo else None
+                tdef = TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'], url)
             else:
                 tdef = TorrentDef.load_from_dict(metainfo)
 
-            if pstate.has_option('download_defaults', 'saveas') and \
-                    isinstance(pstate.get('download_defaults', 'saveas'), tuple):
-                pstate.set('download_defaults', 'saveas', pstate.get('download_defaults', 'saveas')[-1])
-
-            dscfg = DownloadStartupConfig(pstate)
+            download_config = DownloadConfig(pstate)
 
         except:
             # pstate is invalid or non-existing
             _, file = os.path.split(filename)
 
-            infohash = binascii.unhexlify(file[:-6])
+            infohash = unhexlify(file[:-6])
 
             torrent_data = self.torrent_store.get(infohash)
             if torrent_data:
                 try:
                     tdef = TorrentDef.load_from_memory(torrent_data)
-                    defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-                    dscfg = defaultDLConfig.copy()
+                    download_config = DownloadConfig()
 
                     if self.mypref_db is not None:
                         dest_dir = self.mypref_db.getMyPrefStatsInfohash(infohash)
                         if dest_dir and os.path.isdir(dest_dir):
-                            dscfg.set_dest_dir(dest_dir)
+                            download_config.set_destination_dir(dest_dir)
                 except ValueError:
                     self._logger.warning("tlm: torrent data invalid")
 
         if pstate is not None:
-            has_resume_data = pstate.get('state', 'engineresumedata') is not None
+            has_resume_data = pstate['state']['engineresumedata'] is not None
             self._logger.debug("tlm: load_checkpoint: resumedata %s",
-                               'len %s ' % len(pstate.get('state', 'engineresumedata')) if has_resume_data else 'None')
+                               'len %s ' % len(pstate['state']['engineresumedata']) if has_resume_data else 'None')
 
-        if tdef and dscfg:
-            if dscfg.get_dest_dir() != '':  # removed torrent ignoring
+        if tdef and download_config:
+            if download_config.get_destination_dir() != '':  # removed torrent ignoring
                 try:
                     if not self.download_exists(tdef.get_infohash()):
-                        self.add(tdef, dscfg, pstate, setupDelay=setupDelay)
+                        self.add(tdef, download_config, pstate, setupDelay=setupDelay)
                     else:
                         self._logger.info("tlm: not resuming checkpoint because download has already been added")
 
                 except Exception as e:
                     self._logger.exception("tlm: load check_point: exception while adding download %s", tdef)
             else:
-                self._logger.info("tlm: removing checkpoint %s destdir is %s", filename, dscfg.get_dest_dir())
+                self._logger.info("tlm: removing checkpoint %s destdir is %s",
+                                  filename, download_config.get_destination_dir())
                 os.remove(filename)
         else:
-            self._logger.info("tlm: could not resume checkpoint %s %s %s", filename, tdef, dscfg)
+            self._logger.info("tlm: could not resume checkpoint %s %s %s", filename, tdef, download_config)
 
     def checkpoint_downloads(self):
         """
@@ -738,7 +735,7 @@ class TriblerLaunchMany(TaskManager):
                 dlpstatedir = self.session.get_downloads_pstate_dir()
 
                 # Remove checkpoint
-                hexinfohash = binascii.hexlify(infohash)
+                hexinfohash = hexlify(infohash)
                 try:
                     basename = hexinfohash + '.state'
                     filename = os.path.join(dlpstatedir, basename)
@@ -885,8 +882,17 @@ class TriblerLaunchMany(TaskManager):
         self.register_task("save_pstate %f" % timemod.clock(),
                            self.downloads[infohash].save_resume_data())
 
-    def load_download_pstate(self, filename):
+    @staticmethod
+    def load_download_pstate(filename):
         """ Called by any thread """
-        pstate = CallbackConfigParser()
-        pstate.read_file(filename)
+        pstate = ConfigObj(filename)
+        # TODO: Find a better way to handle binary data in pstates
+        if 'state' in pstate:
+            state = pstate['state']
+            if 'engineresumedata' in state and 'info-hash' in state['engineresumedata']:
+                state['engineresumedata']['info-hash'] = unhexlify(state['engineresumedata']['info-hash'])
+            if 'metainfo' in state and 'info' in state['metainfo'] and 'pieces' in state['metainfo']['info']:
+                state['metainfo']['info']['pieces'] = unhexlify(state['metainfo']['info']['pieces'])
+        if 'destination_dir' in pstate:
+            pstate['destination_dir'] = unhexlify(pstate['destination_dir'])
         return pstate

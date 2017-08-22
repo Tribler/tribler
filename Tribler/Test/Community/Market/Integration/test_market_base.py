@@ -119,7 +119,7 @@ class TestMarketBase(TestAsServer):
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
         self.config.set_dispersy_enabled(True)
-        self.config.set_libtorrent_enabled(False)
+        self.config.set_downloading_enabled(False)
         self.config.set_video_server_enabled(False)
         self.config.set_trustchain_enabled(False)
         self.config.set_tunnel_community_enabled(False)

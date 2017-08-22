@@ -47,8 +47,8 @@ class WalletsEndpoint(resource.Resource):
         """
         wallets = {}
         balance_deferreds = []
-        for wallet_id in self.session.lm.market_community.get_wallet_ids():
-            wallet = self.session.lm.market_community.wallets[wallet_id]
+        for wallet_id in self.session.download_manager.market_community.get_wallet_ids():
+            wallet = self.session.download_manager.market_community.wallets[wallet_id]
             wallets[wallet_id] = {'created': wallet.created, 'address': wallet.get_address(), 'name': wallet.get_name()}
             balance_deferreds.append(wallet.get_balance().addCallback(
                 lambda balance, wid=wallet_id: (wid, balance)))
@@ -103,7 +103,7 @@ class WalletEndpoint(resource.Resource):
                     "created": True
                 }
         """
-        if self.session.lm.market_community.wallets[self.identifier].created:
+        if self.session.download_manager.market_community.wallets[self.identifier].created:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "this wallet already exists"})
 
@@ -120,10 +120,10 @@ class WalletEndpoint(resource.Resource):
         if self.identifier == "BTC":  # get the password
             if parameters['password'] and len(parameters['password']) > 0:
                 password = parameters['password'][0]
-                self.session.lm.market_community.wallets[self.identifier].create_wallet(password=password)\
+                self.session.download_manager.market_community.wallets[self.identifier].create_wallet(password=password)\
                     .addCallback(on_wallet_created)
         else:
-            self.session.lm.market_community.wallets[self.identifier].create_wallet().addCallback(on_wallet_created)
+            self.session.download_manager.market_community.wallets[self.identifier].create_wallet().addCallback(on_wallet_created)
 
         return NOT_DONE_YET
 
@@ -166,7 +166,7 @@ class WalletBalanceEndpoint(resource.Resource):
             request.write(json.dumps({"balance": balance}))
             request.finish()
 
-        self.session.lm.market_community.wallets[self.identifier].get_balance().addCallback(on_balance)
+        self.session.download_manager.market_community.wallets[self.identifier].get_balance().addCallback(on_balance)
 
         return NOT_DONE_YET
 
@@ -215,7 +215,7 @@ class WalletTransactionsEndpoint(resource.Resource):
             request.write(json.dumps({"transactions": transactions}))
             request.finish()
 
-        self.session.lm.market_community.wallets[self.identifier].get_transactions().addCallback(on_transactions)
+        self.session.download_manager.market_community.wallets[self.identifier].get_transactions().addCallback(on_transactions)
 
         return NOT_DONE_YET
 
@@ -257,7 +257,7 @@ class WalletTransferEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "currently, currency transfers using the API is only supported for Bitcoin"})
 
-        wallet = self.session.lm.market_community.wallets[self.identifier]
+        wallet = self.session.download_manager.market_community.wallets[self.identifier]
 
         if not wallet.created:
             request.setResponseCode(http.BAD_REQUEST)

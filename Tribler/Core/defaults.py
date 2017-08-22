@@ -11,15 +11,6 @@ Author(s): Arno Bakker, Bram Cohen, Egbert Bouman
 #    such that your code won't barf because we loaded an older version from
 #    disk that does not have your new fields.
 #
-
-import sys
-from collections import OrderedDict
-
-DEFAULTPORT = 7760
-
-#
-#
-# BT per download opts
 #
 # History:
 #  Version 2: as released in Tribler 4.5.0
@@ -35,19 +26,6 @@ DEFAULTPORT = 7760
 #  Version 13: remove super_seeder
 #  Version 15: add seeding ratio
 #  Version 16: added field whether the download has been manually stopped by the user and time added
-
-dldefaults = OrderedDict()
-
-# General download settings
-dldefaults['download_defaults'] = OrderedDict()
-dldefaults['download_defaults']['mode'] = 0
-dldefaults['download_defaults']['hops'] = 0
-dldefaults['download_defaults']['selected_files'] = []
-dldefaults['download_defaults']['correctedfilename'] = None
-dldefaults['download_defaults']['safe_seeding'] = False
-# Valid values: 'forever', 'never', 'ratio', 'time'
-dldefaults['download_defaults']['user_stopped'] = False
-dldefaults['download_defaults']['time_added'] = 0
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None

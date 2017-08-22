@@ -97,7 +97,7 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self, annotate=True):
-        self.session.lm.ltmgr = None
+        self.session.download_manager.ltmgr = None
         yield self.udp_tracker.stop()
         yield self.http_tracker.stop()
         yield super(TestTorrentHealthEndpoint, self).tearDown(annotate=annotate)
@@ -122,10 +122,10 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
             callback({"seeders": 1, "leechers": 2})
 
         # Initialize the torrent checker
-        self.session.lm.torrent_checker = TorrentChecker(self.session)
-        self.session.lm.torrent_checker.initialize()
-        self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.get_metainfo = call_cb
+        self.session.download_manager.torrent_checker = TorrentChecker(self.session)
+        self.session.download_manager.torrent_checker.initialize()
+        self.session.download_manager.ltmgr = MockObject()
+        self.session.download_manager.ltmgr.get_metainfo = call_cb
 
         yield self.do_request('torrents/%s/health' % ('f' * 40), expected_code=404, request_type='GET')
 

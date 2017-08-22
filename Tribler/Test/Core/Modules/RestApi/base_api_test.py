@@ -43,9 +43,9 @@ class AbstractBaseApiTest(TestAsServer):
     def setUp(self, autoload_discovery=True):
         yield super(AbstractBaseApiTest, self).setUp(autoload_discovery=autoload_discovery)
         self.connection_pool = HTTPConnectionPool(reactor, False)
-        terms = self.session.lm.category.xxx_filter.xxx_terms
+        terms = self.session.download_manager.category.xxx_filter.xxx_terms
         terms.add("badterm")
-        self.session.lm.category.xxx_filter.xxx_terms = terms
+        self.session.download_manager.category.xxx_filter.xxx_terms = terms
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks

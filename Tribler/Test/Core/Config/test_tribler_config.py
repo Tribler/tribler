@@ -59,19 +59,21 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         Setting and getting of libtorrent proxy settings.
         """
-        proxy_type, server, auth = 3, ("33.33.33.33", 22), 1
-        self.tribler_config.set_libtorrent_proxy_settings(proxy_type, server, auth)
+        proxy_type, (server_ip, server_port), auth = 3, ("33.33.33.33", 22), 1
+        self.tribler_config.set_downloading_proxy_settings(proxy_type, server_ip, server_port, auth)
 
-        self.assertEqual(self.tribler_config.get_libtorrent_proxy_settings()[0], proxy_type)
-        self.assertEqual(self.tribler_config.get_libtorrent_proxy_settings()[1], server)
-        self.assertEqual(self.tribler_config.get_libtorrent_proxy_settings()[2], auth)
+        self.assertEqual(self.tribler_config.get_downloading_proxy_settings()[0], proxy_type)
+        self.assertEqual(self.tribler_config.get_downloading_proxy_settings()[1], server_ip)
+        self.assertEqual(self.tribler_config.get_downloading_proxy_settings()[2], server_port)
+        self.assertEqual(self.tribler_config.get_downloading_proxy_settings()[3], auth)
 
         # if the proxy type doesn't support authentication, auth setting should be saved as None
         proxy_type = 1
-        self.tribler_config.set_libtorrent_proxy_settings(proxy_type, server, auth)
-        self.assertEqual(self.tribler_config.get_libtorrent_proxy_settings()[0], proxy_type)
-        self.assertEqual(self.tribler_config.get_libtorrent_proxy_settings()[1], server)
-        self.assertIsNone(self.tribler_config.get_libtorrent_proxy_settings()[2])
+        self.tribler_config.set_downloading_proxy_settings(proxy_type, server_ip, server_port, auth)
+        self.assertEqual(self.tribler_config.get_downloading_proxy_settings()[0], proxy_type)
+        self.assertEqual(self.tribler_config.get_downloading_proxy_settings()[1], server_ip)
+        self.assertEqual(self.tribler_config.get_downloading_proxy_settings()[2], server_port)
+        self.assertIsNone(self.tribler_config.get_downloading_proxy_settings()[3])
 
     def test_anon_proxy_settings(self):
         proxy_type, server, auth = 3, ("33.33.33.33", [2222, 2223, 4443, 58848]), 1
@@ -170,28 +172,28 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         Check whether libtorrent get and set methods are working as expected.
         """
-        self.tribler_config.set_libtorrent_enabled(True)
-        self.assertEqual(self.tribler_config.get_libtorrent_enabled(), True)
-        self.tribler_config.set_libtorrent_utp(True)
-        self.assertEqual(self.tribler_config.get_libtorrent_utp(), True)
-        self.tribler_config.set_libtorrent_port(True)
-        self.assertEqual(self.tribler_config.get_libtorrent_port(), True)
-        self.tribler_config.set_libtorrent_port_runtime(True)
-        self.assertEqual(self.tribler_config.get_libtorrent_port(), True)
+        self.tribler_config.set_downloading_enabled(True)
+        self.assertEqual(self.tribler_config.get_downloading_enabled(), True)
+        self.tribler_config.set_downloading_utp_enabled(True)
+        self.assertEqual(self.tribler_config.get_downloading_utp_enabled(), True)
+        self.tribler_config.set_downloading_port(True)
+        self.assertEqual(self.tribler_config.get_downloading_port(), True)
+        self.tribler_config.set_downloading_port_runtime(True)
+        self.assertEqual(self.tribler_config.get_downloading_port(), True)
         self.tribler_config.set_anon_listen_port(True)
         self.assertEqual(self.tribler_config.get_anon_listen_port(), True)
-        self.tribler_config.set_libtorrent_proxy_settings(3, True, False)
-        self.assertEqual(self.tribler_config.get_libtorrent_proxy_settings(), (3, True, False))
+        self.tribler_config.set_downloading_proxy_settings(3, True, False)
+        self.assertEqual(self.tribler_config.get_downloading_proxy_settings(), (3, True, False, None))
         self.tribler_config.set_anon_proxy_settings(0, None, None)
         self.assertEqual(self.tribler_config.get_anon_proxy_settings(), (0, (None, None), None))
         self.tribler_config.set_anon_proxy_settings(3, ("TEST", [5]), ("TUN", "TPW"))
         self.assertEqual(self.tribler_config.get_anon_proxy_settings(), (3, ("TEST", [5]), ("TUN", "TPW")))
         self.tribler_config.set_libtorrent_max_conn_download(True)
-        self.assertEqual(self.tribler_config.get_libtorrent_max_conn_download(), True)
-        self.tribler_config.set_libtorrent_max_upload_rate(True)
-        self.assertEqual(self.tribler_config.get_libtorrent_max_upload_rate(), True)
-        self.tribler_config.set_libtorrent_max_download_rate(True)
-        self.assertEqual(self.tribler_config.get_libtorrent_max_download_rate(), True)
+        self.assertEqual(self.tribler_config.get_downloading_max_connections_per_download(), True)
+        self.tribler_config.set_downloading_max_upload_rate(True)
+        self.assertEqual(self.tribler_config.get_downloading_max_upload_rate(), True)
+        self.tribler_config.set_downloading_max_download_rate(True)
+        self.assertEqual(self.tribler_config.get_downloading_max_download_rate(), True)
 
     def test_get_set_methods_mainline_dht(self):
         """
@@ -227,8 +229,8 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_default_number_hops(), True)
         self.tribler_config.set_default_anonymity_enabled(True)
         self.assertEqual(self.tribler_config.get_default_anonymity_enabled(), True)
-        self.tribler_config.set_default_safeseeding_enabled(True)
-        self.assertEqual(self.tribler_config.get_default_safeseeding_enabled(), True)
+        self.tribler_config.set_default_safe_seeding_enabled(True)
+        self.assertEqual(self.tribler_config.get_default_safe_seeding_enabled(), True)
         self.tribler_config.set_default_destination_dir(True)
         self.assertEqual(self.tribler_config.get_default_destination_dir(), True)
 

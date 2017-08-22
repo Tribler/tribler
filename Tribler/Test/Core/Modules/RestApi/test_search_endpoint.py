@@ -108,7 +108,7 @@ class TestSearchEndpoint(AbstractApiTest):
 
         self.session.config.get_torrent_search_enabled = lambda: True
         self.session.config.get_channel_search_enabled = lambda: True
-        self.session.lm.search_manager = FakeSearchManager(self.session.notifier)
+        self.session.download_manager.search_manager = FakeSearchManager(self.session.notifier)
 
         expected_json = {"queried": True}
         return self.do_request('search?q=test', expected_code=200, expected_json=expected_json)\

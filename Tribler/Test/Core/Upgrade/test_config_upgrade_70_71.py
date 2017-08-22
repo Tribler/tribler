@@ -20,7 +20,7 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         old_config.read(os.path.join(self.CONFIG_PATH, "tribler70.conf"))
         new_config = TriblerConfig()
         result_config = add_tribler_config(new_config, old_config)
-        self.assertEqual(result_config.get_default_safeseeding_enabled(), True)
+        self.assertEqual(result_config.get_default_safe_seeding_enabled(), True)
 
     def test_read_test_libtribler_conf(self):
         old_config = RawConfigParser()

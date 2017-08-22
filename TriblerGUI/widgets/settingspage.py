@@ -54,20 +54,20 @@ class SettingsPage(QWidget):
         self.window().family_filter_checkbox.setChecked(settings['general']['family_filter'])
         self.window().use_monochrome_icon_checkbox.setChecked(get_gui_setting(gui_settings, "use_monochrome_icon",
                                                                                  False, is_bool=True))
-        self.window().download_location_input.setText(settings['download_defaults']['saveas'])
+        self.window().download_location_input.setText(settings['download_defaults']['destination_dir'])
         self.window().always_ask_location_checkbox.setChecked(
             get_gui_setting(gui_settings, "ask_download_settings", True, is_bool=True))
         self.window().download_settings_anon_checkbox.setChecked(settings['download_defaults']['anonymity_enabled'])
         self.window().download_settings_anon_seeding_checkbox.setChecked(settings['download_defaults'][
-                                                                             'safeseeding_enabled'])
+                                                                             'safe_seeding_enabled'])
         self.window().watchfolder_enabled_checkbox.setChecked(settings['watch_folder']['enabled'])
         self.window().watchfolder_location_input.setText(settings['watch_folder']['directory'])
 
         # Connection settings
         self.window().lt_proxy_type_combobox.setCurrentIndex(settings['libtorrent']['proxy_type'])
-        if settings['libtorrent']['proxy_server']:
-            self.window().lt_proxy_server_input.setText(settings['libtorrent']['proxy_server'][0])
-            self.window().lt_proxy_port_input.setText("%s" % settings['libtorrent']['proxy_server'][1])
+        if settings['libtorrent']['proxy_server_ip'] and settings['libtorrent']['proxy_server_port']:
+            self.window().lt_proxy_server_input.setText(settings['libtorrent']['proxy_server_ip'])
+            self.window().lt_proxy_port_input.setText("%d" % settings['libtorrent']['proxy_server_port'])
         if settings['libtorrent']['proxy_auth']:
             self.window().lt_proxy_username_input.setText(settings['libtorrent']['proxy_auth'][0])
             self.window().lt_proxy_password_input.setText(settings['libtorrent']['proxy_auth'][1])
@@ -115,7 +115,7 @@ class SettingsPage(QWidget):
         settings_data = {'general': {}, 'Tribler': {}, 'download_defaults': {}, 'libtorrent': {}, 'watch_folder': {},
                          'tunnel_community': {}, 'trustchain': {}}
         settings_data['general']['family_filter'] = self.window().family_filter_checkbox.isChecked()
-        settings_data['download_defaults']['saveas'] = self.window().download_location_input.text()
+        settings_data['download_defaults']['destination_dir'] = self.window().download_location_input.text()
 
         settings_data['watch_folder']['enabled'] = self.window().watchfolder_enabled_checkbox.isChecked()
         if settings_data['watch_folder']['enabled']:
@@ -124,14 +124,8 @@ class SettingsPage(QWidget):
         settings_data['libtorrent']['proxy_type'] = self.window().lt_proxy_type_combobox.currentIndex()
 
         if self.window().lt_proxy_server_input.text() and len(self.window().lt_proxy_server_input.text()) > 0 and len(self.window().lt_proxy_port_input.text()) > 0:
-            settings_data['libtorrent']['proxy_server'] = [self.window().lt_proxy_server_input.text(), None]
-            settings_data['libtorrent']['proxy_server'][0] = self.window().lt_proxy_server_input.text()
-            try:
-                settings_data['libtorrent']['proxy_server'][1] = int(self.window().lt_proxy_port_input.text())
-            except ValueError:
-                ConfirmationDialog.show_error(self.window(), "Invalid proxy port number",
-                                              "You've entered an invalid format for the proxy port number.")
-                return
+            settings_data['libtorrent']['proxy_server_ip'] = self.window().lt_proxy_server_input.text(), None
+            settings_data['libtorrent']['proxy_server_port'] = self.window().lt_proxy_port_input.text()
 
         if len(self.window().lt_proxy_username_input.text()) > 0 and \
                         len(self.window().lt_proxy_password_input.text()) > 0:
@@ -177,7 +171,7 @@ class SettingsPage(QWidget):
         settings_data['download_defaults']['number_hops'] = self.window().number_hops_slider.value() + 1
         settings_data['download_defaults']['anonymity_enabled'] = \
             self.window().download_settings_anon_checkbox.isChecked()
-        settings_data['download_defaults']['safeseeding_enabled'] = \
+        settings_data['download_defaults']['safe_seeding_enabled'] = \
             self.window().download_settings_anon_seeding_checkbox.isChecked()
 
         self.window().settings_save_button.setEnabled(False)

@@ -84,7 +84,7 @@ class TestEventsEndpoint(AbstractApiTest):
         self.messages_to_wait_for = 2
 
         def send_notifications(_):
-            self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
+            self.session.download_manager.api_manager.root_endpoint.events_endpoint.start_new_query()
 
             results_dict = {"keywords": ["test"], "result_list": [('a',) * 10]}
             self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
@@ -102,7 +102,7 @@ class TestEventsEndpoint(AbstractApiTest):
         self.messages_to_wait_for = 20
 
         def send_notifications(_):
-            self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
+            self.session.download_manager.api_manager.root_endpoint.events_endpoint.start_new_query()
             results_dict = {"keywords": ["test"], "result_list": [('a',) * 10]}
             self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
             self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
@@ -123,7 +123,7 @@ class TestEventsEndpoint(AbstractApiTest):
             self.session.notifier.notify(NTFY_MARKET_ON_TRANSACTION_COMPLETE, NTFY_UPDATE, None, {'a': 'b'})
             self.session.notifier.notify(NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_UPDATE, None, {'a': 'b'})
             self.session.notifier.notify(NTFY_MARKET_ON_PAYMENT_SENT, NTFY_UPDATE, None, {'a': 'b'})
-            self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception("hi")
+            self.session.download_manager.api_manager.root_endpoint.events_endpoint.on_tribler_exception("hi")
 
         self.socket_open_deferred.addCallback(send_notifications)
 
@@ -137,7 +137,7 @@ class TestEventsEndpoint(AbstractApiTest):
         self.messages_to_wait_for = 2
 
         def send_searches(_):
-            events_endpoint = self.session.lm.api_manager.root_endpoint.events_endpoint
+            events_endpoint = self.session.download_manager.api_manager.root_endpoint.events_endpoint
 
             channels = [['a', ] * 10, ['a', ] * 10]
             channels[0][2] = 'badterm'

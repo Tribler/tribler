@@ -134,9 +134,9 @@ class TestTFTPHandler(TriblerCoreTest):
         Testing whether a FileNotFound exception is raised when metadata cannot be found
         """
         self.handler.session = MockObject()
-        self.handler.session.lm = MockObject()
-        self.handler.session.lm.metadata_store = MockObject()
-        self.handler.session.lm.metadata_store.get = lambda _: None
+        self.handler.session.download_manager = MockObject()
+        self.handler.session.download_manager.metadata_store = MockObject()
+        self.handler.session.download_manager.metadata_store.get = lambda _: None
         self.handler._load_metadata("abc")
 
     @raises(FileNotFound)
@@ -145,9 +145,9 @@ class TestTFTPHandler(TriblerCoreTest):
         Testing whether a FileNotFound exception is raised when a torrent cannot be found
         """
         self.handler.session = MockObject()
-        self.handler.session.lm = MockObject()
-        self.handler.session.lm.torrent_store = MockObject()
-        self.handler.session.lm.torrent_store.get = lambda _: None
+        self.handler.session.download_manager = MockObject()
+        self.handler.session.download_manager.torrent_store = MockObject()
+        self.handler.session.download_manager.torrent_store.get = lambda _: None
         self.handler._load_torrent("abc")
 
     def test_handle_packet_as_receiver(self):

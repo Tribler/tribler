@@ -57,16 +57,18 @@ enabled = boolean(default=True)
 max_torrents = integer(default=50000)
 directory = string(default='')
 
-[libtorrent]
+[downloading]
 enabled = boolean(default=True)
 port = integer(min=-1, max=65536, default=-1)
-proxy_type = integer(min=0, max=5, default=0)
-proxy_server = string(default='')
-proxy_auth = string(default='')
 max_connections_download = integer(default=-1)
 max_download_rate = integer(default=0)
 max_upload_rate = integer(default=0)
 utp = boolean(default=True)
+
+proxy_type = integer(min=0, max=5, default=0)
+proxy_server_ip = string(default='')
+proxy_server_port = integer(min=-1, max=65536, default=-1)
+proxy_auth = string(default='')
 
 anon_listen_port = integer(min=-1, max=65536, default=-1)
 anon_proxy_type = integer(min=0, max=5, default=0)
@@ -76,12 +78,15 @@ anon_proxy_auth = string(default='')
 
 [download_defaults]
 anonymity_enabled = boolean(default=True)
+destination_dir = string(default='')
+mode = integer(min=0, max=1, default=0)
 number_hops = integer(min=0, max=3, default=1)
-safeseeding_enabled = boolean(default=True)
-saveas = string(default=None)
+safe_seeding_enabled = boolean(default=True)
 seeding_mode = string(default='ratio')
 seeding_ratio = float(default=2.0)
 seeding_time = float(default=60)
+selected_files = string(default='')
+user_stopped = boolean(default=False)
 
 [dispersy]
 enabled = boolean(default=True)

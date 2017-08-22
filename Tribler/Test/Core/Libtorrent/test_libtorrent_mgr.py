@@ -2,10 +2,11 @@ import os
 import shutil
 import tempfile
 from libtorrent import bencode
+
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+from Tribler.Core.download.DownloadSessionHandle import DownloadSessionHandle
 from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
@@ -38,7 +39,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.tribler_session.config.get_libtorrent_max_upload_rate = lambda: 100
         self.tribler_session.config.get_libtorrent_max_download_rate = lambda: 120
 
-        self.ltmgr = LibtorrentMgr(self.tribler_session)
+        self.ltmgr = DownloadSessionHandle(self.tribler_session)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -179,7 +180,7 @@ class TestLibtorrentMgr(AbstractServer):
         """
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
         corrupt_file = os.path.join(self.LIBTORRENT_FILES_DIR, 'corrupt_torrent.torrent')
-        self.assertRaises(TorrentFileException, self.ltmgr.start_download, torrentfilename=corrupt_file)
+        self.assertRaises(TorrentFileException, self.ltmgr.start_download, torrent_filename=corrupt_file)
 
     def test_start_download_duplicate(self):
         """
@@ -211,4 +212,4 @@ class TestLibtorrentMgr(AbstractServer):
         mock_lt_session = MockObject()
         mock_lt_session.set_proxy = on_proxy_set
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
-        self.ltmgr.set_proxy_settings(mock_lt_session, 0, ('a', "1234"), ('abc', 'def'))
+        self.ltmgr.set_proxy_settings(mock_lt_session, 0, 'a', 1234, ('abc', 'def'))

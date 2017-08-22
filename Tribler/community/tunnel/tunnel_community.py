@@ -318,7 +318,7 @@ class TunnelCommunity(Community):
 
         if self.tribler_session:
             self.notifier = self.tribler_session.notifier
-            self.tribler_session.lm.tunnel_community = self
+            self.tribler_session.download_manager.tunnel_community = self
 
     def self_is_connectable(self):
         return self._dispersy._connection_type == u"public"
@@ -465,10 +465,11 @@ class TunnelCommunity(Community):
         This method is called when a download is removed. We check here whether we can stop building circuits for a
         specific number of hops in case it hasn't been finished yet.
         """
-        if download.get_hops() > 0:
-            self.num_hops_by_downloads[download.get_hops()] -= 1
-            if self.num_hops_by_downloads[download.get_hops()] == 0:
-                self.circuits_needed[download.get_hops()] = 0
+        number_hops = download.config.get_number_hops()
+        if number_hops > 0:
+            self.num_hops_by_downloads[number_hops] -= 1
+            if self.num_hops_by_downloads[number_hops] == 0:
+                self.circuits_needed[number_hops] = 0
 
     def do_remove(self):
         # Remove circuits that are inactive / are too old / have transferred too many bytes.
@@ -617,11 +618,14 @@ class TunnelCommunity(Community):
             circuit.destroy()
 
             affected_peers = self.socks_server.circuit_dead(circuit)
-            ltmgr = self.tribler_session.lm.ltmgr \
-                if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled() else None
+            ltmgr = self.tribler_session.download_manager.ltmgr \
+                if self.tribler_session and self.tribler_session.config.get_downloading_enabled() else None
             if ltmgr:
-                affected_torrents = {d: affected_peers.intersection(peer.ip for peer in d.handle.get_peer_info())
-                                     for d, s in ltmgr.torrents.values() if s == ltmgr.get_session(d.get_hops())}
+                affected_torrents = dict()
+                for download, session in ltmgr.torrents.values():
+                    if session == ltmgr.get_session(download.config.get_number_hops()):
+                        ips = (peer.ip for peer in download.handle.get_peer_info())
+                        affected_torrents[download] = affected_peers.intersection(ips)
 
                 for download, peers in affected_torrents.iteritems():
                     if peers:

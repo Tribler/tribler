@@ -15,7 +15,6 @@ from twisted.web.static import File
 
 from Tribler.Core.CreditMining.BoostingManager import BoostingManager, BoostingSettings
 from Tribler.Core.CreditMining.BoostingPolicy import SeederRatioPolicy
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockLtTorrent, ResourceFailClass
@@ -48,11 +47,11 @@ class TestBoostingManagerSys(TestAsServer):
 
         self.set_boosting_settings()
 
-        self.session.lm.ltmgr.get_session().find_torrent = lambda _: MockLtTorrent()
+        self.session.download_manager.ltmgr.get_session().find_torrent = lambda _: MockLtTorrent()
 
         self.boosting_manager = BoostingManager(self.session, self.bsettings)
 
-        self.session.lm.boosting_manager = self.boosting_manager
+        self.session.download_manager.boosting_manager = self.boosting_manager
 
     def set_boosting_settings(self):
         """
@@ -82,12 +81,11 @@ class TestBoostingManagerSys(TestAsServer):
         self.config.set_torrent_store_enabled(True)
         self.config.set_torrent_search_enabled(True)
         self.config.set_channel_search_enabled(True)
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_downloading_enabled(True)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self, annotate=True):
-        DefaultDownloadStartupConfig.delInstance()
         self.boosting_manager.shutdown()
 
         yield super(TestBoostingManagerSys, self).tearDown(annotate=annotate)
@@ -295,7 +293,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
         self.session.config.get_dispersy_enabled = lambda: True
-        self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
+        self.session.download_manager.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
         self.dispersy_cid_hex = "abcd" * 9 + "0012"
         self.dispersy_cid = binascii.unhexlify(self.dispersy_cid_hex)
 
@@ -397,9 +395,9 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
         self.create_torrents_in_channel(self.dispersy_cid_hex)
 
         # channel is exist
-        community = ChannelCommunity.init_community(self.session.lm.dispersy,
-                                                    self.session.lm.dispersy.get_member(mid=self.dispersy_cid),
-                                                    self.session.lm.dispersy._communities['allchannel']._my_member,
+        community = ChannelCommunity.init_community(self.session.download_manager.dispersy,
+                                                    self.session.download_manager.dispersy.get_member(mid=self.dispersy_cid),
+                                                    self.session.download_manager.dispersy._communities['allchannel']._my_member,
                                                     self.session)
 
         # make the id unknown so boosting manager can test repeating search
@@ -544,5 +542,5 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self):
-        self.session.lm.dispersy._communities['allchannel'].cancel_all_pending_tasks()
+        self.session.download_manager.dispersy._communities['allchannel'].cancel_all_pending_tasks()
         yield super(TestBoostingManagerSysChannel, self).tearDown()

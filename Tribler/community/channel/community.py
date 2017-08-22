@@ -707,7 +707,7 @@ class ChannelCommunity(Community):
         return message
 
     def _disp_check_modification(self, messages):
-        th_handler = self.tribler_session.lm.rtorrent_handler
+        th_handler = self.tribler_session.download_manager.rtorrent_handler
 
         for message in messages:
             if not self._channel_id:
