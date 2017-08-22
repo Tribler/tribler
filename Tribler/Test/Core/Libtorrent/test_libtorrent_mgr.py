@@ -159,9 +159,11 @@ class TestLibtorrentMgr(AbstractServer):
         """
         mock_handle = MockObject()
         mock_handle.info_hash = lambda: 'a' * 20
+        mock_handle.is_valid = lambda: False
 
         mock_ltsession = MockObject()
         mock_ltsession.add_torrent = lambda _: mock_handle
+        mock_ltsession.find_torrent = lambda _: mock_handle
         mock_ltsession.stop_upnp = lambda: None
         mock_ltsession.save_state = lambda: None
 
@@ -172,6 +174,27 @@ class TestLibtorrentMgr(AbstractServer):
         infohash.info_hash = lambda: 'a' * 20
         self.assertEqual(self.ltmgr.add_torrent(None, {'ti': infohash}), mock_handle)
         self.assertRaises(DuplicateDownloadException, self.ltmgr.add_torrent, None, {'ti': infohash})
+
+    def test_add_torrent_desync(self):
+        """
+        Testing the addition of a torrent to the libtorrent manager, if it already exists in the session.
+        """
+        mock_handle = MockObject()
+        mock_handle.info_hash = lambda: 'a' * 20
+        mock_handle.is_valid = lambda: True
+
+        mock_ltsession = MockObject()
+        mock_ltsession.add_torrent = lambda _: mock_handle
+        mock_ltsession.find_torrent = lambda _: mock_handle
+        mock_ltsession.stop_upnp = lambda: None
+        mock_ltsession.save_state = lambda: None
+
+        self.ltmgr.get_session = lambda *_: mock_ltsession
+        self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
+
+        infohash = MockObject()
+        infohash.info_hash = lambda: 'a' * 20
+        self.assertEqual(self.ltmgr.add_torrent(None, {'ti': infohash}), mock_handle)
 
     def test_remove_invalid_torrent(self):
         """

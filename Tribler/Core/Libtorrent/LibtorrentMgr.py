@@ -277,6 +277,13 @@ class LibtorrentMgr(TaskManager):
                 if request_handle:
                     ltsession.remove_torrent(request_handle, 0)
 
+            # Check if we added this torrent before
+            known = ltsession.find_torrent(lt.sha1_hash(infohash))
+            if known.is_valid():
+                self.torrents[infohash] = (torrentdl, ltsession)
+                return known
+
+            # Otherwise, add it anew
             torrent_handle = ltsession.add_torrent(encode_atp(atp))
             infohash = str(torrent_handle.info_hash())
             if infohash in self.torrents:
