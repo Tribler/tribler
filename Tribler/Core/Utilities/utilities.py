@@ -393,7 +393,7 @@ def parse_magnetlink(url):
                 # vliegendhart: Adding support for base32 in magnet links (BEP 0009)
                 encoded_infohash = value[9:49]
                 if len(encoded_infohash) == 32:
-                    xt = b32decode(encoded_infohash)
+                    xt = b32decode(encoded_infohash.upper())
                 else:
                     xt = binascii.unhexlify(encoded_infohash)
 
