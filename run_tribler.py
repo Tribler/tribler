@@ -2,7 +2,12 @@ import os
 import sys
 import multiprocessing
 
+from check_os import check_environment
+
 if __name__ == "__main__":
+    # Exit if we cant read/write files, etc.
+    check_environment()
+
     multiprocessing.freeze_support()
 
     from TriblerGUI.tribler_app import TriblerApplication
