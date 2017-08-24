@@ -164,7 +164,7 @@ class AbstractServer(BaseTestCase):
                                      "Listening ports left on the reactor during %s: %s" % (phase, reader))
 
         # Check whether the threadpool is clean
-        self.assertFalse(reactor.getThreadPool().working)
+        self.assertEqual(len(reactor.getThreadPool().working), 0)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
