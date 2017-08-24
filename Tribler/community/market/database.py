@@ -10,6 +10,7 @@ from Tribler.community.market.core.payment import Payment
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.transaction import Transaction, TransactionId, TransactionNumber
+from Tribler.community.trustchain.database import TrustChainDB
 from Tribler.dispersy.database import Database
 
 
@@ -20,6 +21,21 @@ DATABASE_PATH = path.join(DATABASE_DIRECTORY, u"market.db")
 LATEST_DB_VERSION = 1
 # Schema for the Market DB.
 schema = u"""
+CREATE TABLE IF NOT EXISTS blocks(
+ tx                   TEXT NOT NULL,
+ public_key           TEXT NOT NULL,
+ sequence_number      INTEGER NOT NULL,
+ link_public_key      TEXT NOT NULL,
+ link_sequence_number INTEGER NOT NULL,
+ previous_hash	      TEXT NOT NULL,
+ signature		      TEXT NOT NULL,
+
+ insert_time          TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+ block_hash	          TEXT NOT NULL,
+
+ PRIMARY KEY (public_key, sequence_number)
+ );
+
 CREATE TABLE IF NOT EXISTS orders(
  trader_id            TEXT NOT NULL,
  order_number         INTEGER NOT NULL,
@@ -121,22 +137,24 @@ INSERT INTO option(key, value) VALUES('database_version', '""" + str(LATEST_DB_V
 """
 
 
-class MarketDB(Database):
+class MarketDB(TrustChainDB):
     """
     Persistence layer for the Market Community.
     Connection layer to SQLiteDB.
     Ensures a proper DB schema on startup.
     """
 
-    def __init__(self, working_directory):
+    def get_schema(self):
         """
-        Sets up the persistence layer ready for use.
-        :param working_directory: Path to the working directory
-        that will contain the the db at working directory/DATABASE_PATH
-        :return:
+        Return the schema for the database.
         """
-        super(MarketDB, self).__init__(path.join(working_directory, DATABASE_PATH))
-        self.open()
+        return schema
+
+    def get_all_blocks(self):
+        """
+        Return all blocks in the database.
+        """
+        return self._getall(u"", ())
 
     def get_all_orders(self):
         """

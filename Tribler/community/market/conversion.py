@@ -22,37 +22,37 @@ class MarketConversion(BinaryConversion):
 
     def __init__(self, community):
         super(MarketConversion, self).__init__(community, "\x01")
-        self.define_meta_message(chr(1), community.get_meta_message(u"ask"),
+        self.define_meta_message(chr(3), community.get_meta_message(u"ask"),
                                  self._encode_offer, self._decode_offer)
-        self.define_meta_message(chr(2), community.get_meta_message(u"bid"),
+        self.define_meta_message(chr(4), community.get_meta_message(u"bid"),
                                  self._encode_offer, self._decode_offer)
-        self.define_meta_message(chr(3), community.get_meta_message(u"cancel-order"),
+        self.define_meta_message(chr(5), community.get_meta_message(u"cancel-order"),
                                  self._encode_cancel_order, self._decode_cancel_order)
-        self.define_meta_message(chr(4), community.get_meta_message(u"match"),
+        self.define_meta_message(chr(6), community.get_meta_message(u"match"),
                                  self._encode_match, self._decode_match)
-        self.define_meta_message(chr(5), community.get_meta_message(u"accept-match"),
+        self.define_meta_message(chr(7), community.get_meta_message(u"accept-match"),
                                  self._encode_accept_match, self._decode_accept_match)
-        self.define_meta_message(chr(6), community.get_meta_message(u"decline-match"),
+        self.define_meta_message(chr(8), community.get_meta_message(u"decline-match"),
                                  self._encode_decline_match, self._decode_decline_match)
-        self.define_meta_message(chr(7), community.get_meta_message(u"offer-sync"),
+        self.define_meta_message(chr(9), community.get_meta_message(u"offer-sync"),
                                  self._encode_offer_sync, self._decode_offer_sync)
-        self.define_meta_message(chr(8), community.get_meta_message(u"proposed-trade"),
+        self.define_meta_message(chr(10), community.get_meta_message(u"proposed-trade"),
                                  self._encode_proposed_trade, self._decode_proposed_trade)
-        self.define_meta_message(chr(9), community.get_meta_message(u"declined-trade"),
+        self.define_meta_message(chr(11), community.get_meta_message(u"declined-trade"),
                                  self._encode_declined_trade, self._decode_declined_trade)
-        self.define_meta_message(chr(10), community.get_meta_message(u"counter-trade"),
+        self.define_meta_message(chr(12), community.get_meta_message(u"counter-trade"),
                                  self._encode_proposed_trade, self._decode_proposed_trade)
-        self.define_meta_message(chr(11), community.get_meta_message(u"start-transaction"),
+        self.define_meta_message(chr(13), community.get_meta_message(u"start-transaction"),
                                  self._encode_start_transaction, self._decode_start_transaction)
-        self.define_meta_message(chr(12), community.get_meta_message(u"wallet-info"),
+        self.define_meta_message(chr(14), community.get_meta_message(u"wallet-info"),
                                  self._encode_wallet_info, self._decode_wallet_info)
-        self.define_meta_message(chr(13), community.get_meta_message(u"payment"),
+        self.define_meta_message(chr(15), community.get_meta_message(u"payment"),
                                  self._encode_payment, self._decode_payment)
-        self.define_meta_message(chr(14), community.get_meta_message(u"end-transaction"),
+        self.define_meta_message(chr(16), community.get_meta_message(u"end-transaction"),
                                  self._encode_transaction, self._decode_transaction)
-        self.define_meta_message(chr(15), community.get_meta_message(u"transaction-completed"),
+        self.define_meta_message(chr(17), community.get_meta_message(u"transaction-completed"),
                                  self._encode_transaction_completed, self._decode_transaction_completed)
-        self.define_meta_message(chr(16), community.get_meta_message(u"transaction-completed-bc"),
+        self.define_meta_message(chr(18), community.get_meta_message(u"transaction-completed-bc"),
                                  self._encode_transaction_completed_bc, self._decode_transaction_completed_bc)
 
     def _encode_introduction_request(self, message):

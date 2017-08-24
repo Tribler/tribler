@@ -1,8 +1,8 @@
 import os
 
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.community.tradechain.block import TradeChainBlock
-from Tribler.community.tradechain.database import TradeChainDB
+from Tribler.community.market.database import MarketDB
+from Tribler.community.market.tradechain.block import TradeChainBlock
 
 
 class TestReputationBase(AbstractServer):
@@ -14,10 +14,10 @@ class TestReputationBase(AbstractServer):
         super(TestReputationBase, self).setUp(annotate=annotate)
 
         os.mkdir(os.path.join(self.session_base_dir, 'sqlite'))
-        self.tradechain_db = TradeChainDB(self.session_base_dir, 'tradechain')
+        self.market_db = MarketDB(self.session_base_dir, 'market')
 
     def insert_transaction(self, pubkey1, pubkey2, asset1_type, asset1_amount, asset2_type, asset2_amount):
-        latest_block = self.tradechain_db.get_latest(pubkey1)
+        latest_block = self.market_db.get_latest(pubkey1)
 
         block = TradeChainBlock()
         block.public_key = pubkey1
@@ -30,4 +30,4 @@ class TestReputationBase(AbstractServer):
                        "asset2_type": asset2_type, "asset2_amount": asset2_amount}
         block.transaction = transaction
 
-        self.tradechain_db.add_block(block)
+        self.market_db.add_block(block)

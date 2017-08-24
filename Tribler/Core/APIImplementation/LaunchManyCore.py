@@ -37,7 +37,6 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
 from Tribler.community.market.wallet.btc_wallet import BitcoinWallet
 from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
-from Tribler.community.tradechain.community import TradeChainCommunity
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
@@ -274,14 +273,9 @@ class TriblerLaunchMany(TaskManager):
             keypair = self.session.tradechain_keypair
             dispersy_member = self.dispersy.get_member(private_key=keypair.key_to_bin())
 
-            tradechain_community = self.dispersy.define_auto_load(TradeChainCommunity,
-                                                                  dispersy_member, load=True,
-                                                                  kargs={})[0]
-            market_kwargs = {'tribler_session': self.session, 'wallets': wallets,
-                             'tradechain_community': tradechain_community}
+            market_kwargs = {'tribler_session': self.session, 'wallets': wallets}
             self.market_community = self.dispersy.define_auto_load(MarketCommunity, dispersy_member,
                                                                    load=True, kargs=market_kwargs)[0]
-            tradechain_community.market_community = self.market_community
 
         self.session.config.set_anon_proxy_settings(2, ("127.0.0.1",
                                                         self.session.config.get_tunnel_community_socks5_listen_ports()))

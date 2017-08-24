@@ -234,7 +234,7 @@ class TestDatabaseOrderBook(AbstractTestOrderBook):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        self.database = MarketDB(self.getStateDir())
+        self.database = MarketDB(self.getStateDir(), 'market')
         self.order_book = DatabaseOrderBook(self.database)
 
     @blocking_call_on_reactor_thread

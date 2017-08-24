@@ -46,12 +46,13 @@ class TestMarketSession(TestMarketBase):
                 self.assertEqual(order_bid.traded_quantity, Quantity(10, 'MC'))
                 self.assertEqual(len(order_ask.reserved_ticks.keys()), 0)
                 self.assertEqual(len(order_bid.reserved_ticks.keys()), 0)
-                self.assertEqual(len(ask_community.order_book.asks) + len(ask_community.order_book.bids), 0)
-                self.assertEqual(len(bid_community.order_book.asks) + len(bid_community.order_book.bids), 0)
 
                 test_deferred.callback(None)
 
         on_received_half_block.num_called = 0
+
+        self._logger.error("ASK LAN: %s %d" % self.session.get_dispersy_instance().lan_address)
+        self._logger.error("BID LAN: %s %d" % bid_session.get_dispersy_instance().lan_address)
 
         ask_community.add_discovered_candidate(
             Candidate(bid_session.get_dispersy_instance().lan_address, tunnel=False))
@@ -61,8 +62,8 @@ class TestMarketSession(TestMarketBase):
         bid_community.create_bid(10, 'DUM1', 10, 'MC', 3600)
         ask_community.create_ask(10, 'DUM1', 10, 'MC', 3600)
 
-        ask_community.tradechain_community.wait_for_signature_response().addCallback(on_received_half_block)
-        bid_community.tradechain_community.wait_for_signature_response().addCallback(on_received_half_block)
+        ask_community.wait_for_signature_response().addCallback(on_received_half_block)
+        bid_community.wait_for_signature_response().addCallback(on_received_half_block)
 
         yield test_deferred
 

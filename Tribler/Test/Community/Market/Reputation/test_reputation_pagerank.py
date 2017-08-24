@@ -14,7 +14,7 @@ class TestReputationPagerank(TestReputationBase):
         self.insert_transaction('b', 'd', 1, 20, 2, 20)
         self.insert_transaction('d', 'e', 1, 10, 2, 10)
 
-        blocks = self.tradechain_db.get_all_blocks()
+        blocks = self.market_db.get_all_blocks()
         rep_manager = PagerankReputationManager(blocks)
         rep = rep_manager.compute(own_public_key='a')
         self.assertIsInstance(rep, dict)

@@ -203,16 +203,6 @@ class TriblerConfig(object):
     def get_trustchain_live_edges_enabled(self):
         return self.config['trustchain']['live_edges_enabled']
 
-    def set_tradechain_permid_keypair_filename(self, keypairfilename):
-        self.config['tradechain']['ec_keypair_filename'] = keypairfilename
-
-    def get_tradechain_permid_keypair_filename(self):
-        file_name = self.config['tradechain']['ec_keypair_filename']
-        if not file_name:
-            file_name = os.path.join(self.get_state_dir(), 'ec_tradechain.pem')
-            self.set_tradechain_permid_keypair_filename(file_name)
-        return file_name
-
     def set_megacache_enabled(self, value):
         self.config['general']['megacache'] = value
 
@@ -483,6 +473,16 @@ class TriblerConfig(object):
 
     def get_is_matchmaker(self):
         return self.config['market_community']['matchmaker']
+
+    def set_tradechain_permid_keypair_filename(self, keypairfilename):
+        self.config['market_community']['ec_keypair_filename'] = keypairfilename
+
+    def get_tradechain_permid_keypair_filename(self):
+        file_name = self.config['market_community']['ec_keypair_filename']
+        if not file_name:
+            file_name = os.path.join(self.get_state_dir(), 'ec_tradechain.pem')
+            self.set_tradechain_permid_keypair_filename(file_name)
+        return file_name
 
     # Wallets
 

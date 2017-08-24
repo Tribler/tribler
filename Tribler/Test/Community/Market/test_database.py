@@ -30,7 +30,7 @@ class TestDatabase(AbstractServer):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        self.database = MarketDB(self.getStateDir())
+        self.database = MarketDB(self.getStateDir(), 'market')
 
         self.order_id1 = OrderId(TraderId('3'), OrderNumber(4))
         self.order_id2 = OrderId(TraderId('4'), OrderNumber(5))

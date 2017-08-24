@@ -2,6 +2,9 @@ import random
 import time
 from base64 import b64decode
 
+from Tribler.community.market.tradechain.block import TradeChainBlock
+from Tribler.community.trustchain.community import TrustChainCommunity
+from Tribler.community.trustchain.community import TrustChainConversion
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
 
@@ -25,7 +28,7 @@ from Tribler.community.market.core.tick import Ask, Bid, Tick
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import Trade, ProposedTrade, DeclinedTrade, CounterTrade
-from Tribler.community.market.core.transaction import StartTransaction, TransactionId, Transaction
+from Tribler.community.market.core.transaction import StartTransaction, TransactionId, Transaction, TransactionNumber
 from Tribler.community.market.core.transaction_manager import TransactionManager
 from Tribler.community.market.core.transaction_repository import DatabaseTransactionRepository,\
     MemoryTransactionRepository
@@ -74,10 +77,13 @@ class ProposedTradeRequestCache(NumberCache):
                                                       DeclineMatchReason.OTHER)
 
 
-class MarketCommunity(Community):
+class MarketCommunity(TrustChainCommunity):
     """
     Community for general asset trading.
     """
+    BLOCK_CLASS = TradeChainBlock
+    DB_CLASS = MarketDB
+    DB_NAME = 'market'
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -134,7 +140,7 @@ class MarketCommunity(Community):
         self.mid = self.my_member.mid.encode('hex')
         self.is_matchmaker = is_matchmaker
         self.message_repository = MemoryMessageRepository(self.mid)
-        self.market_database = MarketDB(self.dispersy.working_directory)
+        self.market_database = self.persistence
 
         if self.is_matchmaker:
             self.enable_matchmaker()
@@ -301,10 +307,19 @@ class MarketCommunity(Community):
         self._meta_messages[u"dispersy-introduction-request"] = new
 
     def initiate_conversions(self):
-        return [DefaultConversion(self), MarketConversion(self)]
+        return [DefaultConversion(self), TrustChainConversion(self), MarketConversion(self)]
 
     def start_walking(self):
         self.register_task("take step", LoopingCall(self.take_step)).start(5.0, now=False)
+
+    def should_sign(self, message):
+        """
+        Only sign the block if we have a (completed) transaction in the market community with the specific txid.
+        """
+        trader_id_str, transaction_number_str = message.payload.block.transaction["txid"].split(".")
+        txid = TransactionId(TraderId(trader_id_str), TransactionNumber(int(transaction_number_str)))
+        transaction = self.transaction_manager.find_by_id(txid)
+        return bool(transaction)
 
     def enable_matchmaker(self):
         """
@@ -1486,7 +1501,7 @@ class MarketCommunity(Community):
     def send_end_transaction(self, transaction, timestamp):
         # Lookup the remote address of the peer with the pubkey
         self._logger.debug("Sending end transaction (quantity: %s)", transaction.total_quantity)
-        candidate = Candidate(self.lookup_ip(transaction.partner_order_id.trader_id), False)
+        candidate = self.get_candidate(self.lookup_ip(transaction.partner_order_id.trader_id))
 
         message_id = self.message_repository.next_identity()
 
@@ -1507,17 +1522,14 @@ class MarketCommunity(Community):
         self.dispersy.store_update_forward([message], True, False, True)
         self.notify_transaction_complete(transaction)
 
-        if self.tradechain_community:
-            member = self.dispersy.get_member(mid=str(transaction.partner_order_id.trader_id).decode('hex'))
-            candidate.associate(member)
-            self.tradechain_community.add_discovered_candidate(candidate)
-
-            quantity = transaction.total_quantity
-            price = transaction.price
-            transaction = {"txid": str(transaction.transaction_id),
-                           "asset1_type": price.wallet_id, "asset1_amount": float(price),
-                           "asset2_type": quantity.wallet_id, "asset2_amount": float(quantity)}
-            self.tradechain_community.sign_block(candidate, candidate.get_member().public_key, transaction)
+        # Send half block
+        quantity = transaction.total_quantity
+        price = transaction.price
+        transaction_dict = {"txid": str(transaction.transaction_id),
+                            "asset1_type": price.wallet_id, "asset1_amount": float(price),
+                            "asset2_type": quantity.wallet_id, "asset2_amount": float(quantity)
+                            }
+        self.sign_block(candidate, candidate.get_member().public_key, transaction_dict)
 
     def abort_transaction(self, transaction):
         """
@@ -1647,6 +1659,5 @@ class MarketCommunity(Community):
         """
         Compute the reputation of peers in the community
         """
-        if self.tradechain_community:
-            rep_manager = PagerankReputationManager(self.tradechain_community.persistence.get_all_blocks())
-            self.reputation_dict = rep_manager.compute(self.my_member.public_key)
+        rep_manager = PagerankReputationManager(self.tradechain_community.persistence.get_all_blocks())
+        self.reputation_dict = rep_manager.compute(self.my_member.public_key)

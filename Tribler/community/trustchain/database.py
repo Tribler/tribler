@@ -28,7 +28,6 @@ class TrustChainDB(Database):
         db_path = os.path.join(working_directory, os.path.join(DATABASE_DIRECTORY, u"%s.db" % db_name))
         super(TrustChainDB, self).__init__(db_path)
         self._logger.debug("TrustChain database path: %s", db_path)
-        self.db_name = db_name
         self.open()
 
     def add_block(self, block):
@@ -37,8 +36,8 @@ class TrustChainDB(Database):
         :param block: The data that will be saved.
         """
         self.execute(
-            u"INSERT INTO %s (tx, public_key, sequence_number, link_public_key,"
-            u"link_sequence_number, previous_hash, signature, block_hash) VALUES(?,?,?,?,?,?,?,?)" % self.db_name,
+            u"INSERT INTO blocks (tx, public_key, sequence_number, link_public_key,"
+            u"link_sequence_number, previous_hash, signature, block_hash) VALUES(?,?,?,?,?,?,?,?)",
             block.pack_db_insert())
         self.commit()
 
@@ -73,8 +72,8 @@ class TrustChainDB(Database):
         :param public_key: The public_key for which the latest block has to be found.
         :return: the latest block or None if it is not known
         """
-        return self._get(u"WHERE public_key = ? AND sequence_number = (SELECT MAX(sequence_number) FROM %s "
-                         u"WHERE public_key = ?)" % self.db_name, (buffer(public_key), buffer(public_key)))
+        return self._get(u"WHERE public_key = ? AND sequence_number = (SELECT MAX(sequence_number) FROM blocks "
+                         u"WHERE public_key = ?)", (buffer(public_key), buffer(public_key)))
 
     def get_latest_blocks(self, public_key, limit=25):
         return self._getall(u"WHERE public_key = ? ORDER BY sequence_number DESC LIMIT ?", (buffer(public_key), limit))
@@ -109,9 +108,9 @@ class TrustChainDB(Database):
 
     def crawl(self, public_key, sequence_number, limit=100):
         assert limit <= 100, "Don't fetch too much"
-        return self._getall(u"WHERE insert_time >= (SELECT MAX(insert_time) FROM %s WHERE public_key = ? AND "
+        return self._getall(u"WHERE insert_time >= (SELECT MAX(insert_time) FROM blocks WHERE public_key = ? AND "
                             u"sequence_number <= ?) AND (public_key = ? OR link_public_key = ?) "
-                            u"ORDER BY insert_time ASC LIMIT ?" % self.db_name,
+                            u"ORDER BY insert_time ASC LIMIT ?",
                             (buffer(public_key), sequence_number, buffer(public_key), buffer(public_key), limit))
 
     def get_sql_header(self):
@@ -120,14 +119,14 @@ class TrustChainDB(Database):
         """
         _columns = u"tx, public_key, sequence_number, link_public_key, link_sequence_number, " \
                    u"previous_hash, signature, insert_time"
-        return u"SELECT " + _columns + u" FROM %s " % self.db_name
+        return u"SELECT " + _columns + u" FROM blocks "
 
     def get_schema(self):
         """
         Return the schema for the database.
         """
         return u"""
-        CREATE TABLE IF NOT EXISTS %s(
+        CREATE TABLE IF NOT EXISTS blocks(
          tx                   TEXT NOT NULL,
          public_key           TEXT NOT NULL,
          sequence_number      INTEGER NOT NULL,
@@ -144,7 +143,7 @@ class TrustChainDB(Database):
 
         CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
         INSERT INTO option(key, value) VALUES('database_version', '%s');
-        """ % (self.db_name, str(self.LATEST_DB_VERSION))
+        """ % (str(self.LATEST_DB_VERSION))
 
     def get_upgrade_script(self, current_version):
         """

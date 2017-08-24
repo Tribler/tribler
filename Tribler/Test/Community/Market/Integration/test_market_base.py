@@ -12,7 +12,6 @@ from Tribler.community.market.wallet.btc_wallet import BitcoinWallet
 from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
 from Tribler.community.triblerchain.community import TriblerChainCommunity
-from Tribler.community.tradechain.community import TradeChainCommunity
 from Tribler.dispersy.crypto import ECCrypto
 from Tribler.dispersy.discovery.community import BOOTSTRAP_FILE_ENVNAME
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -33,6 +32,22 @@ class MarketCommunityTests(MarketCommunity):
         master = dispersy.get_member(public_key=master_key_hex)
         return [master]
 
+    def __init__(self, *args, **kwargs):
+        super(MarketCommunityTests, self).__init__(*args, **kwargs)
+        self.expected_sig_response = None
+
+    def wait_for_signature_response(self):
+        response_deferred = Deferred()
+        self.expected_sig_response = response_deferred
+        return response_deferred
+
+    def received_half_block(self, messages):
+        super(MarketCommunityTests, self).received_half_block(messages)
+
+        if self.expected_sig_response:
+            self.expected_sig_response.callback(None)
+            self.expected_sig_response = None
+
 
 class TriblerChainCommunityTests(TriblerChainCommunity):
     """
@@ -45,35 +60,6 @@ class TriblerChainCommunityTests(TriblerChainCommunity):
         master_key_hex = TriblerChainCommunityTests.master_key.decode("HEX")
         master = dispersy.get_member(public_key=master_key_hex)
         return [master]
-
-
-class TradeChainCommunityTests(TradeChainCommunity):
-    """
-    We are using a seperate community so we do not interact with the live market.
-    """
-    master_key = ""
-
-    def __init__(self, *args, **kwargs):
-        super(TradeChainCommunityTests, self).__init__(*args, **kwargs)
-        self.expected_sig_response = None
-
-    def wait_for_signature_response(self):
-        response_deferred = Deferred()
-        self.expected_sig_response = response_deferred
-        return response_deferred
-
-    @classmethod
-    def get_master_members(cls, dispersy):
-        master_key_hex = TradeChainCommunityTests.master_key.decode("HEX")
-        master = dispersy.get_member(public_key=master_key_hex)
-        return [master]
-
-    def received_half_block(self, messages):
-        super(TradeChainCommunityTests, self).received_half_block(messages)
-
-        if self.expected_sig_response:
-            self.expected_sig_response.callback(None)
-            self.expected_sig_response = None
 
 
 class TestMarketBase(TestAsServer):
@@ -99,8 +85,6 @@ class TestMarketBase(TestAsServer):
         MarketCommunityTests.master_key = self.eccrypto.key_to_bin(ec.pub()).encode('hex')
         ec = self.eccrypto.generate_key(u"curve25519")
         TriblerChainCommunityTests.master_key = self.eccrypto.key_to_bin(ec.pub()).encode('hex')
-        ec = self.eccrypto.generate_key(u"curve25519")
-        TradeChainCommunityTests.master_key = self.eccrypto.key_to_bin(ec.pub()).encode('hex')
 
         market_member = self.generate_member(self.session)
 
@@ -141,15 +125,10 @@ class TestMarketBase(TestAsServer):
 
         dispersy = session.get_dispersy_instance()
 
-        # Load TradeChain
-        tradechain_community = dispersy.define_auto_load(TradeChainCommunityTests,
-                                                         market_member, load=True, kargs={})[0]
-
         # Load MarketCommunity
-        market_kargs = {'tribler_session': session, 'tradechain_community': tradechain_community, 'wallets': wallets}
+        market_kargs = {'tribler_session': session, 'wallets': wallets}
         self.market_communities[session] = dispersy.define_auto_load(
             MarketCommunityTests, market_member, kargs=market_kargs, load=True)[0]
-        tradechain_community.market_community = self.market_communities[session]
         return self.market_communities[session]
 
     @blocking_call_on_reactor_thread
