@@ -189,6 +189,34 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
         return result_deferred.addCallback(lambda _: impl.stop())
 
+    @deferred(timeout=10)
+    def test_save_resume_disabled(self):
+        """
+        testing call resume data alert, if checkpointing is disabled
+        """
+        tdef = self.create_tdef()
+
+        impl = LibtorrentDownloadImpl(self.session, tdef)
+
+        def callback(_):
+            """
+            callback after finishing setup in LibtorrentDownloadImpl
+            """
+            basename = binascii.hexlify(tdef.get_infohash()) + '.state'
+            filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
+
+            self.assertFalse(os.path.isfile(filename))
+
+        # This should not cause a checkpoint
+        result_deferred = impl.setup(None, None, 0, checkpoint_disabled=True)
+        result_deferred.addCallback(callback)
+
+        # This shouldn't either
+        impl.checkpoint()
+        callback(None)
+
+        return result_deferred.addCallback(lambda _: impl.stop())
+
 
 class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
 

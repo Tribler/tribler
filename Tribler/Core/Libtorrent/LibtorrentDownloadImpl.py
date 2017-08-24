@@ -237,7 +237,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 def schedule_create_engine():
                     self.cew_scheduled = True
                     create_engine_wrapper_deferred = self.network_create_engine_wrapper(
-                        self.pstate_for_restart, share_mode=share_mode)
+                        self.pstate_for_restart, share_mode=share_mode, checkpoint_disabled=checkpoint_disabled)
                     create_engine_wrapper_deferred.chainDeferred(deferred)
 
                 def schedule_create_engine_call(_):
@@ -543,6 +543,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         Callback for the alert that contains the resume data of a specific download.
         This resume data will be written to a file on disk.
         """
+        if self._checkpoint_disabled:
+            return
+
         resume_data = alert.resume_data
 
         self.pstate_for_restart = self.get_persistent_download_config()
@@ -1159,9 +1162,18 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         """
         Checkpoint this download. Returns a deferred that fires when the checkpointing is completed.
         """
-        if self._checkpoint_disabled or not self.handle or not self.handle.is_valid():
-            self._logger.warning("Ignoring checkpoint() call as checkpointing is disabled for this download "
-                                 "or the handle is not ready.")
+        if self._checkpoint_disabled:
+            self._logger.warning("Ignoring checkpoint() call as checkpointing is disabled for this download")
+            return succeed(None)
+
+        if not self.handle or not self.handle.is_valid():
+            resume_data = {
+                'file-format': "libtorrent resume file",
+                'file-version': 1,
+                'info-hash': self.tdef.get_infohash()
+            }
+            alert = type('anonymous_alert', (object, ), dict(resume_data=resume_data))
+            self.on_save_resume_data_alert(alert)
             return succeed(None)
 
         return self.save_resume_data()
