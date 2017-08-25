@@ -275,6 +275,13 @@ class LibtorrentMgr(TaskManager):
                 if request_handle:
                     ltsession.remove_torrent(request_handle, 0)
 
+            # Check if we added this torrent before
+            known = ltsession.find_torrent(lt.sha1_hash(infohash))
+            if known.is_valid():
+                self.torrents[infohash] = (torrentdl, ltsession)
+                return known
+
+            # Otherwise, add it anew
             torrent_handle = ltsession.add_torrent(encode_atp(atp))
             infohash = str(torrent_handle.info_hash())
             if infohash in self.torrents:
@@ -333,8 +340,9 @@ class LibtorrentMgr(TaskManager):
             else:
                 if alert_type == 'torrent_removed_alert':
                     info_hash = str(alert.info_hash)
-                    self.torrents[info_hash][0].deferred_removed.callback(None)
-                    del self.torrents[info_hash]
+                    if info_hash in self.torrents:
+                        self.torrents[info_hash][0].deferred_removed.callback(None)
+                        del self.torrents[info_hash]
                 self._logger.debug("Alert for invalid torrent")
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, timeout_callback=None, notify=True):
