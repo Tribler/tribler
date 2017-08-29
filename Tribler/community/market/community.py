@@ -1,15 +1,16 @@
+import random
 import time
 from base64 import b64decode
 
-from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
-from twisted.internet.task import LoopingCall, deferLater
+from twisted.internet.task import LoopingCall
 
 from Tribler.Core.simpledefs import NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_TRANSACTION_COMPLETE, \
     NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID_TIMEOUT, NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT
 from Tribler.Core.simpledefs import NTFY_UPDATE
 from Tribler.community.market.conversion import MarketConversion
 from Tribler.community.market.core.matching_engine import MatchingEngine, PriceTimeStrategy
+from Tribler.community.market.core import DeclineMatchReason, DeclinedTradeReason
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.message_repository import MemoryMessageRepository
 from Tribler.community.market.core.order import OrderId, Order
@@ -33,10 +34,11 @@ from Tribler.community.market.core.wallet_address import WalletAddress
 from Tribler.community.market.database import MarketDB
 from Tribler.community.market.payload import OfferPayload, TradePayload, DeclinedTradePayload,\
     StartTransactionPayload, TransactionPayload, WalletInfoPayload, MarketIntroPayload, OfferSyncPayload,\
-    PaymentPayload, CancelOrderPayload
+    PaymentPayload, CancelOrderPayload, MatchPayload, AcceptMatchPayload, DeclineMatchPayload, \
+    TransactionCompletedPayload, TransactionCompletedBCPayload
 from Tribler.community.market.reputation.pagerank_manager import PagerankReputationManager
 from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
-from Tribler.dispersy.authentication import MemberAuthentication
+from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.candidate import Candidate, WalkCandidate
 from Tribler.dispersy.community import Community
@@ -52,11 +54,12 @@ class ProposedTradeRequestCache(NumberCache):
     """
     This cache keeps track of outstanding proposed trade messages.
     """
-    def __init__(self, community, proposed_trade):
+    def __init__(self, community, proposed_trade, match_id):
         super(ProposedTradeRequestCache, self).__init__(community.request_cache, u"proposed-trade",
                                                         proposed_trade.proposal_id)
         self.community = community
         self.proposed_trade = proposed_trade
+        self.match_id = match_id
 
     def on_timeout(self):
         # Just remove the reserved quantity from the order
@@ -64,9 +67,11 @@ class ProposedTradeRequestCache(NumberCache):
         order.release_quantity_for_tick(self.proposed_trade.recipient_order_id, self.proposed_trade.quantity)
         self.community.order_manager.order_repository.update(order)
 
-        self._logger.debug("Proposed trade timed out, trying to find a new match for this order")
-        self.community.order_book.remove_tick(self.proposed_trade.recipient_order_id)
-        self.community.match(order)
+        if self.match_id:
+            # Inform the matchmaker about the failed trade
+            match_message = self.community.incoming_match_messages[self.match_id]
+            self.community.send_decline_match_message(self.match_id, match_message.payload.matchmaker_trader_id,
+                                                      DeclineMatchReason.OTHER)
 
 
 class MarketCommunity(Community):
@@ -103,10 +108,12 @@ class MarketCommunity(Community):
         self.mid_register = {}
         self.relayed_ticks = {}  # Dictionary of OrderId -> Timestamp
         self.relayed_cancels = []
+        self.relayed_completed_transaction = {}
         self.order_manager = None
         self.order_book = None
         self.market_database = None
         self.matching_engine = None
+        self.incoming_match_messages = {}  # Map of TraderId -> Message (we save all incoming matches)
         self.tribler_session = None
         self.tradechain_community = None
         self.wallets = None
@@ -114,18 +121,23 @@ class MarketCommunity(Community):
         self.reputation_dict = {}
         self.use_local_address = False
         self.matching_enabled = True
+        self.is_matchmaker = True
+        self.message_repository = None
         self.use_incremental_payments = True
         self.validate_tick_signatures = True
-        self.pending_proposed_trades = []  # List of tuple (order_id, ProposedTrade)
+        self.matchmakers = set()
 
-    def initialize(self, tribler_session=None, tradechain_community=None, wallets=None, use_database=True):
+    def initialize(self, tribler_session=None, tradechain_community=None, wallets=None,
+                   use_database=True, is_matchmaker=True):
         super(MarketCommunity, self).initialize()
 
         self.mid = self.my_member.mid.encode('hex')
-        message_repository = MemoryMessageRepository(self.mid)
+        self.is_matchmaker = is_matchmaker
+        self.message_repository = MemoryMessageRepository(self.mid)
         self.market_database = MarketDB(self.dispersy.working_directory)
-        self.order_book = DatabaseOrderBook(message_repository, self.market_database)
-        self.order_book.restore_from_database()
+
+        if self.is_matchmaker:
+            self.enable_matchmaker()
 
         for trader in self.market_database.get_traders():
             self.update_ip(TraderId(str(trader[0])), (str(trader[1]), trader[2]))
@@ -138,7 +150,6 @@ class MarketCommunity(Community):
             transaction_repository = MemoryTransactionRepository(self.mid)
 
         self.order_manager = OrderManager(order_repository)
-        self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book))
         self.tribler_session = tribler_session
         self.tradechain_community = tradechain_community
         self.wallets = wallets or {}
@@ -152,7 +163,7 @@ class MarketCommunity(Community):
     def initiate_meta_messages(self):
         return super(MarketCommunity, self).initiate_meta_messages() + [
             Message(self, u"ask",
-                    MemberAuthentication(),
+                    NoAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CommunityDestination(node_count=10),
@@ -160,7 +171,7 @@ class MarketCommunity(Community):
                     self.check_tick_message,
                     self.on_tick),
             Message(self, u"bid",
-                    MemberAuthentication(),
+                    NoAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CommunityDestination(node_count=10),
@@ -175,6 +186,30 @@ class MarketCommunity(Community):
                     CancelOrderPayload(),
                     self.check_message,
                     self.on_cancel_order),
+            Message(self, u"match",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    MatchPayload(),
+                    self.check_message,
+                    self.on_match_message),
+            Message(self, u"accept-match",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    AcceptMatchPayload(),
+                    self.check_message,
+                    self.on_accept_match_message),
+            Message(self, u"decline-match",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    DeclineMatchPayload(),
+                    self.check_message,
+                    self.on_decline_match_message),
             Message(self, u"offer-sync",
                     MemberAuthentication(),
                     PublicResolution(),
@@ -238,7 +273,23 @@ class MarketCommunity(Community):
                     CandidateDestination(),
                     TransactionPayload(),
                     self.check_transaction_message,
-                    self.on_end_transaction)
+                    self.on_end_transaction),
+            Message(self, u"transaction-completed",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    TransactionCompletedPayload(),
+                    self.check_transaction_message,
+                    self.on_transaction_completed_message),
+            Message(self, u"transaction-completed-bc",
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CommunityDestination(node_count=10),
+                    TransactionCompletedBCPayload(),
+                    self.check_transaction_message,
+                    self.on_transaction_completed_bc_message)
         ]
 
     def _initialize_meta_messages(self):
@@ -252,25 +303,58 @@ class MarketCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), MarketConversion(self)]
 
+    def start_walking(self):
+        self.register_task("take step", LoopingCall(self.take_step)).start(5.0, now=False)
+
+    def enable_matchmaker(self):
+        """
+        Enable this node to be a matchmaker
+        """
+        self.order_book = DatabaseOrderBook(self.market_database)
+        self.order_book.restore_from_database()
+        self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book))
+        self.is_matchmaker = True
+
+    def disable_matchmaker(self):
+        """
+        Disable the matchmaker status of this node
+        """
+        self.order_book = None
+        self.matching_engine = None
+        self.is_matchmaker = False
+
     def get_wallet_ids(self):
         """
         Return the IDs of all wallets in the market community.
         """
         return self.wallets.keys()
 
+    def dispersy_get_introduce_candidate(self, exclude_candidate=None):
+        """
+        Return a matchmaker with higher priority as introduce candidate.
+        """
+        if len(self.matchmakers) == 0:
+            return super(MarketCommunity, self).dispersy_get_introduce_candidate(exclude_candidate)
+
+        matchmaker = random.sample(self.matchmakers, 1)[0]
+        self._logger.debug("Introducing other node to matchmaker %s:%d", *matchmaker)
+        return self.get_candidate(matchmaker)
+
     def create_introduction_request(self, destination, allow_sync):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
 
-        order_ids = [str(order_id) for order_id in self.order_book.get_order_ids()]
-        if len(order_ids) == 0:
-            orders_bloom_filter = None
-        else:
-            orders_bloom_filter = BloomFilter(0.005, len(order_ids), prefix=' ')
-            orders_bloom_filter.add_keys(order_ids)
+        orders_bloom_filter = None
+        if self.is_matchmaker:
+            order_ids = [str(order_id) for order_id in self.order_book.get_order_ids()]
+            if len(order_ids) == 0:
+                orders_bloom_filter = None
+            else:
+                orders_bloom_filter = BloomFilter(0.005, len(order_ids), prefix=' ')
+                orders_bloom_filter.add_keys(order_ids)
 
         cache = self._request_cache.add(IntroductionRequestCache(self, destination))
         payload = (destination.sock_addr, self._dispersy.lan_address, self._dispersy.wan_address, True,
-                   self._dispersy.connection_type, None, cache.number, orders_bloom_filter)
+                   self._dispersy.connection_type, None, cache.number, self.is_matchmaker, orders_bloom_filter)
 
         destination.walk(time.time())
         self.add_candidate(destination)
@@ -290,9 +374,16 @@ class MarketCommunity(Community):
         super(MarketCommunity, self).on_introduction_request(messages)
 
         for message in messages:
+            if not self.is_matchmaker:
+                continue
+
+            if message.payload.is_matchmaker:
+                self.matchmakers.add(message.candidate.sock_addr)
+
             orders_bloom_filter = message.payload.orders_bloom_filter
             for order_id in self.order_book.get_order_ids():
-                if not orders_bloom_filter or str(order_id) not in orders_bloom_filter:
+                if (not orders_bloom_filter or str(order_id) not in orders_bloom_filter) and \
+                        message.payload.is_matchmaker:
                     is_ask = self.order_book.ask_exists(order_id)
                     entry = self.order_book.get_ask(order_id) if is_ask else self.order_book.get_bid(order_id)
                     self.send_offer_sync(message.candidate, entry.tick)
@@ -315,10 +406,6 @@ class MarketCommunity(Community):
             else:
                 tick = Ask.from_network(message.payload)\
                     if message.name == u"ask" else Bid.from_network(message.payload)
-            allowed, _ = self._timeline.check(message)
-            if not allowed:
-                yield DelayMessageByProof(message)
-                continue
 
             if tick.order_id.trader_id == TraderId(self.mid):
                 yield DropMessage(message, "We don't accept ticks originating from ourselves")
@@ -337,9 +424,9 @@ class MarketCommunity(Community):
             self.market_database.add_trader_identity(trader_id, sock_addr[0], sock_addr[1])
 
         # Save the ticks to the database
-        self.order_book.save_to_database()
-
-        self.order_book.cancel_all_pending_tasks()
+        if self.is_matchmaker:
+            self.order_book.save_to_database()
+            self.order_book.cancel_all_pending_tasks()
         yield super(MarketCommunity, self).unload_community()
 
     def get_dispersy_address(self):
@@ -370,18 +457,24 @@ class MarketCommunity(Community):
             return WalletAddress(self.wallets[order.total_quantity.wallet_id].get_address()), \
                    WalletAddress(self.wallets[order.price.wallet_id].get_address())
 
-    def match(self, order):
+    def match(self, tick):
         """
-        Try to find a match for a specific order and send proposed trade messages if there is a match
-        :param order: The order to match
+        Try to find a match for a specific tick and send proposed trade messages if there is a match
+        :param tick: The tick to find matches for
         """
         if not self.matching_enabled:
             return
 
-        proposed_trades = self.matching_engine.match_order(order)
-        if proposed_trades:
-            self.order_manager.order_repository.update(order)
-        self.send_proposed_trade_messages(proposed_trades)
+        order_tick_entry = self.order_book.get_tick(tick.order_id)
+        if tick.quantity - order_tick_entry.reserved_for_matching == Quantity(0, tick.quantity.wallet_id):
+            self._logger.debug("Tick %s does not have any quantity to match!", tick.order_id)
+            return
+
+        matched_ticks = self.matching_engine.match(order_tick_entry)
+        for _, tick_entry, trading_quantity in matched_ticks:
+            tick_entry.reserve_for_matching(trading_quantity)
+            order_tick_entry.reserve_for_matching(trading_quantity)
+        self.send_match_messages(matched_ticks, tick.order_id)
 
     def lookup_ip(self, trader_id):
         """
@@ -474,14 +567,16 @@ class MarketCommunity(Community):
         # Create the order
         order = self.order_manager.create_ask_order(price, quantity, timeout)
 
-        # Search for matches
-        self.match(order)
-
         # Create the tick
-        tick = Tick.from_order(order, self.order_book.message_repository.next_identity())
+        tick = Tick.from_order(order, self.message_repository.next_identity())
         tick.sign(self.my_member)
         assert isinstance(tick, Ask), type(tick)
-        self.order_book.insert_ask(tick).addCallback(self.on_ask_timeout)
+
+        if self.is_matchmaker:
+            # Search for matches
+            self.order_book.insert_ask(tick).addCallback(self.on_ask_timeout)
+            self.match(tick)
+
         self.send_tick(tick)
 
         self._logger.debug("Ask created with price %s and quantity %s", price, quantity)
@@ -507,12 +602,11 @@ class MarketCommunity(Community):
 
         meta = self.get_meta_message(u"ask" if isinstance(tick, Ask) else u"bid")
         message = meta.impl(
-            authentication=(self.my_member,),
             distribution=(self.claim_global_time(),),
             payload=payload
         )
 
-        self.dispersy.store_update_forward([message], True, True, True)
+        self.dispersy.store_update_forward([message], True, False, True)
 
     def on_tick(self, messages):
         for message in messages:
@@ -521,33 +615,35 @@ class MarketCommunity(Community):
             self._logger.debug("%s received from trader %s (price: %s, quantity: %s)", type(tick),
                                str(tick.order_id.trader_id), tick.price, tick.quantity)
 
-            # Update the pubkey register with the current address
-            self.update_ip(tick.message_id.trader_id, (message.payload.address.ip, message.payload.address.port))
+            # Update the mid register with the current address
+            self.update_ip(tick.order_id.trader_id, (message.payload.address.ip, message.payload.address.port))
 
-            insert_method = self.order_book.insert_ask if isinstance(tick, Ask) else self.order_book.insert_bid
-            timeout_method = self.on_ask_timeout if isinstance(tick, Ask) else self.on_bid_timeout
+            if self.is_matchmaker:
+                insert_method = self.order_book.insert_ask if isinstance(tick, Ask) else self.order_book.insert_bid
+                timeout_method = self.on_ask_timeout if isinstance(tick, Ask) else self.on_bid_timeout
 
-            if not self.order_book.tick_exists(tick.order_id) and tick.quantity > Quantity(0, tick.quantity.wallet_id):
-                self._logger.debug("Inserting %s from %s (price: %s, quantity: %s)",
-                                   tick, tick.order_id, tick.price, tick.quantity)
-                insert_method(tick).addCallback(timeout_method)
-                if self.tribler_session:
-                    subject = NTFY_MARKET_ON_ASK if isinstance(tick, Ask) else NTFY_MARKET_ON_BID
-                    self.tribler_session.notifier.notify(subject, NTFY_UPDATE, None, tick.to_dictionary())
-
-                # Check for new matches against the orders of this node
-                for order in self.order_manager.order_repository.find_all():
-                    if order.is_ask() and order.is_valid():
-                        self.match(order)
-            elif self.order_book.tick_exists(tick.order_id) and \
-                    self.order_book.get_tick(tick.order_id).tick.timestamp < tick.timestamp:
-                # Update the tick with a newer one
-                self.order_book.remove_tick(tick.order_id)
-                if tick.quantity > Quantity(0, tick.quantity.wallet_id):
-                    self._logger.debug("Updating %s from %s (price: %s, quantity: %s)",
+                if not self.order_book.tick_exists(tick.order_id) and \
+                                tick.quantity > Quantity(0, tick.quantity.wallet_id):
+                    self._logger.debug("Inserting %s from %s (price: %s, quantity: %s)",
                                        tick, tick.order_id, tick.price, tick.quantity)
                     insert_method(tick).addCallback(timeout_method)
+                    if self.tribler_session:
+                        subject = NTFY_MARKET_ON_ASK if isinstance(tick, Ask) else NTFY_MARKET_ON_BID
+                        self.tribler_session.notifier.notify(subject, NTFY_UPDATE, None, tick.to_dictionary())
 
+                    if self.order_book.tick_exists(tick.order_id):
+                        # Check for new matches against the orders of this node
+                        for order in self.order_manager.order_repository.find_all():
+                            order_tick_entry = self.order_book.get_tick(order.order_id)
+                            if not order.is_valid() or not order_tick_entry:
+                                continue
+
+                            self.match(order_tick_entry.tick)
+
+                        # Only after we have matched our own orders, do the matching with other ticks if necessary
+                        self.match(tick)
+
+            # Relay the tick regardless whether we are a matchmaker or not
             if tick.order_id not in self.relayed_ticks or self.relayed_ticks[tick.order_id] < tick.timestamp:
                 self.relayed_ticks[tick.order_id] = tick.timestamp
                 self.relay_message(message)
@@ -557,9 +653,10 @@ class MarketCommunity(Community):
         ttl = message.payload.ttl
 
         ttl.make_hop()  # Complete the hop from the previous node
+        message.regenerate_packet()
 
         if ttl.is_alive():  # The ttl is still alive and can be forwarded
-            self.dispersy.store_update_forward([message], True, True, True)
+            self.dispersy.store_update_forward([message], True, False, True)
 
     # Bid
     def create_bid(self, price, price_wallet_id, quantity, quantity_wallet_id, timeout):
@@ -589,14 +686,16 @@ class MarketCommunity(Community):
         # Create the order
         order = self.order_manager.create_bid_order(price, quantity, timeout)
 
-        # Search for matches
-        self.match(order)
-
         # Create the tick
-        tick = Tick.from_order(order, self.order_book.message_repository.next_identity())
+        tick = Tick.from_order(order, self.message_repository.next_identity())
         tick.sign(self.my_member)
         assert isinstance(tick, Bid), type(tick)
-        self.order_book.insert_bid(tick).addCallback(self.on_bid_timeout)
+
+        if self.is_matchmaker:
+            # Search for matches
+            self.order_book.insert_bid(tick).addCallback(self.on_bid_timeout)
+            self.match(tick)
+
         self.send_tick(tick)
 
         self._logger.debug("Bid created with price %s and quantity %s", price, quantity)
@@ -609,7 +708,7 @@ class MarketCommunity(Community):
         """
         assert isinstance(order, Order), type(order)
 
-        message_id = self.order_book.message_repository.next_identity()
+        message_id = self.message_repository.next_identity()
 
         meta = self.get_meta_message(u"cancel-order")
         message = meta.impl(
@@ -624,7 +723,7 @@ class MarketCommunity(Community):
     def on_cancel_order(self, messages):
         for message in messages:
             order_id = OrderId(message.payload.trader_id, message.payload.order_number)
-            if self.order_book.tick_exists(order_id):
+            if self.is_matchmaker and self.order_book.tick_exists(order_id):
                 self.order_book.remove_tick(order_id)
 
             if str(order_id) not in self.relayed_cancels:
@@ -634,9 +733,10 @@ class MarketCommunity(Community):
                 ttl = message.payload.ttl
 
                 ttl.make_hop()  # Complete the hop from the previous node
+                message.regenerate_packet()
 
                 if ttl.is_alive():  # The ttl is still alive and can be forwarded
-                    self.dispersy.store_update_forward([message], True, True, True)
+                    self.dispersy.store_update_forward([message], True, False, True)
 
     def send_offer_sync(self, target_candidate, tick):
         """
@@ -656,8 +756,12 @@ class MarketCommunity(Community):
         payload = tick.to_network()
 
         # Add ttl and the trader wan address
-        trader_ip = self.lookup_ip(tick.order_id.trader_id)
-        payload += (Ttl(1),) + trader_ip + (isinstance(tick, Ask),)
+        if str(tick.message_id.trader_id) == self.mid:
+            tick_address = self.get_dispersy_address()
+        else:
+            tick_address = self.lookup_ip(tick.message_id.trader_id)
+
+        payload += (Ttl(1),) + tick_address + (isinstance(tick, Ask),)
 
         meta = self.get_meta_message(u"offer-sync")
         message = meta.impl(
@@ -669,8 +773,210 @@ class MarketCommunity(Community):
 
         return self.dispersy.store_update_forward([message], True, False, True)
 
+    def send_match_messages(self, matching_ticks, order_id):
+        return [self.send_match_message(match_id, tick_entry.tick, order_id, matching_quantity)
+                for match_id, tick_entry, matching_quantity in matching_ticks]
+
+    def send_match_message(self, match_id, tick, recipient_order_id, matched_quantity):
+        """
+        Send a match message to a specific node
+        :param match_id: The ID of the match
+        :param tick: The matched tick
+        :param recipient_order_id: The order id of the recipient, matching the tick
+        :param matched_quantity: The quantity that has been matched
+        """
+        assert isinstance(match_id, str), type(match_id)
+        assert isinstance(tick, Tick), type(tick)
+        assert isinstance(recipient_order_id, OrderId), type(recipient_order_id)
+        assert isinstance(matched_quantity, Quantity), type(matched_quantity)
+
+        payload = tick.to_network()
+
+        # Add ttl and the local wan address of the trader that created the tick
+        if str(tick.message_id.trader_id) == self.mid:
+            tick_address = self.get_dispersy_address()
+        else:
+            tick_address = self.lookup_ip(tick.message_id.trader_id)
+
+        payload += (Ttl.default(),) + tick_address
+
+        # Add recipient order number, matched quantity, trader ID of the matched person, our own trader ID and match ID
+        my_id = TraderId(self.mid)
+        payload += (recipient_order_id.order_number, matched_quantity, tick.message_id.trader_id, my_id, match_id)
+
+        # Lookup the remote address of the peer with the pubkey
+        if str(recipient_order_id.trader_id) == self.mid:
+            address = self.get_dispersy_address()
+        else:
+            address = self.lookup_ip(recipient_order_id.trader_id)
+        candidate = Candidate(address, False)
+
+        self._logger.debug("Sending match message with order id %s and tick order id %s to trader "
+                           "%s (ip: %s, port: %s)", str(recipient_order_id),
+                           str(tick.order_id), recipient_order_id.trader_id, *address)
+
+        meta = self.get_meta_message(u"match")
+        message = meta.impl(
+            authentication=(self.my_member,),
+            distribution=(self.claim_global_time(),),
+            destination=(candidate,),
+            payload=payload
+        )
+
+        return self.dispersy.store_update_forward([message], True, False, True)
+
+    def on_match_message(self, messages):
+        for message in messages:
+            # We got a match, check whether we can respond to this match
+            self.update_ip(message.payload.matchmaker_trader_id, message.candidate.sock_addr)
+            self.update_ip(message.payload.trader_id, (message.payload.address.ip, message.payload.address.port))
+            self.matchmakers.add(message.candidate.sock_addr)
+
+            # Immediately send an introduction request to this matchmaker so it's verified
+            walk_candidate = self.create_or_update_walkcandidate(message.candidate.sock_addr, ('0.0.0.0', 0),
+                                                                 message.candidate.sock_addr, False, u'unknown')
+            self.create_introduction_request(walk_candidate, self.dispersy_enable_bloom_filter_sync)
+
+            order_id = OrderId(TraderId(self.mid), message.payload.recipient_order_number)
+            other_order_id = OrderId(message.payload.trader_id, message.payload.order_number)
+            order = self.order_manager.order_repository.find_by_id(order_id)
+
+            # Store the message for later
+            self.incoming_match_messages[message.payload.match_id] = message
+
+            if order.status != "open" or order.available_quantity == Quantity(0, order.available_quantity.wallet_id):
+                # Send a declined trade back
+                self.send_decline_match_message(message.payload.match_id,
+                                                message.payload.matchmaker_trader_id,
+                                                DeclineMatchReason.ORDER_COMPLETED)
+                continue
+
+            propose_quantity = Quantity(min(float(order.available_quantity), float(message.payload.match_quantity)),
+                                        order.available_quantity.wallet_id)
+
+            # Reserve the quantity
+            order.reserve_quantity_for_tick(other_order_id, propose_quantity)
+            self.order_manager.order_repository.update(order)
+
+            propose_trade = Trade.propose(
+                self.message_repository.next_identity(),
+                order.order_id,
+                other_order_id,
+                message.payload.price,
+                propose_quantity,
+                Timestamp.now()
+            )
+            self.send_proposed_trade(propose_trade, message.payload.match_id)
+
+    def check_match_message(self, messages):
+        for message in messages:
+            allowed, _ = self._timeline.check(message)
+            if not allowed:
+                yield DelayMessageByProof(message)
+                continue
+
+            if not self.is_matchmaker:
+                yield DropMessage(message, "Node is not a matchmaker")
+                continue
+
+            if message.payload.match_id not in self.matching_engine.matches:
+                yield DropMessage(message, "Matching id %s not found" % message.payload.match_id)
+
+            yield message
+
+    def send_accept_match_message(self, match_id, matchmaker_trader_id, quantity):
+        address = self.lookup_ip(matchmaker_trader_id)
+        candidate = Candidate(address, False)
+
+        self._logger.debug("Sending accept match message with match id %s to trader "
+                           "%s (ip: %s, port: %s)", str(match_id), str(matchmaker_trader_id), *address)
+
+        msg_id = self.message_repository.next_identity()
+        payload = (msg_id.trader_id, msg_id.message_number, Timestamp.now(), match_id, quantity)
+
+        meta = self.get_meta_message(u"accept-match")
+        message = meta.impl(
+            authentication=(self.my_member,),
+            distribution=(self.claim_global_time(),),
+            destination=(candidate,),
+            payload=payload
+        )
+
+        return self.dispersy.store_update_forward([message], True, False, True)
+
+    def on_accept_match_message(self, messages):
+        for message in messages:
+            order_id, matched_order_id, reserved_quantity = self.matching_engine.matches[message.payload.match_id]
+            self._logger.debug("Received accept-match message (%s vs %s), modifying quantities if necessary",
+                               order_id, matched_order_id)
+            tick_entry = self.order_book.get_tick(order_id)
+            matched_tick_entry = self.order_book.get_tick(matched_order_id)
+
+            # The ticks could already have been removed
+            if tick_entry:
+                tick_entry.release_for_matching(reserved_quantity)
+                tick_entry.reserve_for_matching(message.payload.quantity)
+
+            if matched_tick_entry:
+                matched_tick_entry.release_for_matching(reserved_quantity)
+                matched_tick_entry.reserve_for_matching(message.payload.quantity)
+
+            del self.matching_engine.matches[message.payload.match_id]
+            self.matching_engine.matching_strategy.used_match_ids.remove(message.payload.match_id)
+
+    def send_decline_match_message(self, match_id, matchmaker_trader_id, decline_reason):
+        del self.incoming_match_messages[match_id]
+        address = self.lookup_ip(matchmaker_trader_id)
+        candidate = Candidate(address, False)
+
+        self._logger.debug("Sending decline match message with match id %s to trader "
+                           "%s (ip: %s, port: %s)", str(match_id), str(matchmaker_trader_id), *address)
+
+        msg_id = self.message_repository.next_identity()
+        payload = (msg_id.trader_id, msg_id.message_number, Timestamp.now(), match_id, decline_reason)
+
+        meta = self.get_meta_message(u"decline-match")
+        message = meta.impl(
+            authentication=(self.my_member,),
+            distribution=(self.claim_global_time(),),
+            destination=(candidate,),
+            payload=payload
+        )
+
+        return self.dispersy.store_update_forward([message], True, False, True)
+
+    def on_decline_match_message(self, messages):
+        for message in messages:
+            order_id, matched_order_id, quantity = self.matching_engine.matches[message.payload.match_id]
+            self._logger.debug("Received decline-match message for tick %s matched with %s", order_id, matched_order_id)
+            tick_entry = self.order_book.get_tick(order_id)
+            matched_tick_entry = self.order_book.get_tick(matched_order_id)
+            tick_entry.release_for_matching(quantity)
+
+            if matched_tick_entry:
+                matched_tick_entry.release_for_matching(quantity)
+                tick_entry.block_for_matching(matched_tick_entry.order_id)
+                matched_tick_entry.block_for_matching(tick_entry.order_id)
+
+            del self.matching_engine.matches[message.payload.match_id]
+            self.matching_engine.matching_strategy.used_match_ids.remove(message.payload.match_id)
+
+            if matched_tick_entry and message.payload.decline_reason == DeclineMatchReason.OTHER_ORDER_COMPLETED:
+                self.order_book.remove_tick(matched_tick_entry.order_id)
+                self.order_book.completed_orders.append(matched_tick_entry.order_id)
+
+            if message.payload.decline_reason == DeclineMatchReason.ORDER_COMPLETED:
+                self.order_book.remove_tick(tick_entry.order_id)
+                self.order_book.completed_orders.append(tick_entry.order_id)
+            else:
+                # Search for a new match
+                self.match(tick_entry.tick)
+
     def on_offer_sync(self, messages):
         for message in messages:
+            if not self.is_matchmaker:
+                continue
+
             if message.payload.is_ask:
                 tick = Ask.from_network(message.payload)
                 insert_method = self.order_book.insert_ask
@@ -682,27 +988,32 @@ class MarketCommunity(Community):
 
             self.update_ip(tick.message_id.trader_id, (message.payload.address.ip, message.payload.address.port))
 
-            if not self.order_book.tick_exists(tick.order_id) or \
-                    float(self.order_book.get_tick(tick.order_id).tick.timestamp) < float(tick.timestamp):
+            if not self.order_book.tick_exists(tick.order_id):
                 insert_method(tick).addCallback(timeout_method)
 
                 if self.tribler_session:
                     notify_subject = NTFY_MARKET_ON_ASK if message.payload.is_ask else NTFY_MARKET_ON_BID
                     self.tribler_session.notifier.notify(notify_subject, NTFY_UPDATE, None, tick.to_dictionary())
 
+            if self.order_book.tick_exists(tick.order_id):
+                self.match(tick)
+
     def cancel_order(self, order_id):
         order = self.order_manager.order_repository.find_by_id(order_id)
         if order and order.status == "open":
             self.order_manager.cancel_order(order_id)
-            self.order_book.remove_tick(order_id)
             self.send_cancel_order(order)
 
+            if self.is_matchmaker:
+                self.order_book.remove_tick(order_id)
+
     # Proposed trade
-    def send_proposed_trade(self, proposed_trade):
+    def send_proposed_trade(self, proposed_trade, match_id):
         assert isinstance(proposed_trade, ProposedTrade), type(proposed_trade)
+        assert isinstance(match_id, str), type(match_id)
         destination, payload = proposed_trade.to_network()
 
-        self.request_cache.add(ProposedTradeRequestCache(self, proposed_trade))
+        self.request_cache.add(ProposedTradeRequestCache(self, proposed_trade, match_id))
 
         # Add the local address to the payload
         payload += self.get_dispersy_address()
@@ -711,8 +1022,9 @@ class MarketCommunity(Community):
         candidate = Candidate(self.lookup_ip(destination), False)
 
         self._logger.debug("Sending proposed trade with own order id %s and other order id %s to trader "
-                           "%s (ip: %s, port: %s)", str(proposed_trade.order_id),
-                           str(proposed_trade.recipient_order_id), destination, *self.lookup_ip(destination))
+                           "%s, quantity: %s (ip: %s, port: %s)", str(proposed_trade.order_id),
+                           str(proposed_trade.recipient_order_id), destination, proposed_trade.quantity,
+                           *self.lookup_ip(destination))
 
         meta = self.get_meta_message(u"proposed-trade")
         message = meta.impl(
@@ -723,9 +1035,6 @@ class MarketCommunity(Community):
         )
 
         return self.dispersy.store_update_forward([message], True, False, True)
-
-    def send_proposed_trade_messages(self, messages):
-        return [self.send_proposed_trade(message) for message in messages]
 
     def check_trade_message(self, messages):
         for message in messages:
@@ -781,46 +1090,48 @@ class MarketCommunity(Community):
                     request = self.request_cache.pop(u"proposed-trade", int(proposal_id.split(':')[1]))
                     order.release_quantity_for_tick(proposed_trade.order_id, request.proposed_trade.quantity)
 
-            if order.is_valid() and order.available_quantity > Quantity(0, order.available_quantity.wallet_id) \
-                    and proposed_trade.has_acceptable_price(order.is_ask(), order.price):
-                self._logger.debug("Proposed trade received with id: %s for order with id: %s",
-                                   str(proposed_trade.message_id), str(order.order_id))
+            should_decline = True
+            decline_reason = 0
+            if not order.is_valid:
+                decline_reason = DeclinedTradeReason.ORDER_INVALID
+            elif order.status == "completed":
+                decline_reason = DeclinedTradeReason.ORDER_COMPLETED
+            elif order.status == "expired":
+                decline_reason = DeclinedTradeReason.ORDER_EXPIRED
+            elif order.available_quantity == Quantity(0, order.available_quantity.wallet_id):
+                decline_reason = DeclinedTradeReason.ORDER_RESERVED
+            elif not proposed_trade.has_acceptable_price(order.is_ask(), order.price):
+                decline_reason = DeclinedTradeReason.UNACCEPTABLE_PRICE
+            else:
+                should_decline = False
 
-                if order.available_quantity >= proposed_trade.quantity:  # Enough quantity left
-                    order.reserve_quantity_for_tick(proposed_trade.order_id, proposed_trade.quantity)
-                    self.order_manager.order_repository.update(order)
-                    self.start_transaction(proposed_trade)
-                else:  # Not all quantity can be traded
-                    counter_quantity = order.available_quantity
-                    order.reserve_quantity_for_tick(proposed_trade.order_id, counter_quantity)
-                    self.order_manager.order_repository.update(order)
-
-                    counter_trade = Trade.counter(self.order_book.message_repository.next_identity(),
-                                                  counter_quantity, Timestamp.now(), proposed_trade)
-                    self._logger.debug("Counter trade made with quantity: %s for proposed trade with id: %s",
-                                       str(counter_trade.quantity), str(proposed_trade.message_id))
-                    self.send_counter_trade(counter_trade)
-            else:  # Order invalid send cancel
-                declined_trade = Trade.decline(self.order_book.message_repository.next_identity(),
-                                               Timestamp.now(), proposed_trade)
+            if should_decline:
+                declined_trade = Trade.decline(self.message_repository.next_identity(),
+                                               Timestamp.now(), proposed_trade, decline_reason)
                 self._logger.debug("Declined trade made with id: %s for proposed trade with id: %s "
                                    "(valid? %s, available quantity of order: %s, reserved: %s, traded: %s)",
                                    str(declined_trade.message_id), str(proposed_trade.message_id),
                                    order.is_valid(), order.available_quantity, order.reserved_quantity,
                                    order.traded_quantity)
                 self.send_declined_trade(declined_trade)
+            else:
+                self._logger.debug("Proposed trade received with id: %s for order with id: %s",
+                                   str(proposed_trade.message_id), str(order.order_id))
 
-                # We declined the proposed trade, however, we might want to save it since the proposed trade might still
-                # be relevant if one of our outstanding proposal trades is declined.
-                for cache in self.request_cache._identifiers.itervalues():
-                    if isinstance(cache, ProposedTradeRequestCache) and order.order_id == cache.proposed_trade.order_id:
-                        # We have an outstanding propose trade for this order, save the incoming proposed trade
-                        tup = (order.order_id, proposed_trade)
-                        removal_task = deferLater(reactor, 10, self.pending_proposed_trades.remove, tup)\
-                            .addErrback(lambda _: None)
-                        self.register_task("pending_propose_%s_%s_timeout" %
-                                           (proposed_trade.order_id, proposed_trade.recipient_order_id), removal_task)
-                        self.pending_proposed_trades.append(tup)
+                if order.available_quantity >= proposed_trade.quantity:  # Enough quantity left
+                    order.reserve_quantity_for_tick(proposed_trade.order_id, proposed_trade.quantity)
+                    self.order_manager.order_repository.update(order)
+                    self.start_transaction(proposed_trade, '')
+                else:  # Not all quantity can be traded
+                    counter_quantity = order.available_quantity
+                    order.reserve_quantity_for_tick(proposed_trade.order_id, counter_quantity)
+                    self.order_manager.order_repository.update(order)
+
+                    counter_trade = Trade.counter(self.message_repository.next_identity(),
+                                                  counter_quantity, Timestamp.now(), proposed_trade)
+                    self._logger.debug("Counter trade made with quantity: %s for proposed trade with id: %s",
+                                       str(counter_trade.quantity), str(proposed_trade.message_id))
+                    self.send_counter_trade(counter_trade)
 
     # Declined trade
     def send_declined_trade(self, declined_trade):
@@ -853,29 +1164,22 @@ class MarketCommunity(Community):
             # Just remove the tick with the order id of the other party and try to find a new match
             self._logger.debug("Received declined trade (proposal id: %d), trying to find a new match for this order",
                                declined_trade.proposal_id)
-            self.order_book.remove_tick(declined_trade.order_id)
 
-            # Do we have any pending propose trades for this order?
-            pending_proposals = [proposed_trade for order_id, proposed_trade in self.pending_proposed_trades
-                                 if order_id == order.order_id]
-            if pending_proposals:
-                self.pending_proposed_trades.remove((order.order_id, pending_proposals[0]))
-                order.reserve_quantity_for_tick(pending_proposals[0].order_id, pending_proposals[0].quantity)
-                proposed_trade = Trade.propose(self.order_book.message_repository.next_identity(),
-                                               pending_proposals[0].recipient_order_id,
-                                               pending_proposals[0].order_id,
-                                               pending_proposals[0].price, pending_proposals[0].quantity,
-                                               Timestamp.now())
-                self.send_proposed_trade(proposed_trade)
-            else:
-                self.match(order)
+            # Let the matchmaker know that we don't have a match
+            match_message = self.incoming_match_messages[request.match_id]
+            match_decline_reason = DeclineMatchReason.OTHER
+            if declined_trade.decline_reason == DeclinedTradeReason.ORDER_COMPLETED:
+                match_decline_reason = DeclineMatchReason.OTHER_ORDER_COMPLETED
+
+            self.send_decline_match_message(request.match_id, match_message.payload.matchmaker_trader_id,
+                                            match_decline_reason)
 
     # Counter trade
     def send_counter_trade(self, counter_trade):
         assert isinstance(counter_trade, CounterTrade), type(counter_trade)
         destination, payload = counter_trade.to_network()
 
-        self.request_cache.add(ProposedTradeRequestCache(self, counter_trade))
+        self.request_cache.add(ProposedTradeRequestCache(self, counter_trade, ''))
 
         # Add the local address to the payload
         payload += self.get_dispersy_address()
@@ -900,29 +1204,41 @@ class MarketCommunity(Community):
             request = self.request_cache.pop(u"proposed-trade", counter_trade.proposal_id)
 
             order = self.order_manager.order_repository.find_by_id(counter_trade.recipient_order_id)
-            if order.is_valid() and counter_trade.has_acceptable_price(order.is_ask(), order.price):  # Accept trade
-                order.release_quantity_for_tick(counter_trade.order_id, request.proposed_trade.quantity)
-                order.reserve_quantity_for_tick(counter_trade.order_id, counter_trade.quantity)
-                self.order_manager.order_repository.update(order)
-                self.start_transaction(counter_trade)
+            should_decline = True
+            decline_reason = 0
+            if not order.is_valid:
+                decline_reason = DeclinedTradeReason.ORDER_INVALID
+            elif not counter_trade.has_acceptable_price(order.is_ask(), order.price):
+                decline_reason = DeclinedTradeReason.UNACCEPTABLE_PRICE
             else:
-                declined_trade = Trade.decline(self.order_book.message_repository.next_identity(),
-                                               Timestamp.now(), counter_trade)
+                should_decline = False
+
+            if should_decline:
+                declined_trade = Trade.decline(self.message_repository.next_identity(),
+                                               Timestamp.now(), counter_trade, decline_reason)
                 self._logger.debug("Declined trade made with id: %s for counter trade with id: %s",
                                    str(declined_trade.message_id), str(counter_trade.message_id))
                 self.send_declined_trade(declined_trade)
+            else:
+                order.release_quantity_for_tick(counter_trade.order_id, request.proposed_trade.quantity)
+                order.reserve_quantity_for_tick(counter_trade.order_id, counter_trade.quantity)
+                self.order_manager.order_repository.update(order)
+                self.start_transaction(counter_trade, request.match_id)
+
+                # Let the matchmaker know that we have a match
+                match_message = self.incoming_match_messages[request.match_id]
+                self.send_accept_match_message(request.match_id, match_message.payload.matchmaker_trader_id,
+                                               counter_trade.quantity)
 
     # Transactions
-    def start_transaction(self, proposed_trade):
+    def start_transaction(self, proposed_trade, match_id):
         order = self.order_manager.order_repository.find_by_id(proposed_trade.recipient_order_id)
-
-        if order:
-            transaction = self.transaction_manager.create_from_proposed_trade(proposed_trade)
-            start_transaction = StartTransaction(self.order_book.message_repository.next_identity(),
-                                                 transaction.transaction_id, order.order_id,
-                                                 proposed_trade.order_id, proposed_trade.proposal_id,
-                                                 proposed_trade.price, proposed_trade.quantity, Timestamp.now())
-            self.send_start_transaction(transaction, start_transaction)
+        transaction = self.transaction_manager.create_from_proposed_trade(proposed_trade, match_id)
+        start_transaction = StartTransaction(self.message_repository.next_identity(),
+                                             transaction.transaction_id, order.order_id,
+                                             proposed_trade.order_id, proposed_trade.proposal_id,
+                                             proposed_trade.price, proposed_trade.quantity, Timestamp.now())
+        self.send_start_transaction(transaction, start_transaction)
 
     # Start transaction
     def send_start_transaction(self, transaction, start_transaction):
@@ -946,8 +1262,7 @@ class MarketCommunity(Community):
         for message in messages:
             transaction_id = TransactionId(message.payload.transaction_trader_id, message.payload.transaction_number)
 
-            allowed, _ = self._timeline.check(message)
-            if not allowed:
+            if message.name != 'transaction-completed-bc' and not self._timeline.check(message)[0]:
                 yield DelayMessageByProof(message)
                 continue
 
@@ -957,12 +1272,15 @@ class MarketCommunity(Community):
                                   (message.name, message.payload.proposal_id))
                 continue
 
-            if message.name != 'start-transaction' and not self.transaction_manager.find_by_id(transaction_id):
+            if message.name != 'start-transaction' and message.name != 'transaction-completed' \
+                    and message.name != 'transaction-completed-bc' \
+                    and not self.transaction_manager.find_by_id(transaction_id):
                 yield DropMessage(message, "Unknown transaction in %s message" % message.name)
                 continue
 
             transaction = self.transaction_manager.find_by_id(transaction_id)
-            if message.name not in ['start-transaction', 'end-transaction'] and transaction.is_payment_complete():
+            if message.name not in ['start-transaction', 'end-transaction', 'transaction-completed',
+                                    'transaction-completed-bc'] and transaction.is_payment_complete():
                 yield DropMessage(message, "Transaction in %s message is already complete" % message.name)
                 continue
 
@@ -972,13 +1290,19 @@ class MarketCommunity(Community):
         for message in messages:
             start_transaction = StartTransaction.from_network(message.payload)
 
-            self.request_cache.pop(u"proposed-trade", start_transaction.proposal_id)
+            request = self.request_cache.pop(u"proposed-trade", start_transaction.proposal_id)
 
             # The recipient_order_id in the start_transaction message is our own order
             order = self.order_manager.order_repository.find_by_id(start_transaction.recipient_order_id)
 
             if order:
-                transaction = self.transaction_manager.create_from_start_transaction(start_transaction)
+                # Let the matchmaker know that we have a match
+                match_message = self.incoming_match_messages[request.match_id]
+                self.send_accept_match_message(request.match_id, match_message.payload.matchmaker_trader_id,
+                                               start_transaction.quantity)
+
+                transaction = self.transaction_manager.create_from_start_transaction(start_transaction,
+                                                                                     request.match_id)
                 incoming_address, outgoing_address = self.get_order_addresses(order)
                 self.send_wallet_info(transaction, incoming_address, outgoing_address)
 
@@ -995,7 +1319,7 @@ class MarketCommunity(Community):
         self._logger.debug("Sending wallet info to trader %s (incoming address: %s, outgoing address: %s",
                            transaction.partner_order_id.trader_id, incoming_address, outgoing_address)
 
-        message_id = self.order_book.message_repository.next_identity()
+        message_id = self.message_repository.next_identity()
 
         meta = self.get_meta_message(u"wallet-info")
         message = meta.impl(
@@ -1084,7 +1408,7 @@ class MarketCommunity(Community):
             order.add_trade(transaction.partner_order_id, payment[0])
             self.order_manager.order_repository.update(order)
 
-        message_id = self.order_book.message_repository.next_identity()
+        message_id = self.message_repository.next_identity()
         payment_message = self.transaction_manager.create_payment_message(
             message_id, payment_id, transaction, payment, success)
         self._logger.debug("Sending payment message with price %s and quantity %s (success? %s)",
@@ -1156,7 +1480,7 @@ class MarketCommunity(Community):
         else:
             end_transaction_timestamp = Timestamp.now()
             self.send_end_transaction(transaction, end_transaction_timestamp)
-            self.update_ticks(transaction, end_transaction_timestamp)
+            self.send_transaction_completed(transaction)
 
     # End transaction
     def send_end_transaction(self, transaction, timestamp):
@@ -1164,7 +1488,7 @@ class MarketCommunity(Community):
         self._logger.debug("Sending end transaction (quantity: %s)", transaction.total_quantity)
         candidate = Candidate(self.lookup_ip(transaction.partner_order_id.trader_id), False)
 
-        message_id = self.order_book.message_repository.next_identity()
+        message_id = self.message_repository.next_identity()
 
         meta = self.get_meta_message(u"end-transaction")
         message = meta.impl(
@@ -1195,29 +1519,6 @@ class MarketCommunity(Community):
                            "asset2_type": quantity.wallet_id, "asset2_amount": float(quantity)}
             self.tradechain_community.sign_block(candidate, candidate.get_member().public_key, transaction)
 
-    def update_ticks(self, transaction, end_transaction_timestamp):
-        """
-        Update your tick in the order book according to a specific transaction.
-        Afterwards, send the updated tick.
-        """
-        self._logger.debug("Updating own tick and sending it to other traders")
-        self.order_book.trade_tick(transaction.order_id, transaction.partner_order_id,
-                                   transaction.transferred_quantity, end_transaction_timestamp)
-        if self.order_book.tick_exists(transaction.order_id):
-            tick = self.order_book.get_tick(transaction.order_id).tick
-            tick.update_timestamp()
-            tick.sign(self.my_member)  # Tick content have changed, update the signature
-            self.send_tick(tick)
-
-            if tick.quantity == Quantity(0, tick.quantity.wallet_id):
-                self.order_book.remove_tick(transaction.order_id)
-
-        # Remove the tick of the counterparty if it's fulfilled
-        if self.order_book.tick_exists(transaction.partner_order_id):
-            tick = self.order_book.get_tick(transaction.partner_order_id)
-            if tick.quantity == Quantity(0, tick.quantity.wallet_id):
-                self.order_book.remove_tick(transaction.order_id)
-
     def abort_transaction(self, transaction):
         """
         Abort a specific transaction by releasing all reserved quantity for this order.
@@ -1227,20 +1528,120 @@ class MarketCommunity(Community):
         order.release_quantity_for_tick(transaction.partner_order_id,
                                         transaction.total_quantity - transaction.transferred_quantity)
         self.order_manager.order_repository.update(order)
-        self.update_ticks(transaction, Timestamp.now())
+        self.send_transaction_completed(transaction)
 
     def on_end_transaction(self, messages):
         for message in messages:
             self._logger.debug("Finishing transaction %s", message.payload.transaction_number)
             transaction_id = TransactionId(message.payload.transaction_trader_id, message.payload.transaction_number)
             transaction = self.transaction_manager.find_by_id(transaction_id)
-            self.update_ticks(transaction, message.payload.timestamp)
             self.notify_transaction_complete(self.transaction_manager.find_by_id(transaction_id))
+            self.send_transaction_completed(transaction)
 
     def notify_transaction_complete(self, transaction):
         if self.tribler_session:
             self.tribler_session.notifier.notify(NTFY_MARKET_ON_TRANSACTION_COMPLETE, NTFY_UPDATE, None,
                                                  transaction.to_dictionary())
+
+    def send_transaction_completed(self, transaction):
+        if not transaction.match_id or transaction.match_id not in self.incoming_match_messages:
+            # We did not receive this match from a matchmaker. Still, if we are a matchmaker, we can update our
+            # local orderbook with the new knowledge of this transaction.
+            if self.is_matchmaker:
+                self.order_book.trade_tick(transaction.order_id, transaction.partner_order_id,
+                                           transaction.transferred_quantity, unreserve=False)
+
+            return
+
+        self._logger.debug("Sending transaction completed (match id: %s)", transaction.match_id)
+
+        # Lookup the remote address of the peer with the pubkey
+        match_message = self.incoming_match_messages[transaction.match_id]
+        del self.incoming_match_messages[transaction.match_id]
+        candidate = Candidate(self.lookup_ip(match_message.payload.matchmaker_trader_id), False)
+
+        message_id = self.message_repository.next_identity()
+
+        meta = self.get_meta_message(u"transaction-completed")
+        message = meta.impl(
+            authentication=(self.my_member,),
+            distribution=(self.claim_global_time(),),
+            destination=(candidate,),
+            payload=(
+                message_id.trader_id,
+                message_id.message_number,
+                transaction.transaction_id.trader_id,
+                transaction.transaction_id.transaction_number,
+                transaction.order_id.trader_id,
+                transaction.order_id.order_number,
+                transaction.partner_order_id.trader_id,
+                transaction.partner_order_id.order_number,
+                transaction.match_id,
+                transaction.transferred_quantity,
+                Timestamp.now(),
+            )
+        )
+
+        self.dispersy.store_update_forward([message], True, False, True)
+
+    def on_transaction_completed_message(self, messages):
+        for message in messages:
+            self._logger.debug("Received transaction-completed message")
+            if not self.is_matchmaker:
+                continue
+
+            # Update ticks in order book, release the reserved quantity and find a new match
+            order_id = OrderId(message.payload.trader_id, message.payload.order_number)
+            recipient_order_id = OrderId(message.payload.recipient_trader_id, message.payload.recipient_order_number)
+            self.order_book.trade_tick(order_id, recipient_order_id, message.payload.quantity)
+
+            self.send_transaction_completed_bc(message)
+
+            tick_entry_sender = self.order_book.get_tick(order_id)
+            if tick_entry_sender:
+                self.match(tick_entry_sender.tick)
+
+    def send_transaction_completed_bc(self, completed_message):
+        self._logger.debug("Sending transaction completed bc (match id: %s)", completed_message.payload.match_id)
+
+        message_id = self.message_repository.next_identity()
+
+        meta = self.get_meta_message(u"transaction-completed-bc")
+        message = meta.impl(
+            distribution=(self.claim_global_time(),),
+            payload=(
+                message_id.trader_id,
+                message_id.message_number,
+                completed_message.payload.transaction_trader_id,
+                completed_message.payload.transaction_number,
+                completed_message.payload.order_trader_id,
+                completed_message.payload.order_number,
+                completed_message.payload.recipient_trader_id,
+                completed_message.payload.recipient_order_number,
+                completed_message.payload.match_id,
+                completed_message.payload.quantity,
+                Timestamp.now(),
+                Ttl.default()
+            )
+        )
+
+        self.dispersy.store_update_forward([message], True, False, True)
+
+    def on_transaction_completed_bc_message(self, messages):
+        for message in messages:
+            self._logger.debug("Received transaction-completed-bc message")
+            if not self.is_matchmaker:
+                continue
+
+            # Update ticks in order book, release the reserved quantity
+            order_id = OrderId(message.payload.trader_id, message.payload.order_number)
+            recipient_order_id = OrderId(message.payload.recipient_trader_id, message.payload.recipient_order_number)
+            self.order_book.trade_tick(order_id, recipient_order_id, message.payload.quantity, unreserve=False)
+
+            transaction_id = TransactionId(message.payload.transaction_trader_id, message.payload.transaction_number)
+            if transaction_id not in self.relayed_completed_transaction:
+                self.relayed_completed_transaction[transaction_id] = True
+                self.relay_message(message)
 
     def compute_reputation(self):
         """

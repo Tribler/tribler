@@ -24,6 +24,7 @@ exitnode_enabled = boolean(default=False)
 
 [market_community]
 enabled = boolean(default=True)
+matchmaker = boolean(default=True)
 
 [trustchain]
 enabled = boolean(default=True)

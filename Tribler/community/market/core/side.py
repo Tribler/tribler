@@ -117,6 +117,7 @@ class Side(object):
         assert isinstance(order_id, OrderId), type(order_id)
 
         tick = self.get_tick(order_id)
+        tick.cancel_all_pending_tasks()
         tick.price_level().remove_tick(tick)
         if len(tick.price_level()) == 0:  # Last tick for that price
             self._remove_price_level(tick.price, tick.quantity.wallet_id)

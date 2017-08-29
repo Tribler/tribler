@@ -1,5 +1,6 @@
 from struct import pack
 
+from Tribler.community.market.core import DeclinedTradeReason
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Utilities.encoding import encode
@@ -19,7 +20,8 @@ from Tribler.community.market.core.ttl import Ttl
 from Tribler.community.market.core.wallet_address import WalletAddress
 from Tribler.community.market.payload import OfferPayload, OfferSyncPayload, DeclinedTradePayload, \
     MarketIntroPayload, WalletInfoPayload, TransactionPayload, PaymentPayload, StartTransactionPayload, \
-    CancelOrderPayload
+    CancelOrderPayload, MatchPayload, AcceptMatchPayload, DeclineMatchPayload, TransactionCompletedPayload, \
+    TransactionCompletedBCPayload
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -139,6 +141,65 @@ class TestMarketConversion(AbstractTestCommunity):
         self.assertEqual(decoded.order_number, OrderNumber(4))
         self.assertEqual(int(decoded.ttl), 2)
 
+    def test_encode_match(self):
+        """
+        Test encoding and decoding of a match message
+        """
+        message = MockObject()
+        meta_msg = self.market_community.get_meta_message(u"match")
+
+        match_payload = MatchPayload.Implementation(meta_msg, TraderId('abc'), MessageNumber('3'), OrderNumber(4),
+                                                    Price(1, 'BTC'), Quantity(2, 'MC'), Timeout(3600), Timestamp.now(),
+                                                    'a', 'b', Ttl(2), '192.168.1.1', 1234, OrderNumber(3),
+                                                    Quantity(2, 'MC'), TraderId('abc'), TraderId('def'), 'match_id')
+        message.payload = match_payload
+        packet, = self.conversion._encode_match(message)
+        self.assertTrue(packet)
+
+        _, decoded = self.conversion._decode_match(self.get_placeholder_msg(u"match"), 0, packet)
+
+        self.assertTrue(decoded)
+        self.assertEqual(decoded.match_id, 'match_id')
+        self.assertEqual(int(decoded.ttl), 2)
+
+    def test_encode_accept_match(self):
+        """
+        Test encoding and decoding of an accept-match message
+        """
+        message = MockObject()
+        meta_msg = self.market_community.get_meta_message(u"accept-match")
+
+        match_payload = AcceptMatchPayload.Implementation(meta_msg, TraderId('abc'), MessageNumber('3'),
+                                                          Timestamp.now(), 'match_id', Quantity(2, 'MC'))
+        message.payload = match_payload
+        packet, = self.conversion._encode_accept_match(message)
+        self.assertTrue(packet)
+
+        _, decoded = self.conversion._decode_accept_match(self.get_placeholder_msg(u"accept-match"), 0, packet)
+
+        self.assertTrue(decoded)
+        self.assertEqual(decoded.match_id, 'match_id')
+
+    def test_encode_decline_match(self):
+        """
+        Test encoding and decoding of a decline-match message
+        """
+        message = MockObject()
+        meta_msg = self.market_community.get_meta_message(u"decline-match")
+
+        match_payload = DeclineMatchPayload.Implementation(meta_msg, TraderId('abc'), MessageNumber('3'),
+                                                           Timestamp.now(), 'match_id',
+                                                           DeclinedTradeReason.ORDER_COMPLETED)
+        message.payload = match_payload
+        packet, = self.conversion._encode_decline_match(message)
+        self.assertTrue(packet)
+
+        _, decoded = self.conversion._decode_decline_match(self.get_placeholder_msg(u"decline-match"), 0, packet)
+
+        self.assertTrue(decoded)
+        self.assertEqual(decoded.match_id, 'match_id')
+        self.assertEqual(decoded.decline_reason, DeclinedTradeReason.ORDER_COMPLETED)
+
     def test_encode_decode_offer_sync(self):
         """
         Test encoding and decoding of an offer sync
@@ -169,7 +230,7 @@ class TestMarketConversion(AbstractTestCommunity):
 
         trade_payload = DeclinedTradePayload.Implementation(meta_msg, TraderId('abc'), MessageNumber('3'),
                                                             OrderNumber(4), TraderId('def'), OrderNumber(5), 1234,
-                                                            Timestamp.now())
+                                                            Timestamp.now(), DeclinedTradeReason.ORDER_COMPLETED)
         message.payload = trade_payload
         packet, = self.conversion._encode_declined_trade(message)
         self.assertTrue(packet)
@@ -221,6 +282,54 @@ class TestMarketConversion(AbstractTestCommunity):
         self.assertTrue(decoded)
         self.assertEqual(decoded.trader_id, TraderId('abc'))
         self.assertEqual(decoded.transaction_trader_id, TraderId('def'))
+
+    def test_encode_transaction_completed(self):
+        """
+        Test encoding and decoding of a transaction-completed message
+        """
+        message = MockObject()
+        meta_msg = self.market_community.get_meta_message(u"transaction-completed")
+
+        transaction_payload = TransactionCompletedPayload.Implementation(meta_msg, TraderId('abc'), MessageNumber('3'),
+                                                                         TraderId('def'), TransactionNumber(5),
+                                                                         TraderId('abc'), OrderNumber(3),
+                                                                         TraderId('def'), OrderNumber(4), 'match_id',
+                                                                         Quantity(2, 'BTC'), Timestamp.now())
+        message.payload = transaction_payload
+        packet, = self.conversion._encode_transaction_completed(message)
+        self.assertTrue(packet)
+
+        _, decoded = self.conversion._decode_transaction_completed(
+            self.get_placeholder_msg(u"transaction-completed"), 0, packet)
+
+        self.assertTrue(decoded)
+        self.assertEqual(decoded.trader_id, TraderId('abc'))
+        self.assertEqual(decoded.transaction_trader_id, TraderId('def'))
+
+    def test_encode_transaction_completed_bc(self):
+        """
+        Test encoding and decoding of a transaction-completed-bc message
+        """
+        message = MockObject()
+        meta_msg = self.market_community.get_meta_message(u"transaction-completed-bc")
+
+        transaction_payload = TransactionCompletedBCPayload.Implementation(meta_msg, TraderId('abc'),
+                                                                           MessageNumber('3'), TraderId('def'),
+                                                                           TransactionNumber(5), TraderId('abc'),
+                                                                           OrderNumber(3), TraderId('def'),
+                                                                           OrderNumber(4), 'match_id',
+                                                                           Quantity(2, 'BTC'), Timestamp.now(), Ttl(3))
+        message.payload = transaction_payload
+        packet, = self.conversion._encode_transaction_completed_bc(message)
+        self.assertTrue(packet)
+
+        _, decoded = self.conversion._decode_transaction_completed_bc(
+            self.get_placeholder_msg(u"transaction-completed-bc"), 0, packet)
+
+        self.assertTrue(decoded)
+        self.assertEqual(decoded.trader_id, TraderId('abc'))
+        self.assertEqual(decoded.transaction_trader_id, TraderId('def'))
+        self.assertEqual(int(decoded.ttl), 3)
 
     def test_encode_decode_wallet_info(self):
         """

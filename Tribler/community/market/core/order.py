@@ -311,7 +311,7 @@ class Order(object):
             else:
                 self._reserved_ticks[order_id] += quantity
         else:
-            raise ValueError("Tick does not have enough available quantity for reservation")
+            raise ValueError("Order %s does not have enough available quantity for reservation", self.order_id)
 
         self._logger.debug("reserved quantity for order id %s (own order id: %s),"
                            "total quantity: %s, traded quantity: %s, reserved quantity: %s",

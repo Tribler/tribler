@@ -64,27 +64,31 @@ class Trade(Message):
         )
 
     @classmethod
-    def decline(cls, message_id, timestamp, proposed_trade):
+    def decline(cls, message_id, timestamp, proposed_trade, decline_reason):
         """
         Decline a trade from another node
 
         :param message_id: A message id to identify the trade
         :param timestamp: A timestamp when the trade was declined
         :param proposed_trade: A proposed trade that needs to be declined
+        :param decline_reason: A reason for declining this trade
         :type message_id: MessageId
         :type timestamp: Timestamp
         :type proposed_trade: ProposedTrade
+        :type decline_reason: int
         :return: A declined trade
         :rtype: DeclinedTrade
         """
         assert isinstance(proposed_trade, ProposedTrade), type(proposed_trade)
+        assert isinstance(decline_reason, int), type(decline_reason)
 
         return DeclinedTrade(
             message_id,
             proposed_trade.recipient_order_id,
             proposed_trade.order_id,
             proposed_trade.proposal_id,
-            timestamp
+            timestamp,
+            decline_reason
         )
 
     @classmethod
@@ -329,7 +333,7 @@ class DeclinedTrade(Trade):
     if the trade was not reserved then a declined trade is send.
     """
 
-    def __init__(self, message_id, order_id, recipient_order_id, proposal_id, timestamp):
+    def __init__(self, message_id, order_id, recipient_order_id, proposal_id, timestamp, decline_reason):
         """
         Don't use this method directly, use one of the class methods from Trade or the from_network
 
@@ -338,13 +342,25 @@ class DeclinedTrade(Trade):
         :param recipient_order_id: A order id to identify the order
         :param proposal_id: The ID of the trade proposal
         :param timestamp: A timestamp wen this trade was created
+        :param decline_reason: A reason for declining this trade
         :type message_id: MessageId
         :type order_id: OrderId
         :type recipient_order_id: OrderId
         :type proposal_id: int
         :type timestamp: Timestamp
+        :type decline_reason: int
         """
         super(DeclinedTrade, self).__init__(message_id, order_id, recipient_order_id, proposal_id, timestamp)
+
+        self._decline_reason = decline_reason
+
+    @property
+    def decline_reason(self):
+        """
+        :return: The reason why this match is declined
+        :rtype: int
+        """
+        return self._decline_reason
 
     @classmethod
     def from_network(cls, data):
@@ -362,13 +378,15 @@ class DeclinedTrade(Trade):
         assert hasattr(data, 'recipient_order_number'), isinstance(data.recipient_order_number, OrderNumber)
         assert hasattr(data, 'proposal_id'), isinstance(data.proposal_id, int)
         assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
+        assert hasattr(data, 'decline_reason'), isinstance(data.decline_reason, int)
 
         return cls(
             MessageId(data.trader_id, data.message_number),
             OrderId(data.trader_id, data.order_number),
             OrderId(data.recipient_trader_id, data.recipient_order_number),
             data.proposal_id,
-            data.timestamp
+            data.timestamp,
+            data.decline_reason
         )
 
     def to_network(self):
@@ -382,5 +400,6 @@ class DeclinedTrade(Trade):
             self._recipient_order_id.trader_id,
             self._recipient_order_id.order_number,
             self._proposal_id,
-            self._timestamp
+            self._timestamp,
+            self._decline_reason
         )

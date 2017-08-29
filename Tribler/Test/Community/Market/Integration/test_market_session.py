@@ -57,7 +57,7 @@ class TestMarketSession(TestMarketBase):
             Candidate(bid_session.get_dispersy_instance().lan_address, tunnel=False))
         bid_community.add_discovered_candidate(
             Candidate(self.session.get_dispersy_instance().lan_address, tunnel=False))
-        yield self.async_sleep(3)
+        yield self.async_sleep(7)
         bid_community.create_bid(10, 'DUM1', 10, 'MC', 3600)
         ask_community.create_ask(10, 'DUM1', 10, 'MC', 3600)
 

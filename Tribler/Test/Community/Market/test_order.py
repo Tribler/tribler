@@ -33,8 +33,10 @@ class OrderTestSuite(unittest.TestCase):
         self.tick2 = Tick(MessageId(TraderId('0'), MessageNumber('message_number')),
                           OrderId(TraderId('0'), OrderNumber(2)), Price(100, 'BTC'), Quantity(100, 'MC'),
                           Timeout(0.0), Timestamp(float("inf")), True)
+
+        self.order_timestamp = Timestamp.now()
         self.order = Order(OrderId(TraderId("0"), OrderNumber(3)), Price(100, 'BTC'), Quantity(30, 'MC'),
-                           Timeout(5000), Timestamp(time.time()), False)
+                           Timeout(5000), self.order_timestamp, False)
         self.order2 = Order(OrderId(TraderId("0"), OrderNumber(4)), Price(100, 'BTC'), Quantity(30, 'MC'),
                             Timeout(5), Timestamp(time.time() - 1000), True)
 
@@ -46,6 +48,11 @@ class OrderTestSuite(unittest.TestCase):
         self.assertEquals(self.order.traded_quantity, Quantity(0, 'MC'))
         self.order.add_trade(OrderId(TraderId('5'), OrderNumber(1)), Quantity(10, 'MC'))
         self.assertEquals(self.order.traded_quantity, Quantity(10, 'MC'))
+
+        self.order.reserve_quantity_for_tick(OrderId(TraderId('6'), OrderNumber(1)), Quantity(20, 'MC'))
+        self.order.add_trade(OrderId(TraderId('6'), OrderNumber(1)), Quantity(20, 'MC'))
+        self.assertTrue(self.order.is_complete())
+        self.assertFalse(self.order.cancelled)
 
     def test_is_ask(self):
         # Test for is ask
@@ -95,6 +102,27 @@ class OrderTestSuite(unittest.TestCase):
         self.assertEqual(self.order.status, "completed")
         self.order._cancelled = True
         self.assertEqual(self.order.status, "cancelled")
+
+    def test_to_dict(self):
+        """
+        Test the conversion of an order to a dictionary
+        """
+        self.assertEqual(self.order.to_dictionary(), {
+            "trader_id": "0",
+            "cancelled": False,
+            "completed_timestamp": None,
+            "is_ask": False,
+            "order_number": 3,
+            "price": 100.0,
+            "price_type": "BTC",
+            "quantity": 30.0,
+            "quantity_type": "MC",
+            "reserved_quantity": 0.0,
+            "traded_quantity": 0.0,
+            "status": "open",
+            "timeout": 5000.0,
+            "timestamp": float(self.order_timestamp)
+        })
 
 
 class OrderIDTestSuite(unittest.TestCase):
