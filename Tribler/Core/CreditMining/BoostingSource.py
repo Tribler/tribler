@@ -3,14 +3,18 @@ Supported boosting sources.
 
 Author(s): Egbert Bouman, Mihai Capota, Elric Milon, Ardhi Putra
 """
-import feedparser
 import glob
 import logging
 import os
 import re
 import urllib
 from binascii import hexlify, unhexlify
+from collections import deque
 from hashlib import sha1
+
+import feedparser
+import libtorrent as lt
+import time
 from twisted.internet import defer
 from twisted.internet import reactor
 from twisted.internet.defer import CancelledError
@@ -18,8 +22,6 @@ from twisted.internet.task import LoopingCall
 from twisted.web.client import Agent, readBody, getPage
 from twisted.web.error import Error
 from twisted.web.http_headers import Headers
-
-import libtorrent as lt
 
 from Tribler.Core.CreditMining.credit_mining_util import ent2chr
 from Tribler.Core.TorrentDef import TorrentDef
@@ -62,13 +64,22 @@ class BoostingSource(TaskManager):
 
         self.boosting_manager = self.session.lm.boosting_manager
 
+        # no response for 2 hour, delete this torrent
+        self.delete_idle_torrent_timeout = 7200
+        self.recovery_blacklist_torrent = 18000
+
+        # blacklisted torrent because of idleness. infohash:deleted_time
+        self.blacklist_torrent = {}
+
     def start(self):
         """
         Start operating mining for this source
         """
         d = self._load_if_ready(self.source)
         self.register_task(str(self.source) + "_load", d, value=self.source)
-        self._logger.debug("Start mining on %s", self.source)
+
+        self.register_task("check_availability %s" %self.source, LoopingCall(self.check_available), 60, interval=60)
+        self._logger.debug("Start mining on %s", source_to_string(self.source))
 
     def kill_tasks(self):
         """
@@ -125,6 +136,50 @@ class BoostingSource(TaskManager):
 
     def _on_err(self, err_msg):
         self._logger.error(err_msg)
+
+
+    def check_available(self):
+        """
+        Function to remove idle torrent from the list
+        :return:
+        """
+        for infohash in list(self.torrents):
+
+            # check if torrent already inserted or not
+            if infohash not in self.session.lm.boosting_manager.torrents:
+                continue
+            elif 'download' not in self.torrents[infohash]:
+                # or if it's stopped
+                continue
+
+            boosting_torrent = self.session.lm.boosting_manager.torrents[infohash]
+            timediff = time.time() - boosting_torrent['time']['last_activity'] if boosting_torrent['time']['last_activity'] else 0
+
+            # kill the torrent
+            if timediff > self.delete_idle_torrent_timeout:
+                # if currently running, stop it (this might not happen as the statistics will prevent this)
+
+                if infohash in self.session.lm.boosting_manager.torrents \
+                        and 'download' in self.session.lm.boosting_manager.torrents[infohash]:
+                    self.session.lm.boosting_manager.stop_download(infohash, remove_torrent=True,
+                                                                   reason="idle torrent deletion")
+                else:
+                    # also remove from boostingmanager
+                    self.session.lm.boosting_manager.torrents.pop(infohash)
+
+                self._logger.debug("Removed torrent %s from %s because of timeout", hexlify(infohash), self.source)
+
+                # remove from this source so it can make space
+                self.torrents.pop(infohash)
+
+                # blacklist this torrent for a while
+                self.blacklist_torrent[infohash] = time.time()
+
+        # recover blacklisted torrent
+        for infohash in list(self.blacklist_torrent):
+            if time.time() - self.blacklist_torrent[infohash] > self.recovery_blacklist_torrent:
+                self._logger.debug("Recover blacklisted torrent %s", hexlify(infohash))
+                self.blacklist_torrent.pop(infohash)
 
 
 class ChannelSource(BoostingSource):
@@ -215,6 +270,11 @@ class ChannelSource(BoostingSource):
             if torrent.get_files() and infohash in self.unavail_torrent:
                 if len(self.torrents) >= self.max_torrents:
                     self._logger.debug("Max torrents in source reached. Not adding %s", torrent.infohash)
+                    del self.unavail_torrent[torrent.infohash]
+                    return
+
+                if torrent.infohash in self.blacklist_torrent:
+                    self._logger.debug("Torrents blacklisted. Not adding %s", hexlify(torrent.infohash))
                     del self.unavail_torrent[torrent.infohash]
                     return
 
@@ -322,11 +382,19 @@ class RSSFeedSource(BoostingSource):
         """
         function called when RSS successfully read
         """
-        self.register_task(str(self.source) + "_update", LoopingCall(self._update),
-                           10, interval=self.interval)
+        task = self.check_and_register_task(str(self.source) + "_update_load", LoopingCall(self._load, rss_feed),
+                                            self.interval, interval=self.interval)
+
+        if task is not None: #log it for the first time
+            self._logger.info("Got RSS feed %s", rss_feed)
+        else:
+            self._logger.debug("Updating RSS feed")
+
+        self.parsed_rss = None
         self.parsed_rss = feedparser.parse(body_rss)
-        self._logger.info("Got RSS feed %s", rss_feed)
+
         self.ready = True
+        self._update()
 
     def _on_error_rss(self, failure, rss_feed):
         """
@@ -336,7 +404,7 @@ class RSSFeedSource(BoostingSource):
         failure.trap(CancelledError, Error)
         self._logger.error("Aborting load on : %s. Reason : %s.", rss_feed, failure.getErrorMessage())
 
-        if "503" in failure.getErrorMessage():
+        if "503" in failure.getErrorMessage() or "200" in failure.getErrorMessage():
             self.register_task(str(self.source)+"_load_delay", reactor.callLater(10, self._load, rss_feed))
             return
 
@@ -380,12 +448,16 @@ class RSSFeedSource(BoostingSource):
             if tdef and len(self.torrents) < self.max_torrents:
                 # Create a torrent dict.
                 real_infohash = tdef.get_infohash()
+                if real_infohash in self.blacklist_torrent:
+                    self._logger.debug("Torrents blacklisted. Not adding %s", hexlify(real_infohash))
+                    return
+
                 torrent_values = [item_torrent_entry['title'], tdef, tdef.get_creation_date(), tdef.get_length(),
                                   len(tdef.get_files()), -1, -1, self.enabled, {}]
 
                 # store the real infohash to generated infohash
                 self.torrents[real_infohash] = dict(zip(torrent_keys, torrent_values))
-                self.fake_infohash_id[sha1(item_torrent_entry['id']).digest()] = real_infohash
+                self.fake_infohash_id[sha1(item_torrent_entry['link']).digest()] = real_infohash
 
                 # manually generate an ID and put this into DB
                 self.torrent_db.addOrGetTorrentID(real_infohash)
@@ -418,6 +490,27 @@ class RSSFeedSource(BoostingSource):
                             Headers({'User-Agent': ['Tribler ' + version_id]}),
                             None)
                         ses_agent.addCallback(__success_cb, item).addErrback(self._on_err)
+                    elif self.fake_infohash_id[fake_infohash] not in self.torrents:
+                        # torrent already downloaded before. But we deleted it.
+                        infohash = self.fake_infohash_id[fake_infohash]
+                        self._logger.debug("Readd torrent %s", hexlify(infohash))
+
+                        if infohash in self.blacklist_torrent:
+                            self._logger.debug("Torrents blacklisted. Not adding %s", hexlify(infohash))
+                            continue
+
+                        tdef = TorrentDef.load_from_memory(self.session.get_collected_torrent(infohash))
+
+                        torrent_values = [item['title'], tdef, tdef.get_creation_date(), tdef.get_length(),
+                                          len(tdef.get_files()), -1, -1, self.enabled, {}]
+
+                        # store the real infohash to generated infohash
+                        self.torrents[infohash] = dict(zip(torrent_keys, torrent_values))
+
+                        if tdef and len(self.torrents) < self.max_torrents and self.torrent_insert_callback:
+                            self.torrent_insert_callback(self.source, infohash, self.torrents[infohash])
+                        else:
+                            self._logger.debug("Can't callback torrent. Not adding %s", hexlify(infohash))
 
 
 class DirectorySource(BoostingSource):
@@ -426,6 +519,12 @@ class DirectorySource(BoostingSource):
 
     The directory must exist.
     """
+
+    def __init__(self, session, dirsource, boost_settings, torrent_insert_cb):
+        BoostingSource.__init__(self, session, dirsource, boost_settings, torrent_insert_cb)
+        self.torrent_queue = deque()
+
+        self.torrent_ihash_name = {}
 
     def _load(self, directory):
         if os.path.isdir(directory):
@@ -447,19 +546,43 @@ class DirectorySource(BoostingSource):
         if not self.ready:
             return
 
+        # periodically check directory
         for torrent_filename in glob.glob(self.source + '/*.torrent'):
-            if torrent_filename not in self.torrents and len(self.torrents) < self.max_torrents:
-                try:
-                    tdef = TorrentDef.load(torrent_filename)
-                except ValueError, verr:
-                    self._logger.error("Could not load %s. Reason %s", torrent_filename, verr)
-                    continue
+            try:
+                ihash = "%s" % lt.torrent_info(torrent_filename).info_hash()
+                # add new-valid torrent in directory
+                if ihash and ihash not in self.torrent_queue and ihash not in self.torrents:
+                    self.torrent_queue.append(ihash)
+                    self.torrent_ihash_name[ihash] = torrent_filename
+            except RuntimeError:
+                self._logger.error("Invalid torrent. Cannot load %s", torrent_filename)
+                os.remove(torrent_filename)
 
-                # Create a torrent dict.
-                infohash = tdef.get_infohash()
-                torrent_values = [tdef.get_name_as_unicode(), tdef, tdef.get_creation_date(), tdef.get_length(),
-                                  len(tdef.get_files()), -1, -1, self.enabled, {}]
-                self.torrents[infohash] = dict(zip(torrent_keys, torrent_values))
-                # Notify the BoostingManager.
-                if self.torrent_insert_callback:
-                    self.torrent_insert_callback(self.source, tdef.get_infohash(), self.torrents[infohash])
+        self._logger.debug("Update torrent list #%d out of %d", len(self.torrents), self.max_torrents)
+
+        # if #torrent served below max torrents
+        while len(self.torrents) < self.max_torrents and len(self.torrent_queue):
+
+            # add the oldest seen torrent
+            infohash = self.torrent_queue.popleft()
+            torrent_filename = self.torrent_ihash_name[infohash]
+
+            infohash = unhexlify(infohash)
+            try:
+                tdef = TorrentDef.load(torrent_filename)
+            except ValueError, verr:
+                self._logger.error("Could not load %s. Reason %s", torrent_filename, verr)
+                continue
+
+            if infohash in self.blacklist_torrent:
+                self._logger.debug("Torrents blacklisted. Not adding %s", hexlify(infohash))
+                return
+
+            # Create a torrent dict.
+            torrent_values = [tdef.get_name_as_unicode(), tdef, tdef.get_creation_date(), tdef.get_length(),
+                              len(tdef.get_files()), -1, -1, self.enabled, {}]
+            self.torrents[infohash] = dict(zip(torrent_keys, torrent_values))
+
+            # Notify the BoostingManager.
+            if self.torrent_insert_callback:
+                self.torrent_insert_callback(self.source, tdef.get_infohash(), self.torrents[infohash])

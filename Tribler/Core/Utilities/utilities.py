@@ -444,21 +444,26 @@ def translate_peers_into_health(peer_info_dicts):
             upload_only_b = True
         if p_info['uinterested']:
             interest_in_us += 1
-        if p_info['completed'] == 1:
+        # progress per million
+        if p_info['completed'] >= 800000:
             finished += 1
         else:
-            unfinished_able_dl += 1 if upload_only_b else 0
+            unfinished_able_dl += 1 if not upload_only_b else 0
 
     # seeders potentials:
     # 1. it's only want uploading right now (upload only)
-    # 2. it's finished (we don't know whether it want to upload or not)
+    # 2. it's 80% finished (we don't know whether it want to upload or not)
+    # 3. it's known uploaded to us some data more than downloading
     # leecher potentials:
     # 1. it's interested in our piece
     # 2. it's unfinished but it's not 'upload only' (it can't leech for some reason)
     # 3. it's unfinished (less restrictive)
+    # 4. it's known downloaded from us some data more than uploading
 
     # make sure to change those description when changing the algorithm
 
-    num_seeders = max(upload_only, finished)
-    num_leech = max(interest_in_us, min(unfinished_able_dl, len(peer_info_dicts) - finished))
+    num_seeders = max(upload_only, finished) or len(
+        [x for x in peer_info_dicts if x['utotal'] < x['dtotal'] != 0])
+    num_leech = max(interest_in_us, min(unfinished_able_dl, len(peer_info_dicts) - finished)) or len(
+        [x for x in peer_info_dicts if x['dtotal'] < x['utotal'] != 0])
     return num_seeders, num_leech

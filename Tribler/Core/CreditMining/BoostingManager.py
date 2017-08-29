@@ -3,14 +3,20 @@ Manage boosting of swarms.
 
 Author(s): Egbert Bouman, Mihai Capota, Elric Milon, Ardhi Putra
 """
+import glob
 import logging
 import os
 import shutil
+import random
 from binascii import hexlify, unhexlify
+
+import time
+import libtorrent as lt
+
+from twisted.internet import defer
 from twisted.internet.task import LoopingCall
 
 import libtorrent as lt
-
 from Tribler.Core.CreditMining.BoostingPolicy import SeederRatioPolicy
 from Tribler.Core.CreditMining.BoostingSource import ChannelSource
 from Tribler.Core.CreditMining.BoostingSource import DirectorySource
@@ -58,6 +64,12 @@ class BoostingSettings(object):
         self.check_dependencies = True
         self.auto_start_source = True
 
+        # in seconds
+        self.time_check_interval = 2
+        self.timeout_torrent_activity = 240
+
+        # predownload variable
+        self.piece_download = 4
 
 class BoostingManager(TaskManager):
     """
@@ -73,6 +85,8 @@ class BoostingManager(TaskManager):
         self.torrents = {}
 
         self.session = session
+
+        self.finish_pre_dl = {}
 
         # use provided settings or a default one
         self.settings = settings or BoostingSettings(policy=SeederRatioPolicy(session), load_config=True)
@@ -95,6 +109,8 @@ class BoostingManager(TaskManager):
         if not os.path.exists(self.settings.credit_mining_path):
             os.makedirs(self.settings.credit_mining_path)
 
+        self.pre_session = self.session.lm.ltmgr.create_session()
+
         self.session.lm.ltmgr.get_session().set_settings(
             {'share_mode_target': self.settings.share_mode_target})
 
@@ -109,6 +125,12 @@ class BoostingManager(TaskManager):
         self.register_task("CreditMining_log", LoopingCall(self.log_statistics),
                            self.settings.initial_logging_interval, interval=self.settings.logging_interval)
 
+        self.register_task("CreditMining_checktime", LoopingCall(self.check_time),
+                           self.settings.time_check_interval, interval=self.settings.time_check_interval)
+
+        self.register_task("process resume", LoopingCall(self.__process_resume_alert), 10, interval=5)
+
+
     def shutdown(self):
         """
         Shutting down boosting manager. It also stops and remove all the sources.
@@ -116,13 +138,17 @@ class BoostingManager(TaskManager):
         self.save_config()
         self._logger.info("Shutting down boostingmanager")
 
+        self.cancel_all_pending_tasks()
+
         for sourcekey in self.boosting_sources.keys():
             self.remove_source(sourcekey)
 
-        self.cancel_all_pending_tasks()
-
         # remove credit mining downloaded data
         shutil.rmtree(self.settings.credit_mining_path, ignore_errors=True)
+
+        # remove pre-download file
+        for f in glob.glob(self.session.get_downloads_pstate_dir()+"/_*.state"):
+            os.remove(f)
 
     def get_source_object(self, sourcekey):
         """
@@ -141,7 +167,7 @@ class BoostingManager(TaskManager):
 
                 # pause torrent download from disabled source
                 if not mining_bool:
-                    self.stop_download(tor)
+                    self.stop_download(ihash, reason="disabling source")
 
         self.boosting_sources[string_to_source(source)].enabled = mining_bool
 
@@ -176,9 +202,9 @@ class BoostingManager(TaskManager):
             if self.settings.auto_start_source:
                 self.boosting_sources[source].start()
 
-            self._logger.info("Added source %s", source)
+            self._logger.info("Added source %s", source_to_string(source))
         else:
-            self._logger.info("Already have source %s", source)
+            self._logger.info("Already have source %s", source_to_string(source))
 
     def remove_source(self, source_key):
         """
@@ -187,16 +213,172 @@ class BoostingManager(TaskManager):
         if source_key in self.boosting_sources:
             source = self.boosting_sources.pop(source_key)
             source.kill_tasks()
-            self._logger.info("Removed source %s", source_key)
+            self._logger.info("Removed source %s", source_to_string(source_key))
 
             rm_torrents = [torrent for _, torrent in self.torrents.items()
                            if torrent['source'] == source_to_string(source_key)]
 
             for torrent in rm_torrents:
-                self.stop_download(torrent)
-                self.torrents.pop(torrent["metainfo"].get_infohash(), None)
+                self.stop_download(torrent["metainfo"].get_infohash(), remove_torrent=True, reason="removing source")
 
             self._logger.info("Torrents download stopped and removed")
+
+    def __insert_peer(self, infohash, ip, port, peer):
+        """
+        Store peer information to the credit mining system.
+        :return:
+        """
+        peerlist = self.torrents[infohash]['peers']
+        new_key = "%s:%s" % (ip, port)
+        if new_key not in peerlist.keys():
+            self.torrents[infohash]['peers'][new_key] = peer
+        else:
+            stored_peer = self.torrents[infohash]['peers'][new_key]
+
+            # compare stored peer data with new peer data here
+            # Example :
+            # if stored_peer['num_pieces'] != peer['num_pieces']:
+            # if stored_peer['completed'] != peer['completed']:
+            # if stored_peer['uinterested'] != peer['uinterested']:
+
+            self.torrents[infohash]['peers'][new_key] = peer
+
+    def __process_resume_alert(self):
+        """
+        Process alert for pre_session libtorrent's session object.
+        Specifically needed to catch the resume alert to move to the next phase of investing algorithm.
+
+        :return:
+        """
+        _alerts = self.pre_session.pop_alerts() or []
+        for a in _alerts:
+            if a.category() & lt.alert.category_t.storage_notification and hasattr(a, 'resume_data'):
+                basename = "_" + hexlify(a.resume_data['info-hash']) + '.state'
+                filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
+
+                with open(filename, 'wb') as file_:
+                    file_.write(str(a.resume_data))
+
+                # call the callback to start boosting on this torrent
+                self.torrents[a.resume_data['info-hash']]['predownload'].callback(a.handle)
+
+    def _pre_download_torrent(self, source, infohash, torrent):
+        """
+        Pre-download (prospecting) swarm main function.
+
+        :return:
+        """
+        tdef = torrent['metainfo']
+        metainfo = tdef.get_metainfo()
+        torrentinfo = lt.torrent_info(metainfo)
+
+        self._logger.info("%s start pre-downloading", hexlify(infohash))
+
+        thandle = self.pre_session.add_torrent({'ti': torrentinfo, 'save_path': self.settings.credit_mining_path,
+                                                'flags': lt.add_torrent_params_flags_t.flag_paused})
+
+        # only download 4 pieces
+        thandle.prioritize_pieces([0]*len(thandle.piece_priorities()))
+        thandle.piece_priority(0, 7)
+
+        def _on_finish(_thandle):
+            self.pre_session.remove_torrent(_thandle, 0)
+            self.torrents[infohash]['predownload'] = "_" + hexlify(infohash) + '.state'
+
+            return infohash
+
+        deferred_handle = defer.Deferred()
+        deferred_handle.addCallback(_on_finish)
+        deferred_handle.addErrback(logging.error)
+
+        self.finish_pre_dl[infohash] = 0.0
+
+        def _check_swarm_peers(thandle, started_time):
+            peers_info = thandle.get_peer_info()
+
+            for p in peers_info:
+                peer = LibtorrentDownloadImpl.create_peerlist_data(p)
+                self.__insert_peer(infohash, peer['ip'], peer['port'], peer)
+
+            status = thandle.status()
+            elapsed_time = time.time() - started_time
+
+            # maximal waiting time : after 3600 seconds (1 hour)
+            if elapsed_time > 3600 and not self.finish_pre_dl[infohash]:
+                self.cancel_pending_task("pre_download_%s" %hexlify(infohash))
+                if status.progress < 1.0:
+                    self._logger.warn("%s timeout pre-downloading with %f", hexlify(infohash), status.progress)
+
+                thandle.pause()
+                thandle.save_resume_data()
+
+            # just finished prospecting, set the flags
+            if status.progress == 1.0 and not self.finish_pre_dl[infohash]:
+                if status.num_pieces >= self.settings.piece_download:
+                    self._logger.info("%s finish pre-downloading by %s", hexlify(infohash), time.time() - started_time)
+                    self.finish_pre_dl[infohash] = time.time()
+
+                    self.cancel_pending_task("pre_download_%s" % hexlify(infohash))
+                    thandle.pause()
+                    thandle.save_resume_data()
+                else:
+                    pieces_idx = self.download_pieces(self.settings.piece_download - 1, thandle)
+                    for p in pieces_idx:
+                        thandle.piece_priority(p, 7)
+
+        self.register_task("pre_download_%s" % hexlify(infohash), LoopingCall(_check_swarm_peers, thandle, time.time()), 0,  interval=2)
+        thandle.resume()
+
+        return deferred_handle
+
+    def download_pieces(self, num_piece, thandle):
+        """
+        A function to download rarest pieces.
+        :return:
+        """
+        merged_bitfields = None
+
+        for p in thandle.get_peer_info():
+            peer = LibtorrentDownloadImpl.create_peerlist_data(p)
+            completed = peer.get('completed', 0)
+            have = peer.get('have', [])
+
+            if merged_bitfields is None:
+                merged_bitfields = [0] * len(have)
+
+            if completed == 1000000 or (have and all(have)):
+                for i in range(len(have)):
+                    merged_bitfields[i] += 1
+            else:
+                for i in range(len(have)):
+                    if have[i]:
+                        merged_bitfields[i] += 1
+
+        if merged_bitfields is None:
+            return []
+
+        rarest_piece = min(merged_bitfields)
+        if rarest_piece == max(merged_bitfields):
+            return []
+
+        rare_pieces = [i for i, x in enumerate(merged_bitfields) if x == rarest_piece]
+
+        for idx in rare_pieces:
+            if thandle.have_piece(idx):
+                rare_pieces.remove(idx)
+
+        if not rare_pieces:
+            return []
+
+        chosen_idx = random.choice(rare_pieces)
+        chosen_idxs = []
+        for y in xrange(0, min(num_piece, len(rare_pieces))):
+            while thandle.have_piece(chosen_idx) or chosen_idx in chosen_idxs:
+                chosen_idx = random.choice(rare_pieces)
+
+            chosen_idxs.append(chosen_idx)
+
+        return chosen_idxs
 
     def on_torrent_insert(self, source, infohash, torrent):
         """
@@ -205,7 +387,14 @@ class BoostingManager(TaskManager):
         """
 
         # Remember where we got this torrent from
-        self._logger.debug("remember torrent %s from %s", torrent, source_to_string(source))
+        self._logger.debug("remember torrent %s from %s", torrent['name'], source_to_string(source))
+
+        torrent['peers'] = {}
+
+        if self.session.lm.load_download_pstate_noexc(infohash):
+            torrent['predownload'] = "_" + hexlify(infohash) + '.state'
+        else:
+            torrent['predownload'] = self._pre_download_torrent(source, infohash, torrent)
 
         torrent['source'] = source_to_string(source)
 
@@ -226,7 +415,18 @@ class BoostingManager(TaskManager):
                 is_duplicate = healthiest_torrent != duplicate
                 duplicate['is_duplicate'] = is_duplicate
                 if is_duplicate and duplicate.get('download', None):
-                    self.stop_download(duplicate)
+                    self.stop_download(duplicate["metainfo"].get_infohash(), reason="duplicate")
+
+        torrent['time'] = {}
+        torrent['time']['all_download'] = 0
+        torrent['time']['all_upload'] = 0
+        torrent['time']['last_started'] = 0.0
+        torrent['time']['last_stopped'] = 0.0
+        torrent['time']['last_activity'] = 0.0
+        torrent['time']['timeout'] = self.settings.timeout_torrent_activity
+
+        torrent['availability'] = 0.0
+        torrent['livepeers'] = []
 
         self.torrents[infohash] = torrent
 
@@ -265,12 +465,13 @@ class BoostingManager(TaskManager):
             # torrent handle
             lt_torrent = self.session.lm.ltmgr.get_session().find_torrent(lt.big_number(infohash))
 
-            peer_list = []
             for i in lt_torrent.get_peer_info():
                 peer = LibtorrentDownloadImpl.create_peerlist_data(i)
-                peer_list.append(peer)
 
-            num_seed, num_leech = utilities.translate_peers_into_health(peer_list)
+                # update peer information
+                self.__insert_peer(infohash, peer['ip'], peer['port'], peer)
+
+            num_seed, num_leech = utilities.translate_peers_into_health(self.torrents[infohash]['peers'].values())
 
             # calculate number of seeder and leecher by looking at the peers
             if self.torrents[infohash]['num_seeders'] == 0:
@@ -278,10 +479,11 @@ class BoostingManager(TaskManager):
             if self.torrents[infohash]['num_leechers'] == 0:
                 self.torrents[infohash]['num_leechers'] = num_leech
 
-            self._logger.debug("Seeder/leecher data translated from peers : seeder %s, leecher %s", num_seed, num_leech)
+            self._logger.debug("Seeder/leecher data %s translated from peers : seeder %s, leecher %s",
+                               hexlify(infohash), num_seed, num_leech)
 
             # check health(seeder/leecher)
-            self.session.lm.torrent_checker.add_gui_request(infohash, True)
+            self.session.lm.torrent_checker.add_gui_request(infohash)
 
     def set_archive(self, source, enable):
         """
@@ -293,13 +495,40 @@ class BoostingManager(TaskManager):
         else:
             self._logger.error("Could not set archive mode for unknown source %s", source)
 
-    def start_download(self, torrent):
+    def __bdl_callback(self, ds):
+        ihash_str = ds.get_download().tdef.get_infohash().encode('hex')
+
+        peers = [x for x in ds.get_peerlist() if any(x['have']) and not
+                 x['ip'].startswith("127.0.0")]
+
+        ds.get_peerlist = lambda: peers
+
+        availability = ds.get_availability()
+        ihash = unhexlify(ihash_str)
+
+        if ihash in self.torrents.keys():
+            self.torrents[ihash]['availability'] = availability
+            self.torrents[ihash]['livepeers'] = peers
+            for peer in self.torrents[ihash]['livepeers']:
+                self.__insert_peer(ihash, peer['ip'], peer['port'], peer)
+
+
+        return 1.0, True
+
+    def start_download(self, infohash):
         """
         Start downloading a particular torrent and add it to download list in Tribler
         """
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(self.settings.credit_mining_path)
         dscfg.set_safe_seeding(False)
+        dscfg.dlconfig.set('downloadconfig', 'seeding_mode', 'forever')
+
+        if not infohash:
+            self._logger.error("None Infohash %s", infohash)
+            return
+
+        torrent = self.torrents[infohash]
 
         preload = torrent.get('preload', False)
 
@@ -308,25 +537,81 @@ class BoostingManager(TaskManager):
                                hexlify(torrent["metainfo"].get_infohash()))
             return
 
+        pstate = None
+        if type(torrent['predownload']) is not str:
+            self._logger.error("Still predownload %s. Pending start_download %s",
+                               hexlify(torrent["metainfo"].get_infohash()), torrent['predownload'])
+            torrent['predownload'].addCallback(self.start_download)
+
+            return
+        elif os.path.isfile(os.path.join(self.session.get_downloads_pstate_dir(), torrent['predownload'])):
+            with open(os.path.join(self.session.get_downloads_pstate_dir(), torrent['predownload']), 'r') as _predl_file:
+                pstate_raw = _predl_file.read()
+
+            pstate = dscfg.dlconfig.copy()
+            if not pstate.has_section('state'):
+                pstate.add_section('state')
+            pstate.set('state', 'engineresumedata', pstate_raw)
+
+            # as we read initial resume data, delete it afterwards
+            os.remove(os.path.join(self.session.get_downloads_pstate_dir(), torrent['predownload']))
+
         self._logger.info("Starting %s preload %s",
                           hexlify(torrent["metainfo"].get_infohash()), preload)
 
-        torrent['download'] = self.session.lm.add(torrent['metainfo'], dscfg, hidden=True,
+        torrent['download'] = self.session.lm.add(torrent['metainfo'], dscfg, pstate=pstate, hidden=True,
                                                   share_mode=not preload, checkpoint_disabled=True)
         torrent['download'].set_priority(torrent.get('prio', 1))
+        torrent['download'].set_state_callback(self.__bdl_callback, True)
 
-    def stop_download(self, torrent):
+        torrent['time']['last_started'] = time.time()
+
+        # assume last activity when start downloading
+        torrent['time']['last_activity'] = time.time()
+
+        # if it's paused
+        if torrent['download'].handle:
+            torrent['download'].handle.resume()
+
+    def stop_download(self, infohash, remove_torrent=False, reason="N/A"):
         """
         Stopping torrent that currently downloading
         """
-        ihash = lt.big_number(torrent["metainfo"].get_infohash())
-        self._logger.info("Stopping %s", str(ihash))
-        download = torrent.pop('download', False)
-        lt_torrent = self.session.lm.ltmgr.get_session().find_torrent(ihash)
-        if download and lt_torrent.is_valid():
-            self._logger.info("Writing resume data for %s", str(ihash))
-            download.save_resume_data()
-            self.session.remove_download(download, hidden=True)
+        torrent = self.torrents[infohash]
+        infohash = hexlify(infohash)
+
+        self._logger.info("Stopping %s, reason : %s", str(infohash), reason)
+        download = torrent.get('download', None)
+        if download:
+            handle = download.handle
+            if not handle.is_valid():
+                self._logger.error("Handle %s is not valid", str(infohash))
+            if not handle.has_metadata():
+                self._logger.error("Metadata %s is not valid", str(infohash))
+            handle.pause()
+
+            self._logger.info("Writing resume data for %s", str(infohash))
+            deferred_resume = download.save_resume_data()
+
+            def _remove_download(resume_data, remove_torrent_par):
+                infohash_bin = resume_data['info-hash']
+                self._logger.info("[CALLBACK] Stopping download %s", hexlify(infohash_bin))
+
+                if infohash_bin in self.torrents:
+                    _torrent = self.torrents[infohash_bin]
+                    _download = _torrent.pop('download', False)
+                else:
+                    self._logger.error("Can't find torrents in callback %s:%s", hexlify(infohash_bin),
+                                       [hexlify(a) for a in self.torrents.keys()])
+                    _download = None
+
+                if _download:
+                    self.session.remove_download(_download, hidden=True)
+                    torrent['time']['last_stopped'] = time.time()
+                if remove_torrent_par:
+                    self.torrents.pop(infohash_bin)
+
+            deferred_resume.addCallback(_remove_download, remove_torrent)
 
     def _select_torrent(self):
         """
@@ -339,9 +624,9 @@ class BoostingManager(TaskManager):
             # we prioritize archive source
             if torrent.get('preload', False):
                 if 'download' not in torrent:
-                    self.start_download(torrent)
+                    self.start_download(infohash)
                 elif torrent['download'].get_status() == DLSTATUS_SEEDING:
-                    self.stop_download(torrent)
+                    self.stop_download(infohash, reason="archive mode")
             elif not torrent.get('is_duplicate', False):
                 if torrent.get('enabled', True):
                     torrents[infohash] = torrent
@@ -350,9 +635,9 @@ class BoostingManager(TaskManager):
             # Determine which torrent to start and which to stop.
             torrents_start, torrents_stop = self.settings.policy.apply(torrents, self.settings.max_torrents_active)
             for torrent in torrents_stop:
-                self.stop_download(torrent)
+                self.stop_download(torrent["metainfo"].get_infohash(), reason="by policy")
             for torrent in torrents_start:
-                self.start_download(torrent)
+                self.start_download(torrent["metainfo"].get_infohash())
 
             self._logger.info("Selecting from %s torrents %s start download", len(torrents), len(torrents_start))
 
@@ -463,6 +748,32 @@ class BoostingManager(TaskManager):
                             non_zero_values.append(piece_priority)
                     if non_zero_values:
                         self._logger.debug("Non zero priorities for %s : %s", status.info_hash, non_zero_values)
+
+    def check_time(self):
+        """
+        Function to check activity of a torrent
+        :return:
+        """
+        for ihash in list(self.torrents):
+            tor = self.torrents.get(ihash)
+
+            # only consider active torrents
+            if 'download' not in tor:
+                continue
+
+            if tor['download'].handle is None:
+                return
+
+            status = tor['download'].handle.status()
+
+            if status.all_time_download != tor['time']['all_download']\
+                    or status.all_time_upload != tor['time']['all_upload']:
+                self._logger.debug("Update last activity for %s : %s", hexlify(ihash), time.time())
+                tor['time']['last_activity'] = time.time()
+
+                tor['time']['all_download'] = status.all_time_download
+                tor['time']['all_upload'] = status.all_time_upload
+
 
     def update_torrent_stats(self, torrent_infohash_str, seeding_stats):
         """
