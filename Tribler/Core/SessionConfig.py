@@ -1021,6 +1021,52 @@ class SessionConfigInterface(object):
         return ret
 
     #
+    # Resource monitor
+    #
+
+    def set_resource_monitor_enabled(self, resource_monitor_enabled):
+        """
+        Sets whether the resource monitor is enabled.
+        :param resource_monitor_enabled: True or False.
+        """
+        return self.sessconfig.set(u'resource_monitor', u'enabled', resource_monitor_enabled)
+
+    def get_resource_monitor_enabled(self):
+        """
+        Returns whether the resource monitor is enabled.
+        :return: A boolean indicating whether the resource monitor is enabled.
+        """
+        return self.sessconfig.get(u'resource_monitor', u'enabled')
+
+    def set_resource_monitor_poll_interval(self, resource_monitor_poll_interval):
+        """
+        Sets the poll interval of the resource monitor (in seconds).
+        :param resource_monitor_poll_interval: the poll interval.
+        """
+        return self.sessconfig.set(u'resource_monitor', u'poll_interval', resource_monitor_poll_interval)
+
+    def get_resource_monitor_poll_interval(self):
+        """
+        Returns the resource monitor poll interval (in seconds).
+        :return: An integer indicating the poll interval.
+        """
+        return self.sessconfig.get(u'resource_monitor', u'poll_interval')
+
+    def set_resource_monitor_history_size(self, resource_monitor_poll_history):
+        """
+        Sets the maximum history size of the resource monitor.
+        :param resource_monitor_poll_history: the poll interval.
+        """
+        return self.sessconfig.set(u'resource_monitor', u'history_size', resource_monitor_poll_history)
+
+    def get_resource_monitor_history_size(self):
+        """
+        Returns the resource monitor history size.
+        :return: An integer indicating the history size.
+        """
+        return self.sessconfig.get(u'resource_monitor', u'history_size')
+
+    #
     # Static methods
     #
     @staticmethod

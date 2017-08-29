@@ -12,6 +12,8 @@ from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
 import sys
+
+from Tribler.Core.Modules.resource_monitor import ResourceMonitor
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, returnValue, succeed
 from twisted.internet.task import LoopingCall
@@ -71,6 +73,7 @@ class TriblerLaunchMany(TaskManager):
         self.api_manager = None
         self.watch_folder = None
         self.version_check_manager = None
+        self.resource_monitor = None
 
         self.category = None
         self.peer_db = None
@@ -317,6 +320,10 @@ class TriblerLaunchMany(TaskManager):
         if self.session.get_creditmining_enable():
             from Tribler.Core.CreditMining.BoostingManager import BoostingManager
             self.boosting_manager = BoostingManager(self.session)
+
+        if self.session.get_resource_monitor_enabled():
+            self.resource_monitor = ResourceMonitor(self.session)
+            self.resource_monitor.start()
 
         self.version_check_manager = VersionCheckManager(self.session)
         self.session.set_download_states_callback(self.sesscb_states_callback)
@@ -754,6 +761,10 @@ class TriblerLaunchMany(TaskManager):
         if self.version_check_manager:
             self.version_check_manager.stop()
         self.version_check_manager = None
+
+        if self.resource_monitor:
+            self.resource_monitor.stop()
+        self.resource_monitor = None
 
         if self.tracker_manager:
             yield self.tracker_manager.shutdown()

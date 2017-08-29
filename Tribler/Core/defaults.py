@@ -36,8 +36,9 @@ DEFAULTPORT = 7760
 #  Version 16: Changed default VLC video player to external (due to the removal of the wx player).
 #  Version 17: Added an option to limit the amount of connections per download.
 #  Version 18: Added max upload/download rates for libtorrent.
+#  Version 19: Added resource monitor settings.
 
-SESSDEFAULTS_VERSION = 18
+SESSDEFAULTS_VERSION = 19
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -175,6 +176,12 @@ sessdefaults['credit_mining']['boosting_enabled'] = ["http://bt.etree.org/rss/bt
 sessdefaults['credit_mining']['boosting_disabled'] = []
 sessdefaults['credit_mining']['archive_sources'] = []
 sessdefaults['credit_mining']['policy'] = "seederratio"
+
+# Resource monitor settings
+sessdefaults['resource_monitor'] = OrderedDict()
+sessdefaults['resource_monitor']['enabled'] = True
+sessdefaults['resource_monitor']['poll_interval'] = 5
+sessdefaults['resource_monitor']['history_size'] = 20
 
 #
 # BT per download opts
