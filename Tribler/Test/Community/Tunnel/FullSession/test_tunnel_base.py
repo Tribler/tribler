@@ -135,7 +135,7 @@ class TestTunnelBase(TestAsServer):
         config.set_state_dir(self.getStateDir(index))
         config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
-        session = Session(config, ignore_singleton=True, autoload_discovery=False)
+        session = Session(config, autoload_discovery=False)
         yield session.start()
         self.sessions.append(session)
 
@@ -154,7 +154,7 @@ class TestTunnelBase(TestAsServer):
         self.seed_config.set_megacache_enabled(True)
         self.seed_config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
         if self.session2 is None:
-            self.session2 = Session(self.seed_config, ignore_singleton=True, autoload_discovery=False)
+            self.session2 = Session(self.seed_config, autoload_discovery=False)
             self.session2.start()
 
         tdef = TorrentDef()

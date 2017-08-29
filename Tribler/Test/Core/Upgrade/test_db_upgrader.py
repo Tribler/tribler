@@ -62,3 +62,8 @@ class TestDBUpgrader(AbstractUpgrader):
 
         torrent_db_handler = TorrentDBHandler(self.session)
         self.assertEqual(torrent_db_handler.getTorrentID(TORRENT_UBUNTU_FILE_INFOHASH), 3)
+
+    def tearDown(self):
+        self.session.shutdown()
+        self.session = None
+        AbstractUpgrader.tearDown(self)

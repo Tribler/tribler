@@ -13,7 +13,7 @@ class TestChannelManager(TriblerCoreTest):
     def test_create_channel_duplicate_name_error(self):
         config = TriblerConfig()
         config.set_state_dir(self.getStateDir())
-        session = Session(config, ignore_singleton=True)
+        session = Session(config)
 
         class LmMock(object):
             channel_manager = ChannelManager(session)
