@@ -3,7 +3,6 @@ import json
 import psutil
 from twisted.web import http, resource
 
-from Tribler.Core.Utilities.instrumentation import WatchDog
 from Tribler.community.tunnel.tunnel_community import TunnelCommunity
 
 
@@ -16,7 +15,8 @@ class DebugEndpoint(resource.Resource):
         resource.Resource.__init__(self)
 
         child_handler_dict = {"circuits": DebugCircuitsEndpoint, "open_files": DebugOpenFilesEndpoint,
-                              "open_sockets": DebugOpenSocketsEndpoint, "threads": DebugThreadsEndpoint}
+                              "open_sockets": DebugOpenSocketsEndpoint, "threads": DebugThreadsEndpoint,
+                              "cpu_history": DebugCPUHistoryEndpoint, "memory_history": DebugMemoryHistoryEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
@@ -205,11 +205,82 @@ class DebugThreadsEndpoint(resource.Resource):
             .. sourcecode:: javascript
 
                 {
-                    "open_files": [{
-                        "path": "path/to/open/file.txt",
-                        "fd": 33,
+                    "threads": [{
+                        "thread_id": 123456,
+                        "thread_name": "my_thread",
+                        "frames": ["my_frame", ...]
                     }, ...]
                 }
         """
         watchdog = WatchDog()
         return json.dumps({"threads": watchdog.get_threads_info()})
+
+
+class DebugCPUHistoryEndpoint(resource.Resource):
+    """
+    This class handles request for information about CPU usage history.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /debug/cpu_history
+
+        A GET request to this endpoint returns information about CPU usage history in the form of a list.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/cpu_history
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "cpu_history": [{
+                        "time": 1504015291214,
+                        "cpu": 3.4,
+                    }, ...]
+                }
+        """
+        return json.dumps({"cpu_history": self.session.lm.resource_monitor.get_cpu_history_dict()})
+
+
+class DebugMemoryHistoryEndpoint(resource.Resource):
+    """
+    This class handles request for information about memory usage history.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /debug/memory_history
+
+        A GET request to this endpoint returns information about memory usage history in the form of a list.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/memory_history
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "memory_history": [{
+                        "time": 1504015291214,
+                        "mem": 324324,
+                    }, ...]
+                }
+        """
+        return json.dumps({"memory_history": self.session.lm.resource_monitor.get_memory_history_dict()})
