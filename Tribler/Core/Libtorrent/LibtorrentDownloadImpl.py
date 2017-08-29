@@ -249,6 +249,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 self.can_create_engine_wrapper().addCallback(schedule_create_engine_call)
 
             self.pstate_for_restart = pstate
+            self.checkpoint()
             return deferred
 
         except Exception as e:
