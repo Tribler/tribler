@@ -20,6 +20,7 @@ from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
+from Tribler.Core.Modules.resource_monitor import ResourceMonitor
 from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Modules.watch_folder import WatchFolder
@@ -75,6 +76,7 @@ class TriblerLaunchMany(TaskManager):
         self.api_manager = None
         self.watch_folder = None
         self.version_check_manager = None
+        self.resource_monitor = None
 
         self.category = None
         self.peer_db = None
@@ -360,6 +362,10 @@ class TriblerLaunchMany(TaskManager):
         if self.session.config.get_credit_mining_enabled():
             from Tribler.Core.CreditMining.BoostingManager import BoostingManager
             self.boosting_manager = BoostingManager(self.session)
+
+        if self.session.config.get_resource_monitor_enabled():
+            self.resource_monitor = ResourceMonitor(self.session)
+            self.resource_monitor.start()
 
         self.version_check_manager = VersionCheckManager(self.session)
         self.session.set_download_states_callback(self.sesscb_states_callback)
@@ -797,6 +803,10 @@ class TriblerLaunchMany(TaskManager):
         if self.version_check_manager:
             self.version_check_manager.stop()
         self.version_check_manager = None
+
+        if self.resource_monitor:
+            self.resource_monitor.stop()
+        self.resource_monitor = None
 
         if self.tracker_manager:
             yield self.tracker_manager.shutdown()

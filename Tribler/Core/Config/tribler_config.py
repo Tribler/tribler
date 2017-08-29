@@ -608,6 +608,26 @@ class TriblerConfig(object):
     def get_watch_folder_path(self):
         return self.config['watch_folder']['directory']
 
+    # Resource monitor
+
+    def set_resource_monitor_enabled(self, value):
+        self.config['resource_monitor']['enabled'] = value
+
+    def get_resource_monitor_enabled(self):
+        return self.config['resource_monitor']['enabled']
+
+    def set_resource_monitor_poll_interval(self, value):
+        self.config['resource_monitor']['poll_interval'] = value
+
+    def get_resource_monitor_poll_interval(self):
+        return self.config['resource_monitor']['poll_interval']
+
+    def set_resource_monitor_history_size(self, value):
+        self.config['resource_monitor']['history_size'] = value
+
+    def get_resource_monitor_history_size(self):
+        return self.config['resource_monitor']['history_size']
+
     # Credit mining
     def set_credit_mining_enabled(self, value):
         self.config['credit_mining']['enabled'] = value
