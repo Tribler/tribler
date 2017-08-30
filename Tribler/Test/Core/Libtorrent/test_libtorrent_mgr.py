@@ -185,6 +185,7 @@ class TestLibtorrentMgr(TriblerCoreTest):
         mock_ltsession = MockObject()
         mock_ltsession.add_torrent = lambda _: mock_handle
         mock_ltsession.find_torrent = lambda _: mock_handle
+        mock_ltsession.get_torrents = lambda: []
         mock_ltsession.stop_upnp = lambda: None
         mock_ltsession.save_state = lambda: None
 
@@ -207,6 +208,7 @@ class TestLibtorrentMgr(TriblerCoreTest):
         mock_ltsession = MockObject()
         mock_ltsession.add_torrent = lambda _: mock_handle
         mock_ltsession.find_torrent = lambda _: mock_handle
+        mock_ltsession.get_torrents = lambda: [mock_handle]
         mock_ltsession.stop_upnp = lambda: None
         mock_ltsession.save_state = lambda: None
 
