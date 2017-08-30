@@ -482,6 +482,26 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.wait_for_list_populated(window.debug_window.events_tree_widget)
         self.screenshot(window.debug_window, name="debug_panel_events_tab")
 
+        window.debug_window.debug_tab_widget.setCurrentIndex(5)
+        self.wait_for_list_populated(window.debug_window.open_files_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_open_files_tab")
+
+        window.debug_window.system_tab_widget.setCurrentIndex(1)
+        self.wait_for_list_populated(window.debug_window.open_sockets_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_open_sockets_tab")
+
+        window.debug_window.system_tab_widget.setCurrentIndex(2)
+        self.wait_for_list_populated(window.debug_window.threads_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_threads_tab")
+
+        window.debug_window.system_tab_widget.setCurrentIndex(3)
+        QTest.qWait(1000)
+        self.screenshot(window.debug_window, name="debug_panel_cpu_tab")
+
+        window.debug_window.system_tab_widget.setCurrentIndex(4)
+        QTest.qWait(1000)
+        self.screenshot(window.debug_window, name="debug_panel_memory_tab")
+
         window.debug_window.close()
 
     def test_create_torrent(self):
