@@ -25,19 +25,6 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
                         os.path.join(self.files_path, 'video.avi.torrent'))
         self.config.set_libtorrent_enabled(True)
 
-    @blocking_call_on_reactor_thread
-    @inlineCallbacks
-    def tearDown(self, annotate=True):
-        yield super(TestMyChannelCreateTorrentEndpoint, self).tearDown(annotate=annotate)
-        # Remove temporary test directory with test files
-        if os.path.exists(self.files_path):
-            torrent_file = os.path.join(self.files_path, 'TestMyChannelCreateTorrentEndpoint.torrent')
-            if os.path.exists(torrent_file):
-                os.remove(torrent_file)
-            os.remove(os.path.join(self.files_path, 'video.avi'))
-            os.remove(os.path.join(self.files_path, 'video.avi.torrent'))
-            os.removedirs(self.files_path)
-
     @deferred(timeout=10)
     def test_create_torrent(self):
         """
