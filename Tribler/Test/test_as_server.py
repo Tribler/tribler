@@ -54,6 +54,7 @@ class BaseTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(BaseTestCase, self).__init__(*args, **kwargs)
+        self.maxDiff = None  # So we see full diffs when using assertEquals
 
         def wrap(fun):
             @functools.wraps(fun)
@@ -172,7 +173,8 @@ class AbstractServer(BaseTestCase):
                                      "Listening ports left on the reactor during %s: %s" % (phase, reader))
 
         # Check whether the threadpool is clean
-        self.assertEqual(len(reactor.getThreadPool().working), 0)
+        tp_items = [item for item in reactor.getThreadPool().working if item]
+        self.assertEqual(len(tp_items), 0, "Threadpool instances left: %s" % reactor.getThreadPool().working)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
