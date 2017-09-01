@@ -165,8 +165,7 @@ class AbstractServer(BaseTestCase):
                                      "Listening ports left on the reactor during %s: %s" % (phase, reader))
 
         # Check whether the threadpool is clean
-        tp_items = [item for item in reactor.getThreadPool().working if item]
-        self.assertEqual(len(tp_items), 0, "Threadpool instances left: %s" % reactor.getThreadPool().working)
+        self.assertEqual(len(reactor.getThreadPool().working), 0, "Still items left in the threadpool")
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
