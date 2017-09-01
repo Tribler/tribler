@@ -1,6 +1,6 @@
-import json
-
 from twisted.web import resource
+
+import Tribler.Core.Utilities.json_util as json
 
 
 class StatisticsEndpoint(resource.Resource):

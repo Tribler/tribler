@@ -1,8 +1,8 @@
-import json
 from twisted.web import http
 
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json
+import Tribler.Core.Utilities.json_util as json
 
 
 class ChannelsPlaylistsEndpoint(BaseChannelsEndpoint):

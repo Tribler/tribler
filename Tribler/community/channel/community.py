@@ -1,4 +1,3 @@
-import json
 import logging
 from binascii import hexlify
 from struct import pack
@@ -9,6 +8,7 @@ from twisted.python.threadable import isInIOThread
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Core.simpledefs import NTFY_CHANNEL, NTFY_TORRENT
 from Tribler.Core.simpledefs import NTFY_DISCOVERED
+import Tribler.Core.Utilities.json_util as json
 from Tribler.community.channel.payload import ModerationPayload
 from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME

@@ -1,5 +1,5 @@
-import json
 import logging
+
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
@@ -7,6 +7,7 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
+import Tribler.Core.Utilities.json_util as json
 
 
 class DownloadBaseEndpoint(resource.Resource):

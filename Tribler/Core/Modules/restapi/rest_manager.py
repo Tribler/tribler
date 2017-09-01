@@ -1,4 +1,3 @@
-import json
 import logging
 from traceback import format_tb
 from twisted.internet import reactor
@@ -7,6 +6,7 @@ from twisted.python.compat import intToBytes
 from twisted.web import server, http
 
 from Tribler.Core.Modules.restapi.root_endpoint import RootEndpoint
+import Tribler.Core.Utilities.json_util as json
 from Tribler.dispersy.taskmanager import TaskManager
 
 

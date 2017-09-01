@@ -1,8 +1,8 @@
-import json
 from twisted.web import http
 
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.util import get_parameter
+import Tribler.Core.Utilities.json_util as json
 
 NO_CHANNEL_CREATED_RESPONSE_MSG = "your channel has not been created"
 

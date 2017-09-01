@@ -1,5 +1,4 @@
 import hashlib
-import json
 import logging
 import os
 import re
@@ -13,6 +12,7 @@ from twisted.web.client import getPage
 
 from Tribler.Core.Modules.channel.cache import SimpleCache
 from Tribler.Core.TorrentDef import TorrentDef
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.simpledefs import (SIGNAL_CHANNEL_COMMUNITY, SIGNAL_ON_TORRENT_UPDATED, SIGNAL_RSS_FEED,
                                      SIGNAL_ON_UPDATED)
 from Tribler.dispersy.taskmanager import TaskManager
@@ -151,8 +151,7 @@ class ChannelRssParser(TaskManager):
         # create modification message for channel
         modifications = {u'metadata-json': json.dumps({u'title': rss_item['title'][:64],
                                                        u'description': rss_item['description'][:768],
-                                                       u'thumb_hash': thumb_hash.encode('hex')},
-                                                      separators=(',', ':'))}
+                                                       u'thumb_hash': thumb_hash.encode('hex')})}
         self.channel_community.modifyTorrent(rss_item[u'channel_torrent_id'], modifications)
 
 

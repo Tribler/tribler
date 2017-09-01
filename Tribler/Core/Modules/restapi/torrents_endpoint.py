@@ -1,10 +1,11 @@
-import json
 import logging
+
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_CHANNELCAST
+import Tribler.Core.Utilities.json_util as json
 
 
 class TorrentsEndpoint(resource.Resource):

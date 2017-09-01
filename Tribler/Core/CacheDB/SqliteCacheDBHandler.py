@@ -3,7 +3,6 @@ SqlitecacheDBHanler.
 
 Author(s): Jie Yang
 """
-import json
 import logging
 import math
 import os
@@ -20,6 +19,7 @@ from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.TorrentDef import TorrentDef
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.search_utils import split_into_keywords, filter_keywords
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.Utilities.unicode import dunno2unicode

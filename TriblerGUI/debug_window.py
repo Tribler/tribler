@@ -1,4 +1,3 @@
-import json
 import socket
 from time import localtime, strftime
 
@@ -19,6 +18,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.dates import DateFormatter
 from matplotlib.figure import Figure
 
+import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.utilities import get_ui_file_path, format_size
 from TriblerGUI.tribler_request_manager import performed_requests as tribler_performed_requests, TriblerRequestManager
 from TriblerGUI.event_request_manager import received_events as tribler_received_events

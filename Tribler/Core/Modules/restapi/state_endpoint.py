@@ -1,8 +1,8 @@
-import json
 from twisted.web import resource
 
 from Tribler.Core.simpledefs import STATE_STARTING, STATE_UPGRADING, STATE_STARTED, NTFY_UPGRADER, NTFY_STARTED, \
     NTFY_TRIBLER, NTFY_FINISHED, STATE_EXCEPTION
+import Tribler.Core.Utilities.json_util as json
 
 
 class StateEndpoint(resource.Resource):

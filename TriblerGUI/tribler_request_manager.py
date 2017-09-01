@@ -1,4 +1,3 @@
-import json
 import logging
 import random
 import string
@@ -6,6 +5,8 @@ from time import time
 
 from PyQt5.QtCore import QUrl, pyqtSignal, QIODevice, QBuffer
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
+
+import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL, API_PORT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 

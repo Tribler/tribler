@@ -1,9 +1,9 @@
-import json
-
 import psutil
 from twisted.web import http, resource
 
 from Tribler.community.tunnel.tunnel_community import TunnelCommunity
+from Tribler.Core.Utilities.instrumentation import WatchDog
+import Tribler.Core.Utilities.json_util as json
 
 
 class DebugEndpoint(resource.Resource):

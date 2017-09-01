@@ -1,7 +1,8 @@
 import logging
-from json import dumps
 from urllib import unquote, urlencode
 from urlparse import urlparse, parse_qsl, ParseResult
+
+from Tribler.Core.Utilities.json_util import dumps
 
 logger = logging.getLogger(__name__)
 

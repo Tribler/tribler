@@ -1,6 +1,6 @@
-import json
 from twisted.internet.defer import inlineCallbacks
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.twisted_thread import deferred
 
