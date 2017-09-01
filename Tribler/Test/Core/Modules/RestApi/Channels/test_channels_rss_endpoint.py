@@ -71,7 +71,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
     @deferred(timeout=10)
     def test_remove_rss_feed_no_channel(self):
         """
-        Testing whether the API returns a 404 if no channel has been created when adding a rss feed
+        Testing whether the API returns a 404 if no channel has been removed when adding a rss feed
         """
         self.session.lm.channel_manager = ChannelManager(self.session)
         expected_json = {"error": UNKNOWN_CHANNEL_RESPONSE_MSG}

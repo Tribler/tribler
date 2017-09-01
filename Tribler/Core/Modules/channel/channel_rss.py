@@ -94,7 +94,7 @@ class ChannelRssParser(TaskManager):
             torrent_deferred.addCallback(lambda t, r=rss_item: self.on_got_torrent(t, rss_item=r))
             def_list.append(torrent_deferred)
 
-        return DeferredList(def_list)
+        return DeferredList(def_list, consumeErrors=True)
 
     def _task_scrape(self):
         self.parse_feed()
