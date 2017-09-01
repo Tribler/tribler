@@ -1,5 +1,4 @@
 from binascii import hexlify
-import json
 import os
 from urllib import pathname2url, quote_plus
 import shutil
@@ -7,6 +6,7 @@ import shutil
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentDef import TorrentDef
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject

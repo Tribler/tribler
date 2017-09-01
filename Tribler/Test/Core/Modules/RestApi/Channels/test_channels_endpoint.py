@@ -1,5 +1,4 @@
-import json
-
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
 from Tribler.Core.exceptions import DuplicateChannelNameError

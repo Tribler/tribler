@@ -1,4 +1,3 @@
-import json
 import os
 import urllib
 from twisted.internet.defer import succeed, inlineCallbacks
@@ -8,6 +7,7 @@ from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
 from zope.interface import implements
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.version import version_id
 from Tribler.Test.test_as_server import TestAsServer

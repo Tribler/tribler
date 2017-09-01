@@ -1,8 +1,8 @@
-import json
 import time
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest

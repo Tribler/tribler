@@ -1,5 +1,4 @@
 import base64
-import json
 
 from twisted.internet.defer import Deferred
 from twisted.web import http
@@ -9,6 +8,7 @@ from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseCha
 from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import DuplicateTorrentFileError, HttpError
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.utilities import http_get
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 

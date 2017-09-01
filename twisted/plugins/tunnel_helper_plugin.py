@@ -1,7 +1,6 @@
 """
 This twistd plugin enables to start a tunnel helper headless using the twistd command.
 """
-import json
 import logging
 import logging.config
 import os
@@ -36,6 +35,7 @@ from zope.interface import implements
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.permid import read_keypair
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig

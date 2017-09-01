@@ -1,7 +1,8 @@
 import codecs
-import json
 import logging
 import os
+
+import Tribler.Core.Utilities.json_util as json
 
 
 class SimpleCache(object):
