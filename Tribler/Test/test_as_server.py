@@ -49,6 +49,7 @@ class BaseTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(BaseTestCase, self).__init__(*args, **kwargs)
+        self.maxDiff = None  # So we see full diffs when using assertEquals
 
         def wrap(fun):
             @functools.wraps(fun)
