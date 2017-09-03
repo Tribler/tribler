@@ -156,6 +156,15 @@ class TestSessionConfig(TriblerCoreTest):
         sci.set_http_api_port(1337)
         self.assertEqual(sci.sessconfig.get('http_api', 'port'), 1337)
 
+        sci.set_resource_monitor_enabled(False)
+        self.assertFalse(sci.get_resource_monitor_enabled())
+
+        sci.set_resource_monitor_poll_interval(12)
+        self.assertEqual(sci.get_resource_monitor_poll_interval(), 12)
+
+        sci.set_resource_monitor_history_size(1234)
+        self.assertEqual(sci.get_resource_monitor_history_size(), 1234)
+
         self.assertIsInstance(sci.get_default_config_filename(self.session_base_dir), str)
 
     def test_startup_session_save_load(self):

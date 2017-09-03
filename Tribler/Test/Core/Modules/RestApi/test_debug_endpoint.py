@@ -69,3 +69,69 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
 
         self.should_check_equality = False
         return self.do_request('debug/circuits', expected_code=200).addCallback(verify_response)
+
+    @deferred(timeout=10)
+    def test_get_open_files(self):
+        """
+        Test whether the API returns open files
+        """
+        def verify_response(response):
+            response_json = json.loads(response)
+            self.assertGreaterEqual(len(response_json['open_files']), 1)
+
+        self.should_check_equality = False
+        return self.do_request('debug/open_files', expected_code=200).addCallback(verify_response)
+
+    @deferred(timeout=10)
+    def test_get_open_sockets(self):
+        """
+        Test whether the API returns open sockets
+        """
+
+        def verify_response(response):
+            response_json = json.loads(response)
+            self.assertGreaterEqual(len(response_json['open_sockets']), 1)
+
+        self.should_check_equality = False
+        return self.do_request('debug/open_sockets', expected_code=200).addCallback(verify_response)
+
+    @deferred(timeout=10)
+    def test_get_threads(self):
+        """
+        Test whether the API returns open threads
+        """
+
+        def verify_response(response):
+            response_json = json.loads(response)
+            self.assertGreaterEqual(len(response_json['threads']), 1)
+
+        self.should_check_equality = False
+        return self.do_request('debug/threads', expected_code=200).addCallback(verify_response)
+
+    @deferred(timeout=10)
+    def test_get_cpu_history(self):
+        """
+        Test whether the API returns the cpu history
+        """
+
+        def verify_response(response):
+            response_json = json.loads(response)
+            self.assertGreaterEqual(len(response_json['cpu_history']), 1)
+
+        self.session.lm.resource_monitor.check_resources()
+        self.should_check_equality = False
+        return self.do_request('debug/cpu_history', expected_code=200).addCallback(verify_response)
+
+    @deferred(timeout=10)
+    def test_get_memory_history(self):
+        """
+        Test whether the API returns the memory history
+        """
+
+        def verify_response(response):
+            response_json = json.loads(response)
+            self.assertGreaterEqual(len(response_json['memory_history']), 1)
+
+        self.session.lm.resource_monitor.check_resources()
+        self.should_check_equality = False
+        return self.do_request('debug/memory_history', expected_code=200).addCallback(verify_response)

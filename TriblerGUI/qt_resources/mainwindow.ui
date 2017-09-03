@@ -1015,7 +1015,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>4</number>
+         <number>12</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -7757,8 +7757,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>653</width>
-                       <height>280</height>
+                       <width>131</width>
+                       <height>236</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
