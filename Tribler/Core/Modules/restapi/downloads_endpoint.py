@@ -1,11 +1,13 @@
-import json
 import logging
+
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
+from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
+import Tribler.Core.Utilities.json_util as json
 
 
 class DownloadBaseEndpoint(resource.Resource):
@@ -315,9 +317,30 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             return DownloadSpecificEndpoint.return_404(request)
 
         remove_data = parameters['remove_data'][0] == "1"
-        self.session.remove_download(download, remove_content=remove_data)
 
-        return json.dumps({"removed": True})
+        def _on_torrent_removed(_):
+            """
+            Success callback
+            """
+            request.write(json.dumps({"removed": True}))
+            request.finish()
+
+        def _on_remove_failure(failure):
+            """
+            Error callback
+            :param failure: from remove_download
+            """
+            self._logger.exception(failure)
+            request.write(return_handled_exception(request, failure.value))
+            # If the above request.write failed, the request will have already been finished
+            if not request.finished:
+                request.finish()
+
+        deferred = self.session.remove_download(download, remove_content=remove_data)
+        deferred.addCallback(_on_torrent_removed)
+        deferred.addErrback(_on_remove_failure)
+
+        return NOT_DONE_YET
 
     def render_PATCH(self, request):
         """

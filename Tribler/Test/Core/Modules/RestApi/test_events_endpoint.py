@@ -1,4 +1,3 @@
-import json
 import logging
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
@@ -12,6 +11,7 @@ from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SI
     NTFY_CHANNEL, NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_DELETE, NTFY_MARKET_ON_ASK, NTFY_UPDATE, \
     NTFY_MARKET_ON_BID, NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID_TIMEOUT, NTFY_MARKET_ON_TRANSACTION_COMPLETE, \
     NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.version import version_id
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.twisted_thread import deferred

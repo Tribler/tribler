@@ -41,9 +41,9 @@ class TriblerConfig(object):
         if config is None:
             file_name = os.path.join(self.get_default_state_dir(), FILENAME)
             if os.path.exists(file_name):
-                config = ConfigObj(file_name, configspec=CONFIG_SPEC_PATH)
+                config = ConfigObj(file_name, configspec=CONFIG_SPEC_PATH, encoding='latin_1')
             else:
-                config = ConfigObj(configspec=CONFIG_SPEC_PATH)
+                config = ConfigObj(configspec=CONFIG_SPEC_PATH, encoding='latin_1')
         self.config = config
         self.validate()
 
@@ -55,14 +55,14 @@ class TriblerConfig(object):
         """
         Load a TriblerConfig from disk.
         """
-        return TriblerConfig(ConfigObj(config_path, configspec=CONFIG_SPEC_PATH))
+        return TriblerConfig(ConfigObj(config_path, configspec=CONFIG_SPEC_PATH, encoding='latin_1'))
 
     def copy(self):
         """
         Return a TriblerConfig object that has the same values.
         """
         # References to the sections are copied here
-        new_configobj = ConfigObj(self.config.copy(), configspec=self.config.configspec)
+        new_configobj = ConfigObj(self.config.copy(), configspec=self.config.configspec, encoding='latin_1')
         # Make a deep copy of every section
         for section in self.config:
             new_configobj[section] = self.config[section].copy()
@@ -76,7 +76,7 @@ class TriblerConfig(object):
         values for keys who's validation failed if at least one key was found to be incorrect.
         """
         validator = Validator()
-        validation_result = self.config.validate(validator, copy=True)
+        validation_result = self.config.validate(validator)
         if validation_result is not True:
             raise InvalidConfigException(msg="TriblerConfig is invalid: %s" % str(validation_result))
 
@@ -607,6 +607,26 @@ class TriblerConfig(object):
 
     def get_watch_folder_path(self):
         return self.config['watch_folder']['directory']
+
+    # Resource monitor
+
+    def set_resource_monitor_enabled(self, value):
+        self.config['resource_monitor']['enabled'] = value
+
+    def get_resource_monitor_enabled(self):
+        return self.config['resource_monitor']['enabled']
+
+    def set_resource_monitor_poll_interval(self, value):
+        self.config['resource_monitor']['poll_interval'] = value
+
+    def get_resource_monitor_poll_interval(self):
+        return self.config['resource_monitor']['poll_interval']
+
+    def set_resource_monitor_history_size(self, value):
+        self.config['resource_monitor']['history_size'] = value
+
+    def get_resource_monitor_history_size(self):
+        return self.config['resource_monitor']['history_size']
 
     # Credit mining
     def set_credit_mining_enabled(self, value):

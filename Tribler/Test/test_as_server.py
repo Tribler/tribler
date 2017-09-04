@@ -49,6 +49,7 @@ class BaseTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(BaseTestCase, self).__init__(*args, **kwargs)
+        self.maxDiff = None  # So we see full diffs when using assertEquals
 
         def wrap(fun):
             @functools.wraps(fun)
@@ -164,7 +165,7 @@ class AbstractServer(BaseTestCase):
                                      "Listening ports left on the reactor during %s: %s" % (phase, reader))
 
         # Check whether the threadpool is clean
-        self.assertFalse(reactor.getThreadPool().working)
+        self.assertEqual(len(reactor.getThreadPool().working), 0, "Still items left in the threadpool")
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -283,7 +284,7 @@ class TestAsServer(AbstractServer):
         self.annotate(self._testMethodName, start=True)
 
     def setUpPreSession(self):
-        self.config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH))
+        self.config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH, encoding='latin_1'))
         self.config.set_default_destination_dir(self.dest_dir)
         self.config.set_state_dir(self.getStateDir())
         self.config.set_torrent_checking_enabled(False)

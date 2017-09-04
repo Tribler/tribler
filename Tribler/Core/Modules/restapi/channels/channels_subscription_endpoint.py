@@ -1,10 +1,10 @@
-import json
 from twisted.web import http
 from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE, VOTE_UNSUBSCRIBE
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json
+import Tribler.Core.Utilities.json_util as json
 
 ALREADY_SUBSCRIBED_RESPONSE_MSG = "you are already subscribed to this channel"
 NOT_SUBSCRIBED_RESPONSE_MSG = "you are not subscribed to this channel"

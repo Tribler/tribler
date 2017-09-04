@@ -330,6 +330,17 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_watch_folder_path(True)
         self.assertEqual(self.tribler_config.get_watch_folder_path(), True)
 
+    def test_get_set_methods_resource_monitor(self):
+        """
+        Check whether resource monitor get and set methods are working as expected.
+        """
+        self.tribler_config.set_resource_monitor_enabled(False)
+        self.assertFalse(self.tribler_config.get_resource_monitor_enabled())
+        self.tribler_config.set_resource_monitor_poll_interval(21)
+        self.assertEqual(self.tribler_config.get_resource_monitor_poll_interval(), 21)
+        self.tribler_config.set_resource_monitor_history_size(1234)
+        self.assertEqual(self.tribler_config.get_resource_monitor_history_size(), 1234)
+
     def test_get_set_methods_credit_mining(self):
         """
         Check whether credit mining get and set methods are working as expected.

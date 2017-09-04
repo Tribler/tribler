@@ -103,6 +103,11 @@ directory = string(default='')
 enabled = boolean(default=False)
 port = integer(min=-1, max=65536, default=-1)
 
+[resource_monitor]
+enabled = boolean(default=True)
+poll_interval = integer(min=1, default=5)
+history_size = integer(min=1, default=20)
+
 [credit_mining]
 enabled = boolean(default=False)
 max_torrents_per_source = integer(default=20)

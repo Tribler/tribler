@@ -1,13 +1,100 @@
-import json
+import socket
 from time import localtime, strftime
 
+import datetime
+import matplotlib
+from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QSizePolicy
+from twisted.internet.task import LoopingCall
+
+matplotlib.use('Qt5Agg')
+
+import psutil
 from PyQt5 import uic
 from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QHeaderView
 from PyQt5.QtWidgets import QMainWindow, QTreeWidgetItem
+from matplotlib.backends.backend_qt5agg import FigureCanvas
+from matplotlib.dates import DateFormatter
+from matplotlib.figure import Figure
 
+import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.utilities import get_ui_file_path, format_size
 from TriblerGUI.tribler_request_manager import performed_requests as tribler_performed_requests, TriblerRequestManager
 from TriblerGUI.event_request_manager import received_events as tribler_received_events
+
+
+class MplCanvas(FigureCanvas):
+    """Ultimately, this is a QWidget."""
+
+    def __init__(self, parent=None, width=5, height=5, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+
+        fig.set_tight_layout({"pad": 1})
+        self.axes = fig.add_subplot(111)
+        self.plot_data = None
+
+        FigureCanvas.__init__(self, fig)
+        self.setParent(parent)
+
+        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        FigureCanvas.updateGeometry(self)
+
+    def compute_initial_figure(self):
+        pass
+
+
+class CPUPlotMplCanvas(MplCanvas):
+
+    def compute_initial_figure(self):
+        self.axes.cla()
+        self.axes.set_title("CPU Usage (refreshes every 5 sec)", color="#e0e0e0")
+        self.axes.set_xlabel("Time")
+        self.axes.set_ylabel("CPU utilization (%)")
+
+        self.axes.xaxis.set_major_formatter(DateFormatter('%H:%M:%S'))
+
+        self.axes.plot(self.plot_data[0], self.plot_data[1], label="CPU usage (core)", marker='o')
+        self.axes.grid(True)
+
+        for line in self.axes.get_xgridlines() + self.axes.get_ygridlines():
+            line.set_linestyle('--')
+
+        # Create the legend
+        handles, labels = self.axes.get_legend_handles_labels()
+        self.axes.legend(handles, labels)
+
+        self.axes.set_ylim(0, 100)
+        self.axes.set_xlim(self.plot_data[0][0] - datetime.timedelta(seconds=10),
+                           self.plot_data[0][0] + datetime.timedelta(seconds=100))
+
+        self.draw()
+
+
+class MemoryPlotMplCanvas(MplCanvas):
+
+    def compute_initial_figure(self):
+        self.axes.cla()
+        self.axes.set_title("Memory Usage (refreshes every 5 sec)", color="#e0e0e0")
+        self.axes.set_xlabel("Time")
+        self.axes.set_ylabel("Memory usage (MB)")
+
+        self.axes.xaxis.set_major_formatter(DateFormatter('%H:%M:%S'))
+
+        self.axes.plot(self.plot_data[0], self.plot_data[1], label="Memory usage (core)", marker='o')
+        self.axes.grid(True)
+
+        for line in self.axes.get_xgridlines() + self.axes.get_ygridlines():
+            line.set_linestyle('--')
+
+        # Create the legend
+        handles, labels = self.axes.get_legend_handles_labels()
+        self.axes.legend(handles, labels)
+
+        self.axes.set_xlim(self.plot_data[0][0] - datetime.timedelta(seconds=10),
+                           self.plot_data[0][0] + datetime.timedelta(seconds=100))
+
+        self.draw()
 
 
 class DebugWindow(QMainWindow):
@@ -20,16 +107,26 @@ class DebugWindow(QMainWindow):
         QMainWindow.__init__(self)
 
         self.request_mgr = None
+        self.cpu_plot = None
+        self.memory_plot = None
+        self.initialized_cpu_plot = False
+        self.initialized_memory_plot = False
+        self.cpu_plot_timer = None
+        self.memory_plot_timer = None
 
         uic.loadUi(get_ui_file_path('debugwindow.ui'), self)
         self.setWindowTitle("Tribler debug pane")
 
         self.window().debug_tab_widget.setCurrentIndex(0)
         self.window().dispersy_tab_widget.setCurrentIndex(0)
+        self.window().system_tab_widget.setCurrentIndex(0)
         self.window().debug_tab_widget.currentChanged.connect(self.tab_changed)
         self.window().dispersy_tab_widget.currentChanged.connect(self.dispersy_tab_changed)
         self.window().events_tree_widget.itemClicked.connect(self.on_event_clicked)
+        self.window().system_tab_widget.currentChanged.connect(self.system_tab_changed)
         self.load_general_tab()
+
+        self.window().open_files_tree_widget.header().setSectionResizeMode(0, QHeaderView.Stretch)
 
         if not settings['trustchain']['enabled']:
             self.window().debug_tab_widget.setTabEnabled(2, False)
@@ -45,12 +142,26 @@ class DebugWindow(QMainWindow):
             self.dispersy_tab_changed(self.window().dispersy_tab_widget.currentIndex())
         elif index == 4:
             self.load_events_tab()
+        elif index == 5:
+            self.system_tab_changed(self.window().system_tab_widget.currentIndex())
 
     def dispersy_tab_changed(self, index):
         if index == 0:
             self.load_dispersy_general_tab()
         elif index == 1:
             self.load_dispersy_communities_tab()
+
+    def system_tab_changed(self, index):
+        if index == 0:
+            self.load_open_files_tab()
+        elif index == 1:
+            self.load_open_sockets_tab()
+        elif index == 2:
+            self.load_threads_tab()
+        elif index == 3:
+            self.load_cpu_tab()
+        elif index == 4:
+            self.load_memory_tab()
 
     def create_and_add_widget_item(self, key, value, widget):
         item = QTreeWidgetItem(widget)
@@ -73,6 +184,15 @@ class DebugWindow(QMainWindow):
         self.create_and_add_widget_item("Number of torrent files", data["torrents"]["num_files"],
                                         self.window().general_tree_widget)
         self.create_and_add_widget_item("Total size of torrent files", format_size(data["torrents"]["total_size"]),
+                                        self.window().general_tree_widget)
+        self.create_and_add_widget_item("", "", self.window().general_tree_widget)
+
+        disk_usage = psutil.disk_usage('/')
+        self.create_and_add_widget_item("Total disk space", format_size(disk_usage.total),
+                                        self.window().general_tree_widget)
+        self.create_and_add_widget_item("Used disk space", format_size(disk_usage.used),
+                                        self.window().general_tree_widget)
+        self.create_and_add_widget_item("Free disk space", format_size(disk_usage.free),
                                         self.window().general_tree_widget)
 
     def load_requests_tab(self):
@@ -129,3 +249,144 @@ class DebugWindow(QMainWindow):
             item.setText(0, "%s" % event_dict['type'])
             item.setText(1, "%s" % strftime("%H:%M:%S", localtime(timestamp)))
             self.window().events_tree_widget.addTopLevelItem(item)
+
+    def load_open_files_tab(self):
+        # Fill the open files (GUI) tree widget
+        my_process = psutil.Process()
+        self.window().open_files_tree_widget.clear()
+        gui_item = QTreeWidgetItem(self.window().open_files_tree_widget)
+
+        open_files = my_process.open_files()
+        gui_item.setText(0, "GUI (%d)" % len(open_files))
+        self.window().open_files_tree_widget.addTopLevelItem(gui_item)
+
+        for open_file in open_files:
+            item = QTreeWidgetItem()
+            item.setText(0, open_file.path)
+            item.setText(1, "%d" % open_file.fd)
+            gui_item.addChild(item)
+
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("debug/open_files", self.on_core_open_files)
+
+    def on_core_open_files(self, data):
+        core_item = QTreeWidgetItem(self.window().open_files_tree_widget)
+        core_item.setText(0, "Core (%d)" % len(data["open_files"]))
+        self.window().open_files_tree_widget.addTopLevelItem(core_item)
+
+        for open_file in data["open_files"]:
+            item = QTreeWidgetItem()
+            item.setText(0, open_file["path"])
+            item.setText(1, "%d" % open_file["fd"])
+            core_item.addChild(item)
+
+    def load_open_sockets_tab(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("debug/open_sockets", self.on_core_open_sockets)
+
+    def on_core_open_sockets(self, data):
+        self.window().open_sockets_tree_widget.clear()
+        self.window().open_sockets_label.setText("Sockets opened by core (%d):" % len(data["open_sockets"]))
+        for open_socket in data["open_sockets"]:
+            if open_socket["family"] == socket.AF_INET:
+                family = "AF_INET"
+            elif open_socket["family"] == socket.AF_INET6:
+                family = "AF_INET6"
+            elif open_socket["family"] == socket.AF_UNIX:
+                family = "AF_UNIX"
+            else:
+                family = "-"
+
+            item = QTreeWidgetItem(self.window().open_sockets_tree_widget)
+            item.setText(0, open_socket["laddr"])
+            item.setText(1, open_socket["raddr"])
+            item.setText(2, family)
+            item.setText(3, "SOCK_STREAM" if open_socket["type"] == socket.SOCK_STREAM else "SOCK_DGRAM")
+            item.setText(4, open_socket["status"])
+            self.window().open_sockets_tree_widget.addTopLevelItem(item)
+
+    def load_threads_tab(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("debug/threads", self.on_core_threads)
+
+    def on_core_threads(self, data):
+        self.window().threads_tree_widget.clear()
+        for thread_info in data["threads"]:
+            thread_item = QTreeWidgetItem(self.window().threads_tree_widget)
+            thread_item.setText(0, "%d" % thread_info["thread_id"])
+            thread_item.setText(1, thread_info["thread_name"])
+            self.window().threads_tree_widget.addTopLevelItem(thread_item)
+
+            for frame in thread_info["frames"]:
+                frame_item = QTreeWidgetItem()
+                frame_item.setText(2, frame)
+                thread_item.addChild(frame_item)
+
+    def load_cpu_tab(self):
+        if not self.initialized_cpu_plot:
+            vlayout = self.window().cpu_plot_widget.layout()
+            self.cpu_plot = CPUPlotMplCanvas(self.window().cpu_plot_widget, dpi=100)
+            vlayout.addWidget(self.cpu_plot)
+            self.initialized_cpu_plot = True
+
+        self.refresh_cpu_plot()
+
+        # Start timer
+        self.cpu_plot_timer = QTimer()
+        self.cpu_plot_timer.timeout.connect(self.load_cpu_tab)
+        self.cpu_plot_timer.start(5000)
+
+    def refresh_cpu_plot(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("debug/cpu_history", self.on_core_cpu_history)
+
+    def on_core_cpu_history(self, data):
+        plot_data = [[], []]
+        for cpu_info in data["cpu_history"]:
+            if cpu_info["cpu"] == 0.0:
+                continue  # Ignore the initial measurement, is always zero
+            plot_data[0].append(datetime.datetime.fromtimestamp(cpu_info["time"]))
+            plot_data[1].append(cpu_info["cpu"])
+
+        if len(plot_data[0]) == 0:
+            plot_data = [[datetime.datetime.now()], [0]]
+
+        self.cpu_plot.plot_data = plot_data
+        self.cpu_plot.compute_initial_figure()
+
+    def load_memory_tab(self):
+        if not self.initialized_memory_plot:
+            vlayout = self.window().memory_plot_widget.layout()
+            self.memory_plot = MemoryPlotMplCanvas(self.window().memory_plot_widget, dpi=100)
+            vlayout.addWidget(self.memory_plot)
+            self.initialized_memory_plot = True
+
+        self.refresh_memory_plot()
+
+        # Start timer
+        self.memory_plot_timer = QTimer()
+        self.memory_plot_timer.timeout.connect(self.load_memory_tab)
+        self.memory_plot_timer.start(5000)
+
+    def refresh_memory_plot(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("debug/memory_history", self.on_core_memory_history)
+
+    def on_core_memory_history(self, data):
+        plot_data = [[], []]
+        for mem_info in data["memory_history"]:
+            plot_data[0].append(datetime.datetime.fromtimestamp(mem_info["time"]))
+            plot_data[1].append(mem_info["mem"] / 1024 / 1024)
+
+        if len(plot_data[0]) == 0:
+            plot_data = [[datetime.datetime.now()], [0]]
+
+        self.memory_plot.plot_data = plot_data
+        self.memory_plot.compute_initial_figure()
+
+    def closeEvent(self, close_event):
+        if self.cpu_plot_timer:
+            self.cpu_plot_timer.stop()
+
+        if self.memory_plot_timer:
+            self.memory_plot_timer.stop()

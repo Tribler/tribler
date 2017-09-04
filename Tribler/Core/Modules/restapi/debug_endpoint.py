@@ -1,7 +1,9 @@
-import json
+import psutil
 from twisted.web import http, resource
 
 from Tribler.community.tunnel.tunnel_community import TunnelCommunity
+from Tribler.Core.Utilities.instrumentation import WatchDog
+import Tribler.Core.Utilities.json_util as json
 
 
 class DebugEndpoint(resource.Resource):
@@ -12,7 +14,9 @@ class DebugEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
 
-        child_handler_dict = {"circuits": DebugCircuitsEndpoint}
+        child_handler_dict = {"circuits": DebugCircuitsEndpoint, "open_files": DebugOpenFilesEndpoint,
+                              "open_sockets": DebugOpenSocketsEndpoint, "threads": DebugThreadsEndpoint,
+                              "cpu_history": DebugCPUHistoryEndpoint, "memory_history": DebugMemoryHistoryEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
@@ -53,7 +57,7 @@ class DebugCircuitsEndpoint(resource.Resource):
             .. sourcecode:: javascript
 
                 {
-                    "circuits": [
+                    "circuits": [{
                         "id": 1234,
                         "state": "EXTENDING",
                         "goal_hops": 4,
@@ -66,7 +70,7 @@ class DebugCircuitsEndpoint(resource.Resource):
                             "host": "39.95.147.20:8965"
                         }],
                         ...
-                    ]
+                    }, ...]
                 }
         """
         tunnel_community = self.get_tunnel_community()
@@ -86,3 +90,197 @@ class DebugCircuitsEndpoint(resource.Resource):
             circuits_json.append(item)
 
         return json.dumps({'circuits': circuits_json})
+
+
+class DebugOpenFilesEndpoint(resource.Resource):
+    """
+    This class handles request for information about open files.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /debug/open_files
+
+        A GET request to this endpoint returns information about files opened by Tribler.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/open_files
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "open_files": [{
+                        "path": "path/to/open/file.txt",
+                        "fd": 33,
+                    }, ...]
+                }
+        """
+        my_process = psutil.Process()
+
+        return json.dumps({
+            "open_files": [{"path": open_file.path, "fd": open_file.fd} for open_file in my_process.open_files()]})
+
+
+class DebugOpenSocketsEndpoint(resource.Resource):
+    """
+    This class handles request for information about open sockets.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /debug/open_sockets
+
+        A GET request to this endpoint returns information about open sockets.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/openfiles
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "open_sockets": [{
+                        "family": 2,
+                        "status": "ESTABLISHED",
+                        "laddr": "0.0.0.0:0",
+                        "raddr": "0.0.0.0:0",
+                        "type": 30
+                    }, ...]
+                }
+        """
+        my_process = psutil.Process()
+        sockets = []
+        for open_socket in my_process.connections():
+            sockets.append({
+                "family": open_socket.family,
+                "status": open_socket.status,
+                "laddr": ("%s:%d" % open_socket.laddr) if open_socket.laddr else "-",
+                "raddr": ("%s:%d" % open_socket.raddr) if open_socket.raddr else "-",
+                "type": open_socket.type
+            })
+
+        return json.dumps({"open_sockets": sockets})
+
+
+class DebugThreadsEndpoint(resource.Resource):
+    """
+    This class handles request for information about threads.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /debug/threads
+
+        A GET request to this endpoint returns information about running threads.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/threads
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "threads": [{
+                        "thread_id": 123456,
+                        "thread_name": "my_thread",
+                        "frames": ["my_frame", ...]
+                    }, ...]
+                }
+        """
+        watchdog = WatchDog()
+        return json.dumps({"threads": watchdog.get_threads_info()})
+
+
+class DebugCPUHistoryEndpoint(resource.Resource):
+    """
+    This class handles request for information about CPU usage history.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /debug/cpu_history
+
+        A GET request to this endpoint returns information about CPU usage history in the form of a list.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/cpu_history
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "cpu_history": [{
+                        "time": 1504015291214,
+                        "cpu": 3.4,
+                    }, ...]
+                }
+        """
+        return json.dumps({"cpu_history": self.session.lm.resource_monitor.get_cpu_history_dict()})
+
+
+class DebugMemoryHistoryEndpoint(resource.Resource):
+    """
+    This class handles request for information about memory usage history.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /debug/memory_history
+
+        A GET request to this endpoint returns information about memory usage history in the form of a list.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/memory_history
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "memory_history": [{
+                        "time": 1504015291214,
+                        "mem": 324324,
+                    }, ...]
+                }
+        """
+        return json.dumps({"memory_history": self.session.lm.resource_monitor.get_memory_history_dict()})

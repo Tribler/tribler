@@ -1,6 +1,6 @@
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.test_as_server import AbstractServer
 from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.price import Price
@@ -13,13 +13,13 @@ from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-class TickEntryTestSuite(TestAsServer):
+class TickEntryTestSuite(AbstractServer):
     """TickEntry test cases."""
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield super(TickEntryTestSuite, self).setUp(autoload_discovery=autoload_discovery)
+    def setUp(self, annotate=True):
+        yield super(TickEntryTestSuite, self).setUp(annotate=annotate)
 
         # Object creation
         tick = Tick(MessageId(TraderId('0'), MessageNumber('message_number')),

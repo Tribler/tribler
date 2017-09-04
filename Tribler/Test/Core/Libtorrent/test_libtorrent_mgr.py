@@ -1,3 +1,4 @@
+import binascii
 import os
 import shutil
 import tempfile
@@ -5,6 +6,7 @@ from libtorrent import bencode
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.CacheDB.Notifier import Notifier
+from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException
 from Tribler.Test.Core.base_test import MockObject
@@ -159,9 +161,12 @@ class TestLibtorrentMgr(AbstractServer):
         """
         mock_handle = MockObject()
         mock_handle.info_hash = lambda: 'a' * 20
+        mock_handle.is_valid = lambda: False
 
         mock_ltsession = MockObject()
         mock_ltsession.add_torrent = lambda _: mock_handle
+        mock_ltsession.find_torrent = lambda _: mock_handle
+        mock_ltsession.get_torrents = lambda: []
         mock_ltsession.stop_upnp = lambda: None
         mock_ltsession.save_state = lambda: None
 
@@ -172,6 +177,60 @@ class TestLibtorrentMgr(AbstractServer):
         infohash.info_hash = lambda: 'a' * 20
         self.assertEqual(self.ltmgr.add_torrent(None, {'ti': infohash}), mock_handle)
         self.assertRaises(DuplicateDownloadException, self.ltmgr.add_torrent, None, {'ti': infohash})
+
+    def test_add_torrent_desync(self):
+        """
+        Testing the addition of a torrent to the libtorrent manager, if it already exists in the session.
+        """
+        mock_handle = MockObject()
+        mock_handle.info_hash = lambda: 'a' * 20
+        mock_handle.is_valid = lambda: True
+
+        mock_ltsession = MockObject()
+        mock_ltsession.add_torrent = lambda _: mock_handle
+        mock_ltsession.find_torrent = lambda _: mock_handle
+        mock_ltsession.get_torrents = lambda: [mock_handle]
+        mock_ltsession.stop_upnp = lambda: None
+        mock_ltsession.save_state = lambda: None
+
+        self.ltmgr.get_session = lambda *_: mock_ltsession
+        self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
+
+        infohash = MockObject()
+        infohash.info_hash = lambda: 'a' * 20
+        self.assertEqual(self.ltmgr.add_torrent(None, {'ti': infohash}), mock_handle)
+
+    def test_remove_invalid_torrent(self):
+        """
+        Tests a successful removal status of torrents without a handle
+        """
+        self.ltmgr.initialize()
+        mock_dl = MockObject()
+        mock_dl.handle = None
+        self.assertTrue(self.ltmgr.remove_torrent(mock_dl).called)
+
+    def test_remove_invalid_handle_torrent(self):
+        """
+        Tests a successful removal status of torrents with an invalid handle
+        """
+        self.ltmgr.initialize()
+        mock_handle = MockObject()
+        mock_handle.is_valid = lambda: False
+        mock_dl = MockObject()
+        mock_dl.handle = mock_handle
+        self.assertTrue(self.ltmgr.remove_torrent(mock_dl).called)
+
+    def test_remove_unregistered_torrent(self):
+        """
+        Tests a successful removal status of torrents which aren't known
+        """
+        self.ltmgr.initialize()
+        mock_handle = MockObject()
+        mock_handle.is_valid = lambda: False
+        alert = type('torrent_removed_alert', (object, ), dict(handle=mock_handle, info_hash='0'*20))
+        self.ltmgr.process_alert(alert())
+
+        self.assertNotIn('0'*20, self.ltmgr.torrents)
 
     def test_start_download_corrupt(self):
         """
@@ -212,3 +271,38 @@ class TestLibtorrentMgr(AbstractServer):
         mock_lt_session.set_proxy = on_proxy_set
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
         self.ltmgr.set_proxy_settings(mock_lt_session, 0, ('a', "1234"), ('abc', 'def'))
+
+    def test_save_resume_preresolved_magnet(self):
+        """
+        Test whether a magnet link correctly writes save-resume data before it is resolved.
+
+        This can happen when a magnet link is added when the user does not have internet.
+        """
+        self.ltmgr.initialize()
+        self.ltmgr.trsession = self.tribler_session
+        self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
+
+        mock_tdef = MockObject()
+        mock_tdef.get_infohash = lambda: 'a' * 20
+
+        self.tribler_session.get_download = lambda _: None
+        self.tribler_session.get_downloads_pstate_dir = lambda: self.ltmgr.metadata_tmpdir
+
+        mock_lm = MockObject()
+        mock_lm.ltmgr = self.ltmgr
+        mock_lm.tunnel_community = None
+        self.tribler_session.lm = mock_lm
+
+        def dl_from_tdef(tdef, _):
+            dl = LibtorrentDownloadImpl(self.tribler_session, tdef)
+            dl.setup()
+            dl.cancel_all_pending_tasks()
+            return dl
+        self.tribler_session.start_download_from_tdef = dl_from_tdef
+
+        download = self.ltmgr.start_download_from_magnet("magnet:?xt=urn:btih:" + ('1'*40))
+
+        basename = binascii.hexlify(download.get_def().get_infohash()) + '.state'
+        filename = os.path.join(download.session.get_downloads_pstate_dir(), basename)
+
+        self.assertTrue(os.path.isfile(filename))

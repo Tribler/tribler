@@ -1,7 +1,6 @@
 """
 This twistd plugin enables to start a tunnel helper headless using the twistd command.
 """
-import json
 import logging.config
 import os
 import random
@@ -31,6 +30,7 @@ from Tribler.Core.permid import read_keypair
 from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Core.TorrentDef import TorrentDef
+import Tribler.Core.Utilities.json_util as json
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
 from Tribler.dispersy.util import blockingCallFromThread

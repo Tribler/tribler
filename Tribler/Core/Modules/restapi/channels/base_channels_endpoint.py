@@ -1,9 +1,9 @@
-import json
 import logging
 import time
 from twisted.web import http, resource
 
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
+import Tribler.Core.Utilities.json_util as json
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.dispersy.exception import CommunityNotFoundException
 

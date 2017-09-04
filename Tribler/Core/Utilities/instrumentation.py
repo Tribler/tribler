@@ -127,36 +127,62 @@ class WatchDog(Thread):
         if self.debug:
             self.printe(">>>>>>>>> I SHOULD STOP")
 
+    def get_thread_name(self, thread_id):
+        for thread in threading.enumerate():
+            if thread.ident == thread_id:
+                return thread.name
+        return "Unknown"
+
+    @staticmethod
+    def repr_(value):
+        try:
+            return repr(value)
+        except:
+            return "<Error while REPRing value>"
+
     def print_all_stacks(self):
-        def repr_(value):
-            try:
-                return repr(value)
-            except:
-                return "<Error while REPRing value>"
-
-        def get_thread_name(thread_id):
-            for thread in threading.enumerate():
-                if thread.ident == thread_id:
-                    return thread.name
-            return "Unknown"
-
         self.printe("\n*** STACKTRACE - START ***\n")
 
         for thread_id, frame in sys._current_frames().items():
-            self.printe("\n### ThreadID: %s Thread name: %s" % (thread_id, get_thread_name(thread_id)))
+            self.printe("\n### ThreadID: %s Thread name: %s" % (thread_id, self.get_thread_name(thread_id)))
 
             self.printe("Locals by frame, innermost last:")
             while frame:
                 self.printe("%s:%s %s:" % (frame.f_code.co_filename,
                                            frame.f_lineno, frame.f_code.co_name))
                 for key, value in frame.f_locals.items():
-                    value = repr_(value)
+                    value = WatchDog.repr_(value)
                     if len(value) > 500:
                         value = value[:500] + "..."
                         self.printe("| %12s = %s" % (key, value))
                 frame = frame.f_back
 
         self.printe("\n*** STACKTRACE - END ***\n")
+
+    def get_threads_info(self):
+        """
+        Return information about available threads.
+        """
+        threads = []
+        for thread_id, frame in sys._current_frames().items():
+
+            frame_list = []
+            while frame:
+                frame_str = "%s:%s %s:\n" % (frame.f_code.co_filename, frame.f_lineno, frame.f_code.co_name)
+                for key, value in frame.f_locals.items():
+                    value = WatchDog.repr_(value)
+                    if len(value) > 500:
+                        value = value[:500] + "..."
+                        frame_str += "| %12s = %s" % (key, value)
+                frame = frame.f_back
+                frame_list.append(frame_str.rstrip())
+
+            threads.append({
+                'thread_id': thread_id,
+                'thread_name': self.get_thread_name(thread_id),
+                'frames': frame_list
+            })
+        return threads
 
     def look_for_deadlocks(self):
         for thread_id, stack in sys._current_frames().items():

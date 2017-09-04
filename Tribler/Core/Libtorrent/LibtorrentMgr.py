@@ -277,6 +277,13 @@ class LibtorrentMgr(TaskManager):
                 if request_handle:
                     ltsession.remove_torrent(request_handle, 0)
 
+            # Check if we added this torrent before
+            known = [str(h.info_hash()) for h in ltsession.get_torrents()]
+            if infohash in known:
+                self.torrents[infohash] = (torrentdl, ltsession)
+                return ltsession.find_torrent(lt.sha1_hash(infohash))
+
+            # Otherwise, add it anew
             torrent_handle = ltsession.add_torrent(encode_atp(atp))
             infohash = str(torrent_handle.info_hash())
             if infohash in self.torrents:
@@ -293,12 +300,15 @@ class LibtorrentMgr(TaskManager):
             infohash = str(handle.info_hash())
             if infohash in self.torrents:
                 self.torrents[infohash][1].remove_torrent(handle, int(removecontent))
-                del self.torrents[infohash]
+                out = self.torrents[infohash][0].deferred_removed
                 self._logger.debug("remove torrent %s", infohash)
+                return out
             else:
                 self._logger.debug("cannot remove torrent %s because it does not exists", infohash)
         else:
             self._logger.debug("cannot remove invalid torrent")
+        # Always return a Deferred, in this case it has already been called
+        return succeed(None)
 
     def add_upnp_mapping(self, port, protocol='TCP'):
         # TODO martijn: this check should be removed once we do not support libtorrent versions that do not have the
@@ -330,6 +340,11 @@ class LibtorrentMgr(TaskManager):
                 else:
                     self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
             else:
+                if alert_type == 'torrent_removed_alert':
+                    info_hash = str(alert.info_hash)
+                    if info_hash in self.torrents:
+                        self.torrents[info_hash][0].deferred_removed.callback(None)
+                        del self.torrents[info_hash]
                 self._logger.debug("Alert for invalid torrent")
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, timeout_callback=None, notify=True):

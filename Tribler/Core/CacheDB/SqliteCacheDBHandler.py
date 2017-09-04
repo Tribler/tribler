@@ -3,7 +3,6 @@ SqlitecacheDBHanler.
 
 Author(s): Jie Yang
 """
-import json
 import logging
 import math
 import os
@@ -20,6 +19,7 @@ from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.TorrentDef import TorrentDef
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.search_utils import split_into_keywords, filter_keywords
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.Utilities.unicode import dunno2unicode
@@ -349,8 +349,8 @@ class TorrentDBHandler(BasicDBHandler):
                 sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
                 self._db.executemany(sql_insert_files, insert_files)
             except:
-                self._logger.error("Could not create a TorrentDef instance %r %r %r %r %r %r", infohash, timestamp, name, files, trackers, extra_info)
-                print_exc()
+                self._logger.exception("Could not create a TorrentDef instance %r %r %r %r %r %r",
+                                       infohash, timestamp, name, files, trackers, extra_info)
 
     def addOrGetTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)

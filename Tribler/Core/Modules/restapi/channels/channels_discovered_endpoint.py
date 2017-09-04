@@ -1,4 +1,3 @@
-import json
 from twisted.web import http
 
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
@@ -8,6 +7,7 @@ from Tribler.Core.Modules.restapi.channels.channels_rss_endpoint import Channels
 from Tribler.Core.Modules.restapi.channels.channels_torrents_endpoint import ChannelsTorrentsEndpoint
 from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json
 from Tribler.Core.exceptions import DuplicateChannelNameError
+import Tribler.Core.Utilities.json_util as json
 
 
 class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):

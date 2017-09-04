@@ -620,19 +620,21 @@ class TunnelCommunity(Community):
             ltmgr = self.tribler_session.lm.ltmgr \
                 if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled() else None
             if ltmgr:
-                affected_torrents = {d: affected_peers.intersection(peer.ip for peer in d.handle.get_peer_info())
-                                     for d, s in ltmgr.torrents.values() if s == ltmgr.get_session(d.get_hops())}
-
-                for download, peers in affected_torrents.iteritems():
+                def update_torrents(handle, download):
+                    peers = affected_peers.intersection(handle.get_peer_info())
                     if peers:
                         if download not in self.bittorrent_peers:
                             self.bittorrent_peers[download] = peers
                         else:
                             self.bittorrent_peers[download] = peers | self.bittorrent_peers[download]
 
-                # If there are active circuits, add peers immediately. Otherwise postpone.
-                if self.active_data_circuits():
-                    self.readd_bittorrent_peers()
+                        # If there are active circuits, add peers immediately. Otherwise postpone.
+                        if self.active_data_circuits():
+                            self.readd_bittorrent_peers()
+
+                for d, s in ltmgr.torrents.values():
+                    if s == ltmgr.get_session(d.get_hops()):
+                        d.get_handle().addCallback(update_torrents, d)
 
             return True
         return False

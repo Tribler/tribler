@@ -1,5 +1,6 @@
-import json
 from twisted.web import resource
+
+import Tribler.Core.Utilities.json_util as json
 
 
 class SettingsEndpoint(resource.Resource):
@@ -61,7 +62,7 @@ class SettingsEndpoint(resource.Resource):
                     "modified": True
                 }
         """
-        settings_dict = json.loads(request.content.read())
+        settings_dict = json.loads(request.content.read(), encoding='latin_1')
         self.parse_settings_dict(settings_dict)
         self.session.config.write()
 
