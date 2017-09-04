@@ -142,22 +142,6 @@ class MagnetHelpers(object):
             assert not (response[0] == EXTEND and response[1] == 3)
 
 
-class TestMagnet(TestAsServer):
-
-    def setUpPreSession(self):
-        TestAsServer.setUpPreSession(self)
-        self.config.set_libtorrent_enabled(True)
-
-    def test_good_transfer(self):
-        def torrentdef_retrieved(tdef):
-            event.set()
-
-        event = threading.Event()
-        magnet_link = 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH)
-        self.session.lm.ltmgr.get_metainfo(magnet_link, torrentdef_retrieved, timeout=120)
-        assert event.wait(120)
-
-
 class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
 
     """
