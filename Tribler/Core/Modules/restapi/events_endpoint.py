@@ -1,4 +1,3 @@
-import json
 from twisted.web import server, resource
 from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_search_torrent_to_json, \
     fix_unicode_dict
@@ -6,6 +5,7 @@ from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON
                                      NTFY_UPGRADER, NTFY_STARTED, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT,
                                      NTFY_NEW_VERSION, NTFY_FINISHED, NTFY_TRIBLER, NTFY_UPGRADER_TICK, NTFY_CHANNEL,
                                      NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_DELETE)
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.version import version_id
 
 

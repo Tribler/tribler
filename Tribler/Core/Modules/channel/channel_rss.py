@@ -1,7 +1,6 @@
 from binascii import hexlify
 import logging
 import hashlib
-import json
 import time
 import os
 import re
@@ -18,6 +17,7 @@ from Tribler.Core.simpledefs import (SIGNAL_CHANNEL_COMMUNITY, SIGNAL_ON_TORRENT
                                      SIGNAL_ON_UPDATED)
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Modules.channel.cache import SimpleCache
+import Tribler.Core.Utilities.json_util as json
 
 DEFAULT_CHECK_INTERVAL = 1800  # half an hour
 
@@ -152,8 +152,7 @@ class ChannelRssParser(TaskManager):
         # create modification message for channel
         modifications = {u'metadata-json': json.dumps({u'title': rss_item['title'][:64],
                                                        u'description': rss_item['description'][:768],
-                                                       u'thumb_hash': thumb_hash.encode('hex')},
-                                                      separators=(',', ':'))}
+                                                       u'thumb_hash': thumb_hash.encode('hex')})}
         self.channel_community.modifyTorrent(rss_item[u'channel_torrent_id'], modifications)
 
 

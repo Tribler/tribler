@@ -1,10 +1,10 @@
 import base64
-import json
 import os
 import shutil
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentDef import TorrentDef
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.twisted_thread import deferred

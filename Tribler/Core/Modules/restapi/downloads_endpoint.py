@@ -1,4 +1,3 @@
-import json
 import os
 
 import logging
@@ -8,6 +7,7 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+import Tribler.Core.Utilities.json_util as json
 
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, NTFY_TORRENTS, DLMODE_VOD
 

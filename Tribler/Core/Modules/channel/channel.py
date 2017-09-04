@@ -1,7 +1,6 @@
 from binascii import hexlify
 import codecs
 import collections
-import json
 import logging
 import os
 
@@ -12,6 +11,7 @@ from Tribler.dispersy.util import call_on_reactor_thread
 
 from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_CREATED, SIGNAL_RSS_FEED, SIGNAL_ON_UPDATED
 from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser
+import Tribler.Core.Utilities.json_util as json
 
 
 class ChannelObject(TaskManager):
@@ -57,7 +57,7 @@ class ChannelObject(TaskManager):
             self._logger.debug(u"loading existing channel rss list from %s...", self._rss_file_path)
 
             with codecs.open(self._rss_file_path, 'rb', encoding='utf8') as f:
-                rss_list = json.load(f, encoding='utf8')
+                rss_list = json.load(f)
                 for rss_url in rss_list:
                     self._rss_feed_dict[rss_url] = None
 

@@ -1,4 +1,3 @@
-import json
 import os
 from binascii import hexlify
 from urllib import pathname2url
@@ -6,6 +5,7 @@ from urllib import pathname2url
 from twisted.internet.defer import fail
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.common import UBUNTU_1504_INFOHASH, TESTS_DATA_DIR

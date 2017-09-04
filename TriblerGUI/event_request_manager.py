@@ -1,9 +1,9 @@
-import json
 import logging
 from PyQt5.QtCore import QUrl, pyqtSignal, QTimer
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 import time
 
+import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.defs import API_PORT
 
 received_events = []

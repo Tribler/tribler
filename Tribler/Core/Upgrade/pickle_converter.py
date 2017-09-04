@@ -1,7 +1,6 @@
 import io
 import os
 import glob
-import json
 import pickle
 import cPickle
 import StringIO
@@ -11,6 +10,7 @@ from ConfigParser import RawConfigParser
 from Tribler.Core.SessionConfig import SessionStartupConfig, SessionConfigInterface
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig, get_default_dscfg_filename
 from Tribler.Core.simpledefs import PERSISTENTSTATE_CURRENTVERSION, STATEDIR_GUICONFIG
+import Tribler.Core.Utilities.json_util as json
 
 
 class PickleConverter(object):

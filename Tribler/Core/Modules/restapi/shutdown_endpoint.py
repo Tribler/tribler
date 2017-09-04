@@ -1,11 +1,11 @@
 import os
-import json
 import logging
 
 from twisted.web import resource
 from twisted.internet import reactor, task
 
 from Tribler.Core.Modules.process_checker import ProcessChecker
+import Tribler.Core.Utilities.json_util as json
 
 
 class ShutdownEndpoint(resource.Resource):

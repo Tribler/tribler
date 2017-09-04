@@ -1,8 +1,8 @@
-import json
 import os
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.twisted_thread import deferred
 

@@ -1,5 +1,4 @@
 from ConfigParser import RawConfigParser
-import json
 import os
 
 from twisted.web import resource
@@ -7,6 +6,7 @@ from twisted.web import resource
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.defaults import tribler_defaults
 from Tribler.Core.simpledefs import STATEDIR_GUICONFIG
+import Tribler.Core.Utilities.json_util as json
 
 
 class SettingsEndpoint(resource.Resource):

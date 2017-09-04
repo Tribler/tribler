@@ -1,9 +1,9 @@
 import base64
-import json
 
 from twisted.web import http, resource
 
 from Tribler.community.multichain.community import MultiChainCommunity
+import Tribler.Core.Utilities.json_util as json
 
 
 class MultichainEndpoint(resource.Resource):

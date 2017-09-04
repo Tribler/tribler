@@ -1,10 +1,10 @@
 import base64
-import json
 from urllib import quote_plus
 
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.community.multichain.community import MultiChainCommunity
+import Tribler.Core.Utilities.json_util as json
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
 from Tribler.dispersy.member import DummyMember

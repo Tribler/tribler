@@ -1,7 +1,6 @@
 """
 This file contains some utility methods that are used by the API.
 """
-import json
 from struct import unpack_from
 import math
 
@@ -9,6 +8,7 @@ from twisted.web import http
 
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE
 from Tribler.Core.simpledefs import NTFY_TORRENTS
+import Tribler.Core.Utilities.json_util as json
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.util import blocking_call_on_reactor_thread

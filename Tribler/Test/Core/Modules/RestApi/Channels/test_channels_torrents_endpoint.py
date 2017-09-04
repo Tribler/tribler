@@ -1,11 +1,11 @@
 import base64
-import json
 import os
 import shutil
 import urllib
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentDef import TorrentDef
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.Core.base_test import MockObject
