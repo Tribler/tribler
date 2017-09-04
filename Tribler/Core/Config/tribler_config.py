@@ -41,9 +41,9 @@ class TriblerConfig(object):
         if config is None:
             file_name = os.path.join(self.get_default_state_dir(), FILENAME)
             if os.path.exists(file_name):
-                config = ConfigObj(file_name, configspec=CONFIG_SPEC_PATH)
+                config = ConfigObj(file_name, configspec=CONFIG_SPEC_PATH, encoding='latin_1')
             else:
-                config = ConfigObj(configspec=CONFIG_SPEC_PATH)
+                config = ConfigObj(configspec=CONFIG_SPEC_PATH, encoding='latin_1')
         self.config = config
         self.validate()
 
@@ -55,14 +55,14 @@ class TriblerConfig(object):
         """
         Load a TriblerConfig from disk.
         """
-        return TriblerConfig(ConfigObj(config_path, configspec=CONFIG_SPEC_PATH))
+        return TriblerConfig(ConfigObj(config_path, configspec=CONFIG_SPEC_PATH, encoding='latin_1'))
 
     def copy(self):
         """
         Return a TriblerConfig object that has the same values.
         """
         # References to the sections are copied here
-        new_configobj = ConfigObj(self.config.copy(), configspec=self.config.configspec)
+        new_configobj = ConfigObj(self.config.copy(), configspec=self.config.configspec, encoding='latin_1')
         # Make a deep copy of every section
         for section in self.config:
             new_configobj[section] = self.config[section].copy()
@@ -76,7 +76,7 @@ class TriblerConfig(object):
         values for keys who's validation failed if at least one key was found to be incorrect.
         """
         validator = Validator()
-        validation_result = self.config.validate(validator, copy=True)
+        validation_result = self.config.validate(validator)
         if validation_result is not True:
             raise InvalidConfigException(msg="TriblerConfig is invalid: %s" % str(validation_result))
 
