@@ -1,3 +1,6 @@
+from twisted.internet.defer import inlineCallbacks
+from twisted.python.log import removeObserver
+
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
@@ -8,6 +11,18 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestChannelManager(TriblerCoreTest):
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def setUp(self, annotate=True):
+        yield super(TestChannelManager, self).setUp(annotate=annotate)
+        self.session = None
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self, annotate=True):
+        removeObserver(self.session.unhandled_error_observer)
+        yield super(TestChannelManager, self).tearDown(annotate=annotate)
 
     @blocking_call_on_reactor_thread
     def test_create_channel_duplicate_name_error(self):
