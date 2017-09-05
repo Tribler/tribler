@@ -2,6 +2,8 @@ import os
 
 
 import logging
+
+from Tribler.community.trustchain.community import BLOCK_PAIR_BROADCAST
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 
@@ -25,6 +27,7 @@ class MarketCommunityTests(MarketCommunity):
     We are using a seperate community so we do not interact with the live market.
     """
     master_key = ""
+    test_deferred = Deferred()
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -32,21 +35,12 @@ class MarketCommunityTests(MarketCommunity):
         master = dispersy.get_member(public_key=master_key_hex)
         return [master]
 
-    def __init__(self, *args, **kwargs):
-        super(MarketCommunityTests, self).__init__(*args, **kwargs)
-        self.expected_sig_response = None
+    def received_block_pair(self, messages):
+        super(MarketCommunityTests, self).received_block_pair(messages)
 
-    def wait_for_signature_response(self):
-        response_deferred = Deferred()
-        self.expected_sig_response = response_deferred
-        return response_deferred
-
-    def received_half_block(self, messages):
-        super(MarketCommunityTests, self).received_half_block(messages)
-
-        if self.expected_sig_response:
-            self.expected_sig_response.callback(None)
-            self.expected_sig_response = None
+        for message in messages:
+            if message.payload.block1.transaction["type"] == 'tx_done' and message.name == BLOCK_PAIR_BROADCAST:
+                self.test_deferred.callback(None)
 
 
 class TriblerChainCommunityTests(TriblerChainCommunity):

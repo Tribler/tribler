@@ -1,8 +1,8 @@
 import hashlib
 
-from Tribler.community.market.core.transaction import TransactionNumber, StartTransaction
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, Deferred
 
+from Tribler.Test.twisted_thread import deferred
 from Tribler.Test.Community.AbstractTestCommunity import AbstractTestCommunity
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.market.community import MarketCommunity, ProposedTradeRequestCache
@@ -10,11 +10,11 @@ from Tribler.community.market.core.message import TraderId, MessageId, MessageNu
 from Tribler.community.market.core.order import OrderId, OrderNumber, Order
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
-from Tribler.community.market.core.tick import Ask, Bid, Tick, EMPTY_SIG
+from Tribler.community.market.core.tick import Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import Trade, CounterTrade
-from Tribler.community.market.core.ttl import Ttl
+from Tribler.community.market.core.transaction import StartTransaction
 from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.dispersy.candidate import Candidate, WalkCandidate
 from Tribler.dispersy.crypto import ECCrypto
@@ -23,13 +23,13 @@ from Tribler.dispersy.message import DelayMessageByProof, Message, DropMessage
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-class CommunityTestSuite(AbstractTestCommunity):
-    """Community test cases."""
+class AbstractTestMarketCommunity(AbstractTestCommunity):
+    """Market Community test cases."""
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self, annotate=True):
-        yield super(CommunityTestSuite, self).setUp(annotate=annotate)
+        yield super(AbstractTestMarketCommunity, self).setUp(annotate=annotate)
 
         dummy1_wallet = DummyWallet1()
         dummy2_wallet = DummyWallet2()
@@ -48,15 +48,10 @@ class CommunityTestSuite(AbstractTestCommunity):
         member = Member(self.dispersy, ec, 1)
 
         trader_id = hashlib.sha1(member.public_key).digest().encode('hex')
-        self.ask = Ask(MessageId(TraderId('0'), MessageNumber('message_number')),
-                       OrderId(TraderId(trader_id), OrderNumber(1234)), Price(63400, 'DUM1'), Quantity(30, 'DUM2'),
+        self.ask = Ask(OrderId(TraderId(trader_id), OrderNumber(1234)), Price(63400, 'DUM1'), Quantity(30, 'DUM2'),
                        Timeout(3600), Timestamp.now())
-        self.ask.sign(member)
-
-        self.bid = Bid(MessageId(TraderId('1'), MessageNumber('message_number')),
-                       OrderId(TraderId(trader_id), OrderNumber(1235)), Price(343, 'DUM1'), Quantity(22, 'DUM2'),
+        self.bid = Bid(OrderId(TraderId(trader_id), OrderNumber(1235)), Price(343, 'DUM1'), Quantity(22, 'DUM2'),
                        Timeout(3600), Timestamp.now())
-        self.bid.sign(member)
         self.order = Order(OrderId(TraderId(self.market_community.mid), OrderNumber(24)), Price(20, 'DUM1'),
                            Quantity(30, 'DUM2'), Timeout(3600.0), Timestamp.now(), False)
         self.proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber('message_number')),
@@ -64,6 +59,8 @@ class CommunityTestSuite(AbstractTestCommunity):
                                             OrderId(TraderId(self.market_community.mid), OrderNumber(24)),
                                             Price(20, 'DUM1'), Quantity(30, 'DUM2'), Timestamp.now())
 
+
+class CommunityTestSuite(AbstractTestMarketCommunity):
     @blocking_call_on_reactor_thread
     def test_get_master_members(self):
         """
@@ -80,25 +77,34 @@ class CommunityTestSuite(AbstractTestCommunity):
         self.assertIsNone(self.market_community.order_book)
         self.assertFalse(self.market_community.is_matchmaker)
 
-    @blocking_call_on_reactor_thread
-    def test_get_introduce_candidate(self):
+    @deferred(timeout=10)
+    def test_add_matchmaker(self):
         """
-        Test the retrieval of an introduce candidate
+        Test adding a matchmaker to the market
         """
-        def mocked_get_candidate(mm):
-            return mm
+        test_deferred = Deferred()
+        self.market_community.pending_matchmaker_deferreds.append(test_deferred)
+        self.market_community.get_candidate = lambda *_: 'a'
+        self.market_community.add_matchmaker(None)
+        return test_deferred
 
-        self.market_community.get_candidate = mocked_get_candidate
-        self.market_community.matchmakers = [('abcd', 1234)]
-        self.assertEqual(self.market_community.dispersy_get_introduce_candidate(), ('abcd', 1234))
+    @blocking_call_on_reactor_thread
+    def test_should_sign(self):
+        """
+        Test the should_sign method of the market
+        """
+        message = MockObject()
+        message.payload = MockObject()
+        message.payload.block = MockObject()
+        message.payload.block.transaction = {"type": "abc"}
+        self.assertFalse(self.market_community.should_sign(message))
 
     @blocking_call_on_reactor_thread
     def test_proposed_trade_cache_timeout(self):
         """
         Test the timeout method of a proposed trade request in the cache
         """
-        ask = Ask(MessageId(TraderId('0'), MessageNumber('message_number')),
-                  OrderId(TraderId(self.market_community.mid), OrderNumber(24)),
+        ask = Ask(OrderId(TraderId(self.market_community.mid), OrderNumber(24)),
                   Price(63400, 'DUM1'), Quantity(30, 'DUM2'), Timeout(3600), Timestamp.now())
         order = Order(OrderId(TraderId("0"), OrderNumber(23)), Price(20, 'DUM1'), Quantity(30, 'DUM2'),
                       Timeout(3600.0), Timestamp.now(), False)
@@ -123,13 +129,6 @@ class CommunityTestSuite(AbstractTestCommunity):
         cache.on_timeout()
         self.assertTrue(mocked_send_decline.called)
 
-    def get_tick_message(self, tick):
-        meta = self.market_community.get_meta_message(u"ask" if isinstance(tick, Ask) else u"bid")
-        return meta.impl(
-            distribution=(self.market_community.claim_global_time(),),
-            payload=tick.to_network() + (Ttl.default(), "127.0.0.1", 1234)
-        )
-
     def get_offer_sync(self, tick):
         meta = self.market_community.get_meta_message(u"offer-sync")
         candidate = Candidate(self.market_community.lookup_ip(TraderId(self.market_community.mid)), False)
@@ -138,17 +137,6 @@ class CommunityTestSuite(AbstractTestCommunity):
             distribution=(self.market_community.claim_global_time(),),
             destination=(candidate,),
             payload=tick.to_network() + (Ttl(1),) + ("127.0.0.1", 1234) + (isinstance(tick, Ask),)
-        )
-
-    def get_transaction_completed_msg(self):
-        meta = self.market_community.get_meta_message(u"transaction-completed-bc")
-        candidate = Candidate(self.market_community.lookup_ip(TraderId(self.market_community.mid)), False)
-        return meta.impl(
-            distribution=(self.market_community.claim_global_time(),),
-            destination=(candidate,),
-            payload=(TraderId('abc'), MessageNumber('3'), TraderId('def'), TransactionNumber(5), TraderId('abc'),
-                     OrderNumber(3), TraderId('def'), OrderNumber(4), 'match_id', Quantity(2, 'BTC'), Timestamp.now(),
-                     Ttl(3))
         )
 
     def get_start_transaction_msg(self):
@@ -166,7 +154,6 @@ class CommunityTestSuite(AbstractTestCommunity):
             destination=(candidate,),
             payload=start_transaction.to_network()
         )
-
 
     @blocking_call_on_reactor_thread
     def test_verify_offer_creation(self):
@@ -198,20 +185,6 @@ class CommunityTestSuite(AbstractTestCommunity):
         self.market_community.timeline.check = lambda _: (False, None)
         [self.assertIsInstance(msg, DelayMessageByProof)
          for msg in self.market_community.check_message([proposed_trade_msg])]
-
-    @blocking_call_on_reactor_thread
-    def test_check_tick_message(self):
-        """
-        Test the general check of the validity of a tick message in the market community
-        """
-        self.ask._signature = EMPTY_SIG
-        [self.assertIsInstance(msg, DropMessage) for msg in
-         self.market_community.check_tick_message([self.get_tick_message(self.ask)])]
-
-        self.market_community.timeline.check = lambda _: (True, None)
-        self.ask.order_id._trader_id = TraderId(self.market_community.mid)
-        [self.assertIsInstance(msg, DropMessage) for msg in
-         self.market_community.check_tick_message([self.get_tick_message(self.ask)])]
 
     @blocking_call_on_reactor_thread
     def test_check_trade_message(self):
@@ -254,17 +227,6 @@ class CommunityTestSuite(AbstractTestCommunity):
          self.market_community.check_trade_message([self.get_start_transaction_msg()])]
 
     @blocking_call_on_reactor_thread
-    def test_send_offer_sync(self):
-        """
-        Test sending an offer sync
-        """
-        self.market_community.update_ip(TraderId('0'), ("127.0.0.1", 1234))
-        self.market_community.update_ip(TraderId('1'), ("127.0.0.1", 1234))
-        self.market_community.update_ip(self.ask.order_id.trader_id, ("127.0.0.1", 1234))
-        candidate = WalkCandidate(("127.0.0.1", 1234), False, ("127.0.0.1", 1234), ("127.0.0.1", 1234), u"public")
-        self.assertTrue(self.market_community.send_offer_sync(candidate, self.ask))
-
-    @blocking_call_on_reactor_thread
     def test_send_proposed_trade(self):
         """
         Test sending a proposed trade
@@ -294,43 +256,26 @@ class CommunityTestSuite(AbstractTestCommunity):
         self.assertEqual(len(self.market_community.transaction_manager.find_all()), 1)
 
     @blocking_call_on_reactor_thread
-    def test_create_intro_request(self):
-        """
-        Test the creation of an introduction request
-        """
-        self.market_community.order_book.insert_ask(self.ask)
-        self.market_community.order_book.insert_bid(self.bid)
-        candidate = WalkCandidate(("127.0.0.1", 1234), False, ("127.0.0.1", 1234), ("127.0.0.1", 1234), u"public")
-        request = self.market_community.create_introduction_request(candidate, True)
-        self.assertTrue(request)
-        self.assertTrue(request.payload.orders_bloom_filter)
-
-    @blocking_call_on_reactor_thread
     def test_on_introduction_request(self):
         """
         Test that when we receive an intro request with a orders bloom filter, we send an order sync back
         """
-        def on_send_offer_sync(_, tick):
-            self.assertIsInstance(tick, Tick)
-            on_send_offer_sync.called = True
+        def send_info(_):
+            send_info.called = True
 
-        on_send_offer_sync.called = False
+        send_info.called = False
 
         candidate = WalkCandidate(("127.0.0.1", 1234), False, ("127.0.0.1", 1234), ("127.0.0.1", 1234), u"public")
         candidate.associate(self.market_community.my_member)
         payload = self.market_community.create_introduction_request(candidate, True).payload
 
-        self.market_community.order_book.insert_ask(self.ask)
-        self.market_community.order_book.insert_bid(self.bid)
-        self.market_community.update_ip(TraderId('0'), ("127.0.0.1", 1234))
-        self.market_community.update_ip(TraderId('1'), ("127.0.0.1", 1234))
-        self.market_community.send_offer_sync = on_send_offer_sync
+        self.market_community.send_info = send_info
 
         message = MockObject()
         message.payload = payload
         message.candidate = candidate
         self.market_community.on_introduction_request([message])
-        self.assertTrue(on_send_offer_sync.called)
+        self.assertTrue(send_info.called)
 
     @blocking_call_on_reactor_thread
     def test_lookup_ip(self):
@@ -355,15 +300,6 @@ class CommunityTestSuite(AbstractTestCommunity):
         self.assertTrue(self.market_community.create_ask(20, 'DUM1', 100, 'DUM2', 3600))
         self.assertEquals(1, len(self.market_community.order_book._asks))
         self.assertEquals(0, len(self.market_community.order_book._bids))
-
-    @blocking_call_on_reactor_thread
-    def test_on_tick(self):
-        """
-        Test whether a tick is inserted in the order book when we receive one
-        """
-        self.market_community.on_tick([self.get_tick_message(self.ask), self.get_tick_message(self.bid)])
-        self.assertEquals(1, len(self.market_community.order_book.asks))
-        self.assertEquals(1, len(self.market_community.order_book.bids))
 
     @blocking_call_on_reactor_thread
     def test_create_bid(self):
@@ -440,30 +376,6 @@ class CommunityTestSuite(AbstractTestCommunity):
         self.proposed_trade._quantity = Quantity(100000, 'DUM2')
         self.market_community.on_proposed_trade([self.get_proposed_trade_msg()])
         self.assertTrue(mocked_send_counter_trade.called)
-
-    @blocking_call_on_reactor_thread
-    def test_on_offer_sync(self):
-        """
-        Test whether the right operations happen when we receive an offer sync
-        """
-        self.assertEqual(len(self.market_community.order_book.asks), 0)
-        self.assertEqual(len(self.market_community.order_book.bids), 0)
-
-        self.market_community.update_ip(TraderId(self.market_community.mid), ('2.2.2.2', 2))
-        self.market_community.on_offer_sync([self.get_offer_sync(self.ask)])
-        self.assertEqual(len(self.market_community.order_book.asks), 1)
-        self.market_community.order_book.remove_tick(self.ask.order_id)
-        self.market_community.on_offer_sync([self.get_offer_sync(self.bid)])
-        self.assertEqual(len(self.market_community.order_book.bids), 1)
-
-    @blocking_call_on_reactor_thread
-    def test_on_transaction_completed_bc(self):
-        """
-        Test whether the right operatiosn happen when we receive a transaction completed broadcast
-        """
-        self.market_community.update_ip(TraderId(self.market_community.mid), ('2.2.2.2', 2))
-        self.market_community.on_transaction_completed_bc_message([self.get_transaction_completed_msg()])
-        self.assertEqual(len(self.market_community.relayed_completed_transaction), 1)
 
     @blocking_call_on_reactor_thread
     def test_compute_reputation(self):

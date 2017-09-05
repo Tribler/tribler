@@ -151,9 +151,9 @@ class TestDatabase(AbstractServer):
         """
         Test addition, retrieval and deletion of ticks in the database
         """
-        ask = Tick.from_order(self.order1, MessageId(TraderId('0'), MessageNumber('message_number')))
+        ask = Tick.from_order(self.order1)
         self.database.add_tick(ask)
-        bid = Tick.from_order(self.order2, MessageId(TraderId('0'), MessageNumber('message_number')))
+        bid = Tick.from_order(self.order2)
         self.database.add_tick(bid)
 
         self.assertEqual(len(self.database.get_ticks()), 2)
