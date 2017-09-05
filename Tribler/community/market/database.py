@@ -98,7 +98,6 @@ CREATE TABLE IF NOT EXISTS orders(
 
  CREATE TABLE IF NOT EXISTS ticks(
   trader_id            TEXT NOT NULL,
-  message_number       TEXT NOT NULL,
   order_number         INTEGER NOT NULL,
   price                DOUBLE NOT NULL,
   price_type           TEXT NOT NULL,
@@ -107,8 +106,6 @@ CREATE TABLE IF NOT EXISTS orders(
   timeout              DOUBLE NOT NULL,
   timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   is_ask               INTEGER NOT NULL,
-  public_key           TEXT NOT NULL,
-  signature            TEXT NOT NULL,
 
   PRIMARY KEY (trader_id, order_number)
  );
@@ -316,9 +313,9 @@ class MarketDB(TrustChainDB):
         Add a specific tick to the database
         """
         self.execute(
-            u"INSERT INTO ticks (trader_id, message_number, order_number, price, price_type, quantity,"
-            u"quantity_type, timeout, timestamp, is_ask, public_key, signature) "
-            u"VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", tick.to_database())
+            u"INSERT INTO ticks (trader_id, order_number, price, price_type, quantity,"
+            u"quantity_type, timeout, timestamp, is_ask) "
+            u"VALUES(?,?,?,?,?,?,?,?,?)", tick.to_database())
         self.commit()
 
     def delete_all_ticks(self):
@@ -355,7 +352,7 @@ class MarketDB(TrustChainDB):
         database_version = int(database_version)
 
         if database_version < LATEST_DB_VERSION:
-            self.executescript(schema)
+            self.executescript(self.get_schema())
             self.commit()
 
         return LATEST_DB_VERSION
