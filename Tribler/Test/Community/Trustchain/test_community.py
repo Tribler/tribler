@@ -7,11 +7,11 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.threads import blockingCallFromThread
 
-from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TrustChainTestCase
+from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TrustChainTestCase, TestBlock
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.community.trustchain.block import GENESIS_SEQ
-from Tribler.community.trustchain.community import (TrustChainCommunity, HALF_BLOCK, CRAWL)
+from Tribler.community.trustchain.community import (TrustChainCommunity, HALF_BLOCK, CRAWL, BLOCK_PAIR)
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.message import DelayPacketByMissingMember
 from Tribler.dispersy.requestcache import IntroductionRequestCache
@@ -37,8 +37,7 @@ class BaseTestTrustChainCommunity(TrustChainTestCase, DispersyTestFunc):
 
     @blocking_call_on_reactor_thread
     def assertBlocksInDatabase(self, node, amount):
-        db_name = node.community.persistence.db_name
-        count = node.community.persistence.execute(u"SELECT COUNT(*) FROM %s" % db_name).fetchone()[0]
+        count = node.community.persistence.execute(u"SELECT COUNT(*) FROM blocks").fetchone()[0]
         assert count == amount, "Wrong number of blocks in database, was {0} but expected {1}".format(count, amount)
 
     @blocking_call_on_reactor_thread
@@ -93,7 +92,7 @@ class BaseTestTrustChainCommunity(TrustChainTestCase, DispersyTestFunc):
     @staticmethod
     @blocking_call_on_reactor_thread
     def clean_database(node):
-        node.community.persistence.execute(u"DELETE FROM %s;" % node.community.persistence.db_name)
+        node.community.persistence.execute(u"DELETE FROM blocks;")
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -132,6 +131,21 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         node.call(node.community.sign_block, target_other, other.my_member.public_key, {"id": 42})
         # Assert
         _, message = other.receive_message(names=[HALF_BLOCK]).next()
+        self.assertTrue(message)
+
+    def test_send_block_pair(self):
+        """
+        Test the community to send a block pair message.
+        """
+        block_1 = TestBlock()
+        block_2 = TestBlock()
+
+        node, other = self.create_nodes(2)
+        target_other = self._create_target(node, other)
+        # Act
+        node.call(node.community.send_block_pair, block_1, block_2, target_other)
+        # Assert
+        _, message = other.receive_message(names=[BLOCK_PAIR]).next()
         self.assertTrue(message)
 
     def test_sign_block_missing_member(self):
@@ -529,3 +543,17 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         deferred = node.community.wait_for_signature_request('a')
         node.community.expected_sig_requests['a'].callback(None)
         yield deferred
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def test_wait_for_signature_response(self):
+        """
+        Test the waiting for a signature response
+        """
+        node, = yield self.create_nodes(1)
+        deferred = node.community.wait_for_signature_response('a')
+        node.community.expected_sig_responses['a'].callback(None)
+        yield deferred
+
+        node.community.received_block_ids.add('b')
+        yield node.community.wait_for_signature_response('b')

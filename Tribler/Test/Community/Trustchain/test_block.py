@@ -130,7 +130,7 @@ class TestBlocks(TrustChainTestCase):
         block = TrustChainBlock.unpack(' fish, so sad that it should come to this. - We tried to warn you '
                                        'all but oh dear! - You may not share our intellect, which might explain your '
                                        'disrespect, for all the natural wonders that grow around you. - So long, '
-                                       'so long, and thanks for all the fish\x00\x00\x00\na1d2bid1i3')
+                                       'so long, and thanks for all the fish\x00\x00\x00\na1d2bid1i3')[1]
         self.assertEqual(block.transaction, {'id': 3})
         self.assertEqual(block.public_key, ' fish, so sad that it should come to this. - We tried to warn you all but ')
         self.assertEqual(block.sequence_number, 1869095012)
