@@ -83,6 +83,28 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                expected_json=expected_json).addCallback(verify_download)
 
     @deferred(timeout=10)
+    def test_start_download_from_file_unicode(self):
+        """
+        Testing whether we can start a download from a file with a unicode name
+        """
+        def verify_download(response):
+            self.assertTrue(json.loads(response)['started'])
+            self.assertGreaterEqual(len(self.session.get_downloads()), 1)
+            dl = self.session.get_downloads()[0]
+            dl.tracker_status[u"\u266b"] = [0, 'Not contacted yet']
+            tdef = dl.get_def()
+            tdef.input['name'] = u'video\u266b'
+            return self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200)
+
+        ufile = os.path.join(TESTS_DATA_DIR, u'video\u266b.avi.torrent')
+        udest = os.path.join(self.session_base_dir, u'video\u266b')
+
+        post_data = (u'uri=file:%s&destination=%s' % (ufile, udest)).encode('utf-8')
+        self.should_check_equality = False
+        return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
+                               raw_data=True).addCallback(verify_download)
+
+    @deferred(timeout=10)
     def test_start_download_from_magnet(self):
         """
         Testing whether we can start a download from a magnet
