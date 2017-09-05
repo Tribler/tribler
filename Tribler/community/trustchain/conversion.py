@@ -19,12 +19,19 @@ class TrustChainConversion(BinaryConversion):
     """
     def __init__(self, community):
         super(TrustChainConversion, self).__init__(community, "\x01")
-        from Tribler.community.trustchain.community import HALF_BLOCK, CRAWL
+        from Tribler.community.trustchain.community import HALF_BLOCK, CRAWL, HALF_BLOCK_BROADCAST,\
+            BLOCK_PAIR, BLOCK_PAIR_BROADCAST
 
         # Define Request Signature.
         self.define_meta_message(chr(1), community.get_meta_message(HALF_BLOCK),
                                  self._encode_half_block, self._decode_half_block)
-        self.define_meta_message(chr(2), community.get_meta_message(CRAWL),
+        self.define_meta_message(chr(2), community.get_meta_message(HALF_BLOCK_BROADCAST),
+                                 self._encode_half_block, self._decode_half_block)
+        self.define_meta_message(chr(3), community.get_meta_message(BLOCK_PAIR),
+                                 self._encode_block_pair, self._decode_block_pair)
+        self.define_meta_message(chr(4), community.get_meta_message(BLOCK_PAIR_BROADCAST),
+                                 self._encode_block_pair, self._decode_block_pair)
+        self.define_meta_message(chr(5), community.get_meta_message(CRAWL),
                                  self._encode_crawl_request, self._decode_crawl_request)
 
     @staticmethod
@@ -49,11 +56,40 @@ class TrustChainConversion(BinaryConversion):
             raise DropPacket("Unable to decode the payload")
 
         try:
-            block = TrustChainBlock.unpack(data, offset)
-        except IndexError:
+            _, block = TrustChainBlock.unpack(data, offset)
+        except (IndexError, ValueError):
             raise DropPacket("Invalid block contents")
 
         return len(data), placeholder.meta.payload.implement(block)
+
+    @staticmethod
+    def _encode_block_pair(message):
+        """
+        Encode a half block message.
+        :param message: Message.impl of HalfBlockPayload.impl
+        :return encoding ready to be sent to the network of the message
+        """
+        return message.payload.block1.pack() + message.payload.block2.pack(),
+
+    @staticmethod
+    def _decode_block_pair(placeholder, offset, data):
+        """
+        Decode an incoming block pair message.
+        :param placeholder:
+        :param offset: Start of the BlockPair message in the data.
+        :param data: ByteStream containing the message.
+        :return: (offset, BlockPairPayload.impl)
+        """
+        if len(data) < offset + block_pack_size * 2:
+            raise DropPacket("Unable to decode the payload")
+
+        try:
+            new_offset, block1 = TrustChainBlock.unpack(data, offset)
+            _, block2 = TrustChainBlock.unpack(data, new_offset)
+        except (IndexError, ValueError):
+            raise DropPacket("Invalid block contents")
+
+        return len(data), placeholder.meta.payload.implement(block1, block2)
 
     @staticmethod
     def _encode_crawl_request(message):

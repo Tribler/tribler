@@ -306,8 +306,9 @@ class TrustChainBlock(object):
         tx_len, = struct.unpack("!I", data[offset:offset + 4])
         offset += 4
         _, ret.transaction = decode(data[offset:offset + tx_len])
+        offset += tx_len
 
-        return ret
+        return offset, ret
 
     def pack_db_insert(self):
         """

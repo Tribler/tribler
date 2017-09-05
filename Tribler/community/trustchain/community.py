@@ -13,17 +13,20 @@ from twisted.internet.defer import succeed, Deferred, inlineCallbacks
 from Tribler.community.trustchain.block import TrustChainBlock, ValidationResult, GENESIS_SEQ, UNKNOWN_SEQ
 from Tribler.community.trustchain.conversion import TrustChainConversion
 from Tribler.community.trustchain.database import TrustChainDB
-from Tribler.community.trustchain.payload import HalfBlockPayload, CrawlRequestPayload
+from Tribler.community.trustchain.payload import HalfBlockPayload, CrawlRequestPayload, BlockPairPayload
 from Tribler.dispersy.authentication import NoAuthentication, MemberAuthentication
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
-from Tribler.dispersy.destination import CandidateDestination
+from Tribler.dispersy.destination import CandidateDestination, NHopCommunityDestination
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.message import Message, DelayPacketByMissingMember
 from Tribler.dispersy.resolution import PublicResolution
 
 HALF_BLOCK = u"half_block"
+HALF_BLOCK_BROADCAST = u"half_block_community"
+BLOCK_PAIR = u"block_pair"
+BLOCK_PAIR_BROADCAST = u"block_pair_broadcast"
 CRAWL = u"crawl"
 
 
@@ -51,7 +54,10 @@ class TrustChainCommunity(Community):
 
         self.expected_intro_responses = {}
         self.expected_sig_requests = {}
+        self.expected_sig_responses = {}
         self.received_block_ids = set()
+
+        self.relayed_broadcasts = []
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -94,6 +100,30 @@ class TrustChainCommunity(Community):
                     HalfBlockPayload(),
                     self._generic_timeline_check,
                     self.received_half_block),
+            Message(self, HALF_BLOCK_BROADCAST,
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    NHopCommunityDestination(10, depth=2),
+                    HalfBlockPayload(),
+                    self._generic_timeline_check,
+                    self.received_half_block),
+            Message(self, BLOCK_PAIR,
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    BlockPairPayload(),
+                    self._generic_timeline_check,
+                    self.received_block_pair),
+            Message(self, BLOCK_PAIR_BROADCAST,
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    NHopCommunityDestination(10, depth=2),
+                    BlockPairPayload(),
+                    self._generic_timeline_check,
+                    self.received_block_pair),
             Message(self, CRAWL,
                     MemberAuthentication(),
                     PublicResolution(),
@@ -113,27 +143,52 @@ class TrustChainCommunity(Community):
         """
         return True
 
-    def send_block(self, candidate, block):
-        if candidate.get_member():
+    def send_block(self, block, candidate=None):
+        """
+        Send a block to a candidate or a community.
+        :param block: The block to send.
+        :param candidate: The candidate to send the block to. If not specified, it will be broadcasted to your
+        known peers.
+        """
+        if candidate is None:
+            self.logger.debug("Broadcasting block to neighbour nodes (%s)", block)
+        elif candidate.get_member():
             self.logger.debug("Sending block to %s (%s)", candidate.get_member().public_key.encode("hex")[-8:], block)
         else:
             self.logger.debug("Sending block to %s (%s)", candidate, block)
-        message = self.get_meta_message(HALF_BLOCK).impl(
+        message = self.get_meta_message(HALF_BLOCK if candidate else HALF_BLOCK_BROADCAST).impl(
             authentication=tuple(),
             distribution=(self.claim_global_time(),),
-            destination=(candidate,),
+            destination=(candidate,) if candidate else (),
             payload=(block,))
         try:
             self.dispersy.store_update_forward([message], False, False, True)
         except DelayPacketByMissingMember:
             self.logger.warn("Missing member in TrustChain community to send signature request to")
 
-    def on_introduction_response(self, messages):
-        super(TrustChainCommunity, self).on_introduction_response(messages)
-        for message in messages:
-            if message.candidate.sock_addr in self.expected_intro_responses:
-                self.expected_intro_responses[message.candidate.sock_addr].callback(None)
-                del self.expected_intro_responses[message.candidate.sock_addr]
+    def send_block_pair(self, block1, block2, candidate=None):
+        """
+        Send a pair of blocks to a candidate or a community.
+        :param block1: The first block to send.
+        :param candidate: The candidate to send the block to. If not specified, it will be broadcasted to your
+        known peers.
+        """
+        if candidate is None:
+            self.logger.debug("Broadcasting block pair to neighbour nodes (%s, %s)", block1, block2)
+        elif candidate.get_member():
+            self.logger.debug("Sending block pair to %s (%s, %s)", candidate.get_member().public_key.encode("hex")[-8:],
+                              block1, block2)
+        else:
+            self.logger.debug("Sending block pair to %s (%s, %s)", candidate, block1, block2)
+        message = self.get_meta_message(BLOCK_PAIR if candidate else BLOCK_PAIR_BROADCAST).impl(
+            authentication=tuple(),
+            distribution=(self.claim_global_time(),),
+            destination=(candidate,) if candidate else (),
+            payload=(block1, block2))
+        try:
+            self.dispersy.store_update_forward([message], False, False, True)
+        except DelayPacketByMissingMember:
+            self.logger.warn("Missing member in TrustChain community to send signature request to")
 
     def wait_for_intro_of_candidate(self, candidate):
         """
@@ -154,12 +209,24 @@ class TrustChainCommunity(Community):
         self.expected_sig_requests[block_id] = response_deferred
         return response_deferred
 
+    def wait_for_signature_response(self, block_id):
+        """
+        Returns a Deferred that fires when we receive a signature response with a specific block hash.
+        """
+        if block_id in self.received_block_ids:
+            return succeed(None)
+
+        response_deferred = Deferred()
+        self.expected_sig_responses[block_id] = response_deferred
+        return response_deferred
+
     def sign_block(self, candidate, public_key=None, transaction=None, linked=None):
         """
         Create, sign, persist and send a block signed message
         :param candidate: The peer with whom you have interacted, as a dispersy candidate
         :param transaction: A string describing the interaction in this block
         :param linked: The block that the requester is asking us to sign
+        :return block: The block that has been created and signed
         """
         # NOTE to the future: This method reads from the database, increments and then writes back. If in some future
         # this method is allowed to execute in parallel, be sure to lock from before .create up to after .add_block
@@ -181,7 +248,26 @@ class TrustChainCommunity(Community):
             self.logger.error("Signed block did not validate?! Result %s", repr(validation))
         else:
             self.persistence.add_block(block)
-            self.send_block(candidate, block)
+            self.send_block(block, candidate)
+
+        return block
+
+    def validate_persist_block(self, block):
+        """
+        Validate a block and if it's valid, persist it. Return the validation result.
+        :param block: The block to validate and persist.
+        :return: [ValidationResult]
+        """
+        validation = block.validate(self.persistence)
+        self.logger.debug("Block validation result %s, %s, (%s)", validation[0], validation[1], block)
+        if validation[0] == ValidationResult.invalid:
+            pass
+        elif not self.persistence.contains(block):
+            self.persistence.add_block(block)
+        else:
+            self.logger.debug("Received already known block (%s)", block)
+
+        return validation
 
     def received_half_block(self, messages):
         """
@@ -191,20 +277,25 @@ class TrustChainCommunity(Community):
         self.logger.debug("Received %d half block messages.", len(messages))
         for message in messages:
             blk = message.payload.block
-            validation = blk.validate(self.persistence)
-            self.logger.debug("Block validation result %s, %s, (%s)", validation[0], validation[1], blk)
-            if validation[0] == ValidationResult.invalid:
-                continue
-            elif not self.persistence.contains(blk):
-                self.persistence.add_block(blk)
-            else:
-                self.logger.debug("Received already known block (%s)", blk)
+            block_id = "%s.%s" % (blk.public_key.encode('hex'), blk.sequence_number)
+
+            if message.name == HALF_BLOCK_BROADCAST and message.destination.depth > 0 \
+                    and block_id not in self.relayed_broadcasts:
+                message.regenerate_packet()
+                self.dispersy.store_update_forward([message], False, False, True)
+                self.relayed_broadcasts.append(block_id)
+
+            validation = self.validate_persist_block(blk)
 
             # Check if we are waiting for this block
-            block_id = "%s.%s" % (blk.public_key.encode('hex'), blk.sequence_number)
             if block_id in self.expected_sig_requests:
                 self.expected_sig_requests[block_id].callback(block_id)
                 del self.expected_sig_requests[block_id]
+
+            link_block_id = "%s.%s" % (blk.link_public_key.encode('hex'), blk.link_sequence_number)
+            if link_block_id in self.expected_sig_responses:
+                self.expected_sig_responses[link_block_id].callback(block_id)
+                del self.expected_sig_responses[link_block_id]
 
             self.received_block_ids.add(block_id)
 
@@ -246,6 +337,24 @@ class TrustChainCommunity(Community):
                     self.cancel_pending_task(crawl_task)
                     continue
 
+    def received_block_pair(self, messages):
+        """
+        We received block pairs. Verify them and persist them to the local storage.
+        :param messages: The block pair messages
+        """
+        for message in messages:
+            self.validate_persist_block(message.payload.block1)
+            self.validate_persist_block(message.payload.block2)
+
+            blk = message.payload.block1
+            block_id = "%s.%s" % (blk.public_key.encode('hex'), blk.sequence_number)
+
+            if message.name == BLOCK_PAIR_BROADCAST and message.destination.depth > 0 \
+                    and block_id not in self.relayed_broadcasts:
+                message.regenerate_packet()
+                self.dispersy.store_update_forward([message], False, False, True)
+                self.relayed_broadcasts.append(block_id)
+
     def send_crawl_request(self, candidate, public_key, sequence_number=None):
         sq = sequence_number
         if sequence_number is None:
@@ -276,7 +385,7 @@ class TrustChainCommunity(Community):
             blocks = self.persistence.crawl(self.my_member.public_key, sq)
             count = len(blocks)
             for blk in blocks:
-                self.send_block(message.candidate, blk)
+                self.send_block(blk, message.candidate)
             self.logger.info("Sent %d blocks", count)
 
     @inlineCallbacks
@@ -361,6 +470,11 @@ class TrustChainCommunity(Community):
 
     def on_introduction_response(self, messages):
         super(TrustChainCommunity, self).on_introduction_response(messages)
+
+        for message in messages:
+            if message.candidate.sock_addr in self.expected_intro_responses:
+                self.expected_intro_responses[message.candidate.sock_addr].callback(message.candidate)
+                del self.expected_intro_responses[message.candidate.sock_addr]
 
         if self._live_edges_enabled:
             for message in messages:
