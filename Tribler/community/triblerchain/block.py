@@ -6,6 +6,14 @@ class TriblerChainBlock(TrustChainBlock):
     Container for TriblerChain block information
     """
 
+    def __init__(self, data=None):
+        super(TriblerChainBlock, self).__init__(data)
+        if len(self.transaction) != 4:
+            self.transaction = [0, 0, 0, 0]
+        for i in range(0, 4):
+            if not isinstance(self.transaction[i], int):
+                self.transaction[i] = int(self.transaction[i])
+
     @classmethod
     def create(cls, transaction, database, public_key, link=None, link_pk=None):
         """
@@ -20,28 +28,64 @@ class TriblerChainBlock(TrustChainBlock):
         blk = database.get_latest(public_key)
         ret = cls()
         if link:
-            ret.transaction["up"] = link.transaction["down"]
-            ret.transaction["down"] = link.transaction["up"]
+            ret.up = link.down
+            ret.down = link.up
             ret.link_public_key = link.public_key
             ret.link_sequence_number = link.sequence_number
         else:
-            ret.transaction["up"] = transaction["up"]
-            ret.transaction["down"] = transaction["down"]
+            ret.up = transaction[0]
+            ret.down = transaction[1]
             ret.link_public_key = link_pk
 
         if blk:
-            ret.transaction["total_up"] = blk.transaction["total_up"] + ret.transaction["up"]
-            ret.transaction["total_down"] = blk.transaction["total_down"] + ret.transaction["down"]
+            ret.total_up = blk.total_up + ret.up
+            ret.total_down = blk.total_down + ret.down
             ret.sequence_number = blk.sequence_number + 1
             ret.previous_hash = blk.hash
         else:
-            ret.transaction["total_up"] = ret.transaction["up"]
-            ret.transaction["total_down"] = ret.transaction["down"]
+            ret.total_up = ret.up
+            ret.total_down = ret.down
 
         ret.public_key = public_key
         ret.signature = EMPTY_SIG
 
         return ret
+
+    @property
+    def up(self):
+        return self.transaction[0]
+
+    @up.setter
+    def up(self, value):
+        assert isinstance(value, int), "Must assign int!"
+        self.transaction[0] = value
+
+    @property
+    def down(self):
+        return self.transaction[1]
+
+    @down.setter
+    def down(self, value):
+        assert isinstance(value, int), "Must assign int!"
+        self.transaction[1] = value
+
+    @property
+    def total_up(self):
+        return self.transaction[2]
+
+    @total_up.setter
+    def total_up(self, value):
+        assert isinstance(value, int), "Must assign int!"
+        self.transaction[2] = value
+
+    @property
+    def total_down(self):
+        return self.transaction[3]
+
+    @total_down.setter
+    def total_down(self, value):
+        assert isinstance(value, int), "Must assign int!"
+        self.transaction[3] = value
 
     def validate_transaction(self, database):
         """
@@ -57,16 +101,16 @@ class TriblerChainBlock(TrustChainBlock):
             result[0] = ValidationResult.invalid
             errors.append(reason)
 
-        if self.transaction["up"] < 0:
+        if self.up < 0:
             err("Up field is negative")
-        if self.transaction["down"] < 0:
+        if self.down < 0:
             err("Down field is negative")
-        if self.transaction["down"] == 0 and self.transaction["up"] == 0:
+        if self.down == 0 and self.up == 0:
             # In this case the block doesn't modify any counters, these block are without purpose and are thus invalid.
             err("Up and down are zero")
-        if self.transaction["total_up"] < 0:
+        if self.total_up < 0:
             err("Total up field is negative")
-        if self.transaction["total_down"] < 0:
+        if self.total_down < 0:
             err("Total down field is negative")
 
         blk = database.get(self.public_key, self.sequence_number)
@@ -76,41 +120,41 @@ class TriblerChainBlock(TrustChainBlock):
 
         is_genesis = self.sequence_number == GENESIS_SEQ or self.previous_hash == GENESIS_HASH
         if is_genesis:
-            if self.transaction["total_up"] != self.transaction["up"]:
+            if self.total_up != self.up:
                 err("Genesis block invalid total_up and/or up")
-            if self.transaction["total_down"] != self.transaction["down"]:
+            if self.total_down != self.down:
                 err("Genesis block invalid total_down and/or down")
 
         if blk:
-            if blk.transaction["up"] != self.transaction["up"]:
+            if blk.up != self.up:
                 err("Up does not match known block")
-            if blk.transaction["down"] != self.transaction["down"]:
+            if blk.down != self.down:
                 err("Down does not match known block")
-            if blk.transaction["total_up"] != self.transaction["total_up"]:
+            if blk.total_up != self.total_up:
                 err("Total up does not match known block")
-            if blk.transaction["total_down"] != self.transaction["total_down"]:
+            if blk.total_down != self.total_down:
                 err("Total down does not match known block")
 
         if link:
-            if self.transaction["up"] != link.transaction["down"]:
+            if self.up != link.down:
                 err("Up/down mismatch on linked block")
-            if self.transaction["down"] != link.transaction["up"]:
+            if self.down != link.up:
                 err("Down/up mismatch on linked block")
 
         if prev_blk:
-            if prev_blk.transaction["total_up"] + self.transaction["up"] > self.transaction["total_up"]:
+            if prev_blk.total_up + self.up > self.total_up:
                 err("Total up is lower than expected compared to the preceding block")
-            if prev_blk.transaction["total_down"] + self.transaction["down"] > self.transaction["total_down"]:
+            if prev_blk.total_down + self.down > self.total_down:
                 err("Total down is lower than expected compared to the preceding block")
 
         if next_blk:
-            if self.transaction["total_up"] + next_blk.transaction["up"] > next_blk.transaction["total_up"]:
+            if self.total_up + next_blk.up > next_blk.total_up:
                 err("Total up is higher than expected compared to the next block")
                 # In this case we could say there is fraud too, since the counters are too high. Also anyone that
                 # counter signed any such counters should be suspected since they apparently failed to validate or put
                 # their signature on it regardless of validation status. But it is not immediately clear where this
                 # error occurred, it might be lower on the chain than self. So it is hard to create a fraud proof here
-            if self.transaction["total_down"] + next_blk.transaction["down"] > next_blk.transaction["total_down"]:
+            if self.total_down + next_blk.down > next_blk.total_down:
                 err("Total down is higher than expected compared to the next block")
                 # See previous comment
 

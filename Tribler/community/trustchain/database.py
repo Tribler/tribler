@@ -17,15 +17,20 @@ class TrustChainDB(Database):
     Ensures a proper DB schema on startup.
     """
     LATEST_DB_VERSION = 1
+    BLOCK_CLASS = TrustChainBlock
 
-    def __init__(self, working_directory, db_name):
+    def __init__(self, working_directory, db_name, transaction_fields=[("blob", "TEXT")]):
         """
         Sets up the persistence layer ready for use.
         :param working_directory: Path to the working directory
         that will contain the the db at working directory/DATABASE_PATH
         :param db_name: The name of the database
         """
+        assert len(transaction_fields) > 0, "Must contain at least one transaction field"
         db_path = os.path.join(working_directory, os.path.join(DATABASE_DIRECTORY, u"%s.db" % db_name))
+        self.transaction_fields = transaction_fields
+        self.db_name = db_name
+
         super(TrustChainDB, self).__init__(db_path)
         self._logger.debug("TrustChain database path: %s", db_path)
         self.open()
@@ -36,18 +41,20 @@ class TrustChainDB(Database):
         :param block: The data that will be saved.
         """
         self.execute(
-            u"INSERT INTO blocks (tx, public_key, sequence_number, link_public_key,"
-            u"link_sequence_number, previous_hash, signature, block_hash) VALUES(?,?,?,?,?,?,?,?)",
-            block.pack_db_insert())
+            (u"INSERT INTO %s (public_key, sequence_number, link_public_key," +
+             u"link_sequence_number, previous_hash, signature, block_hash, tx_" +
+             u", tx_".join([tx[0] for tx in self.transaction_fields]) + u") VALUES(?,?,?,?,?,?,?,?," +
+             (u",?" * len(self.transaction_fields)) + u")")
+            % self.db_name, block.pack_db_insert())
         self.commit()
 
     def _get(self, query, params):
         db_result = self.execute(self.get_sql_header() + query, params).fetchone()
-        return TrustChainBlock(db_result) if db_result else None
+        return self.BLOCK_CLASS(db_result) if db_result else None
 
     def _getall(self, query, params):
         db_result = self.execute(self.get_sql_header() + query, params).fetchall()
-        return [TrustChainBlock(db_item) for db_item in db_result]
+        return [self.BLOCK_CLASS(db_item) for db_item in db_result]
 
     def get(self, public_key, sequence_number):
         """
@@ -117,17 +124,17 @@ class TrustChainDB(Database):
         """
         Return the first part of a generic sql select query.
         """
-        _columns = u"tx, public_key, sequence_number, link_public_key, link_sequence_number, " \
-                   u"previous_hash, signature, insert_time"
-        return u"SELECT " + _columns + u" FROM blocks "
+        _columns = u"public_key, sequence_number, link_public_key, link_sequence_number, " \
+                   u"previous_hash, signature, insert_time, tx_" + \
+                   u", tx_".join([tx[0] for tx in self.transaction_fields])
+        return u"SELECT " + _columns + u" FROM %s " % self.db_name
 
     def get_schema(self):
         """
         Return the schema for the database.
         """
         return u"""
-        CREATE TABLE IF NOT EXISTS blocks(
-         tx                   TEXT NOT NULL,
+        CREATE TABLE IF NOT EXISTS %s(
          public_key           TEXT NOT NULL,
          sequence_number      INTEGER NOT NULL,
          link_public_key      TEXT NOT NULL,
@@ -138,12 +145,16 @@ class TrustChainDB(Database):
          insert_time          TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
          block_hash	          TEXT NOT NULL,
 
+         %s
+
          PRIMARY KEY (public_key, sequence_number)
          );
 
         CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
         INSERT INTO option(key, value) VALUES('database_version', '%s');
-        """ % (str(self.LATEST_DB_VERSION))
+        """ % (self.db_name,
+               u",\n".join([tx[0] + u" " + tx[1] + u" NOT NULL" for tx in self.transaction_fields]),
+               str(self.LATEST_DB_VERSION))
 
     def get_upgrade_script(self, current_version):
         """
