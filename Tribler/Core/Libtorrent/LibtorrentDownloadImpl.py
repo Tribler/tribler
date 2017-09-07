@@ -284,13 +284,13 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             atp = {}
             atp["save_path"] = os.path.normpath(os.path.join(get_default_dest_dir(), self.get_dest_dir()))
             atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
-            atp["paused"] = True
-            atp["auto_managed"] = False
-            atp["duplicate_is_error"] = True
             atp["hops"] = self.get_hops()
+            atp["flags"] = lt.add_torrent_params_flags_t.flag_paused | \
+                           lt.add_torrent_params_flags_t.flag_duplicate_is_error | \
+                           lt.add_torrent_params_flags_t.flag_update_subscribe
 
             if share_mode:
-                atp["flags"] = lt.add_torrent_params_flags_t.flag_share_mode
+                atp["flags"] = atp["flags"] | lt.add_torrent_params_flags_t.flag_share_mode
 
             self.set_checkpoint_disabled(checkpoint_disabled)
 
