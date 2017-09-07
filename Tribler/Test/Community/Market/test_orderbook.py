@@ -28,23 +28,17 @@ class AbstractTestOrderBook(AbstractServer):
     def setUp(self, annotate=True):
         yield super(AbstractTestOrderBook, self).setUp(annotate=annotate)
         # Object creation
-        self.ask = Ask(MessageId(TraderId('0'), MessageNumber('message_number')),
-                       OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
+        self.ask = Ask(OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
                        Timeout(1462224447.117), Timestamp(1462224447.117))
-        self.invalid_ask = Ask(MessageId(TraderId('0'), MessageNumber('message_number')),
-                               OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
+        self.invalid_ask = Ask(OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
                                Timeout(0), Timestamp(0.0))
-        self.ask2 = Ask(MessageId(TraderId('1'), MessageNumber('message_number')),
-                        OrderId(TraderId('1'), OrderNumber(1)), Price(400, 'BTC'), Quantity(30, 'MC'),
+        self.ask2 = Ask(OrderId(TraderId('1'), OrderNumber(1)), Price(400, 'BTC'), Quantity(30, 'MC'),
                         Timeout(1462224447.117), Timestamp(1462224447.117))
-        self.bid = Bid(MessageId(TraderId('2'), MessageNumber('message_number')),
-                       OrderId(TraderId('2'), OrderNumber(1)), Price(200, 'BTC'), Quantity(30, 'MC'),
+        self.bid = Bid(OrderId(TraderId('2'), OrderNumber(1)), Price(200, 'BTC'), Quantity(30, 'MC'),
                        Timeout(1462224447.117), Timestamp(1462224447.117))
-        self.invalid_bid = Bid(MessageId(TraderId('0'), MessageNumber('message_number')),
-                               OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
+        self.invalid_bid = Bid(OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
                                Timeout(0), Timestamp(0.0))
-        self.bid2 = Bid(MessageId(TraderId('3'), MessageNumber('message_number')),
-                        OrderId(TraderId('3'), OrderNumber(1)), Price(300, 'BTC'), Quantity(30, 'MC'),
+        self.bid2 = Bid(OrderId(TraderId('3'), OrderNumber(1)), Price(300, 'BTC'), Quantity(30, 'MC'),
                         Timeout(1462224447.117), Timestamp(1462224447.117))
         self.trade = Trade.propose(MessageId(TraderId('0'), MessageNumber('message_number')),
                                    OrderId(TraderId('0'), OrderNumber(1)),
@@ -173,33 +167,6 @@ class TestOrderBook(AbstractTestOrderBook):
         self.order_book.remove_tick(self.bid2.order_id)
         self.assertFalse(self.order_book.tick_exists(self.bid2.order_id))
 
-    def test_trade_tick(self):
-        """
-        Test the trade tick method in an order book
-        """
-        self.order_book.insert_ask(self.ask)
-        self.order_book.insert_bid(self.bid)
-        self.order_book.insert_ask(self.ask2)
-        self.order_book.insert_bid(self.bid2)
-
-        # Reserve quantities for matching
-        self.order_book.get_tick(self.ask.order_id).reserve_for_matching(Quantity(20, 'MC'))
-        self.order_book.get_tick(self.bid.order_id).reserve_for_matching(Quantity(20, 'MC'))
-        self.order_book.get_tick(self.ask2.order_id).reserve_for_matching(Quantity(30, 'MC'))
-        self.order_book.get_tick(self.bid2.order_id).reserve_for_matching(Quantity(30, 'MC'))
-
-        # Trade self.ask <-> self.bid
-        self.order_book.trade_tick(self.ask.order_id, self.bid.order_id, Quantity(20, 'MC'), unreserve=True)
-        self.assertTrue(self.order_book.tick_exists(self.ask.order_id))
-        self.assertTrue(self.order_book.tick_exists(self.bid.order_id))
-        self.assertEqual(self.order_book.get_tick(self.ask.order_id).tick.quantity, Quantity(10, 'MC'))
-        self.assertEqual(self.order_book.get_tick(self.bid.order_id).tick.quantity, Quantity(10, 'MC'))
-
-        # Trade self.bid2 <-> self.ask2
-        self.order_book.trade_tick(self.bid2.order_id, self.ask2.order_id, Quantity(30, 'MC'), unreserve=True)
-        self.assertFalse(self.order_book.tick_exists(self.ask2.order_id))
-        self.assertFalse(self.order_book.tick_exists(self.bid2.order_id))
-
     def test_get_order_ids(self):
         """
         Test the get order IDs function in order book
@@ -208,6 +175,33 @@ class TestOrderBook(AbstractTestOrderBook):
         self.order_book.insert_ask(self.ask)
         self.order_book.insert_bid(self.bid)
         self.assertEqual(len(self.order_book.get_order_ids()), 2)
+
+    def test_update_ticks(self):
+        """
+        Test updating ticks in an orderbook
+        """
+        self.order_book.insert_ask(self.ask)
+        self.order_book.insert_bid(self.bid)
+
+        ask_dict = {
+            "trader_id": str(self.ask.order_id.trader_id),
+            "order_number": int(self.ask.order_id.order_number),
+            "quantity": 3,
+            "quantity_type": self.ask.quantity.wallet_id
+        }
+        bid_dict = {
+            "trader_id": str(self.bid.order_id.trader_id),
+            "order_number": int(self.bid.order_id.order_number),
+            "quantity": 3,
+            "quantity_type": self.bid.quantity.wallet_id
+        }
+
+        self.order_book.get_tick(self.ask.order_id).reserve_for_matching(Quantity(3, self.ask.quantity.wallet_id))
+        self.order_book.get_tick(self.bid.order_id).reserve_for_matching(Quantity(3, self.bid.quantity.wallet_id))
+        self.order_book.update_ticks(ask_dict, bid_dict, Quantity(3, self.ask.quantity.wallet_id), unreserve=True)
+
+        self.assertEqual(len(self.order_book.asks), 0)
+        self.assertEqual(len(self.order_book.bids), 0)
 
     def test_str(self):
         # Test for order book string representation
@@ -234,7 +228,7 @@ class TestDatabaseOrderBook(AbstractTestOrderBook):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        self.database = MarketDB(self.getStateDir())
+        self.database = MarketDB(self.getStateDir(), 'market')
         self.order_book = DatabaseOrderBook(self.database)
 
     @blocking_call_on_reactor_thread

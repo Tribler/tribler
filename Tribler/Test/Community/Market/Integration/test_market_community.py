@@ -55,19 +55,24 @@ class BaseTestMarketCommunity(DispersyTestFunc):
 
         yield self.parse_assert_packets(node_a)  # Introduction request
         yield self.parse_assert_packets(node_b)  # Introduction response
+        yield self.parse_assert_packets(node_a)  # Info message
         yield deferLater(reactor, 0.05, lambda: None)
 
     @inlineCallbacks
     def create_send_ask(self, ask_node, bid_node):
         order = ask_node.community.create_ask(10, 'DUM1', 10, 'DUM2', 3600)
-        yield self.parse_assert_packets(bid_node)
+        yield self.parse_assert_packets(bid_node)  # Parse half-block message
+        yield self.parse_assert_packets(ask_node)  # Persist half-block signed response
+        yield self.parse_assert_packets(bid_node)  # Parse half-block message (broadcast)
         self.assertGreaterEqual(len(bid_node.community.order_book.asks), 1)
         returnValue(order)
 
     @inlineCallbacks
     def create_send_bid(self, bid_node, ask_node):
         order = bid_node.community.create_bid(10, 'DUM1', 10, 'DUM2', 3600)
-        yield self.parse_assert_packets(ask_node)
+        yield self.parse_assert_packets(ask_node)  # Parse half-block message
+        yield self.parse_assert_packets(bid_node)  # Persist half-block signed response
+        yield self.parse_assert_packets(ask_node)  # Parse half-block message (broadcast)
         self.assertGreaterEqual(len(ask_node.community.order_book.bids), 1)
         returnValue(order)
 
@@ -207,7 +212,9 @@ class TestMarketCommunity(BaseTestMarketCommunity):
         order = yield self.create_send_ask(self.node_a, self.node_b)
 
         self.node_a.community.cancel_order(order.order_id)
-        yield self.parse_assert_packets(self.node_b)
+        yield self.parse_assert_packets(self.node_b)  # Parse cancel half block sign request
+        yield self.parse_assert_packets(self.node_a)  # Parse cancel half block sign response
+        yield self.parse_assert_packets(self.node_b)  # Parse cancel half block community broadcast
         self.assertEqual(len(self.node_b.community.order_book.asks), 0)
 
 

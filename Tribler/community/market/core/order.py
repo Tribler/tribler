@@ -365,9 +365,24 @@ class Order(object):
         if self.is_complete():
             self._completed_timestamp = Timestamp.now()
 
+    def to_network(self, message_id):
+        """
+        Return network representation of the order
+        """
+        return (
+            self._order_id.trader_id,
+            message_id.message_number,
+            self._order_id.order_number,
+            self._price,
+            self._quantity,
+            self._timeout,
+            self._timestamp,
+            self._traded_quantity
+        )
+
     def to_dictionary(self):
         """
-        Return a dictionary representation of this dictionary.
+        Return a dictionary representation of this order.
         """
         completed_timestamp = float(self.completed_timestamp) if self.completed_timestamp else None
         return {
@@ -385,4 +400,20 @@ class Order(object):
             "is_ask": self.is_ask(),
             "cancelled": self.cancelled,
             "status": self.status
+        }
+
+    def to_status_dictionary(self):
+        """
+        Return a dictionary representation of this order (suitable for saving on the TradeChain)
+        """
+        return {
+            "trader_id": str(self.order_id.trader_id),
+            "order_number": int(self.order_id.order_number),
+            "price": float(self.price),
+            "price_type": self.price.wallet_id,
+            "quantity": float(self.total_quantity),
+            "quantity_type": self.total_quantity.wallet_id,
+            "traded_quantity": float(self.traded_quantity),
+            "timeout": float(self.timeout),
+            "timestamp": float(self.timestamp)
         }

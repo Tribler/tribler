@@ -22,27 +22,27 @@ class PriceTimeStrategyTestSuite(AbstractServer):
     def setUp(self, annotate=True):
         yield super(PriceTimeStrategyTestSuite, self).setUp(annotate=annotate)
         # Object creation
-        self.ask = Ask(MessageId(TraderId('0'), MessageNumber('1')), OrderId(TraderId('0'), OrderNumber(1)),
-                       Price(100, 'BTC'), Quantity(30, 'MC'), Timeout(100), Timestamp.now())
-        self.ask2 = Ask(MessageId(TraderId('1'), MessageNumber('1')), OrderId(TraderId('1'), OrderNumber(2)),
-                        Price(100, 'BTC'), Quantity(30, 'MC'), Timeout(100), Timestamp.now())
-        self.ask3 = Ask(MessageId(TraderId('3'), MessageNumber('1')), OrderId(TraderId('0'), OrderNumber(3)),
-                        Price(200, 'BTC'), Quantity(200, 'MC'), Timeout(100), Timestamp.now())
-        self.ask4 = Ask(MessageId(TraderId('4'), MessageNumber('1')), OrderId(TraderId('1'), OrderNumber(4)),
-                        Price(50, 'BTC'), Quantity(200, 'MC'), Timeout(100), Timestamp.now())
-        self.ask5 = Ask(MessageId(TraderId('4'), MessageNumber('1')), OrderId(TraderId('1'), OrderNumber(4)),
-                        Price(100, 'A'), Quantity(30, 'MC'), Timeout(100), Timestamp.now())
-        self.ask6 = Ask(MessageId(TraderId('4'), MessageNumber('1')), OrderId(TraderId('1'), OrderNumber(4)),
-                        Price(100, 'BTC'), Quantity(30, 'A'), Timeout(100), Timestamp.now())
+        self.ask = Ask(OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
+                       Timeout(100), Timestamp.now())
+        self.ask2 = Ask(OrderId(TraderId('1'), OrderNumber(2)), Price(100, 'BTC'), Quantity(30, 'MC'),
+                        Timeout(100), Timestamp.now())
+        self.ask3 = Ask(OrderId(TraderId('0'), OrderNumber(3)), Price(200, 'BTC'), Quantity(200, 'MC'),
+                        Timeout(100), Timestamp.now())
+        self.ask4 = Ask(OrderId(TraderId('1'), OrderNumber(4)), Price(50, 'BTC'), Quantity(200, 'MC'),
+                        Timeout(100), Timestamp.now())
+        self.ask5 = Ask(OrderId(TraderId('1'), OrderNumber(4)), Price(100, 'A'), Quantity(30, 'MC'),
+                        Timeout(100), Timestamp.now())
+        self.ask6 = Ask(OrderId(TraderId('1'), OrderNumber(4)), Price(100, 'BTC'), Quantity(30, 'A'),
+                        Timeout(100), Timestamp.now())
 
-        self.bid = Bid(MessageId(TraderId('5'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber(5)),
-                       Price(100, 'BTC'), Quantity(30, 'MC'), Timeout(100), Timestamp.now())
-        self.bid2 = Bid(MessageId(TraderId('6'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber(6)),
-                        Price(200, 'BTC'), Quantity(30, 'MC'), Timeout(100), Timestamp.now())
-        self.bid3 = Bid(MessageId(TraderId('7'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber(7)),
-                        Price(50, 'BTC'), Quantity(200, 'MC'), Timeout(100), Timestamp.now())
-        self.bid4 = Bid(MessageId(TraderId('8'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber(8)),
-                        Price(100, 'BTC'), Quantity(200, 'MC'), Timeout(100), Timestamp.now())
+        self.bid = Bid(OrderId(TraderId('0'), OrderNumber(5)), Price(100, 'BTC'), Quantity(30, 'MC'),
+                       Timeout(100), Timestamp.now())
+        self.bid2 = Bid(OrderId(TraderId('0'), OrderNumber(6)), Price(200, 'BTC'), Quantity(30, 'MC'),
+                        Timeout(100), Timestamp.now())
+        self.bid3 = Bid(OrderId(TraderId('0'), OrderNumber(7)), Price(50, 'BTC'), Quantity(200, 'MC'),
+                        Timeout(100), Timestamp.now())
+        self.bid4 = Bid(OrderId(TraderId('0'), OrderNumber(8)), Price(100, 'BTC'), Quantity(200, 'MC'),
+                        Timeout(100), Timestamp.now())
 
         self.ask_order = Order(OrderId(TraderId('9'), OrderNumber(11)), Price(100, 'BTC'), Quantity(30, 'MC'),
                                Timeout(100), Timestamp.now(), True)
@@ -271,11 +271,9 @@ class MatchingEngineTestSuite(AbstractServer):
     def setUp(self, annotate=True):
         yield super(MatchingEngineTestSuite, self).setUp(annotate=annotate)
         # Object creation
-        self.ask = Ask(MessageId(TraderId('1'), MessageNumber('message_number1')),
-                       OrderId(TraderId('2'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
+        self.ask = Ask(OrderId(TraderId('2'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
                        Timeout(30), Timestamp.now())
-        self.bid = Bid(MessageId(TraderId('3'), MessageNumber('message_number2')),
-                       OrderId(TraderId('4'), OrderNumber(2)), Price(100, 'BTC'), Quantity(30, 'MC'),
+        self.bid = Bid(OrderId(TraderId('4'), OrderNumber(2)), Price(100, 'BTC'), Quantity(30, 'MC'),
                        Timeout(30), Timestamp.now())
         self.ask_order = Order(OrderId(TraderId('5'), OrderNumber(3)), Price(100, 'BTC'), Quantity(30, 'MC'),
                                Timeout(30), Timestamp.now(), True)

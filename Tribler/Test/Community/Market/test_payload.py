@@ -9,45 +9,11 @@ from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.transaction import TransactionNumber
-from Tribler.community.market.core.ttl import Ttl
 from Tribler.community.market.core.wallet_address import WalletAddress
-from Tribler.community.market.payload import DeclinedTradePayload, TradePayload, \
-    OfferPayload, StartTransactionPayload, PaymentPayload, WalletInfoPayload, MarketIntroPayload, CancelOrderPayload, \
-    MatchPayload, AcceptMatchPayload, DeclineMatchPayload, TransactionCompletedPayload
+from Tribler.community.market.payload import DeclinedTradePayload, TradePayload, OfferPayload, \
+    StartTransactionPayload, PaymentPayload, WalletInfoPayload, MatchPayload, AcceptMatchPayload, DeclineMatchPayload, \
+    OrderStatusRequestPayload
 from Tribler.dispersy.meta import MetaObject
-
-
-class MarketIntroPayloadTestSuite(unittest.TestCase):
-    """Market intro payload test cases."""
-
-    def setUp(self):
-        # Object creation
-        self.market_intro_payload = MarketIntroPayload.Implementation(MetaObject(), ("a", 1324), ("b", 1234),
-                                                                      ("c", 1234), True, u"public", None, 3, True, "f")
-
-    def test_properties(self):
-        """
-        Test the market intro payload
-        """
-        self.assertTrue(self.market_intro_payload.is_matchmaker)
-        self.assertEqual(self.market_intro_payload.orders_bloom_filter, "f")
-        self.market_intro_payload.set_orders_bloom_filter("g")
-        self.assertEqual(self.market_intro_payload.orders_bloom_filter, "g")
-
-
-class CancelOrderPayloadTestSuite(unittest.TestCase):
-    """Cancel order payload test cases."""
-
-    def setUp(self):
-        # Object creation
-        self.cancel_order_payload = CancelOrderPayload.Implementation(MetaObject(), TraderId('0'),
-                                                                      MessageNumber('message_number'), Timestamp.now(),
-                                                                      OrderNumber(1), Ttl(2))
-
-    def test_properties(self):
-        # Test for properties
-        self.assertEquals(OrderNumber(1), self.cancel_order_payload.order_number)
-        self.assertEquals(2, int(self.cancel_order_payload.ttl))
 
 
 class DeclinedTradePayloadTestSuite(unittest.TestCase):
@@ -107,7 +73,7 @@ class OfferPayloadTestSuite(unittest.TestCase):
         self.offer_payload = OfferPayload.Implementation(MetaObject(), TraderId('0'), MessageNumber('message_number'),
                                                          OrderNumber(1), Price(63400, 'BTC'),
                                                          Quantity(30, 'MC'), Timeout(1470004447.117),
-                                                         Timestamp(1462224447.117), 'a', 'b', Ttl(2), "1.1.1.1", 1)
+                                                         Timestamp(1462224447.117), "1.1.1.1", 1)
 
     def test_properties(self):
         # Test for properties
@@ -117,9 +83,6 @@ class OfferPayloadTestSuite(unittest.TestCase):
         self.assertEquals(OrderNumber(1), self.offer_payload.order_number)
         self.assertEquals(1470004447.117, float(self.offer_payload.timeout))
         self.assertEquals(Timestamp(1462224447.117), self.offer_payload.timestamp)
-        self.assertEquals('a', self.offer_payload.public_key)
-        self.assertEquals('b', self.offer_payload.signature)
-        self.assertEquals(2, int(self.offer_payload.ttl))
         self.assertEquals(TraderId('0'), self.offer_payload.trader_id)
         self.assertEquals(1, self.offer_payload.address.port)
         self.assertEquals("1.1.1.1", self.offer_payload.address.ip)
@@ -205,7 +168,7 @@ class MatchPayloadTestSuite(unittest.TestCase):
         self.match_payload = MatchPayload.Implementation(MetaObject(), TraderId('0'), MessageNumber('message_number'),
                                                          OrderNumber(1), Price(63400, 'BTC'),
                                                          Quantity(30, 'MC'), Timeout(1470004447.117),
-                                                         Timestamp(1462224447.117), 'a', 'b', Ttl(2), "1.1.1.1", 1,
+                                                         Timestamp(1462224447.117), "1.1.1.1", 1,
                                                          OrderNumber(2), Quantity(20, 'MC'), TraderId('1'),
                                                          TraderId('2'), 'a')
 
@@ -251,29 +214,17 @@ class DeclineMatchPayloadTestSuite(unittest.TestCase):
         self.assertEquals(DeclineMatchReason.ORDER_COMPLETED, self.decline_match_payload.decline_reason)
 
 
-class TransactionCompletedPayloadTestSuite(unittest.TestCase):
-    """Tranasaction completed payload test cases."""
+class OrderStatusRequestPayloadTestSuite(unittest.TestCase):
+    """Order status request payload test cases."""
 
     def setUp(self):
         # Object creation
-        self.transaction_completed_payload = TransactionCompletedPayload.Implementation(MetaObject(), TraderId('0'),
-                                                                                        MessageNumber('1'),
-                                                                                        TraderId('2'),
-                                                                                        TransactionNumber(2),
-                                                                                        TraderId('2'),
-                                                                                        OrderNumber(3),
-                                                                                        TraderId('0'),
-                                                                                        OrderNumber(4),
-                                                                                        'a', Quantity(20, 'MC'),
-                                                                                        Timestamp(0.0))
+        self.order_status_request_payload = OrderStatusRequestPayload.Implementation(MetaObject(), TraderId('0'),
+                                                                                     MessageNumber('message_number'),
+                                                                                     Timestamp.now(), TraderId('1'),
+                                                                                     OrderNumber(3), 1234)
 
     def test_properties(self):
-        """
-        Test the transaction completed payload
-        """
-        self.assertEquals(TraderId('2'), self.transaction_completed_payload.order_trader_id)
-        self.assertEquals(OrderNumber(3), self.transaction_completed_payload.order_number)
-        self.assertEquals(TraderId('0'), self.transaction_completed_payload.recipient_trader_id)
-        self.assertEquals(OrderNumber(4), self.transaction_completed_payload.recipient_order_number)
-        self.assertEquals('a', self.transaction_completed_payload.match_id)
-        self.assertEquals(Quantity(20, 'MC'), self.transaction_completed_payload.quantity)
+        # Test for properties
+        self.assertEquals(1234, self.order_status_request_payload.identifier)
+        self.assertEquals(OrderNumber(3), self.order_status_request_payload.order_number)

@@ -29,6 +29,6 @@ class TriblerChainDB(TrustChainDB):
         """
         if current_version == 2 or current_version == 3:
             return u"""
-            DROP TABLE IF EXISTS %s;
+            DROP TABLE IF EXISTS blocks;
             DROP TABLE IF EXISTS option;
-            """ % self.db_name
+            """

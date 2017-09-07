@@ -2,14 +2,15 @@ import logging
 from hashlib import sha1
 
 from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TrustChainTestCase, TestBlock
-from Tribler.community.trustchain.community import HALF_BLOCK, CRAWL
+from Tribler.community.trustchain.community import HALF_BLOCK, CRAWL, BLOCK_PAIR, HALF_BLOCK_BROADCAST, \
+    BLOCK_PAIR_BROADCAST
 from Tribler.community.trustchain.conversion import TrustChainConversion
-from Tribler.community.trustchain.payload import HalfBlockPayload, CrawlRequestPayload
+from Tribler.community.trustchain.payload import HalfBlockPayload, CrawlRequestPayload, BlockPairPayload
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.crypto import ECCrypto
-from Tribler.dispersy.destination import CandidateDestination
+from Tribler.dispersy.destination import CandidateDestination, NHopCommunityDestination
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.message import Message, DropPacket
 from Tribler.dispersy.resolution import PublicResolution
@@ -28,6 +29,7 @@ class TestConversion(TrustChainTestCase):
         yield super(TestConversion, self).setUp(annotate=annotate)
         self.converter = TrustChainConversion(self.community)
         self.block = TestBlock()
+        self.block2 = TestBlock()
 
     def test_encoding_decoding_half_block(self):
         """
@@ -43,6 +45,28 @@ class TestConversion(TrustChainTestCase):
 
         # Assert
         self.assertEqual_block(self.block, result.block)
+
+    def test_encoding_decoding_block_pair(self):
+        """
+        Test encoding and decoding of a block pair message
+        """
+        # Arrange
+        meta = self.community.get_meta_message(BLOCK_PAIR)
+        message = meta.impl(distribution=(self.community.claim_global_time(),),
+                            payload=(self.block, self.block2))
+        # Act
+        encoded_message = self.converter._encode_block_pair(message)[0]
+        result = self.converter._decode_block_pair(TestPlaceholder(meta), 0, encoded_message)[1]
+
+        # Assert
+        with self.assertRaises(DropPacket):
+            # Remove a bit of the message.
+            self.converter._decode_block_pair(TestPlaceholder(meta), 0, encoded_message[:-60])
+        with self.assertRaises(DropPacket):
+            # Invalidate the block in the message.
+            self.converter._decode_block_pair(TestPlaceholder(meta), 0, 'a' * 20 + encoded_message)
+        self.assertEqual_block(self.block, result.block1)
+        self.assertEqual_block(self.block2, result.block2)
 
     def test_encoding_decoding_half_block_big_number(self):
         """
@@ -143,12 +167,36 @@ class TestCommunity(Community):
 
     def initiate_meta_messages(self):
         return super(TestCommunity, self).initiate_meta_messages() + [
+            Message(self, HALF_BLOCK_BROADCAST,
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    NHopCommunityDestination(10, depth=2),
+                    HalfBlockPayload(),
+                    lambda: None,
+                    lambda: None),
             Message(self, HALF_BLOCK,
                     NoAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
                     HalfBlockPayload(),
+                    lambda: None,
+                    lambda: None),
+            Message(self, BLOCK_PAIR,
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    BlockPairPayload(),
+                    lambda: None,
+                    lambda: None),
+            Message(self, BLOCK_PAIR_BROADCAST,
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    NHopCommunityDestination(10, depth=2),
+                    BlockPairPayload(),
                     lambda: None,
                     lambda: None),
             Message(self, CRAWL,

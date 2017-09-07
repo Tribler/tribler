@@ -22,11 +22,9 @@ class TickEntryTestSuite(AbstractServer):
         yield super(TickEntryTestSuite, self).setUp(annotate=annotate)
 
         # Object creation
-        tick = Tick(MessageId(TraderId('0'), MessageNumber('message_number')),
-                    OrderId(TraderId('0'), OrderNumber(1)), Price(63400, 'BTC'), Quantity(30, 'MC'),
+        tick = Tick(OrderId(TraderId('0'), OrderNumber(1)), Price(63400, 'BTC'), Quantity(30, 'MC'),
                     Timeout(0.0), Timestamp(0.0), True)
-        tick2 = Tick(MessageId(TraderId('0'), MessageNumber('message_number')),
-                     OrderId(TraderId('0'), OrderNumber(2)), Price(63400, 'BTC'), Quantity(30, 'MC'),
+        tick2 = Tick(OrderId(TraderId('0'), OrderNumber(2)), Price(63400, 'BTC'), Quantity(30, 'MC'),
                      Timeout(100), Timestamp.now(), True)
 
         self.price_level = PriceLevel('MC')

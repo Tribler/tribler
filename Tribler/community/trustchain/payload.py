@@ -19,3 +19,14 @@ class HalfBlockPayload(Payload):
         def __init__(self, meta, block):
             super(HalfBlockPayload.Implementation, self).__init__(meta)
             self.block = block
+
+
+class BlockPairPayload(Payload):
+    """
+    Payload for message that ships two (signed) half blocks
+    """
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, block1, block2):
+            super(BlockPairPayload.Implementation, self).__init__(meta)
+            self.block1 = block1
+            self.block2 = block2

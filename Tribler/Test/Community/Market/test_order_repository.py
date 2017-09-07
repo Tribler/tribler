@@ -79,7 +79,7 @@ class DatabaseOrderRepositoryTestSuite(AbstractServer):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        database = MarketDB(self.getStateDir())
+        database = MarketDB(self.getStateDir(), 'market')
         self.database_order_repo = DatabaseOrderRepository('a' * 10, database)
 
     def test_init(self):

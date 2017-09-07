@@ -30,7 +30,7 @@ class TestDatabase(AbstractServer):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        self.database = MarketDB(self.getStateDir())
+        self.database = MarketDB(self.getStateDir(), 'market')
 
         self.order_id1 = OrderId(TraderId('3'), OrderNumber(4))
         self.order_id2 = OrderId(TraderId('4'), OrderNumber(5))
@@ -151,9 +151,9 @@ class TestDatabase(AbstractServer):
         """
         Test addition, retrieval and deletion of ticks in the database
         """
-        ask = Tick.from_order(self.order1, MessageId(TraderId('0'), MessageNumber('message_number')))
+        ask = Tick.from_order(self.order1)
         self.database.add_tick(ask)
-        bid = Tick.from_order(self.order2, MessageId(TraderId('0'), MessageNumber('message_number')))
+        bid = Tick.from_order(self.order2)
         self.database.add_tick(bid)
 
         self.assertEqual(len(self.database.get_ticks()), 2)

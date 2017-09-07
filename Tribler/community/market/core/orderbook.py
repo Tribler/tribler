@@ -1,12 +1,15 @@
 import logging
 import time
 
+from Tribler.community.market.core.message import TraderId
+from Tribler.community.market.core.timeout import Timeout
+from Tribler.community.market.core.timestamp import Timestamp
 from twisted.internet import reactor
 from twisted.internet.defer import fail
 from twisted.internet.task import deferLater
 from twisted.python.failure import Failure
 
-from Tribler.community.market.core.order import OrderId
+from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.side import Side
@@ -93,36 +96,57 @@ class OrderBook(TaskManager):
             self.cancel_pending_task("bid_%s_timeout" % order_id)
             self._bids.remove_tick(order_id)
 
-    def trade_tick(self, order_id, recipient_order_id, quantity, unreserve=True):
+    def update_ticks(self, ask_order_dict, bid_order_dict, traded_quantity, unreserve=True):
         """
-        :type order_id: OrderId
-        :type recipient_order_id: OrderId
-        :type quantity: Quantity
+        Update ticks according to a TradeChain block containing the status of the ask/bid orders.
+
+        :type ask_order_dict: dict
+        :type bid_order_dict: dict
+        :type traded_quantity: Quantity
         :type unreserve: bool
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-        assert isinstance(recipient_order_id, OrderId), type(recipient_order_id)
-        assert isinstance(quantity, Quantity), type(quantity)
+        assert isinstance(ask_order_dict, dict), type(ask_order_dict)
+        assert isinstance(bid_order_dict, dict), type(bid_order_dict)
+        assert isinstance(traded_quantity, Quantity), type(traded_quantity)
         assert isinstance(unreserve, bool), type(unreserve)
-        self._logger.debug("Trading tick in order book for own order %s vs order %s (quantity: %s)",
-                           str(order_id), str(recipient_order_id), str(quantity))
 
-        if self.tick_exists(order_id):
-            tick = self.get_tick(order_id)
-            tick.quantity -= quantity
+        ask_order_id = OrderId(TraderId(ask_order_dict["trader_id"]), OrderNumber(ask_order_dict["order_number"]))
+        bid_order_id = OrderId(TraderId(bid_order_dict["trader_id"]), OrderNumber(bid_order_dict["order_number"]))
+
+        self._logger.debug("Updating ticks in order book: %s and %s (traded quantity: %s)",
+                           str(ask_order_id), str(bid_order_id), str(traded_quantity))
+
+        # Update ask tick
+        new_ask_quantity = Quantity(ask_order_dict["quantity"] - float(traded_quantity),
+                                    ask_order_dict["quantity_type"])
+        if self.tick_exists(ask_order_id) and new_ask_quantity < self.get_tick(ask_order_id).quantity:
+            tick = self.get_tick(ask_order_id)
+            tick.quantity = new_ask_quantity
             if unreserve:
-                tick.release_for_matching(quantity)
-            if tick.quantity == Quantity(0, quantity.wallet_id):
+                tick.release_for_matching(traded_quantity)
+            if tick.quantity == Quantity(0, ask_order_dict["quantity_type"]):
                 self.remove_tick(tick.order_id)
                 self.completed_orders.append(tick.order_id)
-        if self.tick_exists(recipient_order_id):
-            tick = self.get_tick(recipient_order_id)
-            tick.quantity -= quantity
+        elif not self.tick_exists(ask_order_id) and new_ask_quantity > Quantity(0, ask_order_dict["quantity_type"]):
+            ask = Ask(ask_order_id, Price(ask_order_dict["price"], ask_order_dict["price_type"]),
+                      new_ask_quantity, Timeout(ask_order_dict["timeout"]), Timestamp(ask_order_dict["timestamp"]))
+            self.insert_ask(ask)
+
+        # Update bid tick
+        new_bid_quantity = Quantity(bid_order_dict["quantity"] - float(traded_quantity),
+                                    bid_order_dict["quantity_type"])
+        if self.tick_exists(bid_order_id) and new_bid_quantity < self.get_tick(bid_order_id).quantity:
+            tick = self.get_tick(bid_order_id)
+            tick.quantity = new_bid_quantity
             if unreserve:
-                tick.release_for_matching(quantity)
-            if tick.quantity == Quantity(0, quantity.wallet_id):
+                tick.release_for_matching(traded_quantity)
+            if tick.quantity == Quantity(0, bid_order_dict["quantity_type"]):
                 self.remove_tick(tick.order_id)
                 self.completed_orders.append(tick.order_id)
+        elif not self.tick_exists(bid_order_id) and new_bid_quantity > Quantity(0, bid_order_dict["quantity_type"]):
+            bid = Bid(bid_order_id, Price(bid_order_dict["price"], bid_order_dict["price_type"]),
+                      new_bid_quantity, Timeout(bid_order_dict["timeout"]), Timestamp(bid_order_dict["timestamp"]))
+            self.insert_bid(bid)
 
     def tick_exists(self, order_id):
         """

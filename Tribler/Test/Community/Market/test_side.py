@@ -16,11 +16,9 @@ class SideTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
 
-        self.tick = Tick(MessageId(TraderId('0'), MessageNumber('message_number')),
-                         OrderId(TraderId('0'), OrderNumber(1)), Price(400, 'BTC'), Quantity(30, 'MC'),
+        self.tick = Tick(OrderId(TraderId('0'), OrderNumber(1)), Price(400, 'BTC'), Quantity(30, 'MC'),
                          Timeout(float("inf")), Timestamp(float("inf")), True)
-        self.tick2 = Tick(MessageId(TraderId('1'), MessageNumber('message_number')),
-                          OrderId(TraderId('1'), OrderNumber(2)), Price(800, 'BTC'), Quantity(30, 'MC'),
+        self.tick2 = Tick(OrderId(TraderId('1'), OrderNumber(2)), Price(800, 'BTC'), Quantity(30, 'MC'),
                           Timeout(float("inf")), Timestamp(float("inf")), True)
         self.side = Side()
 

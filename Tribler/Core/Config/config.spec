@@ -25,14 +25,12 @@ exitnode_enabled = boolean(default=False)
 [market_community]
 enabled = boolean(default=True)
 matchmaker = boolean(default=True)
+ec_keypair_filename = string(default='')
 
 [trustchain]
 enabled = boolean(default=True)
 ec_keypair_filename = string(default='')
 live_edges_enabled = boolean(default=True)
-
-[tradechain]
-ec_keypair_filename = string(default='')
 
 [wallets]
 btc_testnet = boolean(default=False)
