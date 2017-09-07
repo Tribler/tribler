@@ -299,13 +299,13 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             atp = {}
             atp["save_path"] = os.path.abspath(self.get_dest_dir())
             atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
-            atp["paused"] = True
-            atp["auto_managed"] = False
-            atp["duplicate_is_error"] = True
             atp["hops"] = self.get_hops()
+            atp["flags"] = lt.add_torrent_params_flags_t.flag_auto_managed | \
+                           lt.add_torrent_params_flags_t.flag_paused | \
+                           lt.add_torrent_params_flags_t.flag_duplicate_is_error
 
             if share_mode:
-                atp["flags"] = lt.add_torrent_params_flags_t.flag_share_mode
+                atp["flags"] = atp["flags"] | lt.add_torrent_params_flags_t.flag_share_mode
 
             self.set_checkpoint_disabled(checkpoint_disabled)
 
@@ -360,8 +360,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 max_conn_download = self.session.config.get_libtorrent_max_conn_download()
                 if max_conn_download != -1:
                     self.handle.set_max_connections(max(2, max_conn_download))
-
-                self.handle.resolve_countries(True)
 
             else:
                 self._logger.error("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
@@ -953,7 +951,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                      'dtotal': peer_info.total_download,
                      'completed': peer_info.progress,
                      'have': peer_info.pieces, 'speed': peer_info.remote_dl_rate,
-                     'country': peer_info.country,
+                     'country': None,
                      'connection_type': peer_info.connection_type,
                      # add upload_only and/or seed
                      'seed': bool(peer_info.flags & peer_info.seed),
