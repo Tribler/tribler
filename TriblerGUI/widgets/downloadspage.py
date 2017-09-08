@@ -138,7 +138,7 @@ class DownloadsPage(QWidget):
             self.window().downloads_list.takeTopLevelItem(index)
             del self.download_widgets[infohash]
 
-        if QSystemTrayIcon.isSystemTrayAvailable():
+        if self.window().tray_icon:
             self.window().tray_icon.setToolTip(
                 "Down: %s, Up: %s" % (format_speed(total_download), format_speed(total_upload)))
         self.update_download_visibility()
@@ -322,7 +322,7 @@ class DownloadsPage(QWidget):
                                           "Error when exporting file",
                                           "An error occurred when exporting the torrent file: %s" % str(exc))
         else:
-            if QSystemTrayIcon.isSystemTrayAvailable():
+            if self.window().tray_icon:
                 self.window().tray_icon.showMessage("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
     def on_right_click_item(self, pos):
