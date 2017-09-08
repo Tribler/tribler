@@ -143,6 +143,8 @@ class TriblerWindow(QMainWindow):
             self.tray_icon = QSystemTrayIcon()
             self.tray_icon.setIcon(QIcon(QPixmap(get_image_path('tribler.png'))))
             self.tray_icon.show()
+        else:
+            self.tray_icon = None
 
         self.hide_left_menu_playlist()
         self.left_menu_button_debug.setHidden(True)
@@ -204,7 +206,7 @@ class TriblerWindow(QMainWindow):
         self.show()
 
     def on_torrent_finished(self, torrent_info):
-        if QSystemTrayIcon.isSystemTrayAvailable():
+        if self.tray_icon:
             self.window().tray_icon.showMessage("Download finished",
                                                 "Download of %s has finished." % torrent_info["name"])
 
