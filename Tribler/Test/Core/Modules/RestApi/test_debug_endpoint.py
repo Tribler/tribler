@@ -120,7 +120,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
 
         self.session.lm.resource_monitor.check_resources()
         self.should_check_equality = False
-        return self.do_request('debug/cpu_history', expected_code=200).addCallback(verify_response)
+        return self.do_request('debug/cpu/history', expected_code=200).addCallback(verify_response)
 
     @deferred(timeout=10)
     def test_get_memory_history(self):
@@ -134,4 +134,4 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
 
         self.session.lm.resource_monitor.check_resources()
         self.should_check_equality = False
-        return self.do_request('debug/memory_history', expected_code=200).addCallback(verify_response)
+        return self.do_request('debug/memory/history', expected_code=200).addCallback(verify_response)
