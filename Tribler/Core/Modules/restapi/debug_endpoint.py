@@ -1,4 +1,8 @@
+import os
+
+import datetime
 import psutil
+from meliae import scanner
 from twisted.web import http, resource
 
 from Tribler.community.tunnel.tunnel_community import TunnelCommunity
@@ -269,6 +273,7 @@ class DebugMemoryEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.putChild("history", DebugMemoryHistoryEndpoint(session))
+        self.putChild("dump", DebugMemoryDumpEndpoint(session))
 
 
 class DebugMemoryHistoryEndpoint(resource.Resource):
@@ -304,3 +309,36 @@ class DebugMemoryHistoryEndpoint(resource.Resource):
                 }
         """
         return json.dumps({"memory_history": self.session.lm.resource_monitor.get_memory_history_dict()})
+
+
+class DebugMemoryDumpEndpoint(resource.Resource):
+    """
+    This class handles request for dumping memory contents.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /debug/memory/dump
+
+        A GET request to this endpoint returns a Meliae-compatible dump of the memory contents.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/memory/dump
+
+            **Example response**:
+
+            The content of the memory dump file.
+        """
+        dump_file_path = os.path.join(self.session.get_state_dir(), 'memory_dump.json')
+        scanner.dump_all_objects(dump_file_path)
+        date_str = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+        request.setHeader(b'content-type', 'application/json')
+        request.setHeader(b'Content-Disposition', 'attachment; filename=tribler_memory_dump_%s.json' % date_str)
+        return open(dump_file_path).read()
