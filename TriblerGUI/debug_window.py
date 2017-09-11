@@ -338,7 +338,7 @@ class DebugWindow(QMainWindow):
 
     def refresh_cpu_plot(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("debug/cpu_history", self.on_core_cpu_history)
+        self.request_mgr.perform_request("debug/cpu/history", self.on_core_cpu_history)
 
     def on_core_cpu_history(self, data):
         plot_data = [[], []]
@@ -370,7 +370,7 @@ class DebugWindow(QMainWindow):
 
     def refresh_memory_plot(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("debug/memory_history", self.on_core_memory_history)
+        self.request_mgr.perform_request("debug/memory/history", self.on_core_memory_history)
 
     def on_core_memory_history(self, data):
         plot_data = [[], []]

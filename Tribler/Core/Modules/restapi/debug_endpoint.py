@@ -16,7 +16,7 @@ class DebugEndpoint(resource.Resource):
 
         child_handler_dict = {"circuits": DebugCircuitsEndpoint, "open_files": DebugOpenFilesEndpoint,
                               "open_sockets": DebugOpenSocketsEndpoint, "threads": DebugThreadsEndpoint,
-                              "cpu_history": DebugCPUHistoryEndpoint, "memory_history": DebugMemoryHistoryEndpoint}
+                              "cpu": DebugCPUEndpoint, "memory": DebugMemoryEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
@@ -216,6 +216,16 @@ class DebugThreadsEndpoint(resource.Resource):
         return json.dumps({"threads": watchdog.get_threads_info()})
 
 
+class DebugCPUEndpoint(resource.Resource):
+    """
+    This class handles request for information about CPU.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.putChild("history", DebugCPUHistoryEndpoint(session))
+
+
 class DebugCPUHistoryEndpoint(resource.Resource):
     """
     This class handles request for information about CPU usage history.
@@ -227,7 +237,7 @@ class DebugCPUHistoryEndpoint(resource.Resource):
 
     def render_GET(self, request):
         """
-        .. http:get:: /debug/cpu_history
+        .. http:get:: /debug/cpu/history
 
         A GET request to this endpoint returns information about CPU usage history in the form of a list.
 
@@ -235,7 +245,7 @@ class DebugCPUHistoryEndpoint(resource.Resource):
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/debug/cpu_history
+                curl -X GET http://localhost:8085/debug/cpu/history
 
             **Example response**:
 
@@ -251,6 +261,16 @@ class DebugCPUHistoryEndpoint(resource.Resource):
         return json.dumps({"cpu_history": self.session.lm.resource_monitor.get_cpu_history_dict()})
 
 
+class DebugMemoryEndpoint(resource.Resource):
+    """
+    This class handles request for information about memory.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.putChild("history", DebugMemoryHistoryEndpoint(session))
+
+
 class DebugMemoryHistoryEndpoint(resource.Resource):
     """
     This class handles request for information about memory usage history.
@@ -262,7 +282,7 @@ class DebugMemoryHistoryEndpoint(resource.Resource):
 
     def render_GET(self, request):
         """
-        .. http:get:: /debug/memory_history
+        .. http:get:: /debug/memory/history
 
         A GET request to this endpoint returns information about memory usage history in the form of a list.
 
@@ -270,7 +290,7 @@ class DebugMemoryHistoryEndpoint(resource.Resource):
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/debug/memory_history
+                curl -X GET http://localhost:8085/debug/memory/history
 
             **Example response**:
 
