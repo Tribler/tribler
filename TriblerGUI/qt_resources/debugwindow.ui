@@ -654,7 +654,39 @@
              <number>0</number>
             </property>
             <item>
+             <widget class="QWidget" name="memory_dump_button_container" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <item>
+                <widget class="QPushButton" name="dump_memory_core_button">
+                 <property name="text">
+                  <string>Dump memory of core process</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="dump_memory_gui_button">
+                 <property name="text">
+                  <string>Dump memory of GUI process</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
              <widget class="QWidget" name="memory_plot_widget" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <layout class="QVBoxLayout" name="verticalLayout">
                <property name="spacing">
                 <number>0</number>

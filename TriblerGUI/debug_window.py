@@ -1,10 +1,14 @@
+import os
 import socket
 from time import localtime, strftime
 
 import datetime
 import matplotlib
 from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QSizePolicy
+from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
+from meliae import scanner
 from twisted.internet.task import LoopingCall
 
 matplotlib.use('Qt5Agg')
@@ -116,6 +120,9 @@ class DebugWindow(QMainWindow):
 
         uic.loadUi(get_ui_file_path('debugwindow.ui'), self)
         self.setWindowTitle("Tribler debug pane")
+
+        self.window().dump_memory_core_button.clicked.connect(lambda: self.on_memory_dump_button_clicked(True))
+        self.window().dump_memory_gui_button.clicked.connect(lambda: self.on_memory_dump_button_clicked(False))
 
         self.window().debug_tab_widget.setCurrentIndex(0)
         self.window().dispersy_tab_widget.setCurrentIndex(0)
@@ -383,6 +390,31 @@ class DebugWindow(QMainWindow):
 
         self.memory_plot.plot_data = plot_data
         self.memory_plot.compute_initial_figure()
+
+    def on_memory_dump_button_clicked(self, dump_core):
+        self.export_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory", "",
+                                                           QFileDialog.ShowDirsOnly)
+
+        if len(self.export_dir) > 0:
+            filename = "tribler_mem_dump_%s_%s.json" % \
+                       ('core' if dump_core else 'gui', datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
+            if dump_core:
+                self.request_mgr = TriblerRequestManager()
+                self.request_mgr.download_file("debug/memory/dump",
+                                               lambda data: self.on_memory_dump_data_available(filename, data))
+            else:
+                scanner.dump_all_objects(os.path.join(self.export_dir, filename))
+
+    def on_memory_dump_data_available(self, filename, data):
+        dest_path = os.path.join(self.export_dir, filename)
+        try:
+            memory_dump_file = open(dest_path, "wb")
+            memory_dump_file.write(data)
+            memory_dump_file.close()
+        except IOError as exc:
+            ConfirmationDialog.show_error(self.window(),
+                                          "Error when exporting file",
+                                          "An error occurred when exporting the torrent file: %s" % str(exc))
 
     def closeEvent(self, close_event):
         if self.cpu_plot_timer:
