@@ -135,3 +135,15 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.session.lm.resource_monitor.check_resources()
         self.should_check_equality = False
         return self.do_request('debug/memory/history', expected_code=200).addCallback(verify_response)
+
+    @deferred(timeout=10)
+    def test_dump_memory(self):
+        """
+        Test whether the API returns a memory dump
+        """
+
+        def verify_response(response):
+            self.assertTrue(response)
+
+        self.should_check_equality = False
+        return self.do_request('debug/memory/dump', expected_code=200).addCallback(verify_response)
