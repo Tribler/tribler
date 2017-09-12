@@ -138,7 +138,8 @@ There are a bunch of other packages that can easily be installed using pip and b
 
     brew install homebrew/python/pillow gmp mpfr libmpc libsodium
     sudo easy_install pip
-    pip install --user cherrypy cffi chardet configobj cryptography decorator feedparser gmpy2 idna leveldb netifaces numpy pillow pyasn1 pycparser twisted service_identity
+    pip install --user cython  # Needs to be installed first for meliae
+    pip install --user cherrypy cffi chardet configobj cryptography decorator feedparser gmpy2 idna leveldb meliae netifaces numpy pillow pyasn1 pycparser twisted service_identity
 
 If you encounter any error during the installation of Pillow, make sure that libjpeg and zlib are installed. They can be installed using:
 

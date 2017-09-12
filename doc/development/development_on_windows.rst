@@ -130,7 +130,8 @@ There are some additional packages which should be installed. They can easily be
 
 .. code-block:: none
 
-    pip install cherrypy chardet configobj cryptography decorator feedparser netifaces pillow twisted
+    pip install cython  # Needs to be installed first for meliae
+    pip install cherrypy chardet configobj cryptography decorator feedparser meliae netifaces pillow twisted
 
 Running Tribler
 ---------------
