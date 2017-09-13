@@ -1,4 +1,8 @@
+import os
+
+import datetime
 import psutil
+from meliae import scanner
 from twisted.web import http, resource
 
 from Tribler.community.tunnel.tunnel_community import TunnelCommunity
@@ -16,7 +20,7 @@ class DebugEndpoint(resource.Resource):
 
         child_handler_dict = {"circuits": DebugCircuitsEndpoint, "open_files": DebugOpenFilesEndpoint,
                               "open_sockets": DebugOpenSocketsEndpoint, "threads": DebugThreadsEndpoint,
-                              "cpu_history": DebugCPUHistoryEndpoint, "memory_history": DebugMemoryHistoryEndpoint}
+                              "cpu": DebugCPUEndpoint, "memory": DebugMemoryEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
@@ -216,6 +220,16 @@ class DebugThreadsEndpoint(resource.Resource):
         return json.dumps({"threads": watchdog.get_threads_info()})
 
 
+class DebugCPUEndpoint(resource.Resource):
+    """
+    This class handles request for information about CPU.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.putChild("history", DebugCPUHistoryEndpoint(session))
+
+
 class DebugCPUHistoryEndpoint(resource.Resource):
     """
     This class handles request for information about CPU usage history.
@@ -227,7 +241,7 @@ class DebugCPUHistoryEndpoint(resource.Resource):
 
     def render_GET(self, request):
         """
-        .. http:get:: /debug/cpu_history
+        .. http:get:: /debug/cpu/history
 
         A GET request to this endpoint returns information about CPU usage history in the form of a list.
 
@@ -235,7 +249,7 @@ class DebugCPUHistoryEndpoint(resource.Resource):
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/debug/cpu_history
+                curl -X GET http://localhost:8085/debug/cpu/history
 
             **Example response**:
 
@@ -251,6 +265,17 @@ class DebugCPUHistoryEndpoint(resource.Resource):
         return json.dumps({"cpu_history": self.session.lm.resource_monitor.get_cpu_history_dict()})
 
 
+class DebugMemoryEndpoint(resource.Resource):
+    """
+    This class handles request for information about memory.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.putChild("history", DebugMemoryHistoryEndpoint(session))
+        self.putChild("dump", DebugMemoryDumpEndpoint(session))
+
+
 class DebugMemoryHistoryEndpoint(resource.Resource):
     """
     This class handles request for information about memory usage history.
@@ -262,7 +287,7 @@ class DebugMemoryHistoryEndpoint(resource.Resource):
 
     def render_GET(self, request):
         """
-        .. http:get:: /debug/memory_history
+        .. http:get:: /debug/memory/history
 
         A GET request to this endpoint returns information about memory usage history in the form of a list.
 
@@ -270,7 +295,7 @@ class DebugMemoryHistoryEndpoint(resource.Resource):
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/debug/memory_history
+                curl -X GET http://localhost:8085/debug/memory/history
 
             **Example response**:
 
@@ -284,3 +309,36 @@ class DebugMemoryHistoryEndpoint(resource.Resource):
                 }
         """
         return json.dumps({"memory_history": self.session.lm.resource_monitor.get_memory_history_dict()})
+
+
+class DebugMemoryDumpEndpoint(resource.Resource):
+    """
+    This class handles request for dumping memory contents.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /debug/memory/dump
+
+        A GET request to this endpoint returns a Meliae-compatible dump of the memory contents.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/memory/dump
+
+            **Example response**:
+
+            The content of the memory dump file.
+        """
+        dump_file_path = os.path.join(self.session.get_state_dir(), 'memory_dump.json')
+        scanner.dump_all_objects(dump_file_path)
+        date_str = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+        request.setHeader(b'content-type', 'application/json')
+        request.setHeader(b'Content-Disposition', 'attachment; filename=tribler_memory_dump_%s.json' % date_str)
+        return open(dump_file_path).read()
