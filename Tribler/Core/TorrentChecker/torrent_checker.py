@@ -217,6 +217,8 @@ class TorrentChecker(TaskManager):
         failure.trap(ValueError, CancelledError, ConnectingCancelledError, RuntimeError)
         self._logger.warning(u"Got session error for URL %s: %s", session.tracker_url, failure)
 
+        self.clean_session(session)
+
         # Do not update if the connection got cancelled, we are probably shutting down
         # and the tracker_manager may have shutdown already.
         if failure.check(CancelledError, ConnectingCancelledError) is None:
@@ -241,6 +243,8 @@ class TorrentChecker(TaskManager):
 
         # Remove the session from our session list dictionary
         self._session_list[session.tracker_url].remove(session)
+        if len(self._session_list[session.tracker_url]) == 0 and session.tracker_url != u"DHT":
+            del self._session_list[session.tracker_url]
 
     def _on_result_from_session(self, session, result_list):
         if self._should_stop:
