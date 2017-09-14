@@ -114,9 +114,13 @@ class TestTorrentChecker(TriblerCoreTest):
         """
         Test whether we capture the error when a tracker check fails
         """
+        def verify_cleanup(_):
+            # Verify whether we successfully cleaned up the session after an error
+            self.assertEqual(len(self.torrent_checker._session_list), 1)
+
         self.torrent_checker._torrent_db.addExternalTorrentNoDef(
             'a' * 20, 'ubuntu.iso', [['a.test', 1234]], ['udp://non123exiszzting456tracker89fle.abc:80/announce'], 5)
-        return self.torrent_checker._task_select_tracker()
+        return self.torrent_checker._task_select_tracker().addCallback(verify_cleanup)
 
     @blocking_call_on_reactor_thread
     def test_tracker_test_invalid_tracker(self):
