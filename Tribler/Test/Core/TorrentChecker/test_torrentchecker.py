@@ -114,11 +114,15 @@ class TestTorrentChecker(TriblerCoreTest):
         """
         Test whether we capture the error when a tracker check fails
         """
+        def verify_cleanup(_):
+            # Verify whether we successfully cleaned up the session after an error
+            self.assertEqual(len(self.torrent_checker._session_list), 1)
+
         self.torrent_checker._torrent_db.addExternalTorrentNoDef(
             'a' * 20, 'ubuntu.iso', [['a.test', 1234]], ['udp://non123exiszzting456tracker89fle.abc:80/announce'], 5)
-        return self.torrent_checker._task_select_tracker()
+        return self.torrent_checker._task_select_tracker().addCallback(verify_cleanup)
 
-    @blocking_call_on_reactor_thread
+    @deferred(timeout=30)
     def test_tracker_test_invalid_tracker(self):
         """
         Test whether we do nothing when tracker URL is invalid
@@ -129,18 +133,14 @@ class TestTorrentChecker(TriblerCoreTest):
         self.torrent_checker._torrent_db.addExternalTorrentNoDef(
             'a' * 20, 'ubuntu.iso', [['a.test', 1234]], [tracker_url], 5)
 
-        # write invalid url to dictionary and database
-        self.session.lm.tracker_manager._tracker_dict[bad_tracker_url] = \
-            self.session.lm.tracker_manager._tracker_dict[tracker_url]
-        del self.session.lm.tracker_manager._tracker_dict[tracker_url]
+        # Write invalid url to the database
+        sql_stmt = u"UPDATE TrackerInfo SET tracker = ? WHERE tracker = ?"
+        self.session.sqlite_db.execute(sql_stmt, (bad_tracker_url, tracker_url))
 
-        tracker_id = self.session.lm.tracker_manager._tracker_dict[bad_tracker_url][u'id']
-        sql_stmt = u"UPDATE TrackerInfo SET tracker = ? WHERE tracker_id = ?"
-        value_tuple = (bad_tracker_url, tracker_id)
-        self.session.sqlite_db.execute(sql_stmt, value_tuple)
+        def verify_response(resp):
+            self.assertIsNone(resp)
 
-        self.torrent_checker._task_select_tracker()
-
+        return self.torrent_checker._task_select_tracker().addCallback(verify_response)
 
     @deferred(timeout=10)
     def test_tracker_no_infohashes(self):

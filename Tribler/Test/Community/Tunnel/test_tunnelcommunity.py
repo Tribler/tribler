@@ -1,4 +1,5 @@
 import time
+
 from twisted.internet.defer import inlineCallbacks, returnValue
 
 from Tribler.Test.Community.Tunnel.test_tunnel_base import AbstractTestTunnelCommunity
@@ -7,7 +8,7 @@ from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.crypto.tunnelcrypto import CryptoException, TunnelCrypto
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.tunnel.tunnel_community import (TunnelSettings, TunnelExitSocket, CircuitRequestCache,
-                                                       PingRequestCache)
+                                                       PingRequestCache, ExtendRequestCache)
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.message import DropMessage
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -26,6 +27,14 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
         circuit._broken = True
         circuit_request_cache.on_timeout()
         self.assertNotIn(42, self.tunnel_community.circuits)
+
+    @blocking_call_on_reactor_thread
+    def test_extend_request_cache(self):
+        circuit = Circuit(42L)
+        circuit.goal_hops = 3
+        extend_request_cache = ExtendRequestCache(self.tunnel_community, 1234, 4321, None, None, None, None)
+        self.tunnel_community.circuits[1234] = circuit
+        extend_request_cache.on_timeout()
 
     @blocking_call_on_reactor_thread
     def test_ping_request_cache(self):

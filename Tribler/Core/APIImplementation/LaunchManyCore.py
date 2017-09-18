@@ -150,7 +150,6 @@ class TriblerLaunchMany(TaskManager):
 
                 from Tribler.Core.Modules.tracker_manager import TrackerManager
                 self.tracker_manager = TrackerManager(self.session)
-                self.tracker_manager.initialize()
 
             if self.session.get_videoserver_enabled():
                 self.video_server = VideoServer(self.session.get_videoserver_port(), self.session)
@@ -766,8 +765,6 @@ class TriblerLaunchMany(TaskManager):
             self.resource_monitor.stop()
         self.resource_monitor = None
 
-        if self.tracker_manager:
-            yield self.tracker_manager.shutdown()
         self.tracker_manager = None
 
         if self.dispersy:
