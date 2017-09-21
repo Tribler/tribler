@@ -33,7 +33,7 @@ from Tribler.community.market.database import MarketDB
 from Tribler.community.market.payload import TradePayload, DeclinedTradePayload,\
     StartTransactionPayload, WalletInfoPayload, PaymentPayload, MatchPayload, AcceptMatchPayload, DeclineMatchPayload, \
     InfoPayload, OrderStatusRequestPayload, OrderStatusResponsePayload
-from Tribler.community.market.reputation.pagerank_manager import PagerankReputationManager
+from Tribler.community.market.reputation.temporal_pagerank_manager import TemporalPagerankReputationManager
 from Tribler.community.market.tradechain.block import TradeChainBlock
 from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
 from Tribler.community.trustchain.community import TrustChainCommunity, HALF_BLOCK_BROADCAST, BLOCK_PAIR, \
@@ -1714,5 +1714,5 @@ class MarketCommunity(TrustChainCommunity):
         """
         Compute the reputation of peers in the community
         """
-        rep_manager = PagerankReputationManager(self.tradechain_community.persistence.get_all_blocks())
+        rep_manager = TemporalPagerankReputationManager(self.tradechain_community.persistence.get_all_blocks())
         self.reputation_dict = rep_manager.compute(self.my_member.public_key)
