@@ -224,6 +224,49 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
         self.deferred.addErrback(_on_add_failed)
         return NOT_DONE_YET
 
+    def render_GET(self, request):
+        """
+        .. http:get:: /channels/discovered/(string: channelid)/torrents/(string: torrent infohash)
+
+        Get information of a torrent with a given infohash from a given channel.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/channels/discovered/abcdefg/torrents/
+                97d2d8f5d37e56cfaeaae151d55f05b077074779
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "id": 4,
+                    "infohash": "97d2d8f5d37e56cfaeaae151d55f05b077074779",
+                    "name": "Ubuntu-16.04-desktop-amd64",
+                    "size": 8592385,
+                    "category": "other",
+                    "num_seeders": 42,
+                    "num_leechers": 184,
+                    "last_tracker_check": 1463176959
+                }
+
+            :statuscode 404: if the torrent is not found in the specified channel
+        """
+        channel_info = self.get_channel_from_db(self.cid)
+        if channel_info is None:
+            return ChannelsTorrentsEndpoint.return_404(request)
+
+        torrent_db_columns = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
+                              'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.inserted']
+        torrent_info = self.channel_db_handler.getTorrentFromChannelId(channel_info[0], self.path.decode('hex'),
+                                                                       torrent_db_columns)
+        if torrent_info is None:
+            return BaseChannelsEndpoint.return_404(request, message=UNKNOWN_TORRENT_MSG)
+
+        return json.dumps(convert_db_torrent_to_json(torrent_info))
+
     def render_DELETE(self, request):
         """
         .. http:delete:: /channels/discovered/(string: channelid)/torrents/(string: torrent infohash)
