@@ -2,6 +2,8 @@ import os
 import sys
 import multiprocessing
 
+import thislibrarydoesnotexist
+
 from check_os import check_environment
 
 if __name__ == "__main__":
