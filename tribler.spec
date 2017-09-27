@@ -17,7 +17,7 @@ for file in os.listdir("TriblerGUI/widgets"):
     if file.endswith(".py"):
         widget_files.append('TriblerGUI.widgets.%s' % file[:-3])
 
-data_to_copy = [('Tribler/dispersy/libnacl/libnacl', 'libnacl'), ('electrum', 'electrum'), ('TriblerGUI/qt_resources', 'qt_resources'), ('TriblerGUI/images', 'images'), ('TriblerGUI/scripts', 'scripts'), ('twisted', 'twisted'), ('Tribler', 'tribler_source/Tribler')]
+data_to_copy = [('Tribler/dispersy/libnacl/libnacl', 'libnacl'), ('electrum', 'electrum'), ('TriblerGUI/qt_resources', 'qt_resources'), ('TriblerGUI/images', 'images'), ('TriblerGUI/scripts', 'scripts'), ('twisted', 'twisted'), ('Tribler', 'tribler_source/Tribler'), ('logger.conf', '.')]
 if sys.platform.startswith('darwin'):
     data_to_copy += [('/Applications/VLC.app/Contents/MacOS/lib', 'vlc/lib'), ('/Applications/VLC.app/Contents/MacOS/plugins', 'vlc/plugins')]
 
