@@ -1,3 +1,4 @@
+import logging
 import os
 
 import datetime
@@ -20,7 +21,8 @@ class DebugEndpoint(resource.Resource):
 
         child_handler_dict = {"circuits": DebugCircuitsEndpoint, "open_files": DebugOpenFilesEndpoint,
                               "open_sockets": DebugOpenSocketsEndpoint, "threads": DebugThreadsEndpoint,
-                              "cpu": DebugCPUEndpoint, "memory": DebugMemoryEndpoint}
+                              "cpu": DebugCPUEndpoint, "memory": DebugMemoryEndpoint,
+                              "log": DebugLogEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
@@ -342,3 +344,92 @@ class DebugMemoryDumpEndpoint(resource.Resource):
         request.setHeader(b'content-type', 'application/json')
         request.setHeader(b'Content-Disposition', 'attachment; filename=tribler_memory_dump_%s.json' % date_str)
         return open(dump_file_path).read()
+
+
+class DebugLogEndpoint(resource.Resource):
+    """
+    This class handles the request for displaying the logs.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /debug/log?max_lines=<max_lines>
+
+        A GET request to this endpoint returns a json with content of log file & max_lines requested
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/log?max_lines=5
+
+            **Example response**:
+
+            A JSON with content of the log file & max_lines requested, for eg.
+            {
+                "max_lines" : 5,
+                "content" :"INFO    1506675301.76   sqlitecachedb:181   Reading database version...
+                            INFO    1506675301.76   sqlitecachedb:185   Current database version is 29
+                            INFO    1506675301.76   sqlitecachedb:203   Beginning the first transaction...
+                            INFO    1506675301.76         upgrade:93    tribler is in the latest version,...
+                            INFO    1506675302.08  LaunchManyCore:254   lmc: Starting Dispersy..."
+            }
+
+        """
+
+        # First, flush all the logs to make sure it is written to file
+        for handler in logging.getLogger().handlers:
+            handler.flush()
+
+        # Get the location of log file
+        log_file = os.path.join(self.session.get_state_dir(), 'logs', 'tribler-info.log')
+
+        # Default response
+        response = {'content': '', 'max_lines': 0}
+
+        # Check if log file exists and return last requested 'max_lines' of log
+        if os.path.exists(log_file):
+            try:
+                max_lines = int(request.args['max_lines'][0])
+                response['content'] = self.tail(open(log_file), max_lines)
+                response['max_lines'] = max_lines
+            except ValueError:
+                response['content'] = open(log_file).read()
+                response['max_lines'] = 0
+
+        return json.dumps(response)
+
+    def tail(self, file_handler, lines=1):
+        """Tail a file and get X lines from the end"""
+        # place holder for the lines found
+        lines_found = []
+        byte_buffer = 1024
+
+        # block counter will be multiplied by buffer
+        # to get the block size from the end
+        block_counter = -1
+
+        # loop until we find X lines
+        while len(lines_found) < lines:
+            try:
+                file_handler.seek(block_counter * byte_buffer, os.SEEK_END)
+            except IOError:  # either file is too small, or too many lines requested
+                file_handler.seek(0)
+                lines_found = file_handler.readlines()
+                break
+
+            lines_found = file_handler.readlines()
+
+            # we found enough lines, get out
+            if len(lines_found) > lines:
+                break
+
+            # decrement the block counter to get the
+            # next X bytes
+            block_counter -= 1
+
+        return ''.join(lines_found[-lines:])

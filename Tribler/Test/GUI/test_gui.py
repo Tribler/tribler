@@ -7,7 +7,7 @@ from unittest import skipUnless
 from PyQt5.QtCore import QPoint, Qt, QTimer
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget
+from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget, QTextEdit
 
 import TriblerGUI.core_manager as core_manager
 import TriblerGUI.defs as gui_defs
@@ -164,6 +164,16 @@ class AbstractTriblerGUITest(unittest.TestCase):
 
         raise TimeoutException("Signal %s not raised within 10 seconds" % signal)
 
+    def wait_for_qtext_edit_populated(self, qtext_edit, timeout=10):
+        for _ in range(0, timeout * 1000, 100):
+            QTest.qWait(100)
+            if not isinstance(qtext_edit, QTextEdit):
+                return
+            if qtext_edit.toPlainText():
+                return
+
+        # QTextEdit was not populated in time, fail the test
+        raise TimeoutException("QTextEdit was not populated within 10 seconds")
 
 @skipUnless(os.environ.get("TEST_GUI") == "yes", "Not testing the GUI by default")
 class TriblerGUITest(AbstractTriblerGUITest):
@@ -493,6 +503,16 @@ class TriblerGUITest(AbstractTriblerGUITest):
         window.debug_window.system_tab_widget.setCurrentIndex(2)
         self.wait_for_list_populated(window.debug_window.threads_tree_widget)
         self.screenshot(window.debug_window, name="debug_panel_threads_tab")
+
+        # Logs shown in ui and from the debug endpoint should be same
+        window.debug_window.debug_tab_widget.setCurrentIndex(6)
+        self.wait_for_qtext_edit_populated(window.debug_window.log_display_area)
+        # Logs shown in ui
+        gui_logs = window.debug_window.log_display_area.toPlainText().strip()
+        # logs from FakeTriblerApi
+        fake_logs = ''.join(["Sample log [%d]\n" % i for i in xrange(10)]).strip()
+        self.assertEqual(gui_logs, fake_logs, "Logs in GUI are different from actual logs")
+        self.screenshot(window.debug_window, name="debug_panel_logs")
 
         window.debug_window.system_tab_widget.setCurrentIndex(3)
         QTest.qWait(1000)

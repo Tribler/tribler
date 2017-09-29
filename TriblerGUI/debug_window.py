@@ -5,7 +5,8 @@ from time import localtime, strftime
 import datetime
 import matplotlib
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtGui import QTextCursor
+from PyQt5.QtWidgets import QFileDialog, QTextEdit
 from PyQt5.QtWidgets import QSizePolicy
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from meliae import scanner
@@ -138,6 +139,9 @@ class DebugWindow(QMainWindow):
         if not settings['trustchain']['enabled']:
             self.window().debug_tab_widget.setTabEnabled(2, False)
 
+        # Refresh logs
+        self.window().log_refresh_button.clicked.connect(lambda: self.load_logs_tab())
+
     def tab_changed(self, index):
         if index == 0:
             self.load_general_tab()
@@ -151,6 +155,8 @@ class DebugWindow(QMainWindow):
             self.load_events_tab()
         elif index == 5:
             self.system_tab_changed(self.window().system_tab_widget.currentIndex())
+        elif index == 6:
+            self.load_logs_tab()
 
     def dispersy_tab_changed(self, index):
         if index == 0:
@@ -422,3 +428,29 @@ class DebugWindow(QMainWindow):
 
         if self.memory_plot_timer:
             self.memory_plot_timer.stop()
+
+    def load_logs_tab(self):
+        # Max lines from GUI
+        max_log_lines = self.window().max_lines_value.text()
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("debug/log?max_lines=%s" % max_log_lines, self.display_logs)
+
+    def display_logs(self, data):
+        log_display_widget = self.window().log_display_area
+        log_display_widget.moveCursor(QTextCursor.End)
+
+        key_content = u'content'
+        key_max_lines = u'max_lines'
+
+        if not key_content in data or not data[key_content]:
+            log_display_widget.setPlainText('No logs found')
+        else:
+            log_display_widget.setPlainText(data[key_content])
+
+        if not key_max_lines in data or not data[key_max_lines]:
+            self.window().max_lines_value.setText('')
+        else:
+            self.window().max_lines_value.setText(str(data[key_max_lines]))
+
+        sb = log_display_widget.verticalScrollBar()
+        sb.setValue(sb.maximum())
