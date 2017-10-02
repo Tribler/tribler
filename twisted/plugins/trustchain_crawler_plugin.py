@@ -19,10 +19,24 @@ from Tribler.dispersy.endpoint import StandaloneEndpoint
 class Options(usage.Options):
     optParameters = [
         ["statedir", "s", os.path.join(unicode(os.environ.get('HOME')), u'.trustchain')
-          if os.environ.get('HOME') else u'.trustchain', "Use an alternate statedir"    , unicode],
-        ["ip"      , "i", "0.0.0.0" ,  "Dispersy uses this ip"                          , str],
-        ["port"    , "p", 6421      ,  "Dispersy uses this UDP port"                    , int],
+          if os.environ.get('HOME') else u'.trustchain', "Use an alternate statedir", unicode],
+        ["ip", "i", "0.0.0.0",  "Dispersy uses this ip", str],
+        ["port", "p", 6421,  "Dispersy uses this UDP port", int],
     ]
+
+
+if not os.path.exists("logger.conf"):
+    print "Unable to find logger.conf"
+else:
+    log_directory = os.path.abspath(os.environ.get('APPDATA', os.path.expanduser('~')))
+    log_directory = os.path.join(log_directory, '.Tribler', 'logs')
+
+    if not os.path.exists(log_directory):
+        os.makedirs(log_directory)
+
+    logging.info_log_file = '%s/tribler-info.log' % log_directory
+    logging.error_log_file = '%s/tribler-error.log' % log_directory
+    logging.config.fileConfig("logger.conf", disable_existing_loggers=False)
 
 
 class TrustchainCrawlerServiceMaker(object):
@@ -32,13 +46,6 @@ class TrustchainCrawlerServiceMaker(object):
     options = Options
 
     def makeService(self, options):
-        # setup logging if there is a logger.conf in the state dir or working dir
-        if os.path.exists(os.path.join(options["statedir"], "logger.conf")):
-            logging.config.fileConfig(os.path.join(options["statedir"], "logger.conf"))
-        elif os.path.exists("logger.conf"):
-            logging.config.fileConfig("logger.conf")
-        else:
-            logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s", level=logging.DEBUG)
         tracker_service = MultiService()
         tracker_service.setName("Trustchain Crawler")
 
@@ -61,6 +68,7 @@ class TrustchainCrawlerServiceMaker(object):
                 if not self._stopping:
                     self._stopping = True
                     dispersy.stop().addCallback(lambda _: reactor.stop())
+
             signal.signal(signal.SIGINT, signal_handler)
             signal.signal(signal.SIGTERM, signal_handler)
 
