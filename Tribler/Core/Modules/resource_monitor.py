@@ -45,7 +45,17 @@ class ResourceMonitor(TaskManager):
 
         time_seconds = time.time()
         self.cpu_data.append((time_seconds, self.process.cpu_percent(interval=None)))
-        self.memory_data.append((time_seconds, self.process.memory_full_info().uss))
+
+        # Get the memory usage of the process
+        # psutil package 4.0.0 introduced memory_full_info() method which among other info also returns uss.
+        # uss (Unique Set Size) is probably the most representative metric for determining how much memory is
+        # actually being used by a process.
+        # However, on psutil version < 4.0.0, we fallback to use rss (Resident Set Size) which is the non-swapped
+        # physical memory a process has used
+        if hasattr(self.process, "memory_full_info") and callable(getattr(self.process, "memory_full_info")):
+            self.memory_data.append((time_seconds, self.process.memory_full_info().uss))
+        elif hasattr(self.process, "memory_info") and callable(getattr(self.process, "memory_info")):
+            self.memory_data.append((time_seconds, self.process.memory_info().rss))
 
     def get_cpu_history_dict(self):
         """
