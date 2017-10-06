@@ -96,7 +96,9 @@ class CreateTorrentEndpoint(resource.Resource):
                     self._logger.warning("The created torrent is already being downloaded.")
 
             request.write(json.dumps({"torrent": torrent_64}))
-            request.finish()
+            # If the above request.write failed, the request will have already been finished
+            if not request.finished:
+                request.finish()
 
         def _on_create_failure(failure):
             """
@@ -106,7 +108,9 @@ class CreateTorrentEndpoint(resource.Resource):
             failure.trap(IOError, UnicodeDecodeError, RuntimeError)
             self._logger.exception(failure)
             request.write(return_handled_exception(request, failure.value))
-            request.finish()
+            # If the above request.write failed, the request will have already been finished
+            if not request.finished:
+                request.finish()
 
         deferred = self.session.create_torrent_file(file_path_list, params)
         deferred.addCallback(_on_torrent_created)
