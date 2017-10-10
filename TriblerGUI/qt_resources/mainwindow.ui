@@ -3856,6 +3856,13 @@ padding-right: 4px;</string>
                       </spacer>
                      </item>
                      <item>
+                      <widget class="QLabel" name="edit_channel_create_torrent_progress_label">
+                       <property name="text">
+                        <string>Creating torrent. Please wait...</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
                       <widget class="EllipseButton" name="edit_channel_create_torrent_button">
                        <property name="minimumSize">
                         <size>

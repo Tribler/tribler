@@ -37,6 +37,7 @@ class CreateTorrentEndpoint(resource.Resource):
                 curl -X POST http://localhost:8085/createtorrent
                         --data "files[]=path/to/file.txt
                         &files[]=path/to/another/file.mp4
+                        &name=Name
                         &description=Video
                         &trackers[]=url_tracker1
                         &trackers[]=url_backup1
@@ -60,6 +61,9 @@ class CreateTorrentEndpoint(resource.Resource):
         else:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "files parameter missing"})
+
+        if 'name' in parameters and len(parameters['name']) > 0:
+            params['name'] = parameters['name'][0]
 
         if 'description' in parameters and len(parameters['description']) > 0:
             params['comment'] = parameters['description'][0]
