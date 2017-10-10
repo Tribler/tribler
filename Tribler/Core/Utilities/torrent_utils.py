@@ -104,7 +104,12 @@ def create_torrent_file(file_path_list, params):
 
     postfix = u'.torrent'
 
-    torrent_file_name = os.path.join(base_path, unicode(t1['info']['name'], 'utf-8') + postfix)
+    if params.get('name'):
+        if not isinstance(params['name'], unicode):
+            params['name'] = unicode(params['name'], 'utf-8')
+        torrent_file_name = os.path.join(base_path, params['name'] + postfix)
+    else:
+        torrent_file_name = os.path.join(base_path, unicode(t1['info']['name'], 'utf-8') + postfix)
     with open(torrent_file_name, 'wb') as f:
         f.write(torrent)
 
