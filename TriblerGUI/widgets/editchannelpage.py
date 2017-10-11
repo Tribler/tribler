@@ -208,14 +208,15 @@ class EditChannelPage(QWidget):
         if num_selected == 0:
             return
 
-        item = self.window().edit_channel_torrents_list.itemWidget(
-            self.window().edit_channel_torrents_list.selectedItems()[0])
+        selected_torrent_items = [self.window().edit_channel_torrents_list.itemWidget(list_widget_item)
+                                  for list_widget_item in self.window().edit_channel_torrents_list.selectedItems()]
 
         self.dialog = ConfirmationDialog(self, "Remove %s selected torrents" % num_selected,
                                          "Are you sure that you want to remove %s selected torrents "
                                          "from your channel?" % num_selected,
                                          [('CONFIRM', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)])
-        self.dialog.button_clicked.connect(lambda action: self.on_torrents_remove_selected_action(action, item))
+        self.dialog.button_clicked.connect(lambda action:
+                                           self.on_torrents_remove_selected_action(action, selected_torrent_items))
         self.dialog.show()
 
     def on_torrents_remove_all_clicked(self):
@@ -444,12 +445,17 @@ class EditChannelPage(QWidget):
         self.window().playlist_edit_description.setText(item.playlist_info["description"])
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_PLAYLIST_EDIT)
 
-    def on_torrents_remove_selected_action(self, action, item):
+    def on_torrents_remove_selected_action(self, action, items):
         if action == 0:
+
+            if isinstance(items, list):
+                infohash = ",".join([torrent_item.torrent_info['infohash'] for torrent_item in items])
+            else:
+                infohash = items.torrent_info['infohash']
             self.editchannel_request_mgr = TriblerRequestManager()
             self.editchannel_request_mgr.perform_request("channels/discovered/%s/torrents/%s" %
                                                          (self.channel_overview["identifier"],
-                                                          item.torrent_info['infohash']),
+                                                          infohash),
                                                          self.on_torrent_removed, method='DELETE')
 
         self.dialog.setParent(None)
