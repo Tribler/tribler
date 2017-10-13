@@ -267,11 +267,29 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
     @deferred(timeout=10)
     def test_remove_tor_unknown_infohash(self):
         """
-        Testing whether the API returns an error 500 if an unknown torrent is removed from a channel
+        Testing whether the API returns {"removed": False, "failed_torrents":[ infohash ]} if an unknown torrent is
+        removed from a channel
         """
+        unknown_torrent_infohash = 'a' * 40
+
+        mock_channel_community = MockObject()
+        mock_channel_community.called_remove = False
+
+        mock_dispersy = MockObject()
+        mock_dispersy.get_community = lambda _: mock_channel_community
+
         self.create_fake_channel("channel", "")
-        url = 'channels/discovered/%s/torrents/abcd' % 'fakedispersyid'.encode('hex')
-        return self.do_request(url, expected_code=404, request_type='DELETE')
+        self.session.get_dispersy_instance = lambda: mock_dispersy
+
+        def verify_delete_response(response):
+            json_response = json.loads(response)
+            self.assertFalse(json_response["removed"], "Tribler removed an unknown torrent")
+            self.assertTrue(unknown_torrent_infohash in json_response["failed_torrents"])
+            self.assertFalse(mock_channel_community.called_remove)
+
+        self.should_check_equality = False
+        url = 'channels/discovered/%s/torrents/%s' % ('fakedispersyid'.encode('hex'), unknown_torrent_infohash)
+        return self.do_request(url, expected_code=200, request_type='DELETE').addCallback(verify_delete_response)
 
     @deferred(timeout=10)
     def test_remove_tor_unknown_cmty(self):
@@ -319,4 +337,37 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
 
         self.should_check_equality = False
         url = 'channels/discovered/%s/torrents/%s' % ('fakedispersyid'.encode('hex'), 'a' * 40)
+        return self.do_request(url, expected_code=200, request_type='DELETE').addCallback(verify_torrent_removed)
+
+    @deferred(timeout=10)
+    def test_remove_selected_torrents(self):
+        """
+        Testing whether the API can remove selected torrents from a channel
+        """
+        mock_channel_community = MockObject()
+        mock_channel_community.called_remove = False
+
+        def remove_torrents_called(_):
+            mock_channel_community.called_remove = True
+
+        mock_channel_community.remove_torrents = remove_torrents_called
+        mock_dispersy = MockObject()
+        mock_dispersy.get_community = lambda _: mock_channel_community
+
+        channel_id = self.create_fake_channel("channel", "")
+        self.session.get_dispersy_instance = lambda: mock_dispersy
+
+        torrent_list = [[channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso",
+                         [['file1.txt', 42]], []],
+                        [channel_id, 1, 1, ('b' * 40).decode('hex'), 1460002000, "ubuntu-torrent2.iso",
+                         [['file2.txt', 42]], []]]
+        self.insert_torrents_into_channel(torrent_list)
+
+        def verify_torrent_removed(response):
+            json_response = json.loads(response)
+            self.assertTrue(json_response["removed"], "Removing selected torrents failed")
+            self.assertTrue(mock_channel_community.called_remove)
+
+        self.should_check_equality = False
+        url = 'channels/discovered/%s/torrents/%s' % ('fakedispersyid'.encode('hex'), 'a' * 40 + "," + 'b' * 40)
         return self.do_request(url, expected_code=200, request_type='DELETE').addCallback(verify_torrent_removed)
