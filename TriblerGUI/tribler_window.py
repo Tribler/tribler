@@ -56,6 +56,9 @@ class TriblerWindow(QMainWindow):
     received_search_completions = pyqtSignal(object)
 
     def on_exception(self, *exc_info):
+        if self.tray_icon:
+            self.tray_icon.deleteLater()
+
         # Stop the download loop
         self.downloads_page.stop_loading_downloads()
 
@@ -620,6 +623,8 @@ class TriblerWindow(QMainWindow):
 
     def close_tribler(self):
         if not self.core_manager.shutting_down:
+            if self.tray_icon:
+                self.tray_icon.deleteLater()
             self.show_loading_screen()
 
             self.gui_settings.setValue("pos", self.pos())
