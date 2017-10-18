@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QFileDialog
 
 import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_BANDWIDTH, \
@@ -24,6 +24,9 @@ class SettingsPage(QWidget):
         self.window().settings_tab.clicked_tab_button.connect(self.clicked_tab_button)
         self.window().settings_save_button.clicked.connect(self.save_settings)
 
+        self.window().download_location_chooser_button.clicked.connect(self.on_choose_download_dir_clicked)
+        self.window().watch_folder_chooser_button.clicked.connect(self.on_choose_watch_dir_clicked)
+
         self.window().developer_mode_enabled_checkbox.stateChanged.connect(self.on_developer_mode_checkbox_changed)
         self.window().use_monochrome_icon_checkbox.stateChanged.connect(self.on_use_monochrome_icon_checkbox_changed)
         self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
@@ -42,6 +45,27 @@ class SettingsPage(QWidget):
             self.window().download_settings_anon_seeding_checkbox.setChecked(True)
         self.window().download_settings_anon_seeding_checkbox.setEnabled(
             not self.window().download_settings_anon_checkbox.isChecked())
+
+    def on_choose_download_dir_clicked(self):
+        previous_download_path = self.window().download_location_input.text() or ""
+        download_dir = QFileDialog.getExistingDirectory(self.window(), "Please select the download location",
+                                                        previous_download_path, QFileDialog.ShowDirsOnly)
+
+        if not download_dir:
+            return
+
+        self.window().download_location_input.setText(download_dir)
+
+    def on_choose_watch_dir_clicked(self):
+        if self.window().watchfolder_enabled_checkbox.isChecked():
+            previous_watch_dir = self.window().watchfolder_location_input.text() or ""
+            watch_dir = QFileDialog.getExistingDirectory(self.window(), "Please select the watch folder",
+                                                         previous_watch_dir, QFileDialog.ShowDirsOnly)
+
+            if not watch_dir:
+                return
+
+            self.window().watchfolder_location_input.setText(watch_dir)
 
     def initialize_with_settings(self, settings):
         self.settings = settings
