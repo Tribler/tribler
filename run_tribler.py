@@ -69,3 +69,10 @@ if __name__ == "__main__":
     except ImportError as ie:
         logging.exception(ie)
         error_and_exit("Import Error", "Import error: {0}".format(ie))
+
+    except SystemExit as se:
+        logging.info("Shutting down Tribler")
+        # Flush all the logs to make sure it is written to file before it exits
+        for handler in logging.getLogger().handlers:
+            handler.flush()
+        raise
