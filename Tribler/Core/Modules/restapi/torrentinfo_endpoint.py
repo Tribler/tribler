@@ -1,5 +1,5 @@
 import logging
-from urllib import url2pathname
+from urllib import url2pathname, unquote_plus
 
 from libtorrent import bdecode, bencode
 from twisted.internet.defer import Deferred
@@ -7,9 +7,8 @@ from twisted.internet.error import DNSLookupError, ConnectError
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
-from Tribler.Core.Modules.restapi.util import fix_unicode_dict
-from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink
 
 
@@ -86,7 +85,7 @@ class TorrentInfoEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "uri parameter missing"})
 
-        uri = unicode(request.args['uri'][0], 'utf-8')
+        uri = unicode(unquote_plus(request.args['uri'][0]), 'utf-8')
         if uri.startswith('file:'):
             try:
                 filename = url2pathname(uri[5:])
