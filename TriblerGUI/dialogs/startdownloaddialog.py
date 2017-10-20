@@ -1,4 +1,4 @@
-from urllib import unquote_plus
+from urllib import unquote_plus, quote_plus
 
 from PyQt5 import uic
 from PyQt5.QtCore import pyqtSignal, Qt
@@ -106,8 +106,8 @@ class StartDownloadDialog(DialogContainer):
 
     def perform_files_request(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("torrentinfo?uri=%s" % self.download_uri, self.on_received_metainfo,
-                                         capture_errors=False)
+        self.request_mgr.perform_request("torrentinfo?uri=%s" % quote_plus(self.download_uri),
+                                         self.on_received_metainfo, capture_errors=False)
 
     def on_received_metainfo(self, metainfo):
         if not metainfo:
