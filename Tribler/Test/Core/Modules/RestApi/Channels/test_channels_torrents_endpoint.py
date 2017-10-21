@@ -2,7 +2,7 @@ import base64
 import os
 import shutil
 import urllib
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, succeed, fail
 
 from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
@@ -12,6 +12,7 @@ from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.exception import CommunityNotFoundException
+from twisted.python.failure import Failure
 
 
 class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
@@ -201,9 +202,9 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         """
         my_channel_id = self.create_fake_channel("channel", "")
 
-        def fake_get_metainfo(_, callback, timeout=10, timeout_callback=None, notify=True):
+        def fake_get_metainfo(_, timeout=10):
             meta_info = TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo()
-            callback(meta_info)
+            return succeed(meta_info)
 
         self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
 
@@ -235,8 +236,8 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         """
         self.create_fake_channel("channel", "")
 
-        def fake_get_metainfo(_, callback, timeout=10, timeout_callback=None, notify=True):
-            raise ValueError(u"Test error")
+        def fake_get_metainfo(_, timeout=10):
+            return fail(Failure(ValueError(u"Test error")))
 
         self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
 

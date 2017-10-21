@@ -4,12 +4,12 @@ import shutil
 import tempfile
 
 from libtorrent import bencode
-from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.defer import inlineCallbacks, Deferred, succeed
 
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException
+from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException, MetainfoTimeoutException
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -65,7 +65,6 @@ class TestLibtorrentMgr(TriblerCoreTest):
     @inlineCallbacks
     def tearDown(self, annotate=True):
         self.ltmgr.shutdown()
-        self.assertTrue(os.path.exists(os.path.join(self.session_base_dir, 'lt.state')))
         yield super(TestLibtorrentMgr, self).tearDown(annotate)
 
     def test_get_session_zero_hops(self):
@@ -94,84 +93,103 @@ class TestLibtorrentMgr(TriblerCoreTest):
         ltsession = self.ltmgr.get_session(0)
         self.assertTrue(ltsession)
 
+    @deferred(timeout=20)
     def test_get_metainfo_not_ready(self):
         """
         Testing the metainfo fetching method when the DHT is not ready
         """
-        self.ltmgr.initialize()
-        self.assertFalse(self.ltmgr.get_metainfo("a" * 20, None))
+        self.ltmgr.schedule_metainfo_lookup = lambda *_: succeed(None)
+        test_deferred = self.ltmgr.get_metainfo("a" * 20, 20)
+        self.ltmgr.on_dht_ready()
+        return test_deferred
 
     @deferred(timeout=20)
-    def test_get_metainfo(self):
+    def test_get_metainfo_cached(self):
         """
         Testing the metainfo fetching method
         """
-        test_deferred = Deferred()
+        def verify_metainfo(metainfo):
+            self.assertDictEqual(metainfo, {'abc': 'test'})
 
-        def metainfo_cb(metainfo):
-            self.assertEqual(metainfo, "test")
-            test_deferred.callback(None)
-
-        self.ltmgr.initialize()
-        self.ltmgr.is_dht_ready = lambda: True
-        self.ltmgr.metainfo_cache[("a" * 20).encode('hex')] = {'meta_info': 'test'}
-        self.ltmgr.get_metainfo("a" * 20, metainfo_cb)
-
-        return test_deferred
+        self.ltmgr.dht_ready = True
+        self.ltmgr.metainfo_cache[("a" * 20).encode('hex')] = {'abc': 'test'}
+        return self.ltmgr.get_metainfo("a" * 20).addCallback(verify_metainfo)
 
     @deferred(timeout=20)
-    def test_got_metainfo(self):
+    def test_schedule_metainfo_existing_mt(self):
         """
-        Testing whether the callback is correctly invoked when we received metainfo
+        Test scheduling a metainfo lookup when there this torrent is available in the session with metadata
         """
-        test_deferred = Deferred()
-        self.ltmgr.initialize()
+        torrent_info = MockObject()
+        torrent_info.metadata = lambda: bencode({'pieces': ['a']})
 
-        def metainfo_cb(metainfo):
-            self.assertDictEqual(metainfo, {'info': {'pieces': ['a']}, 'leechers': 0,
-                                            'nodes': [], 'seeders': 0, 'initial peers': []})
-            test_deferred.callback(None)
+        mock_handle = MockObject()
+        mock_handle.info_hash = lambda: ('a' * 20).encode('hex')
+        mock_handle.is_valid = lambda: True
+        mock_handle.torrent_file = lambda: torrent_info
+        mock_handle.has_metadata = lambda: True
 
-        fake_handle = MockObject()
+        mock_download = MockObject()
+        mock_download.get_handle = lambda: succeed(mock_handle)
+
+        self.ltmgr.torrents[('a' * 20).encode('hex')] = mock_download, None
+        return self.ltmgr.schedule_metainfo_lookup('a' * 20, 30)
+
+    @deferred(timeout=20)
+    def test_schedule_metainfo_lookup(self):
+        """
+        Testing whether we can successfully fetch metainfo
+        """
         torrent_info = MockObject()
         torrent_info.metadata = lambda: bencode({'pieces': ['a']})
         torrent_info.trackers = lambda: []
-        fake_handle.get_peer_info = lambda: []
-        fake_handle.torrent_file = lambda: torrent_info
 
-        self.ltmgr.get_session().remove_torrent = lambda *_: None
+        mock_handle = MockObject()
+        mock_handle.is_valid = lambda: True
+        mock_handle.info_hash = lambda: ('a' * 20).encode('hex')
+        mock_handle.torrent_file = lambda: torrent_info
+        mock_handle.get_peer_info = lambda: []
 
-        self.ltmgr.metainfo_requests['a' * 20] = {
-            'handle': fake_handle,
-            'timeout_callbacks': [],
-            'callbacks': [metainfo_cb],
-            'notify': False
-        }
-        self.ltmgr.got_metainfo("a" * 20)
+        mock_lt_session = MockObject()
+        mock_lt_session.stop_upnp = lambda: None
+        mock_lt_session.save_state = lambda: None
+        mock_lt_session.add_torrent = lambda _: mock_handle
+        self.ltmgr.get_session = lambda *_dummy1, **_dummy2: mock_lt_session
+
+        test_deferred = self.ltmgr.schedule_metainfo_lookup('a' * 20, 30)
+        mock_download_impl = MockObject()
+        mock_download_impl.process_alert = lambda *_: None
+        self.ltmgr.torrents[('a' * 20).encode('hex')] = mock_download_impl, None
+
+        self.assertIn(('a' * 20).encode('hex'), self.ltmgr.metainfo_deferreds)
+
+        mock_alert = MockObject()
+        mock_alert.handle = mock_handle
+        mock_alert.__class__.__name__ = 'metadata_received_alert'
+        self.ltmgr.process_alert(mock_alert)
 
         return test_deferred
 
     @deferred(timeout=20)
-    def test_got_metainfo_timeout(self):
+    def test_metainfo_timeout(self):
         """
-        Testing whether the callback is correctly invoked when we received metainfo after timeout
+        Test whether the timeout mechanism of the metainfo lookup is working
         """
         test_deferred = Deferred()
 
-        def metainfo_timeout_cb(metainfo):
-            self.assertEqual(metainfo, 'a' * 20)
+        mock_handle = MockObject()
+
+        mock_lt_session = MockObject()
+        mock_lt_session.stop_upnp = lambda: None
+        mock_lt_session.save_state = lambda: None
+        mock_lt_session.add_torrent = lambda _: mock_handle
+        self.ltmgr.get_session = lambda *_dummy1, **_dummy2: mock_lt_session
+
+        def on_timeout(failure):
+            self.assertIsInstance(failure.value, MetainfoTimeoutException)
             test_deferred.callback(None)
 
-        fake_handle = MockObject()
-
-        self.ltmgr.initialize()
-        self.ltmgr.metainfo_requests[('a' * 20).encode('hex')] = {'handle': fake_handle,
-                                                                  'timeout_callbacks': [metainfo_timeout_cb],
-                                                                  'callbacks': [],
-                                                                  'notify': True}
-        self.ltmgr.get_session().remove_torrent = lambda _dummy1, _dummy2: None
-        self.ltmgr.got_metainfo(('a' * 20).encode('hex'), timeout=True)
-
+        self.ltmgr.schedule_metainfo_lookup('a' * 20, 0.1).addErrback(on_timeout)
         return test_deferred
 
     def test_add_torrent(self):
@@ -189,7 +207,7 @@ class TestLibtorrentMgr(TriblerCoreTest):
         mock_ltsession.stop_upnp = lambda: None
         mock_ltsession.save_state = lambda: None
 
-        self.ltmgr.get_session = lambda *_: mock_ltsession
+        self.ltmgr.get_session = lambda *_dummy1, **_dummy2: mock_ltsession
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
 
         infohash = MockObject()
@@ -212,7 +230,7 @@ class TestLibtorrentMgr(TriblerCoreTest):
         mock_ltsession.stop_upnp = lambda: None
         mock_ltsession.save_state = lambda: None
 
-        self.ltmgr.get_session = lambda *_: mock_ltsession
+        self.ltmgr.get_session = lambda *_dummy1, **_dummy2: mock_ltsession
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
 
         infohash = MockObject()
@@ -325,3 +343,11 @@ class TestLibtorrentMgr(TriblerCoreTest):
         filename = os.path.join(download.session.get_downloads_pstate_dir(), basename)
 
         self.assertTrue(os.path.isfile(filename))
+
+    def test_get_cached_metainfo(self):
+        """
+        Test whether cached metainfo is returned by the libtorrent manager
+        """
+        self.assertIsNone(self.ltmgr._get_cached_metainfo('a' * 20))
+        self.ltmgr._add_cached_metainfo('a' * 20, {'abc': 'def'})
+        self.assertDictEqual(self.ltmgr._get_cached_metainfo('a' * 20), {'abc': 'def'})

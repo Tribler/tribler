@@ -194,7 +194,7 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
 
         tags = {"retrieved": threading.Event()}
 
-        self.session.lm.ltmgr.get_metainfo(self.create_good_url(), torrentdef_retrieved, timeout=60)
+        self.session.lm.ltmgr.get_metainfo(self.create_good_url(), timeout=60).addCallback(torrentdef_retrieved)
 
         def do_supply():
             # supply fake addresses (regular dht obviously wont work here)
