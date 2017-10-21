@@ -108,3 +108,13 @@ class TorrentFileException(TriblerException):
 
     def __init__(self, msg=None):
         TriblerException.__init__(self, msg)
+
+
+class MetainfoTimeoutException(TriblerException):
+    """
+    The metainfo lookup did timeout.
+    """
+
+    def __init__(self, infohash, msg=None):
+        TriblerException.__init__(self, msg)
+        self.infohash = infohash

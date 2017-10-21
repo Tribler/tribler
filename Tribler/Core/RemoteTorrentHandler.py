@@ -459,8 +459,8 @@ class MagnetRequester(Requester):
             self._logger.debug(u"requesting %s priority %s through magnet link %s",
                                infohash_str, self._priority, magnetlink)
 
-            self._session.lm.ltmgr.get_metainfo(magnetlink, self._success_callback,
-                                                timeout=self.TIMEOUT, timeout_callback=self._failure_callback)
+            self._session.lm.ltmgr.get_metainfo(magnetlink, timeout=self.TIMEOUT)\
+                .addCallbacks(self._success_callback, self._failure_callback)
             self._running_requests.append(infohash)
 
     @call_on_reactor_thread
@@ -483,10 +483,12 @@ class MagnetRequester(Requester):
         self._start_pending_requests()
 
     @call_on_reactor_thread
-    def _failure_callback(self, infohash):
+    def _failure_callback(self, failure):
         """
         The callback that will be called by LibtorrentMgr when a download failed.
         """
+        infohash = failure.value.infohash.decode('hex')
+
         if infohash not in self._running_requests:
             self._logger.debug(u"++ failed INFOHASH: %s", hexlify(infohash))
             for ih in self._running_requests:

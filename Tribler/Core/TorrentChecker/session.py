@@ -729,8 +729,8 @@ class FakeDHTSession(TrackerSession):
             self.result_deferred.errback(Failure(RuntimeError("DHT timeout")))
 
         if self._session:
-            self._session.lm.ltmgr.get_metainfo(self.infohash, callback=on_metainfo_received,
-                                                timeout_callback=on_metainfo_timeout, timeout=self.timeout)
+            self._session.lm.ltmgr.get_metainfo(self.infohash, timeout=self.timeout)\
+                .addCallbacks(on_metainfo_received, on_metainfo_timeout)
 
         return self.result_deferred
 
