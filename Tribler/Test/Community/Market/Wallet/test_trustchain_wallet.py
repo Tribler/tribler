@@ -16,7 +16,11 @@ class TestTrustchainWallet(AbstractServer):
         yield super(TestTrustchainWallet, self).setUp(annotate=annotate)
 
         latest_block = MockObject()
-        latest_block.transaction = {"total_up": 10 * 1024 * 1024, "total_down": 5 * 1024 * 1024}
+        latest_block.up = 10 * 1024 * 1024
+        latest_block.down = 5 * 1024 * 1024
+        latest_block.total_up = latest_block.up
+        latest_block.total_down = latest_block.down
+        latest_block.transaction = [latest_block.up, latest_block.down, latest_block.total_up, latest_block.total_down]
         latest_block.previous_hash_requester = 'b' * 5
 
         self.tc_community = MockObject()

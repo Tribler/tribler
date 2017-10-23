@@ -11,8 +11,8 @@ class TriblerChainBlock(TrustChainBlock):
         if len(self.transaction) != 4:
             self.transaction = [0, 0, 0, 0]
         for i in range(0, 4):
-            if not isinstance(self.transaction[i], int):
-                self.transaction[i] = int(self.transaction[i])
+            if not isinstance(self.transaction[i], long):
+                self.transaction[i] = long(self.transaction[i])
 
     @classmethod
     def create(cls, transaction, database, public_key, link=None, link_pk=None):
@@ -57,7 +57,7 @@ class TriblerChainBlock(TrustChainBlock):
 
     @up.setter
     def up(self, value):
-        assert isinstance(value, int), "Must assign int!"
+        assert isinstance(value, (long, int)), "Must assign int!"
         self.transaction[0] = value
 
     @property
@@ -66,7 +66,7 @@ class TriblerChainBlock(TrustChainBlock):
 
     @down.setter
     def down(self, value):
-        assert isinstance(value, int), "Must assign int!"
+        assert isinstance(value, (long, int)), "Must assign int!"
         self.transaction[1] = value
 
     @property
@@ -75,7 +75,7 @@ class TriblerChainBlock(TrustChainBlock):
 
     @total_up.setter
     def total_up(self, value):
-        assert isinstance(value, int), "Must assign int!"
+        assert isinstance(value, (long, int)), "Must assign int!"
         self.transaction[2] = value
 
     @property
@@ -84,7 +84,7 @@ class TriblerChainBlock(TrustChainBlock):
 
     @total_down.setter
     def total_down(self, value):
-        assert isinstance(value, int), "Must assign int!"
+        assert isinstance(value, (long, int)), "Must assign int!"
         self.transaction[3] = value
 
     def validate_transaction(self, database):

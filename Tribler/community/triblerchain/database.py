@@ -2,12 +2,13 @@ from Tribler.community.triblerchain.block import TriblerChainBlock
 
 from Tribler.community.trustchain.database import TrustChainDB
 
+LATEST_DB_VERSION = "4"
+
 
 class TriblerChainDB(TrustChainDB):
     """
     Persistence layer for the TriblerChain Community.
     """
-    LATEST_DB_VERSION = 4
     BLOCK_CLASS = TriblerChainBlock
 
     def __init__(self, working_directory, db_name):
@@ -35,8 +36,8 @@ class TriblerChainDB(TrustChainDB):
 
     def get_subjective_work_graph(self):
         graph = {}
-        db_result = self.execute(u"SELECT public_key, link_public_key, SUM(tx_up), SUM(tx_down) FROM trustchain "
-                                 u"GROUP BY public_key, link_public_key").fetchall()
+        db_result = self.execute(u"SELECT public_key, link_public_key, SUM(tx_up), SUM(tx_down) FROM %s_blocks "
+                                 u"GROUP BY public_key, link_public_key" % self.db_name).fetchall()
         if db_result:
             for row in db_result:
                 index = (str(row[0]), str(row[1]))
@@ -51,13 +52,23 @@ class TriblerChainDB(TrustChainDB):
                     graph[index] = (int(row[3]), int(row[2]))
         return graph
 
-    def get_upgrade_script(self, current_version):
+    def get_upgrade_script(self, level, to_version):
         """
         Return the upgrade script for a specific version.
         :param current_version: the version of the script to return.
         """
-        if current_version == 2 or current_version == 3:
-            return u"""
-            DROP TABLE IF EXISTS blocks;
-            DROP TABLE IF EXISTS option;
+        script = super(TriblerChainDB, self).get_upgrade_script(level, to_version)
+        if level == 0:
+            script += u"""
+            DROP TABLE IF EXISTS multi_chain;
             """
+        return script
+
+    def get_db_version(self, level=None):
+        """
+        Returns the current database version for a specific inheritance level. TrustChain = 0
+        :param level: the inheritance level who's db version to get, or Null (default) to pass the entire version string
+        :return: the current highest version of the database layout
+        """
+        # we can get away with this since the triblerchain does not have additional levels of sql schemas
+        return LATEST_DB_VERSION

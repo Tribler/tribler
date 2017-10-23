@@ -37,7 +37,8 @@ class BaseTestTrustChainCommunity(TrustChainTestCase, DispersyTestFunc):
 
     @blocking_call_on_reactor_thread
     def assertBlocksInDatabase(self, node, amount):
-        count = node.community.persistence.execute(u"SELECT COUNT(*) FROM blocks").fetchone()[0]
+        count = node.community.persistence.execute(u"SELECT COUNT(*) FROM %s_blocks" %
+                                                   node.community.persistence.db_name).fetchone()[0]
         assert count == amount, "Wrong number of blocks in database, was {0} but expected {1}".format(count, amount)
 
     @blocking_call_on_reactor_thread
@@ -92,7 +93,7 @@ class BaseTestTrustChainCommunity(TrustChainTestCase, DispersyTestFunc):
     @staticmethod
     @blocking_call_on_reactor_thread
     def clean_database(node):
-        node.community.persistence.execute(u"DELETE FROM blocks;")
+        node.community.persistence.execute(u"DELETE FROM %s_blocks;" % node.community.persistence.db_name)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -128,7 +129,7 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
         # Act
-        node.call(node.community.sign_block, target_other, other.my_member.public_key, {"id": 42})
+        node.call(node.community.sign_block, target_other, other.my_member.public_key, ["transaction value 42"])
         # Assert
         _, message = other.receive_message(names=[HALF_BLOCK]).next()
         self.assertTrue(message)
@@ -161,7 +162,7 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         target_other = self._create_target(node, other)
         node.community.dispersy.store_update_forward = mocked_publish_sig
         # Act
-        node.call(node.community.sign_block, target_other, other.my_member.public_key, {"id": 42})
+        node.call(node.community.sign_block, target_other, other.my_member.public_key, ["transaction value 42"])
 
     def test_sign_invalid_block(self):
         """
@@ -170,7 +171,7 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
         # Act
-        node.call(node.community.sign_block, target_other, 'a' * 10, {"id": 42})
+        node.call(node.community.sign_block, target_other, 'a' * 10, ["transaction value 42"])
         # Assert
 
         with self.assertRaises(StopIteration):
@@ -185,7 +186,7 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         node, other = self.create_nodes(2)
 
         # Act
-        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), {"id": 42})
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), ["transaction value 42"])
 
         # Assert
         self.assertBlocksInDatabase(other, 2)
@@ -210,10 +211,10 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         node, other, another = self.create_nodes(3)
 
         # Act
-        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), {"id": 42})
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), ["transaction value 42"])
 
         node.call(node.community.sign_block, self._create_target(node, another),
-                  another.my_member.public_key, {"id": 42})
+                  another.my_member.public_key, ["transaction value 42"])
         another.give_message(another.receive_message(names=[HALF_BLOCK]).next()[1], node)
 
         # Assert
@@ -222,15 +223,15 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
 
     def test_crawl_not_double(self):
         """
-        Test that a crawl is not send multiple times when a crawl is already happening as a result of an incoming block
+        Test that a crawl is not sent multiple times when a crawl is already happening as a result of an incoming block
         """
         # Arrange
         node, other, another = self.create_nodes(3)
 
         # Act
-        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), {"id": 42})
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), ["transaction value 42"])
         node.call(node.community.sign_block, self._create_target(node, another),
-                  another.my_member.public_key, {"id": 42})
+                  another.my_member.public_key, ["transaction value 42"])
         message = another.receive_message(names=[HALF_BLOCK]).next()[1]
         # this triggers the crawl
         another.give_message(message, node)
@@ -251,8 +252,8 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         node, other, another = self.create_nodes(3)
 
         # Act
-        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), {"id": 42})
-        TestTrustChainCommunity.create_block(node, another, self._create_target(node, another), {"id": 42})
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), ["transaction value 42"])
+        TestTrustChainCommunity.create_block(node, another, self._create_target(node, another), ["value 42"])
 
         # Assert
         self.assertBlocksInDatabase(node, 4)
@@ -268,7 +269,7 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         node, other, crawler = self.create_nodes(3)
 
         # Act
-        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), {"id": 42})
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), ["transaction value 42"])
         TestTrustChainCommunity.crawl_node(crawler, node, self._create_target(crawler, node))
 
         # Assert
@@ -284,7 +285,7 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         node, other, crawler = self.create_nodes(3)
 
         # Act
-        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), {"id": 42})
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), ["transaction value 42"])
         TestTrustChainCommunity.crawl_node(crawler, node, self._create_target(crawler, node), GENESIS_SEQ)
 
         # Assert
@@ -300,9 +301,9 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         node, other, crawler = self.create_nodes(3)
 
         # Act
-        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), {}) # sq 1
-        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), {}) # sq 2
-        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), {}) # sq 3
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), ["sequence number 1"])
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), ["sequence number 2"])
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), ["sequence number 3"])
 
         self.clean_database(crawler)
         self.assertBlocksInDatabase(crawler, 0)
@@ -338,7 +339,7 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         # Arrange
         node, other, crawler = self.create_nodes(3)
 
-        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), {"id": 42})
+        TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), ["transaction value 42"])
         TestTrustChainCommunity.crawl_node(crawler, other, self._create_target(crawler, other))
 
         # Act
@@ -358,8 +359,8 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         node, other, crawler = self.create_nodes(3)
         target_other = self._create_target(node, other)
 
-        TestTrustChainCommunity.create_block(node, other, target_other, {"id": 42})
-        TestTrustChainCommunity.create_block(node, other, target_other, {"id": 42})
+        TestTrustChainCommunity.create_block(node, other, target_other, ["transaction value 42"])
+        TestTrustChainCommunity.create_block(node, other, target_other, ["transaction value 42"])
 
         # Act
         # Request the same block
@@ -379,7 +380,7 @@ class TestTrustChainCommunity(BaseTestTrustChainCommunity):
         """
         # Arrange
         node, other = self.create_nodes(2)
-        transaction = {}
+        transaction = ['42']
         TestTrustChainCommunity.create_block(node, other, self._create_target(node, other), transaction)
         TestTrustChainCommunity.create_block(other, node, self._create_target(other, node), transaction)
 

@@ -39,7 +39,7 @@ class MarketCommunityTests(MarketCommunity):
         super(MarketCommunityTests, self).received_block_pair(messages)
 
         for message in messages:
-            if message.payload.block1.transaction["type"] == 'tx_done' and message.name == BLOCK_PAIR_BROADCAST:
+            if message.payload.block1.transaction_dict["type"] == 'tx_done' and message.name == BLOCK_PAIR_BROADCAST:
                 self.test_deferred.callback(None)
 
 

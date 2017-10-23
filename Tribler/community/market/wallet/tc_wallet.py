@@ -33,8 +33,8 @@ class TrustchainWallet(Wallet):
 
     def get_balance(self):
         latest_block = self.tc_community.persistence.get_latest(self.tc_community.my_member.public_key)
-        total_up = latest_block.transaction["total_up"] / MEGA_DIV if latest_block else 0
-        total_down = latest_block.transaction["total_down"] / MEGA_DIV if latest_block else 0
+        total_up = latest_block.total_up / MEGA_DIV if latest_block else 0
+        total_down = latest_block.total_down / MEGA_DIV if latest_block else 0
         return succeed({'available': total_up - total_down, 'pending': 0, 'currency': self.get_identifier()})
 
     def transfer(self, quantity, candidate):
@@ -56,11 +56,10 @@ class TrustchainWallet(Wallet):
         return self.get_balance().addCallback(on_balance)
 
     def send_signature(self, candidate, quantity):
-        transaction = {"up": 0, "down": int(quantity * MEGA_DIV)}
-        self.tc_community.sign_block(candidate, candidate.get_member().public_key, transaction)
-        latest_block = self.tc_community.persistence.get_latest(self.tc_community.my_member.public_key)
+        transaction = [0, int(quantity * MEGA_DIV)]
+        latest_block = self.tc_community.sign_block(candidate, candidate.get_member().public_key, transaction)
         txid = "%s.%s.%d.%d" % (latest_block.public_key.encode('hex'),
-                                latest_block.sequence_number, 0, int(quantity * MEGA_DIV))
+                                latest_block.sequence_number, latest_block.up, latest_block.down)
 
         self.transaction_history.append({
             'id': txid,

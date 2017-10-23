@@ -1,3 +1,4 @@
+from copy import deepcopy
 from hashlib import sha256
 from struct import pack_into, unpack_from, calcsize
 
@@ -26,9 +27,11 @@ class TrustChainBlock(object):
 
     def __init__(self, data=None):
         super(TrustChainBlock, self).__init__()
-        if data is None:
-            # data
+        if hasattr(self, 'transaction'):
+            assert isinstance(self.transaction, list), "Transaction must be a list"
+        else:
             self.transaction = []
+        if data is None:
             # identity
             self.public_key = EMPTY_PK
             self.sequence_number = GENESIS_SEQ
@@ -52,7 +55,7 @@ class TrustChainBlock(object):
             if isinstance(self.signature, buffer):
                 self.signature = str(self.signature)
             for i in range(0, len(data) - 7):
-                self.transaction[i] = data[i+7]
+                self.transaction.append(data[i+7])
                 if isinstance(self.transaction[i], buffer):
                     self.transaction[i] = str(self.transaction[i])
 
@@ -64,7 +67,7 @@ class TrustChainBlock(object):
             self.sequence_number,
             self.link_public_key.encode("hex")[-8:],
             self.link_sequence_number,
-            self.transaction)
+            repr(self.transaction))
 
     @property
     def hash(self):
@@ -265,11 +268,11 @@ class TrustChainBlock(object):
         blk = database.get_latest(public_key)
         ret = cls()
         if link:
-            ret.transaction = list(link.transaction)    # copy construct, alterations should not propagate
+            ret.transaction = deepcopy(link.transaction)    # copy construct, alterations should not propagate
             ret.link_public_key = link.public_key
             ret.link_sequence_number = link.sequence_number
         else:
-            ret.transaction = transaction
+            ret.transaction = deepcopy(transaction)    # copy construct, alterations should not propagate
             ret.link_public_key = link_pk
 
         if blk:
@@ -319,8 +322,8 @@ class TrustChainBlock(object):
         :return: A database insertable tuple
         """
         return tuple([buffer(self.public_key), self.sequence_number, buffer(self.link_public_key),
-                      self.link_sequence_number, buffer(self.previous_hash), buffer(self.signature), buffer(self.hash)]+
-                     [buffer(tx) if isinstance(tx, basestring) else tx for tx in self.transaction])
+                      self.link_sequence_number, buffer(self.previous_hash), buffer(self.signature), buffer(self.hash)]
+                     + [buffer(tx) if isinstance(tx, basestring) else tx for tx in self.transaction])
 
     def __iter__(self):
         """
@@ -335,13 +338,6 @@ class TrustChainBlock(object):
             else:
                 yield key, value
         yield "hash", self.hash.encode("hex")
-
-        # "previous_hash_requester": base64.encodestring(self.previous_hash_requester).strip(),
-        # "previous_hash_responder": base64.encodestring(self.previous_hash_responder).strip(),
-        # "public_key_requester": base64.encodestring(self.public_key_requester).strip(),
-        # "signature_requester": base64.encodestring(self.signature_requester).strip(),
-        # "public_key_responder": base64.encodestring(self.public_key_responder).strip(),
-        # "signature_responder": base64.encodestring(self.signature_responder).strip(),
 
 
 class ValidationResult(object):

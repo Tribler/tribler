@@ -35,6 +35,7 @@ class TriblerChainCommunity(TrustChainCommunity):
     """
     BLOCK_CLASS = TriblerChainBlock
     DB_CLASS = TriblerChainDB
+    DB_NAME = "triblerchain"
     SIGN_DELAY = 5
 
     def __init__(self, *args, **kwargs):
@@ -110,9 +111,9 @@ class TriblerChainCommunity(TrustChainCommunity):
         """
         block = message.payload.block
         pend = self.pending_bytes.get(block.public_key)
-        if not pend or not (pend.up - block.transaction['down'] >= 0 and pend.down - block.transaction['up'] >= 0):
+        if not pend or not (pend.up - block.down >= 0 and pend.down - block.up >= 0):
             self.logger.info("Request block counter party does not have enough bytes pending. U: %d D: %d",
-                             pend.up if pend is not None else 0, pend.down if pend is not None else 0)
+                             pend.up if pend is not None else -1, pend.down if pend is not None else -1)
 
             # These bytes might have been bought on the market so we store this message and process it when we
             # receive a payment message that confirms we have bought these bytes.
@@ -137,13 +138,13 @@ class TriblerChainCommunity(TrustChainCommunity):
         statistics["peers_that_helped_pk"] = interacts[1] if interacts[1] is not None else 0
         if latest_block:
             statistics["total_blocks"] = latest_block.sequence_number
-            statistics["total_up"] = latest_block.transaction["total_up"]
-            statistics["total_down"] = latest_block.transaction["total_down"]
+            statistics["total_up"] = latest_block.total_up
+            statistics["total_down"] = latest_block.total_down
             statistics["latest_block"] = dict(latest_block)
 
             # Set up/down
-            statistics["latest_block"]["up"] = latest_block.transaction["up"]
-            statistics["latest_block"]["down"] = latest_block.transaction["down"]
+            statistics["latest_block"]["up"] = latest_block.up
+            statistics["latest_block"]["down"] = latest_block.down
         else:
             statistics["total_blocks"] = 0
             statistics["total_up"] = 0
@@ -176,7 +177,7 @@ class TriblerChainCommunity(TrustChainCommunity):
             if up > down or (up == down and self.my_member.public_key > pk):
                 self.register_task("sign_%s" % tunnel.circuit_id,
                                    reactor.callLater(self.SIGN_DELAY, self.sign_block, candidate, pk,
-                                                     {'up': tunnel.bytes_up, 'down': tunnel.bytes_down}))
+                                                     [tunnel.bytes_up, tunnel.bytes_down]))
             else:
                 pend = self.pending_bytes.get(pk)
                 if not pend:
@@ -210,7 +211,7 @@ class TriblerChainCommunity(TrustChainCommunity):
         """
         block = self.persistence.get_latest(member.public_key)
         if block:
-            return block.transaction['total_up'] + block.transaction['total_down']
+            return block.total_up + block.total_down
         else:
             # We need a minimum of 1 trust to have a chance to be selected in the categorical distribution.
             return 1

@@ -9,7 +9,7 @@ from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
 from Tribler.dispersy.member import DummyMember
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TestBlock
+from Tribler.Test.Community.Triblerchain.test_triblerchain_utilities import TriblerTestBlock
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.twisted_thread import deferred
 
@@ -50,7 +50,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         block.public_key = self.member.public_key
         block.link_public_key = "deadbeef".decode("HEX")
         block.link_sequence_number = 21
-        block.transaction = {"up": 42, "down": 8, "total_up": 1024, "total_down": 2048}
+        block.transaction = [42L, 8L, 1024L, 2048L]
         block.sequence_number = 3
         block.previous_hash = "babecafe".decode("HEX")
         block.signature = "babebeef".decode("HEX")
@@ -115,7 +115,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
             response_json = json.loads(response)
             self.assertEqual(len(response_json["blocks"]), 1)
 
-        test_block = TestBlock()
+        test_block = TriblerTestBlock()
         self.tc_community.persistence.add_block(test_block)
         self.should_check_equality = False
         return self.do_request('trustchain/blocks/%s?limit=10' % test_block.public_key.encode("HEX"),
@@ -127,9 +127,8 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         Testing whether the API takes large values for the limit
         """
         self.should_check_equality = False
-        return self.do_request('trustchain/blocks/%s?limit=10000000' % TestBlock().public_key.encode("HEX"),
+        return self.do_request('trustchain/blocks/%s?limit=10000000' % TriblerTestBlock().public_key.encode("HEX"),
                                expected_code=400)
-
 
     @deferred(timeout=10)
     def test_get_blocks_bad_limit_negative(self):
@@ -137,7 +136,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         Testing whether the API takes negative values for the limit
         """
         self.should_check_equality = False
-        return self.do_request('trustchain/blocks/%s?limit=-10000000' % TestBlock().public_key.encode("HEX"),
+        return self.do_request('trustchain/blocks/%s?limit=-10000000' % TriblerTestBlock().public_key.encode("HEX"),
                                expected_code=400)
 
     @deferred(timeout=10)
@@ -146,7 +145,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         Testing whether the API takes odd values for the limit
         """
         self.should_check_equality = False
-        return self.do_request('trustchain/blocks/%s?limit=bla' % TestBlock().public_key.encode("HEX"),
+        return self.do_request('trustchain/blocks/%s?limit=bla' % TriblerTestBlock().public_key.encode("HEX"),
                                expected_code=400)
 
     @deferred(timeout=10)
@@ -155,7 +154,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         Testing whether the API takes no values for the limit
         """
         self.should_check_equality = False
-        return self.do_request('trustchain/blocks/%s?limit=' % TestBlock().public_key.encode("HEX"),
+        return self.do_request('trustchain/blocks/%s?limit=' % TriblerTestBlock().public_key.encode("HEX"),
                                expected_code=400)
 
     @deferred(timeout=10)
@@ -164,7 +163,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         Testing whether the API takes no limit argument
         """
         self.should_check_equality = False
-        return self.do_request('trustchain/blocks/%s' % TestBlock().public_key.encode("HEX"),
+        return self.do_request('trustchain/blocks/%s' % TriblerTestBlock().public_key.encode("HEX"),
                                expected_code=200)
 
     @deferred(timeout=10)

@@ -3,7 +3,7 @@ All conversions for the TrustChain Community.
 """
 from struct import pack, unpack_from, calcsize
 
-from Tribler.community.trustchain.block import TrustChainBlock, block_pack_size, PK_LENGTH, EMPTY_PK
+from Tribler.community.trustchain.block import block_pack_size, PK_LENGTH, EMPTY_PK
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 
@@ -21,6 +21,8 @@ class TrustChainConversion(BinaryConversion):
         super(TrustChainConversion, self).__init__(community, "\x01")
         from Tribler.community.trustchain.community import HALF_BLOCK, CRAWL, HALF_BLOCK_BROADCAST,\
             BLOCK_PAIR, BLOCK_PAIR_BROADCAST
+
+        self.block_class = community.BLOCK_CLASS
 
         # Define Request Signature.
         self.define_meta_message(chr(1), community.get_meta_message(HALF_BLOCK),
@@ -43,8 +45,7 @@ class TrustChainConversion(BinaryConversion):
         """
         return message.payload.block.pack(),
 
-    @staticmethod
-    def _decode_half_block(placeholder, offset, data):
+    def _decode_half_block(self, placeholder, offset, data):
         """
         Decode an incoming half block message.
         :param placeholder:
@@ -52,11 +53,11 @@ class TrustChainConversion(BinaryConversion):
         :param data: ByteStream containing the message.
         :return: (offset, HalfBlockPayload.impl)
         """
-        if len(data) < offset + block_pack_size:
+        if len(data) < offset + (block_pack_size + 4):          # add 4 for the transaction length field
             raise DropPacket("Unable to decode the payload")
 
         try:
-            _, block = TrustChainBlock.unpack(data, offset)
+            _, block = self.block_class.unpack(data, offset)
         except (IndexError, ValueError):
             raise DropPacket("Invalid block contents")
 
@@ -71,8 +72,7 @@ class TrustChainConversion(BinaryConversion):
         """
         return message.payload.block1.pack() + message.payload.block2.pack(),
 
-    @staticmethod
-    def _decode_block_pair(placeholder, offset, data):
+    def _decode_block_pair(self, placeholder, offset, data):
         """
         Decode an incoming block pair message.
         :param placeholder:
@@ -80,12 +80,12 @@ class TrustChainConversion(BinaryConversion):
         :param data: ByteStream containing the message.
         :return: (offset, BlockPairPayload.impl)
         """
-        if len(data) < offset + block_pack_size * 2:
+        if len(data) < offset + (block_pack_size + 4) * 2:      # add 4 for the transaction length field
             raise DropPacket("Unable to decode the payload")
 
         try:
-            new_offset, block1 = TrustChainBlock.unpack(data, offset)
-            _, block2 = TrustChainBlock.unpack(data, new_offset)
+            new_offset, block1 = self.block_class.unpack(data, offset)
+            _, block2 = self.block_class.unpack(data, new_offset)
         except (IndexError, ValueError):
             raise DropPacket("Invalid block contents")
 
