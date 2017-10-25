@@ -5,6 +5,7 @@ import logging.config
 
 from check_os import check_environment
 from check_os import error_and_exit
+from TriblerGUI.utilities import get_base_path
 
 
 def setup_logging():
@@ -13,15 +14,7 @@ def setup_logging():
     .Tribler directory in each platforms
     """
     # First check if logger.conf is present or not
-    if getattr(sys, 'frozen', False):
-        # If the application is run as a bundle, the pyInstaller bootloader
-        # extends the sys module by a flag frozen=True and sets the app
-        # path into variable _MEIPASS'.
-        application_path = os.environ.get("_MEIPASS", os.path.abspath("."))
-    else:
-        application_path = os.path.dirname(os.path.abspath(__file__))
-
-    log_config = os.path.join(application_path, "logger.conf")
+    log_config = os.path.join(get_base_path(), "logger.conf")
 
     if not os.path.exists(log_config):
         print "Log configuration file not found at location '%s'" % log_config
