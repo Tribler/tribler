@@ -144,3 +144,24 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         self.expected_votecast_vote = VOTE_UNSUBSCRIBE
         return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'), expected_code=200,
                                expected_json=expected_json, request_type='DELETE').addCallback(verify_votecast_made)
+
+    @deferred(timeout=10)
+    def test_is_channel_subscribed(self):
+        """
+        Testing the subscription status of channel
+        """
+        cid = self.insert_channel_in_db('rand1', 42, 'Test channel', 'Test description')
+        self.vote_for_channel(cid, int(time.time()))
+
+        expected_json = {"subscribed": True, "votes": 0}  # here votes represent previous dispersy votes which is zero
+        return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'), expected_code=200,
+                               expected_json=expected_json, request_type='GET')
+
+    @deferred(timeout=10)
+    def test_subscribed_status_of_non_existing_channel(self):
+        """
+        Testing the subscription status of non-existing channel
+        """
+        expected_json = {"error": UNKNOWN_CHANNEL_RESPONSE_MSG}
+        return self.do_request('channels/subscribed/deadbeef', expected_code=404, expected_json=expected_json,
+                               request_type='GET')
