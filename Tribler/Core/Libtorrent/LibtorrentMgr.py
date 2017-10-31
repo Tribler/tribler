@@ -5,10 +5,8 @@ Author(s): Egbert Bouman
 """
 import binascii
 import logging
-import random
 from urllib import url2pathname
 import tempfile
-import threading
 import os
 import time
 from binascii import hexlify
@@ -16,16 +14,15 @@ from copy import deepcopy
 from shutil import rmtree
 
 from twisted.internet import reactor, threads
-from twisted.internet.defer import succeed, fail
+from twisted.internet.defer import succeed, fail, Deferred, returnValue
 from twisted.python.failure import Failure
 
 import libtorrent as lt
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
-from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException
-from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
-                                     NTFY_REACHABLE, NTFY_TORRENTS)
+from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException, MetainfoTimeoutException
+from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_REACHABLE
 from Tribler.Core.version import version_id
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.dispersy.taskmanager import LoopingCall, TaskManager
@@ -56,9 +53,11 @@ class LibtorrentMgr(TaskManager):
 
         self.dht_ready = False
 
+        # Map of infohash -> Deferred that we should schedule for metainfo lookup when the DHT is ready
+        self.dht_ready_lookups = {}
+
         self.metadata_tmpdir = None
-        self.metainfo_requests = {}
-        self.metainfo_lock = threading.RLock()
+        self.metainfo_deferreds = {}
         self.metainfo_cache = {}
 
         self.process_alerts_lc = self.register_task("process_alerts", LoopingCall(self._task_process_alerts))
@@ -84,25 +83,28 @@ class LibtorrentMgr(TaskManager):
     def shutdown(self):
         self.cancel_all_pending_tasks()
 
-        # remove all upnp mapping
-        for upnp_handle in self.upnp_mapping_dict.itervalues():
-            self.get_session().delete_port_mapping(upnp_handle)
-        self.upnp_mapping_dict = None
+        session = self.get_session(create=False)
+        if session:
+            # remove all upnp mapping
+            for upnp_handle in self.upnp_mapping_dict.itervalues():
+                self.get_session().delete_port_mapping(upnp_handle)
+            self.upnp_mapping_dict = None
 
-        self.get_session().stop_upnp()
+            self.get_session().stop_upnp()
 
-        # Save libtorrent state
-        ltstate_file = open(os.path.join(self.trsession.get_state_dir(), LTSTATE_FILENAME), 'w')
-        ltstate_file.write(lt.bencode(self.get_session().save_state()))
-        ltstate_file.close()
+            # Save libtorrent state
+            ltstate_file = open(os.path.join(self.trsession.get_state_dir(), LTSTATE_FILENAME), 'w')
+            ltstate_file.write(lt.bencode(self.get_session().save_state()))
+            ltstate_file.close()
 
         for ltsession in self.ltsessions.itervalues():
             del ltsession
         self.ltsessions = None
 
         # remove metadata temporary directory
-        rmtree(self.metadata_tmpdir)
-        self.metadata_tmpdir = None
+        if self.metadata_tmpdir:
+            rmtree(self.metadata_tmpdir)
+            self.metadata_tmpdir = None
 
         self.trsession = None
 
@@ -188,9 +190,12 @@ class LibtorrentMgr(TaskManager):
 
         return ltsession
 
-    def get_session(self, hops=0):
+    def get_session(self, hops=0, create=True):
         if hops not in self.ltsessions:
-            self.ltsessions[hops] = self.create_session(hops)
+            if create:
+                self.ltsessions[hops] = self.create_session(hops)
+            else:
+                return None
 
         return self.ltsessions[hops]
 
@@ -259,38 +264,37 @@ class LibtorrentMgr(TaskManager):
 
     def add_torrent(self, torrentdl, atp):
         # If we are collecting the torrent for this infohash, abort this first.
-        with self.metainfo_lock:
-            ltsession = self.get_session(atp.pop('hops', 0))
+        ltsession = self.get_session(atp.pop('hops', 0))
 
-            if 'ti' in atp:
-                infohash = str(atp['ti'].info_hash())
-            elif 'url' in atp:
-                infohash = binascii.hexlify(parse_magnetlink(atp['url'])[1])
-            else:
-                raise ValueError('No ti or url key in add_torrent_params')
+        if 'ti' in atp:
+            infohash = str(atp['ti'].info_hash())
+        elif 'url' in atp:
+            infohash = binascii.hexlify(parse_magnetlink(atp['url'])[1])
+        else:
+            raise ValueError('No ti or url key in add_torrent_params')
 
-            if infohash in self.metainfo_requests:
-                self._logger.info("killing get_metainfo request for %s", infohash)
-                request_handle = self.metainfo_requests.pop(infohash)['handle']
-                if request_handle:
-                    ltsession.remove_torrent(request_handle, 0)
+        if infohash in self.metainfo_deferreds and infohash in [str(h.info_hash()) for h in ltsession.get_torrents()]:
+            self._logger.info("killing get_metainfo request for %s", infohash)
+            request_handle = ltsession.find_torrent(lt.sha1_hash(infohash))
+            if request_handle:
+                ltsession.remove_torrent(request_handle, 0)
 
-            # Check if we added this torrent before
-            known = [str(h.info_hash()) for h in ltsession.get_torrents()]
-            if infohash in known:
-                self.torrents[infohash] = (torrentdl, ltsession)
-                return ltsession.find_torrent(lt.sha1_hash(infohash))
-
-            # Otherwise, add it anew
-            torrent_handle = ltsession.add_torrent(encode_atp(atp))
-            infohash = str(torrent_handle.info_hash())
-            if infohash in self.torrents:
-                raise DuplicateDownloadException("This download already exists.")
+        # Check if we added this torrent before
+        known = [str(h.info_hash()) for h in ltsession.get_torrents()]
+        if infohash in known:
             self.torrents[infohash] = (torrentdl, ltsession)
+            return ltsession.find_torrent(lt.sha1_hash(infohash))
 
-            self._logger.debug("added torrent %s", infohash)
+        # Otherwise, add it anew
+        torrent_handle = ltsession.add_torrent(encode_atp(atp))
+        infohash = str(torrent_handle.info_hash())
+        if infohash in self.torrents:
+            raise DuplicateDownloadException("This download already exists.")
+        self.torrents[infohash] = (torrentdl, ltsession)
 
-            return torrent_handle
+        self._logger.debug("added torrent %s", infohash)
+
+        return torrent_handle
 
     def remove_torrent(self, torrentdl, removecontent=False):
         handle = torrentdl.handle
@@ -332,11 +336,15 @@ class LibtorrentMgr(TaskManager):
                 infohash = str(handle.info_hash())
                 if infohash in self.torrents:
                     self.torrents[infohash][0].process_alert(alert, alert_type)
-                elif infohash in self.metainfo_requests:
-                    if isinstance(alert, lt.metadata_received_alert):
-                        self.got_metainfo(infohash)
-                else:
-                    self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
+
+                if infohash in self.metainfo_deferreds and alert.__class__.__name__ == 'metadata_received_alert':
+                    self._logger.debug('Received libtorrent metadata (infohash: %s)', infohash)
+
+                    self.cancel_pending_task("timeout_metainfo_lookup_%s" % infohash)
+
+                    metainfo = self.handle_to_metainfo(handle, infohash)
+                    self.metainfo_deferreds[infohash].callback(metainfo)
+                    del self.metainfo_deferreds[infohash]
             else:
                 if alert_type == 'torrent_removed_alert':
                     info_hash = str(alert.info_hash)
@@ -345,140 +353,109 @@ class LibtorrentMgr(TaskManager):
                         del self.torrents[info_hash]
                 self._logger.debug("Alert for invalid torrent")
 
-    def get_metainfo(self, infohash_or_magnet, callback, timeout=30, timeout_callback=None, notify=True):
-        if not self.is_dht_ready() and timeout > 5:
-            self._logger.info("DHT not ready, rescheduling get_metainfo")
+    def handle_to_metainfo(self, handle, infohash):
+        metainfo = {"info": lt.bdecode(get_info_from_handle(handle).metadata())}
+        trackers = [tracker.url for tracker in get_info_from_handle(handle).trackers()]
+        peers = []
+        leechers = 0
+        seeders = 0
+        for peer in handle.get_peer_info():
+            peers.append(peer.ip)
+            if peer.progress == 1:
+                seeders += 1
+            else:
+                leechers += 1
 
-            def schedule_call():
-                random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
-                self.register_task("schedule_metainfo_lookup_%s" % random_id,
-                                   reactor.callLater(5, lambda i=infohash_or_magnet, c=callback, t=timeout - 5,
-                                                  tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n)))
+        if trackers:
+            if len(trackers) > 1:
+                metainfo["announce-list"] = [trackers]
+            metainfo["announce"] = trackers[0]
+        else:
+            metainfo["nodes"] = []
 
-            reactor.callFromThread(schedule_call)
-            return
+        metainfo["initial peers"] = peers
+        metainfo["leechers"] = leechers
+        metainfo["seeders"] = seeders
 
+        self._add_cached_metainfo(infohash, metainfo)
+
+        # let's not print the hashes of the pieces
+        debuginfo = deepcopy(metainfo)
+        del debuginfo['info']['pieces']
+        self._logger.debug('got metainfo result %s', debuginfo)
+
+        return metainfo
+
+    def get_metainfo(self, infohash_or_magnet, timeout=30):
+        self._logger.debug('Fetching metainfo for infohash %s (timeout: %s)', infohash_or_magnet, timeout)
+
+        if not self.is_dht_ready():
+            self._logger.info("DHT not ready, deferring the metainfo lookup")
+            lookup_deferred = Deferred().addCallback(
+                lambda ih_or_magnet: self.schedule_metainfo_lookup(ih_or_magnet, timeout))
+            self.dht_ready_lookups[infohash_or_magnet] = lookup_deferred
+            return lookup_deferred
+        else:
+            return self.schedule_metainfo_lookup(infohash_or_magnet, timeout)
+
+    def schedule_metainfo_lookup(self, infohash_or_magnet, timeout):
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
         infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
         infohash = binascii.hexlify(infohash_bin)
 
+        def schedule_timeout(deferred):
+            self.register_task("timeout_metainfo_lookup_%s" % infohash,
+                               reactor.callLater(timeout, lambda: deferred.errback(MetainfoTimeoutException(infohash))))
+
         if infohash in self.torrents:
-            return
-
-        with self.metainfo_lock:
-            self._logger.debug('get_metainfo %s %s %s', infohash_or_magnet, callback, timeout)
-
-            cache_result = self._get_cached_metainfo(infohash)
-            if cache_result:
-                callback(deepcopy(cache_result))
-
-            elif infohash not in self.metainfo_requests:
-                # Flags = 4 (upload mode), should prevent libtorrent from creating files
-                atp = {'save_path': self.metadata_tmpdir,
-                       'flags': (lt.add_torrent_params_flags_t.flag_duplicate_is_error |
-                                 lt.add_torrent_params_flags_t.flag_upload_mode)}
-                if magnet:
-                    atp['url'] = magnet
+            # The torrent seems to be available in the session already. The metadata of this torrent is either
+            # available or not.
+            def on_handle_ready(handle):
+                if handle.has_metadata():
+                    return get_info_from_handle(handle).metadata()
                 else:
-                    atp['info_hash'] = lt.big_number(infohash_bin)
-                try:
-                    handle = self.get_session().add_torrent(encode_atp(atp))
-                except TypeError as e:
-                    self._logger.warning("Failed to add torrent with infohash %s, "
-                                         "attempting to use it as it is and hoping for the best",
-                                         hexlify(infohash_bin))
-                    self._logger.warning("Error was: %s", e)
-                    atp['info_hash'] = infohash_bin
-                    handle = self.get_session().add_torrent(encode_atp(atp))
+                    metainfo_deferred = Deferred()
+                    schedule_timeout(metainfo_deferred)
+                    self.metainfo_deferreds[infohash] = metainfo_deferred
+                return metainfo_deferred
 
-                if notify:
-                    self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_STARTED, infohash_bin)
+            return self.torrents[infohash][0].get_handle().addCallback(on_handle_ready)
 
-                self.metainfo_requests[infohash] = {'handle': handle,
-                                                    'callbacks': [callback],
-                                                    'timeout_callbacks': [timeout_callback] if timeout_callback else [],
-                                                    'notify': notify}
-
-                def schedule_call():
-                    random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
-                    self.register_task("schedule_got_metainfo_lookup_%s" % random_id,
-                                       reactor.callLater(timeout, lambda: self.got_metainfo(infohash, timeout=True)))
-
-                reactor.callFromThread(schedule_call)
+        cache_result = self._get_cached_metainfo(infohash)
+        if cache_result:
+            return succeed(cache_result)
+        elif infohash in self.metainfo_deferreds:
+            return self.metainfo_deferreds[infohash]
+        else:
+            # Flags = 4 (upload mode), should prevent libtorrent from creating files
+            atp = {'save_path': self.metadata_tmpdir,
+                   'flags': (lt.add_torrent_params_flags_t.flag_duplicate_is_error |
+                             lt.add_torrent_params_flags_t.flag_upload_mode)}
+            if magnet:
+                atp['url'] = magnet
             else:
-                self.metainfo_requests[infohash]['notify'] = self.metainfo_requests[infohash]['notify'] and notify
-                callbacks = self.metainfo_requests[infohash]['callbacks']
-                if callback not in callbacks:
-                    callbacks.append(callback)
-                else:
-                    self._logger.debug('get_metainfo duplicate detected, ignoring')
+                atp['info_hash'] = lt.big_number(infohash_bin)
+            try:
+                self.get_session().add_torrent(encode_atp(atp))
+            except TypeError as e:
+                self._logger.warning("Failed to add torrent with infohash %s, "
+                                     "attempting to use it as it is and hoping for the best",
+                                     hexlify(infohash_bin))
+                self._logger.warning("Error was: %s", e)
+                atp['info_hash'] = infohash_bin
+                self.get_session().add_torrent(encode_atp(atp))
 
-    def got_metainfo(self, infohash, timeout=False):
-        with self.metainfo_lock:
-            infohash_bin = binascii.unhexlify(infohash)
-
-            if infohash in self.metainfo_requests:
-                request_dict = self.metainfo_requests.pop(infohash)
-                handle = request_dict['handle']
-                callbacks = request_dict['callbacks']
-                timeout_callbacks = request_dict['timeout_callbacks']
-                notify = request_dict['notify']
-
-                self._logger.debug('got_metainfo %s %s %s', infohash, handle, timeout)
-
-                assert handle
-                if handle:
-                    if callbacks and not timeout:
-                        metainfo = {"info": lt.bdecode(get_info_from_handle(handle).metadata())}
-                        trackers = [tracker.url for tracker in get_info_from_handle(handle).trackers()]
-                        peers = []
-                        leechers = 0
-                        seeders = 0
-                        for peer in handle.get_peer_info():
-                            peers.append(peer.ip)
-                            if peer.progress == 1:
-                                seeders += 1
-                            else:
-                                leechers += 1
-
-                        if trackers:
-                            if len(trackers) > 1:
-                                metainfo["announce-list"] = [trackers]
-                            metainfo["announce"] = trackers[0]
-                        else:
-                            metainfo["nodes"] = []
-                        if peers and notify:
-                            self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_GOT_PEERS, infohash_bin, len(peers))
-                        metainfo["initial peers"] = peers
-                        metainfo["leechers"] = leechers
-                        metainfo["seeders"] = seeders
-
-                        self._add_cached_metainfo(infohash, metainfo)
-
-                        for callback in callbacks:
-                            callback(deepcopy(metainfo))
-
-                        # let's not print the hashes of the pieces
-                        debuginfo = deepcopy(metainfo)
-                        del debuginfo['info']['pieces']
-                        self._logger.debug('got_metainfo result %s', debuginfo)
-
-                    elif timeout_callbacks and timeout:
-                        for callback in timeout_callbacks:
-                            callback(infohash_bin)
-
-                if handle:
-                    self.get_session().remove_torrent(handle, 1)
-                    if notify:
-                        self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_CLOSE, infohash_bin)
+            metainfo_deferred = Deferred()
+            schedule_timeout(metainfo_deferred)
+            self.metainfo_deferreds[infohash] = metainfo_deferred
+            return metainfo_deferred
 
     def _get_cached_metainfo(self, infohash):
         if infohash in self.metainfo_cache:
-            return self.metainfo_cache[infohash]['meta_info']
+            return self.metainfo_cache[infohash]
 
     def _add_cached_metainfo(self, infohash, metainfo):
-        self.metainfo_cache[infohash] = {'time': time.time(),
-                                         'meta_info': metainfo}
+        self.metainfo_cache[infohash] = metainfo
 
     def _task_cleanup_metainfo_cache(self):
         oldest_time = time.time() - METAINFO_CACHE_PERIOD
@@ -518,7 +495,13 @@ class LibtorrentMgr(TaskManager):
                 self._schedule_next_check(10, 1)
         else:
             self._logger.info("dht is working enough nodes are found (%d)", self.get_session().status().dht_nodes)
-            self.dht_ready = True
+            self.on_dht_ready()
+
+    def on_dht_ready(self):
+        self.dht_ready = True
+        for infohash_or_magnet in self.dht_ready_lookups.keys():
+            self.dht_ready_lookups[infohash_or_magnet].callback(infohash_or_magnet)
+        self.dht_ready_lookups = {}
 
     def _map_call_on_ltsessions(self, hops, funcname, *args, **kwargs):
         if hops is None:

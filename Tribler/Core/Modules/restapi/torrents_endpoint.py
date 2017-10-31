@@ -219,6 +219,6 @@ class TorrentHealthEndpoint(resource.Resource):
             self.finish_request(request)
 
         self.session.check_torrent_health(self.infohash.decode('hex'), timeout=timeout, scrape_now=refresh)\
-            .addCallback(on_health_result).addErrback(on_request_error)
+            .addCallbacks(on_health_result, on_request_error)
 
         return NOT_DONE_YET

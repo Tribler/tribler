@@ -112,8 +112,8 @@ class TorrentInfoEndpoint(resource.Resource):
                 on_got_metainfo(tdef.get_metainfo())
                 return NOT_DONE_YET
 
-            self.session.lm.ltmgr.get_metainfo(uri, callback=metainfo_deferred.callback, timeout=20,
-                                               timeout_callback=on_metainfo_timeout, notify=True)
+            self.session.lm.ltmgr.get_metainfo(uri, timeout=20)\
+                .addCallbacks(metainfo_deferred.callback, on_metainfo_timeout)
         else:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "invalid uri"})

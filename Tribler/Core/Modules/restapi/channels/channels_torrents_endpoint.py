@@ -212,8 +212,7 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
 
         if self.path.startswith("magnet:"):
             try:
-                self.session.lm.ltmgr.get_metainfo(self.path, callback=self.deferred.callback,
-                                                   timeout=30, timeout_callback=self.deferred.errback, notify=True)
+                self.session.lm.ltmgr.get_metainfo(self.path, timeout=30).chainDeferred(self.deferred)
             except Exception as ex:
                 self.deferred.errback(ex)
 
