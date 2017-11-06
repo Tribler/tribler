@@ -16,6 +16,9 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
     CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(Core.__file__)), "data/config_files/")
 
     def test_read_test_tribler_conf(self):
+        """
+        Test upgrading a Tribler configuration from 7.0 to 7.1
+        """
         old_config = RawConfigParser()
         old_config.read(os.path.join(self.CONFIG_PATH, "tribler70.conf"))
         new_config = TriblerConfig()
@@ -23,6 +26,10 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         self.assertEqual(result_config.get_default_safeseeding_enabled(), True)
 
     def test_read_test_libtribler_conf(self):
+        """
+        Test upgrading a libtribler configuration from 7.0 to 7.1
+        """
+        os.environ['TSTATEDIR'] = self.session_base_dir
         old_config = RawConfigParser()
         old_config.read(os.path.join(self.CONFIG_PATH, "libtribler70.conf"))
         new_config = TriblerConfig()
