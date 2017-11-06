@@ -204,3 +204,46 @@ def get_gui_setting(gui_settings, value, default, is_bool=False):
     if is_bool:
         val = val == True or val == 'true'
     return val
+
+
+def hex2(n):
+    """
+    Convert an integer < 256 to a two digit hex string.
+
+    :param n: 0 <= int < 256
+    :return: two character hex string representation of n
+    """
+    h = hex(n)
+    return h[0] + h[2] if len(h) == 3 else h[2:]
+
+
+def quote_unicode(s):
+    """
+    Convert a string s to a URI friendly representation.
+
+    :param s: the string to convert
+    :return: the URI friendly version of s
+    """
+    out = ''
+    for c in s:
+        n = ord(c)
+        nl = n & 0xFF
+        nh = (n & 0xFF00) >> 8
+        out += '%' + hex2(nh) + '%' + hex2(nl)
+    return out
+
+
+def unquote_unicode(s):
+    """
+    Unquote a string encoded with quote_unicode.
+
+    :param s: the quote_unicoded string
+    :return: the unquoted unicode string
+    """
+    out = u""
+    for i in range(0, len(s), 2):
+        n = ord(s[i])
+        n <<= 8
+        n |= ord(s[i+1])
+        out += unichr(n)
+    return out
