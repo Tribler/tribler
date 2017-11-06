@@ -109,42 +109,6 @@ class TestLaunchManyCore(TriblerCoreTest):
 
         return error_stop_deferred
 
-    @deferred(timeout=10)
-    def test_dlstates_cb_seeding(self):
-        """
-        Testing whether a download is readded when safe seeding in the download states callback in LaunchManyCore
-        """
-        readd_deferred = Deferred()
-
-        def mocked_start_download(tdef, dscfg):
-            self.assertEqual(tdef, seed_tdef)
-            self.assertEqual(dscfg, seed_download)
-            readd_deferred.callback(None)
-
-        def mocked_remove_download(download):
-            self.assertEqual(download, seed_download)
-
-        self.lm.session.start_download_from_tdef = mocked_start_download
-        self.lm.session.remove_download = mocked_remove_download
-
-        seed_tdef = TorrentDef()
-        seed_tdef.get_infohash = lambda: 'aaaa'
-        seed_download = MockObject()
-        seed_download.get_def = lambda: seed_tdef
-        seed_download.get_def().get_name_as_unicode = lambda: "test.iso"
-        seed_download.get_hops = lambda: 0
-        seed_download.get_safe_seeding = lambda: True
-        seed_download.copy = lambda: seed_download
-        seed_download.set_hops = lambda _: None
-        fake_seed_download_state = MockObject()
-        fake_seed_download_state.get_infohash = lambda: 'aaaa'
-        fake_seed_download_state.get_status = lambda: DLSTATUS_SEEDING
-        fake_seed_download_state.get_download = lambda: seed_download
-
-        self.lm.sesscb_states_callback([fake_seed_download_state])
-
-        return readd_deferred
-
     def test_load_checkpoint(self):
         """
         Test whether we are resuming downloads after loading checkpoint
