@@ -59,9 +59,11 @@ class CircuitRequestCache(NumberCache):
                 self.circuit.state, self.circuit.first_hop)
             self.community.remove_circuit(self.number, reason)
 
+
 class ExtendRequestCache(NumberCache):
     def __init__(self, community, to_circuit_id, from_circuit_id, candidate_sock_addr, candidate_mid, to_candidate_sock_addr, to_candidate_mid):
         super(ExtendRequestCache, self).__init__(community.request_cache, u"anon-circuit", to_circuit_id)
+        self.community = community
         self.to_circuit_id = to_circuit_id
         self.from_circuit_id = from_circuit_id
         self.candidate_sock_addr = candidate_sock_addr
@@ -71,7 +73,10 @@ class ExtendRequestCache(NumberCache):
         self.should_forward = True
 
     def on_timeout(self):
-        pass
+        to_circuit = self.community.circuits.get(self.to_circuit_id)
+        if to_circuit and to_circuit.state != CIRCUIT_STATE_READY:
+            self.community.remove_relay(self.to_circuit_id)
+
 
 class CreatedRequestCache(NumberCache):
 
@@ -601,8 +606,6 @@ class TunnelCommunity(Community):
     def remove_circuit(self, circuit_id, additional_info='', destroy=False):
         assert isinstance(circuit_id, (long, int)), type(circuit_id)
 
-        self.tunnel_logger.info("TRUSTCHAIN: Removing circuit")
-
         if circuit_id in self.circuits:
             self.tunnel_logger.info("removing circuit %d " + additional_info, circuit_id)
 
@@ -636,13 +639,11 @@ class TunnelCommunity(Community):
                     if s == ltmgr.get_session(d.get_hops()):
                         d.get_handle().addCallback(update_torrents, d)
 
-            return True
-        return False
+        # Clean up the directions dictionary
+        if circuit_id in self.directions:
+            del self.directions[circuit_id]
 
     def remove_relay(self, circuit_id, additional_info='', destroy=False, got_destroy_from=None, both_sides=True):
-
-        self.tunnel_logger.info("TRUSTCHAIN: Removing relay")
-
         # Find other side of relay
         to_remove = [circuit_id]
         if both_sides:
@@ -666,13 +667,13 @@ class TunnelCommunity(Community):
                 # Remove old session key
                 if cid in self.relay_session_keys:
                     del self.relay_session_keys[cid]
+
+                if cid in self.directions:
+                    del self.directions[cid]
             else:
                 self.tunnel_logger.error("Could not remove relay %d %s", circuit_id, additional_info)
 
     def remove_exit_socket(self, circuit_id, additional_info='', destroy=False):
-
-        self.tunnel_logger.info("TRUSTCHAIN: Removing exit socket")
-
         if circuit_id in self.exit_sockets:
             if destroy:
                 self.destroy_exit_socket(circuit_id)

@@ -138,7 +138,7 @@ class DownloadsPage(QWidget):
             self.window().downloads_list.takeTopLevelItem(index)
             del self.download_widgets[infohash]
 
-        if QSystemTrayIcon.isSystemTrayAvailable():
+        if self.window().tray_icon:
             self.window().tray_icon.setToolTip(
                 "Down: %s, Up: %s" % (format_speed(total_download), format_speed(total_upload)))
         self.update_download_visibility()
@@ -290,13 +290,13 @@ class DownloadsPage(QWidget):
 
         if len(self.export_dir) > 0:
             # Show confirmation dialog where we specify the name of the file
-            infohash = self.selected_item.download_info['infohash']
+            torrent_name = self.selected_item.download_info['name']
             self.dialog = ConfirmationDialog(self, "Export torrent file",
                                              "Please enter the name of the torrent file:",
                                              [('SAVE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
                                              show_input=True)
             self.dialog.dialog_widget.dialog_input.setPlaceholderText('Torrent file name')
-            self.dialog.dialog_widget.dialog_input.setText("%s.torrent" % infohash)
+            self.dialog.dialog_widget.dialog_input.setText("%s.torrent" % torrent_name)
             self.dialog.dialog_widget.dialog_input.setFocus()
             self.dialog.button_clicked.connect(self.on_export_download_dialog_done)
             self.dialog.show()
@@ -322,7 +322,7 @@ class DownloadsPage(QWidget):
                                           "Error when exporting file",
                                           "An error occurred when exporting the torrent file: %s" % str(exc))
         else:
-            if QSystemTrayIcon.isSystemTrayAvailable():
+            if self.window().tray_icon:
                 self.window().tray_icon.showMessage("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
     def on_right_click_item(self, pos):

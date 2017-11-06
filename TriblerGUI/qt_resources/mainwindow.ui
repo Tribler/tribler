@@ -3856,6 +3856,13 @@ padding-right: 4px;</string>
                       </spacer>
                      </item>
                      <item>
+                      <widget class="QLabel" name="edit_channel_create_torrent_progress_label">
+                       <property name="text">
+                        <string>Creating torrent. Please wait...</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
                       <widget class="EllipseButton" name="edit_channel_create_torrent_button">
                        <property name="minimumSize">
                         <size>
@@ -5249,31 +5256,87 @@ color: white;</string>
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QLineEdit" name="download_location_input">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
+               <widget class="QWidget" name="settings_download_location_widget" native="true">
+                <layout class="QHBoxLayout" name="horizontalLayout_8">
+                <property name="spacing">
+                 <number>0</number>
                 </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>250</width>
-                  <height>28</height>
-                 </size>
+                <property name="leftMargin">
+                 <number>0</number>
                 </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>250</width>
-                  <height>28</height>
-                 </size>
+                <property name="topMargin">
+                 <number>0</number>
                 </property>
-                <property name="styleSheet">
-                 <string notr="true"/>
+                <property name="rightMargin">
+                 <number>0</number>
                 </property>
-                <property name="placeholderText">
-                 <string>File location</string>
+                <property name="bottomMargin">
+                 <number>0</number>
                 </property>
+                <item>
+                 <widget class="QLineEdit" name="download_location_input">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>250</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>250</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true"/>
+                  </property>
+                  <property name="placeholderText">
+                   <string>File location</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QToolButton" name="download_location_chooser_button">
+                  <property name="minimumSize">
+                   <size>
+                    <width>50</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="baseSize">
+                   <size>
+                    <width>50</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="toolTip">
+                   <string>Browse download location</string>
+                  </property>
+                  <property name="text">
+                   <string>Browse</string>
+                  </property>
+                  <property name="icon">
+                   <iconset>
+                    <normaloff>../images/browse_folder.svg</normaloff>../images/browse_folder.svg</iconset>
+                  </property>
+                  <property name="toolButtonStyle">
+                   <enum>Qt::ToolButtonIconOnly</enum>
+                  </property>
+                  <property name="autoRaise">
+                   <bool>false</bool>
+                  </property>
+                  <property name="arrowType">
+                   <enum>Qt::NoArrow</enum>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
                </widget>
               </item>
               <item row="4" column="0">
@@ -5386,31 +5449,87 @@ color: white;</string>
                </widget>
               </item>
               <item row="10" column="1">
-               <widget class="QLineEdit" name="watchfolder_location_input">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
+               <widget class="QWidget" name="settings_watch_folder_widget" native="true">
+                <layout class="QHBoxLayout" name="horizontalLayout_watchfolder">
+                <property name="spacing">
+                 <number>0</number>
                 </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>250</width>
-                  <height>28</height>
-                 </size>
+                <property name="leftMargin">
+                 <number>0</number>
                 </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>250</width>
-                  <height>28</height>
-                 </size>
+                <property name="topMargin">
+                 <number>0</number>
                 </property>
-                <property name="styleSheet">
-                 <string notr="true"/>
+                <property name="rightMargin">
+                 <number>0</number>
                 </property>
-                <property name="placeholderText">
-                 <string>Location</string>
+                <property name="bottomMargin">
+                 <number>0</number>
                 </property>
+                <item>
+                 <widget class="QLineEdit" name="watchfolder_location_input">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>250</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>250</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true"/>
+                  </property>
+                  <property name="placeholderText">
+                   <string>Location</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QToolButton" name="watch_folder_chooser_button">
+                  <property name="minimumSize">
+                   <size>
+                    <width>50</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="baseSize">
+                   <size>
+                    <width>50</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="toolTip">
+                   <string>Browse watch folder</string>
+                  </property>
+                  <property name="text">
+                   <string>Browse</string>
+                  </property>
+                  <property name="icon">
+                   <iconset>
+                    <normaloff>../images/browse_folder.svg</normaloff>../images/browse_folder.svg</iconset>
+                  </property>
+                  <property name="toolButtonStyle">
+                   <enum>Qt::ToolButtonIconOnly</enum>
+                  </property>
+                  <property name="autoRaise">
+                   <bool>false</bool>
+                  </property>
+                  <property name="arrowType">
+                   <enum>Qt::NoArrow</enum>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
                </widget>
               </item>
               <item row="11" column="0">

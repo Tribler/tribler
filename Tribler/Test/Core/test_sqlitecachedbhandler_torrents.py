@@ -137,7 +137,6 @@ class TestTorrentDBHandler(AbstractDB):
         from Tribler.Core.Modules.tracker_manager import TrackerManager
         self.session.lm = TriblerLaunchMany()
         self.session.lm.tracker_manager = TrackerManager(self.session)
-        self.session.lm.tracker_manager.initialize()
         self.tdb = TorrentDBHandler(self.session)
         self.tdb.torrent_dir = TESTS_DATA_DIR
         self.tdb.category = Category()

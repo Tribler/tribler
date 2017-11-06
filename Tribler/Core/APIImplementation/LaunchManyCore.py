@@ -153,7 +153,6 @@ class TriblerLaunchMany(TaskManager):
 
                 from Tribler.Core.Modules.tracker_manager import TrackerManager
                 self.tracker_manager = TrackerManager(self.session)
-                self.tracker_manager.initialize()
 
             if self.session.config.get_video_server_enabled():
                 self.video_server = VideoServer(self.session.config.get_video_server_port(), self.session)
@@ -571,8 +570,6 @@ class TriblerLaunchMany(TaskManager):
 
         return deferToThread(callback, dslist).addCallback(on_cb_done)
 
-    @blocking_call_on_reactor_thread
-    @inlineCallbacks
     def sesscb_states_callback(self, states_list):
         """
         This method is periodically (every second) called with a list of the download states of the active downloads.
@@ -604,18 +601,6 @@ class TriblerLaunchMany(TaskManager):
                     self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, tdef.get_infohash(), safename)
                     do_checkpoint = True
 
-                elif download.get_hops() == 0 and download.get_safe_seeding():
-                    hops = self.session.config.get_default_number_hops()
-                    self._logger.info("Moving completed torrent to tunneled session %d for hidden seeding %r",
-                                      hops, download)
-                    yield self.session.remove_download(download)
-
-                    # copy the old download_config and change the hop count
-                    dscfg = download.copy()
-                    dscfg.set_hops(hops)
-
-                    self.session.start_download_from_tdef(tdef, dscfg)
-
         self.previous_active_downloads = new_active_downloads
         if do_checkpoint:
             self.session.checkpoint_downloads()
@@ -623,7 +608,7 @@ class TriblerLaunchMany(TaskManager):
         if self.state_cb_count % 4 == 0 and self.tunnel_community:
             self.tunnel_community.monitor_downloads(states_list)
 
-        returnValue([])
+        return []
 
     #
     # Persistence methods
@@ -802,8 +787,6 @@ class TriblerLaunchMany(TaskManager):
             self.resource_monitor.stop()
         self.resource_monitor = None
 
-        if self.tracker_manager:
-            yield self.tracker_manager.shutdown()
         self.tracker_manager = None
 
         if self.dispersy:

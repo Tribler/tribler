@@ -1,4 +1,9 @@
+import logging
+import os
+
+import datetime
 import psutil
+from meliae import scanner
 from twisted.web import http, resource
 
 from Tribler.community.tunnel.tunnel_community import TunnelCommunity
@@ -16,7 +21,8 @@ class DebugEndpoint(resource.Resource):
 
         child_handler_dict = {"circuits": DebugCircuitsEndpoint, "open_files": DebugOpenFilesEndpoint,
                               "open_sockets": DebugOpenSocketsEndpoint, "threads": DebugThreadsEndpoint,
-                              "cpu_history": DebugCPUHistoryEndpoint, "memory_history": DebugMemoryHistoryEndpoint}
+                              "cpu": DebugCPUEndpoint, "memory": DebugMemoryEndpoint,
+                              "log": DebugLogEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
@@ -216,6 +222,16 @@ class DebugThreadsEndpoint(resource.Resource):
         return json.dumps({"threads": watchdog.get_threads_info()})
 
 
+class DebugCPUEndpoint(resource.Resource):
+    """
+    This class handles request for information about CPU.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.putChild("history", DebugCPUHistoryEndpoint(session))
+
+
 class DebugCPUHistoryEndpoint(resource.Resource):
     """
     This class handles request for information about CPU usage history.
@@ -227,7 +243,7 @@ class DebugCPUHistoryEndpoint(resource.Resource):
 
     def render_GET(self, request):
         """
-        .. http:get:: /debug/cpu_history
+        .. http:get:: /debug/cpu/history
 
         A GET request to this endpoint returns information about CPU usage history in the form of a list.
 
@@ -235,7 +251,7 @@ class DebugCPUHistoryEndpoint(resource.Resource):
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/debug/cpu_history
+                curl -X GET http://localhost:8085/debug/cpu/history
 
             **Example response**:
 
@@ -251,6 +267,17 @@ class DebugCPUHistoryEndpoint(resource.Resource):
         return json.dumps({"cpu_history": self.session.lm.resource_monitor.get_cpu_history_dict()})
 
 
+class DebugMemoryEndpoint(resource.Resource):
+    """
+    This class handles request for information about memory.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.putChild("history", DebugMemoryHistoryEndpoint(session))
+        self.putChild("dump", DebugMemoryDumpEndpoint(session))
+
+
 class DebugMemoryHistoryEndpoint(resource.Resource):
     """
     This class handles request for information about memory usage history.
@@ -262,7 +289,7 @@ class DebugMemoryHistoryEndpoint(resource.Resource):
 
     def render_GET(self, request):
         """
-        .. http:get:: /debug/memory_history
+        .. http:get:: /debug/memory/history
 
         A GET request to this endpoint returns information about memory usage history in the form of a list.
 
@@ -270,7 +297,7 @@ class DebugMemoryHistoryEndpoint(resource.Resource):
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/debug/memory_history
+                curl -X GET http://localhost:8085/debug/memory/history
 
             **Example response**:
 
@@ -284,3 +311,125 @@ class DebugMemoryHistoryEndpoint(resource.Resource):
                 }
         """
         return json.dumps({"memory_history": self.session.lm.resource_monitor.get_memory_history_dict()})
+
+
+class DebugMemoryDumpEndpoint(resource.Resource):
+    """
+    This class handles request for dumping memory contents.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /debug/memory/dump
+
+        A GET request to this endpoint returns a Meliae-compatible dump of the memory contents.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/memory/dump
+
+            **Example response**:
+
+            The content of the memory dump file.
+        """
+        dump_file_path = os.path.join(self.session.config.get_state_dir(), 'memory_dump.json')
+        scanner.dump_all_objects(dump_file_path)
+        date_str = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+        request.setHeader(b'content-type', 'application/json')
+        request.setHeader(b'Content-Disposition', 'attachment; filename=tribler_memory_dump_%s.json' % date_str)
+        return open(dump_file_path).read()
+
+
+class DebugLogEndpoint(resource.Resource):
+    """
+    This class handles the request for displaying the logs.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /debug/log?max_lines=<max_lines>
+
+        A GET request to this endpoint returns a json with content of log file & max_lines requested
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/log?max_lines=5
+
+            **Example response**:
+
+            A JSON with content of the log file & max_lines requested, for eg.
+            {
+                "max_lines" : 5,
+                "content" :"INFO    1506675301.76   sqlitecachedb:181   Reading database version...
+                            INFO    1506675301.76   sqlitecachedb:185   Current database version is 29
+                            INFO    1506675301.76   sqlitecachedb:203   Beginning the first transaction...
+                            INFO    1506675301.76         upgrade:93    tribler is in the latest version,...
+                            INFO    1506675302.08  LaunchManyCore:254   lmc: Starting Dispersy..."
+            }
+
+        """
+
+        # First, flush all the logs to make sure it is written to file
+        for handler in logging.getLogger().handlers:
+            handler.flush()
+
+        # Get the location of log file
+        log_file = os.path.join(self.session.config.get_state_dir(), 'logs', 'tribler-info.log')
+
+        # Default response
+        response = {'content': '', 'max_lines': 0}
+
+        # Check if log file exists and return last requested 'max_lines' of log
+        if os.path.exists(log_file):
+            try:
+                max_lines = int(request.args['max_lines'][0])
+                response['content'] = self.tail(open(log_file), max_lines)
+                response['max_lines'] = max_lines
+            except ValueError:
+                response['content'] = open(log_file).read()
+                response['max_lines'] = 0
+
+        return json.dumps(response)
+
+    def tail(self, file_handler, lines=1):
+        """Tail a file and get X lines from the end"""
+        # place holder for the lines found
+        lines_found = []
+        byte_buffer = 1024
+
+        # block counter will be multiplied by buffer
+        # to get the block size from the end
+        block_counter = -1
+
+        # loop until we find X lines
+        while len(lines_found) < lines:
+            try:
+                file_handler.seek(block_counter * byte_buffer, os.SEEK_END)
+            except IOError:  # either file is too small, or too many lines requested
+                file_handler.seek(0)
+                lines_found = file_handler.readlines()
+                break
+
+            lines_found = file_handler.readlines()
+
+            # we found enough lines, get out
+            if len(lines_found) > lines:
+                break
+
+            # decrement the block counter to get the
+            # next X bytes
+            block_counter -= 1
+
+        return ''.join(lines_found[-lines:])

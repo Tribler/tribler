@@ -1,4 +1,3 @@
-import sys
 import tempfile
 
 
@@ -11,34 +10,31 @@ def error_and_exit(title, main_text):
     """
     # NOTE: We don't want to load all of these imports normally.
     #       Otherwise we will have these unused GUI modules loaded in the main process.
-    from PyQt5.QtWidgets import QMainWindow
-    from PyQt5.QtCore import pyqtSignal
+    from Tkinter import Tk, Canvas, DISABLED, INSERT, Label, Text, WORD
 
-    from TriblerGUI.single_application import QtSingleApplication
-    from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
-    from TriblerGUI.defs import BUTTON_TYPE_NORMAL
+    root = Tk()
+    root.wm_title("Tribler: Critical Error!")
+    root.wm_minsize(500, 300)
+    root.wm_maxsize(500, 300)
+    root.configure(background='#535252')
 
-    app = QtSingleApplication("Tribler", [])
-    if app.is_running():
-        sys.exit(1)
+    Canvas(root, width=500, height=50, bd=0, highlightthickness=0, relief='ridge', background='#535252').pack()
+    pane = Canvas(root, width=400, height=200, bd=0, highlightthickness=0, relief='ridge', background='#333333')
+    Canvas(pane, width=400, height=20, bd=0, highlightthickness=0, relief='ridge', background='#333333').pack()
+    Label(pane, text=title, width=40, background='#333333', foreground='#fcffff', font=("Helvetica", 11)).pack()
+    Canvas(pane, width=400, height=20, bd=0, highlightthickness=0, relief='ridge', background='#333333').pack()
 
-    class CustomConfDialog(QMainWindow):
-        escape_pressed = pyqtSignal()
-        resize_event = pyqtSignal()
+    main_text_label = Text(pane, width=45, height=6, bd=0, highlightthickness=0, relief='ridge', background='#333333',
+                           foreground='#b5b5b5', font=("Helvetica", 11), wrap=WORD)
+    main_text_label.tag_configure("center", justify='center')
+    main_text_label.insert(INSERT, main_text)
+    main_text_label.tag_add("center", "1.0", "end")
+    main_text_label.config(state=DISABLED)
+    main_text_label.pack()
 
-        def __init__(self, title, main_text):
-            super(CustomConfDialog, self).__init__()
-            self.setObjectName("Tribler")
-            self.setWindowTitle("Tribler: Critical Error!")
-            self.resize(500, 300)
-            dlg = ConfirmationDialog(self, title, main_text, [('CLOSE', BUTTON_TYPE_NORMAL)])
-            dlg.show()
-            dlg.button_clicked.connect(lambda: sys.exit(1))
+    pane.pack()
 
-    dialog = CustomConfDialog(title, main_text)
-    dialog.show()
-    app.exec_()
-    sys.exit(1)
+    root.mainloop()
 
 
 def check_read_write():

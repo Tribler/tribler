@@ -56,6 +56,9 @@ class TriblerWindow(QMainWindow):
     received_search_completions = pyqtSignal(object)
 
     def on_exception(self, *exc_info):
+        if self.tray_icon:
+            self.tray_icon.deleteLater()
+
         # Stop the download loop
         self.downloads_page.stop_loading_downloads()
 
@@ -144,6 +147,8 @@ class TriblerWindow(QMainWindow):
             self.tray_icon = QSystemTrayIcon()
             use_monochrome_icon = get_gui_setting(self.gui_settings, "use_monochrome_icon", False, is_bool=True)
             self.update_tray_icon(use_monochrome_icon)
+        else:
+            self.tray_icon = None
 
         self.hide_left_menu_playlist()
         self.left_menu_button_debug.setHidden(True)
@@ -215,7 +220,7 @@ class TriblerWindow(QMainWindow):
         self.tray_icon.show()
 
     def on_torrent_finished(self, torrent_info):
-        if QSystemTrayIcon.isSystemTrayAvailable():
+        if self.tray_icon:
             self.window().tray_icon.showMessage("Download finished",
                                                 "Download of %s has finished." % torrent_info["name"])
 
@@ -592,8 +597,17 @@ class TriblerWindow(QMainWindow):
             self.stackedWidget.setCurrentIndex(PAGE_PLAYLIST_DETAILS)
 
     def on_page_back_clicked(self):
-        prev_page = self.navigation_stack.pop()
-        self.stackedWidget.setCurrentIndex(prev_page)
+        try:
+            prev_page = self.navigation_stack.pop()
+            self.stackedWidget.setCurrentIndex(prev_page)
+            if prev_page == PAGE_SEARCH_RESULTS:
+                self.stackedWidget.widget(prev_page).load_search_results_in_list()
+            if prev_page == PAGE_SUBSCRIBED_CHANNELS:
+                self.stackedWidget.widget(prev_page).load_subscribed_channels()
+            if prev_page == PAGE_DISCOVERED:
+                self.stackedWidget.widget(prev_page).load_discovered_channels()
+        except IndexError:
+            logging.exception("Unknown page found in stack")
 
     def on_edit_channel_clicked(self):
         self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
@@ -618,6 +632,8 @@ class TriblerWindow(QMainWindow):
 
     def close_tribler(self):
         if not self.core_manager.shutting_down:
+            if self.tray_icon:
+                self.tray_icon.deleteLater()
             self.show_loading_screen()
 
             self.gui_settings.setValue("pos", self.pos())

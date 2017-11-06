@@ -33,6 +33,9 @@ class POSTDataProducer(object):
         consumer.write(self.body)
         return succeed(None)
 
+    def stopProducing(self):
+        return succeed(None)
+
 
 class AbstractBaseApiTest(TestAsServer):
     """
@@ -71,7 +74,9 @@ class AbstractBaseApiTest(TestAsServer):
     def do_request(self, endpoint, req_type, post_data, raw_data):
         agent = Agent(reactor, pool=self.connection_pool)
         return agent.request(req_type, 'http://localhost:%s/%s' % (self.session.config.get_http_api_port(), endpoint),
-                             Headers({'User-Agent': ['Tribler ' + version_id]}), POSTDataProducer(post_data, raw_data))
+                             Headers({'User-Agent': ['Tribler ' + version_id],
+                                      "Content-Type": ["text/plain; charset=utf-8"]}),
+                             POSTDataProducer(post_data, raw_data))
 
 
 class AbstractApiTest(AbstractBaseApiTest):

@@ -120,16 +120,20 @@ Section "!Main EXE" SecMain
     SetOutPath "$INSTDIR"
     File /r *
 
-    ; Install MSVCR 2008 and 2012
+    ; Install MSVCR 2008, 2012 and 2015
     SetOutPath "$INSTDIR"
 
-    ; Libraries dependant on 2008 are: Python, APSW
+    ; Libraries dependant on 2008 are: APSW
     File vc_redist_90.exe
     ExecWait "$INSTDIR\vc_redist_90.exe /q /norestart"
 
     ; Libraries dependant on 2012 are: LevelDB, LibTorrent
     File vc_redist_110.exe
     ExecWait "$INSTDIR\vc_redist_110.exe /q /norestart"
+
+    ; Libraries dependant on 2015 are: Python, Qt5
+    File vc_redist_140.exe
+    ExecWait "$INSTDIR\vc_redist_140.exe /q /norestart"
 
     ; Install VLC
     File "vlc-2.2.4-win${VLCBITVERSION}.exe"

@@ -101,7 +101,8 @@ class TriblerRequestManager(QNetworkAccessManager):
             self.received_json.emit(None, reply.error())
             return
 
-        performed_requests[self.request_id][4] = status_code
+        if self.request_id in performed_requests:
+            performed_requests[self.request_id][4] = status_code
 
         data = reply.readAll()
         try:

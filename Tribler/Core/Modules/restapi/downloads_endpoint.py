@@ -382,7 +382,31 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             return json.dumps({"error": "anon_hops must be the only parameter in this request"})
         elif 'anon_hops' in parameters:
             anon_hops = int(parameters['anon_hops'][0])
-            self.session.lm.update_download_hops(download, anon_hops)
+            deferred = self.session.lm.update_download_hops(download, anon_hops)
+
+            def _on_download_readded(_):
+                """
+                Success callback
+                """
+                request.write(json.dumps({"modified": True}))
+                request.finish()
+
+            def _on_download_readd_failure(failure):
+                """
+                Error callback
+                :param failure: from LibtorrentDownloadImp.setup()
+                """
+                self._logger.exception(failure)
+                request.write(return_handled_exception(request, failure.value))
+                # If the above request.write failed, the request will have already been finished
+                if not request.finished:
+                    request.finish()
+
+            deferred.addCallback(_on_download_readded)
+            deferred.addErrback(_on_download_readd_failure)
+            # As we already checked for len(parameters) > 1, we know there are no other parameters.
+            # As such, we can return immediately.
+            return NOT_DONE_YET
 
         if 'selected_files[]' in parameters:
             selected_files_list = []

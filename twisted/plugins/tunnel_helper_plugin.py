@@ -98,7 +98,16 @@ class Options(usage.Options):
 if not os.path.exists("logger.conf"):
     print "Unable to find logger.conf"
 else:
-    logging.config.fileConfig("logger.conf")
+    log_directory = os.path.abspath(os.environ.get('APPDATA', os.path.expanduser('~')))
+    log_directory = os.path.join(log_directory, '.Tribler', 'logs')
+
+    if not os.path.exists(log_directory):
+        os.makedirs(log_directory)
+
+    logging.info_log_file = '%s/tribler-info.log' % log_directory
+    logging.error_log_file = '%s/tribler-error.log' % log_directory
+    logging.config.fileConfig("logger.conf", disable_existing_loggers=False)
+
 logger = logging.getLogger('TunnelMain')
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))

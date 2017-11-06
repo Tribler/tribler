@@ -77,7 +77,9 @@ def dump(obj, fp, ensure_ascii=True):
     except UnicodeDecodeError as e:
         undumpables = _scan_iterable(obj)
         traces = '\n\t'.join(['->'.join(u) for u in undumpables])
-        raise UnicodeDecodeError(e.encoding, str(obj), e.start, e.end, "could not dump:\n\t%s" % traces)
+        error = UnicodeDecodeError(e.encoding, str(obj), e.start, e.end, "could not dump:\n\t%s" % traces)
+        error.message = str(error)
+        raise error
 
 
 def dumps(obj, ensure_ascii=True):
@@ -93,7 +95,9 @@ def dumps(obj, ensure_ascii=True):
     except UnicodeDecodeError as e:
         undumpables = _scan_iterable(obj)
         traces = '\n\t'.join(['->'.join(u) for u in undumpables])
-        raise UnicodeDecodeError(e.encoding, str(obj), e.start, e.end, "could not dump:\n\t%s" % traces)
+        error = UnicodeDecodeError(e.encoding, str(obj), e.start, e.end, "could not dump:\n\t%s" % traces)
+        error.message = str(error)
+        raise error
 
 
 def loads(s, *args, **kwargs):

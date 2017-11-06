@@ -96,12 +96,11 @@ class TorrentChecker(TaskManager):
         self._reschedule_tracker_select()
 
         # start selecting torrents
-        result = self.tribler_session.lm.tracker_manager.get_next_tracker_for_auto_check()
-        if result is None:
+        tracker_url = self.tribler_session.lm.tracker_manager.get_next_tracker_for_auto_check()
+        if tracker_url is None:
             self._logger.warn(u"No tracker to select from, skip")
             return succeed(None)
 
-        tracker_url, _ = result
         self._logger.debug(u"Start selecting torrents on tracker %s.", tracker_url)
 
         # get the torrents that should be checked
@@ -112,9 +111,7 @@ class TorrentChecker(TaskManager):
             self._logger.info("No torrent to check for tracker %s", tracker_url)
             self.tribler_session.lm.tracker_manager.update_tracker_info(tracker_url, True)
             return succeed(None)
-        elif tracker_url != u'DHT' and tracker_url != u'no-DHT'\
-                and self.tribler_session.lm.tracker_manager.should_check_tracker(tracker_url):
-
+        elif tracker_url != u'DHT' and tracker_url != u'no-DHT':
             try:
                 session = self._create_session_for_request(tracker_url, timeout=30)
             except MalformedTrackerURLException as e:
@@ -217,6 +214,8 @@ class TorrentChecker(TaskManager):
         failure.trap(ValueError, CancelledError, ConnectingCancelledError, RuntimeError)
         self._logger.warning(u"Got session error for URL %s: %s", session.tracker_url, failure)
 
+        self.clean_session(session)
+
         # Do not update if the connection got cancelled, we are probably shutting down
         # and the tracker_manager may have shutdown already.
         if failure.check(CancelledError, ConnectingCancelledError) is None:
@@ -241,6 +240,8 @@ class TorrentChecker(TaskManager):
 
         # Remove the session from our session list dictionary
         self._session_list[session.tracker_url].remove(session)
+        if len(self._session_list[session.tracker_url]) == 0 and session.tracker_url != u"DHT":
+            del self._session_list[session.tracker_url]
 
     def _on_result_from_session(self, session, result_list):
         if self._should_stop:

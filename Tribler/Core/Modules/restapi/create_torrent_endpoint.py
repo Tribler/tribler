@@ -37,6 +37,7 @@ class CreateTorrentEndpoint(resource.Resource):
                 curl -X POST http://localhost:8085/createtorrent
                         --data "files[]=path/to/file.txt
                         &files[]=path/to/another/file.mp4
+                        &name=Name
                         &description=Video
                         &trackers[]=url_tracker1
                         &trackers[]=url_backup1
@@ -60,6 +61,9 @@ class CreateTorrentEndpoint(resource.Resource):
         else:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "files parameter missing"})
+
+        if 'name' in parameters and len(parameters['name']) > 0:
+            params['name'] = parameters['name'][0]
 
         if 'description' in parameters and len(parameters['description']) > 0:
             params['comment'] = parameters['description'][0]
@@ -96,7 +100,9 @@ class CreateTorrentEndpoint(resource.Resource):
                     self._logger.warning("The created torrent is already being downloaded.")
 
             request.write(json.dumps({"torrent": torrent_64}))
-            request.finish()
+            # If the above request.write failed, the request will have already been finished
+            if not request.finished:
+                request.finish()
 
         def _on_create_failure(failure):
             """
@@ -106,7 +112,9 @@ class CreateTorrentEndpoint(resource.Resource):
             failure.trap(IOError, UnicodeDecodeError, RuntimeError)
             self._logger.exception(failure)
             request.write(return_handled_exception(request, failure.value))
-            request.finish()
+            # If the above request.write failed, the request will have already been finished
+            if not request.finished:
+                request.finish()
 
         deferred = self.session.create_torrent_file(file_path_list, params)
         deferred.addCallback(_on_torrent_created)

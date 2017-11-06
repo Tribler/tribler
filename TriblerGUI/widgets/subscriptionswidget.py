@@ -21,17 +21,32 @@ class SubscriptionsWidget(QWidget):
         self.channel_info = None
         self.num_subs_label = None
         self.request_mgr = None
+        self.initialized = False
 
     def initialize_with_channel(self, channel):
         self.channel_info = channel
+        if not self.initialized:
+            self.subscribe_button = self.findChild(QWidget, "subscribe_button")
+            self.num_subs_label = self.findChild(QWidget, "num_subs_label")
 
-        self.subscribe_button = self.findChild(QWidget, "subscribe_button")
-        self.num_subs_label = self.findChild(QWidget, "num_subs_label")
+            self.subscribe_button.clicked.connect(self.on_subscribe_button_click)
+            self.initialized = True
 
-        self.subscribe_button.clicked.connect(self.on_subscribe_button_click)
-        self.update_subscribe_button()
+        self.check_subscription()
 
-    def update_subscribe_button(self):
+    def check_subscription(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("channels/subscribed/%s" %
+                                         self.channel_info['dispersy_cid'],
+                                         self.update_subscribe_button, method='GET')
+
+    def update_subscribe_button(self, remote_response=None):
+        if remote_response and 'subscribed' in remote_response:
+            self.channel_info["subscribed"] = remote_response['subscribed']
+
+        if remote_response and 'votes' in remote_response:
+            self.channel_info["votes"] = remote_response['votes']
+
         if self.channel_info["subscribed"]:
             self.subscribe_button.setIcon(QIcon(QPixmap(get_image_path('subscribed_yes.png'))))
         else:
