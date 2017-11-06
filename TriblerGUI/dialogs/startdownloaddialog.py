@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QSizePolicy, QFileDialog, QTreeWidgetItem
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_ui_file_path, format_size, get_gui_setting, get_image_path
+from TriblerGUI.utilities import get_ui_file_path, format_size, get_gui_setting, get_image_path, quote_unicode
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
@@ -106,7 +106,7 @@ class StartDownloadDialog(DialogContainer):
 
     def perform_files_request(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("torrentinfo?uri=%s" % quote_plus(self.download_uri),
+        self.request_mgr.perform_request("torrentinfo?uri=%s" % quote_unicode(self.download_uri),
                                          self.on_received_metainfo, capture_errors=False)
 
     def on_received_metainfo(self, metainfo):

@@ -10,6 +10,7 @@ from twisted.web.server import NOT_DONE_YET
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink
+from TriblerGUI.utilities import unquote_unicode
 
 
 class TorrentInfoEndpoint(resource.Resource):
@@ -85,7 +86,7 @@ class TorrentInfoEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "uri parameter missing"})
 
-        uri = unicode(unquote_plus(request.args['uri'][0]), 'utf-8')
+        uri = unquote_unicode(request.args['uri'][0])
         if uri.startswith('file:'):
             try:
                 filename = url2pathname(uri[5:])

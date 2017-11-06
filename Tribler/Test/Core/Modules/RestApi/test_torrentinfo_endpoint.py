@@ -14,6 +14,7 @@ from Tribler.Test.common import UBUNTU_1504_INFOHASH, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
 from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from TriblerGUI.utilities import quote_unicode
 
 
 class TestTorrentInfoEndpoint(AbstractApiTest):
@@ -42,20 +43,24 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
 
         self.should_check_equality = False
         yield self.do_request('torrentinfo', expected_code=400)
-        yield self.do_request('torrentinfo?uri=def', expected_code=400)
+        yield self.do_request('torrentinfo?uri=deff', expected_code=400)
 
         path = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "bak_single.torrent")).encode('utf-8')
-        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
+        yield self.do_request('torrentinfo?uri=%s' % quote_unicode(path),
+                              expected_code=200).addCallback(verify_valid_dict)
 
         # Corrupt file
         path = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "test_rss.xml")).encode('utf-8')
-        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
+        yield self.do_request('torrentinfo?uri=%s' % quote_unicode(path),
+                              expected_code=500)
 
         path = "http://localhost:%d/ubuntu.torrent" % file_server_port
-        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
+        yield self.do_request('torrentinfo?uri=%s' % quote_unicode(path),
+                              expected_code=200).addCallback(verify_valid_dict)
 
         def get_metainfo(infohash, callback, **_):
-            with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"), mode='rb') as torrent_file:
+            with open(os.path.join(TESTS_DATA_DIR, "bak_single.torrent"),
+                      mode='rb') as torrent_file:
                 torrent_data = torrent_file.read()
             tdef = TorrentDef.load_from_memory(torrent_data)
             callback(tdef.get_metainfo())
@@ -68,28 +73,35 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         self.session.lm.ltmgr = MockObject()
         self.session.lm.ltmgr.get_metainfo = get_metainfo
         self.session.lm.ltmgr.shutdown = lambda: None
-        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
-        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)  # Cached
+        yield self.do_request('torrentinfo?uri=%s' % quote_unicode(path),
+                              expected_code=200).addCallback(verify_valid_dict)
+        yield self.do_request('torrentinfo?uri=%s' % quote_unicode(path),
+                              expected_code=200).addCallback(verify_valid_dict)  # Cached
 
         self.session.get_collected_torrent = lambda _: 'a8fdsafsdjlfdsafs{}{{{[][]]['  # invalid torrent file
-        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
+        yield self.do_request('torrentinfo?uri=%s' % quote_unicode(path),
+                              expected_code=500)
 
         path = 'magnet:?xt=urn:ed2k:354B15E68FB8F36D7CD88FF94116CDC1'  # No infohash
-        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=400)
+        yield self.do_request('torrentinfo?uri=%s' % quote_unicode(path),
+                              expected_code=400)
 
         path = 'magnet:?xt=urn:btih:%s&dn=%s' % ('a' * 40, quote_plus('test torrent'))
         self.session.lm.ltmgr.get_metainfo = get_metainfo_timeout
-        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=408)
+        yield self.do_request('torrentinfo?uri=%s' % quote_unicode(path),
+                              expected_code=408)
 
         def mocked_save_torrent(*_):
             raise TypeError()
 
         self.session.lm.ltmgr.get_metainfo = get_metainfo
         self.session.save_collected_torrent = mocked_save_torrent
-        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
+        yield self.do_request('torrentinfo?uri=%s' % quote_unicode(path),
+                              expected_code=200).addCallback(verify_valid_dict)
 
         path = 'http://fdsafksdlafdslkdksdlfjs9fsafasdf7lkdzz32.n38/324.torrent'
-        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
+        yield self.do_request('torrentinfo?uri=%s' % quote_unicode(path),
+                              expected_code=500)
 
     @deferred(timeout=10)
     def test_on_got_invalid_metainfo(self):
@@ -105,4 +117,4 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH), quote_plus('test torrent'))
 
         self.should_check_equality = False
-        return self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
+        return self.do_request('torrentinfo?uri=%s' % quote_unicode(path), expected_code=500)
