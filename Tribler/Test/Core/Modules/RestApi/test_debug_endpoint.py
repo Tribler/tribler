@@ -166,7 +166,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         log_config = os.path.join(project_root_dir, "logger.conf")
 
         # State directory for logs
-        state_log_dir = os.path.join(self.session.get_state_dir(), 'logs')
+        state_log_dir = os.path.join(self.session.config.get_state_dir(), 'logs')
         if not os.path.exists(state_log_dir):
             os.makedirs(state_log_dir)
 

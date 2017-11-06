@@ -338,7 +338,7 @@ class DebugMemoryDumpEndpoint(resource.Resource):
 
             The content of the memory dump file.
         """
-        dump_file_path = os.path.join(self.session.get_state_dir(), 'memory_dump.json')
+        dump_file_path = os.path.join(self.session.config.get_state_dir(), 'memory_dump.json')
         scanner.dump_all_objects(dump_file_path)
         date_str = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         request.setHeader(b'content-type', 'application/json')
@@ -386,7 +386,7 @@ class DebugLogEndpoint(resource.Resource):
             handler.flush()
 
         # Get the location of log file
-        log_file = os.path.join(self.session.get_state_dir(), 'logs', 'tribler-info.log')
+        log_file = os.path.join(self.session.config.get_state_dir(), 'logs', 'tribler-info.log')
 
         # Default response
         response = {'content': '', 'max_lines': 0}
