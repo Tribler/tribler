@@ -8,7 +8,7 @@ from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_SEEDING
+from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
@@ -95,47 +95,6 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.lm.sesscb_states_callback([fake_error_state])
 
         return error_stop_deferred
-
-    @deferred(timeout=10)
-    def test_dlstates_cb_seeding(self):
-        """
-        Testing whether a download is readded when safe seeding in the download states callback in LaunchManyCore
-        """
-        self.lm.session.config = MockObject()
-        self.lm.session.config.get_max_upload_rate = lambda: 100
-        self.lm.session.config.get_max_download_rate = lambda: 100
-        self.lm.session.config.get_default_number_hops = lambda: 0
-
-        readd_deferred = Deferred()
-
-        def mocked_start_download(tdef, dscfg):
-            self.assertEqual(tdef, seed_tdef)
-            self.assertEqual(dscfg, seed_download)
-            readd_deferred.callback(None)
-
-        def mocked_remove_download(download):
-            self.assertEqual(download, seed_download)
-
-        self.lm.session.start_download_from_tdef = mocked_start_download
-        self.lm.session.remove_download = mocked_remove_download
-
-        seed_tdef = TorrentDef()
-        seed_tdef.get_infohash = lambda: 'aaaa'
-        seed_download = MockObject()
-        seed_download.get_def = lambda: seed_tdef
-        seed_download.get_def().get_name_as_unicode = lambda: "test.iso"
-        seed_download.get_hops = lambda: 0
-        seed_download.get_safe_seeding = lambda: True
-        seed_download.copy = lambda: seed_download
-        seed_download.set_hops = lambda _: None
-        fake_seed_download_state = MockObject()
-        fake_seed_download_state.get_infohash = lambda: 'aaaa'
-        fake_seed_download_state.get_status = lambda: DLSTATUS_SEEDING
-        fake_seed_download_state.get_download = lambda: seed_download
-
-        self.lm.sesscb_states_callback([fake_seed_download_state])
-
-        return readd_deferred
 
     def test_load_checkpoint(self):
         """
