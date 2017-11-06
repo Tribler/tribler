@@ -534,8 +534,6 @@ class TriblerLaunchMany(TaskManager):
 
         return deferToThread(callback, dslist).addCallback(on_cb_done)
 
-    @blocking_call_on_reactor_thread
-    @inlineCallbacks
     def sesscb_states_callback(self, states_list):
         """
         This method is periodically (every second) called with a list of the download states of the active downloads.
@@ -567,18 +565,6 @@ class TriblerLaunchMany(TaskManager):
                     self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, tdef.get_infohash(), safename)
                     do_checkpoint = True
 
-                elif download.get_hops() == 0 and download.get_safe_seeding():
-                    hops = tribler_defaults.get('Tribler', {}).get('default_number_hops', 1)
-                    self._logger.info("Moving completed torrent to tunneled session %d for hidden seeding %r",
-                                      hops, download)
-                    yield self.session.remove_download(download)
-
-                    # copy the old download_config and change the hop count
-                    dscfg = download.copy()
-                    dscfg.set_hops(hops)
-
-                    self.session.start_download_from_tdef(tdef, dscfg)
-
         self.previous_active_downloads = new_active_downloads
         if do_checkpoint:
             self.session.checkpoint_downloads()
@@ -586,7 +572,7 @@ class TriblerLaunchMany(TaskManager):
         if self.state_cb_count % 4 == 0 and self.tunnel_community:
             self.tunnel_community.monitor_downloads(states_list)
 
-        returnValue([])
+        return []
 
     #
     # Persistence methods
