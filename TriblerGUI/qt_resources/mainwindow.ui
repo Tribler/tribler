@@ -6216,6 +6216,13 @@ color: white;</string>
                 </property>
                </widget>
               </item>
+              <item row="6" column="0" colspan="2">
+               <widget class="QLabel" name="label_45">
+                <property name="text">
+                 <string>Note that these settings also apply to existing downloads.</string>
+                </property>
+               </widget>
+              </item>
              </layout>
             </widget>
             <widget class="QWidget" name="settings_anonymity_tab">
