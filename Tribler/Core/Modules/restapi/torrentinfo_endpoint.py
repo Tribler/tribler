@@ -1,13 +1,12 @@
 import logging
-from libtorrent import bdecode, bencode
 from urllib import url2pathname
 
+from libtorrent import bdecode, bencode
 from twisted.internet.defer import Deferred
 from twisted.internet.error import DNSLookupError, ConnectError
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
-from Tribler.Core.Modules.restapi.util import fix_unicode_dict
 from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink

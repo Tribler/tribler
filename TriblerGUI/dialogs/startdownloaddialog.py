@@ -4,6 +4,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QSizePolicy, QFileDialog, QTreeWidgetItem
 
+from Tribler.Core.Utilities.utilities import quote_plus_unicode
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -106,8 +107,8 @@ class StartDownloadDialog(DialogContainer):
 
     def perform_files_request(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("torrentinfo?uri=%s" % self.download_uri, self.on_received_metainfo,
-                                         capture_errors=False)
+        self.request_mgr.perform_request("torrentinfo?uri=%s" % quote_plus_unicode(self.download_uri),
+                                         self.on_received_metainfo, capture_errors=False)
 
     def on_received_metainfo(self, metainfo):
         if not metainfo:
