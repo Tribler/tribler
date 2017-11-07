@@ -14,6 +14,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
     QCompleter, QApplication, QStyledItemDelegate, QListWidget
 
+from Tribler.Core.Utilities.utilities import quote_plus_unicode
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.core_manager import CoreManager
 from TriblerGUI.debug_window import DebugWindow
@@ -282,8 +283,9 @@ class TriblerWindow(QMainWindow):
 
         anon_hops = int(self.tribler_settings['download_defaults']['number_hops']) if anon_download else 0
         safe_seeding = 1 if safe_seeding else 0
-        post_data = "uri=%s&anon_hops=%d&safe_seeding=%d&destination=%s%s" % (uri, anon_hops, safe_seeding,
-                                                                                   destination, selected_files_uri)
+        post_data = "uri=%s&anon_hops=%d&safe_seeding=%d&destination=%s%s" % (quote_plus_unicode(uri), anon_hops,
+                                                                              safe_seeding, destination,
+                                                                              selected_files_uri)
         post_data = post_data.encode('utf-8')  # We need to send bytes in the request, not unicode
 
         request_mgr = TriblerRequestManager()
