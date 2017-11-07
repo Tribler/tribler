@@ -32,13 +32,7 @@ class SubscriptionsWidget(QWidget):
             self.subscribe_button.clicked.connect(self.on_subscribe_button_click)
             self.initialized = True
 
-        self.check_subscription()
-
-    def check_subscription(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("channels/subscribed/%s" %
-                                         self.channel_info['dispersy_cid'],
-                                         self.update_subscribe_button, method='GET')
+        self.update_subscribe_button()
 
     def update_subscribe_button(self, remote_response=None):
         if remote_response and 'subscribed' in remote_response:
