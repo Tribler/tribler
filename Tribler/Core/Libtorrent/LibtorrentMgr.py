@@ -297,7 +297,8 @@ class LibtorrentMgr(TaskManager):
             known = [str(h.info_hash()) for h in ltsession.get_torrents()]
             if infohash in known:
                 self.torrents[infohash] = (torrentdl, ltsession)
-                return ltsession.find_torrent(lt.sha1_hash(infohash))
+                infohash_bin = binascii.unhexlify(infohash)
+                return ltsession.find_torrent(lt.sha1_hash(infohash_bin))
 
             # Otherwise, add it anew
             torrent_handle = ltsession.add_torrent(encode_atp(atp))
