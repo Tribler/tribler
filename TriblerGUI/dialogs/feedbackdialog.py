@@ -88,8 +88,15 @@ class FeedbackDialog(QDialog):
     def on_cancel_clicked(self):
         QApplication.quit()
 
-    def on_report_sent(self, _):
+    def on_report_sent(self, response):
+        sent = response[u'sent']
         QApplication.quit()
+        from check_os import error_and_exit
+        if sent:
+            error_and_exit("Report Sent", "Successfully sent the report! Thanks for your contribution.")
+        else:
+            error_and_exit("ERROR: Report Sending Failed",
+                           "Could not send the report! Please post this issue on GitHub.")
 
     def on_send_clicked(self):
         self.request_mgr = TriblerRequestManager()
