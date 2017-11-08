@@ -20,7 +20,7 @@ from TriblerGUI.core_manager import CoreManager
 from TriblerGUI.debug_window import DebugWindow
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
     PAGE_HOME, PAGE_EDIT_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
-    PAGE_CHANNEL_DETAILS, PAGE_PLAYLIST_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, PAGE_LOADING,\
+    PAGE_CHANNEL_DETAILS, PAGE_PLAYLIST_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, PAGE_LOADING, \
     PAGE_DISCOVERING, PAGE_DISCOVERED, PAGE_TRUST
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
@@ -279,7 +279,8 @@ class TriblerWindow(QMainWindow):
                                        total_files=0, callback=None):
         selected_files_uri = ""
         if len(selected_files) != total_files:  # Not all files included
-            selected_files_uri = u'&' + u''.join(u"selected_files[]=%s&" % file for file in selected_files)[:-1]
+            selected_files_uri = u'&' + u''.join(u"selected_files[]=%s&" %
+                                                 quote_plus_unicode(filename) for filename in selected_files)[:-1]
 
         anon_hops = int(self.tribler_settings['download_defaults']['number_hops']) if anon_download else 0
         safe_seeding = 1 if safe_seeding else 0
