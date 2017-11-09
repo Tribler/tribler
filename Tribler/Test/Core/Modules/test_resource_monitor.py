@@ -37,3 +37,17 @@ class TestResourceMonitor(TriblerCoreTest):
 
         memory_dict = self.resource_monitor.get_memory_history_dict()
         self.assertIsInstance(memory_dict, list)
+
+    def test_memory_full_error(self):
+        """
+        Test if check resources completes when memory_full_info fails
+        """
+        self.resource_monitor.process.cpu_percent = lambda interval: None
+
+        def fail_with_error():
+            raise MemoryError()
+        self.resource_monitor.process.memory_full_info = fail_with_error
+
+        self.resource_monitor.check_resources()
+
+        self.assertListEqual([], self.resource_monitor.memory_data)
