@@ -212,6 +212,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                 peer_list = state.get_peerlist()
                 for peer_info in peer_list:  # Remove have field since it is very large to transmit.
                     del peer_info['have']
+                    if 'extended_version' in peer_info:
+                        del peer_info['extended_version']
                     peer_info['id'] = peer_info['id'].encode('hex')
 
                 download_json["peers"] = peer_list
