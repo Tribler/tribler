@@ -8,6 +8,7 @@ from twisted.internet.error import DNSLookupError, ConnectError
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
+from Tribler.Core.exceptions import HttpError
 from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink
@@ -77,7 +78,7 @@ class TorrentInfoEndpoint(resource.Resource):
             self.finish_request(request)
 
         def on_lookup_error(failure):
-            failure.trap(ConnectError, DNSLookupError)
+            failure.trap(ConnectError, DNSLookupError, HttpError)
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
             request.write(json.dumps({"error": failure.getErrorMessage()}))
             self.finish_request(request)
