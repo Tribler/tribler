@@ -215,9 +215,12 @@ class TorrentHealthEndpoint(resource.Resource):
             self.finish_request(request)
 
         def on_request_error(failure):
-            request.setResponseCode(http.BAD_REQUEST)
-            request.write(json.dumps({"error": failure.getErrorMessage()}))
-            self.finish_request(request)
+            if not request.finished:
+                request.setResponseCode(http.BAD_REQUEST)
+                request.write(json.dumps({"error": failure.getErrorMessage()}))
+            # If the above request.write failed, the request will have already been finished
+            if not request.finished:
+                self.finish_request(request)
 
         self.session.check_torrent_health(self.infohash.decode('hex'), timeout=timeout, scrape_now=refresh)\
             .addCallback(on_health_result).addErrback(on_request_error)
