@@ -53,7 +53,12 @@ class ResourceMonitor(TaskManager):
         # However, on psutil version < 4.0.0, we fallback to use rss (Resident Set Size) which is the non-swapped
         # physical memory a process has used
         if hasattr(self.process, "memory_full_info") and callable(getattr(self.process, "memory_full_info")):
-            self.memory_data.append((time_seconds, self.process.memory_full_info().uss))
+            try:
+                self.memory_data.append((time_seconds, self.process.memory_full_info().uss))
+            except Exception as e:
+                # Can be MemoryError or WindowsError, which isn't defined on Linux
+                # Catching a WindowsError would therefore error out the error handler itself on Linux
+                self._logger.error("Failed to get memory full info: %s", str(e))
         elif hasattr(self.process, "memory_info") and callable(getattr(self.process, "memory_info")):
             self.memory_data.append((time_seconds, self.process.memory_info().rss))
 
