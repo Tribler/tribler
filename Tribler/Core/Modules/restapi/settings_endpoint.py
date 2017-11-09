@@ -4,7 +4,6 @@ import os
 from twisted.web import resource
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.defaults import tribler_defaults
 from Tribler.Core.simpledefs import STATEDIR_GUICONFIG
 import Tribler.Core.Utilities.json_util as json
 
@@ -94,6 +93,19 @@ class SettingsEndpoint(resource.Resource):
         if section == "general" and option == "family_filter":
             self.session.tribler_config.set_family_filter_enabled(value)
             return
+
+        # Apply changes to the default downloadconfig to already existing downloads
+        if section == "downloadconfig" and option in ["seeding_mode", "seeding_time", "seeding_ratio"]:
+            for download in self.session.get_downloads():
+                if download.get_share_mode():
+                    # Do not interfere with credit mining downloads
+                    continue
+                elif option == "seeding_mode":
+                    download.set_seeding_mode(value)
+                elif option == "seeding_time":
+                    download.set_seeding_time(value)
+                elif option == "seeding_ratio":
+                    download.set_seeding_ratio(value)
 
         if section == "Tribler" or section == "downloadconfig":
             # Write to the Tribler GUI config file
