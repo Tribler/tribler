@@ -10,9 +10,11 @@ import time
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication, pyqtSlot, QUrl, QObject
 from PyQt5.QtGui import QIcon, QDesktopServices
+from PyQt5.QtGui import QKeySequence
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
     QCompleter, QApplication, QStyledItemDelegate, QListWidget
+from PyQt5.QtWidgets import QShortcut
 
 from Tribler.Core.Utilities.utilities import quote_plus_unicode
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
@@ -125,6 +127,9 @@ class TriblerWindow(QMainWindow):
         QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
         self.read_settings()
+
+        self.debug_pane_shortcut = QShortcut(QKeySequence("Ctrl+d"), self)
+        self.debug_pane_shortcut.activated.connect(self.clicked_menu_button_debug)
 
         # Remove the focus rect on OS X
         for widget in self.findChildren(QLineEdit) + self.findChildren(QListWidget) + self.findChildren(QTreeWidget):
