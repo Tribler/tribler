@@ -34,7 +34,11 @@ from Tribler.Core.defaults import tribler_defaults
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,
                                      NTFY_FINISHED, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
-                                     DLSTATUS_SEEDING, NTFY_TORRENT)
+                                     DLSTATUS_SEEDING, NTFY_TORRENT, STATE_STARTING_DISPERSY, STATE_LOADING_COMMUNITIES,
+                                     STATE_INITIALIZE_CHANNEL_MGR, STATE_START_MAINLINE_DHT, STATE_START_LIBTORRENT,
+                                     STATE_START_TORRENT_CHECKER, STATE_START_REMOTE_TORRENT_HANDLER,
+                                     STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING,
+                                     STATE_START_RESOURCE_MONITOR)
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
@@ -253,6 +257,7 @@ class TriblerLaunchMany(TaskManager):
 
             self._logger.info("lmc: Starting Dispersy...")
 
+            self.session.readable_status = STATE_STARTING_DISPERSY
             now = timemod.time()
             success = self.dispersy.start(self.session.autoload_discovery)
 
@@ -278,23 +283,27 @@ class TriblerLaunchMany(TaskManager):
             # notify dispersy finished loading
             self.session.notifier.notify(NTFY_DISPERSY, NTFY_STARTED, None)
 
+            self.session.readable_status = STATE_LOADING_COMMUNITIES
             self.load_communities()
 
             self.session.set_anon_proxy_settings(2, ("127.0.0.1",
                                                      self.session.get_tunnel_community_socks5_listen_ports()))
 
             if self.session.get_enable_channel_search():
+                self.session.readable_status = STATE_INITIALIZE_CHANNEL_MGR
                 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
                 self.channel_manager = ChannelManager(self.session)
                 self.channel_manager.initialize()
 
         if self.session.get_mainline_dht():
+            self.session.readable_status = STATE_START_MAINLINE_DHT
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             self.mainline_dht = mainlineDHT.init(('127.0.0.1', self.session.get_mainline_dht_listen_port()),
                                                  self.session.get_state_dir())
             self.upnp_ports.append((self.session.get_mainline_dht_listen_port(), 'UDP'))
 
         if self.session.get_libtorrent():
+            self.session.readable_status = STATE_START_LIBTORRENT
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
             self.ltmgr = LibtorrentMgr(self.session)
             self.ltmgr.initialize()
@@ -303,24 +312,30 @@ class TriblerLaunchMany(TaskManager):
 
         # add task for tracker checking
         if self.session.get_torrent_checking():
+            self.session.readable_status = STATE_START_TORRENT_CHECKER
             self.torrent_checker = TorrentChecker(self.session)
             self.torrent_checker.initialize()
 
         if self.rtorrent_handler:
+            self.session.readable_status = STATE_START_REMOTE_TORRENT_HANDLER
             self.rtorrent_handler.initialize()
 
         if self.api_manager:
+            self.session.readable_status = STATE_START_API_ENDPOINTS
             self.api_manager.root_endpoint.start_endpoints()
 
         if self.session.get_watch_folder_enabled():
+            self.session.readable_status = STATE_START_WATCH_FOLDER
             self.watch_folder = WatchFolder(self.session)
             self.watch_folder.start()
 
         if self.session.get_creditmining_enable():
+            self.session.readable_status = STATE_START_CREDIT_MINING
             from Tribler.Core.CreditMining.BoostingManager import BoostingManager
             self.boosting_manager = BoostingManager(self.session)
 
         if self.session.get_resource_monitor_enabled():
+            self.session.readable_status = STATE_START_RESOURCE_MONITOR
             self.resource_monitor = ResourceMonitor(self.session)
             self.resource_monitor.start()
 
@@ -805,13 +820,14 @@ class TriblerLaunchMany(TaskManager):
             yield self.torrent_store.close()
         self.torrent_store = None
 
-        if self.api_manager is not None:
-            yield self.api_manager.stop()
-        self.api_manager = None
-
         if self.watch_folder is not None:
             yield self.watch_folder.stop()
         self.watch_folder = None
+
+        # We close the API manager as late as possible during shutdown.
+        if self.api_manager is not None:
+            yield self.api_manager.stop()
+        self.api_manager = None
 
     def network_shutdown(self):
         try:

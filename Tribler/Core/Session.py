@@ -38,7 +38,9 @@ from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnab
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_MYPREFERENCES,
                                      NTFY_PEERS, NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
                                      STATEDIR_METADATA_STORE_DIR, STATEDIR_PEERICON_DIR, STATEDIR_TORRENT_STORE_DIR,
-                                     DLSTATUS_STOPPED, STATEDIR_GUICONFIG)
+                                     DLSTATUS_STOPPED, STATEDIR_GUICONFIG, STATE_OPEN_DB, STATE_START_API,
+                                     STATE_UPGRADING_READABLE, STATE_LOAD_CHECKPOINTS, STATE_STARTED,
+                                     STATE_READABLE_STARTED)
 from Tribler.Core.statistics import TriblerStatistics
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -190,6 +192,7 @@ class Session(SessionConfigInterface):
         self.sqlite_db = None
         self.upgrader = None
         self.dispersy_member = None
+        self.readable_status = ''  # Human-readable string to indicate the status during startup/shutdown of Tribler
 
         self.autoload_discovery = autoload_discovery
 
@@ -532,6 +535,7 @@ class Session(SessionConfigInterface):
         db_script_path = os.path.join(get_lib_path(), DB_SCRIPT_NAME)
 
         self.sqlite_db = SQLiteCacheDB(db_path, db_script_path)
+        self.readable_status = STATE_OPEN_DB
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
 
@@ -545,19 +549,23 @@ class Session(SessionConfigInterface):
         # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
         if self.get_http_api_enabled():
             self.lm.api_manager = RESTManager(self)
+            self.readable_status = STATE_START_API
             self.lm.api_manager.start()
 
         self.start_database()
 
         if self.get_upgrader_enabled():
             self.upgrader = TriblerUpgrader(self, self.sqlite_db)
+            self.readable_status = STATE_UPGRADING_READABLE
             self.upgrader.run()
 
         startup_deferred = self.lm.register(self, self.sesslock)
 
         def load_checkpoint(_):
             if self.get_libtorrent():
+                self.readable_status = STATE_LOAD_CHECKPOINTS
                 self.load_checkpoint()
+            self.readable_status = STATE_READABLE_STARTED
 
         self.sessconfig.set_callback(self.lm.sessconfig_changed_callback)
 

@@ -10,9 +10,11 @@ import time
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication, pyqtSlot, QUrl, QObject
 from PyQt5.QtGui import QIcon, QDesktopServices
+from PyQt5.QtGui import QKeySequence
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
     QCompleter, QApplication, QStyledItemDelegate, QListWidget
+from PyQt5.QtWidgets import QShortcut
 
 from Tribler.Core.Utilities.utilities import quote_plus_unicode
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
@@ -110,6 +112,11 @@ class TriblerWindow(QMainWindow):
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
         TriblerRequestManager.window = self
 
+        def on_state_update(new_state):
+            self.loading_text_label.setText(new_state)
+
+        self.core_manager.core_state_update.connect(on_state_update)
+
         self.magnet_handler = MagnetHandler(self.window)
         QDesktopServices.setUrlHandler("magnet", self.magnet_handler, "on_open_magnet_link")
 
@@ -119,6 +126,9 @@ class TriblerWindow(QMainWindow):
         QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
         self.read_settings()
+
+        self.debug_pane_shortcut = QShortcut(QKeySequence("Ctrl+d"), self)
+        self.debug_pane_shortcut.activated.connect(self.clicked_menu_button_debug)
 
         # Remove the focus rect on OS X
         for widget in self.findChildren(QLineEdit) + self.findChildren(QListWidget) + self.findChildren(QTreeWidget):
@@ -624,6 +634,7 @@ class TriblerWindow(QMainWindow):
             if self.tray_icon:
                 self.tray_icon.deleteLater()
             self.show_loading_screen()
+            self.loading_text_label.setText("Shutting down...")
 
             self.gui_settings.setValue("pos", self.pos())
             self.gui_settings.setValue("size", self.size())
