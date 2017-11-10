@@ -111,6 +111,11 @@ class TriblerWindow(QMainWindow):
         TriblerRequestManager.window = self
         self.tribler_status_bar.hide()
 
+        def on_state_update(new_state):
+            self.loading_text_label.setText(new_state)
+
+        self.core_manager.core_state_update.connect(on_state_update)
+
         self.magnet_handler = MagnetHandler(self.window)
         QDesktopServices.setUrlHandler("magnet", self.magnet_handler, "on_open_magnet_link")
 
@@ -638,6 +643,7 @@ class TriblerWindow(QMainWindow):
             if self.tray_icon:
                 self.tray_icon.deleteLater()
             self.show_loading_screen()
+            self.loading_text_label.setText("Shutting down...")
 
             self.gui_settings.setValue("pos", self.pos())
             self.gui_settings.setValue("size", self.size())

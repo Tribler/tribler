@@ -1015,7 +1015,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>7</number>
+         <number>9</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -7863,7 +7863,7 @@ QTabBar::tab:selected {
                        <x>0</x>
                        <y>0</y>
                        <width>653</width>
-                       <height>280</height>
+                       <height>291</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -8580,6 +8580,9 @@ border-top: 1px solid #555;
         </widget>
         <widget class="LoadingPage" name="loading_page">
          <layout class="QVBoxLayout" name="verticalLayout">
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <property name="leftMargin">
            <number>0</number>
           </property>
@@ -8599,6 +8602,25 @@ border-top: 1px solid #555;
             </property>
             <property name="renderHints">
              <set>QPainter::Antialiasing|QPainter::HighQualityAntialiasing|QPainter::TextAntialiasing</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="loading_text_label">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>160</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: white; font-size: 18px;</string>
+            </property>
+            <property name="text">
+             <string>Loading...</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
             </property>
            </widget>
           </item>
