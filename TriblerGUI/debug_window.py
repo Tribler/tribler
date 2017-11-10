@@ -136,7 +136,7 @@ class DebugWindow(QMainWindow):
 
         self.window().open_files_tree_widget.header().setSectionResizeMode(0, QHeaderView.Stretch)
 
-        if not settings['multichain']['enabled']:
+        if settings and settings['multichain']['enabled']:
             self.window().debug_tab_widget.setTabEnabled(2, False)
 
         # Refresh logs
