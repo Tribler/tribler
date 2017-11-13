@@ -1,4 +1,5 @@
 from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem
 
 from TriblerGUI.widgets.channel_torrent_list_item import ChannelTorrentListItem
@@ -11,7 +12,6 @@ class LazyLoadList(QListWidget):
     This class implements a list where widget items are lazy-loaded. When the user has reached the end of the list
     when scrolling, the next items are created and displayed.
     """
-
     def __init__(self, parent):
         QListWidget.__init__(self, parent)
         self.verticalScrollBar().valueChanged.connect(self.on_list_scroll)

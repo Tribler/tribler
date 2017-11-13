@@ -38,6 +38,8 @@ class ChannelPage(QWidget):
         self.channel_info = channel_info
 
         self.window().channel_torrents_list.set_data_items([(LoadingListItem, None)])
+        self.window().channel_torrents_detail_widget.hide()
+
         self.window().channel_preview_label.setHidden(channel_info['subscribed'])
         self.window().channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
 
@@ -57,6 +59,13 @@ class ChannelPage(QWidget):
         self.window().subscription_widget.initialize_with_channel(channel_info)
 
         self.window().edit_channel_button.setHidden(True)
+
+    def clicked_item(self, item):
+        list_widget = item.listWidget()
+        list_item = list_widget.itemWidget(item)
+        if isinstance(list_item, ChannelTorrentListItem):
+            self.window().channel_torrents_detail_widget.update_with_torrent(list_item.torrent_info)
+            self.window().channel_torrents_detail_widget.show()
 
     def update_result_list(self):
         if self.loaded_channels and self.loaded_playlists:
