@@ -922,7 +922,12 @@ class TorrentDBHandler(BasicDBHandler):
 
             # Our score is 80% dependent on matching in the name of the torrent, 10% on the names of the files in the
             # torrent and 10% on the extensions of files in the torrent.
-            extended_result = result + [0.8 * scores[0] + 0.1 * scores[1] + 0.1 * scores[2]]
+            rel_score = 0.8 * scores[0] + 0.1 * scores[1] + 0.1 * scores[2]
+            if 'num_seeders' in keys and result[keys.index('num_seeders')] > 0:
+                # If this torrent has a non-zero amount of seeders, we make it more relevant
+                rel_score += result[keys.index('num_seeders')]
+
+            extended_result = result + [rel_score]
             search_results.append(extended_result)
 
         return search_results
