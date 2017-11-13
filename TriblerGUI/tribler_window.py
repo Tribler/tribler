@@ -15,6 +15,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
     QCompleter, QApplication, QStyledItemDelegate, QListWidget
 from PyQt5.QtWidgets import QShortcut
+from PyQt5.QtWidgets import QSplitter
 
 from Tribler.Core.Utilities.utilities import quote_plus_unicode
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
@@ -112,6 +113,20 @@ class TriblerWindow(QMainWindow):
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
         TriblerRequestManager.window = self
         self.tribler_status_bar.hide()
+
+        # Load dynamic widgets
+        uic.loadUi(get_ui_file_path('torrent_channel_list_container.ui'), self.channel_page_container)
+        self.channel_torrents_list = self.channel_page_container.items_list
+        self.channel_torrents_detail_widget = self.channel_page_container.details_tab_widget
+        self.channel_torrents_detail_widget.initialize_details_widget()
+        self.channel_torrents_list.itemClicked.connect(self.channel_page.clicked_item)
+
+        uic.loadUi(get_ui_file_path('torrent_channel_list_container.ui'), self.search_page_container)
+        self.search_results_list = self.search_page_container.items_list
+        self.search_torrents_detail_widget = self.search_page_container.details_tab_widget
+        self.search_torrents_detail_widget.initialize_details_widget()
+        self.search_results_list.itemClicked.connect(self.on_channel_item_click)
+        self.search_results_list.itemClicked.connect(self.search_results_page.clicked_item)
 
         def on_state_update(new_state):
             self.loading_text_label.setText(new_state)

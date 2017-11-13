@@ -44,6 +44,7 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         self.thumbnail_widget.initialize(torrent["name"], 24)
 
         if torrent["last_tracker_check"] > 0:
+            self.has_health = True
             self.update_health(int(torrent["num_seeders"]), int(torrent["num_leechers"]))
 
         self.torrent_play_button.clicked.connect(self.on_play_button_clicked)

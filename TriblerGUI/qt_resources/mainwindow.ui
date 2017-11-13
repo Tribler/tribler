@@ -1015,7 +1015,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>9</number>
+         <number>2</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -4010,7 +4010,7 @@ font-size: 20px;
 font-weight: bold;</string>
                </property>
                <property name="text">
-                <string>Search results for 'test'</string>
+                <string>Search results</string>
                </property>
               </widget>
              </item>
@@ -4034,7 +4034,7 @@ font-weight: bold;</string>
 color: #B5B5B5;</string>
                </property>
                <property name="text">
-                <string>34843 results</string>
+                <string>- results</string>
                </property>
               </widget>
              </item>
@@ -4216,27 +4216,12 @@ color: #B5B5B5;</string>
            </widget>
           </item>
           <item>
-           <widget class="LazyLoadList" name="search_results_list">
-            <property name="styleSheet">
-             <string notr="true">QListWidget::item:hover {
-background-color: #303030;
-}
-QListWidget::item:selected {
-background-color: #404040;
-}
-QListWidget::item {
-border-bottom: 1px solid #303030;
-}
-QListWidget {
-border: none;
-border-top: 1px solid #555;
-}</string>
-            </property>
-            <property name="selectionMode">
-             <enum>QAbstractItemView::SingleSelection</enum>
-            </property>
-            <property name="verticalScrollMode">
-             <enum>QAbstractItemView::ScrollPerPixel</enum>
+           <widget class="QWidget" name="search_page_container" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
            </widget>
           </item>
@@ -4264,6 +4249,24 @@ border-top: 1px solid #555;
           </property>
           <item>
            <widget class="QWidget" name="channel_details_header" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>50</height>
+             </size>
+            </property>
             <layout class="QHBoxLayout" name="horizontalLayout_3">
              <property name="spacing">
               <number>0</number>
@@ -4578,258 +4581,10 @@ background-color: transparent;</string>
            </widget>
           </item>
           <item>
-           <widget class="QStackedWidget" name="channel_stacked_widget">
+           <widget class="QWidget" name="channel_page_container" native="true">
             <property name="styleSheet">
              <string notr="true"/>
             </property>
-            <widget class="QWidget" name="channel_content_page">
-             <layout class="QVBoxLayout" name="verticalLayout">
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="LazyLoadList" name="channel_torrents_list">
-                <property name="styleSheet">
-                 <string notr="true">QListWidget::item:hover {
-background-color: #303030;
-}
-QListWidget::item:selected {
-background-color: #404040;
-}
-QListWidget::item {
-border-bottom: 1px solid #303030;
-}
-QListWidget {
-border: none;
-border-top: 1px solid #555;
-}</string>
-                </property>
-                <property name="selectionMode">
-                 <enum>QAbstractItemView::SingleSelection</enum>
-                </property>
-                <property name="verticalScrollMode">
-                 <enum>QAbstractItemView::ScrollPerPixel</enum>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-            <widget class="QWidget" name="channel_comments_page">
-             <layout class="QVBoxLayout" name="verticalLayout">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="QWidget" name="write_comment_container" native="true">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <layout class="QVBoxLayout" name="verticalLayout_6">
-                 <item>
-                  <widget class="QLabel" name="write_comment_header">
-                   <property name="styleSheet">
-                    <string notr="true">color: #ddd;</string>
-                   </property>
-                   <property name="text">
-                    <string>Write your comment below:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QWidget" name="widget_9" native="true">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>60</height>
-                    </size>
-                   </property>
-                   <layout class="QHBoxLayout" name="horizontalLayout_29">
-                    <property name="spacing">
-                     <number>0</number>
-                    </property>
-                    <property name="leftMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="topMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="rightMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>0</number>
-                    </property>
-                    <item>
-                     <widget class="QTextEdit" name="comment_text_area">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="minimumSize">
-                       <size>
-                        <width>0</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>16777215</width>
-                        <height>100</height>
-                       </size>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true">border: 1px solid #555;
-background-color: #ccc;
-border-radius: 4px;</string>
-                      </property>
-                      <property name="placeholderText">
-                       <string>Comment</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="horizontalSpacer_38">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                      <property name="sizeType">
-                       <enum>QSizePolicy::Fixed</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>10</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QToolButton" name="toolButton">
-                      <property name="minimumSize">
-                       <size>
-                        <width>40</width>
-                        <height>26</height>
-                       </size>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>40</width>
-                        <height>26</height>
-                       </size>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true">border: none;
-border-radius: 2px;
-background-color: #e67300;
-color: white;
-font-size: 14px;
-</string>
-                      </property>
-                      <property name="text">
-                       <string>Post</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-              <item>
-               <widget class="QTreeWidget" name="channel_comments_list">
-                <property name="styleSheet">
-                 <string notr="true">QTreeWidget {
-border: none;
-}</string>
-                </property>
-                <property name="selectionMode">
-                 <enum>QAbstractItemView::NoSelection</enum>
-                </property>
-                <property name="verticalScrollMode">
-                 <enum>QAbstractItemView::ScrollPerPixel</enum>
-                </property>
-                <property name="indentation">
-                 <number>10</number>
-                </property>
-                <attribute name="headerVisible">
-                 <bool>false</bool>
-                </attribute>
-                <column>
-                 <property name="text">
-                  <string notr="true">1</string>
-                 </property>
-                </column>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-            <widget class="QWidget" name="channel_activity_page">
-             <layout class="QVBoxLayout" name="verticalLayout">
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="QListWidget" name="channel_activities_list">
-                <property name="styleSheet">
-                 <string notr="true">QListWidget {
-border: none;
-}
-QListWidget::item {
-border-bottom: 1px solid #555;
-}</string>
-                </property>
-                <property name="selectionMode">
-                 <enum>QAbstractItemView::NoSelection</enum>
-                </property>
-                <property name="verticalScrollMode">
-                 <enum>QAbstractItemView::ScrollPerPixel</enum>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
            </widget>
           </item>
          </layout>
@@ -7681,6 +7436,9 @@ padding-left: 2px;</string>
              </property>
              <item row="0" column="0">
               <widget class="QSplitter" name="downloads_splitter">
+               <property name="styleSheet">
+                <string notr="true">QSplitter::handle { background-color: #555; }</string>
+               </property>
                <property name="orientation">
                 <enum>Qt::Vertical</enum>
                </property>
@@ -7824,7 +7582,7 @@ QTabBar::tab:selected {
 }</string>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>2</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -11560,22 +11318,6 @@ color: #eee;</string>
    </hints>
   </connection>
   <connection>
-   <sender>search_results_list</sender>
-   <signal>itemClicked(QListWidgetItem*)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_channel_item_click(QListWidgetItem*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>250</x>
-     <y>65</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>subscribed_channels_list</sender>
    <signal>itemClicked(QListWidgetItem*)</signal>
    <receiver>MainWindow</receiver>
@@ -11696,22 +11438,6 @@ color: #eee;</string>
     <hint type="sourcelabel">
      <x>218</x>
      <y>75</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>channel_torrents_list</sender>
-   <signal>itemClicked(QListWidgetItem*)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_playlist_item_click(QListWidgetItem*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>527</x>
-     <y>357</y>
     </hint>
     <hint type="destinationlabel">
      <x>427</x>
