@@ -19,6 +19,7 @@ class SearchResultsPage(QWidget):
     def initialize_search_results_page(self):
         self.window().search_results_tab.initialize()
         self.window().search_results_tab.clicked_tab_button.connect(self.clicked_tab_button)
+        self.window().search_torrents_detail_widget.hide()
 
     def perform_search(self, query):
         self.search_results = {'channels': [], 'torrents': []}
@@ -53,6 +54,13 @@ class SearchResultsPage(QWidget):
         self.window().num_search_results_label.setText("%d results" %
                                                        (len(self.search_results['channels']) +
                                                         len(self.search_results['torrents'])))
+
+    def clicked_item(self, item):
+        list_widget = item.listWidget()
+        list_item = list_widget.itemWidget(item)
+        if isinstance(list_item, ChannelTorrentListItem):
+            self.window().search_torrents_detail_widget.update_with_torrent(list_item.torrent_info)
+            self.window().search_torrents_detail_widget.show()
 
     def load_search_results_in_list(self, show_channels=True, show_torrents=True):
         if show_channels and show_torrents:
