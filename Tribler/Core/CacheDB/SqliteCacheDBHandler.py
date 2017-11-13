@@ -282,6 +282,9 @@ class TorrentDBHandler(BasicDBHandler):
 
         return to_return
 
+    def getTorrentFiles(self, torrent_id):
+        return self._db.fetchall("SELECT path, length FROM TorrentFiles WHERE torrent_id = ?", (torrent_id,))
+
     def getInfohash(self, torrent_id):
         sql_get_infohash = "SELECT infohash FROM Torrent WHERE torrent_id==?"
         ret = self._db.fetchone(sql_get_infohash, (torrent_id,))
