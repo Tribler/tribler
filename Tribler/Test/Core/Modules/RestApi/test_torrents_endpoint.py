@@ -48,6 +48,36 @@ class TestTorrentsEndpoint(AbstractApiTest):
         expected_json = {"error": "the limit parameter must be a positive number"}
         return self.do_request('torrents/random?limit=-5', expected_code=400, expected_json=expected_json)
 
+    @deferred(timeout=10)
+    def test_info_torrent_404(self):
+        """
+        Test whether we get an error 404 if we are fetching info from a non-existing torrent
+        """
+        self.should_check_equality = False
+        return self.do_request('torrents/%s' % ('a' * 40), expected_code=404)
+
+    @deferred(timeout=10)
+    def test_info_torrent(self):
+        """
+        Testing whether the API returns the right information for a request of a specific torrent
+        """
+        torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        torrent_db.addExternalTorrentNoDef('a' * 20, 'ubuntu-torrent.iso', [['file1.txt', 42]],
+                                           ('udp://trackerurl.com:1234/announce',), time.time())
+
+        return self.do_request('torrents/%s' % ('a' * 20).encode('hex'), expected_json={
+            u"id": 1,
+            u"infohash": unicode(('a' * 20).encode('hex')),
+            u"name": u'ubuntu-torrent.iso',
+            u"size": 42,
+            u"category": u"Compressed",
+            u"num_seeders": 0,
+            u"num_leechers": 0,
+            u"last_tracker_check": 0,
+            u"files": [{u"path": u"file1.txt", u"size": 42}],
+            u"trackers": [u"DHT", u"udp://trackerurl.com:1234"]
+        })
+
 
 class TestTorrentTrackersEndpoint(AbstractApiTest):
 
