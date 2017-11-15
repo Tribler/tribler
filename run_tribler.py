@@ -26,8 +26,8 @@ def setup_logging():
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
 
-    logging.info_log_file = '%s/tribler-info.log' % log_directory
-    logging.error_log_file = '%s/tribler-error.log' % log_directory
+    logging.info_log_file = os.path.join(log_directory, 'tribler-info.log')
+    logging.error_log_file = os.path.join(log_directory, 'tribler-error.log')
     logging.config.fileConfig(log_config, disable_existing_loggers=False)
 
 
