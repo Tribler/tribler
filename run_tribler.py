@@ -1,9 +1,11 @@
+import argparse
 import os
 import sys
 import multiprocessing
 import logging.config
 
-from check_os import check_environment
+
+from check_os import check_environment, parse_arguments, load_plugin_from_arg
 from check_os import error_and_exit
 
 
@@ -40,32 +42,41 @@ if __name__ == "__main__":
     # Set up logging
     setup_logging()
 
-    try:
-        from TriblerGUI.tribler_app import TriblerApplication
-        from TriblerGUI.tribler_window import TriblerWindow
+    arguments, unknowns = parse_arguments()
+    if arguments.headless:
+        setattr(arguments, 'plugin', 'tribler')
+        load_plugin_from_arg(arguments, unknowns)
+    elif arguments.plugin:
+        load_plugin_from_arg(arguments, unknowns)
+    else:
+        try:
+            from TriblerGUI.tribler_app import TriblerApplication
+            from TriblerGUI.tribler_window import TriblerWindow
 
-        app = TriblerApplication("triblerapp", sys.argv)
+            app = TriblerApplication("triblerapp", sys.argv)
 
-        if app.is_running():
-            for arg in sys.argv[1:]:
-                if os.path.exists(arg):
-                    app.send_message("file:%s" % arg)
-                elif arg.startswith('magnet'):
-                    app.send_message(arg)
-            sys.exit(1)
+            if app.is_running():
+                for arg in sys.argv[1:]:
+                    if os.path.exists(arg):
+                        app.send_message("file:%s" % arg)
+                    elif arg.startswith('magnet'):
+                        app.send_message(arg)
+                sys.exit(1)
 
-        window = TriblerWindow()
-        window.setWindowTitle("Tribler")
-        app.set_activation_window(window)
-        app.parse_sys_args(sys.argv)
-        sys.exit(app.exec_())
-    except ImportError as ie:
-        logging.exception(ie)
-        error_and_exit("Import Error", "Import error: {0}".format(ie))
+            window = TriblerWindow()
+            window.setWindowTitle("Tribler")
+            app.set_activation_window(window)
+            app.parse_sys_args(sys.argv)
+            sys.exit(app.exec_())
+        except ImportError as ie:
+            logging.exception(ie)
+            error_and_exit("Import Error", "Import error: {0}".format(ie))
 
-    except SystemExit as se:
-        logging.info("Shutting down Tribler")
-        # Flush all the logs to make sure it is written to file before it exits
-        for handler in logging.getLogger().handlers:
-            handler.flush()
-        raise
+        except SystemExit as se:
+            logging.info("Shutting down Tribler")
+            # Flush all the logs to make sure it is written to file before it exits
+            for handler in logging.getLogger().handlers:
+                handler.flush()
+            raise
+
+
