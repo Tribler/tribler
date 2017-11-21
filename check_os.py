@@ -1,3 +1,4 @@
+import sys
 import tempfile
 
 
@@ -18,6 +19,15 @@ def error_and_exit(title, main_text):
     root.wm_maxsize(500, 300)
     root.configure(background='#535252')
 
+    # Place the window at the center
+    root.update_idletasks()
+    w = root.winfo_screenwidth()
+    h = root.winfo_screenheight()
+    size = tuple(int(_) for _ in root.geometry().split('+')[0].split('x'))
+    x = w / 2 - 250
+    y = h / 2 - 150
+    root.geometry("%dx%d+%d+%d" % (size + (x, y)))
+
     Canvas(root, width=500, height=50, bd=0, highlightthickness=0, relief='ridge', background='#535252').pack()
     pane = Canvas(root, width=400, height=200, bd=0, highlightthickness=0, relief='ridge', background='#333333')
     Canvas(pane, width=400, height=20, bd=0, highlightthickness=0, relief='ridge', background='#333333').pack()
@@ -35,6 +45,9 @@ def error_and_exit(title, main_text):
     pane.pack()
 
     root.mainloop()
+
+    # Exit the program
+    sys.exit(1)
 
 
 def check_read_write():
@@ -54,3 +67,15 @@ def check_environment():
     Perform all of the pre-Tribler checks to see if we can run on this platform.
     """
     check_read_write()
+
+
+def check_free_space():
+    try:
+        import psutil
+        free_space = psutil.disk_usage(".").free/(1024 * 1024.0)
+        if free_space < 100:
+            error_and_exit("Insufficient disk space",
+                           "You have less than 100MB of usable disk space. " +
+                           "Please free up some space and run Tribler again.")
+    except ImportError as ie:
+        error_and_exit("Import Error", "Import error: {0}".format(ie))
