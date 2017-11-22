@@ -204,3 +204,13 @@ def get_gui_setting(gui_settings, value, default, is_bool=False):
     if is_bool:
         val = val == True or val == 'true'
     return val
+
+
+def is_dir_writable(path):
+    try:
+        open(os.path.join(path, 'temp'), 'w')
+    except IOError:
+        return False
+    else:
+        os.remove(os.path.join(path, 'temp'))
+        return True
