@@ -8,7 +8,7 @@ from Tribler.Core.Utilities.utilities import quote_plus_unicode
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_ui_file_path, format_size, get_gui_setting, get_image_path
+from TriblerGUI.utilities import get_ui_file_path, format_size, get_gui_setting, get_image_path, is_dir_writable
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
@@ -147,11 +147,18 @@ class StartDownloadDialog(DialogContainer):
         self.received_metainfo.emit(metainfo)
 
     def on_browse_dir_clicked(self):
-        chosen_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory of your download",
-                                                      "", QFileDialog.ShowDirsOnly)
+        chosen_dir = QFileDialog.getExistingDirectory(self.window(), "Please select the destination directory of your "
+                                                                     "download", "", QFileDialog.ShowDirsOnly)
 
         if len(chosen_dir) != 0:
             self.dialog_widget.destination_input.setCurrentText(chosen_dir)
+
+        if not is_dir_writable(chosen_dir):
+            ConfirmationDialog.show_message(self.dialog_widget, "Insufficient Permissions",
+                                            "Tribler cannot download to <i>%s</i> directory. "
+                                            "Please add proper write permissions to the directory "
+                                            "or choose another download directory." % chosen_dir,
+                                            "OK")
 
     def on_anon_download_state_changed(self, _):
         if self.dialog_widget.anon_download_checkbox.isChecked():
@@ -163,7 +170,15 @@ class StartDownloadDialog(DialogContainer):
             ConfirmationDialog.show_error(self.window(), "No files selected",
                                           "Please select at least one file to download.")
         else:
-            self.button_clicked.emit(1)
+            download_dir = self.dialog_widget.destination_input.currentText()
+            if not is_dir_writable(download_dir):
+                ConfirmationDialog.show_message(self.dialog_widget, "Insufficient Permissions",
+                                                "Tribler cannot download to <i>%s</i> directory. "
+                                                "Please add proper write permissions to the directory "
+                                                "or choose another download directory and try to download again." %
+                                                download_dir, "OK")
+            else:
+                self.button_clicked.emit(1)
 
     def on_all_files_selected_clicked(self):
         for ind in xrange(self.dialog_widget.files_list_view.topLevelItemCount()):

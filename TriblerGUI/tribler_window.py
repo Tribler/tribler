@@ -29,10 +29,7 @@ from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_ui_file_path, get_image_path, get_gui_setting
-
-
-
+from TriblerGUI.utilities import get_ui_file_path, get_image_path, get_gui_setting, is_dir_writable
 
 # Pre-load form UI classes
 fc_channel_torrent_list_item, _ = uic.loadUiType(get_ui_file_path('channel_torrent_list_item.ui'))
@@ -304,6 +301,14 @@ class TriblerWindow(QMainWindow):
 
     def perform_start_download_request(self, uri, anon_download, safe_seeding, destination, selected_files,
                                        total_files=0, callback=None):
+        # Check if destination directory is writable
+        if not is_dir_writable(destination):
+            ConfirmationDialog.show_message(self.window(), "Download error <i>%s</i>" % uri,
+                                            "Insufficient write permissions to <i>%s</i> directory. "
+                                            "Please add proper write permissions on the directory and "
+                                            "add the torrent again." % destination, "OK")
+            return
+
         selected_files_uri = ""
         if len(selected_files) != total_files:  # Not all files included
             selected_files_uri = u'&' + u''.join(u"selected_files[]=%s&" %
