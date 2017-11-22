@@ -282,7 +282,9 @@ class DownloadsPage(QWidget):
                                          method='PATCH', data='anon_hops=%d' % hops)
 
     def on_explore_files(self):
-        QDesktopServices.openUrl(QUrl.fromLocalFile(self.selected_item.download_info["destination"]))
+        path = os.path.normpath(os.path.join(self.window().tribler_settings['downloadconfig']['saveas'],
+		                                     self.selected_item.download_info["destination"]))
+        QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def on_export_download(self):
         self.export_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory", "",
