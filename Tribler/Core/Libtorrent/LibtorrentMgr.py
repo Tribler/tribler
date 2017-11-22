@@ -312,6 +312,10 @@ class LibtorrentMgr(TaskManager):
             return torrent_handle
 
     def remove_torrent(self, torrentdl, removecontent=False):
+        """
+        Start removing a torrent, the process is completed when a 'torrent_removed_alert'
+        is received in 'process_alert'.
+        """
         handle = torrentdl.handle
         if handle and handle.is_valid():
             infohash = str(handle.info_hash())
@@ -346,16 +350,23 @@ class LibtorrentMgr(TaskManager):
     def process_alert(self, alert):
         alert_type = str(type(alert)).split("'")[1].split(".")[-1]
         handle = getattr(alert, 'handle', None)
-        if handle:
-            if handle.is_valid():
-                infohash = str(handle.info_hash())
-                if infohash in self.torrents:
-                    self.torrents[infohash][0].process_alert(alert, alert_type)
-                elif infohash in self.metainfo_requests:
-                    if isinstance(alert, lt.metadata_received_alert):
-                        self.got_metainfo(infohash)
-                else:
-                    self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
+        if handle and handle.is_valid():
+            infohash = str(handle.info_hash())
+            if infohash in self.torrents:
+                self.torrents[infohash][0].process_alert(alert, alert_type)
+            elif infohash in self.metainfo_requests:
+                if isinstance(alert, lt.metadata_received_alert):
+                    self.got_metainfo(infohash)
+            else:
+                self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
+
+        if alert_type == 'torrent_removed_alert':
+            info_hash = str(alert.info_hash)
+            if info_hash in self.torrents:
+                deferred = self.torrents[info_hash][0].deferred_removed
+                del self.torrents[info_hash]
+                deferred.callback(None)
+                self._logger.debug("LibtorrentMgr: ['torrent_removed_alert'] removed torrent %s", info_hash)
             else:
                 if alert_type == 'torrent_removed_alert':
                     info_hash = str(alert.info_hash)
@@ -363,6 +374,8 @@ class LibtorrentMgr(TaskManager):
                         deferred = self.torrents[info_hash][0].deferred_removed
                         del self.torrents[info_hash]
                         deferred.callback(None)
+                    else:
+                        self._logger.debug("LibtorrentMgr: ['torrent_removed_alert'] invalid torrent %s", info_hash)
                 self._logger.debug("Alert for invalid torrent")
         if self.alert_callback:
             self.alert_callback(alert)
