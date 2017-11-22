@@ -106,6 +106,8 @@ class TriblerWindow(QMainWindow):
         self.selected_torrent_files = []
         self.vlc_available = True
         self.has_search_results = False
+        self.last_search_query = None
+        self.last_search_time = None
         self.start_time = time.time()
 
         sys.excepthook = self.on_exception
@@ -399,12 +401,23 @@ class TriblerWindow(QMainWindow):
         self.process_uri_request()
 
     def on_top_search_button_click(self):
+        current_ts = time.time()
+        current_search_query = self.top_search_bar.text()
+
+        if self.last_search_query and self.last_search_time \
+                and self.last_search_query == self.top_search_bar.text() \
+                and current_ts - self.last_search_time < 1:
+            logging.info("Same search query already sent within 500ms so dropping this one")
+            return
+
         self.left_menu_button_search.setChecked(True)
         self.has_search_results = True
         self.clicked_menu_button_search()
-        self.search_results_page.perform_search(self.top_search_bar.text())
+        self.search_results_page.perform_search(current_search_query)
         self.search_request_mgr = TriblerRequestManager()
-        self.search_request_mgr.perform_request("search?q=%s" % self.top_search_bar.text(), None)
+        self.search_request_mgr.perform_request("search?q=%s" % current_search_query, None)
+        self.last_search_query = current_search_query
+        self.last_search_time = current_ts
 
     def on_settings_button_click(self):
         self.deselect_all_menu_buttons()
