@@ -85,15 +85,30 @@ class SearchResultsPage(QWidget):
         # Ignore channels that have a small amount of torrents or have no votes
         if result['torrents'] <= 2 or result['votes'] == 0:
             return
-
+        if self.is_duplicate_channel(result):
+            return
         channel_index = bisect_right(result, self.search_results['channels'], is_torrent=False)
         self.window().search_results_list.insert_item(channel_index, (ChannelListItem, result))
         self.search_results['channels'].insert(channel_index, result)
         self.update_num_search_results()
 
     def received_search_result_torrent(self, result):
+        if self.is_duplicate_torrent(result):
+            return
         torrent_index = bisect_right(result, self.search_results['torrents'], is_torrent=True)
         self.search_results['torrents'].insert(torrent_index, result)
         self.window().search_results_list.insert_item(
             torrent_index + len(self.search_results['channels']), (ChannelTorrentListItem, result))
         self.update_num_search_results()
+
+    def is_duplicate_channel(self, result):
+        for channel_item in self.search_results['channels']:
+            if result[u'dispersy_cid'] == channel_item[u'dispersy_cid']:
+                return True
+        return False
+
+    def is_duplicate_torrent(self, result):
+        for torrent_item in self.search_results['torrents']:
+            if result[u'infohash'] == torrent_item[u'infohash']:
+                return True
+        return False
