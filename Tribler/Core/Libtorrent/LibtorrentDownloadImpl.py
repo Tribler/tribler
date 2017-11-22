@@ -1061,10 +1061,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     def network_stop(self, removestate, removecontent):
         """ Called by network thread, but safe for any """
+        self.cancel_all_pending_tasks()
+
         out = None
         with self.dllock:
             self._logger.debug("LibtorrentDownloadImpl: network_stop %s", self.tdef.get_name())
-            self.cancel_all_pending_tasks()
 
             pstate = self.get_persistent_download_config()
             if self.handle is not None:
