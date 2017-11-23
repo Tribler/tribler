@@ -3,7 +3,7 @@ import sys
 import multiprocessing
 import logging.config
 
-from check_os import check_environment
+from check_os import check_environment, check_free_space
 from check_os import error_and_exit
 
 
@@ -36,6 +36,8 @@ if __name__ == "__main__":
     check_environment()
 
     multiprocessing.freeze_support()
+
+    check_free_space()
 
     # Set up logging
     setup_logging()
