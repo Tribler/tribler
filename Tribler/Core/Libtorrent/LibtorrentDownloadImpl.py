@@ -18,7 +18,7 @@ from twisted.internet.defer import Deferred, CancelledError, succeed
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core import NoDispersyRLock
-from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
+from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface, get_default_dest_dir
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Libtorrent import checkHandleAndSynchronize
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
@@ -297,7 +297,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
 
             atp = {}
-            atp["save_path"] = os.path.abspath(self.get_dest_dir())
+            atp["save_path"] = os.path.normpath(os.path.join(get_default_dest_dir(), self.get_dest_dir()))
             atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
             atp["paused"] = True
             atp["auto_managed"] = False
@@ -1060,10 +1060,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     def network_stop(self, removestate, removecontent):
         """ Called by network thread, but safe for any """
+        self.cancel_all_pending_tasks()
+
         out = None
         with self.dllock:
             self._logger.debug("LibtorrentDownloadImpl: network_stop %s", self.tdef.get_name())
-            self.cancel_all_pending_tasks()
 
             pstate = self.get_persistent_download_config()
             if self.handle is not None:
