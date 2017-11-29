@@ -616,6 +616,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.orig_files = [torrent_file.path.decode('utf-8') for torrent_file in lt.torrent_info(metadata).files()]
         self.set_corrected_infoname()
         self.set_filepieceranges()
+        self.set_selected_files()
 
         if self.session.lm.rtorrent_handler:
             self.session.lm.rtorrent_handler.save_torrent(self.tdef)
