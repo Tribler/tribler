@@ -397,8 +397,7 @@ class LibtorrentMgr(TaskManager):
             elif infohash not in self.metainfo_requests:
                 # Flags = 4 (upload mode), should prevent libtorrent from creating files
                 atp = {'save_path': self.metadata_tmpdir,
-                       'flags': (lt.add_torrent_params_flags_t.flag_duplicate_is_error |
-                                 lt.add_torrent_params_flags_t.flag_upload_mode)}
+                       'flags': (lt.add_torrent_params_flags_t.flag_upload_mode)}
                 if magnet:
                     atp['url'] = magnet
                 else:
@@ -420,6 +419,12 @@ class LibtorrentMgr(TaskManager):
                                                     'callbacks': [callback],
                                                     'timeout_callbacks': [timeout_callback] if timeout_callback else [],
                                                     'notify': notify}
+
+                # if the handle is valid and already has metadata which is the case when torrent already exists in
+                # session then metadata_received_alert is not fired so we call self.got_metainfo() directly here
+                if handle.is_valid() and handle.has_metadata():
+                    self.got_metainfo(infohash, timeout=False)
+                    return
 
                 def schedule_call():
                     random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))

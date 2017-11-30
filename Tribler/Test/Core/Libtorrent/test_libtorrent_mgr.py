@@ -155,6 +155,41 @@ class TestLibtorrentMgr(AbstractServer):
 
         return test_deferred
 
+    @deferred(timeout=20)
+    def test_get_metainfo_with_already_added_torrent(self):
+        """
+        Testing metainfo fetching for a torrent which is already in session.
+        got_metainfo() should be called with timeout=False.
+        """
+        magnet_link = "magnet:?xt=urn:btih:f72636475a375653083e49d501601675ce3e6619&dn=ubuntu-16.04.3-server-i386.iso"
+
+        test_deferred = Deferred()
+
+        def fake_got_metainfo(_, timeout):
+            self.assertFalse(timeout, "Timeout should not be True")
+            test_deferred.callback(None)
+
+        mock_handle = MockObject()
+        mock_handle.info_hash = lambda: 'a' * 20
+        mock_handle.is_valid = lambda: True
+        mock_handle.has_metadata = lambda: True
+
+        mock_ltsession = MockObject()
+        mock_ltsession.add_torrent = lambda _: mock_handle
+        mock_ltsession.find_torrent = lambda _: mock_handle
+        mock_ltsession.get_torrents = lambda: []
+        mock_ltsession.start_upnp = lambda: None
+        mock_ltsession.stop_upnp = lambda: None
+        mock_ltsession.save_state = lambda: None
+
+        self.ltmgr.get_session = lambda *_: mock_ltsession
+        self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
+        self.ltmgr.is_dht_ready = lambda: True
+        self.ltmgr.got_metainfo = fake_got_metainfo
+
+        self.ltmgr.get_metainfo(magnet_link, lambda _: None)
+        return test_deferred
+
     def test_add_torrent(self):
         """
         Testing the addition of a torrent to the libtorrent manager
