@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>855</width>
-    <height>655</height>
+    <height>766</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -6257,6 +6257,68 @@ color: white;</string>
                 </property>
                 <property name="wordWrap">
                  <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_58">
+                <property name="font">
+                 <font>
+                  <weight>75</weight>
+                  <bold>true</bold>
+                 </font>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">font-weight: bold;
+color: white;</string>
+                </property>
+                <property name="text">
+                 <string>Keys</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="export_key_button_layout">
+                <item>
+                 <widget class="QPushButton" name="export_general_key_button">
+                  <property name="styleSheet">
+                   <string notr="true">color: white;</string>
+                  </property>
+                  <property name="text">
+                   <string>Export general key</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="export_trustchain_key_button">
+                  <property name="styleSheet">
+                   <string notr="true">color: white;</string>
+                  </property>
+                  <property name="text">
+                   <string>Export trustchain key</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="export_tradechain_key_button">
+                  <property name="styleSheet">
+                   <string notr="true">color: white;</string>
+                  </property>
+                  <property name="text">
+                   <string>Export tradechain key</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_59">
+                <property name="styleSheet">
+                 <string notr="true">font-weight: bold;
+color: orange;</string>
+                </property>
+                <property name="text">
+                 <string>Warning: This will export the private and public key!</string>
                 </property>
                </widget>
               </item>

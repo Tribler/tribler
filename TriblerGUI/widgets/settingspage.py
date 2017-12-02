@@ -1,4 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QFileDialog
+from PyQt5 import QtGui
+from PyQt5.QtWidgets import QWidget, QLabel, QFileDialog
+from PIL.ImageQt import ImageQt
+import qrcode
 
 import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_BANDWIDTH, \
@@ -18,6 +21,7 @@ class SettingsPage(QWidget):
         self.settings = None
         self.settings_request_mgr = None
         self.saved_dialog = None
+        self.keys_export_dialog = None
 
     def initialize_settings_page(self):
         self.window().settings_tab.initialize()
@@ -30,6 +34,87 @@ class SettingsPage(QWidget):
         self.window().developer_mode_enabled_checkbox.stateChanged.connect(self.on_developer_mode_checkbox_changed)
         self.window().use_monochrome_icon_checkbox.stateChanged.connect(self.on_use_monochrome_icon_checkbox_changed)
         self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
+        self.window().export_general_key_button.clicked.connect(self.export_key_general)
+        self.window().export_trustchain_key_button.clicked.connect(self.export_key_trustchain)
+        self.window().export_tradechain_key_button.clicked.connect(self.export_key_tradechain)
+
+    def export_key_general(self):
+        with open(self.settings['settings']['general']['ec_keypair_filename'], 'rb') as f:
+            self.keys_export_dialog = QWidget()
+            self.keys_export_dialog.setWindowTitle("Export general keypair")
+            self.keys_export_dialog.setGeometry(10, 10, 500, 500)
+
+            data = f.read()
+
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(data)
+            qr.make(fit=True)
+
+            img = qr.make_image()  # PIL format
+
+            qim = ImageQt(img)
+            pixmap = QtGui.QPixmap.fromImage(qim)
+            label = QLabel(self.keys_export_dialog)
+            label.setPixmap(pixmap)
+            self.keys_export_dialog.resize(pixmap.width(), pixmap.height())
+            self.keys_export_dialog.show()
+
+    def export_key_trustchain(self):
+        with open(self.settings['settings']['trustchain']['ec_keypair_filename'], 'rb') as f:
+            self.keys_export_dialog = QWidget()
+            self.keys_export_dialog.setWindowTitle("Export trustchain keypair")
+            self.keys_export_dialog.setGeometry(10, 10, 500, 500)
+
+            data = f.read()
+
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(data)
+            qr.make(fit=True)
+
+            img = qr.make_image()  # PIL format
+
+            qim = ImageQt(img)
+            pixmap = QtGui.QPixmap.fromImage(qim)
+            label = QLabel(self.keys_export_dialog)
+            label.setPixmap(pixmap)
+            self.keys_export_dialog.resize(pixmap.width(), pixmap.height())
+            self.keys_export_dialog.show()
+
+    def export_key_tradechain(self):
+        with open(self.settings['settings']['market_community']['ec_keypair_filename'], 'rb') as f:
+            self.keys_export_dialog = QWidget()
+            self.keys_export_dialog.setWindowTitle("Export tradechain keypair")
+            self.keys_export_dialog.setGeometry(10, 10, 500, 500)
+
+            data = f.read()
+
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(data)
+            qr.make(fit=True)
+
+            img = qr.make_image()  # PIL format
+
+            qim = ImageQt(img)
+            pixmap = QtGui.QPixmap.fromImage(qim)
+            label = QLabel(self.keys_export_dialog)
+            label.setPixmap(pixmap)
+            self.keys_export_dialog.resize(pixmap.width(), pixmap.height())
+            self.keys_export_dialog.show()
 
         self.window().log_location_chooser_button.clicked.connect(self.on_choose_log_dir_clicked)
 
