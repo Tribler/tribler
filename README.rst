@@ -2,7 +2,7 @@
 Tribler
 *******
 
-|jenkins_build| |pr_closed| |issues_closed| |openhub|
+|jenkins_build| |contributors| |pr_closed| |issues_closed| |downloads_6_5| |downloads_7_0| |openhub|
 
 *Towards making Bittorrent anonymous and impossible to shut down.*
 
@@ -68,7 +68,7 @@ On Windows, you can use the following command to run Tribler:
 
 .. code-block:: none
 
-    python Tribler\Main\tribler.py
+    python run_tribler.py
     
 Packaging Tribler
 =================
@@ -87,13 +87,25 @@ Submodule notes
     :target: http://jenkins.tribler.org/job/Test_tribler_devel/
     :alt: Build status on Jenkins
 
-.. |pr_closed| image:: http://issuestats.com/github/tribler/tribler/badge/pr?style=flat
-    :target: http://issuestats.com/github/tribler/tribler
-    :alt: Pull request statistics
+.. |pr_closed| image:: https://img.shields.io/github/issues-pr-closed/tribler/tribler.svg?style=flat
+    :target: https://github.com/Tribler/tribler/pulls
+    :alt: Pull Requests
     
-.. |issues_closed| image:: http://issuestats.com/github/tribler/tribler/badge/pr?style=flat
-    :target: http://issuestats.com/github/tribler/tribler
-    :alt: Issue statistics
+.. |issues_closed| image:: https://img.shields.io/github/issues-closed/tribler/tribler.svg?style=flat
+    :target: https://github.com/Tribler/tribler/issues
+    :alt: Issues
     
-.. |openhub| image:: https://www.openhub.net/p/tribler/widgets/project_thin_badge.gif
+.. |openhub| image:: https://www.openhub.net/p/tribler/widgets/project_thin_badge.gif?style=flat
     :target: https://www.openhub.net/p/tribler
+
+.. |downloads_6_5| image:: https://img.shields.io/github/downloads/tribler/tribler/v6.5.2/total.svg?style=flat
+    :target: https://github.com/Tribler/tribler/releases
+    :alt: Downloads(6.5.2)
+
+.. |downloads_7_0| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.0.0-rc3/total.svg?style=flat
+    :target: https://github.com/Tribler/tribler/releases
+    :alt: Downloads(7.0.0-rc3)
+
+.. |contributors| image:: https://img.shields.io/github/contributors/tribler/tribler.svg?style=flat
+    :target: https://github.com/Tribler/tribler/graphs/contributors
+    :alt: Contributors
