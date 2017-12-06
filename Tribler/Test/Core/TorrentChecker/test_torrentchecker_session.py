@@ -1,26 +1,23 @@
 import struct
 from libtorrent import bencode
-from twisted.internet.defer import Deferred, DeferredList
+from twisted.internet.defer import Deferred
 from twisted.internet.task import Clock
 from twisted.python.failure import Failure
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentChecker.session import FakeDHTSession, DHT_TRACKER_MAX_RETRIES, DHT_TRACKER_RECHECK_INTERVAL, \
-    UdpTrackerSession, UDPScraper, HttpTrackerSession
+    UdpTrackerSession, HttpTrackerSession
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.twisted_thread import deferred
 
 
-class ClockedUDPCrawler(UDPScraper):
-    _reactor = Clock()
+class ClockedUdpTrackerSession(UdpTrackerSession):
+    reactor = Clock()
 
 
-class FakeScraper(object):
-    def write_data(self, _):
-        pass
-
-    def stop(self):
+class FakeUdpSocketManager(object):
+    def send_request(self, *args):
         pass
 
 
@@ -30,6 +27,7 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         super(TestTorrentCheckerSession, self).setUp(annotate=annotate)
         self.mock_transport = MockObject()
         self.mock_transport.write = lambda *_: None
+        self.socket_mgr = FakeUdpSocketManager()
 
     def test_httpsession_scrape_no_body(self):
         session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5)
@@ -91,63 +89,52 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session.result_deferred.cancel()
         return test_deferred
 
-    @deferred(timeout=5)
     def test_udpsession_cancel_operation(self):
-        session = UdpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 5)
+        session = UdpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 0, self.socket_mgr)
         d = Deferred(session._on_cancel)
         d.addErrback(lambda _: None)
         session.result_deferred = d
-        return session.cleanup()
 
     def test_udpsession_udp_tracker_timeout(self):
-        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
-        session.scraper = ClockedUDPCrawler(session, "127.0.0.1", 4782, 5)
+        session = ClockedUdpTrackerSession("localhost", ("localhost", 4782), "/announce", 15, self.socket_mgr)
         # Advance 16 seconds so the timeout triggered
-        session.scraper._reactor.advance(session.scraper.timeout + 1)
-        self.assertIsNone(session.scraper)
-
-    @deferred(timeout=5)
-    def test_udp_scraper_stop_no_connection(self):
-        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
-        scraper = UDPScraper(session, "127.0.0.1", 4782, 5)
-        # Stop it manually, so the transport becomes inactive
-        stop_deferred = scraper.stop()
-
-        return DeferredList([stop_deferred, session.cleanup()])
-
-    def test_udpsession_udp_tracker_connection_refused(self):
-        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
-        session.scraper = UDPScraper(session, "127.0.0.1", 4782, 5)
-        session.scraper.connectionRefused()
-        self.assertTrue(session.is_failed, "Session did not fail while it should")
+        session.reactor.advance(session.timeout + 1)
+        self.assertTrue(session.is_failed)
 
     def test_udpsession_handle_response_wrong_len(self):
-        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
-        session.on_ip_address_resolved("127.0.0.1", start_scraper=False)
+        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
+        session.on_ip_address_resolved("127.0.0.1")
         self.assertFalse(session.is_failed)
         session.handle_connection_response("too short")
         self.assertTrue(session.is_failed)
 
+        # After receiving a correct packet, it session should still be in a failed state
+        session.action = 123
+        session.transaction_id = 124
+        packet = struct.pack("!iiq", 123, 124, 126)
+        session.handle_response(packet)
+        self.assertTrue(session.expect_connection_response)
+        self.assertTrue(session.is_failed)
+
     def test_udpsession_handle_connection_wrong_action_transaction(self):
-        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
-        session.on_ip_address_resolved("127.0.0.1", start_scraper=None)
+        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
+        session.on_ip_address_resolved("127.0.0.1")
         self.assertFalse(session.is_failed)
         packet = struct.pack("!qq4s", 123, 123, "test")
         session.handle_connection_response(packet)
         self.assertTrue(session.is_failed)
 
     def test_udpsession_handle_packet(self):
-        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
-        session.scraper = FakeScraper()
-        session._action = 123
-        session._transaction_id = 124
+        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
+        session.action = 123
+        session.transaction_id = 124
         self.assertFalse(session.is_failed)
         packet = struct.pack("!iiq", 123, 124, 126)
         session.handle_connection_response(packet)
         self.assertFalse(session.is_failed)
 
     def test_udpsession_handle_wrong_action_transaction(self):
-        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
+        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
         session.on_ip_address_resolved("127.0.0.1", start_scraper=None)
         self.assertFalse(session.is_failed)
         packet = struct.pack("!qq4s", 123, 123, "test")
@@ -155,83 +142,78 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         self.assertTrue(session.is_failed)
 
     def test_udpsession_mismatch(self):
-        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
-        session.scraper = FakeScraper()
-        session._action = 123
-        session._transaction_id = 124
+        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
+        session.action = 123
+        session.transaction_id = 124
         session._infohash_list = [1337]
         self.assertFalse(session.is_failed)
         packet = struct.pack("!ii", 123, 124)
-        session.handle_response(packet)
+        session.handle_scrape_response(packet)
         self.assertTrue(session.is_failed)
 
     def test_udpsession_response_too_short(self):
-        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
-        session.scraper = FakeScraper()
+        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
         self.assertFalse(session.is_failed)
         packet = struct.pack("!i", 123)
-        session.handle_response(packet)
+        session.handle_scrape_response(packet)
         self.assertTrue(session.is_failed)
 
     def test_udpsession_response_wrong_transaction_id(self):
-        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
-        session.scraper = FakeScraper()
+        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
         self.assertFalse(session.is_failed)
         packet = struct.pack("!ii", 0, 1337)
-        session.handle_response(packet)
+        session.handle_scrape_response(packet)
         self.assertTrue(session.is_failed)
 
     def test_udpsession_response_list_len_mismatch(self):
-        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
-        session.scraper = FakeScraper()
+        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
         session.result_deferred = Deferred()
 
         def on_error(_):
             pass
 
         session.result_deferred.addErrback(on_error)
-        session._action = 123
-        session._transaction_id = 123
+        session.action = 123
+        session.transaction_id = 123
         self.assertFalse(session.is_failed)
         session._infohash_list = ["test", "test2"]
         packet = struct.pack("!iiiii", 123, 123, 0, 1, 2)
-        session.handle_response(packet)
+        session.handle_scrape_response(packet)
         self.assertTrue(session.is_failed)
 
     @deferred(timeout=5)
     def test_udpsession_correct_handle(self):
-        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
+        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5, self.socket_mgr)
         session.on_ip_address_resolved("127.0.0.1", start_scraper=False)
         session.result_deferred = Deferred()
         self.assertFalse(session.is_failed)
         session._infohash_list = ["test"]
-        packet = struct.pack("!iiiii", session._action, session._transaction_id, 0, 1, 2)
-        session.handle_response(packet)
+        packet = struct.pack("!iiiii", session.action, session.transaction_id, 0, 1, 2)
+        session.handle_scrape_response(packet)
 
         return session.result_deferred.addCallback(lambda *_: session.cleanup())
 
     @deferred(timeout=5)
     def test_udpsession_on_error(self):
         test_deferred = Deferred()
-        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
+        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
         session.result_deferred = Deferred().addErrback(
             lambda failure: test_deferred.callback(failure.getErrorMessage()))
-        session.scraper = FakeScraper()
         session.on_error(Failure(RuntimeError("test")))
         return test_deferred
 
     @deferred(timeout=5)
     def test_big_correct_run(self):
-        session = UdpTrackerSession("localhost", ("192.168.1.1", 1234), "/announce", 1)
-        session.on_ip_address_resolved("192.168.1.1", start_scraper=False)
-        session.scraper.transport = self.mock_transport
+        session = UdpTrackerSession("localhost", ("192.168.1.1", 1234), "/announce", 0, self.socket_mgr)
+        session.on_ip_address_resolved("192.168.1.1")
+        session.transport = self.mock_transport
         session.result_deferred = Deferred()
         self.assertFalse(session.is_failed)
-        packet = struct.pack("!iiq", session._action, session._transaction_id, 126)
-        session.scraper.datagramReceived(packet, (None, None))
+        packet = struct.pack("!iiq", session.action, session.transaction_id, 126)
+        session.handle_response(packet)
         session._infohash_list = ["test"]
-        packet = struct.pack("!iiiii", session._action, session._transaction_id, 0, 1, 2)
-        session.scraper.datagramReceived(packet, (None, None))
+        packet = struct.pack("!iiiii", session.action, session.transaction_id, 0, 1, 2)
+        session.handle_response(packet)
         self.assertTrue(session.is_finished)
 
         return session.result_deferred
@@ -264,7 +246,7 @@ class TestTorrentCheckerSession(TriblerCoreTest):
     def test_failed_unicode_udp(self):
         test_deferred = Deferred()
 
-        session = UdpTrackerSession("localhost", ("localhost", 8475), "/announce", 5)
+        session = UdpTrackerSession("localhost", ("localhost", 8475), "/announce", 0, self.socket_mgr)
 
         def on_error(failure):
             self.assertEqual(failure.type, ValueError)
