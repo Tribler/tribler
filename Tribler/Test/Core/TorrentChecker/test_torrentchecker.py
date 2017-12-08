@@ -1,5 +1,5 @@
 import time
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 from Tribler.Core.Category.Category import Category
@@ -150,7 +150,8 @@ class TestTorrentChecker(TriblerCoreTest):
         self.session.lm.tracker_manager.add_tracker('http://trackertest.com:80/announce')
         return self.torrent_checker._task_select_tracker()
 
+    @inlineCallbacks
     @blocking_call_on_reactor_thread
     def tearDown(self, annotate=True):
-        self.torrent_checker.shutdown()
-        super(TestTorrentChecker, self).tearDown(annotate=annotate)
+        yield self.torrent_checker.shutdown()
+        yield super(TestTorrentChecker, self).tearDown(annotate=annotate)

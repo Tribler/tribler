@@ -3,8 +3,7 @@ import logging
 import time
 from twisted.internet.error import ConnectingCancelledError
 
-from twisted.internet.defer import DeferredList, CancelledError, fail, succeed
-
+from twisted.internet.defer import DeferredList, CancelledError, fail, succeed, maybeDeferred
 from twisted.internet import reactor
 from twisted.python.failure import Failure
 
@@ -12,7 +11,7 @@ from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
 from Tribler.Core.simpledefs import NTFY_TORRENTS
-from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession
+from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession, UdpSocketManager
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 
 # some settings
@@ -44,10 +43,14 @@ class TorrentChecker(TaskManager):
         # Track all session cleanups
         self.session_stop_defer_list = []
 
+        self.socket_mgr = self.udp_port = None
+
     @blocking_call_on_reactor_thread
     def initialize(self):
         self._torrent_db = self.tribler_session.open_dbhandler(NTFY_TORRENTS)
         self._reschedule_tracker_select()
+        self.socket_mgr = UdpSocketManager()
+        self.udp_port = reactor.listenUDP(0, self.socket_mgr)
 
     def shutdown(self):
         """
@@ -57,6 +60,10 @@ class TorrentChecker(TaskManager):
         :returns A deferred that will fire once the shutdown has completed.
         """
         self._should_stop = True
+
+        if self.udp_port:
+            self.session_stop_defer_list.append(maybeDeferred(self.udp_port.stopListening))
+            self.udp_port = None
 
         self.cancel_all_pending_tasks()
 
@@ -228,7 +235,7 @@ class TorrentChecker(TaskManager):
         return failure
 
     def _create_session_for_request(self, tracker_url, timeout=20):
-        session = create_tracker_session(tracker_url, timeout)
+        session = create_tracker_session(tracker_url, timeout, self.socket_mgr)
 
         if tracker_url not in self._session_list:
             self._session_list[tracker_url] = []
