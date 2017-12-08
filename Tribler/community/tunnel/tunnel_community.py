@@ -453,7 +453,11 @@ class TunnelCommunity(Community):
 
     def tunnels_ready(self, hops):
         if hops > 0:
-            if self.settings.min_circuits:
+            if self.num_hops_by_downloads[hops] < 1 or self.circuits_needed[hops] < 1:
+                # if nothing sets the need for this number of tunnels they will eventually die. So the tunnels for this
+                # number of hops is not in fact ready, and build_tunnels should be called.
+                return 0
+            elif self.settings.min_circuits:
                 return min(1, len(self.active_data_circuits(hops)) / float(self.settings.min_circuits))
             else:
                 return 1 if self.active_data_circuits(hops) else 0
