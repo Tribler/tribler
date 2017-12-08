@@ -382,9 +382,9 @@ class CommunityTestSuite(AbstractTestMarketCommunity):
         """
         Test the compute_reputation method
         """
-        self.market_community.tradechain_community = MockObject()
-        self.market_community.tradechain_community.persistence = MockObject()
-        self.market_community.tradechain_community.persistence.get_all_blocks = lambda: []
+        self.market_community.persistence = MockObject()
+        self.market_community.persistence.get_all_blocks = lambda: []
+        self.market_community.persistence.close = lambda: None
         self.market_community.compute_reputation()
         self.assertFalse(self.market_community.reputation_dict)
 

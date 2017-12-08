@@ -124,7 +124,6 @@ class MarketCommunity(TrustChainCommunity):
         self.matching_engine = None
         self.incoming_match_messages = {}  # Map of TraderId -> Message (we save all incoming matches)
         self.tribler_session = None
-        self.tradechain_community = None
         self.wallets = None
         self.transaction_manager = None
         self.reputation_dict = {}
@@ -160,7 +159,6 @@ class MarketCommunity(TrustChainCommunity):
 
         self.order_manager = OrderManager(order_repository)
         self.tribler_session = tribler_session
-        self.tradechain_community = tradechain_community
         self.wallets = wallets or {}
         self.transaction_manager = TransactionManager(transaction_repository)
 
@@ -1714,5 +1712,5 @@ class MarketCommunity(TrustChainCommunity):
         """
         Compute the reputation of peers in the community
         """
-        rep_manager = TemporalPagerankReputationManager(self.tradechain_community.persistence.get_all_blocks())
+        rep_manager = TemporalPagerankReputationManager(self.persistence.get_all_blocks())
         self.reputation_dict = rep_manager.compute(self.my_member.public_key)
