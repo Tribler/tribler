@@ -40,7 +40,8 @@ class RESTManager(TaskManager):
 
 class RESTRequest(server.Request):
     """
-    This class gracefully takes care of unhandled exceptions raised during the processing of any request.
+    This class overrides the write(data) method to do a safe write only when channel is not None and gracefully
+    takes care of unhandled exceptions raised during the processing of any request.
     """
     defaultContentType = b"text/json"
 
@@ -67,3 +68,10 @@ class RESTRequest(server.Request):
         self.write(body)
         self.finish()
         return failure
+
+    def write(self, data):
+        """
+        Writes data only if request has not finished and channel is not None
+        """
+        if not self.finished and self.channel:
+            server.Request.write(self, data)
