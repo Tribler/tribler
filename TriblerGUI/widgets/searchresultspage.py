@@ -87,7 +87,8 @@ class SearchResultsPage(QWidget):
             return
         if self.is_duplicate_channel(result):
             return
-        channel_index = bisect_right(result, self.search_results['channels'], is_torrent=False)
+        channel_index = min(bisect_right(result, self.search_results['channels'], is_torrent=False),
+                            len(self.search_results['channels']))
         self.window().search_results_list.insert_item(channel_index, (ChannelListItem, result))
         self.search_results['channels'].insert(channel_index, result)
         self.update_num_search_results()
@@ -95,7 +96,8 @@ class SearchResultsPage(QWidget):
     def received_search_result_torrent(self, result):
         if self.is_duplicate_torrent(result):
             return
-        torrent_index = bisect_right(result, self.search_results['torrents'], is_torrent=True)
+        torrent_index = min(bisect_right(result, self.search_results['torrents'], is_torrent=True),
+                            len(self.search_results['torrents']))
         self.search_results['torrents'].insert(torrent_index, result)
         self.window().search_results_list.insert_item(
             torrent_index + len(self.search_results['channels']), (ChannelTorrentListItem, result))
