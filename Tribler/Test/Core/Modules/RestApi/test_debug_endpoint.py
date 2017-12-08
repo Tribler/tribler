@@ -161,19 +161,18 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         test_log_message = "This is the test log message"
         max_lines = 100
 
-        import Tribler
-        project_root_dir = os.path.abspath(os.path.join(os.path.dirname(Tribler.__file__), ".."))
-        log_config = os.path.join(project_root_dir, "logger.conf")
-
         # State directory for logs
         state_log_dir = os.path.join(self.session.config.get_state_dir(), 'logs')
         if not os.path.exists(state_log_dir):
             os.makedirs(state_log_dir)
 
-        # Setup logging
-        logging.info_log_file = os.path.join(state_log_dir, 'tribler-info.log')
-        logging.error_log_file = os.path.join(state_log_dir, 'tribler-error.log')
-        logging.config.fileConfig(log_config, disable_existing_loggers=False)
+        # Fill logging files with statements
+        info_log_file_path = os.path.join(state_log_dir, 'tribler-info.log')
+
+        # write 100 test lines which is used to test for its presence in the response
+        with open(info_log_file_path, "w") as info_log_file:
+            for log_index in xrange(100):
+                info_log_file.write("%s %d\n" % (test_log_message, log_index))
 
         def verify_log_exists(response):
             json_response = json.loads(response)
@@ -185,10 +184,6 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
             # Check if test log message is present in the logs, at least once
             log_exists = any((True for log in logs if test_log_message in log))
             self.assertTrue(log_exists, "Test log not found in the debug log response")
-
-        # write 100 test logs which is used to test for its presence in the response
-        for log_index in xrange(100):
-            logging.error("%s [%d]", test_log_message, log_index)
 
         self.should_check_equality = False
         return self.do_request('debug/log?max_lines=%d' % max_lines, expected_code=200).addCallback(verify_log_exists)
