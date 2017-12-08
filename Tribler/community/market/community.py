@@ -1671,7 +1671,7 @@ class MarketCommunity(TrustChainCommunity):
         del self.incoming_match_messages[transaction.match_id]
         candidate = Candidate(self.lookup_ip(match_message.payload.matchmaker_trader_id), False)
 
-        linked_block = self.market_database.get_linked(block)
+        linked_block = self.market_database.get_linked(block) or block
         self.send_block_pair(block, linked_block, candidate)
 
     def on_transaction_completed_message(self, block1, block2):
