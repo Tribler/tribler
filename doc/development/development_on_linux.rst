@@ -7,7 +7,7 @@ First, install the required dependencies by executing the following command in y
 
 .. code-block:: none
 
-    sudo apt-get install libav-tools libsodium18 libx11-6 python-apsw python-cherrypy3 python-cryptography python-decorator python-dnspython python-ecdsa python-feedparser python-jsonrpclib python-keyring python-keyrings.alt python-leveldb python-libtorrent python-matplotlib python-meliae python-m2crypto python-netifaces python-pbkdf2 python-pil python-protobuf python-pyasn1 python-pysocks python-requests python-twisted python2.7 vlc python-chardet python-configobj python-pyqt5 python-pyqt5.qtsvg
+    sudo apt-get install libav-tools libsodium18 libx11-6 python-apsw python-cherrypy3 python-cryptography python-decorator python-dnspython python-ecdsa python-feedparser python-jsonrpclib python-keyring python-keyrings.alt python-leveldb python-libtorrent python-matplotlib python-meliae python-m2crypto python-netifaces python-pbkdf2 python-pil python-protobuf python-pyasn1 python-pysocks python-requests python-scipy python-twisted python2.7 vlc python-chardet python-configobj python-pyqt5 python-pyqt5.qtsvg
 
 Next, download the latest .deb file from `here <https://jenkins.tribler.org/job/Build-Tribler_Ubuntu-64_devel/lastStableBuild/>`_.
 
