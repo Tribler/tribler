@@ -96,6 +96,7 @@ class TriblerWindow(QMainWindow):
         self.pending_uri_requests = []
         self.download_uri = None
         self.dialog = None
+        self.new_version_dialog = None
         self.start_download_dialog_active = False
         self.request_mgr = None
         self.search_request_mgr = None
@@ -343,13 +344,13 @@ class TriblerWindow(QMainWindow):
         if version == str(self.gui_settings.value('last_reported_version')):
             return
 
-        self.dialog = ConfirmationDialog(self, "New version available",
-                                         "Version %s of Tribler is available.Do you want to visit the website to "
-                                         "download the newest version?" % version,
-                                         [('IGNORE', BUTTON_TYPE_NORMAL), ('LATER', BUTTON_TYPE_NORMAL),
-                                          ('OK', BUTTON_TYPE_NORMAL)])
-        self.dialog.button_clicked.connect(lambda action: self.on_new_version_dialog_done(version, action))
-        self.dialog.show()
+        self.new_version_dialog = ConfirmationDialog(self, "New version available",
+                                                     "Version %s of Tribler is available.Do you want to visit the "
+                                                     "website to download the newest version?" % version,
+                                                     [('IGNORE', BUTTON_TYPE_NORMAL), ('LATER', BUTTON_TYPE_NORMAL),
+                                                      ('OK', BUTTON_TYPE_NORMAL)])
+        self.new_version_dialog.button_clicked.connect(lambda action: self.on_new_version_dialog_done(version, action))
+        self.new_version_dialog.show()
 
     def on_new_version_dialog_done(self, version, action):
         if action == 0:  # ignore
@@ -358,8 +359,8 @@ class TriblerWindow(QMainWindow):
             import webbrowser
             webbrowser.open("https://tribler.org")
 
-        self.dialog.setParent(None)
-        self.dialog = None
+        self.new_version_dialog.setParent(None)
+        self.new_version_dialog = None
 
     def read_settings(self):
         self.gui_settings = QSettings()
