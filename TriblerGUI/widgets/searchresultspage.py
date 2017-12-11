@@ -15,6 +15,8 @@ class SearchResultsPage(QWidget):
         QWidget.__init__(self)
         self.search_results = {'channels': [], 'torrents': []}
         self.health_timer = None
+        self.show_torrents = True
+        self.show_channels = True
 
     def initialize_search_results_page(self):
         self.window().search_results_tab.initialize()
@@ -44,11 +46,17 @@ class SearchResultsPage(QWidget):
 
     def clicked_tab_button(self, tab_button_name):
         if tab_button_name == "search_results_all_button":
+            self.show_torrents = True
+            self.show_channels = True
             self.load_search_results_in_list()
         elif tab_button_name == "search_results_channels_button":
-            self.load_search_results_in_list(show_torrents=False)
+            self.show_torrents = False
+            self.show_channels = True
+            self.load_search_results_in_list()
         elif tab_button_name == "search_results_torrents_button":
-            self.load_search_results_in_list(show_channels=False)
+            self.show_torrents = True
+            self.show_channels = False
+            self.load_search_results_in_list()
 
     def update_num_search_results(self):
         self.window().num_search_results_label.setText("%d results" %
@@ -62,20 +70,13 @@ class SearchResultsPage(QWidget):
             self.window().search_torrents_detail_widget.update_with_torrent(list_item.torrent_info)
             self.window().search_torrents_detail_widget.show()
 
-    def load_search_results_in_list(self, show_channels=True, show_torrents=True):
-        if show_channels and show_torrents:
-            torrents_list = [(ChannelTorrentListItem, torrent) for torrent in self.search_results['torrents']]
-            channels_list = [(ChannelListItem, channel) for channel in self.search_results['channels']]
-
-            self.window().search_results_list.set_data_items(channels_list + torrents_list)
-            return
-
+    def load_search_results_in_list(self):
         all_items = []
-        if show_channels:
+        if self.show_channels:
             for channel_item in self.search_results['channels']:
                 all_items.append((ChannelListItem, channel_item))
 
-        if show_torrents:
+        if self.show_torrents:
             for torrent_item in self.search_results['torrents']:
                 all_items.append((ChannelTorrentListItem, torrent_item))
 
@@ -89,7 +90,9 @@ class SearchResultsPage(QWidget):
             return
         channel_index = min(bisect_right(result, self.search_results['channels'], is_torrent=False),
                             len(self.search_results['channels']))
-        self.window().search_results_list.insert_item(channel_index, (ChannelListItem, result))
+        if self.show_channels:
+            self.window().search_results_list.insert_item(channel_index, (ChannelListItem, result))
+
         self.search_results['channels'].insert(channel_index, result)
         self.update_num_search_results()
 
@@ -98,7 +101,9 @@ class SearchResultsPage(QWidget):
             return
         torrent_index = min(bisect_right(result, self.search_results['torrents'], is_torrent=True),
                             len(self.search_results['torrents']))
-        self.search_results['torrents'].insert(torrent_index, result)
+        if self.show_torrents:
+            self.search_results['torrents'].insert(torrent_index, result)
+
         self.window().search_results_list.insert_item(
             torrent_index + len(self.search_results['channels']), (ChannelTorrentListItem, result))
         self.update_num_search_results()
