@@ -1,4 +1,5 @@
 import logging
+import socket
 import time
 from binascii import hexlify
 
@@ -49,7 +50,21 @@ class TorrentChecker(TaskManager):
         self._torrent_db = self.tribler_session.open_dbhandler(NTFY_TORRENTS)
         self._reschedule_tracker_select()
         self.socket_mgr = UdpSocketManager()
-        self.udp_port = reactor.listenUDP(0, self.socket_mgr)
+        self.create_socket_or_schedule()
+
+    def listen_on_udp(self):
+        return reactor.listenUDP(0, self.socket_mgr)
+
+    def create_socket_or_schedule(self):
+        """
+        This method attempts to bind to a UDP port. If it fails for some reason (i.e. no network connection), we try
+        again later.
+        """
+        try:
+            self.udp_port = self.listen_on_udp()
+        except socket.error as exc:
+            self._logger.error("Error when creating UDP socket in torrent checker: %s", exc)
+            self.register_task("listen_udp_port", reactor.callLater(10, self.create_socket_or_schedule))
 
     def shutdown(self):
         """
