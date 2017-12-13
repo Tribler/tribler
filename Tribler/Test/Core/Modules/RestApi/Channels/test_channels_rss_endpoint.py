@@ -1,5 +1,6 @@
 import os
 
+from twisted.internet.defer import fail
 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN_CHANNEL_RESPONSE_MSG, \
     UNAUTHORIZED_RESPONSE_MSG
@@ -131,6 +132,25 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
 
         return self.do_request('channels/discovered/%s/recheckfeeds' % 'fakedispersyid'.encode('hex'),
                                expected_code=200, expected_json=expected_json, request_type='POST')
+
+    @deferred(timeout=10)
+    def test_recheck_rss_feeds_error(self):
+        """
+        Testing whether the API returns error 500 if refresh of rss feeds is failing
+        """
+        my_channel_id = self.create_fake_channel("my channel", "this is a short description")
+        channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
+        channel_obj._is_created = True
+        channel_obj.create_rss_feed(os.path.join(TESTS_DATA_DIR, 'test_rss_empty.xml'))
+
+        def mocked_refresh_all_feeds():
+            return fail(RuntimeError("test fail"))
+
+        channel_obj.refresh_all_feeds = mocked_refresh_all_feeds
+
+        self.should_check_equality = False
+        return self.do_request('channels/discovered/%s/recheckfeeds' % 'fakedispersyid'.encode('hex'),
+                               expected_code=500, request_type='POST')
 
     @deferred(timeout=10)
     def test_get_rss_feed_no_authorization(self):
