@@ -135,6 +135,20 @@ class SessionConfigInterface(object):
         in_config_path = self.sessconfig.get(u'general', u'state_dir')
         return in_config_path or self.get_default_state_dir()
 
+    def set_log_dir(self, logdir):
+        """ Set the directory to store the logs.
+        @param logdir  A preferably absolute path name. If the directory
+        does not yet exist it will be created at Session create time.
+        """
+        self.sessconfig.set(u'general', u'log_dir', logdir)
+
+    def get_log_dir(self):
+        """ Returns the directory where logs are stored.
+        @return An absolute path name. """
+
+        in_config_path = self.sessconfig.get(u'general', u'log_dir')
+        return in_config_path or os.path.join(self.get_state_dir(), 'logs')
+
     @staticmethod
     def get_default_state_dir(homedirpostfix=u'.Tribler'):
         # Allow override

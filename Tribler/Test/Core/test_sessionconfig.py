@@ -11,6 +11,7 @@ class TestSessionConfig(TriblerCoreTest):
 
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     CONFIG_FILES_DIR = os.path.abspath(os.path.join(FILE_DIR, u"data/config_files/"))
+    LOG_DIR = os.path.abspath(os.path.join(FILE_DIR, u"logs"))
 
     def test_session_config_init(self):
         sessconf = CallbackConfigParser()
@@ -25,6 +26,12 @@ class TestSessionConfig(TriblerCoreTest):
 
         sci.set_state_dir(self.session_base_dir)
         self.assertEqual(sci.get_state_dir(), self.session_base_dir)
+
+        default_log_dir = os.path.join(self.session_base_dir, "logs")
+        self.assertEqual(sci.get_log_dir(), default_log_dir)
+
+        sci.set_log_dir(self.LOG_DIR)
+        self.assertEqual(sci.get_log_dir(), self.LOG_DIR)
 
         self.assertIsInstance(sci.get_install_dir(), (unicode, str))
         self.assertIsInstance(sci.get_permid_keypair_filename(), str)

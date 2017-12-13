@@ -141,6 +141,7 @@ class DebugWindow(QMainWindow):
 
         # Refresh logs
         self.window().log_refresh_button.clicked.connect(lambda: self.load_logs_tab())
+        self.window().log_tab_widget.currentChanged.connect(lambda index: self.load_logs_tab())
 
     def tab_changed(self, index):
         if index == 0:
@@ -432,11 +433,19 @@ class DebugWindow(QMainWindow):
     def load_logs_tab(self):
         # Max lines from GUI
         max_log_lines = self.window().max_lines_value.text()
+
+        tab_index = self.window().log_tab_widget.currentIndex()
+        tab_name = "core" if tab_index == 0 else "gui"
+
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("debug/log?max_lines=%s" % max_log_lines, self.display_logs)
+        request_query = "process=%s&max_lines=%s" % (tab_name, max_log_lines)
+        self.request_mgr.perform_request("debug/log?%s" % request_query, self.display_logs)
 
     def display_logs(self, data):
-        log_display_widget = self.window().log_display_area
+        tab_index = self.window().log_tab_widget.currentIndex()
+        log_display_widget = self.window().core_log_display_area if tab_index == 0 \
+            else self.window().gui_log_display_area
+
         log_display_widget.moveCursor(QTextCursor.End)
 
         key_content = u'content'
