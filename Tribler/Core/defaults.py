@@ -48,6 +48,7 @@ dldefaults['download_defaults']['safe_seeding'] = False
 # Valid values: 'forever', 'never', 'ratio', 'time'
 dldefaults['download_defaults']['user_stopped'] = False
 dldefaults['download_defaults']['time_added'] = 0
+dldefaults['download_defaults']['credit_mining'] = False
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None

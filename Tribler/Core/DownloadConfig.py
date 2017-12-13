@@ -121,6 +121,12 @@ class DownloadConfigInterface(object):
     def get_seeding_ratio(self):
         return self.dlconfig.get('download_defaults', 'seeding_ratio')
 
+    def set_credit_mining(self, value):
+        self.dlconfig.set('download_defaults', 'credit_mining', value)
+
+    def get_credit_mining(self):
+        return self.dlconfig.get('download_defaults', 'credit_mining')
+
     def set_user_stopped(self, value):
         self.dlconfig.set('download_defaults', 'user_stopped', value)
 
