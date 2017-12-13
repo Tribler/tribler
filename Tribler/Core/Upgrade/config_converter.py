@@ -189,30 +189,8 @@ def add_libtribler_config(new_config, old_config):
                 temp_config.set_http_api_port(value)
             elif section == "credit_mining" and name == "enabled":
                 temp_config.set_credit_mining_enabled(value)
-            elif section == "credit_mining" and name == "max_torrents_per_source":
-                temp_config.set_credit_mining_max_torrents_per_source(value)
-            elif section == "credit_mining" and name == "max_torrents_active":
-                temp_config.set_credit_mining_max_torrents_active(value)
-            elif section == "credit_mining" and name == "source_interval":
-                temp_config.set_credit_mining_source_interval(value)
-            elif section == "credit_mining" and name == "swarm_interval":
-                temp_config.set_credit_mining_swarm_interval(value)
-            elif section == "credit_mining" and name == "share_mode_target":
-                temp_config.set_credit_mining_share_mode_target(value)
-            elif section == "credit_mining" and name == "tracker_interval":
-                temp_config.set_credit_mining_tracker_interval(value)
-            elif section == "credit_mining" and name == "logging_interval":
-                temp_config.set_credit_mining_logging_interval(value)
-            elif section == "credit_mining" and name == "boosting_sources":
-                temp_config.set_credit_mining_sources(value, 'boosting_sources')
-            elif section == "credit_mining" and name == "boosting_enabled":
-                temp_config.set_credit_mining_sources(value, "boosting_enabled")
-            elif section == "credit_mining" and name == "boosting_disabled":
-                temp_config.set_credit_mining_sources(value, "boosting_disabled")
-            elif section == "credit_mining" and name == "archive_sources":
-                temp_config.set_credit_mining_sources(value, "archive_sources")
-            elif section == "credit_mining" and name == "policy":
-                temp_config.set_credit_mining_policy(value)
+            elif section == "credit_mining" and name == "sources":
+                temp_config.set_credit_mining_sources(value)
 
             try:
                 temp_config.validate()

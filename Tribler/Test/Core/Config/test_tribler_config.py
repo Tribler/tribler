@@ -3,7 +3,6 @@ import os
 from configobj import ConfigObj
 
 from Tribler.Core.Config.tribler_config import TriblerConfig, CONFIG_SPEC_PATH, FILENAME
-from Tribler.Core.CreditMining.BoostingPolicy import RandomPolicy, CreationDatePolicy, SeederRatioPolicy
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -94,23 +93,9 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertListEqual(self.tribler_config.get_tunnel_community_socks5_listen_ports(), ports)
 
     def test_credit_mining_sources(self):
-        source_list, key = "listitem", "boosting_enabled"
-        self.tribler_config.set_credit_mining_sources(source_list, key)
-        self.assertEqual(self.tribler_config.get_credit_mining_sources()[key], source_list)
-
-    def test_credit_mining_policy(self):
-        string_names = {"random": RandomPolicy,
-                        "creation": CreationDatePolicy,
-                        "seederratio": SeederRatioPolicy}
-
-        for string_name, policy_class in string_names.items():
-            self.tribler_config.set_credit_mining_policy(string_name)
-            self.assertEqual(self.tribler_config.get_credit_mining_policy(), string_name)
-            self.assertEqual(self.tribler_config.get_credit_mining_policy(as_class=True), policy_class)
-
-            self.tribler_config.set_credit_mining_policy(string_name)
-            self.assertEqual(self.tribler_config.get_credit_mining_policy(), string_name)
-            self.assertEqual(self.tribler_config.get_credit_mining_policy(as_class=True), policy_class)
+        source_list = "listitem"
+        self.tribler_config.set_credit_mining_sources(source_list)
+        self.assertEqual(self.tribler_config.get_credit_mining_sources(), source_list)
 
     def test_get_set_methods_general(self):
         """
@@ -335,31 +320,5 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         self.tribler_config.set_credit_mining_enabled(True)
         self.assertEqual(self.tribler_config.get_credit_mining_enabled(), True)
-        self.tribler_config.set_credit_mining_archive_sources(True)
-        self.assertEqual(self.tribler_config.get_credit_mining_archive_sources(), True)
-        self.tribler_config.set_credit_mining_max_torrents_per_source(True)
-        self.assertEqual(self.tribler_config.get_credit_mining_max_torrents_per_source(), True)
-        self.tribler_config.set_credit_mining_max_torrents_active(True)
-        self.assertEqual(self.tribler_config.get_credit_mining_max_torrents_active(), True)
-        self.tribler_config.set_credit_mining_source_interval(True)
-        self.assertEqual(self.tribler_config.get_credit_mining_source_interval(), True)
-        self.tribler_config.set_credit_mining_swarm_interval(True)
-        self.assertEqual(self.tribler_config.get_credit_mining_swarm_interval(), True)
-        self.tribler_config.set_credit_mining_share_mode_target(True)
-        self.assertEqual(self.tribler_config.get_credit_mining_share_mode_target(), True)
-        self.tribler_config.set_credit_mining_tracker_interval(True)
-        self.assertEqual(self.tribler_config.get_credit_mining_tracker_interval(), True)
-        self.tribler_config.set_credit_mining_logging_interval(True)
-        self.assertEqual(self.tribler_config.get_credit_mining_logging_interval(), True)
-        self.tribler_config.set_credit_mining_sources(True, 'boosting_sources')
-        self.tribler_config.set_credit_mining_sources(True, 'boosting_enabled')
-        self.tribler_config.set_credit_mining_sources(True, 'boosting_disabled')
-        self.tribler_config.set_credit_mining_sources(True, 'archive_sources')
-        expected_dict = {"boosting_sources": True, "boosting_enabled": True, "boosting_disabled": True,
-                         "archive_sources": True}
-        self.assertEqual(self.tribler_config.get_credit_mining_sources(), expected_dict)
-        self.tribler_config.set_credit_mining_policy(True)
-        self.assertEqual(self.tribler_config.get_credit_mining_policy(), True)
-        self.tribler_config.set_credit_mining_policy("random")
-        self.assertEqual(self.tribler_config.get_credit_mining_policy(), "random")
-        self.assertEqual(self.tribler_config.get_credit_mining_policy(True), RandomPolicy)
+        self.tribler_config.set_credit_mining_sources(True)
+        self.assertEqual(self.tribler_config.get_credit_mining_sources(), True)

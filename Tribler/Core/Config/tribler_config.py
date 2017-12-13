@@ -10,8 +10,6 @@ from Tribler.Core.Utilities.install_dir import get_lib_path
 from configobj import ConfigObj
 from validate import Validator
 
-from Tribler.Core.CreditMining.BoostingPolicy import CreationDatePolicy
-from Tribler.Core.CreditMining.BoostingPolicy import RandomPolicy, SeederRatioPolicy
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_appstate_dir, is_android
@@ -630,98 +628,8 @@ class TriblerConfig(object):
     def get_credit_mining_enabled(self):
         return self.config['credit_mining']['enabled']
 
-    def set_credit_mining_archive_sources(self, value):
-        self.config['credit_mining']['archive_sources'] = value
-
-    def get_credit_mining_archive_sources(self):
-        return self.config['credit_mining']['archive_sources']
-
-    def set_credit_mining_max_torrents_per_source(self, value):
-        self.config['credit_mining']['max_torrents_per_source'] = value
-
-    def get_credit_mining_max_torrents_per_source(self):
-        return self.config['credit_mining']['max_torrents_per_source']
-
-    def set_credit_mining_max_torrents_active(self, value):
-        self.config['credit_mining']['max_torrents_active'] = value
-
-    def get_credit_mining_max_torrents_active(self):
-        return self.config['credit_mining']['max_torrents_active']
-
-    def set_credit_mining_source_interval(self, value):
-        self.config['credit_mining']['source_interval'] = value
-
-    def get_credit_mining_source_interval(self):
-        return self.config['credit_mining']['source_interval']
-
-    def set_credit_mining_swarm_interval(self, swarm_interval):
-        self.config['credit_mining']['swarm_interval'] = swarm_interval
-
-    def get_credit_mining_swarm_interval(self):
-        return self.config['credit_mining']['swarm_interval']
-
-    def set_credit_mining_share_mode_target(self, value):
-        self.config['credit_mining']['share_mode_target'] = value
-
-    def get_credit_mining_share_mode_target(self):
-        return self.config['credit_mining']['share_mode_target']
-
-    def set_credit_mining_tracker_interval(self, value):
-        self.config['credit_mining']['tracker_interval'] = value
-
-    def get_credit_mining_tracker_interval(self):
-        return self.config['credit_mining']['tracker_interval']
-
-    def set_credit_mining_logging_interval(self, value):
-        self.config['credit_mining']['logging_interval'] = value
-
-    def get_credit_mining_logging_interval(self):
-        return self.config['credit_mining']['logging_interval']
-
-    def set_credit_mining_sources(self, source_list, key):
-        """
-        Set source list for a chosen key: boosting_sources, boosting_enabled, boosting_disabled, or archive_sources.
-        :param source_list: One of boosting_sources,
-                                   boosting_enabled,
-                                   boosting_disabled,
-                                   archive_sources
-        :param key: the ConfigObj key
-        """
-        self.config['credit_mining']['%s' % key] = source_list
+    def set_credit_mining_sources(self, source_list):
+        self.config['credit_mining']['sources'] = source_list
 
     def get_credit_mining_sources(self):
-        return {"boosting_sources": self.config['credit_mining']['boosting_sources'],
-                "boosting_enabled": self.config['credit_mining']['boosting_enabled'],
-                "boosting_disabled": self.config['credit_mining']['boosting_disabled'],
-                "archive_sources": self.config['credit_mining']['archive_sources']}
-
-    def set_credit_mining_policy(self, policy):
-        """
-        The policy should be one of
-            - "random"
-            - "creation"
-            - "seederratio"
-        :param policy: a string
-        :return:
-        """
-        self.config['credit_mining']['policy'] = policy
-
-    def get_credit_mining_policy(self, as_class=False):
-        """
-        Get the credit mining policy.
-
-        :param as_class: whether to return a string or the python class
-        :return: the policy in string form or the policy class.
-        """
-        policy_str = self.config['credit_mining']['policy']
-
-        if as_class:
-            switch_policy = {
-                "random": RandomPolicy,
-                "creation": CreationDatePolicy,
-                "seederratio": SeederRatioPolicy
-            }
-
-            return switch_policy[policy_str]
-
-        return policy_str
+        return self.config['credit_mining']['sources']
