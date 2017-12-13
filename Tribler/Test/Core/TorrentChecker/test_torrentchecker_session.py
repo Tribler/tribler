@@ -17,6 +17,8 @@ class ClockedUdpTrackerSession(UdpTrackerSession):
 
 
 class FakeUdpSocketManager(object):
+    transport = 1
+
     def send_request(self, *args):
         pass
 
@@ -114,6 +116,13 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         packet = struct.pack("!iiq", 123, 124, 126)
         session.handle_response(packet)
         self.assertTrue(session.expect_connection_response)
+        self.assertTrue(session.is_failed)
+
+    def test_udpsession_no_port(self):
+        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
+        self.assertFalse(session.is_failed)
+        self.socket_mgr.transport = None
+        session.connect()
         self.assertTrue(session.is_failed)
 
     def test_udpsession_handle_connection_wrong_action_transaction(self):
