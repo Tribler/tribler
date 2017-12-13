@@ -34,8 +34,8 @@ def start_tribler_core(base_path):
     through the HTTP API.
     """
     from twisted.internet import reactor
-    from run_tribler import setup_logging
-    setup_logging()
+    from check_os import setup_core_logging
+    setup_core_logging()
 
     def on_tribler_shutdown(_):
         reactor.stop()

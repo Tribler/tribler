@@ -37,8 +37,9 @@ DEFAULTPORT = 7760
 #  Version 17: Added an option to limit the amount of connections per download.
 #  Version 18: Added max upload/download rates for libtorrent.
 #  Version 19: Added resource monitor settings.
+#  Version 20: Added log directory.
 
-SESSDEFAULTS_VERSION = 19
+SESSDEFAULTS_VERSION = 20
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -63,6 +64,8 @@ sessdefaults['general']['mugshot'] = None
 sessdefaults['general']['videoanalyserpath'] = None
 sessdefaults['general']['peer_icon_path'] = None
 sessdefaults['general']['live_aux_seeders'] = []
+# Log directory
+sessdefaults['general']['log_dir'] = None
 
 # AllChannel community section
 sessdefaults['allchannel_community'] = OrderedDict()
