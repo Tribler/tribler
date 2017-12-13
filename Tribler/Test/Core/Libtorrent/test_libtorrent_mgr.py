@@ -90,6 +90,42 @@ class TestLibtorrentMgr(AbstractServer):
         test_deferred = Deferred()
 
         def metainfo_cb(metainfo):
+            self.assertEqual(metainfo, {'info': {'pieces': ['a']}, 'leechers': 0,
+                                        'nodes': [], 'seeders': 0, 'initial peers': []})
+            test_deferred.callback(None)
+
+        infohash = "a" * 20
+
+        self.ltmgr.initialize()
+
+        torrent_info = MockObject()
+        torrent_info.metadata = lambda: bencode({'pieces': ['a']})
+        torrent_info.trackers = lambda: []
+
+        fake_handle = MockObject()
+        fake_handle.is_valid = lambda: True
+        fake_handle.has_metadata = lambda: True
+        fake_handle.get_peer_info = lambda: []
+        fake_handle.torrent_file = lambda: torrent_info
+        self.ltmgr.ltsession_metainfo.add_torrent = lambda *_: fake_handle
+        self.ltmgr.ltsession_metainfo.remove_torrent = lambda *_: None
+
+        fake_alert = type('lt.metadata_received_alert', (object,), dict(handle=fake_handle))
+        self.ltmgr.ltsession_metainfo.pop_alerts = lambda: [fake_alert]
+
+        self.ltmgr.is_dht_ready = lambda: True
+        self.ltmgr.get_metainfo(infohash.decode('hex'), metainfo_cb)
+
+        return test_deferred
+
+    @deferred(timeout=20)
+    def test_get_metainfo_cache(self):
+        """
+        Testing metainfo caching
+        """
+        test_deferred = Deferred()
+
+        def metainfo_cb(metainfo):
             self.assertEqual(metainfo, "test")
             test_deferred.callback(None)
 
@@ -120,7 +156,7 @@ class TestLibtorrentMgr(AbstractServer):
         fake_handle.get_peer_info = lambda: []
         fake_handle.torrent_file = lambda: torrent_info
 
-        self.ltmgr.get_session().remove_torrent = lambda *_: None
+        self.ltmgr.ltsession_metainfo.remove_torrent = lambda *_: None
 
         self.ltmgr.metainfo_requests['a' * 20] = {
             'handle': fake_handle,
@@ -150,7 +186,7 @@ class TestLibtorrentMgr(AbstractServer):
                                                                   'timeout_callbacks': [metainfo_timeout_cb],
                                                                   'callbacks': [],
                                                                   'notify': True}
-        self.ltmgr.get_session().remove_torrent = lambda _dummy1, _dummy2: None
+        self.ltmgr.ltsession_metainfo.remove_torrent = lambda _dummy1, _dummy2: None
         self.ltmgr.got_metainfo(('a' * 20).encode('hex'), timeout=True)
 
         return test_deferred
@@ -182,7 +218,7 @@ class TestLibtorrentMgr(AbstractServer):
         mock_ltsession.stop_upnp = lambda: None
         mock_ltsession.save_state = lambda: None
 
-        self.ltmgr.get_session = lambda *_: mock_ltsession
+        self.ltmgr.ltsession_metainfo = mock_ltsession
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
         self.ltmgr.is_dht_ready = lambda: True
         self.ltmgr.got_metainfo = fake_got_metainfo
