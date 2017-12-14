@@ -2,6 +2,8 @@ from PyQt5 import QtGui
 from PyQt5.QtWidgets import QWidget, QLabel, QFileDialog
 from PIL.ImageQt import ImageQt
 
+import base64
+
 try:
     import qrcode
     has_qr = True
@@ -64,7 +66,7 @@ class SettingsPage(QWidget):
                         box_size=10,
                         border=4,
                     )
-                    qr.add_data(data)
+                    qr.add_data("aaaa")
                     qr.make(fit=True)
 
                     img = qr.make_image()  # PIL format
@@ -88,7 +90,12 @@ class SettingsPage(QWidget):
                     self.keys_export_dialog.setWindowTitle("Export trustchain keypair")
                     self.keys_export_dialog.setGeometry(10, 10, 500, 500)
 
-                    data = f.read()
+                    data = base64.b64encode(f.read())
+
+                    # f = open('helloworld.txt', 'w')
+                    # f.write('' + str(len(data)))
+                    # f.close()
+                    # print(len(data))
 
                     qr = qrcode.QRCode(
                         version=1,
