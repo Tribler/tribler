@@ -24,5 +24,24 @@
     <media:thumbnail url="http://localhost:RANDOMPORT/ubuntu-logo14.png" />
   </item>
 
+  <item>
+    <title>ubuntu-16.04-desktop-amd64.iso</title>
+    <enclosure url="http://localhost:RANDOMPORT/ubuntu2.torrent" length="44258" type="application/x-bittorrent" />
+    <guid>http://localhost:RANDOMPORT.torrent</guid>
+    <!-- media RSS -->
+    <media:title type="html">ubuntu-16.04.2-desktop-amd64.iso</media:title>
+    <media:thumbnail url="http://localhost:RANDOMPORT/ubuntu-logo14.png" />
+  </item>
+
+  <item>
+    <title>magnet.iso</title>
+    <link>magnet:?xt=urn:ed2k:354B15E68FB8F36D7CD88FF94116CDC1</link>
+    <enclosure url="magnet:?xt=urn:ed2k:354B15E68FB8F36D7CD88FF94116CDC1" length="44258" type="application/x-bittorrent" />
+    <guid>magnet:?xt=urn:ed2k:354B15E68FB8F36D7CD88FF94116CDC1</guid>
+    <!-- media RSS -->
+    <media:title type="html">magnet.iso</media:title>
+    <media:thumbnail url="http://localhost:RANDOMPORT/ubuntu-logo14.png" />
+  </item>
+
   </channel>
 </rss>
