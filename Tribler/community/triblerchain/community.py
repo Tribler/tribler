@@ -8,6 +8,14 @@ from Tribler.community.triblerchain.database import TriblerChainDB
 from Tribler.community.trustchain.community import TrustChainCommunity
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
+
+from Tribler.community.trustchain.block import GENESIS_SEQ, GENESIS_HASH, EMPTY_SIG
+
+
+
+from Tribler.Core import permid
+from Tribler import dispersy
+
 MIN_TRANSACTION_SIZE = 1024*1024
 
 
@@ -216,6 +224,32 @@ class TriblerChainCommunity(TrustChainCommunity):
             return 1
 
 
+    def bootstrap_new_identity(self, up , down): 
+        """ 
+        Create a new identity and transfer some reputation to it
+        Returns { private_key , public_key , transactions: [ ]}
+
+        """
+        keypair = self.dispersy.get_new_member(u"curve25519")
+        transaction = {
+            'up' : up , 'down' : down , 'total_up' : up , 'total_down' : down 
+        }
+
+        bootstrap_block = TriblerChainBlock.create(transaction,DBShim(),self.my_member.public_key,link_pk=keypair.public_key)
+        bootstrap_block.sign(self.my_member.private_key)
+        block = {}
+        for k,v in bootstrap_block:
+            block[k] = v
+
+        result = {}
+        result['transactions'] = [ block ]
+        result['public_key'] = keypair.public_key.encode("hex")
+        result['private_key'] = keypair.private_key.key_to_bin().encode("hex")
+        return result
+
+
+
+
 class TriblerChainCommunityCrawler(TriblerChainCommunity):
     """
     Extended TriblerChainCommunity that also crawls other TriblerChainCommunities.
@@ -232,3 +266,9 @@ class TriblerChainCommunityCrawler(TriblerChainCommunity):
 
     def start_walking(self):
         self.register_task("take step", LoopingCall(self.take_step)).start(self.CrawlerDelay, now=False)
+
+
+
+class DBShim:
+    def get_latest(self,x):
+        return {}
