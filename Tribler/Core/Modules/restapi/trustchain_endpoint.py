@@ -173,14 +173,14 @@ class TrustchainBlocksIdentityEndpoint(TrustchainBaseEndpoint):
 
 class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
     """
-    This class handles requests regarding the trustchain community information.
+    Bootstrap a new identity and transfer some reputation to the new key.
     """
 
     def render_GET(self, request):
         """
         .. http:get:: /trustchain/bootstrap?up=int&down=int
 
-        A GET request to this endpoint returns statistics about the trustchain community
+        A GET request to this endpoint generates a new identity and transfers some reputation to it.
 
             **Example request**:
 
@@ -193,32 +193,6 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
             .. sourcecode:: javascript
 
                 {
-                    "private_key" : " key hash ",
-                    "public_key"  : " TGliTmFDTFBLO...VGbxS406vrI= " ,
-                    "transactions" : [
-                         {
-                            "hash": ab672fd6acc0...
-                            "tx" : {
-                                "up": 100000,
-                                "down": 40000,
-                                "total_up": 100000,
-                                "total_down": 40000,
-                            },
-                            "link_public_key": 7324b765a98e,
-                            "sequence_number": 0,
-                            "link_public_key": 9a5572ec59bbf,
-                            "link_sequence_number": 1,
-                            "previous_hash": 00000000...,
-                        }
-                    ]
-                }
-        """
-        mc_community = self.get_trustchain_community()
-        if not mc_community:
-            request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "trustchain community not found"})
-
-        return json.dumps(  {
                     "private_key" : "NEW_KEY",
                     "public_key"  : "NEW_PUBLIC_KEY" ,
                      "transactions" : [
@@ -229,6 +203,45 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
                                 "down": 40000,
                                 "total_up": 100000,
                                 "total_down": 40000,
+                            },
+                            "sequence_number": 0,
+                            "link_public_key": "PC_KEY",
+                            "link_sequence_number": 1210,
+                            "previous_hash": 00000000
+                        }
+                    ]
+                    }
+        """
+        mc_community = self.get_trustchain_community()
+        if not mc_community:
+            request.setResponseCode(http.NOT_FOUND)
+            return json.dumps({"error": "trustchain community not found"})
+
+        up = 100000000
+        down = 1000
+        if 'up' in request.args:
+            try:
+                up = int(request.args['up'][0])
+            except ValueError:
+                up = up
+                
+        if 'down' in request.args:
+            try:
+                down = int(request.args['down'][0])
+            except ValueError:
+                down = down
+
+        return json.dumps(  {
+                    "private_key" : "NEW_KEY",
+                    "public_key"  : "NEW_PUBLIC_KEY" ,
+                     "transactions" : [
+                         {
+                            "hash": "ab672fd6acc0",
+                            "tx" : {
+                                "up": up,
+                                "down": down,
+                                "total_up": up,
+                                "total_down": down,
                             },
                             "sequence_number": 0,
                             "link_public_key": "PC_KEY",
