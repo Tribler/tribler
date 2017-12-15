@@ -13,7 +13,10 @@ class TrustchainEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
 
-        child_handler_dict = {"statistics": TrustchainStatsEndpoint, "blocks": TrustchainBlocksEndpoint}
+        child_handler_dict = {
+            "statistics": TrustchainStatsEndpoint, 
+            "blocks": TrustchainBlocksEndpoint,
+            "bootstrap" : TrustchainBootstrapEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
@@ -165,3 +168,74 @@ class TrustchainBlocksIdentityEndpoint(TrustchainBaseEndpoint):
 
         blocks = mc_community.persistence.get_latest_blocks(self.identity.decode("HEX"), limit_blocks)
         return json.dumps({"blocks": [dict(block) for block in blocks]})
+
+
+
+class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
+    """
+    This class handles requests regarding the trustchain community information.
+    """
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /trustchain/bootstrap?up=int&down=int
+
+        A GET request to this endpoint returns statistics about the trustchain community
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/trustchain/bootstrap?up=100000&down=40000
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "private_key" : " key hash ",
+                    "public_key"  : " TGliTmFDTFBLO...VGbxS406vrI= " ,
+                    "transactions" : [
+                         {
+                            "hash": ab672fd6acc0...
+                            "tx" : {
+                                "up": 100000,
+                                "down": 40000,
+                                "total_up": 100000,
+                                "total_down": 40000,
+                            },
+                            "link_public_key": 7324b765a98e,
+                            "sequence_number": 0,
+                            "link_public_key": 9a5572ec59bbf,
+                            "link_sequence_number": 1,
+                            "previous_hash": 00000000...,
+                        }
+                    ]
+                }
+        """
+        mc_community = self.get_trustchain_community()
+        if not mc_community:
+            request.setResponseCode(http.NOT_FOUND)
+            return json.dumps({"error": "trustchain community not found"})
+
+        return json.dumps(  {
+                    "private_key" : "NEW_KEY",
+                    "public_key"  : "NEW_PUBLIC_KEY" ,
+                     "transactions" : [
+                         {
+                            "hash": "ab672fd6acc0",
+                            "tx" : {
+                                "up": 100000,
+                                "down": 40000,
+                                "total_up": 100000,
+                                "total_down": 40000,
+                            },
+                            "sequence_number": 0,
+                            "link_public_key": "PC_KEY",
+                            "link_sequence_number": 1210,
+                            "previous_hash": 00000000
+                        }
+                    ]
+               
+                    })
+
