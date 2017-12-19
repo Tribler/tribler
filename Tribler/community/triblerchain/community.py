@@ -229,12 +229,17 @@ class TriblerChainCommunity(TrustChainCommunity):
         Create a new identity and transfer some reputation to it
         Returns { private_key , public_key , transactions: [ ]}
 
+
+        TODO : Review sign logic. 
+        TODO : Save transaction to local database. 
+
         """
         keypair = self.dispersy.get_new_member(u"curve25519")
         transaction = {
             'up' : up , 'down' : down , 'total_up' : up , 'total_down' : down 
         }
 
+        
         bootstrap_block = TriblerChainBlock.create(transaction,DBShim(),self.my_member.public_key,link_pk=keypair.public_key)
         bootstrap_block.sign(self.my_member.private_key)
         block = {}
@@ -243,8 +248,8 @@ class TriblerChainCommunity(TrustChainCommunity):
 
         result = {}
         result['transactions'] = [ block ]
-        result['public_key'] = keypair.public_key.encode("hex")
-        result['private_key'] = keypair.private_key.key_to_bin().encode("hex")
+        result['public_key'] = keypair.public_key.encode("base64")
+        result['private_key'] = keypair.private_key.key_to_bin().encode("base64")
         return result
 
 
