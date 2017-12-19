@@ -10,6 +10,12 @@ try:
 except ImportError:
     has_qr = False
 
+try:
+    from pdf417gen import encode, render_image
+    has_pdf = True
+except ImportError:
+    has_pdf = False
+
 import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_BANDWIDTH, \
     PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, BUTTON_TYPE_NORMAL
@@ -32,6 +38,7 @@ class SettingsPage(QWidget):
         QWidget.__init__(self)
         self.settings = None
         self.settings_request_mgr = None
+        self.trustchain_request_mgr = None
         self.saved_dialog = None
         self.keys_export_dialog = None
 
@@ -48,7 +55,33 @@ class SettingsPage(QWidget):
         self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
         self.window().export_general_key_button.clicked.connect(self.export_key_general)
         self.window().export_trustchain_key_button.clicked.connect(self.export_key_trustchain)
-        self.window().export_tradechain_key_button.clicked.connect(self.export_key_tradechain)
+        self.window().export_tradechain_key_button.clicked.connect(self.export_reputation)
+
+    def export_reputation(self):
+        self.trustchain_request_mgr = TriblerRequestManager()
+        self.trustchain_request_mgr.perform_request("trustchain/bootstrap", self.on_export_reputation)
+
+    def on_export_reputation(self, identity):
+        data = json.dumps(identity)
+
+        if has_pdf:
+            self.keys_export_dialog = QWidget()
+            self.keys_export_dialog.setWindowTitle("Export reputation")
+            self.keys_export_dialog.setGeometry(10, 10, 5000, 5000)
+
+            codes = encode(data, encoding="utf-8", columns=6, security_level=1)
+
+            # Generate barcode as image
+            img = render_image(codes)  # Pillow Image object
+
+            qim = ImageQt(img)
+            pixmap = QtGui.QPixmap.fromImage(qim)
+            label = QLabel(self.keys_export_dialog)
+            label.setPixmap(pixmap)
+            self.keys_export_dialog.resize(pixmap.width(), pixmap.height())
+            self.keys_export_dialog.show()
+        else:
+            ConfirmationDialog.show_error(self.window(), DEPENDENCY_ERROR_TITLE, DEPENDENCY_ERROR_MESSAGE)
 
     def export_key_general(self):
         if has_qr:
