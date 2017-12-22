@@ -55,6 +55,14 @@ class TorrentDetailsTabWidget(QTabWidget):
             item = QTreeWidgetItem(self.torrent_detail_trackers_list)
             item.setText(0, tracker)
 
+        if torrent_info["num_seeders"] > 0:
+            self.torrent_detail_health_label.setText("good health (S%d L%d)" % (torrent_info["num_seeders"],
+                                                                                torrent_info["num_leechers"]))
+        elif torrent_info["num_leechers"] > 0:
+            self.torrent_detail_health_label.setText("unknown health (found peers)")
+        else:
+            self.torrent_detail_health_label.setText("no peers found")
+
     def update_with_torrent(self, torrent_info):
         self.torrent_info = torrent_info
         self.torrent_detail_name_label.setText(self.torrent_info["name"])
