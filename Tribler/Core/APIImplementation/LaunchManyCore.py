@@ -247,7 +247,7 @@ class TriblerLaunchMany(TaskManager):
 
         # Tunnel Community
         if self.session.config.get_tunnel_community_enabled():
-            tunnel_settings = TunnelSettings(tribler_session=self.session)
+            tunnel_settings = TunnelSettings(tribler_config=self.session.config)
             tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
 
             from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity

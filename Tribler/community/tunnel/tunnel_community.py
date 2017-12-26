@@ -219,7 +219,7 @@ class TunnelExitSocket(DatagramProtocol, TaskManager):
 
 class TunnelSettings(object):
 
-    def __init__(self, tribler_session=None):
+    def __init__(self, tribler_config=None):
         self.tunnel_logger = logging.getLogger('TunnelLogger')
 
         self.crypto = TunnelCrypto()
@@ -237,10 +237,10 @@ class TunnelSettings(object):
         self.max_packets_without_reply = 50
         self.dht_lookup_interval = 30
 
-        if tribler_session:
-            self.socks_listen_ports = tribler_session.config.get_tunnel_community_socks5_listen_ports()
-            self.become_exitnode = tribler_session.config.get_tunnel_community_exitnode_enabled()
-            self.enable_trustchain = tribler_session.config.get_trustchain_enabled()
+        if tribler_config:
+            self.socks_listen_ports = tribler_config.get_tunnel_community_socks5_listen_ports()
+            self.become_exitnode = tribler_config.get_tunnel_community_exitnode_enabled()
+            self.enable_trustchain = tribler_config.get_trustchain_enabled()
         else:
             self.socks_listen_ports = range(1080, 1085)
             self.become_exitnode = False
@@ -303,7 +303,7 @@ class TunnelCommunity(Community):
 
     def initialize(self, tribler_session=None, settings=None):
         self.tribler_session = tribler_session
-        self.settings = settings if settings else TunnelSettings(tribler_session=tribler_session)
+        self.settings = settings if settings else TunnelSettings(tribler_config=tribler_session.config)
 
         self.tunnel_logger.info("TunnelCommunity: setting become_exitnode = %s" % self.settings.become_exitnode)
 

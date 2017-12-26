@@ -114,7 +114,7 @@ class TestTunnelBase(TestAsServer):
         dispersy = session.get_dispersy_instance()
         keypair = dispersy.crypto.generate_key(u"curve25519")
         dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
-        settings = TunnelSettings(tribler_session=session)
+        settings = TunnelSettings(tribler_config=session.config)
         if not self.crypto_enabled:
             settings.crypto = NoCrypto()
         settings.become_exitnode = exitnode
