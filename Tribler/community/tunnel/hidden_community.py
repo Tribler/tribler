@@ -581,6 +581,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def on_link_e2e(self, messages):
         for message in messages:
+            self.tunnel_logger.info('Received link-e2e message, sending linked-e2e back')
             circuit = self.exit_sockets[int(message.source[8:])]
             relay_circuit = self.rendezvous_point_for[message.payload.cookie]
 
@@ -626,6 +627,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 return download
 
     def create_introduction_point(self, info_hash, amount=1):
+        self.tunnel_logger.info("Creating introduction point for %s (amount: %d)", info_hash.encode('hex'), amount)
         download = self.find_download(info_hash)
         if download:
             download.add_peer(('1.1.1.1', 1024))
@@ -668,6 +670,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def on_establish_intro(self, messages):
         for message in messages:
+            self.tunnel_logger.info("Received establish intro message for circuit %s", int(message.source[8:]))
             circuit = self.exit_sockets[int(message.source[8:])]
             self.intro_point_for[message.payload.info_hash] = circuit
 
