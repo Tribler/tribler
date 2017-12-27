@@ -138,6 +138,7 @@ class TestSessionAsServer(TestAsServer):
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 51]'})
         self.session.unhandled_error_observer({'isError': True,
                                                'log_failure': 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
+        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'exceptions.ValueError: Invalid DNS-ID'})
 
 
     @deferred(timeout=10)
