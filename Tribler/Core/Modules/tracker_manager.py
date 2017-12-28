@@ -66,14 +66,10 @@ class TrackerManager(object):
         :param tracker_url: The given tracker_url.
         :param is_successful: If the check was successful.
         """
-        sql_stmt = u"SELECT tracker_id, tracker, last_check, failures, is_alive FROM TrackerInfo WHERE tracker = ?"
-        try:
-            self._session.sqlite_db.execute(sql_stmt, (tracker_url,)).next()
-        except StopIteration:
+        tracker_info = self.get_tracker_info(tracker_url)
+        if not tracker_info:
             self._logger.error("Trying to update the tracker info of an unknown tracker URL")
             return
-
-        tracker_info = self.get_tracker_info(tracker_url)
 
         current_time = int(time.time())
         failures = 0 if is_successful else tracker_info[u'failures'] + 1
