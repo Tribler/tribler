@@ -558,6 +558,9 @@ class Session(SessionConfigInterface):
 
         self.start_database()
 
+        # We clean the mugshot since it isn't used anymore and often contains data unsuitable for sending over the API.
+        self.set_mugshot(None)
+
         if self.upgrader_enabled:
             upgrader = TriblerUpgrader(self, self.sqlite_db)
             self.readable_status = STATE_UPGRADING_READABLE
