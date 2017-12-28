@@ -91,9 +91,6 @@ port = integer(min=-1, max=65536, default=-1)
 enabled = boolean(default=True)
 port = integer(min=-1, max=65536, default=-1)
 
-[upgrader]
-enabled = boolean(default=True)
-
 [watch_folder]
 enabled = boolean(default=False)
 directory = string(default='')

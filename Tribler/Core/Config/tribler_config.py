@@ -502,14 +502,6 @@ class TriblerConfig(object):
     def get_dummy_wallets_enabled(self):
         return self.config['wallets']['dummy_wallets_enabled']
 
-    # Upgrader
-
-    def set_upgrader_enabled(self, should_upgrade):
-        self.config['upgrader']['enabled'] = should_upgrade
-
-    def get_upgrader_enabled(self):
-        return self.config['upgrader']['enabled']
-
     # Torrent store
 
     def get_torrent_store_enabled(self):

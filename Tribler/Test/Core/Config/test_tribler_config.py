@@ -232,13 +232,6 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_default_destination_dir(True)
         self.assertEqual(self.tribler_config.get_default_destination_dir(), True)
 
-    def test_get_set_methods_upgrader(self):
-        """
-        Check whether upgrader get and set methods are working as expected.
-        """
-        self.tribler_config.set_upgrader_enabled(True)
-        self.assertEqual(self.tribler_config.get_upgrader_enabled(), True)
-
     def test_get_set_methods_torrent_store(self):
         """
         Check whether torrent store get and set methods are working as expected.
