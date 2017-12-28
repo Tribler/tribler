@@ -38,8 +38,9 @@ DEFAULTPORT = 7760
 #  Version 18: Added max upload/download rates for libtorrent.
 #  Version 19: Added resource monitor settings.
 #  Version 20: Added log directory.
+#  Version 21: Removed upgrader settings.
 
-SESSDEFAULTS_VERSION = 20
+SESSDEFAULTS_VERSION = 21
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -148,10 +149,6 @@ sessdefaults['video']['enabled'] = True
 sessdefaults['video']['path'] = None
 sessdefaults['video']['port'] = -1
 sessdefaults['video']['preferredmode'] = PLAYBACKMODE_EXTERNAL_DEFAULT
-
-#Upgrader config
-sessdefaults['upgrader'] = OrderedDict()
-sessdefaults['upgrader']['enabled'] = True
 
 # Watch folder config
 sessdefaults['watch_folder'] = OrderedDict()

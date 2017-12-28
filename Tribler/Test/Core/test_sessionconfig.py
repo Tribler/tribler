@@ -154,9 +154,6 @@ class TestSessionConfig(TriblerCoreTest):
         sci.set_preview_channel_community_enabled(False)
         self.assertFalse(sci.get_preview_channel_community_enabled())
 
-        sci.set_upgrader_enabled(False)
-        self.assertFalse(sci.get_upgrader_enabled())
-
         sci.set_http_api_enabled(True)
         self.assertTrue(sci.get_http_api_enabled())
 
@@ -189,7 +186,7 @@ class TestSessionConfig(TriblerCoreTest):
     def test_startup_session_load_corrupt(self):
         sci = SessionStartupConfig()
         sci.load(os.path.join(self.CONFIG_FILES_DIR, "corrupt_session_config.conf"))
-        self.assertTrue(sci.sessconfig.has_section('upgrader'))
+        self.assertTrue(sci.sessconfig.has_section('general'))
 
     def test_startup_session_load_no_filename(self):
         sci = SessionStartupConfig()

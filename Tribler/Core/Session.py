@@ -190,7 +190,7 @@ class Session(SessionConfigInterface):
         self.save_session_config()
 
         self.sqlite_db = None
-        self.upgrader = None
+        self.upgrader_enabled = True
         self.dispersy_member = None
         self.readable_status = ''  # Human-readable string to indicate the status during startup/shutdown of Tribler
 
@@ -558,10 +558,10 @@ class Session(SessionConfigInterface):
 
         self.start_database()
 
-        if self.get_upgrader_enabled():
-            self.upgrader = TriblerUpgrader(self, self.sqlite_db)
+        if self.upgrader_enabled:
+            upgrader = TriblerUpgrader(self, self.sqlite_db)
             self.readable_status = STATE_UPGRADING_READABLE
-            self.upgrader.run()
+            upgrader.run()
 
         startup_deferred = self.lm.register(self, self.sesslock)
 
