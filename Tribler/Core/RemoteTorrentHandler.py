@@ -601,6 +601,8 @@ class TftpRequester(Requester):
             elif thumb_hash is not None:
                 # save metadata
                 self._remote_torrent_handler.save_metadata(thumb_hash, file_data)
+        except ValueError:
+            self._logger.warning("Remote peer sent us invalid (torrent) content over TFTP socket, ignoring it.")
         finally:
             # start the next request
             self._clear_active_request(key)
