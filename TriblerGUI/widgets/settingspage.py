@@ -174,7 +174,8 @@ class SettingsPage(QWidget):
                 settings_data['libtorrent']['proxy_server'][1] = int(self.window().lt_proxy_port_input.text())
             except ValueError:
                 ConfirmationDialog.show_error(self.window(), "Invalid proxy port number",
-                                              "You've entered an invalid format for the proxy port number.")
+                                              "You've entered an invalid format for the proxy port number. "
+                                              "Please enter a whole number.")
                 return
 
         if len(self.window().lt_proxy_username_input.text()) > 0 and \
@@ -188,17 +189,25 @@ class SettingsPage(QWidget):
             max_conn_download = int(self.window().max_connections_download_input.text())
         except ValueError:
             ConfirmationDialog.show_error(self.window(), "Invalid number of connections",
-                                          "You've entered an invalid format for the maximum number of connections.")
+                                          "You've entered an invalid format for the maximum number of connections. "
+                                          "Please enter a whole number.")
             return
         if max_conn_download == 0:
             max_conn_download = -1
         settings_data['libtorrent']['max_connections_download'] = max_conn_download
 
-        if self.window().upload_rate_limit_input.text():
-            settings_data['libtorrent']['max_upload_rate'] = int(self.window().upload_rate_limit_input.text()) * 1024
-        if self.window().download_rate_limit_input.text():
-            settings_data['libtorrent']['max_download_rate'] = int(self.window().download_rate_limit_input.text()) \
-                                                               * 1024
+        try:
+            if self.window().upload_rate_limit_input.text():
+                settings_data['libtorrent']['max_upload_rate'] = int(self.window().upload_rate_limit_input.text()) \
+                                                                 * 1024
+            if self.window().download_rate_limit_input.text():
+                settings_data['libtorrent']['max_download_rate'] = int(self.window().download_rate_limit_input.text()) \
+                                                                   * 1024
+        except ValueError:
+            ConfirmationDialog.show_error(self.window(), "Invalid number for maximum upload/download",
+                                          "You've entered an invalid format for the maximum upload/download rate. "
+                                          "Please enter a whole number.")
+            return
 
         seeding_modes = ['forever', 'time', 'never', 'ratio']
         selected_mode = 'forever'
