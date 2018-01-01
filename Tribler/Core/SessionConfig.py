@@ -804,21 +804,6 @@ class SessionConfigInterface(object):
         """
         return self.sessconfig.get(u'multichain', u'enabled')
 
-
-    def set_upgrader_enabled(self, should_upgrade):
-        """
-        Sets if to enable upgrading.
-        :param should_upgrade: True or False.
-        """
-        return self.sessconfig.set(u'upgrader', u'enabled', should_upgrade)
-
-    def get_upgrader_enabled(self):
-        """
-        Returns if upgrading is enabled
-        :return: A boolean indicating if upgrading is enabled.
-        """
-        return self.sessconfig.get(u'upgrader', u'enabled')
-
     #
     # Watch folder
     #
