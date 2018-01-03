@@ -28,7 +28,7 @@ from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import request_queue, TriblerRequestManager
 from TriblerGUI.utilities import get_ui_file_path, get_image_path, get_gui_setting, is_dir_writable
 
 # Pre-load form UI classes
@@ -323,7 +323,6 @@ class TriblerWindow(QMainWindow):
         post_data = post_data.encode('utf-8')  # We need to send bytes in the request, not unicode
 
         request_mgr = TriblerRequestManager()
-        self.pending_requests[request_mgr.request_id] = request_mgr
         request_mgr.perform_request("downloads", callback if callback else self.on_download_added,
                                     method='PUT', data=post_data)
 
@@ -700,6 +699,7 @@ class TriblerWindow(QMainWindow):
             self.core_manager.stop()
             self.core_manager.shutting_down = True
             self.downloads_page.stop_loading_downloads()
+            request_queue.clear()
 
     def closeEvent(self, close_event):
         self.close_tribler()

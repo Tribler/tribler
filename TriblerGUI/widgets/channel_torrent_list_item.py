@@ -114,7 +114,7 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         self.is_health_checking = True
         self.health_request_mgr = TriblerRequestManager()
         self.health_request_mgr.perform_request("torrents/%s/health?timeout=15" % self.torrent_info["infohash"],
-                                                self.on_health_response, capture_errors=False)
+                                                self.on_health_response, capture_errors=False, priority="LOW")
 
     def on_health_response(self, response):
         """
