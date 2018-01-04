@@ -12,7 +12,7 @@ from itertools import chain
 
 from cryptography.exceptions import InvalidTag
 from twisted.internet import reactor
-from twisted.internet.defer import maybeDeferred, succeed, inlineCallbacks, returnValue
+from twisted.internet.defer import maybeDeferred, succeed, inlineCallbacks, returnValue, fail
 from twisted.internet.error import MessageLengthError
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet.task import LoopingCall
@@ -445,10 +445,7 @@ class TunnelCommunity(Community):
             num_to_build = num_circuits - len(self.data_circuits(circuit_length))
             self.tunnel_logger.info("want %d data circuits of length %d", num_to_build, circuit_length)
             for _ in range(num_to_build):
-                if not self.create_circuit(circuit_length):
-                    self.tunnel_logger.info("circuit creation of %d circuits failed, no need to continue" %
-                                             num_to_build)
-                    break
+                self.create_circuit(circuit_length).addErrback(lambda _: None)
         self.do_remove()
 
     def tunnels_ready(self, hops):
@@ -541,7 +538,14 @@ class TunnelCommunity(Community):
         return (c for c in self.dispersy_yield_verified_candidates()
                 if self.crypto.is_key_compatible(c.get_member()._ec))
 
-    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, required_exit=None):
+    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, required_exit=None):
+        """
+        Create a circuit of a given length.
+        @param goal_hops: the number of hops in the circuit, including the exit node
+        @param ctype: the type of the circuit
+        @param required_exit: optional required exit candidate
+        @return: a deferred that fires when the circuit is constructed.
+        """
         assert required_exit is None or isinstance(required_exit, Candidate), type(required_exit)
 
         self.tunnel_logger.info("Creating a new circuit of length %d", goal_hops)
@@ -558,7 +562,7 @@ class TunnelCommunity(Community):
 
         if not required_exit:
             self.tunnel_logger.info("Could not create circuit, no available exit-nodes")
-            return False
+            return fail(RuntimeError("No exit nodes available"))
 
         # Determine the first hop
         if goal_hops == 1 and required_exit:
@@ -573,11 +577,11 @@ class TunnelCommunity(Community):
 
         if not first_hop:
             self.tunnel_logger.info("Could not create circuit, no first hop available")
-            return False
+            return fail(RuntimeError("No first hop available"))
 
         # Finally, construct the Circuit object and send the CREATE message
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
-        circuit = Circuit(circuit_id, goal_hops, first_hop.sock_addr, self, ctype, callback,
+        circuit = Circuit(circuit_id, goal_hops, first_hop.sock_addr, self, ctype,
                           required_exit, first_hop.get_member().mid.encode('hex'))
 
         self.request_cache.add(CircuitRequestCache(self, circuit))
@@ -597,7 +601,7 @@ class TunnelCommunity(Community):
                                                                      circuit.unverified_hop.node_public_key,
                                                                      circuit.unverified_hop.dh_first_part)))
 
-        return circuit_id
+        return circuit.created_deferred
 
     def readd_bittorrent_peers(self):
         for torrent, peers in self.bittorrent_peers.items():
@@ -980,10 +984,7 @@ class TunnelCommunity(Community):
             # Re-add BitTorrent peers, if needed.
             self.readd_bittorrent_peers()
 
-            # Execute callback
-            if circuit.callback:
-                circuit.callback(circuit)
-                circuit.callback = None
+            circuit.created_deferred.callback(circuit)
         else:
             return
 
