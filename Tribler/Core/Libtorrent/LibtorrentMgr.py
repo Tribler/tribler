@@ -35,9 +35,9 @@ LTSTATE_FILENAME = "lt.state"
 METAINFO_CACHE_PERIOD = 5 * 60
 DHT_CHECK_RETRIES = 1
 DEFAULT_DHT_ROUTERS = [
-    ("dht.libtorrent.org", 25401),
-    ("router.bittorrent.com", 6881),
-    ("router.utorrent.com", 6881)
+    "dht.libtorrent.org:25401",
+    "router.bittorrent.com:6881",
+    "router.utorrent.com:6881"
 ]
 DEFAULT_LT_EXTENSIONS = [
     lt.create_metadata_plugin,
@@ -123,60 +123,61 @@ class LibtorrentMgr(TaskManager):
         self.tribler_session = None
 
     def create_session(self, hops=0):
-        settings = {}
-
-        # Due to a bug in Libtorrent 0.16.18, the outgoing_port and num_outgoing_ports value should be set in
-        # the settings dictionary
-        settings['outgoing_port'] = 0
-        settings['num_outgoing_ports'] = 1
-
+        settings = {
+            'outgoing_port': 0,
+            'num_outgoing_ports': 1,
+            'upload_rate_limit': self.tribler_session.config.get_libtorrent_max_upload_rate(),
+            'download_rate_limit': self.tribler_session.config.get_libtorrent_max_download_rate(),
+            'max_retry_port_bind': 20,
+            'proxy_hostnames': True,
+            'proxy_peer_connections': True,
+            'dht_bootstrap_nodes': ",".join(DEFAULT_DHT_ROUTERS),
+            'alert_mask': self.default_alert_mask
+        }
         # Copy construct so we don't modify the default list
         extensions = list(DEFAULT_LT_EXTENSIONS)
 
         if hops == 0:
             settings['user_agent'] = 'Tribler/' + version_id
             # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
-            fingerprint = ['TL'] + map(int, version_id.split('-')[0].split('.')) + [0]
-            # Workaround for libtorrent 0.16.3 segfault (see https://code.google.com/p/libtorrent/issues/detail?id=369)
-            ltsession = lt.session(lt.fingerprint(*fingerprint), flags=0)
+            settings['peer_fingerprint'] = '-TL' + version_id.split('-')[0].replace('.', '') + '0-'
+            settings["listen_interfaces"] = "0.0.0.0:%d" % self.tribler_session.config.get_libtorrent_port()
             enable_utp = self.tribler_session.config.get_libtorrent_utp()
             settings['enable_outgoing_utp'] = enable_utp
             settings['enable_incoming_utp'] = enable_utp
-
-            pe_settings = lt.pe_settings()
-            pe_settings.prefer_rc4 = True
-            ltsession.set_pe_settings(pe_settings)
+            settings['prefer_rc4'] = True
+            proxy_settings = self.tribler_session.config.get_libtorrent_proxy_settings()
         else:
+            settings["listen_interfaces"] = "0.0.0.0:%d" % self.tribler_session.config.get_anon_listen_port()
             settings['enable_outgoing_utp'] = True
             settings['enable_incoming_utp'] = True
             settings['enable_outgoing_tcp'] = False
             settings['enable_incoming_tcp'] = False
             settings['anonymous_mode'] = True
             settings['force_proxy'] = True
-            ltsession = lt.session(flags=0)
+            proxy_settings = self.tribler_session.config.get_anon_proxy_settings()
+            proxy_settings = (proxy_settings[0],
+                              (proxy_settings[1][0], proxy_settings[1][1][hops - 1]),
+                              proxy_settings[2])
             # No PEX for anonymous sessions
             if lt.create_ut_pex_plugin in extensions:
                 extensions.remove(lt.create_ut_pex_plugin)
 
-        ltsession.set_settings(settings)
-        ltsession.set_alert_mask(self.default_alert_mask)
-
         # Load proxy settings
-        if hops == 0:
-            proxy_settings = self.tribler_session.config.get_libtorrent_proxy_settings()
-        else:
-            proxy_settings = list(self.tribler_session.config.get_anon_proxy_settings())
-            proxy_host, proxy_ports = proxy_settings[1]
-            proxy_settings[1] = (proxy_host, proxy_ports[hops - 1])
-        self.set_proxy_settings(ltsession, *proxy_settings)
+        settings["proxy_type"] = proxy_settings[0]
+        if proxy_settings[1]:
+            settings["proxy_hostname"] = proxy_settings[1][0]
+            settings["proxy_port"] = proxy_settings[1][1]
+        if proxy_settings[2]:
+            settings["proxy_username"] = proxy_settings[2][0]
+            settings["proxy_password"] = proxy_settings[2][1]
 
+        ltsession = lt.session(settings, flags=0)
         for extension in extensions:
             ltsession.add_extension(extension)
 
-        # Set listen port & start the DHT
         if hops == 0:
             listen_port = self.tribler_session.config.get_libtorrent_port()
-            ltsession.listen_on(listen_port, listen_port + 10)
             if listen_port != ltsession.listen_port():
                 self.tribler_session.config.set_libtorrent_port_runtime(ltsession.listen_port())
             try:
@@ -188,21 +189,9 @@ class LibtorrentMgr(TaskManager):
                     self._logger.warning("the lt.state appears to be corrupt, writing new data on shutdown")
             except Exception, exc:
                 self._logger.info("could not load libtorrent state, got exception: %r. starting from scratch" % exc)
-            ltsession.start_dht()
-        else:
-            ltsession.listen_on(self.tribler_session.config.get_anon_listen_port(),
-                                self.tribler_session.config.get_anon_listen_port() + 20)
-            ltsession.start_dht()
 
-            ltsession_settings = ltsession.get_settings()
-            ltsession_settings['upload_rate_limit'] = self.tribler_session.config.get_libtorrent_max_upload_rate()
-            ltsession_settings['download_rate_limit'] = self.tribler_session.config.get_libtorrent_max_download_rate()
-            ltsession.set_settings(ltsession_settings)
-
-        for router in DEFAULT_DHT_ROUTERS:
-            ltsession.add_dht_router(*router)
-
-        self._logger.debug("Started libtorrent session for %d hops on port %d", hops, ltsession.listen_port())
+        self._logger.debug("Started libtorrent session for %d hops on port %d with settings %s",
+                           hops, ltsession.listen_port(), repr(settings))
 
         return ltsession
 
@@ -211,24 +200,6 @@ class LibtorrentMgr(TaskManager):
             self.ltsessions[hops] = self.create_session(hops)
 
         return self.ltsessions[hops]
-
-    def set_proxy_settings(self, ltsession, ptype, server=None, auth=None):
-        proxy_settings = lt.proxy_settings()
-        proxy_settings.type = lt.proxy_type(ptype)
-        if server and server[0] and server[1]:
-            proxy_settings.hostname = server[0]
-            proxy_settings.port = int(server[1])
-        if auth:
-            proxy_settings.username = auth[0]
-            proxy_settings.password = auth[1]
-        proxy_settings.proxy_hostnames = True
-        proxy_settings.proxy_peer_connections = True
-
-        if ltsession is not None:
-            ltsession.set_proxy(proxy_settings)
-        else:
-            # only apply the proxy settings to normal libtorrent session (with hops = 0)
-            self.ltsessions[0].set_proxy(proxy_settings)
 
     def set_utp(self, enable, hops=None):
         def do_set_utp(ltsession):
