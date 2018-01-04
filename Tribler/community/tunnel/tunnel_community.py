@@ -541,7 +541,7 @@ class TunnelCommunity(Community):
         return (c for c in self.dispersy_yield_verified_candidates()
                 if self.crypto.is_key_compatible(c.get_member()._ec))
 
-    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, required_exit=None, info_hash=None):
+    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, required_exit=None):
         assert required_exit is None or isinstance(required_exit, Candidate), type(required_exit)
 
         self.tunnel_logger.info("Creating a new circuit of length %d", goal_hops)
@@ -578,7 +578,7 @@ class TunnelCommunity(Community):
         # Finally, construct the Circuit object and send the CREATE message
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
         circuit = Circuit(circuit_id, goal_hops, first_hop.sock_addr, self, ctype, callback,
-                          required_exit, first_hop.get_member().mid.encode('hex'), info_hash)
+                          required_exit, first_hop.get_member().mid.encode('hex'))
 
         self.request_cache.add(CircuitRequestCache(self, circuit))
 

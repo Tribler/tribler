@@ -15,7 +15,7 @@ class Circuit(object):
 
     def __init__(self, circuit_id, goal_hops=0, first_hop=None, proxy=None,
                  ctype=CIRCUIT_TYPE_DATA, callback=None, required_exit=None,
-                 mid=None, info_hash=None):
+                 mid=None):
         """
         Instantiate a new Circuit data structure
         :type proxy: TunnelCommunity
@@ -48,7 +48,6 @@ class Circuit(object):
         self.required_exit = required_exit
         self.mid = mid
         self.hs_session_keys = None
-        self.info_hash = info_hash
 
         self._logger = logging.getLogger(self.__class__.__name__)
 

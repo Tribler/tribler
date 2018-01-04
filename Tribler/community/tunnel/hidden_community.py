@@ -146,7 +146,6 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
         self.intro_point_for = {}
         self.rendezvous_point_for = {}
-        self.infohash_rp_circuits = defaultdict(list)
         self.infohash_ip_circuits = defaultdict(list)
         self.infohash_pex = defaultdict(set)
 
@@ -547,8 +546,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                                                                                                            session_keys,
                                                                                                            info_hash,
                                                                                                            sock_addr),
-                                required_exit=required_exit,
-                                info_hash=cache.info_hash)
+                                required_exit=required_exit)
 
     def create_link_e2e(self, circuit, cookie, session_keys, info_hash, sock_addr):
         self.my_download_points[circuit.circuit_id] = (info_hash, circuit.goal_hops, sock_addr)
@@ -656,8 +654,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
             # point from knowing what the seeder is seeding
             circuit_id = self.create_circuit(self.hops[info_hash] + 1,
                                              CIRCUIT_TYPE_IP,
-                                             callback,
-                                             info_hash=info_hash)
+                                             callback)
             self.infohash_ip_circuits[info_hash].append((circuit_id, time.time()))
 
     def check_establish_intro(self, messages):
@@ -705,11 +702,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                            u'establish-rendezvous', (circuit_id, cache.number, rp.cookie))
 
         # create a new circuit to be used for transferring data
-        circuit_id = self.create_circuit(hops,
-                                         CIRCUIT_TYPE_RP,
-                                         callback,
-                                         info_hash=info_hash)
-        self.infohash_rp_circuits[info_hash].append(circuit_id)
+        self.create_circuit(hops, CIRCUIT_TYPE_RP, callback)
 
     def check_establish_rendezvous(self, messages):
         for message in messages:
