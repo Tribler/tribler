@@ -343,7 +343,10 @@ class DebugMemoryDumpEndpoint(resource.Resource):
         date_str = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         request.setHeader(b'content-type', 'application/json')
         request.setHeader(b'Content-Disposition', 'attachment; filename=tribler_memory_dump_%s.json' % date_str)
-        return open(dump_file_path).read()
+        content = ""
+        with open(dump_file_path, 'r') as dump_file:
+            content = dump_file.read()
+        return content
 
 
 class DebugLogEndpoint(resource.Resource):
@@ -387,19 +390,21 @@ class DebugLogEndpoint(resource.Resource):
 
         # Get the location of log file
         param_process = request.args['process'][0] if request.args['process'] else 'core'
-        log_file = os.path.join(self.session.config.get_log_dir(), 'tribler-%s-info.log' % param_process)
+        log_file_name = os.path.join(self.session.config.get_log_dir(), 'tribler-%s-info.log' % param_process)
 
         # Default response
         response = {'content': '', 'max_lines': 0}
 
         # Check if log file exists and return last requested 'max_lines' of log
-        if os.path.exists(log_file):
+        if os.path.exists(log_file_name):
             try:
                 max_lines = int(request.args['max_lines'][0])
-                response['content'] = self.tail(open(log_file), max_lines)
+                with open(log_file_name, 'r') as log_file:
+                    response['content'] = self.tail(log_file, max_lines)
                 response['max_lines'] = max_lines
             except ValueError:
-                response['content'] = self.tail(open(log_file), 100)  # default 100 lines
+                with open(log_file_name, 'r') as log_file:
+                    response['content'] = self.tail(log_file, 100)  # default 100 lines
                 response['max_lines'] = 0
 
         return json.dumps(response)
