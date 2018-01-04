@@ -1,5 +1,7 @@
 import logging
 import os
+from StringIO import StringIO
+import sys
 
 import datetime
 import psutil
@@ -9,6 +11,16 @@ from twisted.web import http, resource
 from Tribler.community.tunnel.tunnel_community import TunnelCommunity
 from Tribler.Core.Utilities.instrumentation import WatchDog
 import Tribler.Core.Utilities.json_util as json
+
+
+class MemoryDumpBuffer(StringIO):
+    """
+    Meliae expects its file handle to support write(), flush() and __call__().
+    The StringIO class does not support __call__(), therefore we provide this subclass.
+    """
+
+    def __call__(self, s):
+        StringIO.write(self, s)
 
 
 class DebugEndpoint(resource.Resource):
@@ -338,14 +350,26 @@ class DebugMemoryDumpEndpoint(resource.Resource):
 
             The content of the memory dump file.
         """
-        dump_file_path = os.path.join(self.session.config.get_state_dir(), 'memory_dump.json')
-        scanner.dump_all_objects(dump_file_path)
+        content = ""
+        if sys.platform == "win32":
+            # On Windows meliae (especially older versions) segfault on writing to file
+            dump_buffer = MemoryDumpBuffer()
+            try:
+                scanner.dump_all_objects(dump_buffer)
+            except OverflowError as e:
+                # https://bugs.launchpad.net/meliae/+bug/569947
+                logging.error("meliae dump failed (your version may be too old): %s", str(e))
+            content = dump_buffer.getvalue()
+            dump_buffer.close()
+        else:
+            # On other platforms, simply writing to file is much faster
+            dump_file_path = os.path.join(self.session.config.get_state_dir(), 'memory_dump.json')
+            scanner.dump_all_objects(dump_file_path)
+            with open(dump_file_path, 'r') as dump_file:
+                content = dump_file.read()
         date_str = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         request.setHeader(b'content-type', 'application/json')
         request.setHeader(b'Content-Disposition', 'attachment; filename=tribler_memory_dump_%s.json' % date_str)
-        content = ""
-        with open(dump_file_path, 'r') as dump_file:
-            content = dump_file.read()
         return content
 
 

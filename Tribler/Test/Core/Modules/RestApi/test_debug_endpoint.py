@@ -140,7 +140,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('debug/memory/history', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=20)
+    @deferred(timeout=60)
     def test_dump_memory(self):
         """
         Test whether the API returns a memory dump
