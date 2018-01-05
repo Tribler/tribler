@@ -45,10 +45,12 @@ from Tribler.dispersy.util import call_on_reactor_thread
 
 
 class CircuitRequestCache(NumberCache):
+    """
+    This request cache keeps track of an outstanding circuit being constructed.
+    """
 
     def __init__(self, community, circuit):
         super(CircuitRequestCache, self).__init__(community.request_cache, u"anon-circuit", circuit.circuit_id)
-        self.tunnel_logger = logging.getLogger('TunnelLogger')
         self.community = community
         self.circuit = circuit
         self.should_forward = False
@@ -61,6 +63,10 @@ class CircuitRequestCache(NumberCache):
 
 
 class ExtendRequestCache(NumberCache):
+    """
+    This request cache keeps track of a circuit that is being extended.
+    """
+
     def __init__(self, community, to_circuit_id, from_circuit_id, candidate_sock_addr, candidate_mid, to_candidate_sock_addr, to_candidate_mid):
         super(ExtendRequestCache, self).__init__(community.request_cache, u"anon-circuit", to_circuit_id)
         self.community = community
@@ -79,6 +85,9 @@ class ExtendRequestCache(NumberCache):
 
 
 class CreatedRequestCache(NumberCache):
+    """
+    This request cache keeps track of responses for 'created' messages, when a circuit has been extended.
+    """
 
     def __init__(self, community, circuit_id, candidate, candidates):
         super(CreatedRequestCache, self).__init__(community.request_cache, u"anon-created", circuit_id)
@@ -91,6 +100,9 @@ class CreatedRequestCache(NumberCache):
 
 
 class PingRequestCache(RandomNumberCache):
+    """
+    This request cache keeps track of ping messages (heartbeats) being sent.
+    """
 
     def __init__(self, community, circuit):
         super(PingRequestCache, self).__init__(community.request_cache, u"ping")
@@ -110,6 +122,9 @@ class PingRequestCache(RandomNumberCache):
 
 
 class StatsRequestCache(RandomNumberCache):
+    """
+    This request cache keeps track of stats requests by verified crawlers.
+    """
 
     def __init__(self, community, handler):
         super(StatsRequestCache, self).__init__(community.request_cache, u"stats")
@@ -121,6 +136,11 @@ class StatsRequestCache(RandomNumberCache):
 
 
 class TunnelExitSocket(DatagramProtocol, TaskManager):
+    """
+    The TunnelExitSocket class is responsible for exiting data to the outside world.
+    Note that every relay in a circuits creates an instance of this class, however, the socket is only enabled
+    by the exit node.
+    """
 
     def __init__(self, circuit_id, community, sock_addr, mid=None):
         self.tunnel_logger = logging.getLogger(self.__class__.__name__)
@@ -757,6 +777,13 @@ class TunnelCommunity(Community):
         return circuit_id > 0 and circuit_id in self.exit_sockets
 
     def send_cell(self, candidates, message_type, payload):
+        """
+        Send a cell to a set of candidates.
+        @param candidates: The set of candidates to send this cell to
+        @param message_type: The name of the message to send
+        @param payload: A tuple of items to put into the cell payload
+        @return: The number of bytes sent over the wire.
+        """
         meta = self.get_meta_message(message_type)
         message = meta.impl(distribution=(self.global_time,), payload=payload)
         packet = TunnelConversion.convert_to_cell(message.packet)
@@ -1225,7 +1252,9 @@ class TunnelCommunity(Community):
             self.tunnel_logger.info("Got pong from %s", message.candidate)
 
     def do_ping(self):
-        # Ping circuits. Pings are only sent to the first hop, subsequent hops will relay the ping.
+        """
+        Ping circuits. Pings are only sent to the first hop, subsequent hops will relay the ping.
+        """
         for circuit in self.circuits.values():
             if circuit.state == CIRCUIT_STATE_READY and circuit.ctype != CIRCUIT_TYPE_RENDEZVOUS:
                 cache = self.request_cache.add(PingRequestCache(self, circuit))

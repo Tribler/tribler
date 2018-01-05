@@ -552,6 +552,9 @@ class TunnelConversion(BinaryConversion):
 
     @staticmethod
     def is_allowed(data):
+        """
+        We don't allow all data to be exited through an exit node so we explicitly check the content of this data.
+        """
         return (TunnelConversion.could_be_utp(data) or
                 TunnelConversion.could_be_udp_tracker(data) or
                 TunnelConversion.could_be_dht(data) or

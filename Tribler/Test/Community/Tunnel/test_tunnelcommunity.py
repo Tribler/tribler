@@ -52,6 +52,36 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
         self.assertNotIn(42, self.tunnel_community.circuits)
 
     @blocking_call_on_reactor_thread
+    def test_is_relay(self):
+        """
+        Test the is_relay method
+        """
+        self.tunnel_community.relay_from_to[3] = True
+        self.tunnel_community.relay_from_to[-1] = True
+        self.assertTrue(self.tunnel_community.is_relay(3))
+        self.assertFalse(self.tunnel_community.is_relay(-1))
+
+    @blocking_call_on_reactor_thread
+    def test_is_circuit(self):
+        """
+        Test the is_circuit method
+        """
+        self.tunnel_community.circuits[3] = True
+        self.tunnel_community.circuits[-1] = True
+        self.assertTrue(self.tunnel_community.is_circuit(3))
+        self.assertFalse(self.tunnel_community.is_circuit(-1))
+
+    @blocking_call_on_reactor_thread
+    def test_is_exit(self):
+        """
+        Test the is_exit method
+        """
+        self.tunnel_community.exit_sockets[3] = True
+        self.tunnel_community.exit_sockets[-1] = True
+        self.assertTrue(self.tunnel_community.is_exit(3))
+        self.assertFalse(self.tunnel_community.is_exit(-1))
+
+    @blocking_call_on_reactor_thread
     def test_check_pong(self):
         circuit = Circuit(42L)
         ping_request_cache = PingRequestCache(self.tunnel_community, circuit)
