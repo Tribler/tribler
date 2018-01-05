@@ -30,7 +30,7 @@ class RequestQueue(object):
     Queue and rate limit HTTP requests as to not overload the socket count.
     """
 
-    def __init__(self, max_outstanding=200, timeout=15):
+    def __init__(self, max_outstanding=50, timeout=15):
         """
         Create a RequestQueue object for rate-limiting HTTP requests.
 
@@ -39,6 +39,7 @@ class RequestQueue(object):
         """
         self.queue = [] # [(TriblerRequestManager, callable, QueuePriorityEnum, time, [performed])]
         self.max_outstanding = max_outstanding
+        self.max_low_outstanding = max(int(max_outstanding*0.4), 1)
         self.timeout = timeout
         self.old_medium_index = 0.0 # The previous queue quotient where QueuePriorityEnum.MEDIUM items started
         self.old_low_index = 0.0 # The previous queue quotient where QueuePriorityEnum.LOW items started
@@ -98,7 +99,7 @@ class RequestQueue(object):
             insert_step = 1 if self.queue[insert_guess] == QueuePriorityEnum.HIGH else -1
             insert_find = QueuePriorityEnum.MEDIUM if insert_step == 1 else QueuePriorityEnum.HIGH
         elif priority == QueuePriorityEnum.MEDIUM and queue_length > 0:
-            if queue_length > 200:
+            if queue_length > self.max_outstanding:
                 logging.error("Too many requests to handle new request with priority %s.", priority)
                 request_manager.cancel_request()
                 return
@@ -106,7 +107,7 @@ class RequestQueue(object):
             insert_step = 1 if self.queue[insert_guess] == QueuePriorityEnum.MEDIUM else -1
             insert_find = QueuePriorityEnum.LOW if insert_step == 1 else QueuePriorityEnum.MEDIUM
         else:
-            if queue_length > 80:
+            if queue_length > self.max_low_outstanding:
                 logging.error("Too many requests to handle new request with priority %s.", priority)
                 request_manager.cancel_request()
                 return
@@ -121,7 +122,7 @@ class RequestQueue(object):
         if priority == QueuePriorityEnum.HIGH:
             self.old_medium_index = (insert_point + 0.0)/(queue_length + 1.0)
         elif priority == QueuePriorityEnum.MEDIUM:
-            self.old_low_index = (insert_point + 0.0) / (queue_length + 1.0)
+            self.old_low_index = (insert_point + 0.0)/(queue_length + 1.0)
         self.queue.insert(insert_point, QueueItem(request_manager, callback, priority, time(), [False, ]))
         self.parse_queue()
         self.lock.release()
@@ -137,7 +138,9 @@ class RequestQueue(object):
         self.lock.release()
 
 
+# The RequestQueue singleton for queueing requests
 request_queue = RequestQueue()
+# The request history and their status codes (stores the last 200 requests)
 performed_requests = deque(maxlen=200)
 
 
