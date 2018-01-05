@@ -1,4 +1,5 @@
 import os
+import time
 
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
@@ -30,10 +31,19 @@ class DownloadsPage(QWidget):
         self.downloads = None
         self.downloads_timer = QTimer()
         self.downloads_timeout_timer = QTimer()
+        self.downloads_last_update = 0
         self.selected_item = None
         self.dialog = None
         self.downloads_request_mgr = TriblerRequestManager()
         self.request_mgr = None
+
+    def showEvent(self, QShowEvent):
+        """
+        When the downloads tab is clicked, we want to update the downloads list immediately.
+        """
+        super(DownloadsPage, self).showEvent(QShowEvent)
+        self.stop_loading_downloads()
+        self.schedule_downloads_timer(True)
 
     def initialize_downloads_page(self):
         self.window().downloads_tab.initialize()
@@ -90,7 +100,13 @@ class DownloadsPage(QWidget):
         if self.window().download_details_widget.currentIndex() == 3:
             url = "downloads?get_peers=1&get_pieces=1"
 
-        self.downloads_request_mgr.perform_request(url, self.on_received_downloads)
+        if not self.isHidden() or (time.time() - self.downloads_last_update > 30):
+            # Update if the downloads page is visible or if we haven't updated for longer than 30 seconds
+            self.downloads_last_update = time.time()
+            priority = "LOW" if self.isHidden() else "HIGH"
+            self.downloads_request_mgr.cancel_request()
+            self.downloads_request_mgr = TriblerRequestManager()
+            self.downloads_request_mgr.perform_request(url, self.on_received_downloads, priority=priority)
 
     def on_received_downloads(self, downloads):
         if not downloads:
