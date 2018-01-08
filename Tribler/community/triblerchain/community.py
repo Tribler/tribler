@@ -249,7 +249,6 @@ class TriblerChainCommunity(TrustChainCommunity):
         block = {}
         block["public_key"] = bootstrap_block.public_key.encode('base64')
         block["tx"] = bootstrap_block.transaction
-        block["hash"] = bootstrap_block.hash.encode('base64')
         block["link_public_key"] = bootstrap_block.link_public_key.encode('base64')
         block["insert_time"] = bootstrap_block.insert_time
         block["signature"] = bootstrap_block.signature.encode('base64')
