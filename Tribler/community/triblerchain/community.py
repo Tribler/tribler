@@ -232,6 +232,8 @@ class TriblerChainCommunity(TrustChainCommunity):
 
         TODO : Review sign logic. 
         TODO : Save transaction to local database. 
+        TODO : better method for base64 encoding 
+        TODO : Determine what to do with public key 
 
         """
         keypair = self.dispersy.get_new_member(u"curve25519")
@@ -242,13 +244,20 @@ class TriblerChainCommunity(TrustChainCommunity):
         
         bootstrap_block = TriblerChainBlock.create(transaction,DBShim(),self.my_member.public_key,link_pk=keypair.public_key)
         bootstrap_block.sign(self.my_member.private_key)
+
+
         block = {}
-        for k,v in bootstrap_block:
-            block[k] = v
+        block["public_key"] = bootstrap_block.public_key.encode('base64')
+        block["tx"] = bootstrap_block.transaction
+        block["hash"] = bootstrap_block.hash.encode('base64')
+        block["link_public_key"] = bootstrap_block.link_public_key.encode('base64')
+        block["insert_time"] = bootstrap_block.insert_time
+        block["signature"] = bootstrap_block.signature.encode('base64')
+        block["previous_hash"] = bootstrap_block.previous_hash.encode('base64')
+        block["link_sequence_number"] = bootstrap_block.link_sequence_number
 
         result = {}
         result['transactions'] = [ block ]
-        result['public_key'] = keypair.public_key.encode("base64")
         result['private_key'] = keypair.private_key.key_to_bin().encode("base64")
         return result
 

@@ -231,30 +231,6 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
                 down = down
                 
         result = mc_community.bootstrap_new_identity(up,down)
-        tmp = """"
-        return json.dumps(  {
-                    "private_key" : "NEW_KEY",
-                    "public_key"  : "NEW_PUBLIC_KEY" ,
-                     "transactions" : [
-                         {
-                            "hash": "ab672fd6acc0",
-                            "tx" : {
-                                "up": up,
-                                "down": down,
-                                "total_up": up,
-                                "total_down": down,
-                            },
-                            "sequence_number": 0,
-                            "link_public_key": "PC_KEY",
-                            "link_sequence_number": 1210,
-                            "previous_hash": 00000000
-                        }
-                    ]
-               
-                    })
-
-            """
-
 
         return json.dumps( result )
        
