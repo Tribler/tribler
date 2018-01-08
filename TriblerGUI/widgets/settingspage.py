@@ -1,5 +1,5 @@
-from PyQt5 import QtGui
-from PyQt5.QtWidgets import QWidget, QLabel, QFileDialog
+from PyQt5 import QtGui , QtCore
+from PyQt5.QtWidgets import QWidget, QLabel, QFileDialog 
 from PIL.ImageQt import ImageQt
 
 import base64
@@ -53,9 +53,7 @@ class SettingsPage(QWidget):
         self.window().developer_mode_enabled_checkbox.stateChanged.connect(self.on_developer_mode_checkbox_changed)
         self.window().use_monochrome_icon_checkbox.stateChanged.connect(self.on_use_monochrome_icon_checkbox_changed)
         self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
-        self.window().export_general_key_button.clicked.connect(self.export_key_general)
-        self.window().export_trustchain_key_button.clicked.connect(self.export_key_trustchain)
-        self.window().export_tradechain_key_button.clicked.connect(self.export_reputation)
+        self.window().export_bootstrap_qr.clicked.connect(self.export_reputation)
 
     def export_reputation(self):
         self.trustchain_request_mgr = TriblerRequestManager()
@@ -63,129 +61,30 @@ class SettingsPage(QWidget):
 
     def on_export_reputation(self, identity):
         data = json.dumps(identity)
-
-        if has_pdf:
+        if has_qr:
+    
             self.keys_export_dialog = QWidget()
-            self.keys_export_dialog.setWindowTitle("Export reputation")
-            self.keys_export_dialog.setGeometry(10, 10, 5000, 5000)
+            self.keys_export_dialog.setWindowTitle("Export trustchain keypair")
+            self.keys_export_dialog.setGeometry(10, 10, 500, 500)
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_M,
+                box_size=10,
+                border=5,
+            )
+            qr.add_data(data)
+            qr.make(fit=True)
 
-            codes = encode(data, encoding="utf-8", columns=6, security_level=1)
-
-            # Generate barcode as image
-            img = render_image(codes)  # Pillow Image object
+            img = qr.make_image()  # PIL format
 
             qim = ImageQt(img)
-            pixmap = QtGui.QPixmap.fromImage(qim)
+            pixmap = QtGui.QPixmap.fromImage(qim).scaled(600, 600, QtCore.Qt.KeepAspectRatio)
             label = QLabel(self.keys_export_dialog)
             label.setPixmap(pixmap)
             self.keys_export_dialog.resize(pixmap.width(), pixmap.height())
             self.keys_export_dialog.show()
         else:
             ConfirmationDialog.show_error(self.window(), DEPENDENCY_ERROR_TITLE, DEPENDENCY_ERROR_MESSAGE)
-
-    def export_key_general(self):
-        if has_qr:
-            try:
-                with open(self.settings['settings']['general']['ec_keypair_filename'], 'rb') as f:
-                    self.keys_export_dialog = QWidget()
-                    self.keys_export_dialog.setWindowTitle("Export general keypair")
-                    self.keys_export_dialog.setGeometry(10, 10, 500, 500)
-
-                    data = f.read()
-
-                    qr = qrcode.QRCode(
-                        version=1,
-                        error_correction=qrcode.constants.ERROR_CORRECT_L,
-                        box_size=10,
-                        border=4,
-                    )
-                    qr.add_data("aaaa")
-                    qr.make(fit=True)
-
-                    img = qr.make_image()  # PIL format
-
-                    qim = ImageQt(img)
-                    pixmap = QtGui.QPixmap.fromImage(qim)
-                    label = QLabel(self.keys_export_dialog)
-                    label.setPixmap(pixmap)
-                    self.keys_export_dialog.resize(pixmap.width(), pixmap.height())
-                    self.keys_export_dialog.show()
-            except IOError:
-                ConfirmationDialog.show_error(self.window(), KEY_ERROR_TITLE, KEY_ERROR_MESSAGE)
-        else:
-            ConfirmationDialog.show_error(self.window(), DEPENDENCY_ERROR_TITLE, DEPENDENCY_ERROR_MESSAGE)
-
-    def export_key_trustchain(self):
-        if has_qr:
-            try:
-                with open(self.settings['settings']['trustchain']['ec_keypair_filename'], 'rb') as f:
-                    self.keys_export_dialog = QWidget()
-                    self.keys_export_dialog.setWindowTitle("Export trustchain keypair")
-                    self.keys_export_dialog.setGeometry(10, 10, 500, 500)
-
-                    data = base64.b64encode(f.read())
-
-                    # f = open('helloworld.txt', 'w')
-                    # f.write('' + str(len(data)))
-                    # f.close()
-                    # print(len(data))
-
-                    qr = qrcode.QRCode(
-                        version=1,
-                        error_correction=qrcode.constants.ERROR_CORRECT_L,
-                        box_size=10,
-                        border=4,
-                    )
-                    qr.add_data(data)
-                    qr.make(fit=True)
-
-                    img = qr.make_image()  # PIL format
-
-                    qim = ImageQt(img)
-                    pixmap = QtGui.QPixmap.fromImage(qim)
-                    label = QLabel(self.keys_export_dialog)
-                    label.setPixmap(pixmap)
-                    self.keys_export_dialog.resize(pixmap.width(), pixmap.height())
-                    self.keys_export_dialog.show()
-            except IOError:
-                ConfirmationDialog.show_error(self.window(), KEY_ERROR_TITLE, KEY_ERROR_MESSAGE)
-        else:
-            ConfirmationDialog.show_error(self.window(), DEPENDENCY_ERROR_TITLE, DEPENDENCY_ERROR_MESSAGE)
-
-    def export_key_tradechain(self):
-        if has_qr:
-            try:
-                with open(self.settings['settings']['market_community']['ec_keypair_filename'], 'rb') as f:
-                    self.keys_export_dialog = QWidget()
-                    self.keys_export_dialog.setWindowTitle("Export tradechain keypair")
-                    self.keys_export_dialog.setGeometry(10, 10, 500, 500)
-
-                    data = f.read()
-
-                    qr = qrcode.QRCode(
-                        version=1,
-                        error_correction=qrcode.constants.ERROR_CORRECT_L,
-                        box_size=10,
-                        border=4,
-                    )
-                    qr.add_data(data)
-                    qr.make(fit=True)
-
-                    img = qr.make_image()  # PIL format
-
-                    qim = ImageQt(img)
-                    pixmap = QtGui.QPixmap.fromImage(qim)
-                    label = QLabel(self.keys_export_dialog)
-                    label.setPixmap(pixmap)
-                    self.keys_export_dialog.resize(pixmap.width(), pixmap.height())
-                    self.keys_export_dialog.show()
-            except IOError:
-                ConfirmationDialog.show_error(self.window(), KEY_ERROR_TITLE, KEY_ERROR_MESSAGE)
-        else:
-            ConfirmationDialog.show_error(self.window(), DEPENDENCY_ERROR_TITLE, DEPENDENCY_ERROR_MESSAGE)
-
-
-        self.window().log_location_chooser_button.clicked.connect(self.on_choose_log_dir_clicked)
 
     def on_developer_mode_checkbox_changed(self, _):
         self.window().gui_settings.setValue("debug", self.window().developer_mode_enabled_checkbox.isChecked())
