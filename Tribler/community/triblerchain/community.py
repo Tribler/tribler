@@ -226,14 +226,56 @@ class TriblerChainCommunity(TrustChainCommunity):
 
     def bootstrap_new_identity(self, up , down): 
         """ 
-        Create a new identity and transfer some reputation to it
-        Returns { private_key , public_key , transactions: [ ]}
+        Oneway payment channel. 
+        Create a new temporary identity , and transfer funds to the new identity. 
+        A different party can then take the result and do a trasnfer from the temporary identity to itself
 
+        Normally the sequence for creating a block is 
 
-        TODO : Review sign logic. 
-        TODO : Save transaction to local database. 
-        TODO : better method for base64 encoding 
-        TODO : Determine what to do with public key 
+        Party A creates a partial block. 
+        Party A : sign( 
+                transaction ,       // the transaction that A wants to make
+                public_key ,        // The public key of A
+                sequence_number ,   // The sequence number of A
+                link_public_key ,   // the public key of the transaciton target B
+                link_sequence_number = 0  // A does not know the sequence_number of B
+                previous_hash  ,    // the hash of A's last block 
+                
+            )  == signature 
+        
+        Party A : Send( @B, block + signature )
+
+        Party B : sign( 
+                transaction ,   // the transaction ( for bandwidth he up and down are reversed , because upload from A is download for B)
+                public_key ,    // pubkey of B
+                sequence_number,// sequence number of B
+                link_public_key,// pubkey of A
+                link_sequence_number, // sequence number in received block from A
+                previous_hash   // hash of B's last block 
+            )
+        Party B : Send( @A , block + signature ) 
+
+        With C as an intermediary . e.g. ( A -> C -> B ) would normally be 
+        
+        A -attempt-> C { (tx:{up: 10 , down: 5} , key_a , seq , key_c , 0 , prev_hash) , signature }
+        C -confirm-> A { (tx:{down: 10 , up: 5} , key_c , seq , key_c , seq_from_msg , prev_hash) , signature}
+        -- A and C store these blocks
+        C -attempt-> B { (tx:{up: 10 , down: 5} , key_c , seq , key_b , 0 , prev_hash) , signature }
+        B -confirm-> C { (tx:{down: 10 , up: 5} , key_b , seq , key_c , seq_from_msg , prev_hash) , signature}
+        -- B and C store these blocks
+        
+        For this oneway construct we want to minimize the data and instead do work on both ends
+
+        A : Generate key pair for C
+        A -oneway-> B { (tx:{up: 10 , down: 5} , key_a , seq , key_c , 0 , prev_hash) , signature } , private_key C
+        
+        both A and B will simulate
+        C -confirm-> A confirmation 
+
+        and B will continue with 
+        C -attempt-> B 
+        B -confirm-> C 
+        and then B will throw away private key C 
 
         """
         keypair = self.dispersy.get_new_member(u"curve25519")
@@ -241,18 +283,24 @@ class TriblerChainCommunity(TrustChainCommunity):
             'up' : up , 'down' : down , 'total_up' : up , 'total_down' : down 
         }
 
-        
-        bootstrap_block = TriblerChainBlock.create(transaction,DBShim(),self.my_member.public_key,link_pk=keypair.public_key)
-        bootstrap_block.sign(self.my_member.private_key)
+        attempt_block = TriblerChainBlock.create(transaction,self.persistence,self.my_member.public_key,link_pk=keypair.public_key)
+        attempt_block.sign(self.my_member.private_key)
 
+        # create function will swap the tx up and down if link is set
+        confirm_block = TriblerChainBlock.create(transaction,DBShim(),keypair.public_key,link=attempt_block,link_pk=self.my_member.public_key)
+        confirm_block.sign(keypair.private_key)
+
+        self.persistence.add_block(attempt_block)
+        self.persistence.add_block(confirm_block)
 
         block = {}
-        block["public_key"] = bootstrap_block.public_key.encode('base64')
-        block["tx"] = bootstrap_block.transaction
-        block["link_public_key"] = bootstrap_block.link_public_key.encode('base64')
-        block["signature"] = bootstrap_block.signature.encode('base64')
-        block["previous_hash"] = bootstrap_block.previous_hash.encode('base64')
-        block["link_sequence_number"] = bootstrap_block.link_sequence_number
+        block["public_key"] = attempt_block.public_key.encode('base64')
+        block["tx"] = attempt_block.transaction
+        block["link_public_key"] = attempt_block.link_public_key.encode('base64')
+        block["signature"] = attempt_block.signature.encode('base64')
+        block["previous_hash"] = attempt_block.previous_hash.encode('base64')
+        block["sequence_number"] = attempt_block.sequence_number
+        block["link_sequence_number"] = attempt_block.link_sequence_number
 
         result = {}
         result['transactions'] = [ block ]
