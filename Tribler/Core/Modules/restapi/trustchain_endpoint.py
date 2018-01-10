@@ -4,6 +4,7 @@ from twisted.web import http, resource
 
 from Tribler.community.triblerchain.community import TriblerChainCommunity
 
+
 class TrustchainEndpoint(resource.Resource):
     """
     This endpoint is responsible for handing requests for trustchain data.
@@ -13,9 +14,9 @@ class TrustchainEndpoint(resource.Resource):
         resource.Resource.__init__(self)
 
         child_handler_dict = {
-            "statistics": TrustchainStatsEndpoint, 
+            "statistics": TrustchainStatsEndpoint,
             "blocks": TrustchainBlocksEndpoint,
-            "bootstrap" : TrustchainBootstrapEndpoint}
+            "bootstrap": TrustchainBootstrapEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
@@ -169,7 +170,6 @@ class TrustchainBlocksIdentityEndpoint(TrustchainBaseEndpoint):
         return json.dumps({"blocks": [dict(block) for block in blocks]})
 
 
-
 class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
     """
     Bootstrap a new identity and transfer some reputation to the new key.
@@ -216,21 +216,21 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "trustchain community not found"})
 
-        up = 100000000
-        down = 1000
+        statistics = mc_community.get_statistics()
+        up = statistics['total_up']
+        down = statistics['total_down']
         if 'up' in request.args:
             try:
                 up = int(request.args['up'][0])
             except ValueError:
                 up = up
-                
+
         if 'down' in request.args:
             try:
                 down = int(request.args['down'][0])
             except ValueError:
                 down = down
-                
-        result = mc_community.bootstrap_new_identity(up,down)
 
-        return json.dumps( result )
-       
+        result = mc_community.bootstrap_new_identity(up, down)
+
+        return json.dumps(result)

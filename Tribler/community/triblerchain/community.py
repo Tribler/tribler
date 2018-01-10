@@ -8,15 +8,7 @@ from Tribler.community.triblerchain.database import TriblerChainDB
 from Tribler.community.trustchain.community import TrustChainCommunity
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
-
-from Tribler.community.trustchain.block import GENESIS_SEQ, GENESIS_HASH, EMPTY_SIG
-
-
-
-from Tribler.Core import permid
-from Tribler import dispersy
-
-MIN_TRANSACTION_SIZE = 1024*1024
+MIN_TRANSACTION_SIZE = 1024 * 1024
 
 
 class PendingBytes(object):
@@ -171,7 +163,7 @@ class TriblerChainCommunity(TrustChainCommunity):
         from Tribler.community.tunnel.tunnel_community import Circuit, RelayRoute, TunnelExitSocket
         assert isinstance(tunnel, Circuit) or isinstance(tunnel, RelayRoute) or isinstance(tunnel, TunnelExitSocket), \
             "on_tunnel_remove() was called with an object that is not a Circuit, RelayRoute or TunnelExitSocket"
-        assert isinstance(tunnel.bytes_up, int) and isinstance(tunnel.bytes_down, int),\
+        assert isinstance(tunnel.bytes_up, int) and isinstance(tunnel.bytes_down, int), \
             "tunnel instance must provide byte counts in int"
 
         up = tunnel.bytes_up
@@ -223,12 +215,11 @@ class TriblerChainCommunity(TrustChainCommunity):
             # We need a minimum of 1 trust to have a chance to be selected in the categorical distribution.
             return 1
 
-
-    def bootstrap_new_identity(self, up , down): 
+    def bootstrap_new_identity(self, up, down):
         """ 
-        Oneway payment channel. 
+        One-way payment channel.
         Create a new temporary identity , and transfer funds to the new identity. 
-        A different party can then take the result and do a trasnfer from the temporary identity to itself
+        A different party can then take the result and do a transfer from the temporary identity to itself
 
         Normally the sequence for creating a block is 
 
@@ -237,7 +228,7 @@ class TriblerChainCommunity(TrustChainCommunity):
                 transaction ,       // the transaction that A wants to make
                 public_key ,        // The public key of A
                 sequence_number ,   // The sequence number of A
-                link_public_key ,   // the public key of the transaciton target B
+                link_public_key ,   // the public key of the transaction target B
                 link_sequence_number = 0  // A does not know the sequence_number of B
                 previous_hash  ,    // the hash of A's last block 
                 
@@ -264,10 +255,10 @@ class TriblerChainCommunity(TrustChainCommunity):
         B -confirm-> C { (tx:{down: 10 , up: 5} , key_b , seq , key_c , seq_from_msg , prev_hash) , signature}
         -- B and C store these blocks
         
-        For this oneway construct we want to minimize the data and instead do work on both ends
+        For this one-way construct we want to minimize the data and instead do work on both ends
 
         A : Generate key pair for C
-        A -oneway-> B { (tx:{up: 10 , down: 5} , key_a , seq , key_c , 0 , prev_hash) , signature } , private_key C
+        A -one-way-> B { (tx:{up: 10 , down: 5} , key_a , seq , key_c , 0 , prev_hash) , signature } , private_key C
         
         both A and B will simulate
         C -confirm-> A confirmation 
@@ -278,36 +269,36 @@ class TriblerChainCommunity(TrustChainCommunity):
         and then B will throw away private key C 
 
         """
-        keypair = self.dispersy.get_new_member(u"curve25519")
+        # Create new identity for the temporary identity
+        tmp_member = self.dispersy.get_new_member(u"curve25519")
+
+        # Create the transaction specification
         transaction = {
-            'up' : up , 'down' : down , 'total_up' : up , 'total_down' : down 
+            'up': up, 'down': down, 'total_up': up, 'total_down': down
         }
 
-        attempt_block = TriblerChainBlock.create(transaction,self.persistence,self.my_member.public_key,link_pk=keypair.public_key)
-        attempt_block.sign(self.my_member.private_key)
+        # Create the two half blocks that form the transaction
+        local_half_block = TriblerChainBlock.create(transaction, self.persistence, self.my_member.public_key,
+                                                    link_pk=tmp_member.public_key)
+        local_half_block.sign(self.my_member.private_key)
+        tmp_half_block = TriblerChainBlock.create(transaction, DBShim(), tmp_member.public_key, link=local_half_block,
+                                                  link_pk=self.my_member.public_key)
+        tmp_half_block.sign(tmp_member.private_key)
 
-        # create function will swap the tx up and down if link is set
-        confirm_block = TriblerChainBlock.create(transaction,DBShim(),keypair.public_key,link=attempt_block,link_pk=self.my_member.public_key)
-        confirm_block.sign(keypair.private_key)
+        self.persistence.add_block(local_half_block)
+        self.persistence.add_block(tmp_half_block)
 
-        self.persistence.add_block(attempt_block)
-        self.persistence.add_block(confirm_block)
+        # Create the bootstrapped identity format
+        block = {"public_key": local_half_block.public_key.encode('base64'),
+                 "tx": local_half_block.transaction,
+                 "link_public_key": local_half_block.link_public_key.encode('base64'),
+                 "signature": local_half_block.signature.encode('base64'),
+                 "previous_hash": local_half_block.previous_hash.encode('base64'),
+                 "sequence_number": local_half_block.sequence_number,
+                 "link_sequence_number": local_half_block.link_sequence_number}
 
-        block = {}
-        block["public_key"] = attempt_block.public_key.encode('base64')
-        block["tx"] = attempt_block.transaction
-        block["link_public_key"] = attempt_block.link_public_key.encode('base64')
-        block["signature"] = attempt_block.signature.encode('base64')
-        block["previous_hash"] = attempt_block.previous_hash.encode('base64')
-        block["sequence_number"] = attempt_block.sequence_number
-        block["link_sequence_number"] = attempt_block.link_sequence_number
-
-        result = {}
-        result['transactions'] = [ block ]
-        result['private_key'] = keypair.private_key.key_to_bin().encode("base64")
+        result = {'transactions': [block], 'private_key': tmp_member.private_key.key_to_bin().encode("base64")}
         return result
-
-
 
 
 class TriblerChainCommunityCrawler(TriblerChainCommunity):
@@ -328,7 +319,6 @@ class TriblerChainCommunityCrawler(TriblerChainCommunity):
         self.register_task("take step", LoopingCall(self.take_step)).start(self.CrawlerDelay, now=False)
 
 
-
 class DBShim:
-    def get_latest(self,x):
+    def get_latest(self, x):
         return {}
