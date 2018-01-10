@@ -87,14 +87,7 @@ class TorrentChecker(TaskManager):
             for session in self._session_list[tracker_url]:
                 self.session_stop_defer_list.append(session.cleanup())
 
-        defer_stop_list = DeferredList(self.session_stop_defer_list)
-
-        self._session_list = None
-
-        self._torrent_db = None
-        self.tribler_session = None
-
-        return defer_stop_list
+        return DeferredList(self.session_stop_defer_list)
 
     def _reschedule_tracker_select(self):
         """
