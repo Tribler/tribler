@@ -65,6 +65,9 @@ class TestUpgrader(AbstractUpgrader):
         self.upgrader.run()
         self.assertTrue(self.upgrader.notified)
 
+        # Verify the config file
+        self.assertTrue(self.session.config.get_trustchain_enabled())
+
     @deferred(timeout=10)
     def test_update_status_text(self):
         test_deferred = Deferred()
@@ -76,20 +79,3 @@ class TestUpgrader(AbstractUpgrader):
         self.session.notifier.add_observer(on_upgrade_tick, NTFY_UPGRADER_TICK, [NTFY_STARTED])
         self.upgrader.update_status("12345")
         return test_deferred
-
-
-class TestUpgraderDisabled(AbstractUpgrader):
-
-    @blocking_call_on_reactor_thread
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestUpgraderDisabled, self).setUp()
-        self.copy_and_initialize_upgrade_database('tribler_v17.sdb')
-        self.upgrader = TriblerUpgrader(self.session, self.sqlitedb)
-
-    @blocking_call_on_reactor_thread
-    def test_upgrade_with_upgrader_disabled(self):
-        self.upgrader.session.config.get_upgrader_enabled = lambda: False
-        self.upgrader.check_should_upgrade_database = lambda: self.fail("This function should not be called")
-
-        self.upgrader.run()

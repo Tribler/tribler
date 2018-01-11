@@ -97,6 +97,7 @@ class TriblerLaunchMany(TaskManager):
         self.tracker_manager = None
         self.torrent_checker = None
         self.tunnel_community = None
+        self.trustchain_community = None
 
         self.startup_deferred = Deferred()
 
@@ -222,29 +223,28 @@ class TriblerLaunchMany(TaskManager):
             self.dispersy.define_auto_load(PreviewChannelCommunity,
                                            self.session.dispersy_member, kargs=default_kwargs)
 
+        # TrustChain Community
+        if self.session.config.get_trustchain_enabled():
+            trustchain_kwargs = {'tribler_session': self.session}
+
+            # If the trustchain is enabled, we use the permanent trustchain keypair
+            # for both the trustchain and the tunnel community
+            keypair = self.session.trustchain_keypair
+            dispersy_member = self.dispersy.get_member(private_key=keypair.key_to_bin())
+
+            from Tribler.community.triblerchain.community import TriblerChainCommunity
+            self.trustchain_community = self.dispersy.define_auto_load(TriblerChainCommunity,
+                                                                       dispersy_member,
+                                                                       load=True,
+                                                                       kargs=trustchain_kwargs)[0]
+        else:
+            keypair = self.dispersy.crypto.generate_key(u"curve25519")
+            dispersy_member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
+
         # Tunnel Community
-        mc_community = None
         if self.session.config.get_tunnel_community_enabled():
             tunnel_settings = TunnelSettings(tribler_session=self.session)
             tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
-
-            if self.session.config.get_trustchain_enabled():
-                trustchain_kwargs = {'tribler_session': self.session}
-
-                # If the trustchain is enabled, we use the permanent trustchain keypair
-                # for both the trustchain and the tunnel community
-                keypair = self.session.trustchain_keypair
-                dispersy_member = self.dispersy.get_member(private_key=keypair.key_to_bin())
-
-                from Tribler.community.triblerchain.community import TriblerChainCommunity
-                mc_community = self.dispersy.define_auto_load(TriblerChainCommunity,
-                                                              dispersy_member,
-                                                              load=True,
-                                                              kargs=trustchain_kwargs)[0]
-
-            else:
-                keypair = self.dispersy.crypto.generate_key(u"curve25519")
-                dispersy_member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
 
             from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
             self.tunnel_community = self.dispersy.define_auto_load(
@@ -260,7 +260,7 @@ class TriblerLaunchMany(TaskManager):
                                        testnet=self.session.config.get_btc_testnet())
             wallets[btc_wallet.get_identifier()] = btc_wallet
 
-            mc_wallet = TrustchainWallet(mc_community)
+            mc_wallet = TrustchainWallet(self.trustchain_community)
             wallets[mc_wallet.get_identifier()] = mc_wallet
 
             if self.session.config.get_dummy_wallets_enabled():
