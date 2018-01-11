@@ -220,55 +220,8 @@ class TriblerChainCommunity(TrustChainCommunity):
         One-way payment channel.
         Create a new temporary identity , and transfer funds to the new identity. 
         A different party can then take the result and do a transfer from the temporary identity to itself
-
-        Normally the sequence for creating a block is 
-
-        Party A creates a partial block. 
-        Party A : sign( 
-                transaction ,       // the transaction that A wants to make
-                public_key ,        // The public key of A
-                sequence_number ,   // The sequence number of A
-                link_public_key ,   // the public key of the transaction target B
-                link_sequence_number = 0  // A does not know the sequence_number of B
-                previous_hash  ,    // the hash of A's last block 
-                
-            )  == signature 
-        
-        Party A : Send( @B, block + signature )
-
-        Party B : sign( 
-                transaction ,   // the transaction ( for bandwidth he up and down are reversed , because upload from A is download for B)
-                public_key ,    // pubkey of B
-                sequence_number,// sequence number of B
-                link_public_key,// pubkey of A
-                link_sequence_number, // sequence number in received block from A
-                previous_hash   // hash of B's last block 
-            )
-        Party B : Send( @A , block + signature ) 
-
-        With C as an intermediary . e.g. ( A -> C -> B ) would normally be 
-        
-        A -attempt-> C { (tx:{up: 10 , down: 5} , key_a , seq , key_c , 0 , prev_hash) , signature }
-        C -confirm-> A { (tx:{down: 10 , up: 5} , key_c , seq , key_c , seq_from_msg , prev_hash) , signature}
-        -- A and C store these blocks
-        C -attempt-> B { (tx:{up: 10 , down: 5} , key_c , seq , key_b , 0 , prev_hash) , signature }
-        B -confirm-> C { (tx:{down: 10 , up: 5} , key_b , seq , key_c , seq_from_msg , prev_hash) , signature}
-        -- B and C store these blocks
-        
-        For this one-way construct we want to minimize the data and instead do work on both ends
-
-        A : Generate key pair for C
-        A -one-way-> B { (tx:{up: 10 , down: 5} , key_a , seq , key_c , 0 , prev_hash) , signature } , private_key C
-        
-        both A and B will simulate
-        C -confirm-> A confirmation 
-
-        and B will continue with 
-        C -attempt-> B 
-        B -confirm-> C 
-        and then B will throw away private key C 
-
         """
+
         # Create new identity for the temporary identity
         tmp_member = self.dispersy.get_new_member(u"curve25519")
 
@@ -289,15 +242,11 @@ class TriblerChainCommunity(TrustChainCommunity):
         self.persistence.add_block(tmp_half_block)
 
         # Create the bootstrapped identity format
-        block = {"public_key": local_half_block.public_key.encode('base64'),
-                 "tx": local_half_block.transaction,
-                 "link_public_key": local_half_block.link_public_key.encode('base64'),
-                 "signature": local_half_block.signature.encode('base64'),
-                 "previous_hash": local_half_block.previous_hash.encode('base64'),
-                 "sequence_number": local_half_block.sequence_number,
-                 "link_sequence_number": local_half_block.link_sequence_number}
+        block = {'block_hash': tmp_half_block.hash.encode('base64'),
+                 'sequence_number': tmp_half_block.sequence_number}
 
-        result = {'transactions': [block], 'private_key': tmp_member.private_key.key_to_bin().encode("base64")}
+        result = {'transaction': transaction, 'transactions': [block],
+                  'private_key': tmp_member.private_key.key_to_bin().encode('base64')}
         return result
 
 
