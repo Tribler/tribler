@@ -245,7 +245,7 @@ class TriblerChainCommunity(TrustChainCommunity):
         block = {'block_hash': tmp_half_block.hash.encode('base64'),
                  'sequence_number': tmp_half_block.sequence_number}
 
-        result = {'transaction': transaction, 'transactions': [block],
+        result = {'transaction': transaction, 'block': block,
                   'private_key': tmp_member.private_key.key_to_bin().encode('base64')}
         return result
 
