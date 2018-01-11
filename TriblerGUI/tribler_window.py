@@ -57,6 +57,12 @@ class TriblerWindow(QMainWindow):
     received_search_completions = pyqtSignal(object)
 
     def on_exception(self, *exc_info):
+        if self.exception_handler_called:
+            # We only show one feedback dialog, even when there are two consecutive exceptions.
+            return
+
+        self.exception_handler_called = True
+
         if self.tray_icon:
             self.tray_icon.deleteLater()
 
@@ -107,6 +113,7 @@ class TriblerWindow(QMainWindow):
         self.last_search_query = None
         self.last_search_time = None
         self.start_time = time.time()
+        self.exception_handler_called = False
 
         sys.excepthook = self.on_exception
 
