@@ -270,15 +270,18 @@ class DebugWindow(QMainWindow):
         self.window().open_files_tree_widget.clear()
         gui_item = QTreeWidgetItem(self.window().open_files_tree_widget)
 
-        open_files = my_process.open_files()
-        gui_item.setText(0, "GUI (%d)" % len(open_files))
-        self.window().open_files_tree_widget.addTopLevelItem(gui_item)
+        try:
+            open_files = my_process.open_files()
+            gui_item.setText(0, "GUI (%d)" % len(open_files))
+            self.window().open_files_tree_widget.addTopLevelItem(gui_item)
 
-        for open_file in open_files:
-            item = QTreeWidgetItem()
-            item.setText(0, open_file.path)
-            item.setText(1, "%d" % open_file.fd)
-            gui_item.addChild(item)
+            for open_file in open_files:
+                item = QTreeWidgetItem()
+                item.setText(0, open_file.path)
+                item.setText(1, "%d" % open_file.fd)
+                gui_item.addChild(item)
+        except psutil.AccessDenied as exc:
+            gui_item.setText(0, "Unable to get open files for GUI (%s)" % exc)
 
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("debug/open_files", self.on_core_open_files)
