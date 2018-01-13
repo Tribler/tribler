@@ -134,6 +134,9 @@ QTabBar::tab:selected {
         </property>
         <item>
          <widget class="QScrollArea" name="scrollArea">
+          <property name="styleSheet">
+           <string notr="true">border: none;</string>
+          </property>
           <property name="widgetResizable">
            <bool>true</bool>
           </property>
@@ -141,9 +144,9 @@ QTabBar::tab:selected {
            <property name="geometry">
             <rect>
              <x>0</x>
-             <y>-26</y>
-             <width>789</width>
-             <height>112</height>
+             <y>0</y>
+             <width>806</width>
+             <height>239</height>
             </rect>
            </property>
            <layout class="QFormLayout" name="formLayout">
