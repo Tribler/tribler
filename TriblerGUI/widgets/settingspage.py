@@ -2,19 +2,11 @@ from PyQt5 import QtGui , QtCore
 from PyQt5.QtWidgets import QWidget, QLabel, QFileDialog 
 from PIL.ImageQt import ImageQt
 
-import base64
-
 try:
     import qrcode
     has_qr = True
 except ImportError:
     has_qr = False
-
-try:
-    from pdf417gen import encode, render_image
-    has_pdf = True
-except ImportError:
-    has_pdf = False
 
 import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_BANDWIDTH, \
@@ -61,8 +53,8 @@ class SettingsPage(QWidget):
 
     def on_export_reputation(self, identity):
         data = json.dumps(identity)
+
         if has_qr:
-    
             self.keys_export_dialog = QWidget()
             self.keys_export_dialog.setWindowTitle("Export trustchain keypair")
             self.keys_export_dialog.setGeometry(10, 10, 500, 500)
