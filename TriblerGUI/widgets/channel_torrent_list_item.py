@@ -101,6 +101,16 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
     def leaveEvent(self, _):
         self.hide_buttons()
 
+    def on_cancel_health_check(self):
+        """
+        The request for torrent health could not be queued.
+        Go back to the intial state.
+        """
+        self.health_text.setText("unknown health")
+        self.set_health_indicator(STATUS_UNKNOWN)
+        self.is_health_checking = False
+        self.has_health = False
+
     def check_health(self):
         """
         Perform a request to check the health of the torrent that is represented by this widget.
@@ -114,7 +124,8 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         self.is_health_checking = True
         self.health_request_mgr = TriblerRequestManager()
         self.health_request_mgr.perform_request("torrents/%s/health?timeout=15" % self.torrent_info["infohash"],
-                                                self.on_health_response, capture_errors=False, priority="LOW")
+                                                self.on_health_response, capture_errors=False, priority="LOW",
+                                                on_cancel=self.on_cancel_health_check)
 
     def on_health_response(self, response):
         """
