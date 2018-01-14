@@ -165,6 +165,7 @@ class TriblerRequestManager(QNetworkAccessManager):
             'DELETE': self.perform_delete,
             'POST': self.perform_post
         }
+        self.on_cancel = lambda: None
 
     def get_status_code(self):
         """
@@ -173,7 +174,7 @@ class TriblerRequestManager(QNetworkAccessManager):
         return self.status_code
 
     def perform_request(self, endpoint, read_callback, data="", method='GET', capture_errors=True,
-                        priority=QueuePriorityEnum.CRITICAL):
+                        priority=QueuePriorityEnum.CRITICAL, on_cancel=lambda: None):
         """
         Perform a HTTP request.
         :param endpoint: the endpoint to call (i.e. "statistics")
@@ -185,6 +186,7 @@ class TriblerRequestManager(QNetworkAccessManager):
         url = self.base_url + endpoint
 
         self.status_code = -1
+        self.on_cancel = on_cancel
         request_queue.enqueue(self,
                               lambda: self.dispatch_map.get(method, lambda x, y, z: None)(endpoint, data, url),
                               priority)
@@ -332,3 +334,4 @@ class TriblerRequestManager(QNetworkAccessManager):
     def cancel_request(self):
         if self.reply:
             self.reply.abort()
+        self.on_cancel()
