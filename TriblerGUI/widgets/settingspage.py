@@ -18,8 +18,6 @@ from TriblerGUI.utilities import string_to_seconds, get_gui_setting, seconds_to_
 DEPENDENCY_ERROR_TITLE = "Dependency missing"
 DEPENDENCY_ERROR_MESSAGE = "'qrcode' module is missing. This module can be installed through apt-get or pip"
 
-KEY_ERROR_TITLE = "Key missing or unreadable"
-KEY_ERROR_MESSAGE = "The key requested to be exported is either missing or unreadable."
 
 class SettingsPage(QWidget):
     """
