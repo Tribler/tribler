@@ -128,7 +128,7 @@ class DownloadsPage(QWidget):
                 self.window().download_details_widget.update_pages()
 
         # Check whether there are download that should be removed
-        for infohash, item in self.download_widgets.copy().iteritems():
+        for infohash, item in self.download_widgets.items():
             if infohash not in download_infohashes:
                 index = self.window().downloads_list.indexOfTopLevelItem(item)
                 self.window().downloads_list.takeTopLevelItem(index)
