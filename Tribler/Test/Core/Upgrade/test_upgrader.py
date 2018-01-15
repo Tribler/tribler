@@ -64,6 +64,9 @@ class TestUpgrader(AbstractUpgrader):
         self.upgrader.run()
         self.assertTrue(self.upgrader.notified)
 
+        # Verify the config file
+        self.assertTrue(self.session.get_enable_multichain())
+
     @deferred(timeout=10)
     def test_update_status_text(self):
         test_deferred = Deferred()
