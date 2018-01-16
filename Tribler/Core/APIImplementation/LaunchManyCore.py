@@ -117,10 +117,14 @@ class TriblerLaunchMany(TaskManager):
             if self.session.get_torrent_store():
                 from Tribler.Core.leveldbstore import LevelDbStore
                 self.torrent_store = LevelDbStore(self.session.get_torrent_store_dir())
+                if not self.torrent_store.get_db():
+                    raise RuntimeError("Torrent store (leveldb) is None which should not normally happen")
 
             if self.session.get_enable_metadata():
                 from Tribler.Core.leveldbstore import LevelDbStore
                 self.metadata_store = LevelDbStore(self.session.get_metadata_store_dir())
+                if not self.metadata_store.get_db():
+                    raise RuntimeError("Metadata store (leveldb) is None which should not normally happen")
 
             # torrent collecting: RemoteTorrentHandler
             if self.session.get_torrent_collecting():
