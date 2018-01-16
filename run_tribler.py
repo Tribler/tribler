@@ -3,8 +3,8 @@ import sys
 import multiprocessing
 import logging.config
 
-from check_os import check_environment, check_free_space, setup_gui_logging
-from check_os import error_and_exit
+from check_os import check_environment, check_free_space, error_and_exit, setup_gui_logging, \
+    should_kill_other_tribler_instances
 
 
 if __name__ == "__main__":
@@ -12,6 +12,8 @@ if __name__ == "__main__":
     check_environment()
 
     multiprocessing.freeze_support()
+
+    should_kill_other_tribler_instances()
 
     check_free_space()
 
