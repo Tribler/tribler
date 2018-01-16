@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>855</width>
-    <height>766</height>
+    <height>768</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -6285,7 +6285,7 @@ color: white;</string>
                    <string notr="true">color: white;</string>
                   </property>
                   <property name="text">
-                   <string>Export bootstrap block QR code</string>
+                   <string>Export funds offline</string>
                   </property>
                  </widget>
                 </item>
@@ -6298,7 +6298,7 @@ color: white;</string>
 color: orange;</string>
                 </property>
                 <property name="text">
-                 <string>Warning: This will export the private and public key!</string>
+                 <string>Warning: This will export funds from your identity, if the QR is not scanned the funds are lost</string>
                 </property>
                </widget>
               </item>
