@@ -81,6 +81,9 @@ class LevelDbStore(MutableMapping, TaskManager):
         self._writeback_lc.clock = self._reactor
         self._writeback_lc.start(WRITEBACK_PERIOD)
 
+    def get_db(self):
+        return self._db
+
     def __getitem__(self, key):
         try:
             return self._pending_torrents[key]
