@@ -92,7 +92,7 @@ class TestSearchCommunity(TestAsServer):
         self.config2 = self.config.copy()
         self.config2.set_state_dir(self.getStateDir(2))
 
-        self.session2 = Session(self.config2, ignore_singleton=True)
+        self.session2 = Session(self.config2)
 
         yield self.session2.start()
         self.dispersy2 = self.session2.get_dispersy_instance()

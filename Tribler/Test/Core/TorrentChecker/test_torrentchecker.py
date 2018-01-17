@@ -27,7 +27,7 @@ class TestTorrentChecker(TriblerCoreTest):
         config.set_state_dir(self.getStateDir())
         config.set_megacache_enabled(True)
 
-        self.session = Session(config, ignore_singleton=True)
+        self.session = Session(config)
         self.session.start_database()
         self.session.lm.torrent_db = TorrentDBHandler(self.session)
         self.session.lm.torrent_checker = TorrentChecker(self.session)

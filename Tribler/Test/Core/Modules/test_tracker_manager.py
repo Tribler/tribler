@@ -19,7 +19,7 @@ class TestTrackerManager(TriblerCoreTest):
         yield super(TestTrackerManager, self).setUp(annotate=annotate)
 
         self.setUpPreSession()
-        self.session = Session(self.config, ignore_singleton=True)
+        self.session = Session(self.config)
         self.session.start_database()
         self.tracker_manager = TrackerManager(self.session)
 

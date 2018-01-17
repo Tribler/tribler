@@ -24,14 +24,14 @@ class TestSession(TriblerCoreTest):
         config = TriblerConfig()
         config.set_state_dir(self.getStateDir())
         config.set_torrent_store_enabled(False)
-        session = Session(config, ignore_singleton=True)
+        session = Session(config)
         session.delete_collected_torrent(None)
 
     def test_torrent_store_delete(self):
         config = TriblerConfig()
         config.set_state_dir(self.getStateDir())
         config.set_torrent_store_enabled(True)
-        session = Session(config, ignore_singleton=True)
+        session = Session(config)
         # Manually set the torrent store as we don't want to start the session.
         session.lm.torrent_store = LevelDbStore(session.config.get_torrent_store_dir())
         session.lm.torrent_store[hexlify("fakehash")] = "Something"
@@ -70,7 +70,7 @@ class TestSession(TriblerCoreTest):
 
         config = TriblerConfig()
         config.set_state_dir(self.getStateDir())
-        session = Session(config, ignore_singleton=True)
+        session = Session(config)
         session.lm = LmMock()
         session.lm.api_manager = None
 
