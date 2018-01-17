@@ -128,6 +128,13 @@ class SQLiteCacheDB(TaskManager):
 
         cursor = self.get_cursor()
 
+        # Check integrity of the database
+        check_response, = self.execute(u"PRAGMA quick_check").next()
+        if check_response != 'ok':
+            msg = u"Quick integrity check of database failed"
+            self._logger.error(msg)
+            raise CorruptedDatabaseError(msg)
+
         # apply pragma
         page_size, = next(cursor.execute(u"PRAGMA page_size"))
         if page_size < 8192:
