@@ -1,16 +1,18 @@
-from PyQt5 import QtGui , QtCore
-from PyQt5.QtWidgets import QWidget, QLabel, QFileDialog 
 from PIL.ImageQt import ImageQt
+
+from PyQt5 import QtGui, QtCore
+from PyQt5.QtWidgets import QWidget, QLabel, QFileDialog
 
 try:
     import qrcode
+
     has_qr = True
 except ImportError:
     has_qr = False
 
 import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_BANDWIDTH, \
-    PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, BUTTON_TYPE_NORMAL
+    PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import string_to_seconds, get_gui_setting, seconds_to_hhmm_string, is_dir_writable
@@ -30,7 +32,9 @@ class SettingsPage(QWidget):
         self.settings_request_mgr = None
         self.trustchain_request_mgr = None
         self.saved_dialog = None
-        self.keys_export_dialog = None
+        self.empty_funds_barcode_dialog = None
+        self.empty_partial_funds_dialog = None
+        self.confirm_empty_funds_dialog = None
 
     def initialize_settings_page(self):
         self.window().settings_tab.initialize()
@@ -43,19 +47,69 @@ class SettingsPage(QWidget):
         self.window().developer_mode_enabled_checkbox.stateChanged.connect(self.on_developer_mode_checkbox_changed)
         self.window().use_monochrome_icon_checkbox.stateChanged.connect(self.on_use_monochrome_icon_checkbox_changed)
         self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
-        self.window().export_bootstrap_qr.clicked.connect(self.export_reputation)
+        self.window().fully_empty_funds_button.clicked.connect(self.confirm_fully_empty_funds)
+        self.window().partially_empty_funds_button.clicked.connect(self.partially_empty_funds)
 
-    def export_reputation(self):
-        self.trustchain_request_mgr = TriblerRequestManager()
-        self.trustchain_request_mgr.perform_request("trustchain/bootstrap", self.on_export_reputation)
+    def confirm_fully_empty_funds(self):
+        self.confirm_empty_funds_dialog = ConfirmationDialog(self, "Empty funds into another account",
+                                                             "Are you sure you want to empty ALL funds into another account? "
+                                                             "Warning: one-way action that cannot be revered",
+                                                             [('EMPTY', BUTTON_TYPE_NORMAL), ('Cancel', BUTTON_TYPE_CONFIRM)])
+        self.confirm_empty_funds_dialog.button_clicked.connect(self.on_confirm_fully_empty_funds)
+        self.confirm_empty_funds_dialog.show()
 
-    def on_export_reputation(self, identity):
-        data = json.dumps(identity)
+    def on_confirm_fully_empty_funds(self, action):
+        self.confirm_empty_funds_dialog.close_dialog()
+        self.confirm_empty_funds_dialog = None
+
+        if action == 0:
+            self.trustchain_request_mgr = TriblerRequestManager()
+            self.trustchain_request_mgr.perform_request("trustchain/bootstrap", self.on_emptying_funds)
+
+    def partially_empty_funds(self):
+        self.empty_partial_funds_dialog = ConfirmationDialog(self, "Empty funds into another account",
+                                                             "Specify the amount of funds to empty into another account below:",
+                                                             [('EMPTY', BUTTON_TYPE_NORMAL), ('Cancel', BUTTON_TYPE_CONFIRM)],
+                                                             show_input=True)
+        self.empty_partial_funds_dialog.dialog_widget.dialog_input.setPlaceholderText('<number of funds>')
+        self.empty_partial_funds_dialog.dialog_widget.dialog_input.setFocus()
+        self.empty_partial_funds_dialog.button_clicked.connect(self.confirm_partially_empty_funds)
+        self.empty_partial_funds_dialog.show()
+
+    def confirm_partially_empty_funds(self, action):
+        funds = self.empty_partial_funds_dialog.dialog_widget.dialog_input.text()
+        self.empty_partial_funds_dialog.close_dialog()
+        self.empty_partial_funds_dialog = None
+
+        try:
+            funds = int(float(funds))
+        except ValueError:
+            ConfirmationDialog.show_error(self.window(), "Input error", "Input is not a number")
+            return
+
+        if action == 0:
+            self.confirm_empty_funds_dialog = ConfirmationDialog(self, "Empty funds into another account",
+                                                                 "Are you sure you want to empty %d funds into another account? "
+                                                                 "Warning: one-way action that cannot be revered" %
+                                                                 funds,
+                                                                 [('EMPTY', BUTTON_TYPE_NORMAL), ('Cancel', BUTTON_TYPE_CONFIRM)])
+            self.confirm_empty_funds_dialog.button_clicked.connect(lambda action2: self.on_confirm_partially_empty_funds(action2, funds))
+            self.confirm_empty_funds_dialog.show()
+
+    def on_confirm_partially_empty_funds(self, action, funds):
+        self.confirm_empty_funds_dialog.close_dialog()
+        self.confirm_empty_funds_dialog = None
+        if action == 0:
+            self.trustchain_request_mgr = TriblerRequestManager()
+            self.trustchain_request_mgr.perform_request("trustchain/bootstrap?up=%d&down=0" % funds, self.on_emptying_funds)
+
+    def on_emptying_funds(self, json_data):
+        data = json.dumps(json_data)
 
         if has_qr:
-            self.keys_export_dialog = QWidget()
-            self.keys_export_dialog.setWindowTitle("Export trustchain keypair")
-            self.keys_export_dialog.setGeometry(10, 10, 500, 500)
+            self.empty_funds_barcode_dialog = QWidget()
+            self.empty_funds_barcode_dialog.setWindowTitle("Empty funds into another account")
+            self.empty_funds_barcode_dialog.setGeometry(10, 10, 500, 500)
             qr = qrcode.QRCode(
                 version=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_M,
@@ -69,10 +123,10 @@ class SettingsPage(QWidget):
 
             qim = ImageQt(img)
             pixmap = QtGui.QPixmap.fromImage(qim).scaled(600, 600, QtCore.Qt.KeepAspectRatio)
-            label = QLabel(self.keys_export_dialog)
+            label = QLabel(self.empty_funds_barcode_dialog)
             label.setPixmap(pixmap)
-            self.keys_export_dialog.resize(pixmap.width(), pixmap.height())
-            self.keys_export_dialog.show()
+            self.empty_funds_barcode_dialog.resize(pixmap.width(), pixmap.height())
+            self.empty_funds_barcode_dialog.show()
         else:
             ConfirmationDialog.show_error(self.window(), DEPENDENCY_ERROR_TITLE, DEPENDENCY_ERROR_MESSAGE)
 
@@ -136,7 +190,7 @@ class SettingsPage(QWidget):
                                                                                  False, is_bool=True))
         self.window().family_filter_checkbox.setChecked(settings['general']['family_filter'])
         self.window().use_monochrome_icon_checkbox.setChecked(get_gui_setting(gui_settings, "use_monochrome_icon",
-                                                                                 False, is_bool=True))
+                                                                              False, is_bool=True))
         self.window().download_location_input.setText(settings['download_defaults']['saveas'])
         self.window().always_ask_location_checkbox.setChecked(
             get_gui_setting(gui_settings, "ask_download_settings", True, is_bool=True))
@@ -210,7 +264,8 @@ class SettingsPage(QWidget):
 
         settings_data['libtorrent']['proxy_type'] = self.window().lt_proxy_type_combobox.currentIndex()
 
-        if self.window().lt_proxy_server_input.text() and len(self.window().lt_proxy_server_input.text()) > 0 and len(self.window().lt_proxy_port_input.text()) > 0:
+        if self.window().lt_proxy_server_input.text() and len(self.window().lt_proxy_server_input.text()) > 0 and len(
+                self.window().lt_proxy_port_input.text()) > 0:
             settings_data['libtorrent']['proxy_server'] = [self.window().lt_proxy_server_input.text(), None]
             settings_data['libtorrent']['proxy_server'][0] = self.window().lt_proxy_server_input.text()
             try:
@@ -262,7 +317,8 @@ class SettingsPage(QWidget):
         settings_data['download_defaults']['seeding_ratio'] = self.window().seeding_ratio_combobox.currentText()
 
         try:
-            settings_data['download_defaults']['seeding_time'] = string_to_seconds(self.window().seeding_time_input.text())
+            settings_data['download_defaults']['seeding_time'] = string_to_seconds(
+                self.window().seeding_time_input.text())
         except ValueError:
             ConfirmationDialog.show_error(self.window(), "Invalid seeding time",
                                           "You've entered an invalid format for the seeding time (expected HH:MM)")

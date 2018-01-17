@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>855</width>
+    <width>875</width>
     <height>768</height>
    </rect>
   </property>
@@ -6273,19 +6273,29 @@ color: white;</string>
 color: white;</string>
                 </property>
                 <property name="text">
-                 <string>Keys</string>
+                 <string>Funds emptying into another account (offline)</string>
                 </property>
                </widget>
               </item>
               <item>
-               <layout class="QHBoxLayout" name="export_key_button_layout">
+               <layout class="QHBoxLayout" name="empty_funds_button_layout">
                 <item>
-                 <widget class="QPushButton" name="export_bootstrap_qr">
+                 <widget class="QPushButton" name="fully_empty_funds_button">
                   <property name="styleSheet">
                    <string notr="true">color: white;</string>
                   </property>
                   <property name="text">
-                   <string>Export funds offline</string>
+                   <string>Fully empty funds</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="partially_empty_funds_button">
+                  <property name="styleSheet">
+                   <string notr="true">color: white;</string>
+                  </property>
+                  <property name="text">
+                   <string>Partially empty funds</string>
                   </property>
                  </widget>
                 </item>
@@ -6298,7 +6308,7 @@ color: white;</string>
 color: orange;</string>
                 </property>
                 <property name="text">
-                 <string>Warning: This will export funds from your identity, if the QR is not scanned the funds are lost</string>
+                 <string>Warning: one-way action that cannot be revered, if QR code is not scanned funds will be lost</string>
                 </property>
                </widget>
               </item>
