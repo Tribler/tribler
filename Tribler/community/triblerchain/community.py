@@ -227,7 +227,7 @@ class TriblerChainCommunity(TrustChainCommunity):
 
         # Create the transaction specification
         transaction = {
-            'up': up, 'down': down, 'total_up': up, 'total_down': down
+            'up': up, 'down': down
         }
 
         # Create the two half blocks that form the transaction
