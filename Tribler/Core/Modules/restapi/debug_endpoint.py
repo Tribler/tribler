@@ -357,15 +357,15 @@ class DebugLogEndpoint(resource.Resource):
 
     def render_GET(self, request):
         """
-        .. http:get:: /debug/log?max_lines=<max_lines>
+        .. http:get:: /debug/log?process=<core|gui>&max_lines=<max_lines>
 
-        A GET request to this endpoint returns a json with content of log file & max_lines requested
+        A GET request to this endpoint returns a json with content of core or gui log file & max_lines requested
 
             **Example request**:
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/debug/log?max_lines=5
+                curl -X GET http://localhost:8085/debug/log?process=core&max_lines=5
 
             **Example response**:
 
@@ -386,7 +386,8 @@ class DebugLogEndpoint(resource.Resource):
             handler.flush()
 
         # Get the location of log file
-        log_file = os.path.join(self.session.config.get_state_dir(), 'logs', 'tribler-info.log')
+        param_process = request.args['process'][0] if request.args['process'] else 'core'
+        log_file = os.path.join(self.session.config.get_log_dir(), 'tribler-%s-info.log' % param_process)
 
         # Default response
         response = {'content': '', 'max_lines': 0}
@@ -398,7 +399,7 @@ class DebugLogEndpoint(resource.Resource):
                 response['content'] = self.tail(open(log_file), max_lines)
                 response['max_lines'] = max_lines
             except ValueError:
-                response['content'] = open(log_file).read()
+                response['content'] = self.tail(open(log_file), 100)  # default 100 lines
                 response['max_lines'] = 0
 
         return json.dumps(response)

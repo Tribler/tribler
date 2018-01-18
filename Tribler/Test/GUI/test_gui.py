@@ -506,13 +506,20 @@ class TriblerGUITest(AbstractTriblerGUITest):
 
         # Logs shown in ui and from the debug endpoint should be same
         window.debug_window.debug_tab_widget.setCurrentIndex(6)
-        self.wait_for_qtext_edit_populated(window.debug_window.log_display_area)
-        # Logs shown in ui
-        gui_logs = window.debug_window.log_display_area.toPlainText().strip()
         # logs from FakeTriblerApi
         fake_logs = ''.join(["Sample log [%d]\n" % i for i in xrange(10)]).strip()
-        self.assertEqual(gui_logs, fake_logs, "Logs in GUI are different from actual logs")
-        self.screenshot(window.debug_window, name="debug_panel_logs")
+
+        window.debug_window.log_tab_widget.setCurrentIndex(0)   # Core tab
+        self.wait_for_qtext_edit_populated(window.debug_window.core_log_display_area)
+        core_logs = window.debug_window.core_log_display_area.toPlainText().strip()
+        self.assertEqual(core_logs, fake_logs, "Core logs found different than expected.")
+        self.screenshot(window.debug_window, name="debug_panel_logs_core")
+
+        window.debug_window.log_tab_widget.setCurrentIndex(1)  # GUI tab
+        self.wait_for_qtext_edit_populated(window.debug_window.gui_log_display_area)
+        gui_logs = window.debug_window.gui_log_display_area.toPlainText().strip()
+        self.assertEqual(gui_logs, fake_logs, "GUI logs found different than expected.")
+        self.screenshot(window.debug_window, name="debug_panel_logs_gui")
 
         window.debug_window.system_tab_widget.setCurrentIndex(3)
         QTest.qWait(1000)
