@@ -1,6 +1,7 @@
 #!/bin/sh
 # Run Tribler from source tree
 
+
 UNAME="$(uname -s)"
 
 if [ -z "$PROFILE_TRIBLER" ]; then
