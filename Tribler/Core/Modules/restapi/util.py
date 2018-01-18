@@ -53,24 +53,6 @@ def convert_db_channel_to_json(channel, include_rel_score=False):
     return res_json
 
 
-@blocking_call_on_reactor_thread
-def can_edit_channel(channel_id, channel_vote):
-    """
-    This method returns whether the channel can be edited or not.
-    """
-    from Tribler.Core.Session import Session
-    if Session.get_instance().config.get_dispersy_enabled():
-        dispersy = Session.get_instance().get_dispersy_instance()
-        try:
-            cmty = dispersy.get_community(channel_id)
-            channel_type, is_mod = cmty.get_channel_mode()
-            if is_mod or channel_vote == VOTE_SUBSCRIBE and channel_type == ChannelCommunity.CHANNEL_OPEN:
-                return True
-        except CommunityNotFoundException:
-            return False
-    return False
-
-
 def convert_db_torrent_to_json(torrent, include_rel_score=False):
     """
     This method converts a torrent in the database to a JSON dictionary.

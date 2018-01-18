@@ -87,30 +87,6 @@ class TestRestApiUtil(TriblerCoreTest):
         self.session.open_dbhandler = lambda _: mocked_db
         self.assertNotEqual(relevance_score_remote_torrent("my-torrent.iso"), 0.0)
 
-    def test_can_edit_channel(self):
-        """
-        Testing whether we can edit a channel.
-        """
-        self.session.config.get_dispersy_enabled = lambda: False
-        self.assertFalse(can_edit_channel("abcd", 0))
-
-        self.session.config.get_dispersy_enabled = lambda: True
-        mocked_dispersy = MockObject()
-        mocked_community = MockObject()
-        mocked_community.get_channel_mode = lambda: (ChannelCommunity.CHANNEL_CLOSED, True)
-
-        def throw_not_found_exception(_):
-            raise CommunityNotFoundException("abcd")
-
-        mocked_dispersy.get_community = throw_not_found_exception
-        self.session.get_dispersy_instance = lambda: mocked_dispersy
-
-        self.assertFalse(can_edit_channel("abcd", 0))
-
-        mocked_dispersy.get_community = lambda _: mocked_community
-
-        self.assertTrue(can_edit_channel("abcd", 0))
-
     def test_fix_unicode_array(self):
         """
         Testing the fix of a unicode array
