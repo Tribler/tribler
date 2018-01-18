@@ -1,4 +1,6 @@
 from urllib import quote_plus
+
+import logging
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
 from TriblerGUI.defs import STATUS_GOOD, STATUS_DEAD
@@ -19,6 +21,7 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         fc_channel_torrent_list_item.__init__(self)
 
         self.torrent_info = torrent
+        self._logger = logging.getLogger('TriblerGUI')
 
         self.setupUi(self)
         self.show_controls = show_controls
@@ -106,10 +109,13 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         The request for torrent health could not be queued.
         Go back to the intial state.
         """
-        self.health_text.setText("unknown health")
-        self.set_health_indicator(STATUS_UNKNOWN)
-        self.is_health_checking = False
-        self.has_health = False
+        try:
+            self.health_text.setText("unknown health")
+            self.set_health_indicator(STATUS_UNKNOWN)
+            self.is_health_checking = False
+            self.has_health = False
+        except RuntimeError:
+            self._logger.error("The underlying GUI widget has already been removed.")
 
     def check_health(self):
         """
