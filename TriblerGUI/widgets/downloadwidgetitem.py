@@ -1,3 +1,4 @@
+import logging
 from PyQt5.QtWidgets import QTreeWidgetItem, QProgressBar
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QWidget
@@ -15,6 +16,7 @@ class DownloadWidgetItem(QTreeWidgetItem):
     def __init__(self, parent):
         QTreeWidgetItem.__init__(self, parent)
         self.download_info = None
+        self._logger = logging.getLogger('TriblerGUI')
 
         bar_container = QWidget()
         bar_container.setLayout(QVBoxLayout())
@@ -54,7 +56,7 @@ class DownloadWidgetItem(QTreeWidgetItem):
         try:
             self.progress_slider.setValue(int(self.download_info["progress"] * 100))
         except RuntimeError:
-            pass
+            self._logger.error("The underlying GUI widget has already been removed.")
 
         if self.download_info["vod_mode"]:
             self.setText(3, "Streaming")
