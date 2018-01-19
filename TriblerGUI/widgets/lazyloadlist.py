@@ -1,5 +1,4 @@
 from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem
 
 from TriblerGUI.widgets.channel_torrent_list_item import ChannelTorrentListItem
@@ -17,10 +16,9 @@ class LazyLoadList(QListWidget):
         self.verticalScrollBar().valueChanged.connect(self.on_list_scroll)
         self.itemSelectionChanged.connect(self.on_item_clicked)
         self.data_items = []  # Tuple of (ListWidgetClass, json data)
-        self.items_loaded = 0
 
     def load_next_items(self):
-        for i in range(self.items_loaded, min(self.items_loaded + ITEM_LOAD_BATCH, len(self.data_items))):
+        for i in range(self.count(), min(self.count() + ITEM_LOAD_BATCH, len(self.data_items))):
             self.load_item(i)
 
     def load_item(self, index):
@@ -34,7 +32,6 @@ class LazyLoadList(QListWidget):
             widget_item = data_item[0](self, data_item[1])
         self.insertItem(index, item)
         self.setItemWidget(item, widget_item)
-        self.items_loaded += 1
 
     def insert_item(self, index, item):
         self.data_items.insert(index, item)
@@ -43,14 +40,13 @@ class LazyLoadList(QListWidget):
 
     def set_data_items(self, items):
         self.clear()
-        self.items_loaded = 0
         self.data_items = items
         self.load_next_items()
 
     def append_item(self, item):
         self.data_items.append(item)
-        if self.items_loaded < ITEM_LOAD_BATCH:
-            self.load_item(self.items_loaded)
+        if self.count() < ITEM_LOAD_BATCH:
+            self.load_item(self.count())
 
     def on_list_scroll(self, event):
         if self.verticalScrollBar().value() == self.verticalScrollBar().maximum():
