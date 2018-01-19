@@ -10,6 +10,24 @@ from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_V
 import Tribler.Core.Utilities.json_util as json
 
 
+def _safe_extended_peer_info(ext_peer_info):
+    """
+    Given a string describing peer info, return a JSON.dumps() safe representation.
+
+    :param ext_peer_info: the string to convert to a dumpable format
+    :return: the safe string
+    """
+    # First see if we can use this as-is
+    if not ext_peer_info:
+        ext_peer_info = u''
+    try:
+        json.dumps(ext_peer_info)
+        return ext_peer_info
+    except UnicodeDecodeError:
+        # We might have some special unicode characters in here
+        return u''.join([unichr(ord(c)) for c in ext_peer_info])
+
+
 class DownloadBaseEndpoint(resource.Resource):
     """
     Base class for all endpoints related to fetching information about downloads or a specific download.
@@ -212,6 +230,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                 peer_list = state.get_peerlist()
                 for peer_info in peer_list:  # Remove have field since it is very large to transmit.
                     del peer_info['have']
+                    if 'extended_version' in peer_info:
+                        peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
                     peer_info['id'] = peer_info['id'].encode('hex')
 
                 download_json["peers"] = peer_list

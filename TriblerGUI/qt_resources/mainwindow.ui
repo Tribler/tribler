@@ -309,14 +309,14 @@ color: black;
         <widget class="QToolButton" name="trust_button">
          <property name="minimumSize">
           <size>
-           <width>22</width>
-           <height>22</height>
+           <width>24</width>
+           <height>24</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>22</width>
-           <height>22</height>
+           <width>24</width>
+           <height>24</height>
           </size>
          </property>
          <property name="cursor">
@@ -335,8 +335,8 @@ background: none;</string>
          </property>
          <property name="iconSize">
           <size>
-           <width>20</width>
-           <height>20</height>
+           <width>24</width>
+           <height>24</height>
           </size>
          </property>
         </widget>
@@ -1015,7 +1015,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>12</number>
+         <number>2</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -4010,7 +4010,7 @@ font-size: 20px;
 font-weight: bold;</string>
                </property>
                <property name="text">
-                <string>Search results for 'test'</string>
+                <string>Search results</string>
                </property>
               </widget>
              </item>
@@ -4034,7 +4034,7 @@ font-weight: bold;</string>
 color: #B5B5B5;</string>
                </property>
                <property name="text">
-                <string>34843 results</string>
+                <string>- results</string>
                </property>
               </widget>
              </item>
@@ -4216,27 +4216,12 @@ color: #B5B5B5;</string>
            </widget>
           </item>
           <item>
-           <widget class="LazyLoadList" name="search_results_list">
-            <property name="styleSheet">
-             <string notr="true">QListWidget::item:hover {
-background-color: #303030;
-}
-QListWidget::item:selected {
-background-color: #404040;
-}
-QListWidget::item {
-border-bottom: 1px solid #303030;
-}
-QListWidget {
-border: none;
-border-top: 1px solid #555;
-}</string>
-            </property>
-            <property name="selectionMode">
-             <enum>QAbstractItemView::SingleSelection</enum>
-            </property>
-            <property name="verticalScrollMode">
-             <enum>QAbstractItemView::ScrollPerPixel</enum>
+           <widget class="QWidget" name="search_page_container" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
            </widget>
           </item>
@@ -4264,6 +4249,24 @@ border-top: 1px solid #555;
           </property>
           <item>
            <widget class="QWidget" name="channel_details_header" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>50</height>
+             </size>
+            </property>
             <layout class="QHBoxLayout" name="horizontalLayout_3">
              <property name="spacing">
               <number>0</number>
@@ -4578,258 +4581,10 @@ background-color: transparent;</string>
            </widget>
           </item>
           <item>
-           <widget class="QStackedWidget" name="channel_stacked_widget">
+           <widget class="QWidget" name="channel_page_container" native="true">
             <property name="styleSheet">
              <string notr="true"/>
             </property>
-            <widget class="QWidget" name="channel_content_page">
-             <layout class="QVBoxLayout" name="verticalLayout">
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="LazyLoadList" name="channel_torrents_list">
-                <property name="styleSheet">
-                 <string notr="true">QListWidget::item:hover {
-background-color: #303030;
-}
-QListWidget::item:selected {
-background-color: #404040;
-}
-QListWidget::item {
-border-bottom: 1px solid #303030;
-}
-QListWidget {
-border: none;
-border-top: 1px solid #555;
-}</string>
-                </property>
-                <property name="selectionMode">
-                 <enum>QAbstractItemView::SingleSelection</enum>
-                </property>
-                <property name="verticalScrollMode">
-                 <enum>QAbstractItemView::ScrollPerPixel</enum>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-            <widget class="QWidget" name="channel_comments_page">
-             <layout class="QVBoxLayout" name="verticalLayout">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="QWidget" name="write_comment_container" native="true">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <layout class="QVBoxLayout" name="verticalLayout_6">
-                 <item>
-                  <widget class="QLabel" name="write_comment_header">
-                   <property name="styleSheet">
-                    <string notr="true">color: #ddd;</string>
-                   </property>
-                   <property name="text">
-                    <string>Write your comment below:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QWidget" name="widget_9" native="true">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>60</height>
-                    </size>
-                   </property>
-                   <layout class="QHBoxLayout" name="horizontalLayout_29">
-                    <property name="spacing">
-                     <number>0</number>
-                    </property>
-                    <property name="leftMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="topMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="rightMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>0</number>
-                    </property>
-                    <item>
-                     <widget class="QTextEdit" name="comment_text_area">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="minimumSize">
-                       <size>
-                        <width>0</width>
-                        <height>0</height>
-                       </size>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>16777215</width>
-                        <height>100</height>
-                       </size>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true">border: 1px solid #555;
-background-color: #ccc;
-border-radius: 4px;</string>
-                      </property>
-                      <property name="placeholderText">
-                       <string>Comment</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="horizontalSpacer_38">
-                      <property name="orientation">
-                       <enum>Qt::Horizontal</enum>
-                      </property>
-                      <property name="sizeType">
-                       <enum>QSizePolicy::Fixed</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>10</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QToolButton" name="toolButton">
-                      <property name="minimumSize">
-                       <size>
-                        <width>40</width>
-                        <height>26</height>
-                       </size>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>40</width>
-                        <height>26</height>
-                       </size>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true">border: none;
-border-radius: 2px;
-background-color: #e67300;
-color: white;
-font-size: 14px;
-</string>
-                      </property>
-                      <property name="text">
-                       <string>Post</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-              <item>
-               <widget class="QTreeWidget" name="channel_comments_list">
-                <property name="styleSheet">
-                 <string notr="true">QTreeWidget {
-border: none;
-}</string>
-                </property>
-                <property name="selectionMode">
-                 <enum>QAbstractItemView::NoSelection</enum>
-                </property>
-                <property name="verticalScrollMode">
-                 <enum>QAbstractItemView::ScrollPerPixel</enum>
-                </property>
-                <property name="indentation">
-                 <number>10</number>
-                </property>
-                <attribute name="headerVisible">
-                 <bool>false</bool>
-                </attribute>
-                <column>
-                 <property name="text">
-                  <string notr="true">1</string>
-                 </property>
-                </column>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-            <widget class="QWidget" name="channel_activity_page">
-             <layout class="QVBoxLayout" name="verticalLayout">
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="QListWidget" name="channel_activities_list">
-                <property name="styleSheet">
-                 <string notr="true">QListWidget {
-border: none;
-}
-QListWidget::item {
-border-bottom: 1px solid #555;
-}</string>
-                </property>
-                <property name="selectionMode">
-                 <enum>QAbstractItemView::NoSelection</enum>
-                </property>
-                <property name="verticalScrollMode">
-                 <enum>QAbstractItemView::ScrollPerPixel</enum>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
            </widget>
           </item>
          </layout>
@@ -5258,85 +5013,85 @@ color: white;</string>
               <item row="3" column="1">
                <widget class="QWidget" name="settings_download_location_widget" native="true">
                 <layout class="QHBoxLayout" name="horizontalLayout_8">
-                <property name="spacing">
-                 <number>0</number>
-                </property>
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="QLineEdit" name="download_location_input">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>250</width>
-                    <height>28</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>250</width>
-                    <height>28</height>
-                   </size>
-                  </property>
-                  <property name="styleSheet">
-                   <string notr="true"/>
-                  </property>
-                  <property name="placeholderText">
-                   <string>File location</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QToolButton" name="download_location_chooser_button">
-                  <property name="minimumSize">
-                   <size>
-                    <width>50</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="baseSize">
-                   <size>
-                    <width>50</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="toolTip">
-                   <string>Browse download location</string>
-                  </property>
-                  <property name="text">
-                   <string>Browse</string>
-                  </property>
-                  <property name="icon">
-                   <iconset>
-                    <normaloff>../images/browse_folder.svg</normaloff>../images/browse_folder.svg</iconset>
-                  </property>
-                  <property name="toolButtonStyle">
-                   <enum>Qt::ToolButtonIconOnly</enum>
-                  </property>
-                  <property name="autoRaise">
-                   <bool>false</bool>
-                  </property>
-                  <property name="arrowType">
-                   <enum>Qt::NoArrow</enum>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QLineEdit" name="download_location_input">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>250</width>
+                     <height>28</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>250</width>
+                     <height>28</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true"/>
+                   </property>
+                   <property name="placeholderText">
+                    <string>File location</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QToolButton" name="download_location_chooser_button">
+                   <property name="minimumSize">
+                    <size>
+                     <width>50</width>
+                     <height>30</height>
+                    </size>
+                   </property>
+                   <property name="baseSize">
+                    <size>
+                     <width>50</width>
+                     <height>30</height>
+                    </size>
+                   </property>
+                   <property name="toolTip">
+                    <string>Browse download location</string>
+                   </property>
+                   <property name="text">
+                    <string>Browse</string>
+                   </property>
+                   <property name="icon">
+                    <iconset>
+                     <normaloff>../images/browse_folder.svg</normaloff>../images/browse_folder.svg</iconset>
+                   </property>
+                   <property name="toolButtonStyle">
+                    <enum>Qt::ToolButtonIconOnly</enum>
+                   </property>
+                   <property name="autoRaise">
+                    <bool>false</bool>
+                   </property>
+                   <property name="arrowType">
+                    <enum>Qt::NoArrow</enum>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </widget>
               </item>
               <item row="4" column="0">
@@ -5451,85 +5206,85 @@ color: white;</string>
               <item row="10" column="1">
                <widget class="QWidget" name="settings_watch_folder_widget" native="true">
                 <layout class="QHBoxLayout" name="horizontalLayout_watchfolder">
-                <property name="spacing">
-                 <number>0</number>
-                </property>
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="QLineEdit" name="watchfolder_location_input">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>250</width>
-                    <height>28</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>250</width>
-                    <height>28</height>
-                   </size>
-                  </property>
-                  <property name="styleSheet">
-                   <string notr="true"/>
-                  </property>
-                  <property name="placeholderText">
-                   <string>Location</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QToolButton" name="watch_folder_chooser_button">
-                  <property name="minimumSize">
-                   <size>
-                    <width>50</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="baseSize">
-                   <size>
-                    <width>50</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="toolTip">
-                   <string>Browse watch folder</string>
-                  </property>
-                  <property name="text">
-                   <string>Browse</string>
-                  </property>
-                  <property name="icon">
-                   <iconset>
-                    <normaloff>../images/browse_folder.svg</normaloff>../images/browse_folder.svg</iconset>
-                  </property>
-                  <property name="toolButtonStyle">
-                   <enum>Qt::ToolButtonIconOnly</enum>
-                  </property>
-                  <property name="autoRaise">
-                   <bool>false</bool>
-                  </property>
-                  <property name="arrowType">
-                   <enum>Qt::NoArrow</enum>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QLineEdit" name="watchfolder_location_input">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>250</width>
+                     <height>28</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>250</width>
+                     <height>28</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true"/>
+                   </property>
+                   <property name="placeholderText">
+                    <string>Location</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QToolButton" name="watch_folder_chooser_button">
+                   <property name="minimumSize">
+                    <size>
+                     <width>50</width>
+                     <height>30</height>
+                    </size>
+                   </property>
+                   <property name="baseSize">
+                    <size>
+                     <width>50</width>
+                     <height>30</height>
+                    </size>
+                   </property>
+                   <property name="toolTip">
+                    <string>Browse watch folder</string>
+                   </property>
+                   <property name="text">
+                    <string>Browse</string>
+                   </property>
+                   <property name="icon">
+                    <iconset>
+                     <normaloff>../images/browse_folder.svg</normaloff>../images/browse_folder.svg</iconset>
+                   </property>
+                   <property name="toolButtonStyle">
+                    <enum>Qt::ToolButtonIconOnly</enum>
+                   </property>
+                   <property name="autoRaise">
+                    <bool>false</bool>
+                   </property>
+                   <property name="arrowType">
+                    <enum>Qt::NoArrow</enum>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </widget>
               </item>
               <item row="11" column="0">
@@ -5561,7 +5316,114 @@ color: white;</string>
                </widget>
               </item>
               <item row="13" column="0">
-               <widget class="QLabel" name="label_33">
+               <widget class="QLabel" name="label_log_location">
+                <property name="styleSheet">
+                 <string notr="true"/>
+                </property>
+                <property name="text">
+                 <string>Log directory </string>
+                </property>
+               </widget>
+              </item>
+              <item row="13" column="1">
+               <widget class="QWidget" name="log_location_widget" native="true">
+                <layout class="QHBoxLayout" name="log_location_layout">
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QLineEdit" name="log_location_input">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>250</width>
+                     <height>28</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>250</width>
+                     <height>28</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true"/>
+                   </property>
+                   <property name="placeholderText">
+                    <string>Log directory</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QToolButton" name="log_location_chooser_button">
+                   <property name="minimumSize">
+                    <size>
+                     <width>50</width>
+                     <height>30</height>
+                    </size>
+                   </property>
+                   <property name="baseSize">
+                    <size>
+                     <width>50</width>
+                     <height>30</height>
+                    </size>
+                   </property>
+                   <property name="toolTip">
+                    <string>Browse directory</string>
+                   </property>
+                   <property name="text">
+                    <string>Browse</string>
+                   </property>
+                   <property name="icon">
+                    <iconset>
+                     <normaloff>../images/browse_folder.svg</normaloff>../images/browse_folder.svg</iconset>
+                   </property>
+                   <property name="toolButtonStyle">
+                    <enum>Qt::ToolButtonIconOnly</enum>
+                   </property>
+                   <property name="autoRaise">
+                    <bool>false</bool>
+                   </property>
+                   <property name="arrowType">
+                    <enum>Qt::NoArrow</enum>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+            <widget class="QWidget" name="settings_connection_tab">
+             <layout class="QFormLayout" name="formLayout">
+              <property name="fieldGrowthPolicy">
+               <enum>QFormLayout::ExpandingFieldsGrow</enum>
+              </property>
+              <property name="labelAlignment">
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+              </property>
+              <property name="formAlignment">
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="tribler_profile_header_label">
                 <property name="styleSheet">
                  <string notr="true">font-weight: bold;
 color: white;</string>
@@ -6213,6 +6075,13 @@ color: white;</string>
                 </property>
                 <property name="text">
                  <string>Seed until up/down ratio is bigger than</string>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="0" colspan="2">
+               <widget class="QLabel" name="label_45">
+                <property name="text">
+                 <string>Note that these settings also apply to existing downloads.</string>
                 </property>
                </widget>
               </item>
@@ -7674,6 +7543,9 @@ padding-left: 2px;</string>
              </property>
              <item row="0" column="0">
               <widget class="QSplitter" name="downloads_splitter">
+               <property name="styleSheet">
+                <string notr="true">QSplitter::handle { background-color: #555; }</string>
+               </property>
                <property name="orientation">
                 <enum>Qt::Vertical</enum>
                </property>
@@ -7817,7 +7689,7 @@ QTabBar::tab:selected {
 }</string>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>2</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -7856,7 +7728,7 @@ QTabBar::tab:selected {
                        <x>0</x>
                        <y>0</y>
                        <width>131</width>
-                       <height>236</height>
+                       <height>260</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -7881,6 +7753,59 @@ QTabBar::tab:selected {
                       <property name="bottomMargin">
                        <number>12</number>
                       </property>
+                      <item row="0" column="0">
+                       <widget class="QLabel" name="label_39">
+                        <property name="styleSheet">
+                         <string notr="true">font-weight: bold;</string>
+                        </property>
+                        <property name="text">
+                         <string>Progress</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="1">
+                       <widget class="DownloadProgressBar" name="download_progress_bar" native="true">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="minimumSize">
+                         <size>
+                          <width>0</width>
+                          <height>26</height>
+                         </size>
+                        </property>
+                        <property name="maximumSize">
+                         <size>
+                          <width>600000</width>
+                          <height>26</height>
+                         </size>
+                        </property>
+                        <property name="styleSheet">
+                         <string notr="true">background-color: white;
+margin-right: 10px;</string>
+                        </property>
+                        <layout class="QHBoxLayout" name="horizontalLayout_36"/>
+                       </widget>
+                      </item>
+                      <item row="1" column="0">
+                       <spacer name="verticalSpacer_14">
+                        <property name="orientation">
+                         <enum>Qt::Vertical</enum>
+                        </property>
+                        <property name="sizeType">
+                         <enum>QSizePolicy::Fixed</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>6</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
                       <item row="2" column="0">
                        <widget class="QLabel" name="label_28">
                         <property name="styleSheet">
@@ -7966,76 +7891,6 @@ QTabBar::tab:selected {
                         </property>
                        </widget>
                       </item>
-                      <item row="8" column="0">
-                       <widget class="QLabel" name="label_26">
-                        <property name="styleSheet">
-                         <string notr="true">font-weight: bold;</string>
-                        </property>
-                        <property name="text">
-                         <string>Availability</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="8" column="1">
-                       <widget class="QLabel" name="download_detail_availability_label">
-                        <property name="text">
-                         <string/>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="1">
-                       <widget class="DownloadProgressBar" name="download_progress_bar" native="true">
-                        <property name="sizePolicy">
-                         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                         </sizepolicy>
-                        </property>
-                        <property name="minimumSize">
-                         <size>
-                          <width>0</width>
-                          <height>26</height>
-                         </size>
-                        </property>
-                        <property name="maximumSize">
-                         <size>
-                          <width>600000</width>
-                          <height>26</height>
-                         </size>
-                        </property>
-                        <property name="styleSheet">
-                         <string notr="true">background-color: white;
-margin-right: 10px;</string>
-                        </property>
-                        <layout class="QHBoxLayout" name="horizontalLayout_36"/>
-                       </widget>
-                      </item>
-                      <item row="0" column="0">
-                       <widget class="QLabel" name="label_39">
-                        <property name="styleSheet">
-                         <string notr="true">font-weight: bold;</string>
-                        </property>
-                        <property name="text">
-                         <string>Progress</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="1" column="0">
-                       <spacer name="verticalSpacer_14">
-                        <property name="orientation">
-                         <enum>Qt::Vertical</enum>
-                        </property>
-                        <property name="sizeType">
-                         <enum>QSizePolicy::Fixed</enum>
-                        </property>
-                        <property name="sizeHint" stdset="0">
-                         <size>
-                          <width>20</width>
-                          <height>6</height>
-                         </size>
-                        </property>
-                       </spacer>
-                      </item>
                       <item row="7" column="0">
                        <widget class="QLabel" name="label_44">
                         <property name="styleSheet">
@@ -8048,6 +7903,40 @@ margin-right: 10px;</string>
                       </item>
                       <item row="7" column="1">
                        <widget class="QLabel" name="download_detail_destination_label">
+                        <property name="text">
+                         <string/>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="8" column="0">
+                       <widget class="QLabel" name="label_46">
+                        <property name="styleSheet">
+                         <string notr="true">font-weight: bold;</string>
+                        </property>
+                        <property name="text">
+                         <string>Ratio</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="9" column="0">
+                       <widget class="QLabel" name="label_26">
+                        <property name="styleSheet">
+                         <string notr="true">font-weight: bold;</string>
+                        </property>
+                        <property name="text">
+                         <string>Availability</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="9" column="1">
+                       <widget class="QLabel" name="download_detail_availability_label">
+                        <property name="text">
+                         <string/>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="8" column="1">
+                       <widget class="QLabel" name="download_detail_ratio_label">
                         <property name="text">
                          <string/>
                         </property>
@@ -8556,6 +8445,9 @@ border-top: 1px solid #555;
         </widget>
         <widget class="LoadingPage" name="loading_page">
          <layout class="QVBoxLayout" name="verticalLayout">
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <property name="leftMargin">
            <number>0</number>
           </property>
@@ -8575,6 +8467,25 @@ border-top: 1px solid #555;
             </property>
             <property name="renderHints">
              <set>QPainter::Antialiasing|QPainter::HighQualityAntialiasing|QPainter::TextAntialiasing</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="loading_text_label">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>160</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: white; font-size: 18px;</string>
+            </property>
+            <property name="text">
+             <string>Loading...</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
             </property>
            </widget>
           </item>
@@ -11514,22 +11425,6 @@ color: #eee;</string>
    </hints>
   </connection>
   <connection>
-   <sender>search_results_list</sender>
-   <signal>itemClicked(QListWidgetItem*)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_channel_item_click(QListWidgetItem*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>250</x>
-     <y>65</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>subscribed_channels_list</sender>
    <signal>itemClicked(QListWidgetItem*)</signal>
    <receiver>MainWindow</receiver>
@@ -11650,22 +11545,6 @@ color: #eee;</string>
     <hint type="sourcelabel">
      <x>218</x>
      <y>75</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>channel_torrents_list</sender>
-   <signal>itemClicked(QListWidgetItem*)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_playlist_item_click(QListWidgetItem*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>527</x>
-     <y>357</y>
     </hint>
     <hint type="destinationlabel">
      <x>427</x>

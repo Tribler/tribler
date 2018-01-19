@@ -400,12 +400,17 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.handle.save_resume_data = lambda: None
         torrent_dict = {'name': 'test', 'piece length': 42, 'pieces': '', 'files': []}
         get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: lt.bencode(torrent_dict)
+        get_info_from_handle(self.libtorrent_download_impl.handle).files = lambda: []
 
         self.libtorrent_download_impl.checkpoint = mocked_checkpoint
         self.libtorrent_download_impl.session = MockObject()
         self.libtorrent_download_impl.session.lm = MockObject()
         self.libtorrent_download_impl.session.lm.rtorrent_handler = None
         self.libtorrent_download_impl.session.lm.torrent_db = None
+        self.libtorrent_download_impl.handle.save_path = lambda: None
+        self.libtorrent_download_impl.handle.prioritize_files = lambda _: None
+        self.libtorrent_download_impl.get_save_path = lambda: ''
+        self.libtorrent_download_impl.get_share_mode = lambda: False
         self.libtorrent_download_impl.on_metadata_received_alert(None)
 
         return test_deferred

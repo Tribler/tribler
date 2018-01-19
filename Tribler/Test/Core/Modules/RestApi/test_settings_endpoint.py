@@ -3,6 +3,7 @@ from twisted.internet.defer import inlineCallbacks
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.twisted_thread import deferred
+from Tribler.Core.DownloadConfig import DownloadConfigInterface
 
 
 class TestSettingsEndpoint(AbstractApiTest):
@@ -15,7 +16,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         """
         Verify that the expected sections are present.
         """
-        check_section = ['libtorrent', 'mainline_dht', 'torrent_store', 'general', 'upgrader', 'torrent_checking',
+        check_section = ['libtorrent', 'mainline_dht', 'torrent_store', 'general', 'torrent_checking',
                          'allchannel_community', 'tunnel_community', 'http_api', 'torrent_collecting', 'dispersy',
                          'trustchain', 'watch_folder', 'search_community', 'metadata']
 
@@ -86,17 +87,42 @@ class TestSettingsEndpoint(AbstractApiTest):
             .addCallback(verify_response)
 
     @deferred(timeout=10)
+    @inlineCallbacks
     def test_set_settings(self):
         """
         Testing whether settings in the API can be successfully set
         """
+        download = DownloadConfigInterface()
+        download.get_share_mode = lambda: False
+        self.session.get_downloads = lambda: [download]
+
         old_filter_setting = self.session.config.get_family_filter_enabled()
 
-        def verify_response(_):
+        def verify_response1(_):
             self.assertNotEqual(self.session.config.get_family_filter_enabled(), old_filter_setting)
+            self.assertEqual(download.get_seeding_mode(), 'time')
+            self.assertEqual(download.get_seeding_time(), 100)
 
         self.should_check_equality = False
         post_data = json.dumps({'general': {'family_filter': not old_filter_setting},
-                                'libtorrent': {'utp': False, 'max_upload_rate': '1234', 'max_download_rate': 50}})
-        return self.do_request('settings', expected_code=200, request_type='POST', post_data=post_data, raw_data=True)\
-            .addCallback(verify_response)
+                                'libtorrent': {'utp': False, 'max_download_rate': 50},
+                                'download_defaults': {'seeding_mode': 'time', 'seeding_time': 100}})
+        yield self.do_request('settings', expected_code=200, request_type='POST', post_data=post_data, raw_data=True) \
+            .addCallback(verify_response1)
+
+        def verify_response2(_):
+            self.assertEqual(download.get_seeding_mode(), 'ratio')
+            self.assertEqual(download.get_seeding_ratio(), 3)
+
+        post_data = json.dumps({'download_defaults': {'seeding_mode': 'ratio', 'seeding_ratio': 3}})
+        yield self.do_request('settings', expected_code=200, request_type='POST', post_data=post_data, raw_data=True) \
+            .addCallback(verify_response2)
+
+        download.get_share_mode = lambda: True
+
+        def verify_response3(_):
+            self.assertNotEqual(download.get_seeding_mode(), 'never')
+
+        post_data = json.dumps({'download_defaults': {'seeding_mode': 'never'}})
+        yield self.do_request('settings', expected_code=200, request_type='POST', post_data=post_data, raw_data=True) \
+            .addCallback(verify_response3)

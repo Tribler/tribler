@@ -5,7 +5,7 @@ from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAG
     PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, BUTTON_TYPE_NORMAL
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import string_to_seconds, get_gui_setting, seconds_to_hhmm_string
+from TriblerGUI.utilities import string_to_seconds, get_gui_setting, seconds_to_hhmm_string, is_dir_writable
 
 
 class SettingsPage(QWidget):
@@ -30,6 +30,8 @@ class SettingsPage(QWidget):
         self.window().developer_mode_enabled_checkbox.stateChanged.connect(self.on_developer_mode_checkbox_changed)
         self.window().use_monochrome_icon_checkbox.stateChanged.connect(self.on_use_monochrome_icon_checkbox_changed)
         self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
+
+        self.window().log_location_chooser_button.clicked.connect(self.on_choose_log_dir_clicked)
 
     def on_developer_mode_checkbox_changed(self, _):
         self.window().gui_settings.setValue("debug", self.window().developer_mode_enabled_checkbox.isChecked())
@@ -67,6 +69,20 @@ class SettingsPage(QWidget):
 
             self.window().watchfolder_location_input.setText(watch_dir)
 
+    def on_choose_log_dir_clicked(self):
+        previous_log_dir = self.window().log_location_input.text() or ""
+        log_dir = QFileDialog.getExistingDirectory(self.window(), "Please select the log directory",
+                                                   previous_log_dir, QFileDialog.ShowDirsOnly)
+
+        if not log_dir or log_dir == previous_log_dir:
+            return
+
+        if not is_dir_writable(log_dir):
+            ConfirmationDialog.show_message(self.dialog_widget, "Insufficient Permissions",
+                                            "<i>%s</i> is not writable. " % log_dir, "OK")
+        else:
+            self.window().log_location_input.setText(log_dir)
+
     def initialize_with_settings(self, settings):
         self.settings = settings
         settings = settings["settings"]
@@ -86,6 +102,9 @@ class SettingsPage(QWidget):
                                                                              'safeseeding_enabled'])
         self.window().watchfolder_enabled_checkbox.setChecked(settings['watch_folder']['enabled'])
         self.window().watchfolder_location_input.setText(settings['watch_folder']['directory'])
+
+        # Log directory
+        self.window().log_location_input.setText(settings['general']['log_dir'])
 
         # Connection settings
         self.window().lt_proxy_type_combobox.setCurrentIndex(settings['libtorrent']['proxy_type'])
@@ -140,6 +159,7 @@ class SettingsPage(QWidget):
                          'tunnel_community': {}, 'trustchain': {}}
         settings_data['general']['family_filter'] = self.window().family_filter_checkbox.isChecked()
         settings_data['download_defaults']['saveas'] = self.window().download_location_input.text()
+        settings_data['general']['log_dir'] = self.window().log_location_input.text()
 
         settings_data['watch_folder']['enabled'] = self.window().watchfolder_enabled_checkbox.isChecked()
         if settings_data['watch_folder']['enabled']:
@@ -154,7 +174,8 @@ class SettingsPage(QWidget):
                 settings_data['libtorrent']['proxy_server'][1] = int(self.window().lt_proxy_port_input.text())
             except ValueError:
                 ConfirmationDialog.show_error(self.window(), "Invalid proxy port number",
-                                              "You've entered an invalid format for the proxy port number.")
+                                              "You've entered an invalid format for the proxy port number. "
+                                              "Please enter a whole number.")
                 return
 
         if len(self.window().lt_proxy_username_input.text()) > 0 and \
@@ -168,17 +189,25 @@ class SettingsPage(QWidget):
             max_conn_download = int(self.window().max_connections_download_input.text())
         except ValueError:
             ConfirmationDialog.show_error(self.window(), "Invalid number of connections",
-                                          "You've entered an invalid format for the maximum number of connections.")
+                                          "You've entered an invalid format for the maximum number of connections. "
+                                          "Please enter a whole number.")
             return
         if max_conn_download == 0:
             max_conn_download = -1
         settings_data['libtorrent']['max_connections_download'] = max_conn_download
 
-        if self.window().upload_rate_limit_input.text():
-            settings_data['libtorrent']['max_upload_rate'] = int(self.window().upload_rate_limit_input.text()) * 1024
-        if self.window().download_rate_limit_input.text():
-            settings_data['libtorrent']['max_download_rate'] = int(self.window().download_rate_limit_input.text()) \
-                                                               * 1024
+        try:
+            if self.window().upload_rate_limit_input.text():
+                settings_data['libtorrent']['max_upload_rate'] = int(self.window().upload_rate_limit_input.text()) \
+                                                                 * 1024
+            if self.window().download_rate_limit_input.text():
+                settings_data['libtorrent']['max_download_rate'] = int(self.window().download_rate_limit_input.text()) \
+                                                                   * 1024
+        except ValueError:
+            ConfirmationDialog.show_error(self.window(), "Invalid number for maximum upload/download",
+                                          "You've entered an invalid format for the maximum upload/download rate. "
+                                          "Please enter a whole number.")
+            return
 
         seeding_modes = ['forever', 'time', 'never', 'ratio']
         selected_mode = 'forever'

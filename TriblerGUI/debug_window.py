@@ -136,11 +136,12 @@ class DebugWindow(QMainWindow):
 
         self.window().open_files_tree_widget.header().setSectionResizeMode(0, QHeaderView.Stretch)
 
-        if not settings['trustchain']['enabled']:
+        if settings and settings['trustchain']['enabled']:
             self.window().debug_tab_widget.setTabEnabled(2, False)
 
         # Refresh logs
         self.window().log_refresh_button.clicked.connect(lambda: self.load_logs_tab())
+        self.window().log_tab_widget.currentChanged.connect(lambda index: self.load_logs_tab())
 
     def tab_changed(self, index):
         if index == 0:
@@ -210,11 +211,11 @@ class DebugWindow(QMainWindow):
 
     def load_requests_tab(self):
         self.window().requests_tree_widget.clear()
-        for endpoint, method, data, timestamp, status_code in sorted(tribler_performed_requests.values(),
+        for endpoint, method, data, timestamp, status_code in sorted(tribler_performed_requests,
                                                                      key=lambda x: x[3]):
             item = QTreeWidgetItem(self.window().requests_tree_widget)
             item.setText(0, "%s %s %s" % (method, endpoint, data))
-            item.setText(1, ("%d" % status_code) if status_code else "unknown")
+            item.setText(1, ("%d" % status_code()) if status_code() else "unknown")
             item.setText(2, "%s" % strftime("%H:%M:%S", localtime(timestamp)))
             self.window().requests_tree_widget.addTopLevelItem(item)
 
@@ -269,15 +270,18 @@ class DebugWindow(QMainWindow):
         self.window().open_files_tree_widget.clear()
         gui_item = QTreeWidgetItem(self.window().open_files_tree_widget)
 
-        open_files = my_process.open_files()
-        gui_item.setText(0, "GUI (%d)" % len(open_files))
-        self.window().open_files_tree_widget.addTopLevelItem(gui_item)
+        try:
+            open_files = my_process.open_files()
+            gui_item.setText(0, "GUI (%d)" % len(open_files))
+            self.window().open_files_tree_widget.addTopLevelItem(gui_item)
 
-        for open_file in open_files:
-            item = QTreeWidgetItem()
-            item.setText(0, open_file.path)
-            item.setText(1, "%d" % open_file.fd)
-            gui_item.addChild(item)
+            for open_file in open_files:
+                item = QTreeWidgetItem()
+                item.setText(0, open_file.path)
+                item.setText(1, "%d" % open_file.fd)
+                gui_item.addChild(item)
+        except psutil.AccessDenied as exc:
+            gui_item.setText(0, "Unable to get open files for GUI (%s)" % exc)
 
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("debug/open_files", self.on_core_open_files)
@@ -432,11 +436,19 @@ class DebugWindow(QMainWindow):
     def load_logs_tab(self):
         # Max lines from GUI
         max_log_lines = self.window().max_lines_value.text()
+
+        tab_index = self.window().log_tab_widget.currentIndex()
+        tab_name = "core" if tab_index == 0 else "gui"
+
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("debug/log?max_lines=%s" % max_log_lines, self.display_logs)
+        request_query = "process=%s&max_lines=%s" % (tab_name, max_log_lines)
+        self.request_mgr.perform_request("debug/log?%s" % request_query, self.display_logs)
 
     def display_logs(self, data):
-        log_display_widget = self.window().log_display_area
+        tab_index = self.window().log_tab_widget.currentIndex()
+        log_display_widget = self.window().core_log_display_area if tab_index == 0 \
+            else self.window().gui_log_display_area
+
         log_display_widget.moveCursor(QTextCursor.End)
 
         key_content = u'content'

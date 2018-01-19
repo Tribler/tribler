@@ -213,6 +213,12 @@ class TriblerConfig(object):
     def get_video_analyser_path(self):
         return self.config['general']['videoanalyserpath']
 
+    def set_log_dir(self, value):
+        self.config['general']['log_dir'] = value
+
+    def get_log_dir(self):
+        return self.config['general']['log_dir'] or os.path.join(self.get_state_dir(), 'logs')
+
     # Torrent checking
 
     def set_torrent_checking_enabled(self, value):
@@ -495,14 +501,6 @@ class TriblerConfig(object):
 
     def get_dummy_wallets_enabled(self):
         return self.config['wallets']['dummy_wallets_enabled']
-
-    # Upgrader
-
-    def set_upgrader_enabled(self, should_upgrade):
-        self.config['upgrader']['enabled'] = should_upgrade
-
-    def get_upgrader_enabled(self):
-        return self.config['upgrader']['enabled']
 
     # Torrent store
 

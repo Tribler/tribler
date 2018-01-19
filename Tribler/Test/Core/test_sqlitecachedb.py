@@ -8,7 +8,7 @@ from nose.tools import raises
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_SCRIPT_ABSOLUTE_PATH, CorruptedDatabaseError
-from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
@@ -111,6 +111,22 @@ class TestSqliteCacheDB(TriblerCoreTest):
         sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"),
                                       os.path.join(self.SQLITE_SCRIPTS_DIR, "script1.sql"))
         sqlite_test_2.initialize()
+
+    @blocking_call_on_reactor_thread
+    @raises(CorruptedDatabaseError)
+    def test_integrity_check_failed(self):
+        sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"),
+                                      os.path.join(self.SQLITE_SCRIPTS_DIR, "script1.sql"))
+
+        def execute(sql):
+            if sql == u"PRAGMA quick_check":
+                db_response = MockObject()
+                db_response.next = lambda: ("Error: database disk image is malformed", )
+                return db_response
+
+        sqlite_test_2.execute = execute
+        sqlite_test_2.initialize()
+
 
     @blocking_call_on_reactor_thread
     def test_clean_db(self):

@@ -76,6 +76,14 @@ class TestTFTPHandler(TriblerCoreTest):
         self.handler._is_running = False
         self.handler.data_came_in(None, None)
 
+    def test_data_came_in_invalid_candidate(self):
+        """
+        Testing whether we do nothing when data comes in from an invalid candidate
+        """
+        setattr(self.handler, "_process_packet",
+                lambda x, y: (_ for _ in ()).throw(RuntimeError("_process_packet may not be called")))
+        self.handler.data_came_in(('182.30.65.219', 0), None)
+
     def test_handle_new_request_no_metadata(self):
         """
         When the metadata_store from LaunchManyCore is not available, return

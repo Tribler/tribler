@@ -1,4 +1,6 @@
 from urllib import quote_plus
+
+import logging
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
 from TriblerGUI.defs import STATUS_GOOD, STATUS_DEAD
@@ -19,6 +21,7 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         fc_channel_torrent_list_item.__init__(self)
 
         self.torrent_info = torrent
+        self._logger = logging.getLogger('TriblerGUI')
 
         self.setupUi(self)
         self.show_controls = show_controls
@@ -44,6 +47,7 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         self.thumbnail_widget.initialize(torrent["name"], 24)
 
         if torrent["last_tracker_check"] > 0:
+            self.has_health = True
             self.update_health(int(torrent["num_seeders"]), int(torrent["num_leechers"]))
 
         self.torrent_play_button.clicked.connect(self.on_play_button_clicked)
@@ -56,13 +60,13 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
             self.remove_torrent_button.clicked.connect(lambda: on_remove_clicked(self))
 
     def on_download_clicked(self):
-        self.download_uri = quote_plus((u"magnet:?xt=urn:btih:%s&dn=%s" %
-                                        (self.torrent_info["infohash"], self.torrent_info['name'])).encode('utf-8'))
+        self.download_uri = (u"magnet:?xt=urn:btih:%s&dn=%s" %
+                             (self.torrent_info["infohash"], self.torrent_info['name'])).encode('utf-8')
         self.window().start_download_from_uri(self.download_uri)
 
     def on_play_button_clicked(self):
-        self.download_uri = quote_plus((u"magnet:?xt=urn:btih:%s&dn=%s" %
-                                        (self.torrent_info["infohash"], self.torrent_info['name'])).encode('utf-8'))
+        self.download_uri = (u"magnet:?xt=urn:btih:%s&dn=%s" %
+                             (self.torrent_info["infohash"], self.torrent_info['name'])).encode('utf-8')
 
         self.window().perform_start_download_request(self.download_uri,
                                                      self.window().tribler_settings['download_defaults'][
@@ -73,6 +77,8 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
                                                      [], 0, callback=self.on_play_request_done)
 
     def on_play_request_done(self, result):
+        if not self:
+            return
         self.window().left_menu_button_video_player.click()
         self.window().video_player_page.set_torrent_infohash(self.torrent_info["infohash"])
         self.window().left_menu_playlist.set_loading()
@@ -98,6 +104,19 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
     def leaveEvent(self, _):
         self.hide_buttons()
 
+    def on_cancel_health_check(self):
+        """
+        The request for torrent health could not be queued.
+        Go back to the intial state.
+        """
+        try:
+            self.health_text.setText("unknown health")
+            self.set_health_indicator(STATUS_UNKNOWN)
+            self.is_health_checking = False
+            self.has_health = False
+        except RuntimeError:
+            self._logger.error("The underlying GUI widget has already been removed.")
+
     def check_health(self):
         """
         Perform a request to check the health of the torrent that is represented by this widget.
@@ -111,7 +130,8 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         self.is_health_checking = True
         self.health_request_mgr = TriblerRequestManager()
         self.health_request_mgr.perform_request("torrents/%s/health?timeout=15" % self.torrent_info["infohash"],
-                                                self.on_health_response, capture_errors=False)
+                                                self.on_health_response, capture_errors=False, priority="LOW",
+                                                on_cancel=self.on_cancel_health_check)
 
     def on_health_response(self, response):
         """

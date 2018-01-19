@@ -1,13 +1,15 @@
 import logging
+import hashlib
 
-from libtorrent import bdecode, bencode
 from urllib import url2pathname
 
+from libtorrent import bdecode, bencode
 from twisted.internet.defer import Deferred
 from twisted.internet.error import DNSLookupError, ConnectError
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
+from Tribler.Core.exceptions import HttpError
 from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink
@@ -21,7 +23,6 @@ class TorrentInfoEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
-        self.infohash = None
         self._logger = logging.getLogger(self.__class__.__name__)
 
     def finish_request(self, request):
@@ -53,31 +54,34 @@ class TorrentInfoEndpoint(resource.Resource):
         metainfo_deferred = Deferred()
 
         def on_got_metainfo(metainfo):
-            if not isinstance(metainfo, dict):
-                self._logger.warning("Received metainfo is not a dictionary")
+            if not isinstance(metainfo, dict) or 'info' not in metainfo:
+                self._logger.warning("Received metainfo is not a valid dictionary")
                 request.setResponseCode(http.INTERNAL_SERVER_ERROR)
                 request.write(json.dumps({"error": 'invalid response'}))
                 self.finish_request(request)
                 return
 
-            if self.infohash:
-                # Save the torrent to our store
-                try:
-                    self.session.save_collected_torrent(self.infohash, bencode(metainfo))
-                except TypeError:
-                    # TODO(Martijn): in libtorrent 1.1.1, bencode throws a TypeError which is a known bug
-                    pass
+            infohash = hashlib.sha1(bencode(metainfo['info'])).digest()
+            # Save the torrent to our store
+            try:
+                self.session.save_collected_torrent(infohash, bencode(metainfo))
+            except TypeError:
+                # Note: in libtorrent 1.1.1, bencode throws a TypeError which is a known bug
+                pass
 
             request.write(json.dumps({"metainfo": metainfo}, ensure_ascii=False))
             self.finish_request(request)
 
         def on_metainfo_timeout(_):
-            request.setResponseCode(http.REQUEST_TIMEOUT)
-            request.write(json.dumps({"error": "timeout"}))
-            self.finish_request(request)
+            if not request.finished:
+                request.setResponseCode(http.REQUEST_TIMEOUT)
+                request.write(json.dumps({"error": "timeout"}))
+            # If the above request.write failed, the request will have already been finished
+            if not request.finished:
+                self.finish_request(request)
 
         def on_lookup_error(failure):
-            failure.trap(ConnectError, DNSLookupError)
+            failure.trap(ConnectError, DNSLookupError, HttpError)
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
             request.write(json.dumps({"error": failure.getErrorMessage()}))
             self.finish_request(request)
@@ -95,18 +99,18 @@ class TorrentInfoEndpoint(resource.Resource):
                 request.setResponseCode(http.INTERNAL_SERVER_ERROR)
                 return json.dumps({"error": "error while decoding torrent file"})
         elif uri.startswith('http'):
-            def _on_loaded(tdef):
-                metainfo_deferred.callback(bdecode(tdef))
+            def _on_loaded(metadata):
+                metainfo_deferred.callback(bdecode(metadata))
             http_get(uri.encode('utf-8')).addCallback(_on_loaded).addErrback(on_lookup_error)
         elif uri.startswith('magnet'):
-            self.infohash = parse_magnetlink(uri)[1]
-            if self.infohash is None:
+            infohash = parse_magnetlink(uri)[1]
+            if infohash is None:
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.dumps({"error": "missing infohash"})
 
-            if self.session.has_collected_torrent(self.infohash):
+            if self.session.has_collected_torrent(infohash):
                 try:
-                    tdef = TorrentDef.load_from_memory(self.session.get_collected_torrent(self.infohash))
+                    tdef = TorrentDef.load_from_memory(self.session.get_collected_torrent(infohash))
                 except ValueError as exc:
                     request.setResponseCode(http.INTERNAL_SERVER_ERROR)
                     return json.dumps({"error": "invalid torrent file: %s" % str(exc)})

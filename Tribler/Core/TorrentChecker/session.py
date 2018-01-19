@@ -5,7 +5,7 @@ import time
 from abc import ABCMeta, abstractmethod, abstractproperty
 from libtorrent import bdecode
 from twisted.internet import reactor, defer
-from twisted.internet.defer import Deferred, maybeDeferred, DeferredList, inlineCallbacks, returnValue
+from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.protocol import DatagramProtocol
 from twisted.python.failure import Failure
 from twisted.web.client import Agent, readBody, RedirectAgent, HTTPConnectionPool
@@ -36,7 +36,7 @@ DHT_TRACKER_MAX_RETRIES = 8
 MAX_TRACKER_MULTI_SCRAPE = 74
 
 
-def create_tracker_session(tracker_url, timeout):
+def create_tracker_session(tracker_url, timeout, socket_manager):
     """
     Creates a tracker session with the given tracker URL.
     :param tracker_url: The given tracker URL.
@@ -46,7 +46,7 @@ def create_tracker_session(tracker_url, timeout):
     tracker_type, tracker_address, announce_page = parse_tracker_url(tracker_url)
 
     if tracker_type == u'udp':
-        return UdpTrackerSession(tracker_url, tracker_address, announce_page, timeout)
+        return UdpTrackerSession(tracker_url, tracker_address, announce_page, timeout, socket_manager)
     else:
         return HttpTrackerSession(tracker_url, tracker_address, announce_page, timeout)
 
@@ -334,116 +334,55 @@ class HttpTrackerSession(TrackerSession):
         self.result_deferred = None
 
 
-class UDPScraper(DatagramProtocol):
+class UdpSocketManager(DatagramProtocol):
     """
-    The UDP scraper connects to a UDP tracker and queries
-    seeders and leechers for every infohash appended to the UDP session.
-    All data received is given to the UDP session it's associated with.
+    The UdpSocketManager ensures that the network packets are forwarded to the right UdpTrackerSession.
     """
 
-    _reactor = reactor
-
-    def __init__(self, udpsession, ip_address, port, timeout):
+    def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.udpsession = udpsession
-        self.ip_address = ip_address
-        self.port = port
-        self.expect_connection_response = True
-        # Timeout after x seconds if nothing received.
-        self.timeout = timeout
-        self.timeout_call = self._reactor.callLater(self.timeout, self.on_error)
+        self.tracker_sessions = {}
 
-    def on_error(self):
-        """
-        This method handles everything that needs to be done when something during
-        the UDP scraping went wrong.
-        """
-        self.udpsession.failed()
+    def send_request(self, data, tracker_session):
+        self.tracker_sessions[tracker_session.transaction_id] = tracker_session
+        self.transport.write(data, (tracker_session.ip_address, tracker_session.port))
 
-    def stop(self):
-        """
-        Stops the UDP scraper and closes the socket.
-        :return: A deferred that fires once it has closed the connection.
-        """
-        self._logger.info("Shutting down scraper which was connected to ip %s, port %s", self.ip_address, self.port)
-        if self.timeout_call.active():
-            self.timeout_call.cancel()
-
-        if self.transport and self.numPorts and self.transport.connected:
-            return maybeDeferred(self.transport.stopListening)
-        return defer.succeed(True)
-
-    def startProtocol(self):
-        """
-        This function is called when the scraper is initialized.
-        Initiates the connection with the tracker.
-        """
-        self.transport.connect(self.ip_address, self.port)
-        self._logger.info("UDP health scraper connected to host %s port %d", self.ip_address, self.port)
-        self.udpsession.on_start()
-
-    def write_data(self, data):
-        """
-        This function can be called to send serialized data to the tracker.
-        :param data: The serialized data to be send.
-        """
-        self.transport.write(data)  # no need to pass the ip and port
-
-    def datagramReceived(self, data, (_host, _port)):
-        """
-        This function dispatches data received from a UDP tracker.
-        If it's the first response, it will dispatch the data to the handle_connection_response
-        function of the UDP session.
-        All subsequent data will be send to the _handle_response function of the UDP session.
-        :param data: The data received from the UDP tracker.
-        """
-        # If we expect a connection response, pass it to handle connection response
-        if self.expect_connection_response:
-            # Cancel the timeout
-            if self.timeout_call.active():
-                self.timeout_call.cancel()
-
-            # Pass the response to the udp tracker session
-            self.udpsession.handle_connection_response(data)
-            self.expect_connection_response = False
-        # else it is our scraper payload. Give it to handle response
-        else:
-            self.udpsession.handle_response(data)
-
-    # Possibly invoked if there is no server listening on the
-    # address to which we are sending.
-    def connectionRefused(self):
-        """
-        Handles the case of a connection being refused by a tracker.
-        """
-        self._logger.info("UDP Scraper could not connect to %s %s", self.ip_address, self.port)
-        self.on_error()
+    def datagramReceived(self, data, _):
+        # Find the tracker session and give it the data
+        transaction_id = struct.unpack_from('!i', data, 4)[0]
+        if transaction_id in self.tracker_sessions:
+            self.tracker_sessions.pop(transaction_id).handle_response(data)
 
 
 class UdpTrackerSession(TrackerSession):
     """
-    The UDPTrackerSession makes a connection with a UDP tracker by making use
-    of a UDPScraper object. It handles the message serialization and communication
-    with the torrent checker by making use of Deferred (asynchronously).
+    The UDPTrackerSession makes a connection with a UDP tracker and queries
+    seeders and leechers for one or more infohashes. It handles the message serialization
+    and communication with the torrent checker by making use of Deferred (asynchronously).
     """
 
     # A list of transaction IDs that have been used in order to avoid conflict.
     _active_session_dict = dict()
+    reactor = reactor
 
-    def __init__(self, tracker_url, tracker_address, announce_page, timeout):
+    def __init__(self, tracker_url, tracker_address, announce_page, timeout, socket_mgr):
         super(UdpTrackerSession, self).__init__(u'udp', tracker_url, tracker_address, announce_page, timeout)
+
+        self._logger.setLevel(logging.INFO)
         self._connection_id = 0
-        self._transaction_id = 0
+        self.transaction_id = 0
         self.port = tracker_address[1]
         self.ip_address = None
-        self.scraper = None
+        self.expect_connection_response = True
+        self.socket_mgr = socket_mgr
         self.ip_resolve_deferred = None
-        self.clean_defer_list = []
 
         # prepare connection message
         self._connection_id = UDP_TRACKER_INIT_CONNECTION_ID
-        self._action = TRACKER_ACTION_CONNECT
+        self.action = TRACKER_ACTION_CONNECT
         self.generate_transaction_id()
+
+        self.timeout_call = self.reactor.callLater(self.timeout, self.failed) if self.timeout != 0 else None
 
     def on_error(self, failure):
         """
@@ -473,25 +412,20 @@ class UdpTrackerSession(TrackerSession):
         :param start_scraper: Whether we should start the scraper immediately.
         """
         self.ip_address = ip_address
-        self.scraper = UDPScraper(self, self.ip_address, self.port, self.timeout)
-        if start_scraper:
-            reactor.listenUDP(0, self.scraper)
+        self.connect()
 
     def failed(self, msg=None):
         """
         This method handles everything that needs to be done when one step
         in the session has failed and thus no data can be obtained.
         """
-        self._is_failed = True
-        if self.scraper:
-            self.scraper.stop()
-            self.scraper = None
-
-        if self.result_deferred:
+        if self.result_deferred and not self._is_failed:
             result_msg = "UDP tracker failed for url %s" % self._tracker_url
             if msg:
                 result_msg += " (error: %s)" % unicode(msg, errors='replace')
             self.result_deferred.errback(ValueError(result_msg))
+
+        self._is_failed = True
 
     def generate_transaction_id(self):
         """
@@ -502,7 +436,7 @@ class UdpTrackerSession(TrackerSession):
             transaction_id = random.randint(0, MAX_INT32)
             if transaction_id not in UdpTrackerSession._active_session_dict.items():
                 UdpTrackerSession._active_session_dict[self] = transaction_id
-                self._transaction_id = transaction_id
+                self.transaction_id = transaction_id
                 break
 
     @staticmethod
@@ -528,13 +462,8 @@ class UdpTrackerSession(TrackerSession):
 
         self.result_deferred = None
 
-        if self.scraper:
-            self.clean_defer_list.append(self.scraper.stop())
-            self.scraper = None
-
-        # Return a deferredlist with all clean deferreds we have to wait on
-        res = yield DeferredList(self.clean_defer_list)
-        returnValue(res)
+        if self.timeout_call and self.timeout_call.active():
+            self.timeout_call.cancel()
 
     def max_retries(self):
         """
@@ -572,24 +501,37 @@ class UdpTrackerSession(TrackerSession):
         self.result_deferred = Deferred(self._on_cancel)
         return self.result_deferred
 
-    def on_start(self):
+    def connect(self):
         """
-        Called by the UDPScraper when it is connected to the tracker.
-        Creates a connection message and calls the scraper to send it.
+        Creates a connection message and calls the socket manager to send it.
         """
-        # Initiate the connection
-        message = struct.pack('!qii', self._connection_id, self._action, self._transaction_id)
-        self.scraper.write_data(message)
+        if not self.socket_mgr.transport:
+            self.failed(msg="UDP socket transport not ready")
+            return
 
-    def handle_connection_response(self, response):
-        """
-        Handles the connection response from the UDP scraper and queries
-        it immediately for seed/leech data per infohash
-        :param response: The connection response from the UDP scraper
-        """
+        # Initiate the connection
+        message = struct.pack('!qii', self._connection_id, self.action, self.transaction_id)
+        self.socket_mgr.send_request(message, self)
+
+    def handle_response(self, response):
         if self.is_failed:
             return
 
+        if self.expect_connection_response:
+            if self.timeout_call and self.timeout_call.active():
+                self.timeout_call.cancel()
+
+            self.handle_connection_response(response)
+            self.expect_connection_response = False
+        else:
+            self.handle_scrape_response(response)
+
+    def handle_connection_response(self, response):
+        """
+        Handles the connection response from the UDP tracker and queries
+        it immediately for seed/leech data per infohash
+        :param response: The connection response from the UDP tracker
+        """
         # check message size
         if len(response) < 16:
             self._logger.error(u"%s Invalid response for UDP CONNECT: %s", self, repr(response))
@@ -598,7 +540,7 @@ class UdpTrackerSession(TrackerSession):
 
         # check the response
         action, transaction_id = struct.unpack_from('!ii', response, 0)
-        if action != self._action or transaction_id != self._transaction_id:
+        if action != self.action or transaction_id != self.transaction_id:
             # get error message
             errmsg_length = len(response) - 8
             error_message = struct.unpack_from('!' + str(errmsg_length) + 's', response, 8)
@@ -610,26 +552,23 @@ class UdpTrackerSession(TrackerSession):
 
         # update action and IDs
         self._connection_id = struct.unpack_from('!q', response, 8)[0]
-        self._action = TRACKER_ACTION_SCRAPE
+        self.action = TRACKER_ACTION_SCRAPE
         self.generate_transaction_id()
 
         # pack and send the message
         fmt = '!qii' + ('20s' * len(self._infohash_list))
-        message = struct.pack(fmt, self._connection_id, self._action, self._transaction_id, *self._infohash_list)
+        message = struct.pack(fmt, self._connection_id, self.action, self.transaction_id, *self._infohash_list)
 
         # Send the scrape message
-        self.scraper.write_data(message)
+        self.socket_mgr.send_request(message, self)
 
         self._last_contact = int(time.time())
 
-    def handle_response(self, response):
+    def handle_scrape_response(self, response):
         """
-        Handles the response from the UDP scraper.
-        :param response: The response from the UDP scraper
+        Handles the scrape response from the UDP tracker.
+        :param response: The response from the UDP tracker
         """
-        if self._is_failed:
-            return
-
         # check message size
         if len(response) < 8:
             self._logger.info(u"%s Invalid response for UDP SCRAPE: %s", self, repr(response))
@@ -638,7 +577,7 @@ class UdpTrackerSession(TrackerSession):
 
         # check response
         action, transaction_id = struct.unpack_from('!ii', response, 0)
-        if action != self._action or transaction_id != self._transaction_id:
+        if action != self.action or transaction_id != self.transaction_id:
             # get error message
             errmsg_length = len(response) - 8
             error_message = struct.unpack_from('!' + str(errmsg_length) + 's', response, 8)
@@ -671,9 +610,6 @@ class UdpTrackerSession(TrackerSession):
         UdpTrackerSession.remove_transaction_id(self)
         self._is_finished = True
 
-        # Stop the scraper and call the callback of the deferred with the result
-        self.scraper.stop()
-        self.scraper = None
         self.result_deferred.callback({self.tracker_url: response_list})
 
 

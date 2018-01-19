@@ -94,9 +94,67 @@ class SpecificTorrentEndpoint(resource.Resource):
         resource.Resource.__init__(self)
         self.session = session
         self.infohash = infohash
+        self.torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)
 
         self.putChild("health", TorrentHealthEndpoint(self.session, self.infohash))
         self.putChild("trackers", TorrentTrackersEndpoint(self.session, self.infohash))
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /torrents/(string: torrent infohash)
+
+        Get information of a torrent with a given infohash from a given channel.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/torrents/97d2d8f5d37e56cfaeaae151d55f05b077074779
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "id": 4,
+                    "infohash": "97d2d8f5d37e56cfaeaae151d55f05b077074779",
+                    "name": "Ubuntu-16.04-desktop-amd64",
+                    "size": 8592385,
+                    "category": "other",
+                    "num_seeders": 42,
+                    "num_leechers": 184,
+                    "last_tracker_check": 1463176959,
+                    "files": [{"path": "test.txt", "length": 1234}, ...],
+                    "trackers": ["http://tracker.org:8080", ...]
+                }
+
+            :statuscode 404: if the torrent is not found in the specified channel
+        """
+        torrent_db_columns = ['C.torrent_id', 'infohash', 'name', 'length', 'category',
+                              'num_seeders', 'num_leechers', 'last_tracker_check']
+        torrent_info = self.torrent_db_handler.getTorrent(self.infohash.decode('hex'), keys=torrent_db_columns)
+        if torrent_info is None:
+            request.setResponseCode(http.NOT_FOUND)
+            return json.dumps({"error": "Unknown torrent"})
+
+        torrent_files = []
+        for path, length in self.torrent_db_handler.getTorrentFiles(torrent_info['C.torrent_id']):
+            torrent_files.append({"path": path, "size": length})
+
+        torrent_json = {
+            "id": torrent_info['C.torrent_id'],
+            "infohash": self.infohash,
+            "name": torrent_info['name'],
+            "size": torrent_info['length'],
+            "category": torrent_info['category'],
+            "num_seeders": torrent_info['num_seeders'] if torrent_info['num_seeders'] else 0,
+            "num_leechers": torrent_info['num_leechers'] if torrent_info['num_leechers'] else 0,
+            "last_tracker_check": torrent_info['last_tracker_check'],
+            "files": torrent_files,
+            "trackers": self.torrent_db_handler.getTrackerListByTorrentID(torrent_info['C.torrent_id'])
+        }
+
+        return json.dumps(torrent_json)
 
 
 class TorrentTrackersEndpoint(resource.Resource):
@@ -215,9 +273,12 @@ class TorrentHealthEndpoint(resource.Resource):
             self.finish_request(request)
 
         def on_request_error(failure):
-            request.setResponseCode(http.BAD_REQUEST)
-            request.write(json.dumps({"error": failure.getErrorMessage()}))
-            self.finish_request(request)
+            if not request.finished:
+                request.setResponseCode(http.BAD_REQUEST)
+                request.write(json.dumps({"error": failure.getErrorMessage()}))
+            # If the above request.write failed, the request will have already been finished
+            if not request.finished:
+                self.finish_request(request)
 
         self.session.check_torrent_health(self.infohash.decode('hex'), timeout=timeout, scrape_now=refresh)\
             .addCallback(on_health_result).addErrback(on_request_error)

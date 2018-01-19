@@ -41,21 +41,20 @@ class TriblerUpgrader(object):
         after upgrading to Tribler 7.
         """
         self.current_status = u"Checking Tribler version..."
-        if self.session.config.get_upgrader_enabled():
-            failed, has_to_upgrade = self.check_should_upgrade_database()
-            if has_to_upgrade and not failed:
-                self.notify_starting()
-                self.upgrade_database_to_current_version()
+        failed, has_to_upgrade = self.check_should_upgrade_database()
+        if has_to_upgrade and not failed:
+            self.notify_starting()
+            self.upgrade_database_to_current_version()
 
-                # Convert old (pre 6.3 Tribler) pickle files to the newer .state format
-                pickle_converter = PickleConverter(self.session)
-                pickle_converter.convert()
+            # Convert old (pre 6.3 Tribler) pickle files to the newer .state format
+            pickle_converter = PickleConverter(self.session)
+            pickle_converter.convert()
 
-            if self.failed:
-                self.notify_starting()
-                self.stash_database()
+        if self.failed:
+            self.notify_starting()
+            self.stash_database()
 
-            self.upgrade_to_tribler7()
+        self.upgrade_to_tribler7()
 
     def update_status(self, status_text):
         self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, status_text)
@@ -65,9 +64,7 @@ class TriblerUpgrader(object):
         """
         This method performs actions necessary to upgrade to Tribler 7.
         """
-        self.session.config = convert_config_to_tribler71()
-        self.session.config.set_trustchain_enabled(True)
-        self.session.config.set_upgrader_enabled(False)
+        self.session.config = convert_config_to_tribler71(self.session.config)
         self.session.config.write()
 
     def notify_starting(self):

@@ -33,7 +33,10 @@ from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,
                                      NTFY_FINISHED, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
-                                     DLSTATUS_SEEDING, NTFY_TORRENT, NTFY_MARKET_IOM_INPUT_REQUIRED)
+                                     DLSTATUS_SEEDING, NTFY_TORRENT, STATE_STARTING_DISPERSY, STATE_LOADING_COMMUNITIES,
+                                     STATE_INITIALIZE_CHANNEL_MGR, STATE_START_MAINLINE_DHT, STATE_START_LIBTORRENT,
+                                     STATE_START_TORRENT_CHECKER, STATE_START_REMOTE_TORRENT_HANDLER,
+                                     STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING)
 from Tribler.community.market.wallet.btc_wallet import BitcoinWallet
 from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
@@ -94,6 +97,7 @@ class TriblerLaunchMany(TaskManager):
         self.tracker_manager = None
         self.torrent_checker = None
         self.tunnel_community = None
+        self.trustchain_community = None
 
         self.startup_deferred = Deferred()
 
@@ -116,10 +120,14 @@ class TriblerLaunchMany(TaskManager):
             if self.session.config.get_torrent_store_enabled():
                 from Tribler.Core.leveldbstore import LevelDbStore
                 self.torrent_store = LevelDbStore(self.session.config.get_torrent_store_dir())
+                if not self.torrent_store.get_db():
+                    raise RuntimeError("Torrent store (leveldb) is None which should not normally happen")
 
             if self.session.config.get_metadata_enabled():
                 from Tribler.Core.leveldbstore import LevelDbStore
                 self.metadata_store = LevelDbStore(self.session.config.get_metadata_store_dir())
+                if not self.metadata_store.get_db():
+                    raise RuntimeError("Metadata store (leveldb) is None which should not normally happen")
 
             # torrent collecting: RemoteTorrentHandler
             if self.session.config.get_torrent_collecting_enabled():
@@ -219,29 +227,28 @@ class TriblerLaunchMany(TaskManager):
             self.dispersy.define_auto_load(PreviewChannelCommunity,
                                            self.session.dispersy_member, kargs=default_kwargs)
 
+        # TrustChain Community
+        if self.session.config.get_trustchain_enabled():
+            trustchain_kwargs = {'tribler_session': self.session}
+
+            # If the trustchain is enabled, we use the permanent trustchain keypair
+            # for both the trustchain and the tunnel community
+            keypair = self.session.trustchain_keypair
+            dispersy_member = self.dispersy.get_member(private_key=keypair.key_to_bin())
+
+            from Tribler.community.triblerchain.community import TriblerChainCommunity
+            self.trustchain_community = self.dispersy.define_auto_load(TriblerChainCommunity,
+                                                                       dispersy_member,
+                                                                       load=True,
+                                                                       kargs=trustchain_kwargs)[0]
+        else:
+            keypair = self.dispersy.crypto.generate_key(u"curve25519")
+            dispersy_member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
+
         # Tunnel Community
-        mc_community = None
         if self.session.config.get_tunnel_community_enabled():
             tunnel_settings = TunnelSettings(tribler_session=self.session)
             tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
-
-            if self.session.config.get_trustchain_enabled():
-                trustchain_kwargs = {'tribler_session': self.session}
-
-                # If the trustchain is enabled, we use the permanent trustchain keypair
-                # for both the trustchain and the tunnel community
-                keypair = self.session.trustchain_keypair
-                dispersy_member = self.dispersy.get_member(private_key=keypair.key_to_bin())
-
-                from Tribler.community.triblerchain.community import TriblerChainCommunity
-                mc_community = self.dispersy.define_auto_load(TriblerChainCommunity,
-                                                              dispersy_member,
-                                                              load=True,
-                                                              kargs=trustchain_kwargs)[0]
-
-            else:
-                keypair = self.dispersy.crypto.generate_key(u"curve25519")
-                dispersy_member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
 
             from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
             self.tunnel_community = self.dispersy.define_auto_load(
@@ -257,7 +264,7 @@ class TriblerLaunchMany(TaskManager):
                                        testnet=self.session.config.get_btc_testnet())
             wallets[btc_wallet.get_identifier()] = btc_wallet
 
-            mc_wallet = TrustchainWallet(mc_community)
+            mc_wallet = TrustchainWallet(self.trustchain_community)
             wallets[mc_wallet.get_identifier()] = mc_wallet
 
             if self.session.config.get_dummy_wallets_enabled():
@@ -287,6 +294,7 @@ class TriblerLaunchMany(TaskManager):
 
             self._logger.info("lmc: Starting Dispersy...")
 
+            self.session.readable_status = STATE_STARTING_DISPERSY
             now = timemod.time()
             success = self.dispersy.start(self.session.autoload_discovery)
 
@@ -314,23 +322,27 @@ class TriblerLaunchMany(TaskManager):
             # notify dispersy finished loading
             self.session.notifier.notify(NTFY_DISPERSY, NTFY_STARTED, None)
 
+            self.session.readable_status = STATE_LOADING_COMMUNITIES
             self.load_communities()
 
             tunnel_community_ports = self.session.config.get_tunnel_community_socks5_listen_ports()
             self.session.config.set_anon_proxy_settings(2, ("127.0.0.1", tunnel_community_ports))
 
             if self.session.config.get_channel_search_enabled():
+                self.session.readable_status = STATE_INITIALIZE_CHANNEL_MGR
                 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
                 self.channel_manager = ChannelManager(self.session)
                 self.channel_manager.initialize()
 
         if self.session.config.get_mainline_dht_enabled():
+            self.session.readable_status = STATE_START_MAINLINE_DHT
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             self.mainline_dht = mainlineDHT.init(('127.0.0.1', self.session.config.get_mainline_dht_port()),
                                                  self.session.config.get_state_dir())
             self.upnp_ports.append((self.session.config.get_mainline_dht_port(), 'UDP'))
 
         if self.session.config.get_libtorrent_enabled():
+            self.session.readable_status = STATE_START_LIBTORRENT
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
             self.ltmgr = LibtorrentMgr(self.session)
             self.ltmgr.initialize()
@@ -339,20 +351,25 @@ class TriblerLaunchMany(TaskManager):
 
         # add task for tracker checking
         if self.session.config.get_torrent_checking_enabled():
+            self.session.readable_status = STATE_START_TORRENT_CHECKER
             self.torrent_checker = TorrentChecker(self.session)
             self.torrent_checker.initialize()
 
         if self.rtorrent_handler:
+            self.session.readable_status = STATE_START_REMOTE_TORRENT_HANDLER
             self.rtorrent_handler.initialize()
 
         if self.api_manager:
+            self.session.readable_status = STATE_START_API_ENDPOINTS
             self.api_manager.root_endpoint.start_endpoints()
 
         if self.session.config.get_watch_folder_enabled():
+            self.session.readable_status = STATE_START_WATCH_FOLDER
             self.watch_folder = WatchFolder(self.session)
             self.watch_folder.start()
 
         if self.session.config.get_credit_mining_enabled():
+            self.session.readable_status = STATE_START_CREDIT_MINING
             from Tribler.Core.CreditMining.BoostingManager import BoostingManager
             self.boosting_manager = BoostingManager(self.session)
 
@@ -591,8 +608,9 @@ class TriblerLaunchMany(TaskManager):
                 new_active_downloads.append(safename)
             elif state == DLSTATUS_STOPPED_ON_ERROR:
                 self._logger.error("Error during download: %s", repr(ds.get_error()))
-                self.downloads.get(tdef.get_infohash()).stop()
-                self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, tdef.get_infohash(), repr(ds.get_error()))
+                if self.download_exists(tdef.get_infohash()):
+                    self.get_download(tdef.get_infohash()).stop()
+                    self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, tdef.get_infohash(), repr(ds.get_error()))
             elif state == DLSTATUS_SEEDING:
                 seeding_download_list.append({u'infohash': tdef.get_infohash(),
                                               u'download': download})
@@ -841,13 +859,14 @@ class TriblerLaunchMany(TaskManager):
             yield self.torrent_store.close()
         self.torrent_store = None
 
-        if self.api_manager is not None:
-            yield self.api_manager.stop()
-        self.api_manager = None
-
         if self.watch_folder is not None:
             yield self.watch_folder.stop()
         self.watch_folder = None
+
+        # We close the API manager as late as possible during shutdown.
+        if self.api_manager is not None:
+            yield self.api_manager.stop()
+        self.api_manager = None
 
     def network_shutdown(self):
         try:

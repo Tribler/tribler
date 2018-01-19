@@ -4,6 +4,7 @@ import logging
 import os
 from binascii import hexlify
 from twisted.internet import reactor
+from twisted.internet.defer import DeferredList
 
 from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser
 import Tribler.Core.Utilities.json_util as json
@@ -46,7 +47,8 @@ class ChannelObject(TaskManager):
         return [url for url in self._rss_feed_dict.iterkeys()]
 
     def refresh_all_feeds(self):
-        [feed.parse_feed() for feed in self._rss_feed_dict.itervalues()]
+        deferreds = [feed.parse_feed() for feed in self._rss_feed_dict.itervalues()]
+        return DeferredList(deferreds, consumeErrors=True)
 
     @call_on_reactor_thread
     def initialize(self):

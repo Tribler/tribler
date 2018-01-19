@@ -1,12 +1,13 @@
+import socket
 import time
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 from Tribler.Core.Category.Category import Category
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.tracker_manager import TrackerManager
 from Tribler.Core.Session import Session
-from Tribler.Core.TorrentChecker.session import HttpTrackerSession
+from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UdpSocketManager
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Test.Core.base_test import TriblerCoreTest
@@ -44,6 +45,21 @@ class TestTorrentChecker(TriblerCoreTest):
         self.torrent_checker.initialize()
         self.assertIsNotNone(self.torrent_checker._torrent_db)
         self.assertTrue(self.torrent_checker.is_pending_task_active("torrent_checker_tracker_selection"))
+
+    @blocking_call_on_reactor_thread
+    def test_create_socket_or_schedule_fail(self):
+        """
+        Test creation of the UDP socket of the torrent checker when it fails
+        """
+        def mocked_listen_on_udp():
+            raise socket.error("Something went wrong")
+
+        self.torrent_checker.socket_mgr = UdpSocketManager()
+        self.torrent_checker.listen_on_udp = mocked_listen_on_udp
+        self.torrent_checker.create_socket_or_schedule()
+
+        self.assertIsNone(self.torrent_checker.udp_port)
+        self.assertTrue(self.torrent_checker.is_pending_task_active("listen_udp_port"))
 
     @blocking_call_on_reactor_thread
     def test_reschedule_tracker_select(self):
@@ -150,7 +166,8 @@ class TestTorrentChecker(TriblerCoreTest):
         self.session.lm.tracker_manager.add_tracker('http://trackertest.com:80/announce')
         return self.torrent_checker._task_select_tracker()
 
+    @inlineCallbacks
     @blocking_call_on_reactor_thread
     def tearDown(self, annotate=True):
-        self.torrent_checker.shutdown()
-        super(TestTorrentChecker, self).tearDown(annotate=annotate)
+        yield self.torrent_checker.shutdown()
+        yield super(TestTorrentChecker, self).tearDown(annotate=annotate)

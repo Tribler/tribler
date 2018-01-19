@@ -10,35 +10,32 @@ from Tribler.Core.exceptions import InvalidConfigException
 logger = logging.getLogger(__name__)
 
 
-def convert_config_to_tribler71():
+def convert_config_to_tribler71(current_config):
     """
-    Convert the Config files libtribler.conf and tribler.conf to the newer triblerd.conf.
+    Convert the Config files libtribler.conf and tribler.conf to the newer triblerd.conf and cleanup the files
+    when we are done.
 
-    :param: session: the Config which can be used to convert the old files to the new format
-    :return: the newly edited Config file with the old Config data inserted.
+    :param: current_config: the current config in which we merge the old config files.
+    :return: the newly edited TriblerConfig object with the old data inserted.
     """
-    old_tribler_config_file_loc = os.path.join(TriblerConfig.get_default_state_dir(), "triblerd.conf")
-    if os.path.exists(old_tribler_config_file_loc):
-        try:
-            new_config = TriblerConfig(ConfigObj(old_tribler_config_file_loc, configspec=CONFIG_SPEC_PATH))
-        except InvalidConfigException:
-            new_config = TriblerConfig()
-    else:
-        new_config = TriblerConfig()
-
     libtribler_file_loc = os.path.join(TriblerConfig.get_default_state_dir(), "libtribler.conf")
     if os.path.exists(libtribler_file_loc):
         libtribler_cfg = RawConfigParser()
         libtribler_cfg.read(libtribler_file_loc)
-        new_config = add_libtribler_config(new_config, libtribler_cfg)
+        current_config = add_libtribler_config(current_config, libtribler_cfg)
+        os.remove(libtribler_file_loc)
+
+        # We enable TrustChain when upgrading from 7 to 7.1.
+        current_config.set_trustchain_enabled(True)
 
     tribler_file_loc = os.path.join(TriblerConfig.get_default_state_dir(), "tribler.conf")
     if os.path.exists(tribler_file_loc):
         tribler_cfg = RawConfigParser()
         tribler_cfg.read(tribler_file_loc)
-        new_config = add_tribler_config(new_config, tribler_cfg)
+        current_config = add_tribler_config(current_config, tribler_cfg)
+        os.remove(tribler_file_loc)
 
-    return new_config
+    return current_config
 
 
 def add_tribler_config(new_config, old_config):
@@ -185,8 +182,6 @@ def add_libtribler_config(new_config, old_config):
                 temp_config.set_video_server_enabled(value)
             elif section == "video" and name == "port":
                 temp_config.set_video_server_port(value)
-            elif section == "upgrader" and name == "enabled":
-                temp_config.set_upgrader_enabled(value)
             elif section == "watch_folder" and name == "enabled":
                 temp_config.set_watch_folder_enabled(value)
             elif section == "watch_folder" and name == "watch_folder_dir":

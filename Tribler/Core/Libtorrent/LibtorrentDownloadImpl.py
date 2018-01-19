@@ -18,7 +18,7 @@ from twisted.internet.task import LoopingCall
 import libtorrent as lt
 
 from Tribler.Core import NoDispersyRLock
-from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
+from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface, get_default_dest_dir
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Libtorrent import checkHandleAndSynchronize
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
@@ -297,7 +297,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
 
             atp = {}
-            atp["save_path"] = os.path.abspath(self.get_dest_dir())
+            atp["save_path"] = os.path.normpath(os.path.join(get_default_dest_dir(), self.get_dest_dir()))
             atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
             atp["paused"] = True
             atp["auto_managed"] = False
@@ -616,6 +616,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.orig_files = [torrent_file.path.decode('utf-8') for torrent_file in lt.torrent_info(metadata).files()]
         self.set_corrected_infoname()
         self.set_filepieceranges()
+        self.set_selected_files()
 
         if self.session.lm.rtorrent_handler:
             self.session.lm.rtorrent_handler.save_torrent(self.tdef)
@@ -714,10 +715,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         if self.dlstate == DLSTATUS_SEEDING:
             mode = self.get_seeding_mode()
             if mode == 'never' \
-                    or (mode == 'ratio' and self.all_time_ratio >= self.dlconfig.get('download_defaults',
-                                                                                     'seeding_ratio')) \
-                    or (mode == 'time' and self.finished_time >= self.dlconfig.get('download_defaults',
-                                                                                   'seeding_time')):
+                    or (mode == 'ratio' and self.all_time_ratio >= self.get_seeding_ratio()) \
+                    or (mode == 'time' and self.finished_time >= self.get_seeding_time()):
                 self.stop()
 
     def set_corrected_infoname(self):
@@ -1063,10 +1062,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     def network_stop(self, removestate, removecontent):
         """ Called by network thread, but safe for any """
+        self.cancel_all_pending_tasks()
+
         out = None
         with self.dllock:
             self._logger.debug("LibtorrentDownloadImpl: network_stop %s", self.tdef.get_name())
-            self.cancel_all_pending_tasks()
 
             pstate = self.get_persistent_download_config()
             if self.handle is not None:
