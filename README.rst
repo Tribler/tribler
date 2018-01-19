@@ -102,9 +102,9 @@ Submodule notes
     :target: https://github.com/Tribler/tribler/releases
     :alt: Downloads(6.5.2)
 
-.. |downloads_7_0| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.0.0-rc3/total.svg?style=flat
+.. |downloads_7_0| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.0.0-rc5/total.svg?style=flat
     :target: https://github.com/Tribler/tribler/releases
-    :alt: Downloads(7.0.0-rc3)
+    :alt: Downloads(7.0.0-rc5)
 
 .. |contributors| image:: https://img.shields.io/github/contributors/tribler/tribler.svg?style=flat
     :target: https://github.com/Tribler/tribler/graphs/contributors
