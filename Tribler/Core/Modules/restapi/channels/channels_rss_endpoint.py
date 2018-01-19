@@ -1,4 +1,5 @@
 from twisted.web import http
+from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 import Tribler.Core.Utilities.json_util as json
@@ -98,9 +99,18 @@ class ChannelsRecheckFeedsEndpoint(BaseChannelsRssFeedsEndpoint):
         if channel_obj is None:
             return error
 
-        channel_obj.refresh_all_feeds()
+        def on_refreshed(_):
+            request.write(json.dumps({"rechecked": True}))
+            request.finish()
 
-        return json.dumps({"rechecked": True})
+        def on_refresh_error(failure):
+            self._logger.exception(failure.value)
+            request.write(BaseChannelsEndpoint.return_500(self, request, failure.value))
+            request.finish()
+
+        channel_obj.refresh_all_feeds().addCallbacks(on_refreshed, on_refresh_error)
+
+        return NOT_DONE_YET
 
 
 class ChannelModifyRssFeedEndpoint(BaseChannelsRssFeedsEndpoint):

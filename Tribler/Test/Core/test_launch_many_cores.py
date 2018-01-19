@@ -1,5 +1,6 @@
 import os
 from nose.tools import raises
+
 from twisted.internet.defer import Deferred
 
 from Tribler.Core import NoDispersyRLock

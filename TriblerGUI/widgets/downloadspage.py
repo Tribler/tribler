@@ -1,4 +1,5 @@
 import os
+import time
 
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
@@ -30,10 +31,19 @@ class DownloadsPage(QWidget):
         self.downloads = None
         self.downloads_timer = QTimer()
         self.downloads_timeout_timer = QTimer()
+        self.downloads_last_update = 0
         self.selected_item = None
         self.dialog = None
         self.downloads_request_mgr = TriblerRequestManager()
         self.request_mgr = None
+
+    def showEvent(self, QShowEvent):
+        """
+        When the downloads tab is clicked, we want to update the downloads list immediately.
+        """
+        super(DownloadsPage, self).showEvent(QShowEvent)
+        self.stop_loading_downloads()
+        self.schedule_downloads_timer(True)
 
     def initialize_downloads_page(self):
         self.window().downloads_tab.initialize()
@@ -90,8 +100,13 @@ class DownloadsPage(QWidget):
         if self.window().download_details_widget.currentIndex() == 3:
             url = "downloads?get_peers=1&get_pieces=1"
 
-        self.downloads_request_mgr.generate_request_id()
-        self.downloads_request_mgr.perform_request(url, self.on_received_downloads)
+        if not self.isHidden() or (time.time() - self.downloads_last_update > 30):
+            # Update if the downloads page is visible or if we haven't updated for longer than 30 seconds
+            self.downloads_last_update = time.time()
+            priority = "LOW" if self.isHidden() else "HIGH"
+            self.downloads_request_mgr.cancel_request()
+            self.downloads_request_mgr = TriblerRequestManager()
+            self.downloads_request_mgr.perform_request(url, self.on_received_downloads, priority=priority)
 
     def on_received_downloads(self, downloads):
         if not downloads:
@@ -128,15 +143,11 @@ class DownloadsPage(QWidget):
                 self.window().download_details_widget.update_pages()
 
         # Check whether there are download that should be removed
-        toremove = set()
-        for infohash, item in self.download_widgets.iteritems():
+        for infohash, item in self.download_widgets.items():
             if infohash not in download_infohashes:
                 index = self.window().downloads_list.indexOfTopLevelItem(item)
-                toremove.add((infohash, index))
-
-        for infohash, index in toremove:
-            self.window().downloads_list.takeTopLevelItem(index)
-            del self.download_widgets[infohash]
+                self.window().downloads_list.takeTopLevelItem(index)
+                del self.download_widgets[infohash]
 
         if self.window().tray_icon:
             self.window().tray_icon.setToolTip(
@@ -282,7 +293,9 @@ class DownloadsPage(QWidget):
                                          method='PATCH', data='anon_hops=%d' % hops)
 
     def on_explore_files(self):
-        QDesktopServices.openUrl(QUrl.fromLocalFile(self.selected_item.download_info["destination"]))
+        path = os.path.normpath(os.path.join(self.window().tribler_settings['downloadconfig']['saveas'],
+		                                     self.selected_item.download_info["destination"]))
+        QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def on_export_download(self):
         self.export_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory", "",

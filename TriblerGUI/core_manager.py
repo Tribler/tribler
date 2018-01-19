@@ -39,6 +39,8 @@ def start_tribler_core(base_path, child_pipe):
     through the HTTP API.
     """
     from twisted.internet import reactor
+    from check_os import setup_core_logging
+    setup_core_logging()
 
     def on_tribler_shutdown(_):
         reactor.stop()
@@ -111,6 +113,7 @@ class CoreManager(QObject):
     a fake API will be started.
     """
     tribler_stopped = pyqtSignal()
+    core_state_update = pyqtSignal(str)
 
     def __init__(self):
         QObject.__init__(self, None)
@@ -182,20 +185,19 @@ class CoreManager(QObject):
         self.request_mgr.perform_request("state", self.on_received_state, capture_errors=False)
 
     def on_received_state(self, state):
-        if not state:
+        if not state or state['state'] not in ['STARTED', 'EXCEPTION']:
             self.check_state_timer = QTimer()
             self.check_state_timer.setSingleShot(True)
             self.check_state_timer.timeout.connect(self.check_core_ready)
             self.check_state_timer.start(50)
-        elif state['state'] == 'STARTED':
+            return
+
+        self.core_state_update.emit(state['readable_state'])
+
+        if state['state'] == 'STARTED':
             self.events_manager.connect(reschedule_on_err=False)
         elif state['state'] == 'EXCEPTION':
             raise RuntimeError(state['last_exception'])
-        else:
-            self.check_state_timer = QTimer()
-            self.check_state_timer.setSingleShot(True)
-            self.check_state_timer.timeout.connect(self.check_core_ready)
-            self.check_state_timer.start(50)
 
     def stop(self, stop_app_on_shutdown=True):
         if self.core_process:

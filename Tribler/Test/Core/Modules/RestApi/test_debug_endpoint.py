@@ -140,7 +140,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('debug/memory/history', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=20)
+    @deferred(timeout=60)
     def test_dump_memory(self):
         """
         Test whether the API returns a memory dump
@@ -153,27 +153,26 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         return self.do_request('debug/memory/dump', expected_code=200).addCallback(verify_response)
 
     @deferred(timeout=10)
-    def test_debug_pane_logs(self):
+    def test_debug_pane_core_logs(self):
         """
         Test whether the API returns the logs
         """
 
-        test_log_message = "This is the test log message"
+        test_core_log_message = "This is the core test log message"
         max_lines = 100
 
-        import Tribler
-        project_root_dir = os.path.abspath(os.path.join(os.path.dirname(Tribler.__file__), ".."))
-        log_config = os.path.join(project_root_dir, "logger.conf")
+        # Directory for logs
+        log_dir = self.session.config.get_log_dir()
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
 
-        # State directory for logs
-        state_log_dir = os.path.join(self.session.config.get_state_dir(), 'logs')
-        if not os.path.exists(state_log_dir):
-            os.makedirs(state_log_dir)
+        # Fill logging files with statements
+        core_info_log_file_path = os.path.join(log_dir, 'tribler-core-info.log')
 
-        # Setup logging
-        logging.info_log_file = os.path.join(state_log_dir, 'tribler-info.log')
-        logging.error_log_file = os.path.join(state_log_dir, 'tribler-error.log')
-        logging.config.fileConfig(log_config, disable_existing_loggers=False)
+        # write 100 test lines which is used to test for its presence in the response
+        with open(core_info_log_file_path, "w") as core_info_log_file:
+            for log_index in xrange(max_lines):
+                core_info_log_file.write("%s %d\n" % (test_core_log_message, log_index))
 
         def verify_log_exists(response):
             json_response = json.loads(response)
@@ -183,12 +182,39 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
             self.assertEqual(len(logs), max_lines)
 
             # Check if test log message is present in the logs, at least once
-            log_exists = any((True for log in logs if test_log_message in log))
+            log_exists = any((True for log in logs if test_core_log_message in log))
             self.assertTrue(log_exists, "Test log not found in the debug log response")
 
-        # write 100 test logs which is used to test for its presence in the response
-        for log_index in xrange(100):
-            logging.error("%s [%d]", test_log_message, log_index)
+        self.should_check_equality = False
+        return self.do_request('debug/log?process=core&max_lines=%d' % max_lines, expected_code=200)\
+            .addCallback(verify_log_exists)\
+
+
+    @deferred(timeout=10)
+    def test_debug_pane_default_num_logs(self):
+        """
+        Test whether the API returns the last 100 logs when no max_lines parameter is not provided
+        """
+        test_core_log_message = "This is the gui test log message"
+        expected_num_lines = 100
+
+        # Log directory
+        log_dir = self.session.config.get_log_dir()
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        gui_info_log_file_path = os.path.join(log_dir, 'tribler-gui-info.log')
+
+        # write 200 (greater than expected_num_lines) test logs in file
+        with open(gui_info_log_file_path, "w") as core_info_log_file:
+            for log_index in xrange(200):   # write more logs
+                core_info_log_file.write("%s %d\n" % (test_core_log_message, log_index))
+
+        # Check number of logs returned is as expected
+        def verify_max_logs_returned(response):
+            json_response = json.loads(response)
+            logs = json_response['content'].strip().split("\n")
+            self.assertEqual(len(logs), expected_num_lines)
 
         self.should_check_equality = False
-        return self.do_request('debug/log?max_lines=%d' % max_lines, expected_code=200).addCallback(verify_log_exists)
+        return self.do_request('debug/log?process=gui&max_lines=', expected_code=200)\
+            .addCallback(verify_max_logs_returned)

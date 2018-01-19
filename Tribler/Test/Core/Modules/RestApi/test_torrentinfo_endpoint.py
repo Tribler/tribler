@@ -28,7 +28,10 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         """
         Testing whether the API returns a correct dictionary with torrent info.
         """
-        files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
+        # We intentionally put the file path in a folder with a:
+        # - "+" which is a reserved URI character
+        # - "\u0191" which is a unicode character
+        files_path = os.path.join(self.session_base_dir, u'http_torrent_+\u0191files')
         os.mkdir(files_path)
         shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
 

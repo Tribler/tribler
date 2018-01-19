@@ -1,12 +1,14 @@
 import logging
+import socket
 import time
 from binascii import hexlify
+
 from twisted.internet import reactor
-from twisted.internet.defer import DeferredList, CancelledError, fail, succeed
+from twisted.internet.defer import DeferredList, CancelledError, fail, succeed, maybeDeferred
 from twisted.internet.error import ConnectingCancelledError
 from twisted.python.failure import Failure
 
-from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession
+from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession, UdpSocketManager
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.dispersy.taskmanager import TaskManager
@@ -41,10 +43,28 @@ class TorrentChecker(TaskManager):
         # Track all session cleanups
         self.session_stop_defer_list = []
 
+        self.socket_mgr = self.udp_port = None
+
     @blocking_call_on_reactor_thread
     def initialize(self):
         self._torrent_db = self.tribler_session.open_dbhandler(NTFY_TORRENTS)
         self._reschedule_tracker_select()
+        self.socket_mgr = UdpSocketManager()
+        self.create_socket_or_schedule()
+
+    def listen_on_udp(self):
+        return reactor.listenUDP(0, self.socket_mgr)
+
+    def create_socket_or_schedule(self):
+        """
+        This method attempts to bind to a UDP port. If it fails for some reason (i.e. no network connection), we try
+        again later.
+        """
+        try:
+            self.udp_port = self.listen_on_udp()
+        except socket.error as exc:
+            self._logger.error("Error when creating UDP socket in torrent checker: %s", exc)
+            self.register_task("listen_udp_port", reactor.callLater(10, self.create_socket_or_schedule))
 
     def shutdown(self):
         """
@@ -55,6 +75,10 @@ class TorrentChecker(TaskManager):
         """
         self._should_stop = True
 
+        if self.udp_port:
+            self.session_stop_defer_list.append(maybeDeferred(self.udp_port.stopListening))
+            self.udp_port = None
+
         self.cancel_all_pending_tasks()
 
         # kill all the tracker sessions.
@@ -63,14 +87,7 @@ class TorrentChecker(TaskManager):
             for session in self._session_list[tracker_url]:
                 self.session_stop_defer_list.append(session.cleanup())
 
-        defer_stop_list = DeferredList(self.session_stop_defer_list)
-
-        self._session_list = None
-
-        self._torrent_db = None
-        self.tribler_session = None
-
-        return defer_stop_list
+        return DeferredList(self.session_stop_defer_list)
 
     def _reschedule_tracker_select(self):
         """
@@ -225,7 +242,7 @@ class TorrentChecker(TaskManager):
         return failure
 
     def _create_session_for_request(self, tracker_url, timeout=20):
-        session = create_tracker_session(tracker_url, timeout)
+        session = create_tracker_session(tracker_url, timeout, self.socket_mgr)
 
         if tracker_url not in self._session_list:
             self._session_list[tracker_url] = []

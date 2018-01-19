@@ -8,6 +8,7 @@ import logging
 import urlparse
 from base64 import b32decode
 from types import StringType, LongType, IntType, ListType, DictType
+from urllib import quote_plus
 from urlparse import urlsplit, parse_qsl
 
 from libtorrent import bencode, bdecode
@@ -462,3 +463,26 @@ def translate_peers_into_health(peer_info_dicts):
     num_seeders = max(upload_only, finished)
     num_leech = max(interest_in_us, min(unfinished_able_dl, len(peer_info_dicts) - finished))
     return num_seeders, num_leech
+
+
+def unicode_quoter(c):
+    """
+    Quote a single unicode character for URI form.
+
+    :param c: the character to quote
+    :return: the safe URI string
+    """
+    try:
+        return quote_plus(c)
+    except KeyError:
+        return c
+
+
+def quote_plus_unicode(s):
+    """
+    Quote a unicode string for URI form.
+
+    :param s: the string to quote
+    :return: the safe URI string
+    """
+    return ''.join([unicode_quoter(c) for c in s])

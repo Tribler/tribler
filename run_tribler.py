@@ -3,32 +3,8 @@ import sys
 import multiprocessing
 import logging.config
 
-from check_os import check_environment
-from check_os import error_and_exit
-from TriblerGUI.utilities import get_base_path
-
-
-def setup_logging():
-    """
-    Setup logging to write logs to files inside \
-    .Tribler directory in each platforms
-    """
-    # First check if logger.conf is present or not
-    log_config = os.path.join(get_base_path(), "logger.conf")
-
-    if not os.path.exists(log_config):
-        print "Log configuration file not found at location '%s'" % log_config
-        return
-
-    log_directory = os.path.abspath(os.environ.get('APPDATA', os.path.expanduser('~')))
-    log_directory = os.path.join(log_directory, '.Tribler', 'logs')
-
-    if not os.path.exists(log_directory):
-        os.makedirs(log_directory)
-
-    logging.info_log_file = '%s/tribler-info.log' % log_directory
-    logging.error_log_file = '%s/tribler-error.log' % log_directory
-    logging.config.fileConfig(log_config, disable_existing_loggers=False)
+from check_os import check_environment, check_free_space, error_and_exit, setup_gui_logging, \
+    should_kill_other_tribler_instances
 
 
 if __name__ == "__main__":
@@ -37,8 +13,12 @@ if __name__ == "__main__":
 
     multiprocessing.freeze_support()
 
+    should_kill_other_tribler_instances()
+
+    check_free_space()
+
     # Set up logging
-    setup_logging()
+    setup_gui_logging()
 
     try:
         from TriblerGUI.tribler_app import TriblerApplication

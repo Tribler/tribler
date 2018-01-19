@@ -5,6 +5,7 @@ from urllib import pathname2url
 from twisted.internet.defer import fail
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.DownloadState import DownloadState
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -103,6 +104,98 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                raw_data=True).addCallback(verify_download)
+
+    @deferred(timeout=10)
+    def test_get_peers_illegal_fields_ascii(self):
+        """
+        Testing whether illegal fields are stripped from the Libtorrent download info response.
+        """
+
+        def verify_download_list(response):
+            response_dict = json.loads(response)
+            self.assertIn("downloads", response_dict)
+            self.assertEqual(1, len(response_dict["downloads"]))
+            self.assertIn("peers", response_dict["downloads"][0])
+            self.assertEqual(1, len(response_dict["downloads"][0]["peers"]))
+            self.assertNotIn('have', response_dict["downloads"][0]["peers"][0])
+            self.assertEqual('uTorrent 1.6.1', response_dict["downloads"][0]["peers"][0]['extended_version'])
+
+        def verify_download(response):
+            self.assertTrue(json.loads(response)['started'])
+            self.assertGreaterEqual(len(self.session.get_downloads()), 1)
+            dl = self.session.get_downloads()[0]
+            ds = DownloadState(dl, dl.dlstate, dl.error, 0.0)
+            ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': 'uTorrent 1.6.1'}]
+            dl.network_get_state = lambda x, y: ds
+            self.should_check_equality = False
+            return self.do_request('downloads?get_peers=1&get_pieces=1',
+                                   expected_code=200).addCallback(verify_download_list)
+
+        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
+        expected_json = {'started': True, 'infohash': '42bb0a78d8a10bef4a5aee3a7d9f1edf9941cee4'}
+        return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
+                               expected_json=expected_json).addCallback(verify_download)
+
+    @deferred(timeout=10)
+    def test_get_peers_illegal_fields_unicode(self):
+        """
+        Testing whether illegal fields are stripped from the Libtorrent download info response.
+        """
+        def verify_download_list(response):
+            response_dict = json.loads(response)
+            self.assertIn("downloads", response_dict)
+            self.assertEqual(1, len(response_dict["downloads"]))
+            self.assertIn("peers", response_dict["downloads"][0])
+            self.assertEqual(1, len(response_dict["downloads"][0]["peers"]))
+            self.assertNotIn('have', response_dict["downloads"][0]["peers"][0])
+            self.assertEqual(u'\xb5Torrent 1.6.1', response_dict["downloads"][0]["peers"][0]['extended_version'])
+
+        def verify_download(response):
+            self.assertTrue(json.loads(response)['started'])
+            self.assertGreaterEqual(len(self.session.get_downloads()), 1)
+            dl = self.session.get_downloads()[0]
+            ds = DownloadState(dl, dl.dlstate, dl.error, 0.0)
+            ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': '\xb5Torrent 1.6.1'}]
+            dl.network_get_state = lambda x, y: ds
+            self.should_check_equality = False
+            return self.do_request('downloads?get_peers=1&get_pieces=1',
+                                   expected_code=200).addCallback(verify_download_list)
+
+        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
+        expected_json = {'started': True, 'infohash': '42bb0a78d8a10bef4a5aee3a7d9f1edf9941cee4'}
+        return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
+                               expected_json=expected_json).addCallback(verify_download)
+
+    @deferred(timeout=10)
+    def test_get_peers_illegal_fields_unknown(self):
+        """
+        Testing whether illegal fields are stripped from the Libtorrent download info response.
+        """
+
+        def verify_download_list(response):
+            response_dict = json.loads(response)
+            self.assertIn("downloads", response_dict)
+            self.assertEqual(1, len(response_dict["downloads"]))
+            self.assertIn("peers", response_dict["downloads"][0])
+            self.assertEqual(1, len(response_dict["downloads"][0]["peers"]))
+            self.assertNotIn('have', response_dict["downloads"][0]["peers"][0])
+            self.assertEqual(u'', response_dict["downloads"][0]["peers"][0]['extended_version'])
+
+        def verify_download(response):
+            self.assertTrue(json.loads(response)['started'])
+            self.assertGreaterEqual(len(self.session.get_downloads()), 1)
+            dl = self.session.get_downloads()[0]
+            ds = DownloadState(dl, dl.dlstate, dl.error, 0.0)
+            ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': None}]
+            dl.network_get_state = lambda x, y: ds
+            self.should_check_equality = False
+            return self.do_request('downloads?get_peers=1&get_pieces=1',
+                                   expected_code=200).addCallback(verify_download_list)
+
+        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
+        expected_json = {'started': True, 'infohash': '42bb0a78d8a10bef4a5aee3a7d9f1edf9941cee4'}
+        return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
+                               expected_json=expected_json).addCallback(verify_download)
 
     @deferred(timeout=10)
     def test_start_download_from_magnet(self):

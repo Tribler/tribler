@@ -10,7 +10,8 @@ from twisted.internet import reactor
 
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
-from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread, attach_runtime_statistics
+from Tribler.dispersy.util import (call_on_reactor_thread, blocking_call_on_reactor_thread, attach_runtime_statistics,
+                                   is_valid_address)
 from .exception import InvalidPacketException, FileNotFound
 from .packet import (encode_packet, decode_packet, OPCODE_RRQ, OPCODE_WRQ, OPCODE_ACK, OPCODE_DATA, OPCODE_OACK,
                      OPCODE_ERROR, ERROR_DICT)
@@ -209,7 +210,7 @@ class TftpHandler(TaskManager):
         :param addr: The (IP, port) address tuple of the sender.
         :param data: The data received.
         """
-        if not self._is_running:
+        if not self._is_running or not is_valid_address(addr):
             return
 
         ip, port = addr

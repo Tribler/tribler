@@ -13,6 +13,7 @@ from twisted.web.client import getPage
 from Tribler.Core.Modules.channel.cache import SimpleCache
 from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Utilities.utilities import http_get
 from Tribler.Core.simpledefs import (SIGNAL_CHANNEL_COMMUNITY, SIGNAL_ON_TORRENT_UPDATED, SIGNAL_RSS_FEED,
                                      SIGNAL_ON_UPDATED)
 from Tribler.dispersy.taskmanager import TaskManager
@@ -84,26 +85,36 @@ class ChannelRssParser(TaskManager):
     def parse_feed(self):
         rss_parser = RSSFeedParser()
 
-        def_list = []
+        def on_rss_items(rss_items):
+            def_list = []
+            for rss_item in rss_items:
+                if self._to_stop:
+                    continue
 
-        for rss_item in rss_parser.parse(self.rss_url, self._url_cache):
-            if self._to_stop:
-                return None
+                torrent_url = rss_item[u'torrent_url'].encode('utf-8')
+                if torrent_url.startswith('magnet:'):
+                    self._logger.warning(u"Tribler does not support adding magnet links to a channel from a RSS feed.")
+                    continue
 
-            torrent_deferred = getPage(rss_item[u'torrent_url'].encode('utf-8'))
-            torrent_deferred.addCallback(lambda t, r=rss_item: self.on_got_torrent(t, rss_item=r))
-            def_list.append(torrent_deferred)
+                torrent_deferred = getPage(torrent_url)
+                torrent_deferred.addCallbacks(lambda t, r=rss_item: self.on_got_torrent(t, rss_item=r),
+                                              self.on_got_torrent_error)
+                def_list.append(torrent_deferred)
 
-        return DeferredList(def_list, consumeErrors=True)
+            return DeferredList(def_list, consumeErrors=True)
+
+        return rss_parser.parse(self.rss_url, self._url_cache).addCallback(on_rss_items)
 
     def _task_scrape(self):
-        self.parse_feed()
+        deferred = self.parse_feed()
 
         if not self._to_stop:
             # schedule the next scraping task
             self._logger.info(u"Finish scraping %s, schedule task after %s", self.rss_url, self.check_interval)
             self.register_task(u'rss_scrape',
                                reactor.callLater(self.check_interval, self._task_scrape))
+
+        return deferred
 
     def on_got_torrent(self, torrent_data, rss_item=None):
         if self._to_stop:
@@ -129,6 +140,12 @@ class ChannelRssParser(TaskManager):
         self._url_cache.save()
 
         self._logger.info(u"Channel torrent %s created", tdef.get_name_as_unicode())
+
+    def on_got_torrent_error(self, failure):
+        """
+        This callback is invoked when the lookup for a specific torrent failed.
+        """
+        self._logger.warning(u"Failed to fetch torrent info from RSS feed: %s", failure)
 
     def on_channel_torrent_created(self, subject, events, object_id, data_list):
         if self._to_stop:
@@ -157,8 +174,12 @@ class ChannelRssParser(TaskManager):
 
 class RSSFeedParser(object):
 
+    def __init__(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
+
     def _parse_html(self, content):
-        """Parses an HTML content and find links.
+        """
+        Parses an HTML content and find links.
         """
         if content is None:
             return None
@@ -175,7 +196,8 @@ class RSSFeedParser(object):
         return url_set
 
     def _html2plaintext(self, html_content):
-        """Converts an HTML document to plain text.
+        """
+        Converts an HTML document to plain text.
         """
         content = html_content.replace('\r\n', '\n')
 
@@ -201,30 +223,40 @@ class RSSFeedParser(object):
         return parsed_html_content
 
     def parse(self, url, cache):
-        """Parses a RSS feed. This methods supports RSS 2.0 and Media RSS.
         """
-        feed = feedparser.parse(url)
+        Parses a RSS feed. This methods supports RSS 2.0 and Media RSS.
+        """
+        def on_rss_response(response):
+            feed = feedparser.parse(response)
+            feed_items = []
 
-        for item in feed.entries:
-            # ignore the ones that we have seen before
-            link = item.get(u'link', None)
-            if link is None or cache.has(link):
-                continue
+            for item in feed.entries:
+                # ignore the ones that we have seen before
+                link = item.get(u'link', None)
+                if link is None or cache.has(link):
+                    continue
 
-            title = self._html2plaintext(item[u'title']).strip()
-            description = self._html2plaintext(item.get(u'media_description', u'')).strip()
-            torrent_url = item[u'link']
+                title = self._html2plaintext(item[u'title']).strip()
+                description = self._html2plaintext(item.get(u'media_description', u'')).strip()
+                torrent_url = item[u'link']
 
-            thumbnail_list = []
-            media_thumbnail_list = item.get(u'media_thumbnail', None)
-            if media_thumbnail_list:
-                for thumbnail in media_thumbnail_list:
-                    thumbnail_list.append(thumbnail[u'url'])
+                thumbnail_list = []
+                media_thumbnail_list = item.get(u'media_thumbnail', None)
+                if media_thumbnail_list:
+                    for thumbnail in media_thumbnail_list:
+                        thumbnail_list.append(thumbnail[u'url'])
 
-            # assemble the information
-            parsed_item = {u'title': title,
-                           u'description': description,
-                           u'torrent_url': torrent_url,
-                           u'thumbnail_list': thumbnail_list}
+                # assemble the information
+                parsed_item = {u'title': title,
+                               u'description': description,
+                               u'torrent_url': torrent_url,
+                               u'thumbnail_list': thumbnail_list}
 
-            yield parsed_item
+                feed_items.append(parsed_item)
+
+            return feed_items
+
+        def on_rss_error(failure):
+            self._logger.error("Error when fetching RSS feed: %s", failure)
+
+        return http_get(str(url)).addCallbacks(on_rss_response, on_rss_error)

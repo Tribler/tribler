@@ -109,6 +109,18 @@ class DownloadConfigInterface(object):
     def get_seeding_mode(self):
         return self.dlconfig.get('download_defaults', 'seeding_mode')
 
+    def set_seeding_time(self, value):
+        self.dlconfig.set('download_defaults', 'seeding_time', value)
+
+    def get_seeding_time(self):
+        return self.dlconfig.get('download_defaults', 'seeding_time')
+
+    def set_seeding_ratio(self, value):
+        self.dlconfig.set('download_defaults', 'seeding_ratio', value)
+
+    def get_seeding_ratio(self):
+        return self.dlconfig.get('download_defaults', 'seeding_ratio')
+
     def set_user_stopped(self, value):
         self.dlconfig.set('download_defaults', 'user_stopped', value)
 

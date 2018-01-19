@@ -55,6 +55,7 @@ class LibtorrentMgr(TaskManager):
 
         self.tribler_session = tribler_session
         self.ltsessions = {}
+        self.ltsession_metainfo = None
 
         self.notifier = tribler_session.notifier
 
@@ -84,6 +85,7 @@ class LibtorrentMgr(TaskManager):
     def initialize(self):
         # start upnp
         self.get_session().start_upnp()
+        self.ltsession_metainfo = self.create_session(hops=0, store_listen_port=False)
 
         # make temporary directory for metadata collecting through DHT
         self.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
@@ -115,6 +117,7 @@ class LibtorrentMgr(TaskManager):
         for ltsession in self.ltsessions.itervalues():
             del ltsession
         self.ltsessions = None
+        self.ltsession_metainfo = None
 
         # remove metadata temporary directory
         rmtree(self.metadata_tmpdir)
@@ -122,7 +125,7 @@ class LibtorrentMgr(TaskManager):
 
         self.tribler_session = None
 
-    def create_session(self, hops=0):
+    def create_session(self, hops=0, store_listen_port=True):
         settings = {}
 
         # Due to a bug in Libtorrent 0.16.18, the outgoing_port and num_outgoing_ports value should be set in
@@ -177,7 +180,7 @@ class LibtorrentMgr(TaskManager):
         if hops == 0:
             listen_port = self.tribler_session.config.get_libtorrent_port()
             ltsession.listen_on(listen_port, listen_port + 10)
-            if listen_port != ltsession.listen_port():
+            if listen_port != ltsession.listen_port() and store_listen_port:
                 self.tribler_session.config.set_libtorrent_port_runtime(ltsession.listen_port())
             try:
                 lt_state = lt.bdecode(
@@ -287,17 +290,12 @@ class LibtorrentMgr(TaskManager):
             else:
                 raise ValueError('No ti or url key in add_torrent_params')
 
-            if infohash in self.metainfo_requests:
-                self._logger.info("killing get_metainfo request for %s", infohash)
-                request_handle = self.metainfo_requests.pop(infohash)['handle']
-                if request_handle:
-                    ltsession.remove_torrent(request_handle, 0)
-
             # Check if we added this torrent before
             known = [str(h.info_hash()) for h in ltsession.get_torrents()]
             if infohash in known:
                 self.torrents[infohash] = (torrentdl, ltsession)
-                return ltsession.find_torrent(lt.sha1_hash(infohash))
+                infohash_bin = binascii.unhexlify(infohash)
+                return ltsession.find_torrent(lt.big_number(infohash_bin))
 
             # Otherwise, add it anew
             torrent_handle = ltsession.add_torrent(encode_atp(atp))
@@ -311,6 +309,10 @@ class LibtorrentMgr(TaskManager):
             return torrent_handle
 
     def remove_torrent(self, torrentdl, removecontent=False):
+        """
+        Start removing a torrent, the process is completed when a 'torrent_removed_alert'
+        is received in 'process_alert'.
+        """
         handle = torrentdl.handle
         if handle and handle.is_valid():
             infohash = str(handle.info_hash())
@@ -345,16 +347,20 @@ class LibtorrentMgr(TaskManager):
     def process_alert(self, alert):
         alert_type = str(type(alert)).split("'")[1].split(".")[-1]
         handle = getattr(alert, 'handle', None)
-        if handle:
-            if handle.is_valid():
-                infohash = str(handle.info_hash())
-                if infohash in self.torrents:
-                    self.torrents[infohash][0].process_alert(alert, alert_type)
-                elif infohash in self.metainfo_requests:
-                    if isinstance(alert, lt.metadata_received_alert):
-                        self.got_metainfo(infohash)
-                else:
-                    self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
+        if handle and handle.is_valid():
+            infohash = str(handle.info_hash())
+            if infohash in self.torrents:
+                self.torrents[infohash][0].process_alert(alert, alert_type)
+            else:
+                self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
+
+        if alert_type == 'torrent_removed_alert':
+            info_hash = str(alert.info_hash)
+            if info_hash in self.torrents:
+                deferred = self.torrents[info_hash][0].deferred_removed
+                del self.torrents[info_hash]
+                deferred.callback(None)
+                self._logger.debug("LibtorrentMgr: ['torrent_removed_alert'] removed torrent %s", info_hash)
             else:
                 if alert_type == 'torrent_removed_alert':
                     info_hash = str(alert.info_hash)
@@ -362,6 +368,8 @@ class LibtorrentMgr(TaskManager):
                         deferred = self.torrents[info_hash][0].deferred_removed
                         del self.torrents[info_hash]
                         deferred.callback(None)
+                    else:
+                        self._logger.debug("LibtorrentMgr: ['torrent_removed_alert'] invalid torrent %s", info_hash)
                 self._logger.debug("Alert for invalid torrent")
         if self.alert_callback:
             self.alert_callback(alert)
@@ -396,21 +404,20 @@ class LibtorrentMgr(TaskManager):
             elif infohash not in self.metainfo_requests:
                 # Flags = 4 (upload mode), should prevent libtorrent from creating files
                 atp = {'save_path': self.metadata_tmpdir,
-                       'flags': (lt.add_torrent_params_flags_t.flag_duplicate_is_error |
-                                 lt.add_torrent_params_flags_t.flag_upload_mode)}
+                       'flags': (lt.add_torrent_params_flags_t.flag_upload_mode)}
                 if magnet:
                     atp['url'] = magnet
                 else:
                     atp['info_hash'] = lt.big_number(infohash_bin)
                 try:
-                    handle = self.get_session().add_torrent(encode_atp(atp))
+                    handle = self.ltsession_metainfo.add_torrent(encode_atp(atp))
                 except TypeError as e:
                     self._logger.warning("Failed to add torrent with infohash %s, "
                                          "attempting to use it as it is and hoping for the best",
                                          hexlify(infohash_bin))
                     self._logger.warning("Error was: %s", e)
                     atp['info_hash'] = infohash_bin
-                    handle = self.get_session().add_torrent(encode_atp(atp))
+                    handle = self.ltsession_metainfo.add_torrent(encode_atp(atp))
 
                 if notify:
                     self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_STARTED, infohash_bin)
@@ -419,6 +426,12 @@ class LibtorrentMgr(TaskManager):
                                                     'callbacks': [callback],
                                                     'timeout_callbacks': [timeout_callback] if timeout_callback else [],
                                                     'notify': notify}
+
+                # if the handle is valid and already has metadata which is the case when torrent already exists in
+                # session then metadata_received_alert is not fired so we call self.got_metainfo() directly here
+                if handle.is_valid() and handle.has_metadata():
+                    self.got_metainfo(infohash, timeout=False)
+                    return
 
                 def schedule_call():
                     random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
@@ -489,7 +502,7 @@ class LibtorrentMgr(TaskManager):
                             callback(infohash_bin)
 
                 if handle:
-                    self.get_session().remove_torrent(handle, 1)
+                    self.ltsession_metainfo.remove_torrent(handle, 1)
                     if notify:
                         self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_CLOSE, infohash_bin)
 
@@ -514,6 +527,13 @@ class LibtorrentMgr(TaskManager):
             if ltsession:
                 for alert in ltsession.pop_alerts():
                     self.process_alert(alert)
+
+        # We have a separate session for metainfo requests.
+        # For this session we are only interested in the metadata_received_alert.
+        if self.ltsession_metainfo:
+            for alert in self.ltsession_metainfo.pop_alerts():
+                if isinstance(alert, lt.metadata_received_alert):
+                    self.got_metainfo(str(alert.handle.info_hash()))
 
     def _check_reachability(self):
         if self.get_session() and self.get_session().status().has_incoming_connections:

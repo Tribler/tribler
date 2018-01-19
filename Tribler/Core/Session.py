@@ -29,7 +29,8 @@ from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnab
     DuplicateTorrentFileError
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_MYPREFERENCES, NTFY_PEERS,
                                      NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
-                                     STATEDIR_WALLET_DIR)
+                                     STATEDIR_WALLET_DIR, STATE_OPEN_DB, STATE_START_API, STATE_UPGRADING_READABLE,
+                                     STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED)
 from Tribler.Core.statistics import TriblerStatistics
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -92,8 +93,9 @@ class Session(object):
         self.notifier = Notifier()
 
         self.sqlite_db = None
-        self.upgrader = None
+        self.upgrader_enabled = True
         self.dispersy_member = None
+        self.readable_status = ''  # Human-readable string to indicate the status during startup/shutdown of Tribler
 
         self.autoload_discovery = autoload_discovery
 
@@ -221,6 +223,10 @@ class Session(object):
 
             if 'socket.error: [Errno 51]' in text:
                 self._logger.error("Could not send data: network is unreachable.")
+                return
+
+            if 'exceptions.ValueError: Invalid DNS-ID' in text:
+                self._logger.error("Invalid DNS-ID")
                 return
 
             if self.lm.api_manager and len(text) > 0:
@@ -470,6 +476,7 @@ class Session(object):
         db_path = os.path.join(self.config.get_state_dir(), DB_FILE_RELATIVE_PATH)
 
         self.sqlite_db = SQLiteCacheDB(db_path)
+        self.readable_status = STATE_OPEN_DB
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
 
@@ -482,19 +489,23 @@ class Session(object):
         # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
         if self.config.get_http_api_enabled():
             self.lm.api_manager = RESTManager(self)
+            self.readable_status = STATE_START_API
             self.lm.api_manager.start()
 
         self.start_database()
 
-        if self.config.get_upgrader_enabled():
-            self.upgrader = TriblerUpgrader(self, self.sqlite_db)
-            self.upgrader.run()
+        if self.upgrader_enabled:
+            upgrader = TriblerUpgrader(self, self.sqlite_db)
+            self.readable_status = STATE_UPGRADING_READABLE
+            upgrader.run()
 
         startup_deferred = self.lm.register(self, self.session_lock)
 
         def load_checkpoint(_):
             if self.config.get_libtorrent_enabled():
+                self.readable_status = STATE_LOAD_CHECKPOINTS
                 self.load_checkpoint()
+            self.readable_status = STATE_READABLE_STARTED
 
         return startup_deferred.addCallback(load_checkpoint)
 

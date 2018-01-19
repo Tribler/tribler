@@ -1,3 +1,4 @@
+import json
 import os
 from urllib import quote_plus
 from PyQt5 import uic
@@ -6,6 +7,8 @@ from PyQt5.QtWidgets import QDialog, QTreeWidgetItem, QAction
 import sys
 import platform
 import time
+
+from TriblerGUI.event_request_manager import received_events
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import performed_requests as tribler_performed_requests, TriblerRequestManager
 from TriblerGUI.utilities import get_ui_file_path
@@ -58,12 +61,19 @@ class FeedbackDialog(QDialog):
         for key in os.environ.keys():
             add_item_to_info_widget('os.environ', '%s: %s' % (key, os.environ[key]))
 
+        # Add recent requests to feedback dialog
         request_ind = 1
-        for endpoint, method, data, timestamp, status_code in sorted(tribler_performed_requests.values(),
+        for endpoint, method, data, timestamp, status_code in sorted(tribler_performed_requests,
                                                                      key=lambda x: x[3])[-30:]:
             add_item_to_info_widget('request_%d' % request_ind, '%s %s %s (time: %s, code: %s)' %
-                                    (endpoint, method, data, timestamp, status_code))
+                                    (endpoint, method, data, timestamp, status_code()))
             request_ind += 1
+
+        # Add recent events to feedback dialog
+        events_ind = 1
+        for event, event_time in received_events[:30][::-1]:
+            add_item_to_info_widget('event_%d' % events_ind, '%s (time: %s)' % (json.dumps(event), event_time))
+            events_ind += 1
 
         # Users can remove specific lines in the report
         self.env_variables_list.customContextMenuRequested.connect(self.on_right_click_item)
@@ -88,8 +98,15 @@ class FeedbackDialog(QDialog):
     def on_cancel_clicked(self):
         QApplication.quit()
 
-    def on_report_sent(self, _):
+    def on_report_sent(self, response):
+        sent = response[u'sent']
         QApplication.quit()
+        from check_os import error_and_exit
+        if sent:
+            error_and_exit("Report Sent", "Successfully sent the report! Thanks for your contribution.")
+        else:
+            error_and_exit("ERROR: Report Sending Failed",
+                           "Could not send the report! Please post this issue on GitHub.")
 
     def on_send_clicked(self):
         self.request_mgr = TriblerRequestManager()

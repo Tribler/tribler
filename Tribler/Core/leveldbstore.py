@@ -74,10 +74,15 @@ class LevelDbStore(MutableMapping, TaskManager):
                 rmtree(self._store_dir)
                 os.makedirs(self._store_dir)
                 self._db = self._leveldb(os.path.relpath(store_dir, os.getcwdu()))
+            else:  # If something else goes wrong, we throw the exception again
+                raise
 
         self._writeback_lc = self.register_task("flush cache ", LoopingCall(self.flush))
         self._writeback_lc.clock = self._reactor
         self._writeback_lc.start(WRITEBACK_PERIOD)
+
+    def get_db(self):
+        return self._db
 
     def __getitem__(self, key):
         try:
@@ -87,7 +92,6 @@ class LevelDbStore(MutableMapping, TaskManager):
 
     def __setitem__(self, key, value):
         self._pending_torrents[key] = value
-        # self._db.Put(key, value)
 
     def __delitem__(self, key):
         if key in self._pending_torrents:

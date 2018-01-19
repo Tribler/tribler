@@ -276,6 +276,7 @@ class TestAsServer(AbstractServer):
         self.seed_config = None
 
         self.session = Session(self.config)
+        self.session.upgrader_enabled = False
 
         self.tribler_started_deferred = self.session.start()
         yield self.tribler_started_deferred
@@ -301,7 +302,6 @@ class TestAsServer(AbstractServer):
         self.config.set_libtorrent_enabled(False)
         self.config.set_video_server_enabled(False)
         self.config.set_metadata_enabled(False)
-        self.config.set_upgrader_enabled(False)
         self.config.set_http_api_enabled(False)
         self.config.set_tunnel_community_enabled(False)
         self.config.set_credit_mining_enabled(False)
@@ -354,11 +354,11 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_torrent_store_enabled(False)
         self.seed_config.set_torrent_search_enabled(False)
         self.seed_config.set_channel_search_enabled(False)
+        self.seed_config.set_http_api_enabled(False)
         self.seed_config.set_torrent_collecting_enabled(False)
         self.seed_config.set_libtorrent_enabled(True)
         self.seed_config.set_video_server_enabled(False)
         self.seed_config.set_metadata_enabled(False)
-        self.seed_config.set_upgrader_enabled(False)
         self.seed_config.set_tunnel_community_enabled(False)
         self.seed_config.set_state_dir(self.getStateDir(2))
 
@@ -371,6 +371,7 @@ class TestAsServer(AbstractServer):
         self._logger.debug("starting to wait for download to reach seeding state")
 
         self.seeder_session = Session(self.seed_config, ignore_singleton=True)
+        self.seeder_session.upgrader_enabled = False
         self.seeder_session.start().addCallback(start_seed_download)
 
         return self.seeding_deferred
