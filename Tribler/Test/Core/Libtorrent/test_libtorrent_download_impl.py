@@ -142,7 +142,6 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         fake_handler.status = lambda: fake_status
         fake_handler.set_share_mode = lambda _: None
         fake_handler.resume = lambda: None
-        fake_handler.resolve_countries = lambda _: None
         fake_status = MockObject()
         fake_status.share_mode = False
         # Create a dummy download config
