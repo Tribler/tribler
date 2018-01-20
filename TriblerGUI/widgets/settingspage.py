@@ -107,23 +107,23 @@ class SettingsPage(QWidget):
         self.window().log_location_input.setText(settings['general']['log_dir'])
 
         # Connection settings
-        self.window().lt_proxy_type_combobox.setCurrentIndex(settings['libtorrent']['proxy_type'])
-        if settings['libtorrent']['proxy_server_ip'] and settings['libtorrent']['proxy_server_port']:
-            self.window().lt_proxy_server_input.setText(settings['libtorrent']['proxy_server_ip'])
-            self.window().lt_proxy_port_input.setText("%d" % settings['libtorrent']['proxy_server_port'])
-        if settings['libtorrent']['proxy_auth']:
-            self.window().lt_proxy_username_input.setText(settings['libtorrent']['proxy_auth'][0])
-            self.window().lt_proxy_password_input.setText(settings['libtorrent']['proxy_auth'][1])
-        self.window().lt_utp_checkbox.setChecked(settings['libtorrent']['utp'])
+        self.window().lt_proxy_type_combobox.setCurrentIndex(settings['downloading']['proxy_type'])
+        if settings['downloading']['proxy_server_ip'] and settings['downloading']['proxy_server_port']:
+            self.window().lt_proxy_server_input.setText(settings['downloading']['proxy_server_ip'])
+            self.window().lt_proxy_port_input.setText("%d" % settings['downloading']['proxy_server_port'])
+        if settings['downloading']['proxy_auth']:
+            self.window().lt_proxy_username_input.setText(settings['downloading']['proxy_auth'][0])
+            self.window().lt_proxy_password_input.setText(settings['downloading']['proxy_auth'][1])
+        self.window().lt_utp_checkbox.setChecked(settings['downloading']['utp'])
 
-        max_conn_download = settings['libtorrent']['max_connections_download']
+        max_conn_download = settings['downloading']['max_connections_download']
         if max_conn_download == -1:
             max_conn_download = 0
         self.window().max_connections_download_input.setText(str(max_conn_download))
 
         # Bandwidth settings
-        self.window().upload_rate_limit_input.setText(str(settings['libtorrent']['max_upload_rate'] / 1024))
-        self.window().download_rate_limit_input.setText(str(settings['libtorrent']['max_download_rate'] / 1024))
+        self.window().upload_rate_limit_input.setText(str(settings['downloading']['max_upload_rate'] / 1024))
+        self.window().download_rate_limit_input.setText(str(settings['downloading']['max_download_rate'] / 1024))
 
         # Seeding settings
         getattr(self.window(), "seeding_" + settings['download_defaults']['seeding_mode'] + "_radio").setChecked(True)
@@ -155,7 +155,7 @@ class SettingsPage(QWidget):
 
     def save_settings(self):
         # Create a dictionary with all available settings
-        settings_data = {'general': {}, 'Tribler': {}, 'download_defaults': {}, 'libtorrent': {}, 'watch_folder': {},
+        settings_data = {'general': {}, 'Tribler': {}, 'download_defaults': {}, 'downloading': {}, 'watch_folder': {},
                          'tunnel_community': {}, 'trustchain': {}}
         settings_data['general']['family_filter'] = self.window().family_filter_checkbox.isChecked()
         settings_data['download_defaults']['destination_dir'] = self.window().download_location_input.text()
@@ -165,14 +165,14 @@ class SettingsPage(QWidget):
         if settings_data['watch_folder']['enabled']:
             settings_data['watch_folder']['directory'] = self.window().watchfolder_location_input.text()
 
-        settings_data['libtorrent']['proxy_type'] = self.window().lt_proxy_type_combobox.currentIndex()
+        settings_data['downloading']['proxy_type'] = self.window().lt_proxy_type_combobox.currentIndex()
 
         if self.window().lt_proxy_server_input.text()\
             and len(self.window().lt_proxy_server_input.text()) > 0\
             and len(self.window().lt_proxy_port_input.text()) > 0:
-            settings_data['libtorrent']['proxy_server_ip'] = self.window().lt_proxy_server_input.text(), None
+            settings_data['downloading']['proxy_server_ip'] = self.window().lt_proxy_server_input.text(), None
             try:
-                settings_data['libtorrent']['proxy_server_port'] = int(self.window().lt_proxy_port_input.text())
+                settings_data['downloading']['proxy_server_port'] = int(self.window().lt_proxy_port_input.text())
             except ValueError:
                 ConfirmationDialog.show_error(self.window(), "Invalid proxy port number",
                                               "You've entered an invalid format for the proxy port number. "
@@ -181,10 +181,10 @@ class SettingsPage(QWidget):
 
         if len(self.window().lt_proxy_username_input.text()) > 0 and \
                         len(self.window().lt_proxy_password_input.text()) > 0:
-            settings_data['libtorrent']['proxy_auth'] = [None, None]
-            settings_data['libtorrent']['proxy_auth'][0] = self.window().lt_proxy_username_input.text()
-            settings_data['libtorrent']['proxy_auth'][1] = self.window().lt_proxy_password_input.text()
-        settings_data['libtorrent']['utp'] = self.window().lt_utp_checkbox.isChecked()
+            settings_data['downloading']['proxy_auth'] = [None, None]
+            settings_data['downloading']['proxy_auth'][0] = self.window().lt_proxy_username_input.text()
+            settings_data['downloading']['proxy_auth'][1] = self.window().lt_proxy_password_input.text()
+        settings_data['downloading']['utp'] = self.window().lt_utp_checkbox.isChecked()
 
         try:
             max_conn_download = int(self.window().max_connections_download_input.text())
@@ -195,14 +195,14 @@ class SettingsPage(QWidget):
             return
         if max_conn_download == 0:
             max_conn_download = -1
-        settings_data['libtorrent']['max_connections_download'] = max_conn_download
+        settings_data['downloading']['max_connections_download'] = max_conn_download
 
         try:
             if self.window().upload_rate_limit_input.text():
-                settings_data['libtorrent']['max_upload_rate'] = int(self.window().upload_rate_limit_input.text()) \
+                settings_data['downloading']['max_upload_rate'] = int(self.window().upload_rate_limit_input.text()) \
                                                                  * 1024
             if self.window().download_rate_limit_input.text():
-                settings_data['libtorrent']['max_download_rate'] = int(self.window().download_rate_limit_input.text()) \
+                settings_data['downloading']['max_download_rate'] = int(self.window().download_rate_limit_input.text()) \
                                                                    * 1024
         except ValueError:
             ConfirmationDialog.show_error(self.window(), "Invalid number for maximum upload/download",
