@@ -30,8 +30,8 @@ from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnab
     DuplicateTorrentFileError
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_MYPREFERENCES, NTFY_PEERS,
                                      NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
-                                     STATEDIR_WALLET_DIR, STATE_OPEN_DB, STATE_START_API, STATE_UPGRADING_READABLE,
-                                     STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED)
+                                     STATEDIR_WALLET_DIR, STATE_OPEN_DB, STATE_UPGRADING_READABLE,
+                                     STATE_READABLE_STARTED, STATE_START_API, STATE_LOAD_CHECKPOINTS)
 from Tribler.Core.statistics import TriblerStatistics
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -185,6 +185,10 @@ class Session(object):
 
             if 'socket.error: [Errno 51]' in text:
                 self._logger.error("Could not send data: network is unreachable.")
+                return
+
+            if 'exceptions.ValueError' in text:
+                self._logger.error("Invalid DNS-ID")
                 return
 
             if self.download_manager.api_manager and len(text) > 0:
@@ -446,6 +450,7 @@ class Session(object):
         # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
         if self.config.get_http_api_enabled():
             self.download_manager.api_manager = RESTManager(self)
+            self.readable_status = STATE_START_API
             self.download_manager.api_manager.start()
 
         self.start_database()
@@ -459,6 +464,7 @@ class Session(object):
 
         def load_checkpoint(_):
             if self.config.get_downloading_enabled():
+                self.readable_status = STATE_LOAD_CHECKPOINTS
                 self.load_checkpoint()
             self.readable_status = STATE_READABLE_STARTED
 

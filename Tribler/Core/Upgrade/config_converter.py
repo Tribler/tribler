@@ -157,7 +157,7 @@ def add_libtribler_config(new_config, old_config):
             elif section == "libtorrent" and name == "lt_proxyauth":
                 temp_config.config["libtorrent"]["proxy_auth"] = value
             elif section == "libtorrent" and name == "max_connections_download":
-                temp_config.set_libtorrent_max_conn_download(value)
+                temp_config.set_downloading_max_connections_per_download(value)
             elif section == "libtorrent" and name == "max_download_rate":
                 temp_config.set_downloading_max_download_rate(value)
             elif section == "libtorrent" and name == "max_upload_rate":

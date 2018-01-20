@@ -50,8 +50,7 @@ class BoostingSettings(object):
         self.initial_swarm_interval = 30
         self.min_connection_start = 5
         self.min_channels_start = 100
-        self.credit_mining_path = os.path.join(DownloadConfig().get_destination_dir(),
-                                               CREDIT_MINING_FOLDER_DOWNLOAD)
+        self.credit_mining_path = os.path.join(DownloadConfig().get_destination_dir(), CREDIT_MINING_FOLDER_DOWNLOAD)
         self.load_config = load_config
 
         # whether we want to check dependencies of BoostingManager

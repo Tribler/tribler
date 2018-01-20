@@ -345,7 +345,7 @@ class TriblerConfig(object):
                  [int(s) for s in server_ports] if server_ports else None),
                 self.config['downloading']['anon_proxy_auth'])
 
-    def set_downloading_max_conn_download(self, value):
+    def set_downloading_max_connections_per_download(self, value):
         """
         Set the maximum amount of connections for each download.
 

@@ -113,8 +113,8 @@ class TorrentChecker(TaskManager):
         self._reschedule_tracker_select()
 
         # start selecting torrents
-        result = self.tribler_session.download_manager.tracker_manager.get_next_tracker_for_auto_check()
-        if result is None:
+        tracker_url = self.tribler_session.download_manager.tracker_manager.get_next_tracker_for_auto_check()
+        if tracker_url is None:
             self._logger.warn(u"No tracker to select from, skip")
             return succeed(None)
 

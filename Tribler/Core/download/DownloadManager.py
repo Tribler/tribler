@@ -492,6 +492,7 @@ class DownloadManager(TaskManager):
         """
         Update the amount of hops for a specified download. This can be done on runtime.
         """
+        # TODO: Shouldn't more work be done here? Compare with `devel`.
         infohash = hexlify(download.tdef.get_infohash())
         self._logger.info("Updating the amount of hops of download %s", infohash)
         yield self.session.remove_download(download)
