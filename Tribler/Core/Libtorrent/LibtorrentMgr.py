@@ -13,6 +13,7 @@ import os
 import time
 from binascii import hexlify
 from copy import deepcopy
+from distutils.version import LooseVersion
 from shutil import rmtree
 
 from twisted.internet import reactor, threads
@@ -117,19 +118,23 @@ class LibtorrentMgr(TaskManager):
         settings['outgoing_port'] = 0
         settings['num_outgoing_ports'] = 1
 
+        # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
+        fingerprint = ['TL'] + map(int, version_id.split('-')[0].split('.')) + [0]
+        ltsession = lt.session(lt.fingerprint(*fingerprint), flags=1) if hops == 0 else lt.session(flags=0)
+
         if hops == 0:
             settings['user_agent'] = 'Tribler/' + version_id
-            # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
-            fingerprint = ['TL'] + map(int, version_id.split('-')[0].split('.')) + [0]
-            # Workaround for libtorrent 0.16.3 segfault (see https://code.google.com/p/libtorrent/issues/detail?id=369)
-            ltsession = lt.session(lt.fingerprint(*fingerprint), flags=1)
             enable_utp = self.trsession.get_libtorrent_utp()
             settings['enable_outgoing_utp'] = enable_utp
             settings['enable_incoming_utp'] = enable_utp
 
-            pe_settings = lt.pe_settings()
-            pe_settings.prefer_rc4 = True
-            ltsession.set_pe_settings(pe_settings)
+            if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
+                settings['prefer_rc4'] = True
+                settings["listen_interfaces"] = "0.0.0.0:%d" % self.trsession.get_listen_port()
+            else:
+                pe_settings = lt.pe_settings()
+                pe_settings.prefer_rc4 = True
+                ltsession.set_pe_settings(pe_settings)
         else:
             settings['enable_outgoing_utp'] = True
             settings['enable_incoming_utp'] = True
@@ -137,6 +142,10 @@ class LibtorrentMgr(TaskManager):
             settings['enable_incoming_tcp'] = False
             settings['anonymous_mode'] = True
             settings['force_proxy'] = True
+
+            if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
+                settings["listen_interfaces"] = "0.0.0.0:%d" % self.trsession.get_anon_listen_port()
+
             # No PEX for anonymous sessions
             ltsession = lt.session(flags=0)
             ltsession.add_extension(lt.create_ut_metadata_plugin)
@@ -198,22 +207,34 @@ class LibtorrentMgr(TaskManager):
         return self.ltsessions[hops]
 
     def set_proxy_settings(self, ltsession, ptype, server=None, auth=None):
-        proxy_settings = lt.proxy_settings()
-        proxy_settings.type = lt.proxy_type(ptype)
-        if server and server[0] and server[1]:
-            proxy_settings.hostname = server[0]
-            proxy_settings.port = int(server[1])
-        if auth:
-            proxy_settings.username = auth[0]
-            proxy_settings.password = auth[1]
-        proxy_settings.proxy_hostnames = True
-        proxy_settings.proxy_peer_connections = True
-
-        if ltsession is not None:
-            ltsession.set_proxy(proxy_settings)
+        """
+        Apply the proxy settings to a libtorrent session. This mechanism changed significantly in libtorrent 1.1.0.
+        """
+        if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
+            settings = ltsession.get_settings()
+            settings["proxy_type"] = ptype
+            settings["proxy_hostnames"] = True
+            settings["proxy_peer_connections"] = True
+            if server and server[0] and server[1]:
+                settings["proxy_hostname"] = server[0]
+                settings["proxy_port"] = int(server[1])
+            if auth:
+                settings["proxy_username"] = auth[0]
+                settings["proxy_password"] = auth[1]
+            ltsession.set_settings(settings)
         else:
-            # only apply the proxy settings to normal libtorrent session (with hops = 0)
-            self.ltsessions[0].set_proxy(proxy_settings)
+            proxy_settings = lt.proxy_settings()
+            proxy_settings.type = lt.proxy_type(ptype)
+            if server and server[0] and server[1]:
+                proxy_settings.hostname = server[0]
+                proxy_settings.port = int(server[1])
+            if auth:
+                proxy_settings.username = auth[0]
+                proxy_settings.password = auth[1]
+            proxy_settings.proxy_hostnames = True
+            proxy_settings.proxy_peer_connections = True
+
+            ltsession.set_proxy(proxy_settings)
 
     def set_utp(self, enable, hops=None):
         def do_set_utp(ltsession):
