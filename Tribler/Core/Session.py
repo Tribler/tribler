@@ -82,10 +82,10 @@ class Session(object):
         self.get_ports_in_config()
         self.create_state_directory_structure()
 
-        if not config.get_megacache_enabled():
-            config.set_torrent_checking_enabled(False)
+        if not self.config.get_megacache_enabled():
+            self.config.set_torrent_checking_enabled(False)
 
-        self.selected_ports = config.selected_ports
+        self.selected_ports = self.config.selected_ports
 
         self.init_keypair()
 
