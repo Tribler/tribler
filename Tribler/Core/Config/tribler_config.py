@@ -287,7 +287,7 @@ class TriblerConfig(object):
     def set_downloading_proxy_settings(self, proxy_type, server_ip=None, server_port=None, auth=None):
         """
         Set which proxy should be used while downloading.
-        
+
         Default is no proxy.
 
         :param proxy_type: int (0 = no proxy server,
