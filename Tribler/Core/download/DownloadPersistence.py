@@ -3,13 +3,19 @@ Contains a snapshot of the state of the Download at a specific point in time.
 
 Author(s): Arno Bakker
 """
+import json
 import logging
+import os
+from binascii import unhexlify, hexlify
 
+from copy import deepcopy
+
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
                                      DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, UPLOAD)
 
 
-class DownloadState(object):
+class DownloadSnapshot(object):
     """
     Contains a snapshot of the state of the download at a specific
     point in time. Using a snapshot instead of providing live data and
@@ -433,3 +439,62 @@ class DownloadState(object):
             return {}
         else:
             return self.stats['tracker_status']
+
+
+class DownloadResumeInfo:
+    # TODO: Handle binary data
+    def __init__(self, id, config, state, resume_data=None):
+        self.id = id
+        self.config = config
+        self.state = state
+        self.resume_data = resume_data
+
+    def get_resume_data(self):
+        return self.resume_data
+
+    def set_resume_data(self, data):
+        self.resume_data = data
+
+    @staticmethod
+    def get_file_paths(directory, id):
+        root = os.path.join(directory, id)
+        return {
+            'root': root,
+            'config': os.path.join(root, 'config.json'),
+            'state': os.path.join(root, 'state.json'),
+            'resume_data': os.path.join(root, 'resume_data'),
+        }
+
+    def write_to_directory(self, directory):
+        paths = DownloadResumeInfo.get_file_paths(directory, self.id)
+
+        if not os.path.isdir(paths['root']):
+            os.makedirs(paths['root'])
+
+        with open(paths['config'], 'w') as output_file:
+            json.dumps(self.config, output_file)
+        with open(paths['state'], 'w') as output_file:
+            json.dump(self.state, output_file)
+        with open(paths['resume_data'], 'w') as output_file:
+            output_file.write(self.resume_data)
+
+    @staticmethod
+    def read_from_directory(directory, id):
+        paths = DownloadResumeInfo.get_file_paths(directory, id)
+
+        with open(paths['config'], 'r') as input_file:
+            config = json.loads(input_file)
+        with open(paths['config'], 'r') as input_file:
+            state = json.loads(input_file)
+        resume_data = None
+        if os.path.isfile(paths['resume_data']):
+            with open(paths['config'], 'r') as input_file:
+                resume_data = input_file.read()
+
+        return DownloadResumeInfo(id, config, state, resume_data)
+
+    def to_download_config(self):
+        config = DownloadConfig()
+        for key in config.config:
+            config.config[key] = deepcopy(self.state[key])
+        return config

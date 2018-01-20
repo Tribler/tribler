@@ -24,12 +24,12 @@ from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.download.DownloadManager import DownloadManager
 from Tribler.Core.Modules.restapi.rest_manager import RESTManager
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
-from Tribler.Core.Utilities import torrent_utils
+from Tribler.Core.download import utils
 from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
     DuplicateTorrentFileError
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_MYPREFERENCES, NTFY_PEERS,
-                                     NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
+                                     NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_RESUME_INFO_DIRECTORY,
                                      STATEDIR_WALLET_DIR, STATE_OPEN_DB, STATE_UPGRADING_READABLE,
                                      STATE_READABLE_STARTED, STATE_START_API, STATE_LOAD_CHECKPOINTS)
 from Tribler.Core.statistics import TriblerStatistics
@@ -102,7 +102,7 @@ class Session(object):
         create_dir(self.config.get_torrent_store_dir())
         create_dir(self.config.get_metadata_store_dir())
         create_in_state_dir(DB_DIR_NAME)
-        create_in_state_dir(STATEDIR_DLPSTATE_DIR)
+        create_in_state_dir(STATEDIR_RESUME_INFO_DIRECTORY)
         create_in_state_dir(STATEDIR_WALLET_DIR)
 
     def get_ports_in_config(self):
@@ -207,7 +207,7 @@ class Session(object):
         :return: a deferred that fires when a download has been added to the Tribler core
         """
         if self.config.get_downloading_enabled():
-            return self.download_manager.ltmgr.start_download_from_uri(uri, download_config=download_config)
+            return self.download_manager.session_manager.start_download_from_uri(uri, download_config=download_config)
         raise OperationNotEnabledByConfigurationException()
 
     def start_download_from_tdef(self, torrent_definition, download_config=None, hidden=False):
@@ -231,18 +231,6 @@ class Session(object):
         if self.config.get_downloading_enabled():
             return self.download_manager.add(torrent_definition, download_config, hidden=hidden)
         raise OperationNotEnabledByConfigurationException()
-
-    def resume_download_from_file(self, filename):
-        """
-        Recreates download from resume file.
-
-        Note: this cannot be made into a method of download, as the download
-        needs to be bound to a session, it cannot exist independently.
-
-        :return: a download object
-        :raises: a NotYetImplementedException
-        """
-        raise NotYetImplementedException()
 
     def get_downloads(self):
         """
@@ -506,13 +494,6 @@ class Session(object):
         """
         return self.download_manager.sessdoneflag.isSet()
 
-    def get_downloads_pstate_dir(self):
-        """
-        Returns the directory in which to checkpoint the Downloads in this
-        Session. This function is called by the network thread.
-        """
-        return os.path.join(self.config.get_state_dir(), STATEDIR_DLPSTATE_DIR)
-
     def download_torrentfile(self, infohash=None, user_callback=None, priority=0):
         """
         Try to download the torrent file without a known source. A possible source could be the DHT.
@@ -580,7 +561,7 @@ class Session(object):
         if not self.config.get_downloading_enabled():
             raise OperationNotEnabledByConfigurationException()
 
-        return self.download_manager.ltmgr
+        return self.download_manager.session_manager
 
     #
     # Internal persistence methods
@@ -673,7 +654,7 @@ class Session(object):
         :return: a Deferred that fires when the torrent file has been created
         """
         params = params or {}
-        return threads.deferToThread(torrent_utils.create_torrent_file, file_path_list, params)
+        return threads.deferToThread(utils.create_torrent_file, file_path_list, params)
 
     def create_channel(self, name, description, mode=u'closed'):
         """

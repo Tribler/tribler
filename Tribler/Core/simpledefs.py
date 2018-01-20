@@ -32,7 +32,7 @@ DLMODE_VOD = 1
 
 PERSISTENTSTATE_CURRENTVERSION = 5
 
-STATEDIR_DLPSTATE_DIR = u'dlcheckpoints'
+STATEDIR_RESUME_INFO_DIRECTORY = u'dlcheckpoints'
 STATEDIR_WALLET_DIR = u'wallet'
 
 # For observer/callback mechanism, see Session.add_observer()

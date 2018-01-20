@@ -7,7 +7,7 @@ from twisted.internet.defer import fail
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.download.DownloadPersistence import DownloadState
+from Tribler.Core.download.DownloadPersistence import DownloadSnapshot
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.common import UBUNTU_1504_INFOHASH, TESTS_DATA_DIR
 from Tribler.Test.twisted_thread import deferred
@@ -125,7 +125,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertTrue(json.loads(response)['started'])
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
-            ds = DownloadState(dl, dl.dlstate, dl.error, 0.0)
+            ds = DownloadSnapshot(dl, dl.dlstate, dl.error, 0.0)
             ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': 'uTorrent 1.6.1'}]
             dl.network_get_state = lambda x, y: ds
             self.should_check_equality = False
@@ -155,7 +155,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertTrue(json.loads(response)['started'])
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
-            ds = DownloadState(dl, dl.dlstate, dl.error, 0.0)
+            ds = DownloadSnapshot(dl, dl.dlstate, dl.error, 0.0)
             ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': '\xb5Torrent 1.6.1'}]
             dl.network_get_state = lambda x, y: ds
             self.should_check_equality = False
@@ -186,7 +186,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertTrue(json.loads(response)['started'])
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
-            ds = DownloadState(dl, dl.dlstate, dl.error, 0.0)
+            ds = DownloadSnapshot(dl, dl.dlstate, dl.error, 0.0)
             ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': None}]
             dl.network_get_state = lambda x, y: ds
             self.should_check_equality = False

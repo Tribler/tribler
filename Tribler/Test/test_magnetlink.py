@@ -16,7 +16,7 @@ from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.download.DownloadConfig import DownloadConfig
-from Tribler.Core.download.DownloadSessionHandle import DownloadSessionHandle
+from Tribler.Core.download.DownloadSessionManager import DownloadSessionManager
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
 from Tribler.Test.btconn import BTConnection
 from Tribler.Test.common import TESTS_DATA_DIR, UBUNTU_1504_INFOHASH
@@ -214,7 +214,7 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
 
         def do_supply():
             # supply fake addresses (regular dht obviously wont work here)
-            ltmgr = DownloadSessionHandle.getInstance()
+            ltmgr = DownloadSessionManager.getInstance()
             for infohash in ltmgr.metainfo_requests:
                 handle = ltmgr.ltsession.find_torrent(lt.big_number(infohash.decode('hex')))
                 handle.connect_peer(("127.0.0.1", self.session.config.get_downloading_port()), 0)

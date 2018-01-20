@@ -146,24 +146,6 @@ class DownloadConfig(object):
     def get_seeding_time(self):
         return self.config['seeding_time']
 
-    def set_seeding_time(self, value):
-        self.dlconfig.set('download_defaults', 'seeding_time', value)
-
-    def get_seeding_time(self):
-        return self.dlconfig.get('download_defaults', 'seeding_time')
-
-    def set_seeding_ratio(self, value):
-        self.dlconfig.set('download_defaults', 'seeding_ratio', value)
-
-    def get_seeding_ratio(self):
-        return self.dlconfig.get('download_defaults', 'seeding_ratio')
-
-    def set_user_stopped(self, value):
-        self.config['user_stopped'] = value
-
-    def get_user_stopped(self):
-        return self.config['user_stopped']
-
     def has_time_added(self):
         return 'time_added' in self.config
 
@@ -203,6 +185,12 @@ class DownloadConfig(object):
         :return: a list of strings.
         """
         return self.config['selected_files']
+
+    def values(self):
+        """
+        Returns
+        :return:
+        """
 
     @staticmethod
     def get_default_destination_dir():

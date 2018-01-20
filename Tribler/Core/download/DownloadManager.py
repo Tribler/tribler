@@ -10,9 +10,8 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
-from configobj import ConfigObj
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, returnValue, succeed
+from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, succeed
 from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
@@ -27,13 +26,15 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Core.download.DownloadConfig import DownloadConfig
+from Tribler.Core.download.DownloadPersistence import DownloadResumeInfo
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,
                                      NTFY_FINISHED, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
                                      DLSTATUS_SEEDING, NTFY_TORRENT, STATE_START_TORRENT_CHECKER,
                                      STATE_START_REMOTE_TORRENT_HANDLER, STATE_START_API_ENDPOINTS,
                                      STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING, STATE_INITIALIZE_CHANNEL_MGR,
-                                     STATE_LOADING_COMMUNITIES, STATE_START_MAINLINE_DHT, STATE_STARTING_DISPERSY)
+                                     STATE_LOADING_COMMUNITIES, STATE_START_MAINLINE_DHT, STATE_STARTING_DISPERSY,
+                                     STATEDIR_RESUME_INFO_DIRECTORY)
 from Tribler.community.market.wallet.btc_wallet import BitcoinWallet
 from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
@@ -92,7 +93,7 @@ class DownloadManager(TaskManager):
         self.video_server = None
 
         self.mainline_dht = None
-        self.ltmgr = None
+        self.session_manager = None
         self.tracker_manager = None
         self.torrent_checker = None
         self.tunnel_community = None
@@ -341,11 +342,11 @@ class DownloadManager(TaskManager):
             self.upnp_ports.append((self.session.config.get_mainline_dht_port(), 'UDP'))
 
         if self.session.config.get_downloading_enabled():
-            from Tribler.Core.download.DownloadSessionHandle import DownloadSessionHandle
-            self.ltmgr = DownloadSessionHandle(self.session)
-            self.ltmgr.initialize()
+            from Tribler.Core.download.DownloadSessionManager import DownloadSessionManager
+            self.session_manager = DownloadSessionManager(self.session)
+            self.session_manager.initialize()
             for port, protocol in self.upnp_ports:
-                self.ltmgr.add_upnp_mapping(port, protocol)
+                self.session_manager.add_upnp_mapping(port, protocol)
 
         # add task for tracker checking
         if self.session.config.get_torrent_checking_enabled():
@@ -380,15 +381,15 @@ class DownloadManager(TaskManager):
 
         self.initComplete = True
 
-    def add(self, tdef, download_config, pstate=None, setupDelay=0, hidden=False,
+    def add(self, torrent, download_config, setupDelay=0, hidden=False,
             share_mode=False, checkpoint_disabled=False):
         """ Called by any thread """
         download = None
         with self.session_lock:
-            if not isinstance(tdef, TorrentDefNoMetainfo) and not tdef.is_finalized():
+            if not isinstance(torrent, TorrentDefNoMetainfo) and not torrent.is_finalized():
                 raise ValueError("TorrentDef not finalized")
 
-            infohash = tdef.get_infohash()
+            info_hash = torrent.get_infohash()
 
             # Create the destination directory if it does not exist yet
             try:
@@ -401,20 +402,23 @@ class DownloadManager(TaskManager):
                 download_config.set_time_added(int(timemod.time()))
 
             # Check if running or saved on disk
-            if infohash in self.downloads:
+            if info_hash in self.downloads:
                 raise DuplicateDownloadException("This download already exists.")
 
             from Tribler.Core.download.Download import Download
-            download = Download(self.session, tdef)
+            download = Download(self, torrent)
 
-            if pstate is None:  # not already resuming
-                pstate = self.load_download_pstate_noexc(infohash)
-                if pstate is not None:
-                    self._logger.debug("tlm: add: pstate is %s %s", pstate['dlstate']['status'],
-                                       pstate['dlstate']['progress'])
+            try:
+                pstate = DownloadResumeInfo.read_from_directory(self.session.get_downloads_resume_info_directory(), hexlify(info_hash))
+            except:
+                self._logger.exception("Exception while loading pstate: %s", info_hash)
+
+            if pstate is not None:
+                self._logger.debug("tlm: add: pstate is %s %s", pstate['download']['status'],
+                                   pstate['download']['progress'])
 
             # Store in list of Downloads, always.
-            self.downloads[infohash] = download
+            self.downloads[info_hash] = download
             setup_deferred = download.setup(download_config, pstate, wrapperDelay=setupDelay, share_mode=share_mode,
                                             checkpoint_disabled=checkpoint_disabled)
             setup_deferred.addCallback(self.on_download_handle_created)
@@ -422,18 +426,18 @@ class DownloadManager(TaskManager):
         if download and not hidden and self.session.config.get_megacache_enabled():
             @forceDBThread
             def write_my_pref():
-                torrent_id = self.torrent_db.getTorrentID(infohash)
+                torrent_id = self.torrent_db.getTorrentID(info_hash)
                 data = {'destination_path': download.config.get_destination_dir()}
                 self.mypref_db.addMyPreference(torrent_id, data)
 
-            if isinstance(tdef, TorrentDefNoMetainfo):
-                self.torrent_db.addOrGetTorrentID(tdef.get_infohash())
-                self.torrent_db.updateTorrent(tdef.get_infohash(), name=tdef.get_name_as_unicode())
+            if isinstance(torrent, TorrentDefNoMetainfo):
+                self.torrent_db.addOrGetTorrentID(torrent.get_infohash())
+                self.torrent_db.updateTorrent(torrent.get_infohash(), name=torrent.get_name_as_unicode())
                 write_my_pref()
             elif self.rtorrent_handler:
-                self.rtorrent_handler.save_torrent(tdef, write_my_pref)
+                self.rtorrent_handler.save_torrent(torrent, write_my_pref)
             else:
-                self.torrent_db.addExternalTorrent(tdef, extra_info={'status': 'good'})
+                self.torrent_db.addExternalTorrent(torrent, extra_info={'status': 'good'})
                 write_my_pref()
 
         return download
@@ -635,57 +639,41 @@ class DownloadManager(TaskManager):
 
         def do_load_checkpoint():
             with self.session_lock:
-                for i, filename in enumerate(iglob(os.path.join(self.session.get_downloads_pstate_dir(), '*.state'))):
-                    self.resume_download(filename, setupDelay=i * 0.1)
+                for i, filename in enumerate(iglob(os.path.join(self.session.get_downloads_resume_info_directory(), '*.state'))):
+                    info_hash = unhexlify(filename[:-6])
+                    self.resume_download(info_hash, setupDelay=i * 0.1)
 
         if self.initComplete:
             do_load_checkpoint()
         else:
             self.register_task("load_checkpoint", reactor.callLater(1, do_load_checkpoint))
 
-    def load_download_pstate_noexc(self, infohash):
-        """ Called by any thread, assume session_lock already held """
-        try:
-            basename = hexlify(infohash) + '.state'
-            filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
-            if os.path.exists(filename):
-                return self.load_download_pstate(filename)
-            else:
-                self._logger.info("%s not found", basename)
-
-        except Exception:
-            self._logger.exception("Exception while loading pstate: %s", infohash)
-
-    def resume_download(self, filename, setupDelay=0):
-        tdef = download_config = pstate = None
+    def resume_download(self, info_hash, setupDelay=0):
+        pstate = tdef = download_config = None
 
         try:
-            pstate = self.load_download_pstate(filename)
+            pstate = DownloadResumeInfo.read_from_directory(self.session.get_downloads_resume_info_directory(), hexlify(info_hash))
 
             # SWIFTPROC
-            metainfo = pstate['state']['metainfo']
-            if 'infohash' in metainfo:
+            metainfo = pstate['metainfo']
+            if 'info_hash' in metainfo:
                 url = metainfo['url'] if 'url' in metainfo else None
-                tdef = TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'], url)
+                tdef = TorrentDefNoMetainfo(metainfo['info_hash'], metainfo['name'], url)
             else:
                 tdef = TorrentDef.load_from_dict(metainfo)
 
-            download_config = DownloadConfig(pstate)
+            download_config = pstate.to_download_config()
 
         except:
             # pstate is invalid or non-existing
-            _, file = os.path.split(filename)
-
-            infohash = unhexlify(file[:-6])
-
-            torrent_data = self.torrent_store.get(infohash)
+            torrent_data = self.torrent_store.get(info_hash)
             if torrent_data:
                 try:
                     tdef = TorrentDef.load_from_memory(torrent_data)
                     download_config = DownloadConfig()
 
                     if self.mypref_db is not None:
-                        dest_dir = self.mypref_db.getMyPrefStatsInfohash(infohash)
+                        dest_dir = self.mypref_db.getMyPrefStatsInfohash(info_hash)
                         if dest_dir and os.path.isdir(dest_dir):
                             download_config.set_destination_dir(dest_dir)
                 except ValueError:
@@ -700,18 +688,18 @@ class DownloadManager(TaskManager):
             if download_config.get_destination_dir() != '':  # removed torrent ignoring
                 try:
                     if not self.download_exists(tdef.get_infohash()):
-                        self.add(tdef, download_config, pstate, setupDelay=setupDelay)
+                        self.add(tdef, download_config, info_hash, setupDelay=setupDelay)
                     else:
                         self._logger.info("tlm: not resuming checkpoint because download has already been added")
 
-                except Exception as e:
+                except:
                     self._logger.exception("tlm: load check_point: exception while adding download %s", tdef)
             else:
-                self._logger.info("tlm: removing checkpoint %s destdir is %s",
-                                  filename, download_config.get_destination_dir())
-                os.remove(filename)
+                self._logger.info("tlm: removing checkpoint %s destdir is %s", info_hash,
+                                  download_config.get_destination_dir())
+                os.remove(os.path.join(self.session.get_downloads_resume_info_directory(), hexlify(info_hash) + '.state'))
         else:
-            self._logger.info("tlm: could not resume checkpoint %s %s %s", filename, tdef, download_config)
+            self._logger.info("tlm: could not resume checkpoint %s %s %s", info_hash, tdef, download_config)
 
     def checkpoint_downloads(self):
         """
@@ -738,7 +726,7 @@ class DownloadManager(TaskManager):
     def remove_pstate(self, infohash):
         def do_remove():
             if not self.download_exists(infohash):
-                dlpstatedir = self.session.get_downloads_pstate_dir()
+                dlpstatedir = self.session.get_downloads_resume_info_directory()
 
                 # Remove checkpoint
                 hexinfohash = hexlify(infohash)
@@ -879,29 +867,13 @@ class DownloadManager(TaskManager):
         self.sessdoneflag.set()
 
         # Shutdown libtorrent session after checkpoints have been made
-        if self.ltmgr is not None:
-            self.ltmgr.shutdown()
-            self.ltmgr = None
+        if self.session_manager is not None:
+            self.session_manager.shutdown()
+            self.session_manager = None
 
-    def save_download_pstate(self, infohash, pstate):
-        """ Called by network thread """
-
-        self.downloads[infohash].pstate_for_restart = pstate
-
-        self.register_task("save_pstate %f" % timemod.clock(),
-                           self.downloads[infohash].save_resume_data())
-
-    @staticmethod
-    def load_download_pstate(filename):
-        """ Called by any thread """
-        pstate = ConfigObj(filename)
-        # TODO: Find a better way to handle binary data in pstates
-        if 'state' in pstate:
-            state = pstate['state']
-            if 'engineresumedata' in state and 'info-hash' in state['engineresumedata']:
-                state['engineresumedata']['info-hash'] = unhexlify(state['engineresumedata']['info-hash'])
-            if 'metainfo' in state and 'info' in state['metainfo'] and 'pieces' in state['metainfo']['info']:
-                state['metainfo']['info']['pieces'] = unhexlify(state['metainfo']['info']['pieces'])
-        if 'destination_dir' in pstate:
-            pstate['destination_dir'] = unhexlify(pstate['destination_dir'])
-        return pstate
+    def get_downloads_resume_info_directory(self):
+        """
+        Returns the directory in which to checkpoint the Downloads in this
+        Session. This function is called by the network thread.
+        """
+        return os.path.join(self.session.config.get_state_dir(), STATEDIR_RESUME_INFO_DIRECTORY)

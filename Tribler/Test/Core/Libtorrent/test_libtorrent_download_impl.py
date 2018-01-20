@@ -9,7 +9,6 @@ import libtorrent as lt
 
 from Tribler.Core.download.Download import Download
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
@@ -72,7 +71,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         tdef = self.create_tdef()
 
         impl = Download(self.session, tdef)
-        link = impl.get_magnet_link()
+        link = impl.handle.get_magnet_link()
         self.assertEqual(None, link, "Magnet link was not none while it should be!")
 
     def test_get_tdef(self):
@@ -106,7 +105,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         impl.handle.status = lambda: fake_status
         fake_status = MockObject()
         fake_status.share_mode = False
-        impl.session.download_manager.on_download_wrapper_created = lambda _: True
+        impl.download_manager.download_manager.on_download_wrapper_created = lambda _: True
         impl.restart()
 
     @deferred(timeout=20)
@@ -114,7 +113,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         test_deferred = Deferred()
         tdef = self.create_tdef()
         impl = Download(self.session, tdef)
-        impl.session.download_manager.on_download_handle_created = lambda _: test_deferred.callback(None)
+        impl.download_manager.download_manager.on_download_handle_created = lambda _: test_deferred.callback(None)
         impl.restart()
         return test_deferred
 
@@ -133,8 +132,8 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
         impl = Download(self.session, tdef)
         # Override the add_torrent because it will be called
-        impl.ltmgr = MockObject()
-        impl.ltmgr.add_torrent = lambda _, _dummy2: fake_handler
+        impl.DownloadSessionManager = MockObject()
+        impl.DownloadSessionManager.add_torrent = lambda _, _dummy2: fake_handler
         impl.set_selected_files = lambda: None
         fake_handler = MockObject()
         fake_handler.is_valid = lambda: True
@@ -166,7 +165,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
             check if resume data is ready
             """
             basename = hexlify(tdef.get_infohash()) + '.state'
-            filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
+            filename = os.path.join(self.session.get_downloads_resume_info_directory(), basename)
 
             engine_data = ConfigObj(filename)
 
@@ -199,7 +198,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
             callback after finishing setup in LibtorrentDownloadImpl
             """
             basename = binascii.hexlify(tdef.get_infohash()) + '.state'
-            filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
+            filename = os.path.join(self.session.get_downloads_resume_info_directory(), basename)
 
             self.assertFalse(os.path.isfile(filename))
 
@@ -281,9 +280,9 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         """
         Test whether we return the right share mode when requested in the LibtorrentDownloadImpl
         """
-        self.libtorrent_download_impl.handle.status().share_mode = False
+        self.libtorrent_download_impl.handle.get_status().share_mode = False
         self.assertFalse(self.libtorrent_download_impl.get_share_mode())
-        self.libtorrent_download_impl.handle.status().share_mode = True
+        self.libtorrent_download_impl.handle.get_status().share_mode = True
         self.assertTrue(self.libtorrent_download_impl.get_share_mode())
 
     def test_set_share_mode(self):
@@ -370,14 +369,14 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.handle.trackers = lambda: []
         self.libtorrent_download_impl.handle.save_resume_data = lambda: None
         torrent_dict = {'name': 'test', 'piece length': 42, 'pieces': '', 'files': []}
-        get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: lt.bencode(torrent_dict)
-        get_info_from_handle(self.libtorrent_download_impl.handle).files = lambda: []
+        self.libtorrent_download_impl.handle.get_info().metadata = lambda: lt.bencode(torrent_dict)
+        self.libtorrent_download_impl.handle.get_info().files = lambda: []
 
         self.libtorrent_download_impl.checkpoint = mocked_checkpoint
-        self.libtorrent_download_impl.session = MockObject()
-        self.libtorrent_download_impl.session.download_manager = MockObject()
-        self.libtorrent_download_impl.session.download_manager.rtorrent_handler = None
-        self.libtorrent_download_impl.session.download_manager.torrent_db = None
+        self.libtorrent_download_impl.download_manager = MockObject()
+        self.libtorrent_download_impl.download_manager.download_manager = MockObject()
+        self.libtorrent_download_impl.download_manager.download_manager.rtorrent_handler = None
+        self.libtorrent_download_impl.download_manager.download_manager.torrent_db = None
         self.libtorrent_download_impl.on_metadata_received_alert(None)
 
         return test_deferred
@@ -468,10 +467,10 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         """
         self.assertEqual(self.libtorrent_download_impl.get_piece_progress(None), 1.0)
 
-        self.libtorrent_download_impl.handle.status().pieces = [True, False]
+        self.libtorrent_download_impl.handle.get_status().pieces = [True, False]
         self.assertEqual(self.libtorrent_download_impl.get_piece_progress([0, 1], True), 0.5)
 
-        self.libtorrent_download_impl.handle.status = lambda: None
+        self.libtorrent_download_impl.handle.get_status = lambda: None
         self.assertEqual(self.libtorrent_download_impl.get_piece_progress([3, 1]), 0.0)
 
     def test_get_byte_progress(self):
@@ -525,7 +524,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         """
         Testing whether the right operations are performed when we get a torrent finished alert
         """
-        status = self.libtorrent_download_impl.handle.status()
+        status = self.libtorrent_download_impl.handle.get_status()
         status.paused = False
         status.state = DLSTATUS_DOWNLOADING
         status.progress = 0.9
@@ -561,10 +560,10 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         """
         Testing whether a correct pieces bitmask is returned when requested
         """
-        self.libtorrent_download_impl.handle.status().pieces = [True, False, True, False, False]
+        self.libtorrent_download_impl.handle.get_status().pieces = [True, False, True, False, False]
         self.assertEqual(self.libtorrent_download_impl.get_pieces_base64(), "oA==")
 
-        self.libtorrent_download_impl.handle.status().pieces = [True * 16]
+        self.libtorrent_download_impl.handle.get_status().pieces = [True * 16]
         self.assertEqual(self.libtorrent_download_impl.get_pieces_base64(), "gA==")
 
     @deferred(timeout=10)

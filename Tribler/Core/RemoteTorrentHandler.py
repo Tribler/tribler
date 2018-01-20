@@ -457,7 +457,7 @@ class MagnetRequester(Requester):
             self._logger.debug(u"requesting %s priority %s through magnet link %s",
                                infohash_str, self._priority, magnetlink)
 
-            self._session.download_manager.ltmgr.get_metainfo(magnetlink, self._success_callback,
+            self._session.download_manager.download_session_manager.get_metainfo(magnetlink, self._success_callback,
                                                 timeout=self.TIMEOUT, timeout_callback=self._failure_callback)
             self._running_requests.append(infohash)
 

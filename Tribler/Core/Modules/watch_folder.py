@@ -61,4 +61,4 @@ class WatchFolder(TaskManager):
                     default_num_hops = self.session.config.get_default_number_hops()
                     download_config.set_number_hops(default_num_hops if anon_enabled else 0)
                     download_config.set_safe_seeding_enabled(self.session.config.get_default_safe_seeding_enabled())
-                    self.session.download_manager.ltmgr.start_download(tdef=tdef, download_config=download_config)
+                    self.session.download_manager.download_session_handle.start_download(tdef=tdef, download_config=download_config)

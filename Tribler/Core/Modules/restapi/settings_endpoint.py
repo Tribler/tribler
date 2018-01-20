@@ -79,7 +79,7 @@ class SettingsEndpoint(resource.Resource):
 
         # Perform some actions when specific keys are set
         if section == "libtorrent" and (option == "max_download_rate" or option == "max_upload_rate"):
-            self.session.download_manager.ltmgr.update_max_rates_from_config()
+            self.session.download_manager.download_session_handle.update_max_rates_from_config()
 
         # Apply changes to the default downloadconfig to already existing downloads
         if section == "download_defaults" and option in ["seeding_mode", "seeding_time", "seeding_ratio"]:

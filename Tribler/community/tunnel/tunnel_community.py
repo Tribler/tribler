@@ -625,9 +625,9 @@ class TunnelCommunity(Community):
             circuit.destroy()
 
             affected_peers = self.socks_server.circuit_dead(circuit)
-            ltmgr = self.tribler_session.download_manager.ltmgr \
+            download_session_handle = self.tribler_session.download_manager.download_session_handle \
                 if self.tribler_session and self.tribler_session.config.get_downloading_enabled() else None
-            if ltmgr:
+            if download_session_handle:
                 def update_torrents(handle, download):
                     peers = affected_peers.intersection(handle.get_peer_info())
                     if peers:
@@ -640,8 +640,8 @@ class TunnelCommunity(Community):
                         if self.active_data_circuits():
                             self.readd_bittorrent_peers()
 
-                for d, s in ltmgr.torrents.values():
-                    if s == ltmgr.get_session(d.get_hops()):
+                for d, s in download_session_handle.torrents.values():
+                    if s == download_session_handle.get_session(d.get_hops()):
                         d.get_handle().addCallback(update_torrents, d)
 
         # Clean up the directions dictionary

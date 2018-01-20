@@ -484,7 +484,7 @@ class TorrentDef(object):
         else:
             raise TorrentDefNotFinalizedException()
 
-    def get_metainfo(self):
+    def get_meta_info(self):
         """ Returns the torrent definition as a dictionary that follows the BT
         spec for torrent files.
         @return dict
@@ -785,7 +785,7 @@ class TorrentDefNoMetainfo(object):
     def get_length(self, selectedfiles=None):
         return 0
 
-    def get_metainfo(self):
+    def get_meta_info(self):
         return None
 
     def get_url(self):

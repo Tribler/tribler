@@ -128,9 +128,7 @@ class TorrentChecker(TaskManager):
             self._logger.info("No torrent to check for tracker %s", tracker_url)
             self.tribler_session.download_manager.tracker_manager.update_tracker_info(tracker_url, True)
             return succeed(None)
-        elif tracker_url != u'DHT' and tracker_url != u'no-DHT'\
-                and self.tribler_session.download_manager.tracker_manager.should_check_tracker(tracker_url):
-
+        elif tracker_url != u'DHT' and tracker_url != u'no-DHT':
             try:
                 session = self._create_session_for_request(tracker_url, timeout=30)
             except MalformedTrackerURLException as e:

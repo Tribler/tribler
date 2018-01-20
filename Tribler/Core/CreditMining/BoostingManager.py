@@ -94,7 +94,7 @@ class BoostingManager(TaskManager):
         if not os.path.exists(self.settings.credit_mining_path):
             os.makedirs(self.settings.credit_mining_path)
 
-        self.session.download_manager.ltmgr.get_session().set_settings(
+        self.session.download_manager.download_session_manager.get_session().set_settings(
             {'share_mode_target': self.settings.share_mode_target})
 
         self.session.add_observer(self.on_torrent_notify, NTFY_TORRENTS, [NTFY_UPDATE])
@@ -262,7 +262,7 @@ class BoostingManager(TaskManager):
 
         for infohash in list(self.torrents):
             # torrent handle
-            lt_torrent = self.session.download_manager.ltmgr.get_session().find_torrent(lt.big_number(infohash))
+            lt_torrent = self.session.download_manager.download_session_manager.get_session().find_torrent(lt.big_number(infohash))
 
             peer_list = []
             for i in lt_torrent.get_peer_info():
@@ -321,7 +321,7 @@ class BoostingManager(TaskManager):
         ihash = lt.big_number(torrent["metainfo"].get_infohash())
         self._logger.info("Stopping %s", str(ihash))
         download = torrent.pop('download', False)
-        lt_torrent = self.session.download_manager.ltmgr.get_session().find_torrent(ihash)
+        lt_torrent = self.session.download_manager.download_session_manager.get_session().find_torrent(ihash)
         if download and lt_torrent.is_valid():
             self._logger.info("Writing resume data for %s", str(ihash))
             download.save_resume_data()
@@ -442,7 +442,7 @@ class BoostingManager(TaskManager):
 
     def log_statistics(self):
         """Log transfer statistics"""
-        lt_torrents = self.session.download_manager.ltmgr.get_session().get_torrents()
+        lt_torrents = self.session.download_manager.download_session_manager.get_session().get_torrents()
 
         for lt_torrent in lt_torrents:
             status = lt_torrent.status()
@@ -453,7 +453,7 @@ class BoostingManager(TaskManager):
                                    lt_torrent.max_uploads(), lt_torrent.max_connections())
 
                 # piece_priorities will fail in libtorrent 1.0.9
-                if self.session.download_manager.ltmgr.get_libtorrent_version() == '1.0.9.0':
+                if self.session.download_manager.download_session_manager.get_libtorrent_version() == '1.0.9.0':
                     continue
                 else:
                     non_zero_values = []

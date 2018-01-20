@@ -1,6 +1,6 @@
 import os
 
-from Tribler.Core.Utilities.torrent_utils import create_torrent_file, get_info_from_handle
+from Tribler.Core.download.utils import create_torrent_file
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 
 
@@ -53,4 +53,4 @@ class TriblerCoreTestTorrentUtils(TriblerCoreTest):
             raise RuntimeError
 
         mock_handle.torrent_file = mock_get_torrent_file
-        self.assertIsNone(get_info_from_handle(mock_handle))
+        self.assertIsNone(mock_handle.get_info())

@@ -4,7 +4,7 @@ from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.Modules.restapi.util import return_handled_exception
-from Tribler.Core.download.Download import LibtorrentStatisticsResponse
+from Tribler.Core.download.Download import DownloadStatistics
 from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
 import Tribler.Core.Utilities.json_util as json
@@ -179,7 +179,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
         downloads_json = []
         downloads = self.session.get_downloads()
         for download in downloads:
-            stats = download.network_create_statistics_reponse() or LibtorrentStatisticsResponse(0, 0, 0, 0, 0, 0, 0)
+            stats = download.network_create_statistics_reponse() or DownloadStatistics(0, 0, 0, 0, 0, 0, 0)
             state = download.network_get_state(None, get_peers)
 
             # Create files information of the download
@@ -199,8 +199,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                 tracker_info.append({"url": url, "peers": url_info[0], "status": url_info[1]})
 
             ratio = 0.0
-            if stats.downTotal > 0:
-                ratio = stats.upTotal / float(stats.downTotal)
+            if stats.total_down > 0:
+                ratio = stats.total_up / float(stats.total_down)
 
             download_json = {"name": download.get_def().get_name(), "progress": download.get_progress(),
                              "infohash": download.get_def().get_infohash().encode('hex'),
@@ -208,8 +208,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                              "speed_up": download.get_current_speed(UPLOAD),
                              "status": dlstatus_strings[download.get_status()],
                              "size": download.get_def().get_length(), "eta": download.network_calc_eta(),
-                             "num_peers": stats.numPeers, "num_seeds": stats.numSeeds, "total_up": stats.upTotal,
-                             "total_down": stats.downTotal, "ratio": ratio,
+                             "num_peers": stats.leechers, "num_seeds": stats.seeders, "total_up": stats.total_up,
+                             "total_down": stats.total_down, "ratio": ratio,
                              "files": files_array, "trackers": tracker_info, "hops": download.config.get_number_hops(),
                              "anon_download": download.get_anon_mode(),
                              "safe_seeding": download.config.get_safe_seeding_enabled(),

@@ -20,8 +20,8 @@ from twisted.python.failure import Failure
 
 from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
+from Tribler.Core.download.DownloadHandle import DownloadHandle
 from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_REACHABLE,
                                      NTFY_TORRENTS, NTFY_MAGNET_STARTED)
@@ -45,16 +45,16 @@ DEFAULT_LIBTORRENT_EXTENSIONS = [
 ]
 
 
-class DownloadSessionHandle(TaskManager):
+class DownloadSessionManager(TaskManager):
     """
-    Holds a libtorrent session and interacts with it.
+    Holds a libtorrent session for every number of hops being used.
     """
     def __init__(self, tribler_session):
-        super(DownloadSessionHandle, self).__init__()
+        super(DownloadSessionManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.tribler_session = tribler_session
-        self.sessions = {}
+        self.libtorrent_sessions = {}
 
         self.notifier = tribler_session.notifier
 
@@ -113,9 +113,9 @@ class DownloadSessionHandle(TaskManager):
         libtorrent_state_file.write(libtorrent.bencode(self.get_session().save_state()))
         libtorrent_state_file.close()
 
-        for libtorrent_session in self.sessions.itervalues():
+        for libtorrent_session in self.libtorrent_sessions.itervalues():
             del libtorrent_session
-        self.sessions = None
+        self.libtorrent_sessions = None
 
         # remove metadata temporary directory
         rmtree(self.metadata_tmpdir)
@@ -225,10 +225,13 @@ class DownloadSessionHandle(TaskManager):
         return libtorrent_session
 
     def get_session(self, hops=0):
-        if hops not in self.sessions:
-            self.sessions[hops] = self.create_session(hops)
+        if hops not in self.libtorrent_sessions:
+            self.libtorrent_sessions[hops] = self.create_session(hops)
 
-        return self.sessions[hops]
+        return self.libtorrent_sessions[hops]
+
+    def get_settings(self, hops=0):
+        return self.get_session(hops).get_settings()
 
     def set_proxy_settings(self, libtorrent_session, ptype, proxy_server_ip=None, proxy_server_port=None, auth=None):
         proxy_settings = libtorrent.proxy_settings()
@@ -246,7 +249,7 @@ class DownloadSessionHandle(TaskManager):
             libtorrent_session.set_proxy(proxy_settings)
         else:
             # only apply the proxy settings to normal libtorrent session (with hops = 0)
-            self.sessions[0].set_proxy(proxy_settings)
+            self.libtorrent_sessions[0].set_proxy(proxy_settings)
 
     def set_utp(self, enable, hops=None):
         def do_set_utp(libtorrent_session):
@@ -256,7 +259,7 @@ class DownloadSessionHandle(TaskManager):
             libtorrent_session.set_settings(settings)
 
         if hops is None:
-            for libtorrent_session in self.sessions.itervalues():
+            for libtorrent_session in self.libtorrent_sessions.itervalues():
                 do_set_utp(libtorrent_session)
         else:
             do_set_utp(self.get_session(hops))
@@ -299,29 +302,30 @@ class DownloadSessionHandle(TaskManager):
             libtorrent_session = self.get_session(atp.pop('hops', 0))
 
             if 'ti' in atp:
-                infohash = str(atp['ti'].info_hash())
+                info_hash = str(atp['ti'].info_hash())
             elif 'url' in atp:
-                infohash = binascii.hexlify(parse_magnetlink(atp['url'])[1])
+                info_hash = binascii.hexlify(parse_magnetlink(atp['url'])[1])
             else:
                 raise ValueError('No ti or url key in add_torrent_params')
 
             # Check if we added this torrent before
             known = [str(h.info_hash()) for h in libtorrent_session.get_torrents()]
-            if infohash in known:
-                self.torrents[infohash] = (torrentdl, libtorrent_session)
-                infohash_bin = binascii.unhexlify(infohash)
+            if info_hash in known:
+                self.torrents[info_hash] = (torrentdl, libtorrent_session)
+                infohash_bin = binascii.unhexlify(info_hash)
                 return libtorrent_session.find_torrent(libtorrent.big_number(infohash_bin))
 
             # Otherwise, add it anew
-            torrent_handle = libtorrent_session.add_torrent(encode_atp(atp))
-            infohash = str(torrent_handle.info_hash())
-            if infohash in self.torrents:
+            libtorrent_torrent_handle = libtorrent_session.add_torrent(encode_atp(atp))
+            download_handle = DownloadHandle(libtorrent_torrent_handle)
+            info_hash = str(download_handle.info_hash())
+            if info_hash in self.torrents:
                 raise DuplicateDownloadException("This download already exists.")
-            self.torrents[infohash] = (torrentdl, libtorrent_session)
+            self.torrents[info_hash] = (torrentdl, libtorrent_session)
 
-            self._logger.debug("added torrent %s", infohash)
+            self._logger.debug("added torrent %s", info_hash)
 
-            return torrent_handle
+            return download_handle
 
     def remove_torrent(self, torrentdl, removecontent=False):
         """
@@ -482,8 +486,8 @@ class DownloadSessionHandle(TaskManager):
                 assert handle
                 if handle:
                     if callbacks and not timeout:
-                        metainfo = {"info": libtorrent.bdecode(get_info_from_handle(handle).metadata())}
-                        trackers = [tracker.url for tracker in get_info_from_handle(handle).trackers()]
+                        metainfo = {"info": libtorrent.bdecode(handle.get_info().metadata())}
+                        trackers = [tracker.url for tracker in handle.get_info().trackers()]
                         peers = []
                         leechers = 0
                         seeders = 0
@@ -542,7 +546,7 @@ class DownloadSessionHandle(TaskManager):
                 del self.metainfo_cache[info_hash]
 
     def _task_process_alerts(self):
-        for libtorrent_session in self.sessions.itervalues():
+        for libtorrent_session in self.libtorrent_sessions.itervalues():
             if libtorrent_session:
                 for alert in libtorrent_session.pop_alerts():
                     self.process_alert(alert)
@@ -555,7 +559,7 @@ class DownloadSessionHandle(TaskManager):
                     self.got_metainfo(str(alert.handle.info_hash()))
 
     def _check_reachability(self):
-        if self.get_session() and self.get_session().status().has_incoming_connections:
+        if self.get_session() and self.get_session().get_status().has_incoming_connections:
             self.notifier.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
             self.check_reachability_lc.stop()
 
@@ -570,19 +574,19 @@ class DownloadSessionHandle(TaskManager):
         dht_nodes = libtorrent_session.status().dht_nodes
         if dht_nodes <= 25:
             if dht_nodes >= 5 and retries_left > 0:
-                self._logger.info(u"No enough DHT nodes %s, will try again", libtorrent_session.status().dht_nodes)
+                self._logger.info(u"No enough DHT nodes %s, will try again", dht_nodes)
                 self._schedule_next_check(5, retries_left - 1)
             else:
-                self._logger.info(u"No enough DHT nodes %s, will restart DHT", libtorrent_session.status().dht_nodes)
+                self._logger.info(u"No enough DHT nodes %s, will restart DHT", dht_nodes)
                 threads.deferToThread(libtorrent_session.start_dht)
                 self._schedule_next_check(10, 1)
         else:
-            self._logger.info("dht is working enough nodes are found (%d)", self.get_session().status().dht_nodes)
+            self._logger.info("dht is working enough nodes are found (%d)", dht_nodes)
             self.dht_ready = True
 
     def _map_call_on_libtorrent_sessions(self, hops, funcname, *args, **kwargs):
         if hops is None:
-            for session in self.sessions.itervalues():
+            for session in self.libtorrent_sessions.itervalues():
                 getattr(session, funcname)(*args, **kwargs)
         else:
             getattr(self.get_session(hops), funcname)(*args, **kwargs)
@@ -681,7 +685,7 @@ class DownloadSessionHandle(TaskManager):
         This is the extra step necessary to apply a new maximum download/upload rate setting.
         :return:
         """
-        for libtorrent_session in self.sessions.itervalues():
+        for libtorrent_session in self.libtorrent_sessions.itervalues():
             libtorrent_session_settings = libtorrent_session.get_settings()
             libtorrent_session_settings['download_rate_limit'] = self.tribler_session.config.get_downloading_max_download_rate()
             libtorrent_session_settings['upload_rate_limit'] = self.tribler_session.config.get_downloading_max_upload_rate()

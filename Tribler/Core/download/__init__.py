@@ -10,7 +10,7 @@ def check_handle_and_synchronize(default=None):
     def wrap(f):
         def invoke_func(*args, **kwargs):
             download = args[0]
-            with download.dllock:
+            with download.lock:
                 if download.handle and download.handle.is_valid():
                     return f(*args, **kwargs)
             return default
