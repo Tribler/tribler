@@ -1,4 +1,5 @@
 import os
+import struct
 from binascii import unhexlify
 from shutil import copy as copyfile
 from twisted.internet.defer import inlineCallbacks
@@ -296,3 +297,8 @@ class TestTorrentDBHandler(AbstractDB):
         self.assertNotEqual(results[0][-1], 0.0)  # Relevance score of result should not be zero
         results = self.tdb.search_in_local_torrents_db('fdsafasfds', ['infohash'])
         self.assertEqual(len(results), 0)
+
+    @blocking_call_on_reactor_thread
+    def test_rel_score_remote_torrent(self):
+        self.tdb.latest_matchinfo_torrent = struct.pack("I" * 12, *([1] * 12)), "torrent"
+        self.assertNotEqual(self.tdb.relevance_score_remote_torrent("my-torrent.iso"), 0.0)

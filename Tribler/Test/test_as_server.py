@@ -146,15 +146,6 @@ class AbstractServer(BaseTestCase):
             selectable_strings.append(repr(sel))
 
         self.assertFalse(delayed_calls, "The reactor was dirty during %s" % phase)
-        if Session.has_instance():
-            try:
-                yield Session.get_instance().shutdown()
-            except:
-                pass
-            Session.del_instance()
-
-            raise RuntimeError("Found a leftover session instance during %s" % phase)
-
         self.assertFalse(selectable_strings,
                          "The reactor has leftover readers/writers during %s: %r" % (phase, selectable_strings))
 
@@ -314,10 +305,9 @@ class TestAsServer(AbstractServer):
 
         """ unittest test tear down code """
         if self.session is not None:
-            assert self.session is Session.get_instance()
             yield self.session.shutdown()
             assert self.session.has_shutdown()
-            Session.del_instance()
+            self.session = None
 
         yield self.stop_seeder()
 
@@ -370,8 +360,9 @@ class TestAsServer(AbstractServer):
 
         self._logger.debug("starting to wait for download to reach seeding state")
 
-        self.seeder_session = Session(self.seed_config, ignore_singleton=True)
+        self.seeder_session = Session(self.seed_config)
         self.seeder_session.upgrader_enabled = False
+
         self.seeder_session.start().addCallback(start_seed_download)
 
         return self.seeding_deferred

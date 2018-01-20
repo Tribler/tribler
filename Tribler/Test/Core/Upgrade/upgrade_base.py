@@ -33,7 +33,7 @@ class AbstractUpgrader(TriblerCoreTest):
         self.config = TriblerConfig(ConfigObj(configspec=CONFIG_SPEC_PATH))
         self.config.set_state_dir(self.getStateDir())
         self.config.set_torrent_collecting_dir(os.path.join(self.session_base_dir, 'torrent_collecting_dir'))
-        self.session = Session(self.config, ignore_singleton=True)
+        self.session = Session(self.config)
         self.sqlitedb = None
         self.torrent_store = None
 
@@ -46,7 +46,6 @@ class AbstractUpgrader(TriblerCoreTest):
         if self.sqlitedb:
             self.sqlitedb.close()
         self.sqlitedb = None
-        self.session.del_instance()
         self.session = None
 
     def copy_and_initialize_upgrade_database(self, db_name):

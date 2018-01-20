@@ -147,7 +147,7 @@ class TestMarketBase(TestAsServer):
         config = self.config.copy()
         config.set_state_dir(self.getStateDir(index))
 
-        session = Session(config, ignore_singleton=True, autoload_discovery=False)
+        session = Session(config, autoload_discovery=False)
         yield session.start()
         self.sessions.append(session)
 

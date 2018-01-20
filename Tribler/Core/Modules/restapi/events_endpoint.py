@@ -132,6 +132,8 @@ class EventsEndpoint(resource.Resource):
 
         for torrent in results['result_list']:
             torrent_json = convert_search_torrent_to_json(torrent)
+            torrent_name = torrent_json['name']
+            torrent_json['relevance_score'] = self.session.lm.torrent_db.relevance_score_remote_torrent(torrent_name)
 
             if self.session.config.get_family_filter_enabled() and torrent_json['category'] == 'xxx':
                 continue

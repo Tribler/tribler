@@ -42,14 +42,11 @@ else:
 
 class Session(object):
     """
-    A Session is a running instance of the Tribler Core and the Core's central
-    class.
-
-    It is a singleton. It holds a reference to the download manager, LaunchManyCore and it's config.
+    A Session is a running instance of the Tribler Core and the Core's central class.
     """
     __single = None
 
-    def __init__(self, config=None, ignore_singleton=False, autoload_discovery=True):
+    def __init__(self, config=None, autoload_discovery=True):
         """
         A Session object is created which is configured with the Tribler configuration object.
 
@@ -60,22 +57,14 @@ class Session(object):
         we can't find it, we create a new TriblerConfig() object to
         serve as startup config. Next, the config is saved in the directory
         indicated by its 'state_dir' attribute.
-        :param ignore_singleton: for testing purposes only. Enables the existence of multiple
-        Session instances.
         :param autoload_discovery: only false in the Tunnel community tests
         """
         addObserver(self.unhandled_error_observer)
 
         patch_crypto_be_discovery()
 
-        if not ignore_singleton:
-            if Session.__single:
-                raise RuntimeError("Session is singleton")
-            Session.__single = self
-
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.ignore_singleton = ignore_singleton
         self.session_lock = NoDispersyRLock()
 
         self.config = config or TriblerConfig()
@@ -168,34 +157,6 @@ class Session(object):
             tradechain_pubfilename = os.path.join(self.config.get_state_dir(), 'ecpub_tradechain.pem')
             permid_module.save_keypair_trustchain(self.tradechain_keypair, tradechain_pairfilename)
             permid_module.save_pub_key_trustchain(self.tradechain_keypair, tradechain_pubfilename)
-
-    #
-    # Class methods
-    #
-    @staticmethod
-    def get_instance(*args, **kw):
-        """
-        Returns the Session singleton if it exists or otherwise creates it first, in which
-        case you need to pass the constructor params.
-
-        :return: the Session singleton
-        """
-        if Session.__single is None:
-            Session(*args, **kw)
-        return Session.__single
-
-    @staticmethod
-    def has_instance():
-        """
-        Check if there exists a Session singleton.
-        :return: either True or False.
-        """
-        return Session.__single is not None
-
-    @staticmethod
-    def del_instance():
-        """Remove the Session singleton."""
-        Session.__single = None
 
     def unhandled_error_observer(self, event):
         """
