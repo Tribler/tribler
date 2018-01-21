@@ -1,6 +1,6 @@
 import os
 
-from Tribler.Core.download.utils import create_torrent_file
+from Tribler.Core.download.utilities import create_torrent_file
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 
 

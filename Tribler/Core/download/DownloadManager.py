@@ -408,6 +408,7 @@ class DownloadManager(TaskManager):
             from Tribler.Core.download.Download import Download
             download = Download(self, torrent)
 
+            pstate = None
             try:
                 pstate = DownloadResumeInfo.read_from_directory(self.session.get_downloads_resume_info_directory(), hexlify(info_hash))
             except:

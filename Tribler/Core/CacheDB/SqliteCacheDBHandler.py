@@ -10,7 +10,6 @@ import threading
 from collections import OrderedDict, defaultdict
 from copy import deepcopy
 from itertools import chain
-from libtorrent import bencode
 from pprint import pformat
 from struct import unpack_from
 from time import time
@@ -18,6 +17,7 @@ from traceback import print_exc
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
+from Tribler.Core.download.utilities import bencode
 from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.search_utils import split_into_keywords, filter_keywords

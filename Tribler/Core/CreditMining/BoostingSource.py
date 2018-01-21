@@ -19,9 +19,8 @@ from twisted.web.client import Agent, readBody, getPage
 from twisted.web.error import Error
 from twisted.web.http_headers import Headers
 
-import libtorrent as lt
-
 from Tribler.Core.CreditMining.credit_mining_util import ent2chr
+from Tribler.Core.download.utilities import bdecode
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_TORRENTS, NTFY_UPDATE
 from Tribler.Core.version import version_id
@@ -369,7 +368,7 @@ class RSSFeedSource(BoostingSource):
 
             # tdef.get_infohash returned binary string by length 20
             try:
-                metainfo = lt.bdecode(body_bin)
+                metainfo = bdecode(body_bin)
                 tdef = TorrentDef.load_from_dict(metainfo)
                 self.session.save_collected_torrent(tdef.get_infohash(), body_bin)
             except ValueError, err:

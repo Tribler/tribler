@@ -17,6 +17,7 @@ from twisted.internet.defer import inlineCallbacks, Deferred
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.download.DownloadSessionManager import DownloadSessionManager
+from Tribler.Core.download.utilities import bdecode, bencode
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
 from Tribler.Test.btconn import BTConnection
 from Tribler.Test.common import TESTS_DATA_DIR, UBUNTU_1504_INFOHASH

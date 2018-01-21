@@ -24,7 +24,7 @@ from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.download.DownloadManager import DownloadManager
 from Tribler.Core.Modules.restapi.rest_manager import RESTManager
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
-from Tribler.Core.download import utils
+from Tribler.Core.download import utilities
 from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
     DuplicateTorrentFileError
@@ -654,7 +654,7 @@ class Session(object):
         :return: a Deferred that fires when the torrent file has been created
         """
         params = params or {}
-        return threads.deferToThread(utils.create_torrent_file, file_path_list, params)
+        return threads.deferToThread(utilities.create_torrent_file, file_path_list, params)
 
     def create_channel(self, name, description, mode=u'closed'):
         """

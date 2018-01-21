@@ -1,11 +1,11 @@
 from socket import inet_ntoa, inet_aton, error as socket_error
 from struct import pack, unpack_from
 
-from libtorrent import bdecode
-
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.endpoint import TUNNEL_PREFIX, TUNNEL_PREFIX_LENGHT
 from Tribler.dispersy.message import DropPacket
+
+from Tribler.Core.download.utilities import bdecode
 
 ADDRESS_TYPE_IPV4 = 0x01
 ADDRESS_TYPE_DOMAIN_NAME = 0x02

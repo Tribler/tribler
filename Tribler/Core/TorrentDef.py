@@ -9,16 +9,16 @@ import sys
 from hashlib import sha1
 from types import StringType, ListType, IntType, LongType
 
-from libtorrent import bencode, bdecode
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.utilities import create_valid_metainfo, is_valid_url
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.utilities import parse_magnetlink, http_get
 from Tribler.Core.defaults import TDEF_DEFAULTS
+from Tribler.Core.download.utilities import bdecode, bencode
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, NotYetImplementedException
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TorrentDef(object):
