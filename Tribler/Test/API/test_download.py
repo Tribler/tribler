@@ -7,7 +7,7 @@ from unittest import skip
 from twisted.internet.defer import Deferred
 
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_DOWNLOADING
+from Tribler.Core.simpledefs import DOWNLOAD_STATUS_STRINGS, DOWNLOAD_STATUS_DOWNLOADING
 from Tribler.Test.common import UBUNTU_1504_INFOHASH, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
@@ -66,11 +66,11 @@ class TestDownload(TestAsServer):
     def downloader_state_callback(self, ds):
         d = ds.get_download()
         self._logger.debug("download status: %s %s %s",
-                           repr(d.get_def().get_name()),
-                           dlstatus_strings[ds.get_status()],
+                           repr(d.get_torrent().get_name()),
+                           DOWNLOAD_STATUS_STRINGS[ds.get_status()],
                            ds.get_progress())
 
-        if ds.get_status() == DLSTATUS_DOWNLOADING:
+        if ds.get_status() == DOWNLOAD_STATUS_DOWNLOADING:
             self.test_deferred.callback(None)
             return 0.0, False
 

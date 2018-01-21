@@ -29,8 +29,7 @@ from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.download.DownloadPersistence import DownloadResumeInfo
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,
-                                     NTFY_FINISHED, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
-                                     DLSTATUS_SEEDING, NTFY_TORRENT, STATE_START_TORRENT_CHECKER,
+                                     NTFY_FINISHED, NTFY_ERROR, NTFY_TORRENT, STATE_START_TORRENT_CHECKER,
                                      STATE_START_REMOTE_TORRENT_HANDLER, STATE_START_API_ENDPOINTS,
                                      STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING, STATE_INITIALIZE_CHANNEL_MGR,
                                      STATE_LOADING_COMMUNITIES, STATE_START_MAINLINE_DHT, STATE_STARTING_DISPERSY,
@@ -381,8 +380,7 @@ class DownloadManager(TaskManager):
 
         self.initComplete = True
 
-    def add(self, torrent, download_config, setupDelay=0, hidden=False,
-            share_mode=False, checkpoint_disabled=False):
+    def add(self, torrent, download_config, setupDelay=0, hidden=False, share_mode=False):
         """ Called by any thread """
         download = None
         with self.session_lock:
@@ -420,8 +418,7 @@ class DownloadManager(TaskManager):
 
             # Store in list of Downloads, always.
             self.downloads[info_hash] = download
-            setup_deferred = download.setup(download_config, pstate, wrapperDelay=setupDelay, share_mode=share_mode,
-                                            checkpoint_disabled=checkpoint_disabled)
+            setup_deferred = download.setup(download_config, pstate, wrapper_delay=setupDelay, share_mode=share_mode)
             setup_deferred.addCallback(self.on_download_handle_created)
 
         if download and not hidden and self.session.config.get_megacache_enabled():
@@ -455,7 +452,7 @@ class DownloadManager(TaskManager):
         out = None
         with self.session_lock:
             out = d.stop_remove(removestate=removestate, removecontent=removecontent)
-            infohash = d.get_def().get_infohash()
+            infohash = d.get_torrent().get_infohash()
             if infohash in self.downloads:
                 del self.downloads[infohash]
 
@@ -581,8 +578,8 @@ class DownloadManager(TaskManager):
         """
         dslist = []
         for d in self.downloads.values():
-            d.set_moreinfo_stats(True in self.get_peer_list or d.get_def().get_infohash() in
-                                 self.get_peer_list)
+            d.config.set_more_info(True in self.get_peer_list or d.get_torrent().get_infohash() in
+                                   self.get_peer_list)
             ds = d.network_get_state(None, False)
             dslist.append(ds)
 
@@ -605,17 +602,17 @@ class DownloadManager(TaskManager):
         for ds in states_list:
             state = ds.get_status()
             download = ds.get_download()
-            tdef = download.get_def()
+            tdef = download.get_torrent()
             safename = tdef.get_name_as_unicode()
 
-            if state == DLSTATUS_DOWNLOADING:
+            if state == DownloadStatus.DOWNLOADING:
                 new_active_downloads.append(safename)
-            elif state == DLSTATUS_STOPPED_ON_ERROR:
+            elif state == DownloadStatus.STOPPED_ON_ERROR:
                 self._logger.error("Error during download: %s", repr(ds.get_error()))
                 if self.download_exists(tdef.get_infohash()):
                     self.get_download(tdef.get_infohash()).stop()
                     self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, tdef.get_infohash(), repr(ds.get_error()))
-            elif state == DLSTATUS_SEEDING:
+            elif state == DownloadStatus.SEEDING:
                 seeding_download_list.append({u'infohash': tdef.get_infohash(),
                                               u'download': download})
 

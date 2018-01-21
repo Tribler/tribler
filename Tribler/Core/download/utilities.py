@@ -3,6 +3,10 @@ import os
 import libtorrent
 
 
+DANGEROUS_ALERT_CATEGORIES = {libtorrent.alert.category_t.error_notification,
+                              libtorrent.alert.category_t.performance_warning}
+
+
 def bdecode(data):
     return libtorrent.bdecode(data)
 
@@ -104,3 +108,18 @@ def create_torrent_file(file_path_list, params):
             'base_path': base_path,
             'base_dir': base_dir,
             'torrent_file_path': torrent_file_name}
+
+
+def torrent_info(meta_info):
+    libtorrent.torrent_info(meta_info)
+
+
+def default_atp(share_mode):
+    atp = {'storage_mode': libtorrent.storage_mode_t.storage_mode_sparse,
+           'paused': True,
+           'auto_managed': False,
+           'duplicate_is_error': True}
+    if share_mode:
+        atp["flags"] = libtorrent.add_torrent_params_flags_t.flag_share_mode
+
+    return atp

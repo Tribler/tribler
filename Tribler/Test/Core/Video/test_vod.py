@@ -7,7 +7,7 @@ from twisted.internet.defer import inlineCallbacks, Deferred
 from Tribler.Core.download.Download import VODFile
 from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import dlstatus_strings, UPLOAD, DOWNLOAD, DLMODE_VOD
+from Tribler.Core.simpledefs import DOWNLOAD_STATUS_STRINGS, UPLOAD, DOWNLOAD, DLMODE_VOD
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -66,8 +66,8 @@ class TestVideoOnDemand(TestAsServer):
         ds = dslist[0]
         d = ds.get_download()
         self._logger.debug('%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s',
-                           d.get_def().get_name(),
-                           dlstatus_strings[ds.get_status()],
+                           d.get_torrent().get_name(),
+                           DOWNLOAD_STATUS_STRINGS[ds.get_status()],
                            ds.get_progress() * 100,
                            ds.get_error(),
                            ds.get_current_speed(UPLOAD),

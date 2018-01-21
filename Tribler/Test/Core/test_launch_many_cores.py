@@ -10,7 +10,7 @@ from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.download.DownloadManager import DownloadManager
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Core.simpledefs import DOWNLOAD_STATUS_STOPPED_ON_ERROR
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
@@ -90,7 +90,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         fake_error_state = MockObject()
         fake_error_state.get_infohash = lambda: 'aaaa'
         fake_error_state.get_error = lambda: "test error"
-        fake_error_state.get_status = lambda: DLSTATUS_STOPPED_ON_ERROR
+        fake_error_state.get_status = lambda: DOWNLOAD_STATUS_STOPPED_ON_ERROR
         fake_error_state.get_download = lambda: fake_error_download
 
         self.lm.downloads = {'aaaa': fake_error_download}

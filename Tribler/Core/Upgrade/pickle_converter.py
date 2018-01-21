@@ -4,7 +4,7 @@ import os
 import pickle
 from ConfigParser import RawConfigParser
 
-from Tribler.Core.simpledefs import PERSISTENTSTATE_CURRENTVERSION
+from Tribler.Core.download.DownloadPersistence import PERSISTENTSTATE_CURRENTVERSION
 
 
 class PickleConverter(object):

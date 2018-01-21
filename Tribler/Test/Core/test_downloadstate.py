@@ -1,6 +1,6 @@
 from Tribler.Core.download.DownloadPersistence import DownloadSnapshot
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, UPLOAD, DOWNLOAD, DLSTATUS_STOPPED, DLSTATUS_SEEDING, \
-    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK
+from Tribler.Core.simpledefs import DOWNLOAD_STATUS_DOWNLOADING, UPLOAD, DOWNLOAD, DOWNLOAD_STATUS_STOPPED, DOWNLOAD_STATUS_SEEDING, \
+    DOWNLOAD_STATUS_STOPPED_ON_ERROR, DOWNLOAD_STATUS_WAITING_FOR_HASH_CHECK
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 
 
@@ -29,29 +29,29 @@ class TestDownloadState(TriblerCoreTest):
         """
         Testing the init method of DownloadState
         """
-        download_state = DownloadSnapshot(self.mock_download, DLSTATUS_DOWNLOADING, "error", 0.5)
+        download_state = DownloadSnapshot(self.mock_download, DOWNLOAD_STATUS_DOWNLOADING, "error", 0.5)
         self.assertEqual(download_state.get_error(), "error")
 
-        download_state = DownloadSnapshot(self.mock_download, DLSTATUS_SEEDING, None, 0.5)
-        self.assertEqual(download_state.get_status(), DLSTATUS_SEEDING)
+        download_state = DownloadSnapshot(self.mock_download, DOWNLOAD_STATUS_SEEDING, None, 0.5)
+        self.assertEqual(download_state.get_status(), DOWNLOAD_STATUS_SEEDING)
 
-        download_state = DownloadSnapshot(self.mock_download, DLSTATUS_SEEDING, "error", 0.5, stats={})
-        self.assertEqual(download_state.get_status(), DLSTATUS_STOPPED_ON_ERROR)
+        download_state = DownloadSnapshot(self.mock_download, DOWNLOAD_STATUS_SEEDING, "error", 0.5, stats={})
+        self.assertEqual(download_state.get_status(), DOWNLOAD_STATUS_STOPPED_ON_ERROR)
 
-        download_state = DownloadSnapshot(self.mock_download, DLSTATUS_WAITING4HASHCHECK, None, 0.5, stats={})
+        download_state = DownloadSnapshot(self.mock_download, DOWNLOAD_STATUS_WAITING_FOR_HASH_CHECK, None, 0.5, stats={})
         self.assertEqual(download_state.get_progress(), 0.0)
 
-        download_state = DownloadSnapshot(self.mock_download, DLSTATUS_STOPPED, None, 0.5, stats={'frac': 0.6})
+        download_state = DownloadSnapshot(self.mock_download, DOWNLOAD_STATUS_STOPPED, None, 0.5, stats={'frac': 0.6})
         self.assertEqual(download_state.get_progress(), 0.6)
 
     def test_getters_setters_1(self):
         """
         Testing various getters and setters in DownloadState
         """
-        download_state = DownloadSnapshot(self.mock_download, DLSTATUS_DOWNLOADING, None, 0.5)
+        download_state = DownloadSnapshot(self.mock_download, DOWNLOAD_STATUS_DOWNLOADING, None, 0.5)
         self.assertEqual(download_state.get_download(), self.mock_download)
         self.assertEqual(download_state.get_progress(), 0.5)
-        self.assertEqual(download_state.get_status(), DLSTATUS_DOWNLOADING)
+        self.assertEqual(download_state.get_status(), DOWNLOAD_STATUS_DOWNLOADING)
         self.assertIsNone(download_state.get_error())
 
         self.assertEqual(download_state.get_current_speed(UPLOAD), 0)
@@ -61,7 +61,7 @@ class TestDownloadState(TriblerCoreTest):
         self.assertEqual(download_state.get_num_seeds_peers(), (0, 0))
         self.assertEqual(download_state.get_vod_prebuffering_progress_consec(), 0)
         self.assertEqual(download_state.get_vod_prebuffering_progress(), 0)
-        download_state.status = DLSTATUS_STOPPED
+        download_state.status = DOWNLOAD_STATUS_STOPPED
         download_state.progress = 1.0
         self.assertEqual(download_state.get_vod_prebuffering_progress_consec(), 1.0)
         self.assertEqual(download_state.get_vod_prebuffering_progress(), 1.0)
@@ -73,10 +73,10 @@ class TestDownloadState(TriblerCoreTest):
         """
         Testing various getters and setters in DownloadState
         """
-        download_state = DownloadSnapshot(self.mock_download, DLSTATUS_DOWNLOADING, None, 0.5)
+        download_state = DownloadSnapshot(self.mock_download, DOWNLOAD_STATUS_DOWNLOADING, None, 0.5)
         stats = {'up': 123, 'down': 1234, 'stats': self.mock_transferred, 'time': 42, 'vod_prebuf_frac_consec': 43,
                  'vod_prebuf_frac': 44, 'vod': True, 'tracker_status': {'a': 'b'}}
-        download_state.stats = stats
+        download_state.statistics = stats
         self.assertEqual(download_state.get_current_speed(UPLOAD), 123)
         self.assertEqual(download_state.get_current_speed(DOWNLOAD), 1234)
         self.assertEqual(download_state.get_total_transferred(UPLOAD), 5)
@@ -112,7 +112,7 @@ class TestDownloadState(TriblerCoreTest):
         Testing whether the right completion of files is returned
         """
         self.mock_download.config.get_selected_files = lambda: [['test.txt', 42]]
-        download_state = DownloadSnapshot(self.mock_download, DLSTATUS_DOWNLOADING, None, 0.6)
+        download_state = DownloadSnapshot(self.mock_download, DOWNLOAD_STATUS_DOWNLOADING, None, 0.6)
         self.assertEqual(download_state.get_files_completion(), [(['test.txt', 42], 0.6)])
         download_state.filepieceranges = [(5, 10, None, ['test.txt', 42])]
         self.assertEqual(download_state.get_files_completion(), [(['test.txt', 42], 0.0)])
@@ -125,10 +125,10 @@ class TestDownloadState(TriblerCoreTest):
         """
         Testing whether the right availability of a file is returned
         """
-        download_state = DownloadSnapshot(self.mock_download, DLSTATUS_DOWNLOADING, None, 0.6)
-        download_state.stats = {'spew': [{}]}
+        download_state = DownloadSnapshot(self.mock_download, DOWNLOAD_STATUS_DOWNLOADING, None, 0.6)
+        download_state.statistics = {'spew': [{}]}
         self.assertEqual(download_state.get_availability(), 0)
-        download_state.stats = {'spew': [{'completed': 1.0}]}
+        download_state.statistics = {'spew': [{'completed': 1.0}]}
         self.assertEqual(download_state.get_availability(), 1.0)
-        download_state.stats = {'spew': [{'completed': 0.6}]}
+        download_state.statistics = {'spew': [{'completed': 0.6}]}
         self.assertEqual(download_state.get_availability(), 0.0)

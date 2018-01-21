@@ -387,7 +387,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         download = self.download_session_manager.start_download_from_magnet("magnet:?xt=urn:btih:" + ('1' * 40))
 
-        basename = binascii.hexlify(download.get_def().get_infohash()) + '.state'
+        basename = binascii.hexlify(download.get_torrent().get_infohash()) + '.state'
         filename = os.path.join(download.session.get_downloads_resume_info_directory(), basename)
 
         self.assertTrue(os.path.isfile(filename))

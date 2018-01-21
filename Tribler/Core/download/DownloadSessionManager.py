@@ -652,7 +652,7 @@ class DownloadSessionManager(TaskManager):
         d = self.tribler_session.get_download(tdef.get_infohash())
         if d:
             new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(
-                d.get_def().get_trackers_as_single_tuple()))
+                d.get_torrent().get_trackers_as_single_tuple()))
             if not new_trackers:
                 raise DuplicateDownloadException("This download already exists.")
 

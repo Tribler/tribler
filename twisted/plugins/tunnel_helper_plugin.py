@@ -27,8 +27,8 @@ from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.download.definitions import DownloadStatus
 from Tribler.Core.permid import read_keypair
-from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.candidate import Candidate
@@ -133,7 +133,7 @@ class TunnelStatsEndpoint(resource.Resource):
         self.tunnel = tunnel
 
     def render_GET(self, request):
-        return json.dumps(self.tunnel.get_stats())
+        return json.dumps(self.tunnel.get_statistics())
 
 
 class TunnelHistoryEndpoint(resource.Resource):
@@ -379,7 +379,7 @@ class LineHandler(LineReceiver):
                                 (tdef.get_infohash().encode('hex')[:10],
                                  ds.get_current_speed('down'),
                                  ds.get_progress(),
-                                 dlstatus_strings[ds.get_status()],
+                                 DownloadStatus(ds.get_status()).name,
                                  sum(ds.get_num_seeds_peers()),
                                  sum(1 for _ in anon_tunnel.community.dispersy_yield_verified_candidates())))
                     return 1.0, False

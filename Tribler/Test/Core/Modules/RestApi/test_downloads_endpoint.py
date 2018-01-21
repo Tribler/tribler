@@ -94,7 +94,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
             dl.tracker_status[u"\u266b"] = [0, 'Not contacted yet']
-            tdef = dl.get_def()
+            tdef = dl.get_torrent()
             tdef.input['name'] = u'video\u266b'
             return self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200)
 
@@ -205,7 +205,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         def verify_download(_):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
-            self.assertEqual(self.session.get_downloads()[0].get_def().get_name(), 'Unknown name')
+            self.assertEqual(self.session.get_downloads()[0].get_torrent().get_name(), 'Unknown name')
 
         post_data = {'uri': 'magnet:?xt=urn:btih:%s' % (hexlify(UBUNTU_1504_INFOHASH))}
         expected_json = {'started': True, 'infohash': 'fc8a15a2faf2734dbb1dc5f7afdc5c9beaeb1f59'}

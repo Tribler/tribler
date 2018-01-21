@@ -22,8 +22,10 @@ from Tribler.Core.CreditMining.defs import SAVED_ATTR, CREDIT_MINING_FOLDER_DOWN
 from Tribler.Core.download.Download import Download
 from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.Utilities import utilities
+from Tribler.Core.download.DownloadHandle import DownloadHandle
+from Tribler.Core.download.definitions import DownloadStatus
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
 from Tribler.dispersy.taskmanager import TaskManager
 
 
@@ -261,14 +263,7 @@ class BoostingManager(TaskManager):
         """
 
         for infohash in list(self.torrents):
-            # torrent handle
-            lt_torrent = self.session.download_manager.download_session_manager.get_session().find_torrent(lt.big_number(infohash))
-
-            peer_list = []
-            for i in lt_torrent.get_peer_info():
-                peer = Download.create_peerlist_data(i)
-                peer_list.append(peer)
-
+            peer_list = self.session.download_manager.get_download(infohash).handle.create_peer_list()
             num_seed, num_leech = utilities.translate_peers_into_health(peer_list)
 
             # calculate number of seeder and leecher by looking at the peers
@@ -339,7 +334,7 @@ class BoostingManager(TaskManager):
             if torrent.get('preload', False):
                 if 'download' not in torrent:
                     self.start_download(torrent)
-                elif torrent['download'].get_status() == DLSTATUS_SEEDING:
+                elif torrent['download'].get_status() == DownloadStatus.SEEDING:
                     self.stop_download(torrent)
             elif not torrent.get('is_duplicate', False):
                 if torrent.get('enabled', True):

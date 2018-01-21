@@ -8,7 +8,7 @@ import os
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
+from Tribler.Core.simpledefs import DOWNLOAD_STATUS_SEEDING, DOWNLOAD_STATUS_STRINGS
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
@@ -66,11 +66,11 @@ class TestSeeding(TestAsServer):
     def downloader_state_callback(self, ds):
         d = ds.get_download()
         self._logger.debug("download status: %s %s %s",
-                           repr(d.get_def().get_name()),
-                           dlstatus_strings[ds.get_status()],
+                           repr(d.get_torrent().get_name()),
+                           DOWNLOAD_STATUS_STRINGS[ds.get_status()],
                            ds.get_progress())
 
-        if ds.get_status() == DLSTATUS_SEEDING:
+        if ds.get_status() == DOWNLOAD_STATUS_SEEDING:
             # File is in
             destfn = os.path.join(self.getDestDir(), "video.avi")
             f = open(destfn, "rb")

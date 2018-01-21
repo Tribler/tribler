@@ -34,7 +34,7 @@ from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.instrumentation import WatchDog
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
+from Tribler.Core.simpledefs import DOWNLOAD_STATUS_STRINGS, DOWNLOAD_STATUS_SEEDING
 from Tribler.Test.twisted_thread import reactor
 from Tribler.Test.util.util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -376,10 +376,10 @@ class TestAsServer(AbstractServer):
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
-        self._logger.debug("seeder status: %s %s %s", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()],
+        self._logger.debug("seeder status: %s %s %s", repr(d.get_torrent().get_name()), DOWNLOAD_STATUS_STRINGS[ds.get_status()],
                            ds.get_progress())
 
-        if ds.get_status() == DLSTATUS_SEEDING:
+        if ds.get_status() == DOWNLOAD_STATUS_SEEDING:
             self.seeding_deferred.callback(None)
             return 0.0, False
 

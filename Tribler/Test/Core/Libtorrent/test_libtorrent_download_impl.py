@@ -9,7 +9,7 @@ import libtorrent as lt
 
 from Tribler.Core.download.Download import Download
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLMODE_VOD
+from Tribler.Core.simpledefs import DOWNLOAD_STATUS_DOWNLOADING, DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
@@ -78,8 +78,8 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         tdef = self.create_tdef()
 
         impl = Download(self.session, None)
-        impl.set_def(tdef)
-        self.assertEqual(impl.tdef, tdef, "Torrent definitions were not equal!")
+        impl.set_torrent(tdef)
+        self.assertEqual(impl.torrent, tdef, "Torrent definitions were not equal!")
 
     @deferred(timeout=20)
     def test_setup(self):
@@ -149,7 +149,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         test_dict["a"] = "b"
         pstate["state"]["engineresumedata"] = test_dict
         pstate["user_stopped"] = False
-        return impl.network_create_engine_wrapper(pstate)
+        return impl.create_engine_wrapper(pstate)
 
     @deferred(timeout=10)
     def test_save_resume(self):
@@ -240,9 +240,9 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.handle = mock_handle
 
         # Create a fake tdef
-        self.libtorrent_download_impl.tdef = MockObject()
-        self.libtorrent_download_impl.tdef.get_name = lambda: "ubuntu.iso"
-        self.libtorrent_download_impl.tdef.is_multifile_torrent = lambda: False
+        self.libtorrent_download_impl.torrent = MockObject()
+        self.libtorrent_download_impl.torrent.get_name = lambda: "ubuntu.iso"
+        self.libtorrent_download_impl.torrent.is_multifile_torrent = lambda: False
 
     def tearDown(self, annotate=True):
         self.libtorrent_download_impl.cancel_all_pending_tasks()
@@ -266,7 +266,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.handle.rename_file = lambda *_: None
 
         self.libtorrent_download_impl.get_share_mode = lambda: False
-        self.libtorrent_download_impl.tdef.get_infohash = lambda: 'a' * 20
+        self.libtorrent_download_impl.torrent.get_infohash = lambda: 'a' * 20
         self.libtorrent_download_impl.orig_files = ['a', 'b']
         self.libtorrent_download_impl.get_save_path = lambda: 'my/path'
         self.libtorrent_download_impl.set_selected_files(['a'])
@@ -433,7 +433,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         mock_torrent_info = MockObject()
         mock_torrent_info.files = lambda: [mocked_file]
         self.libtorrent_download_impl.handle.get_torrent_info = lambda: mock_torrent_info
-        dest_files = self.libtorrent_download_impl.get_dest_files()
+        dest_files = self.libtorrent_download_impl.get_destination_files()
         self.assertIsInstance(dest_files[0], tuple)
         self.assertEqual(dest_files[0][0], 'test')
 
@@ -442,9 +442,9 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         Testing whether the right vod file index is returned in LibtorrentDownloadImpl
         """
         self.libtorrent_download_impl.vod_index = None
-        self.assertEqual(self.libtorrent_download_impl.get_vod_fileindex(), -1)
+        self.assertEqual(self.libtorrent_download_impl.get_vod_file_index(), -1)
         self.libtorrent_download_impl.vod_index = 42
-        self.assertEqual(self.libtorrent_download_impl.get_vod_fileindex(), 42)
+        self.assertEqual(self.libtorrent_download_impl.get_vod_file_index(), 42)
 
     def test_get_vod_filesize(self):
         """
@@ -526,7 +526,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         """
         status = self.libtorrent_download_impl.handle.get_status()
         status.paused = False
-        status.state = DLSTATUS_DOWNLOADING
+        status.state = DOWNLOAD_STATUS_DOWNLOADING
         status.progress = 0.9
         status.error = None
         status.total_wanted = 33

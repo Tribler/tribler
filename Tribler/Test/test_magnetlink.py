@@ -18,7 +18,6 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.download.DownloadSessionManager import DownloadSessionManager
 from Tribler.Core.download.utilities import bdecode, bencode
-from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
 from Tribler.Test.btconn import BTConnection
 from Tribler.Test.common import TESTS_DATA_DIR, UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TestAsServer
@@ -286,13 +285,13 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         return self.seed_deferred
 
     def seeder_state_callback(self, ds):
-        if ds.get_status() == DLSTATUS_SEEDING:
+        if ds.get_status() == DownloadStatus.SEEDING:
             self.seed_deferred.callback(None)
             return 0.0, False
 
         d = ds.get_download()
-        self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()),
-                           dlstatus_strings[ds.get_status()], ds.get_progress())
+        self._logger.debug("seeder: %s %s %s", repr(d.get_torrent().get_name()),
+                           DownloadStatus(ds.get_status()).name, ds.get_progress())
         return 1.0, False
 
     def test_good_request(self):

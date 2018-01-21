@@ -287,7 +287,7 @@ class Session(object):
         """
         download_list = self.get_downloads()
         for download in download_list:
-            if download.get_def().get_infohash() == infohash:
+            if download.get_torrent().get_infohash() == infohash:
                 return self.remove_download(download, remove_content, remove_state)
 
         self.download_manager.remove_id(infohash)

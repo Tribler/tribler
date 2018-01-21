@@ -5,7 +5,7 @@ from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import dlstatus_strings
+from Tribler.Core.simpledefs import DOWNLOAD_STATUS_STRINGS
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
@@ -189,8 +189,8 @@ class TestTunnelBase(TestAsServer):
         if self.tunnel_community_seeder:
             self.tunnel_community_seeder.monitor_downloads([ds])
         d = ds.get_download()
-        self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()),
-                           dlstatus_strings[ds.get_status()], ds.get_progress())
+        self._logger.debug("seeder: %s %s %s", repr(d.get_torrent().get_name()),
+                           DOWNLOAD_STATUS_STRINGS[ds.get_status()], ds.get_progress())
         return 5.0, False
 
     def start_anon_download(self, hops=1):

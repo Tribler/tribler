@@ -86,6 +86,7 @@ seeding_mode = string(default='ratio')
 seeding_ratio = float(default=2.0)
 seeding_time = float(default=60)
 selected_files = string(default='')
+more_info = boolean(default=False)
 
 [dispersy]
 enabled = boolean(default=True)

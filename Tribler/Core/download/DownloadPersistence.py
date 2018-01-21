@@ -6,13 +6,11 @@ Author(s): Arno Bakker
 import json
 import logging
 import os
-from binascii import unhexlify, hexlify
 
 from copy import deepcopy
 
 from Tribler.Core.download.DownloadConfig import DownloadConfig
-from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
-                                     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, UPLOAD)
+from Tribler.Core.download.definitions import DownloadStatus, DownloadDirection
 
 
 class DownloadSnapshot(object):
@@ -45,10 +43,10 @@ class DownloadSnapshot(object):
         self.seeding_stats = seeding_stats
 
         self.haveslice = None
-        self.stats = None
+        self.statistics = None
         self.length = None
 
-        name = self.download.get_def().get_name()
+        name = self.download.get_torrent().get_name()
 
         if stats is None:
             # No info available yet from download engine
@@ -56,7 +54,7 @@ class DownloadSnapshot(object):
             self.error = error  # readonly access
             self.progress = progress
             if self.error is not None:
-                self.status = DLSTATUS_STOPPED_ON_ERROR
+                self.status = DownloadStatus.STOPPED_ON_ERROR
             else:
                 self.status = status
 
@@ -64,14 +62,14 @@ class DownloadSnapshot(object):
             self._logger.debug("error is not None '%s'", name)
             self.error = error  # readonly access
             self.progress = 0.0  # really want old progress
-            self.status = DLSTATUS_STOPPED_ON_ERROR
+            self.status = DownloadStatus.STOPPED_ON_ERROR
 
-        elif status is not None and not status in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
+        elif status is not None and not status in [DownloadStatus.DOWNLOADING, DownloadStatus.SEEDING]:
             # For HASHCHECKING and WAITING4HASHCHECK
             self._logger.debug("we have status and it is not downloading or seeding '%s'", name)
             self.error = error
             self.status = status
-            if self.status == DLSTATUS_WAITING4HASHCHECK:
+            if self.status == DownloadStatus.WAITING_FOR_HASH_CHECK:
                 self.progress = 0.0
             else:
                 self.progress = stats['frac']
@@ -84,15 +82,15 @@ class DownloadSnapshot(object):
             self.error = None
             self.progress = stats['frac']
             if stats['frac'] == 1.0:
-                self.status = DLSTATUS_SEEDING
+                self.status = DownloadStatus.SEEDING
             else:
-                self.status = DLSTATUS_DOWNLOADING
+                self.status = DownloadStatus.DOWNLOADING
 
             # Safe to store the stats dict. The stats dict is created per
             # invocation of the BT1Download returned statsfunc and contains no
             # pointers.
             #
-            self.stats = stats
+            self.statistics = stats
 
         if stats and stats.get('stats', None):
             # for pieces complete
@@ -122,9 +120,9 @@ class DownloadSnapshot(object):
 
                             index += 1
                 self.haveslice = haveslice
-                if have == len(haveslice) and self.status == DLSTATUS_DOWNLOADING:
+                if have == len(haveslice) and self.status == DownloadStatus.DOWNLOADING:
                     # we have all pieces of the selected files
-                    self.status = DLSTATUS_SEEDING
+                    self.status = DownloadStatus.SEEDING
                     self.progress = 1.0
 
     def get_download(self):
@@ -155,29 +153,29 @@ class DownloadSnapshot(object):
     #
     # Details
     #
-    def get_current_speed(self, direct):
+    def get_current_speed(self, direction):
         """
         Returns the current up or download speed.
         @return The speed in bytes/s.
         """
-        if self.stats is None:
+        if self.statistics is None:
             return 0
-        if direct == UPLOAD:
-            return self.stats['up']
-        else:
-            return self.stats['down']
+        if direction == DownloadDirection.UP:
+            return self.statistics['up']
+        elif direction == DownloadDirection.DOWN:
+            return self.statistics['down']
 
-    def get_total_transferred(self, direct):
+    def get_total_transferred(self, direction):
         """
         Returns the total amount of up or downloaded bytes.
         @return The amount in bytes.
         """
-        if self.stats is None:
+        if self.statistics is None:
             return 0
-        if direct == UPLOAD:
-            return self.stats['stats'].upTotal
-        else:
-            return self.stats['stats'].downTotal
+        if direction == DownloadDirection.UP:
+            return self.statistics['stats']['total_up']
+        elif direction == DownloadDirection.DOWN:
+            return self.statistics['stats']['total_down']
 
     def set_seeding_statistics(self, seeding_stats):
         self.seeding_stats = seeding_stats
@@ -208,7 +206,7 @@ class DownloadSnapshot(object):
         Returns the estimated time to finish of download.
         @return The time in ?, as ?.
         """
-        return self.stats['time'] if self.stats else 0.0
+        return self.statistics['time'] if self.statistics else 0.0
 
     def get_num_con_initiated(self):
         """
@@ -217,7 +215,7 @@ class DownloadSnapshot(object):
         (e.g. tracker timeout).
         @return An integer.
         """
-        return self.stats['stats'].numConInitiated if self.stats else 0
+        return self.statistics['stats'].numConInitiated if self.statistics else 0
 
     def get_num_peers(self):
         """
@@ -226,11 +224,11 @@ class DownloadSnapshot(object):
         (e.g. tracker timeout).
         @return An integer.
         """
-        if self.stats is None:
+        if self.statistics is None:
             return 0
 
         # Determine if we need statsobj to be requested, same as for spew
-        statsobj = self.stats['stats']
+        statsobj = self.statistics['stats']
         return statsobj.numSeeds + statsobj.numPeers
 
     def get_num_nonseeds(self):
@@ -238,11 +236,11 @@ class DownloadSnapshot(object):
         Returns the download's number of non-seeders.
         @return An integer.
         """
-        if self.stats is None:
+        if self.statistics is None:
             return 0
 
         # Determine if we need statsobj to be requested, same as for spew
-        statsobj = self.stats['stats']
+        statsobj = self.statistics['stats']
         return statsobj.numPeers
 
     def get_num_seeds_peers(self):
@@ -253,13 +251,13 @@ class DownloadSnapshot(object):
         parameter set to True, otherwise returns (None,None)
         @return A tuple (num seeds, num peers)
         """
-        if self.stats is None or self.stats.get('spew', None) is None:
+        if self.statistics is None or self.statistics.get('spew', None) is None:
             total = self.get_num_peers()
             non_seeds = self.get_num_nonseeds()
             return (total - non_seeds, non_seeds)
 
-        total = len(self.stats['spew'])
-        seeds = len([i for i in self.stats['spew'] if i.get('completed', 0) == 1.0])
+        total = len(self.statistics['spew'])
+        seeds = len([i for i in self.statistics['spew'] if i.get('completed', 0) == 1.0])
         return seeds, total - seeds
 
     def get_pieces_complete(self):
@@ -292,7 +290,7 @@ class DownloadSnapshot(object):
         if len(selected_files) > 0:
             files = selected_files
         else:
-            files = self.download.get_def().get_files()
+            files = self.download.get_torrent().get_files()
 
         completion = []
         if self.filepieceranges:
@@ -327,7 +325,7 @@ class DownloadSnapshot(object):
         if not self.length:
             files = self.download.config.get_selected_files()
 
-            tdef = self.download.get_def()
+            tdef = self.download.get_torrent()
             self.length = tdef.get_length(files)
         return self.length
 
@@ -371,34 +369,34 @@ class DownloadSnapshot(object):
         """ Returns the percentage of prebuffering for Video-On-Demand already
         completed.
         @return A float (0..1) """
-        if self.stats is None:
-            if self.status == DLSTATUS_STOPPED and self.progress == 1.0:
+        if self.statistics is None:
+            if self.status == DownloadStatus.STOPPED and self.progress == 1.0:
                 return 1.0
             else:
                 return 0.0
         else:
-            return self.stats['vod_prebuf_frac']
+            return self.statistics['vod_prebuf_frac']
 
     def get_vod_prebuffering_progress_consec(self):
         """ Returns the percentage of consecutive prebuffering for Video-On-Demand already
         completed.
         @return A float (0..1) """
-        if self.stats is None:
-            if self.status == DLSTATUS_STOPPED and self.progress == 1.0:
+        if self.statistics is None:
+            if self.status == DownloadStatus.STOPPED and self.progress == 1.0:
                 return 1.0
             else:
                 return 0.0
         else:
-            return self.stats.get('vod_prebuf_frac_consec', -1)
+            return self.statistics.get('vod_prebuf_frac_consec', -1)
 
     def is_vod(self):
         """ Returns if this download is currently in vod mode
 
         @return A Boolean"""
-        if self.stats is None:
+        if self.statistics is None:
             return False
         else:
-            return self.stats['vod']
+            return self.statistics['vod']
 
     def get_peerlist(self):
         """ Returns a list of dictionaries, one for each connected peer
@@ -429,16 +427,16 @@ class DownloadSnapshot(object):
         'speed' = The peer's current total download speed (estimated)
         </pre>
         """
-        if self.stats is None or 'spew' not in self.stats or self.stats['spew'] is None:
+        if self.statistics is None or 'spew' not in self.statistics or self.statistics['spew'] is None:
             return []
         else:
-            return self.stats['spew']
+            return self.statistics['spew']
 
     def get_tracker_status(self):
-        if self.stats is None or 'tracker_status' not in self.stats or self.stats['tracker_status'] is None:
+        if self.statistics is None or 'tracker_status' not in self.statistics or self.statistics['tracker_status'] is None:
             return {}
         else:
-            return self.stats['tracker_status']
+            return self.statistics['tracker_status']
 
 
 class DownloadResumeInfo:
@@ -498,3 +496,6 @@ class DownloadResumeInfo:
         for key in config.config:
             config.config[key] = deepcopy(self.state[key])
         return config
+
+
+PERSISTENTSTATE_CURRENTVERSION = 5

@@ -8,8 +8,8 @@ from configobj import ConfigObj
 from types import StringType
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
+from Tribler.Core.download.definitions import DownloadMode
 from Tribler.Core.osutils import get_home_dir
-from Tribler.Core.simpledefs import DLMODE_VOD
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +104,7 @@ class DownloadConfig(object):
         """
         Sets the mode of this download.
 
-        :param mode: DLMODE_NORMAL or DLMODE_VOD
+        :param mode: DLMODE_NORMAL or DownloadMode.VOD
         """
         self.config['mode'] = mode
 
@@ -112,9 +112,15 @@ class DownloadConfig(object):
         """
         Returns the mode of this download.
 
-        :return: DLMODE_NORMAL or DLMODE_VOD
+        :return: DLMODE_NORMAL or DownloadMode.VOD
         """
         return self.config['mode']
+
+    def set_more_info(self, value):
+        self.config['more_info'] = value
+
+    def get_more_info(self):
+        return self.config['more_info']
 
     def set_number_hops(self, value):
         self.config['number_hops'] = value
@@ -173,7 +179,7 @@ class DownloadConfig(object):
         if isinstance(files, StringType):  # convenience
             files = [files]
 
-        if self.has_mode() and self.get_mode() == DLMODE_VOD and len(files) > 1:
+        if self.has_mode() and self.get_mode() == DownloadMode.VOD and len(files) > 1:
             raise ValueError("In Video-On-Demand mode only 1 file can be selected for download")
 
         self.config['selected_files'] = files

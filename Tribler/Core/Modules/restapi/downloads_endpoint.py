@@ -4,9 +4,8 @@ from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.Modules.restapi.util import return_handled_exception
-from Tribler.Core.download.Download import DownloadStatistics
 from Tribler.Core.download.DownloadConfig import DownloadConfig
-from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
+from Tribler.Core.download.definitions import DownloadStatus, DownloadDirection, DownloadMode
 import Tribler.Core.Utilities.json_util as json
 
 
@@ -179,7 +178,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
         downloads_json = []
         downloads = self.session.get_downloads()
         for download in downloads:
-            stats = download.network_create_statistics_reponse() or DownloadStatistics(0, 0, 0, 0, 0, 0, 0)
+            stats = download.network_statistics()
             state = download.network_get_state(None, get_peers)
 
             # Create files information of the download
@@ -187,7 +186,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             selected_files = download.config.get_selected_files()
             files_array = []
             file_index = 0
-            for file, size in download.get_def().get_files_with_length():
+            for file, size in download.get_torrent().get_files_with_length():
                 files_array.append({"index": file_index, "name": file, "size": size,
                                     "included": (file in selected_files or not selected_files),
                                     "progress": files_completion.get(file, 0.0)})
@@ -202,12 +201,12 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             if stats.total_down > 0:
                 ratio = stats.total_up / float(stats.total_down)
 
-            download_json = {"name": download.get_def().get_name(), "progress": download.get_progress(),
-                             "infohash": download.get_def().get_infohash().encode('hex'),
-                             "speed_down": download.get_current_speed(DOWNLOAD),
-                             "speed_up": download.get_current_speed(UPLOAD),
-                             "status": dlstatus_strings[download.get_status()],
-                             "size": download.get_def().get_length(), "eta": download.network_calc_eta(),
+            download_json = {"name": download.get_torrent().get_name(), "progress": download.get_progress(),
+                             "infohash": download.get_torrent().get_infohash().encode('hex'),
+                             "speed_down": download.get_current_speed(DownloadDirection.DOWN),
+                             "speed_up": download.get_current_speed(DownloadDirection.UP),
+                             "status": DownloadStatus(download.get_status()).name,
+                             "size": download.get_torrent().get_length(), "eta": download.calculate_eta(),
                              "num_peers": stats.leechers, "num_seeds": stats.seeders, "total_up": stats.total_up,
                              "total_down": stats.total_down, "ratio": ratio,
                              "files": files_array, "trackers": tracker_info, "hops": download.config.get_number_hops(),
@@ -218,7 +217,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                              "max_download_speed": self.session.config.get_downloading_max_download_rate(),
                              "destination": download.config.get_destination_dir(),
                              "availability": state.get_availability(), "total_pieces": download.get_num_pieces(),
-                             "vod_mode": download.config.get_mode() == DLMODE_VOD,
+                             "vod_mode": download.config.get_mode() == DownloadMode.VOD,
                              "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
                              "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec(),
                              "error": repr(state.get_error()) if state.get_error() else "",
@@ -279,7 +278,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
         def download_added(download):
             request.write(json.dumps({"started": True,
-                                      "infohash": download.get_def().get_infohash().encode('hex')}))
+                                      "infohash": download.get_torrent().get_infohash().encode('hex')}))
             request.finish()
 
         def on_error(error):
