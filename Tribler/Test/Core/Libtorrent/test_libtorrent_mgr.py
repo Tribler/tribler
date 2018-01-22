@@ -338,8 +338,19 @@ class TestLibtorrentMgr(AbstractServer):
             self.assertEqual(settings.username, 'abc')
             self.assertEqual(settings.password, 'def')
 
+        def on_set_settings(settings):
+            self.assertTrue(settings)
+            self.assertEqual(settings['proxy_hostname'], 'a')
+            self.assertEqual(settings['proxy_port'], 1234)
+            self.assertEqual(settings['proxy_username'], 'abc')
+            self.assertEqual(settings['proxy_password'], 'def')
+            self.assertEqual(settings['proxy_peer_connections'], True)
+            self.assertEqual(settings['proxy_hostnames'], True)
+
         mock_lt_session = MockObject()
-        mock_lt_session.set_proxy = on_proxy_set
+        mock_lt_session.get_settings = lambda: {}
+        mock_lt_session.set_settings = on_set_settings
+        mock_lt_session.set_proxy = on_proxy_set  # Libtorrent < 1.1.0 uses set_proxy to set proxy settings
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
         self.ltmgr.set_proxy_settings(mock_lt_session, 0, ('a', "1234"), ('abc', 'def'))
 

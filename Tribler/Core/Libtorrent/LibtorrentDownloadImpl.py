@@ -360,9 +360,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 max_conn_download = self.session.config.get_libtorrent_max_conn_download()
                 if max_conn_download != -1:
                     self.handle.set_max_connections(max(2, max_conn_download))
-
-                self.handle.resolve_countries(True)
-
             else:
                 self._logger.error("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
 
@@ -952,7 +949,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                      'dtotal': peer_info.total_download,
                      'completed': peer_info.progress,
                      'have': peer_info.pieces, 'speed': peer_info.remote_dl_rate,
-                     'country': peer_info.country,
                      'connection_type': peer_info.connection_type,
                      # add upload_only and/or seed
                      'seed': bool(peer_info.flags & peer_info.seed),
