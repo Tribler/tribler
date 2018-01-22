@@ -395,11 +395,14 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         def mocked_checkpoint():
             test_deferred.callback(None)
 
+        mocked_file = MockObject()
+        mocked_file.path = 'test'
+
         self.libtorrent_download_impl.handle.trackers = lambda: []
         self.libtorrent_download_impl.handle.save_resume_data = lambda: None
         torrent_dict = {'name': 'test', 'piece length': 42, 'pieces': '', 'files': []}
         get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: lt.bencode(torrent_dict)
-        get_info_from_handle(self.libtorrent_download_impl.handle).files = lambda: []
+        get_info_from_handle(self.libtorrent_download_impl.handle).files = lambda: [mocked_file]
 
         self.libtorrent_download_impl.checkpoint = mocked_checkpoint
         self.libtorrent_download_impl.session = MockObject()
