@@ -610,7 +610,14 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 metadata["announce"] = trackers[0]
 
         self.tdef = TorrentDef.load_from_dict(metadata)
-        self.orig_files = [torrent_file.path.decode('utf-8') for torrent_file in lt.torrent_info(metadata).files()]
+
+        try:
+            torrent_files = lt.torrent_info(metadata).files()
+        except RuntimeError:
+            self._logger.warning("Torrent contains no files!")
+            torrent_files = []
+
+        self.orig_files = [torrent_file.path.decode('utf-8') for torrent_file in torrent_files]
         self.set_corrected_infoname()
         self.set_filepieceranges()
         self.set_selected_files()
