@@ -1064,10 +1064,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         with self.dllock:
             self._logger.debug("LibtorrentDownloadImpl: network_stop %s", self.tdef.get_name())
 
-            pstate = self.get_persistent_download_config()
             if self.handle is not None:
                 self._logger.debug("LibtorrentDownloadImpl: network_stop: engineresumedata from torrent handle")
-                self.pstate_for_restart = pstate
+                self.pstate_for_restart = self.get_persistent_download_config()
                 if removestate:
                     out = self.ltmgr.remove_torrent(self, removecontent)
                     self.handle = None
@@ -1076,27 +1075,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     self.handle.pause()
                     self.save_resume_data()
             else:
-                # This method is also called at Session shutdown, where one may
-                # choose to checkpoint its Download. If the Download was
-                # stopped before, pstate_for_restart contains its resumedata.
-                # and that should be written into the checkpoint.
-                #
+                self._logger.debug("LibtorrentDownloadImpl: network_stop: handle is None")
                 self.cancel_pending_task("check_create_wrapper")
                 if self.dlstate == DLSTATUS_CIRCUITS:
                     self.dlstate = DLSTATUS_STOPPED
-
-                if self.pstate_for_restart is not None:
-                    self._logger.debug(
-                        "LibtorrentDownloadImpl: network_stop: Reusing previously saved engineresume data for checkpoint")
-                    # Don't copy full pstate_for_restart, as the torrent
-                    # may have gone from e.g. HASHCHECK at startup to STOPPED
-                    # now, at shutdown. In other words, it was never active
-                    # in this session and the pstate_for_restart still says
-                    # HASHCHECK.
-                    pstate.set('state', 'engineresumedata', self.pstate_for_restart.get('state', 'engineresumedata'))
-                else:
-                    self._logger.debug(
-                        "LibtorrentDownloadImpl: network_stop: Could not reuse engineresumedata as pstart_for_restart is None")
 
             if removestate:
                 self.session.lm.remove_pstate(self.tdef.get_infohash())
