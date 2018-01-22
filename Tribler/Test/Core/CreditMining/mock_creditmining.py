@@ -82,7 +82,6 @@ class MockLtPeer(object):
         self.progress = 0
         self.pieces = 0
         self.remote_dl_rate = 0
-        self.country = "ID"
         self.connection_type = 0
         self.seed = 1
         self.upload_only = 1

@@ -278,7 +278,7 @@ class TestDHTSession(TriblerCoreTest):
         config = TriblerConfig()
         config.set_state_dir(self.getStateDir())
 
-        self.session = Session(config, ignore_singleton=True)
+        self.session = Session(config)
 
         self.dht_session = FakeDHTSession(self.session, 'a' * 20, 10)
 
