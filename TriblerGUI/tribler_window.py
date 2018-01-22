@@ -473,7 +473,13 @@ class TriblerWindow(QMainWindow):
         self.download_uri = uri
 
         if get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True):
-            self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri)
+            # Clear any previous dialog if exists
+            if self.dialog:
+                self.dialog.button_clicked.disconnect()
+                self.dialog.setParent(None)
+                self.dialog = None
+
+            self.dialog = StartDownloadDialog(self, self.download_uri)
             self.dialog.button_clicked.connect(self.on_start_download_action)
             self.dialog.show()
             self.start_download_dialog_active = True
@@ -545,14 +551,15 @@ class TriblerWindow(QMainWindow):
         self.dialog.show()
 
     def on_torrent_from_url_dialog_done(self, action):
-        uri = self.dialog.dialog_widget.dialog_input.text()
+        if self.dialog and self.dialog.dialog_widget:
+            uri = self.dialog.dialog_widget.dialog_input.text()
 
-        # Remove first dialog
-        self.dialog.setParent(None)
-        self.dialog = None
+            # Remove first dialog
+            self.dialog.setParent(None)
+            self.dialog = None
 
-        if action == 0:
-            self.start_download_from_uri(uri)
+            if action == 0:
+                self.start_download_from_uri(uri)
 
     def on_download_added(self, result):
         if len(self.pending_uri_requests) == 0:  # Otherwise, we first process the remaining requests.
