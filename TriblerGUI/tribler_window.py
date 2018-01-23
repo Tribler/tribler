@@ -40,7 +40,6 @@ fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'
 
 
 class MagnetHandler(QObject):
-
     def __init__(self, window):
         QObject.__init__(self)
         self.window = window
@@ -51,7 +50,6 @@ class MagnetHandler(QObject):
 
 
 class TriblerWindow(QMainWindow):
-
     resize_event = pyqtSignal()
     escape_pressed = pyqtSignal()
     received_search_completions = pyqtSignal(object)
@@ -624,7 +622,8 @@ class TriblerWindow(QMainWindow):
         self.hide_left_menu_playlist()
 
     def clicked_menu_button_debug(self):
-        self.debug_window = DebugWindow(self.tribler_settings)
+        if not self.debug_window:
+            self.debug_window = DebugWindow(self.tribler_settings)
         self.debug_window.show()
 
     def clicked_menu_button_subscriptions(self):
