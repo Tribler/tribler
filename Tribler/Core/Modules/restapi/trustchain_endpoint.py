@@ -70,16 +70,18 @@ class TrustchainStatsEndpoint(TrustchainBaseEndpoint):
                         "total_up": 95138354,
                         "latest_block":
                         {
-                            "hash": ab672fd6acc0...
-                            "up": 123,
-                            "down": 495,
-                            "total_up": 8393,
-                            "total_down": 8943,
+                            "hash": ab672fd6acc0...,
                             "link_public_key": 7324b765a98e,
                             "sequence_number": 50,
                             "link_public_key": 9a5572ec59bbf,
                             "link_sequence_number": 3482,
                             "previous_hash": bd7830e7bdd1...,
+                            "transaction": {
+                                "up": 123,
+                                "down": 495,
+                                "total_up": 8393,
+                                "total_down": 8943,
+                            }
                         }
                     }
                 }
@@ -131,14 +133,16 @@ class TrustchainBlocksIdentityEndpoint(TrustchainBaseEndpoint):
                 {
                     "blocks": [{
                         "hash": ab672fd6acc0...
-                        "up": 123,
-                        "down": 495,
-                        "total_up": 8393,
-                        "total_down": 8943,
                         "sequence_number": 50,
                         "link_public_key": 9a5572ec59bbf,
                         "link_sequence_number": 3482,
                         "previous_hash": bd7830e7bdd1...,
+                        "transaction": {
+                            "up": 123,
+                            "down": 495,
+                            "total_up": 8393,
+                            "total_down": 8943,
+                        }
                     }, ...]
                 }
         """
