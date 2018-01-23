@@ -104,8 +104,14 @@ class TrustPage(QWidget):
 
     def received_trustchain_statistics(self, statistics):
         statistics = statistics["statistics"]
-        self.window().trust_contribution_amount_label.setText("%s MBytes" % (statistics["total_up"] / self.byte_scale))
-        self.window().trust_consumption_amount_label.setText("%s MBytes" % (statistics["total_down"] / self.byte_scale))
+        total_up = 0
+        total_down = 0
+        if 'latest_block' in statistics:
+            total_up = statistics["latest_block"]["transaction"]["total_up"]
+            total_down = statistics["latest_block"]["transaction"]["total_down"]
+
+        self.window().trust_contribution_amount_label.setText("%s MBytes" % (total_up / self.byte_scale))
+        self.window().trust_consumption_amount_label.setText("%s MBytes" % (total_down / self.byte_scale))
 
         self.window().trust_people_helped_label.setText("%d" % statistics["peers_that_pk_helped"])
         self.window().trust_people_helped_you_label.setText("%d" % statistics["peers_that_helped_pk"])
@@ -129,8 +135,8 @@ class TrustPage(QWidget):
         for block in self.blocks:
             plot_data[1].append(datetime.datetime.strptime(block["insert_time"], "%Y-%m-%d %H:%M:%S"))
 
-            plot_data[0][0].append(block["total_up"] / self.byte_scale)
-            plot_data[0][1].append(block["total_down"] / self.byte_scale)
+            plot_data[0][0].append(block["transaction"]["total_up"] / self.byte_scale)
+            plot_data[0][1].append(block["transaction"]["total_down"] / self.byte_scale)
 
         if len(self.blocks) == 0:
             # Create on single data point with 0mb up and 0mb down
