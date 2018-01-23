@@ -68,9 +68,9 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
             timeout_cb('a' * 20)
 
         path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH), quote_plus('test torrent'))
-        self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.get_metainfo = get_metainfo
-        self.session.lm.ltmgr.shutdown = lambda: None
+        self.session.download_manager.ltmgr = MockObject()
+        self.session.download_manager.ltmgr.get_metainfo = get_metainfo
+        self.session.download_manager.ltmgr.shutdown = lambda: None
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)  # Cached
 
@@ -81,13 +81,13 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=400)
 
         path = 'magnet:?xt=urn:btih:%s&dn=%s' % ('a' * 40, quote_plus('test torrent'))
-        self.session.lm.ltmgr.get_metainfo = get_metainfo_timeout
+        self.session.download_manager.ltmgr.get_metainfo = get_metainfo_timeout
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=408)
 
         def mocked_save_torrent(*_):
             raise TypeError()
 
-        self.session.lm.ltmgr.get_metainfo = get_metainfo
+        self.session.download_manager.ltmgr.get_metainfo = get_metainfo
         self.session.save_collected_torrent = mocked_save_torrent
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
 
@@ -102,9 +102,9 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         def get_metainfo(infohash, callback, **_):
             callback("abcd")
 
-        self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.get_metainfo = get_metainfo
-        self.session.lm.ltmgr.shutdown = lambda: None
+        self.session.download_manager.ltmgr = MockObject()
+        self.session.download_manager.ltmgr.get_metainfo = get_metainfo
+        self.session.download_manager.ltmgr.shutdown = lambda: None
         path = 'magnet:?xt=urn:btih:%s&dn=%s' % (hexlify(UBUNTU_1504_INFOHASH), quote_plus('test torrent'))
 
         self.should_check_equality = False

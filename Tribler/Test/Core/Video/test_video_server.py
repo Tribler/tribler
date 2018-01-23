@@ -5,12 +5,13 @@ Author(s): Arno Bakker
 """
 import binascii
 import os
+
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 from twisted.internet.protocol import Protocol, connectionDone
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Video.VideoServer import VideoServer
@@ -125,7 +126,7 @@ class TestVideoServerSession(TestAsServer):
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_downloading_enabled(True)
         self.config.set_video_server_enabled(True)
 
     #
@@ -153,10 +154,10 @@ class TestVideoServerSession(TestAsServer):
         self.tdef.set_tracker("http://127.0.0.1:12/announce")
         self.tdef.finalize()
 
-        dscfg = DownloadStartupConfig()
-        dscfg.set_dest_dir(os.path.dirname(self.sourcefn))
+        download_config = DownloadConfig()
+        download_config.set_destination_dir(os.path.dirname(self.sourcefn))
 
-        download = self.session.start_download_from_tdef(self.tdef, dscfg)
+        download = self.session.start_download_from_tdef(self.tdef, download_config)
         return download.get_handle()
 
     def get_std_header(self):

@@ -1,7 +1,7 @@
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING
+from Tribler.Core.simpledefs import DOWNLOAD_STATUS_SEEDING
 from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
 from Tribler.Test.twisted_thread import deferred
 
@@ -58,9 +58,9 @@ class TestHiddenTunnelCommunity(TestTunnelBase):
                 self._logger.debug("announced %s to the DHT", info_hash.encode('hex'))
                 self.dht_deferred.callback(None)
             port = community.tribler_session.config.get_dispersy_port()
-            if not community.tribler_session.lm.mainline_dht:
-                community.tribler_session.lm.mainline_dht = FakeDHT(self.dht_dict)
-            community.tribler_session.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
+            if not community.tribler_session.download_manager.mainline_dht:
+                community.tribler_session.download_manager.mainline_dht = FakeDHT(self.dht_dict)
+            community.tribler_session.download_manager.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
 
         for community in self.tunnel_communities:
             community.dht_announce = lambda ih, com=community: dht_announce(ih, com)
@@ -70,7 +70,7 @@ class TestHiddenTunnelCommunity(TestTunnelBase):
 
     def setup_dht_bypass(self):
         for session in self.sessions + [self.session]:
-            session.lm.mainline_dht = FakeDHT(self.dht_dict)
+            session.download_manager.mainline_dht = FakeDHT(self.dht_dict)
 
     @deferred(timeout=50)
     @inlineCallbacks
@@ -85,7 +85,7 @@ class TestHiddenTunnelCommunity(TestTunnelBase):
         def download_state_callback(ds):
             self.tunnel_community.monitor_downloads([ds])
             download = ds.get_download()
-            if download.get_progress() == 1.0 and ds.get_status() == DLSTATUS_SEEDING:
+            if download.get_progress() == 1.0 and ds.get_status() == DOWNLOAD_STATUS_SEEDING:
                 self.test_deferred.callback(None)
                 return 0.0, False
             return 2.0, False

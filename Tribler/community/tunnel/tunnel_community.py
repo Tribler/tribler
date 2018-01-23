@@ -323,7 +323,7 @@ class TunnelCommunity(Community):
 
         if self.tribler_session:
             self.notifier = self.tribler_session.notifier
-            self.tribler_session.lm.tunnel_community = self
+            self.tribler_session.download_manager.tunnel_community = self
 
     def self_is_connectable(self):
         return self._dispersy._connection_type == u"public"
@@ -474,10 +474,11 @@ class TunnelCommunity(Community):
         This method is called when a download is removed. We check here whether we can stop building circuits for a
         specific number of hops in case it hasn't been finished yet.
         """
-        if download.get_hops() > 0:
-            self.num_hops_by_downloads[download.get_hops()] -= 1
-            if self.num_hops_by_downloads[download.get_hops()] == 0:
-                self.circuits_needed[download.get_hops()] = 0
+        number_hops = download.config.get_number_hops()
+        if number_hops > 0:
+            self.num_hops_by_downloads[number_hops] -= 1
+            if self.num_hops_by_downloads[number_hops] == 0:
+                self.circuits_needed[number_hops] = 0
 
     def do_remove(self):
         # Remove circuits that are inactive / are too old / have transferred too many bytes.
@@ -624,9 +625,9 @@ class TunnelCommunity(Community):
             circuit.destroy()
 
             affected_peers = self.socks_server.circuit_dead(circuit)
-            ltmgr = self.tribler_session.lm.ltmgr \
-                if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled() else None
-            if ltmgr:
+            download_session_handle = self.tribler_session.download_manager.download_session_handle \
+                if self.tribler_session and self.tribler_session.config.get_downloading_enabled() else None
+            if download_session_handle:
                 def update_torrents(handle, download):
                     peers = affected_peers.intersection(handle.get_peer_info())
                     if peers:
@@ -639,8 +640,8 @@ class TunnelCommunity(Community):
                         if self.active_data_circuits():
                             self.readd_bittorrent_peers()
 
-                for d, s in ltmgr.torrents.values():
-                    if s == ltmgr.get_session(d.get_hops()):
+                for d, s in download_session_handle.torrents.values():
+                    if s == download_session_handle.get_session(d.get_hops()):
                         d.get_handle().addCallback(update_torrents, d)
 
         # Clean up the directions dictionary

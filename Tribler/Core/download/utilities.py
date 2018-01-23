@@ -1,27 +1,18 @@
-import logging
 import os
 
 import libtorrent
 
-logger = logging.getLogger(__name__)
+
+DANGEROUS_ALERT_CATEGORIES = {libtorrent.alert.category_t.error_notification,
+                              libtorrent.alert.category_t.performance_warning}
 
 
-def commonprefix(l):
-    # this unlike the os.path.commonprefix version always returns path prefixes as it compares
-    # path component wise.
-    cp = []
-    ls = [p.split('/') for p in l]
-    ml = min(len(p) for p in ls)
+def bdecode(data):
+    return libtorrent.bdecode(data)
 
-    for i in range(ml):
 
-        s = set(p[i] for p in ls)
-        if len(s) != 1:
-            break
-
-        cp.append(s.pop())
-
-    return os.path.sep.join(cp)
+def bencode(data):
+    libtorrent.bencode(data)
 
 
 def create_torrent_file(file_path_list, params):
@@ -39,7 +30,7 @@ def create_torrent_file(file_path_list, params):
     if len(file_path_list_filtered) == 1:
         base_path = os.path.split(file_path_list_filtered[0])[0]
     else:
-        base_path = os.path.abspath(commonprefix(file_path_list_filtered))
+        base_path = os.path.dirname(os.path.commonprefix(file_path_list_filtered))
 
     # the base_dir directory is the parent directory of the base_path and is passed to the set_piece_hash method
     base_dir = os.path.split(base_path)[0]
@@ -119,14 +110,16 @@ def create_torrent_file(file_path_list, params):
             'torrent_file_path': torrent_file_name}
 
 
-def get_info_from_handle(handle):
-    # In libtorrent 0.16.18, the torrent_handle.torrent_file method is not available.
-    # this method checks whether the torrent_file method is available on a given handle.
-    # If not, fall back on the deprecated get_torrent_info
-    try:
-        if hasattr(handle, 'torrent_file'):
-            return handle.torrent_file()
-        return handle.get_torrent_info()
-    except RuntimeError as e:  # This can happen when the torrent handle is invalid.
-        logger.warning("Got exception when fetching info from handle: %s", str(e))
-        return None
+def torrent_info(meta_info):
+    libtorrent.torrent_info(meta_info)
+
+
+def default_atp(share_mode):
+    atp = {'storage_mode': libtorrent.storage_mode_t.storage_mode_sparse,
+           'paused': True,
+           'auto_managed': False,
+           'duplicate_is_error': True}
+    if share_mode:
+        atp["flags"] = libtorrent.add_torrent_params_flags_t.flag_share_mode
+
+    return atp

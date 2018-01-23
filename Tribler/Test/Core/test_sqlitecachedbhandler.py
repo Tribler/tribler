@@ -38,7 +38,7 @@ class AbstractDB(TriblerCoreTest):
         self.config.set_dispersy_enabled(False)
         self.config.set_mainline_dht_enabled(False)
         self.config.set_torrent_collecting_enabled(False)
-        self.config.set_libtorrent_enabled(False)
+        self.config.set_downloading_enabled(False)
         self.config.set_video_server_enabled(False)
         self.config.set_torrent_store_enabled(False)
 

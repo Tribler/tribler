@@ -9,16 +9,16 @@ import sys
 from hashlib import sha1
 from types import StringType, ListType, IntType, LongType
 
-from libtorrent import bencode, bdecode
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.utilities import create_valid_metainfo, is_valid_url
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.utilities import parse_magnetlink, http_get
 from Tribler.Core.defaults import TDEF_DEFAULTS
+from Tribler.Core.download.utilities import bdecode, bencode
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, NotYetImplementedException
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TorrentDef(object):
@@ -190,9 +190,9 @@ class TorrentDef(object):
             tdef.add_content("c:\Videos\file.avi",playtime="1:59:20")
             tdef.set_tracker(s.get_internal_tracker_url())
             tdef.finalize()
-            dscfg = DownloadStartupConfig()
-            dscfg.set_dest_dir("c:\Video")
-            s.start_download(tdef,dscfg)
+            download_config = DownloadStartupConfig()
+            download_config.set_destination_dir("c:\Video")
+            s.start_download(tdef,download_config)
         </pre>
         @param inpath Absolute name of file or directory on local filesystem,
         as Unicode string.
@@ -484,7 +484,7 @@ class TorrentDef(object):
         else:
             raise TorrentDefNotFinalizedException()
 
-    def get_metainfo(self):
+    def get_meta_info(self):
         """ Returns the torrent definition as a dictionary that follows the BT
         spec for torrent files.
         @return dict
@@ -785,7 +785,7 @@ class TorrentDefNoMetainfo(object):
     def get_length(self, selectedfiles=None):
         return 0
 
-    def get_metainfo(self):
+    def get_meta_info(self):
         return None
 
     def get_url(self):

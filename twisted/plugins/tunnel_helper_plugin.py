@@ -15,29 +15,28 @@ from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred, succeed
 from twisted.internet.stdio import StandardIO
 from twisted.internet.task import LoopingCall
-from twisted.web import server, resource
 from twisted.plugin import IPlugin
 from twisted.protocols.basic import LineReceiver
 from twisted.python import usage
 from twisted.python.log import msg
+from twisted.web import server, resource
 from zope.interface import implements
 
-from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.Core.Config.tribler_config import TriblerConfig
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
-from Tribler.Core.permid import read_keypair
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.download.definitions import DownloadStatus
+from Tribler.Core.permid import read_keypair
+from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
 from Tribler.dispersy.util import blockingCallFromThread
 
 
 # Register yappi profiler
-from Tribler.dispersy.utils import twistd_yappi
 
 
 def check_socks5_port(val):
@@ -134,7 +133,7 @@ class TunnelStatsEndpoint(resource.Resource):
         self.tunnel = tunnel
 
     def render_GET(self, request):
-        return json.dumps(self.tunnel.get_stats())
+        return json.dumps(self.tunnel.get_statistics())
 
 
 class TunnelHistoryEndpoint(resource.Resource):
@@ -177,7 +176,7 @@ class Tunnel(object):
         self.current_stats = [0, 0, 0]
         self.history_stats = deque(maxlen=180)
         self.start_tribler()
-        self.dispersy = self.session.lm.dispersy
+        self.dispersy = self.session.download_manager.dispersy
         self.community = None
         self.clean_messages_lc = LoopingCall(self.clean_messages)
         self.clean_messages_lc.start(1800)
@@ -229,7 +228,7 @@ class Tunnel(object):
         config.set_dispersy_enabled(True)
         config.set_mainline_dht_enabled(True)
         config.set_torrent_collecting_enabled(False)
-        config.set_libtorrent_enabled(True)
+        config.set_downloading_enabled(True)
         config.set_video_server_enabled(False)
         config.set_dispersy_port(self.dispersy_port)
         config.set_torrent_search_enabled(False)
@@ -350,12 +349,11 @@ class LineHandler(LineReceiver):
                 tdef = TorrentDef.load(filename + '.torrent')
             logger.info("loading torrent done, infohash of torrent: %s" % (tdef.get_infohash().encode('hex')[:10]))
 
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            dscfg = defaultDLConfig.copy()
-            dscfg.set_hops(1)
-            dscfg.set_dest_dir(cur_path)
+            download_config = DownloadConfig()
+            download_config.set_number_hops(1)
+            download_config.set_destination_dir(cur_path)
 
-            reactor.callFromThread(anon_tunnel.session.start_download_from_tdef, tdef, dscfg)
+            reactor.callFromThread(anon_tunnel.session.start_download_from_tdef, tdef, download_config)
         elif line.startswith('i'):
             # Introduce dispersy port from other main peer to this peer
             line_split = line.split(' ')
@@ -371,23 +369,22 @@ class LineHandler(LineReceiver):
             tdef = TorrentDef.load(filename + '.torrent')
             logger.info("Loading torrent done")
 
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            dscfg = defaultDLConfig.copy()
-            dscfg.set_hops(1)
-            dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.config.get_dispersy_port()))
+            download_config = DownloadConfig()
+            download_config.set_number_hops(1)
+            download_config.set_destination_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.config.get_dispersy_port()))
 
             def start_download():
                 def cb(ds):
-                    logger.info('Download infohash=%s, down=%s, progress=%s, status=%s, seedpeers=%s, candidates=%d' %
+                    logger.info('download infohash=%s, down=%s, progress=%s, status=%s, seedpeers=%s, candidates=%d' %
                                 (tdef.get_infohash().encode('hex')[:10],
                                  ds.get_current_speed('down'),
                                  ds.get_progress(),
-                                 dlstatus_strings[ds.get_status()],
+                                 DownloadStatus(ds.get_status()).name,
                                  sum(ds.get_num_seeds_peers()),
                                  sum(1 for _ in anon_tunnel.community.dispersy_yield_verified_candidates())))
                     return 1.0, False
 
-                download = anon_tunnel.session.start_download_from_tdef(tdef, dscfg)
+                download = anon_tunnel.session.start_download_from_tdef(tdef, download_config)
                 download.set_state_callback(cb)
 
             reactor.callFromThread(start_download)

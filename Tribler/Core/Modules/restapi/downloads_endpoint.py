@@ -3,10 +3,9 @@ import logging
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
 from Tribler.Core.Modules.restapi.util import return_handled_exception
-from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
+from Tribler.Core.download.DownloadConfig import DownloadConfig
+from Tribler.Core.download.definitions import DownloadStatus, DownloadDirection, DownloadMode
 import Tribler.Core.Utilities.json_util as json
 
 
@@ -54,30 +53,27 @@ class DownloadBaseEndpoint(resource.Resource):
         - safe_seeding: whether the seeding of the download should be anonymous or not (0 = off, 1 = on)
         - destination: the destination path of the torrent (where it is saved on disk)
         """
-        download_config = DownloadStartupConfig()
+        download_config = DownloadConfig()
 
         anon_hops = 0
         if 'anon_hops' in parameters and len(parameters['anon_hops']) > 0:
             if parameters['anon_hops'][0].isdigit():
                 anon_hops = int(parameters['anon_hops'][0])
 
-        safe_seeding = False
+        safe_seeding_enabled = False
         if 'safe_seeding' in parameters and len(parameters['safe_seeding']) > 0 \
                 and parameters['safe_seeding'][0] == "1":
-            safe_seeding = True
+            safe_seeding_enabled = True
 
-        if anon_hops > 0 and not safe_seeding:
+        if anon_hops > 0 and not safe_seeding_enabled:
             return None, "Cannot set anonymous download without safe seeding enabled"
 
-        if anon_hops > 0:
-            download_config.set_hops(anon_hops)
-
-        if safe_seeding:
-            download_config.set_safe_seeding(True)
+        download_config.set_number_hops(anon_hops)
+        download_config.set_safe_seeding_enabled(safe_seeding_enabled)
 
         if 'destination' in parameters and len(parameters['destination']) > 0:
-            dest_dir = unicode(parameters['destination'][0], 'utf-8')
-            download_config.set_dest_dir(dest_dir)
+            destination_dir = unicode(parameters['destination'][0], 'utf-8')
+            download_config.set_destination_dir(destination_dir)
 
         if 'selected_files[]' in parameters:
             selected_files_list = [unicode(f, 'utf-8') for f in parameters['selected_files[]']]
@@ -182,15 +178,15 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
         downloads_json = []
         downloads = self.session.get_downloads()
         for download in downloads:
-            stats = download.network_create_statistics_reponse() or LibtorrentStatisticsResponse(0, 0, 0, 0, 0, 0, 0)
+            stats = download.network_statistics()
             state = download.network_get_state(None, get_peers)
 
             # Create files information of the download
             files_completion = dict((name, progress) for name, progress in state.get_files_completion())
-            selected_files = download.get_selected_files()
+            selected_files = download.config.get_selected_files()
             files_array = []
             file_index = 0
-            for file, size in download.get_def().get_files_with_length():
+            for file, size in download.get_torrent().get_files_with_length():
                 files_array.append({"index": file_index, "name": file, "size": size,
                                     "included": (file in selected_files or not selected_files),
                                     "progress": files_completion.get(file, 0.0)})
@@ -202,28 +198,30 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                 tracker_info.append({"url": url, "peers": url_info[0], "status": url_info[1]})
 
             ratio = 0.0
-            if stats.downTotal > 0:
-                ratio = stats.upTotal / float(stats.downTotal)
+            if stats.total_down > 0:
+                ratio = stats.total_up / float(stats.total_down)
 
-            download_json = {"name": download.get_def().get_name(), "progress": download.get_progress(),
-                             "infohash": download.get_def().get_infohash().encode('hex'),
-                             "speed_down": download.get_current_speed(DOWNLOAD),
-                             "speed_up": download.get_current_speed(UPLOAD),
-                             "status": dlstatus_strings[download.get_status()],
-                             "size": download.get_def().get_length(), "eta": download.network_calc_eta(),
-                             "num_peers": stats.numPeers, "num_seeds": stats.numSeeds, "total_up": stats.upTotal,
-                             "total_down": stats.downTotal, "ratio": ratio,
-                             "files": files_array, "trackers": tracker_info, "hops": download.get_hops(),
-                             "anon_download": download.get_anon_mode(), "safe_seeding": download.get_safe_seeding(),
+            download_json = {"name": download.get_torrent().get_name(), "progress": download.get_progress(),
+                             "infohash": download.get_torrent().get_infohash().encode('hex'),
+                             "speed_down": download.get_current_speed(DownloadDirection.DOWN),
+                             "speed_up": download.get_current_speed(DownloadDirection.UP),
+                             "status": DownloadStatus(download.get_status()).name,
+                             "size": download.get_torrent().get_length(), "eta": download.calculate_eta(),
+                             "num_peers": stats.leechers, "num_seeds": stats.seeders, "total_up": stats.total_up,
+                             "total_down": stats.total_down, "ratio": ratio,
+                             "files": files_array, "trackers": tracker_info, "hops": download.config.get_number_hops(),
+                             "anon_download": download.get_anon_mode(),
+                             "safe_seeding": download.config.get_safe_seeding_enabled(),
                              # Maximum upload/download rates are set for entire sessions
-                             "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
-                             "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
-                             "destination": download.get_dest_dir(), "availability": state.get_availability(),
-                             "total_pieces": download.get_num_pieces(), "vod_mode": download.get_mode() == DLMODE_VOD,
+                             "max_upload_speed": self.session.config.get_downloading_max_upload_rate(),
+                             "max_download_speed": self.session.config.get_downloading_max_download_rate(),
+                             "destination": download.config.get_destination_dir(),
+                             "availability": state.get_availability(), "total_pieces": download.get_num_pieces(),
+                             "vod_mode": download.config.get_mode() == DownloadMode.VOD,
                              "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
                              "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec(),
                              "error": repr(state.get_error()) if state.get_error() else "",
-                             "time_added": download.get_time_added()}
+                             "time_added": download.config.get_time_added()}
 
             # Add peers information if requested
             if get_peers:
@@ -280,7 +278,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
         def download_added(download):
             request.write(json.dumps({"started": True,
-                                      "infohash": download.get_def().get_infohash().encode('hex')}))
+                                      "infohash": download.get_torrent().get_infohash().encode('hex')}))
             request.finish()
 
         def on_error(error):
@@ -402,31 +400,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             return json.dumps({"error": "anon_hops must be the only parameter in this request"})
         elif 'anon_hops' in parameters:
             anon_hops = int(parameters['anon_hops'][0])
-            deferred = self.session.lm.update_download_hops(download, anon_hops)
-
-            def _on_download_readded(_):
-                """
-                Success callback
-                """
-                request.write(json.dumps({"modified": True}))
-                request.finish()
-
-            def _on_download_readd_failure(failure):
-                """
-                Error callback
-                :param failure: from LibtorrentDownloadImp.setup()
-                """
-                self._logger.exception(failure)
-                request.write(return_handled_exception(request, failure.value))
-                # If the above request.write failed, the request will have already been finished
-                if not request.finished:
-                    request.finish()
-
-            deferred.addCallback(_on_download_readded)
-            deferred.addErrback(_on_download_readd_failure)
-            # As we already checked for len(parameters) > 1, we know there are no other parameters.
-            # As such, we can return immediately.
-            return NOT_DONE_YET
+            self.session.download_manager.update_download_hops(download, anon_hops)
 
         if 'selected_files[]' in parameters:
             selected_files_list = []

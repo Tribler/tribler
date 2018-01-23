@@ -16,8 +16,8 @@ from collections import defaultdict
 from threading import Event, Thread, RLock
 from traceback import print_exc
 
-from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
-from Tribler.Core.simpledefs import DLMODE_VOD, DLMODE_NORMAL
+from Tribler.Core.download.Download import VODFile
+from Tribler.Core.download.definitions import DownloadMode
 
 
 class VideoServer(ThreadingMixIn, HTTPServer):
@@ -50,8 +50,8 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         the old download.
         """
         if self.vod_download:
-            self.vod_download.set_mode(DLMODE_NORMAL)
-            vi_dict = self.vod_info.pop(self.vod_download.get_def().get_infohash(), None)
+            self.vod_download.config.set_mode(DownloadMode.NORMAL)
+            vi_dict = self.vod_info.pop(self.vod_download.get_torrent().get_infohash(), None)
             if vi_dict and 'stream' in vi_dict:
                 vi_dict['stream'][0].close()
 
@@ -74,7 +74,7 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         """
         Get the destination directory of the VOD download.
         """
-        if download.get_def().is_multifile_torrent():
+        if download.get_torrent().is_multifile_torrent():
             return os.path.join(download.get_content_dest(), download.get_selected_files()[0])
         else:
             return download.get_content_dest()
@@ -122,12 +122,12 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         downloadhash = unhexlify(downloadhash)
         download = self.server.session.get_download(downloadhash)
 
-        if not download or not fileindex.isdigit() or int(fileindex) > len(download.get_def().get_files()):
+        if not download or not fileindex.isdigit() or int(fileindex) > len(download.get_torrent().get_files()):
             self.send_error(404, "Not Found")
             return
 
         fileindex = int(fileindex)
-        filename, length = download.get_def().get_files_with_length()[fileindex]
+        filename, length = download.get_torrent().get_files_with_length()[fileindex]
 
         requested_range = get_ranges(self.headers.getheader('range'), length)
         if requested_range is not None and len(requested_range) != 1:
@@ -142,12 +142,12 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
 
             # Put download in sequential mode + trigger initial buffering.
             self.wait_for_handle(download)
-            if download.get_def().is_multifile_torrent():
+            if download.get_torrent().is_multifile_torrent():
                 download.set_selected_files([filename])
-            download.set_mode(DLMODE_VOD)
+            download.config.set_mode(DownloadMode.VOD)
             download.restart()
 
-        piecelen = download.get_def().get_piece_length()
+        piecelen = download.get_torrent().get_piece_length()
         blocksize = piecelen
 
         if requested_range is not None:

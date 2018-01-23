@@ -9,6 +9,7 @@ import os
 import sys
 import time
 from binascii import hexlify
+
 from twisted.internet import threads
 from twisted.internet.defer import inlineCallbacks, fail
 from twisted.python.failure import Failure
@@ -17,20 +18,20 @@ from twisted.python.threadable import isInIOThread
 
 import Tribler.Core.permid as permid_module
 from Tribler.Core import NoDispersyRLock
-from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_FILE_RELATIVE_PATH, DB_DIR_NAME
 from Tribler.Core.Config.tribler_config import TriblerConfig
+from Tribler.Core.download.DownloadManager import DownloadManager
 from Tribler.Core.Modules.restapi.rest_manager import RESTManager
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
-from Tribler.Core.Utilities import torrent_utils
+from Tribler.Core.download import utilities
 from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
     DuplicateTorrentFileError
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_MYPREFERENCES, NTFY_PEERS,
-                                     NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
-                                     STATEDIR_WALLET_DIR, STATE_OPEN_DB, STATE_START_API, STATE_UPGRADING_READABLE,
-                                     STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED)
+                                     NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_RESUME_INFO_DIRECTORY,
+                                     STATEDIR_WALLET_DIR, STATE_OPEN_DB, STATE_UPGRADING_READABLE,
+                                     STATE_READABLE_STARTED, STATE_START_API, STATE_LOAD_CHECKPOINTS)
 from Tribler.Core.statistics import TriblerStatistics
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -78,7 +79,7 @@ class Session(object):
 
         self.init_keypair()
 
-        self.lm = TriblerLaunchMany()
+        self.download_manager = DownloadManager()
         self.notifier = Notifier()
 
         self.sqlite_db = None
@@ -101,12 +102,12 @@ class Session(object):
         create_dir(self.config.get_torrent_store_dir())
         create_dir(self.config.get_metadata_store_dir())
         create_in_state_dir(DB_DIR_NAME)
-        create_in_state_dir(STATEDIR_DLPSTATE_DIR)
+        create_in_state_dir(STATEDIR_RESUME_INFO_DIRECTORY)
         create_in_state_dir(STATEDIR_WALLET_DIR)
 
     def get_ports_in_config(self):
         """Claim all required random ports."""
-        self.config.get_libtorrent_port()
+        self.config.get_downloading_port()
         self.config.get_dispersy_port()
         self.config.get_mainline_dht_port()
         self.config.get_video_server_port()
@@ -186,13 +187,13 @@ class Session(object):
                 self._logger.error("Could not send data: network is unreachable.")
                 return
 
-            if 'exceptions.ValueError: Invalid DNS-ID' in text:
+            if 'exceptions.ValueError' in text:
                 self._logger.error("Invalid DNS-ID")
                 return
 
-            if self.lm.api_manager and len(text) > 0:
-                self.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception(text)
-                self.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception(text)
+            if self.download_manager.api_manager and len(text) > 0:
+                self.download_manager.api_manager.root_endpoint.events_endpoint.on_tribler_exception(text)
+                self.download_manager.api_manager.root_endpoint.state_endpoint.on_tribler_exception(text)
 
     def start_download_from_uri(self, uri, download_config=None):
         """
@@ -205,43 +206,31 @@ class Session(object):
         :param download_config: an optional configuration for the download
         :return: a deferred that fires when a download has been added to the Tribler core
         """
-        if self.config.get_libtorrent_enabled():
-            return self.lm.ltmgr.start_download_from_uri(uri, dconfig=download_config)
+        if self.config.get_downloading_enabled():
+            return self.download_manager.session_manager.start_download_from_uri(uri, download_config=download_config)
         raise OperationNotEnabledByConfigurationException()
 
-    def start_download_from_tdef(self, torrent_definition, download_startup_config=None, hidden=False):
+    def start_download_from_tdef(self, torrent_definition, download_config=None, hidden=False):
         """
-        Creates a Download object and adds it to the session. The passed
-        ContentDef and DownloadStartupConfig are copied into the new Download
-        object. The Download is then started and checkpointed.
+        Creates a download object and adds it to the session. The passed
+        ContentDef and DownloadStartupConfig are copied into the new download
+        object. The download is then started and checkpointed.
 
-        If a checkpointed version of the Download is found, that is restarted
+        If a checkpointed version of the download is found, that is restarted
         overriding the saved DownloadStartupConfig if "download_startup_config" is not None.
 
         Locking is done by LaunchManyCore.
 
         :param torrent_definition: a finalized TorrentDef
-        :param download_startup_config: a DownloadStartupConfig or None, in which case
+        :param download_config: a DownloadStartupConfig or None, in which case
         a new DownloadStartupConfig() is created with its default settings
-        and the result becomes the runtime config of this Download
+        and the result becomes the runtime config of this download
         :param hidden: whether this torrent should be added to the mypreference table
-        :return: a Download
+        :return: a download
         """
-        if self.config.get_libtorrent_enabled():
-            return self.lm.add(torrent_definition, download_startup_config, hidden=hidden)
+        if self.config.get_downloading_enabled():
+            return self.download_manager.add(torrent_definition, download_config, hidden=hidden)
         raise OperationNotEnabledByConfigurationException()
-
-    def resume_download_from_file(self, filename):
-        """
-        Recreates Download from resume file.
-
-        Note: this cannot be made into a method of Download, as the Download
-        needs to be bound to a session, it cannot exist independently.
-
-        :return: a Download object
-        :raises: a NotYetImplementedException
-        """
-        raise NotYetImplementedException()
 
     def get_downloads(self):
         """
@@ -249,19 +238,19 @@ class Session(object):
 
         Locking is done by LaunchManyCore.
 
-        :return: a list of Download objects
+        :return: a list of download objects
         """
-        return self.lm.get_downloads()
+        return self.download_manager.get_downloads()
 
     def get_download(self, infohash):
         """
-        Returns the Download object for this hash.
+        Returns the download object for this hash.
 
         Locking is done by LaunchManyCore.
 
-        :return: a Download object
+        :return: a download object
         """
-        return self.lm.get_download(infohash)
+        return self.download_manager.get_download(infohash)
 
     def has_download(self, infohash):
         """
@@ -270,7 +259,7 @@ class Session(object):
         :param infohash: The torrent infohash
         :return: True or False indicating if the torrent download already exists
         """
-        return self.lm.download_exists(infohash)
+        return self.download_manager.download_exists(infohash)
 
     def remove_download(self, download, remove_content=False, remove_state=True, hidden=False):
         """
@@ -278,13 +267,12 @@ class Session(object):
 
         Note that LaunchManyCore locks.
 
-        :param download: the Download to remove
+        :param download: the download to remove
         :param remove_content: whether to delete the already downloaded content from disk
         :param remove_state: whether to delete the metadata files of the downloaded content from disk
         :param hidden: whether this torrent is added to the mypreference table and this entry should be removed
         """
-        # locking by lm
-        return self.lm.remove(download, removecontent=remove_content, removestate=remove_state, hidden=hidden)
+        self.download_manager.remove(download, removecontent=remove_content, removestate=remove_state, hidden=hidden)
 
     def remove_download_by_id(self, infohash, remove_content=False, remove_state=True):
         """
@@ -299,15 +287,15 @@ class Session(object):
         """
         download_list = self.get_downloads()
         for download in download_list:
-            if download.get_def().get_infohash() == infohash:
+            if download.get_torrent().get_infohash() == infohash:
                 return self.remove_download(download, remove_content, remove_state)
 
-        self.lm.remove_id(infohash)
+        self.download_manager.remove_id(infohash)
 
     def set_download_states_callback(self, user_callback, interval=1.0):
         """
-        See Download.set_state_callback. Calls user_callback with a list of
-        DownloadStates, one for each Download in the Session as first argument.
+        See download.set_state_callback. Calls user_callback with a list of
+        DownloadStates, one for each download in the Session as first argument.
         The user_callback must return a tuple (when, getpeerlist) that indicates
         when to invoke the callback again (as a number of seconds from now,
         or < 0.0 if not at all) and whether to also include the details of
@@ -319,7 +307,7 @@ class Session(object):
         :param user_callback: a function adhering to the above spec
         :param interval: time in between the download states callback's
         """
-        self.lm.set_download_states_callback(user_callback, interval)
+        self.download_manager.set_download_states_callback(user_callback, interval)
 
     #
     # Config parameters that only exist at runtime
@@ -381,15 +369,15 @@ class Session(object):
             raise OperationNotEnabledByConfigurationException()
 
         if subject == NTFY_PEERS:
-            return self.lm.peer_db
+            return self.download_manager.peer_db
         elif subject == NTFY_TORRENTS:
-            return self.lm.torrent_db
+            return self.download_manager.torrent_db
         elif subject == NTFY_MYPREFERENCES:
-            return self.lm.mypref_db
+            return self.download_manager.mypref_db
         elif subject == NTFY_VOTECAST:
-            return self.lm.votecast_db
+            return self.download_manager.votecast_db
         elif subject == NTFY_CHANNELCAST:
-            return self.lm.channelcast_db
+            return self.download_manager.channelcast_db
         else:
             raise ValueError(u"Cannot open DB subject: %s" % subject)
 
@@ -419,7 +407,7 @@ class Session(object):
         choices since it might be that a user has stopped a download. In that case, the download should not be
         resumed immediately when being loaded by libtorrent.
         """
-        self.lm.load_checkpoint()
+        self.download_manager.load_checkpoint()
 
     def checkpoint(self):
         """
@@ -427,7 +415,7 @@ class Session(object):
 
         Checkpoints the downloads via the LaunchManyCore instance. This function is called by any thread.
         """
-        self.lm.checkpoint_downloads()
+        self.download_manager.checkpoint_downloads()
 
     @blocking_call_on_reactor_thread
     def start_database(self):
@@ -449,9 +437,9 @@ class Session(object):
         """
         # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
         if self.config.get_http_api_enabled():
-            self.lm.api_manager = RESTManager(self)
+            self.download_manager.api_manager = RESTManager(self)
             self.readable_status = STATE_START_API
-            self.lm.api_manager.start()
+            self.download_manager.api_manager.start()
 
         self.start_database()
 
@@ -460,10 +448,10 @@ class Session(object):
             self.readable_status = STATE_UPGRADING_READABLE
             upgrader.run()
 
-        startup_deferred = self.lm.register(self, self.session_lock)
+        startup_deferred = self.download_manager.register(self, self.session_lock)
 
         def load_checkpoint(_):
-            if self.config.get_libtorrent_enabled():
+            if self.config.get_downloading_enabled():
                 self.readable_status = STATE_LOAD_CHECKPOINTS
                 self.load_checkpoint()
             self.readable_status = STATE_READABLE_STARTED
@@ -487,14 +475,14 @@ class Session(object):
             """
             self.config.write()
             yield self.checkpoint_downloads()
-            self.lm.shutdown_downloads()
-            self.lm.network_shutdown()
+            self.download_manager.shutdown_downloads()
+            self.download_manager.network_shutdown()
 
             if self.sqlite_db:
                 self.sqlite_db.close()
             self.sqlite_db = None
 
-        return self.lm.early_shutdown().addCallback(on_early_shutdown_complete)
+        return self.download_manager.early_shutdown().addCallback(on_early_shutdown_complete)
 
     def has_shutdown(self):
         """
@@ -504,14 +492,7 @@ class Session(object):
 
         :return: a boolean.
         """
-        return self.lm.sessdoneflag.isSet()
-
-    def get_downloads_pstate_dir(self):
-        """
-        Returns the directory in which to checkpoint the Downloads in this
-        Session. This function is called by the network thread.
-        """
-        return os.path.join(self.config.get_state_dir(), STATEDIR_DLPSTATE_DIR)
+        return self.download_manager.sessdoneflag.isSet()
 
     def download_torrentfile(self, infohash=None, user_callback=None, priority=0):
         """
@@ -525,10 +506,10 @@ class Session(object):
         :param user_callback: a function adhering to the above spec
         :param priority: the priority of this download
         """
-        if not self.lm.rtorrent_handler:
+        if not self.download_manager.rtorrent_handler:
             raise OperationNotEnabledByConfigurationException()
 
-        self.lm.rtorrent_handler.download_torrent(None, infohash, user_callback=user_callback, priority=priority)
+        self.download_manager.rtorrent_handler.download_torrent(None, infohash, user_callback=user_callback, priority=priority)
 
     def download_torrentfile_from_peer(self, candidate, infohash=None, user_callback=None, priority=0):
         """
@@ -545,10 +526,10 @@ class Session(object):
         :param user_callback: a function adhering to the above spec
         :param priority: priority of this request
         """
-        if not self.lm.rtorrent_handler:
+        if not self.download_manager.rtorrent_handler:
             raise OperationNotEnabledByConfigurationException()
 
-        self.lm.rtorrent_handler.download_torrent(candidate, infohash, user_callback=user_callback, priority=priority)
+        self.download_manager.rtorrent_handler.download_torrent(candidate, infohash, user_callback=user_callback, priority=priority)
 
     def download_torrentmessage_from_peer(self, candidate, infohash, user_callback, priority=0):
         """
@@ -565,29 +546,29 @@ class Session(object):
         :param user_callback: a function adhering to the above spec
         :param priority: priority of this request
         """
-        if not self.lm.rtorrent_handler:
+        if not self.download_manager.rtorrent_handler:
             raise OperationNotEnabledByConfigurationException()
 
-        self.lm.rtorrent_handler.download_torrentmessage(candidate, infohash, user_callback, priority)
+        self.download_manager.rtorrent_handler.download_torrentmessage(candidate, infohash, user_callback, priority)
 
     def get_dispersy_instance(self):
         if not self.config.get_dispersy_enabled():
             raise OperationNotEnabledByConfigurationException()
 
-        return self.lm.dispersy
+        return self.download_manager.dispersy
 
     def get_libtorrent_process(self):
-        if not self.config.get_libtorrent_enabled():
+        if not self.config.get_downloading_enabled():
             raise OperationNotEnabledByConfigurationException()
 
-        return self.lm.ltmgr
+        return self.download_manager.session_manager
 
     #
     # Internal persistence methods
     #
     def checkpoint_downloads(self):
         """Checkpoints the downloads."""
-        return self.lm.checkpoint_downloads()
+        return self.download_manager.checkpoint_downloads()
 
     def update_trackers(self, infohash, trackers):
         """
@@ -596,7 +577,7 @@ class Session(object):
         :param infohash: infohash of the torrent that needs to be updated
         :param trackers: A list of tracker urls
         """
-        return self.lm.update_trackers(infohash, trackers)
+        return self.download_manager.update_trackers(infohash, trackers)
 
     def has_collected_torrent(self, infohash):
         """
@@ -607,7 +588,7 @@ class Session(object):
         """
         if not self.config.get_torrent_store_enabled():
             raise OperationNotEnabledByConfigurationException("torrent_store is not enabled")
-        return hexlify(infohash) in self.lm.torrent_store
+        return hexlify(infohash) in self.download_manager.torrent_store
 
     def get_collected_torrent(self, infohash):
         """
@@ -618,7 +599,7 @@ class Session(object):
         """
         if not self.config.get_torrent_store_enabled():
             raise OperationNotEnabledByConfigurationException("torrent_store is not enabled")
-        return self.lm.torrent_store.get(hexlify(infohash))
+        return self.download_manager.torrent_store.get(hexlify(infohash))
 
     def save_collected_torrent(self, infohash, data):
         """
@@ -629,7 +610,7 @@ class Session(object):
         """
         if not self.config.get_torrent_store_enabled():
             raise OperationNotEnabledByConfigurationException("torrent_store is not enabled")
-        self.lm.torrent_store.put(hexlify(infohash), data)
+        self.download_manager.torrent_store.put(hexlify(infohash), data)
 
     def delete_collected_torrent(self, infohash):
         """
@@ -640,7 +621,7 @@ class Session(object):
         if not self.config.get_torrent_store_enabled():
             raise OperationNotEnabledByConfigurationException("torrent_store is not enabled")
 
-        del self.lm.torrent_store[hexlify(infohash)]
+        del self.download_manager.torrent_store[hexlify(infohash)]
 
     def search_remote_torrents(self, keywords):
         """
@@ -651,7 +632,7 @@ class Session(object):
         """
         if not self.config.get_torrent_search_enabled():
             raise OperationNotEnabledByConfigurationException("torrent_search is not enabled")
-        return self.lm.search_manager.search_for_torrents(keywords)
+        return self.download_manager.search_manager.search_for_torrents(keywords)
 
     def search_remote_channels(self, keywords):
         """
@@ -661,7 +642,7 @@ class Session(object):
         """
         if not self.config.get_channel_search_enabled():
             raise OperationNotEnabledByConfigurationException("channel_search is not enabled")
-        self.lm.search_manager.search_for_channels(keywords)
+        self.download_manager.search_manager.search_for_channels(keywords)
 
     @staticmethod
     def create_torrent_file(file_path_list, params=None):
@@ -673,7 +654,7 @@ class Session(object):
         :return: a Deferred that fires when the torrent file has been created
         """
         params = params or {}
-        return threads.deferToThread(torrent_utils.create_torrent_file, file_path_list, params)
+        return threads.deferToThread(utilities.create_torrent_file, file_path_list, params)
 
     def create_channel(self, name, description, mode=u'closed'):
         """
@@ -685,7 +666,7 @@ class Session(object):
         :return: a channel ID
         :raises a DuplicateChannelNameError if name already exists
         """
-        return self.lm.channel_manager.create_channel(name, description, mode)
+        return self.download_manager.channel_manager.create_channel(name, description, mode)
 
     def add_torrent_def_to_channel(self, channel_id, torrent_def, extra_info={}, forward=True):
         """
@@ -699,7 +680,7 @@ class Session(object):
          be True, its inclusion is mostly to allow certain debugging scenarios
         """
         # Make sure that this new torrent_def is also in collected torrents
-        self.lm.rtorrent_handler.save_torrent(torrent_def)
+        self.download_manager.rtorrent_handler.save_torrent(torrent_def)
 
         channelcast_db = self.open_dbhandler(NTFY_CHANNELCAST)
         if channelcast_db.hasTorrent(channel_id, torrent_def.infohash):
@@ -730,8 +711,8 @@ class Session(object):
         :param timeout: time to wait while performing the request
         :param scrape_now: flag to scrape immediately
         """
-        if self.lm.torrent_checker:
-            return self.lm.torrent_checker.add_gui_request(infohash, timeout=timeout, scrape_now=scrape_now)
+        if self.download_manager.torrent_checker:
+            return self.download_manager.torrent_checker.add_gui_request(infohash, timeout=timeout, scrape_now=scrape_now)
         return fail(Failure(RuntimeError("Torrent checker not available")))
 
     def get_thumbnail_data(self, thumb_hash):
@@ -741,6 +722,6 @@ class Session(object):
         :param thumb_hash: the thumbnail SHA1 hash
         :return: the thumbnail data
         """
-        if not self.lm.metadata_store:
+        if not self.download_manager.metadata_store:
             raise OperationNotEnabledByConfigurationException("libtorrent is not enabled")
-        return self.lm.rtorrent_handler.get_metadata(thumb_hash)
+        return self.download_manager.rtorrent_handler.get_metadata(thumb_hash)

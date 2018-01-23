@@ -1,10 +1,11 @@
 import os
+
 from twisted.internet.defer import returnValue, inlineCallbacks
 from twisted.python.threadable import isInIOThread
 
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import dlstatus_strings
+from Tribler.Core.simpledefs import DOWNLOAD_STATUS_STRINGS
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
@@ -53,7 +54,7 @@ class TestTunnelBase(TestAsServer):
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
         self.config.set_dispersy_enabled(True)
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_downloading_enabled(True)
         self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
     @blocking_call_on_reactor_thread
@@ -130,7 +131,7 @@ class TestTunnelBase(TestAsServer):
 
         self.setUpPreSession()
         config = self.config.copy()
-        config.set_libtorrent_enabled(True)
+        config.set_downloading_enabled(True)
         config.set_dispersy_enabled(True)
         config.set_state_dir(self.getStateDir(index))
         config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
@@ -173,10 +174,11 @@ class TestTunnelBase(TestAsServer):
             while not list(self.tunnel_community_seeder.active_data_circuits()):
                 yield task.deferLater(reactor, .05, lambda: None)
 
-        dscfg = DownloadStartupConfig()
-        dscfg.set_dest_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
-        dscfg.set_hops(hops)
-        d = self.session2.start_download_from_tdef(tdef, dscfg)
+        download_config = DownloadConfig()
+        download_config.set_destination_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
+        download_config.set_number_hops(hops)
+        download_config.set_safe_seeding_enabled(False)
+        d = self.session2.start_download_from_tdef(tdef, download_config)
         d.set_state_callback(self.seeder_state_callback)
 
     def seeder_state_callback(self, ds):
@@ -187,17 +189,18 @@ class TestTunnelBase(TestAsServer):
         if self.tunnel_community_seeder:
             self.tunnel_community_seeder.monitor_downloads([ds])
         d = ds.get_download()
-        self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()),
-                           dlstatus_strings[ds.get_status()], ds.get_progress())
+        self._logger.debug("seeder: %s %s %s", repr(d.get_torrent().get_name()),
+                           DOWNLOAD_STATUS_STRINGS[ds.get_status()], ds.get_progress())
         return 5.0, False
 
     def start_anon_download(self, hops=1):
         """
         Start an anonymous download in the main Tribler session.
         """
-        dscfg = DownloadStartupConfig()
-        dscfg.set_dest_dir(self.getDestDir())
-        dscfg.set_hops(hops)
-        download = self.session.start_download_from_tdef(self.seed_tdef, dscfg)
-        download.add_peer(("127.0.0.1", self.session2.config.get_libtorrent_port()))
+        download_config = DownloadConfig()
+        download_config.set_destination_dir(self.getDestDir())
+        download_config.set_number_hops(hops)
+        download_config.set_safe_seeding_enabled(False)
+        download = self.session.start_download_from_tdef(self.seed_tdef, download_config)
+        download.add_peer(("127.0.0.1", self.session2.config.get_downloading_port()))
         return download

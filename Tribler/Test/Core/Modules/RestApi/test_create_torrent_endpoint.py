@@ -21,7 +21,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
                         os.path.join(self.files_path, 'video.avi'))
         shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'video.avi.torrent'),
                         os.path.join(self.files_path, 'video.avi.torrent'))
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_downloading_enabled(True)
 
     @deferred(timeout=10)
     def test_create_torrent(self):

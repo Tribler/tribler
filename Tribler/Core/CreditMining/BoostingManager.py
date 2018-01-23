@@ -7,9 +7,9 @@ import logging
 import os
 import shutil
 from binascii import hexlify, unhexlify
-from twisted.internet.task import LoopingCall
 
 import libtorrent as lt
+from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CreditMining.BoostingPolicy import SeederRatioPolicy
 from Tribler.Core.CreditMining.BoostingSource import ChannelSource
@@ -19,11 +19,13 @@ from Tribler.Core.CreditMining.credit_mining_util import source_to_string, strin
     validate_source_string
 from Tribler.Core.CreditMining.defs import SAVED_ATTR, CREDIT_MINING_FOLDER_DOWNLOAD, CONFIG_KEY_ARCHIVELIST, \
     CONFIG_KEY_SOURCELIST, CONFIG_KEY_ENABLEDLIST, CONFIG_KEY_DISABLEDLIST
-from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
-from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
+from Tribler.Core.download.Download import Download
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.Utilities import utilities
+from Tribler.Core.download.DownloadHandle import DownloadHandle
+from Tribler.Core.download.definitions import DownloadStatus
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
 from Tribler.dispersy.taskmanager import TaskManager
 
 
@@ -50,8 +52,7 @@ class BoostingSettings(object):
         self.initial_swarm_interval = 30
         self.min_connection_start = 5
         self.min_channels_start = 100
-        self.credit_mining_path = os.path.join(DefaultDownloadStartupConfig.getInstance().get_dest_dir(),
-                                               CREDIT_MINING_FOLDER_DOWNLOAD)
+        self.credit_mining_path = os.path.join(DownloadConfig().get_destination_dir(), CREDIT_MINING_FOLDER_DOWNLOAD)
         self.load_config = load_config
 
         # whether we want to check dependencies of BoostingManager
@@ -78,7 +79,7 @@ class BoostingManager(TaskManager):
         self.settings = settings or BoostingSettings(policy=SeederRatioPolicy(session), load_config=True)
 
         if self.settings.check_dependencies:
-            assert self.session.config.get_libtorrent_enabled()
+            assert self.session.config.get_downloading_enabled()
             assert self.session.config.get_torrent_checking_enabled()
             assert self.session.config.get_dispersy_enabled()
             assert self.session.config.get_torrent_store_enabled()
@@ -95,7 +96,7 @@ class BoostingManager(TaskManager):
         if not os.path.exists(self.settings.credit_mining_path):
             os.makedirs(self.settings.credit_mining_path)
 
-        self.session.lm.ltmgr.get_session().set_settings(
+        self.session.download_manager.download_session_manager.get_session().set_settings(
             {'share_mode_target': self.settings.share_mode_target})
 
         self.session.add_observer(self.on_torrent_notify, NTFY_TORRENTS, [NTFY_UPDATE])
@@ -262,14 +263,7 @@ class BoostingManager(TaskManager):
         """
 
         for infohash in list(self.torrents):
-            # torrent handle
-            lt_torrent = self.session.lm.ltmgr.get_session().find_torrent(lt.big_number(infohash))
-
-            peer_list = []
-            for i in lt_torrent.get_peer_info():
-                peer = LibtorrentDownloadImpl.create_peerlist_data(i)
-                peer_list.append(peer)
-
+            peer_list = self.session.download_manager.get_download(infohash).handle.create_peer_list()
             num_seed, num_leech = utilities.translate_peers_into_health(peer_list)
 
             # calculate number of seeder and leecher by looking at the peers
@@ -281,7 +275,7 @@ class BoostingManager(TaskManager):
             self._logger.debug("Seeder/leecher data translated from peers : seeder %s, leecher %s", num_seed, num_leech)
 
             # check health(seeder/leecher)
-            self.session.lm.torrent_checker.add_gui_request(infohash, True)
+            self.session.download_manager.torrent_checker.add_gui_request(infohash, True)
 
     def set_archive(self, source, enable):
         """
@@ -297,13 +291,13 @@ class BoostingManager(TaskManager):
         """
         Start downloading a particular torrent and add it to download list in Tribler
         """
-        dscfg = DownloadStartupConfig()
-        dscfg.set_dest_dir(self.settings.credit_mining_path)
-        dscfg.set_safe_seeding(False)
+        download_config = DownloadConfig()
+        download_config.set_destination_dir(self.settings.credit_mining_path)
+        download_config.set_safe_seeding_enabled(False)
 
         preload = torrent.get('preload', False)
 
-        if self.session.lm.download_exists(torrent["metainfo"].get_infohash()):
+        if self.session.download_manager.download_exists(torrent["metainfo"].get_infohash()):
             self._logger.error("Already downloading %s. Cancel start_download",
                                hexlify(torrent["metainfo"].get_infohash()))
             return
@@ -311,7 +305,7 @@ class BoostingManager(TaskManager):
         self._logger.info("Starting %s preload %s",
                           hexlify(torrent["metainfo"].get_infohash()), preload)
 
-        torrent['download'] = self.session.lm.add(torrent['metainfo'], dscfg, hidden=True,
+        torrent['download'] = self.session.download_manager.add(torrent['metainfo'], download_config, hidden=True,
                                                   share_mode=not preload, checkpoint_disabled=True)
         torrent['download'].set_priority(torrent.get('prio', 1))
 
@@ -322,7 +316,7 @@ class BoostingManager(TaskManager):
         ihash = lt.big_number(torrent["metainfo"].get_infohash())
         self._logger.info("Stopping %s", str(ihash))
         download = torrent.pop('download', False)
-        lt_torrent = self.session.lm.ltmgr.get_session().find_torrent(ihash)
+        lt_torrent = self.session.download_manager.download_session_manager.get_session().find_torrent(ihash)
         if download and lt_torrent.is_valid():
             self._logger.info("Writing resume data for %s", str(ihash))
             download.save_resume_data()
@@ -340,7 +334,7 @@ class BoostingManager(TaskManager):
             if torrent.get('preload', False):
                 if 'download' not in torrent:
                     self.start_download(torrent)
-                elif torrent['download'].get_status() == DLSTATUS_SEEDING:
+                elif torrent['download'].get_status() == DownloadStatus.SEEDING:
                     self.stop_download(torrent)
             elif not torrent.get('is_duplicate', False):
                 if torrent.get('enabled', True):
@@ -443,7 +437,7 @@ class BoostingManager(TaskManager):
 
     def log_statistics(self):
         """Log transfer statistics"""
-        lt_torrents = self.session.lm.ltmgr.get_session().get_torrents()
+        lt_torrents = self.session.download_manager.download_session_manager.get_session().get_torrents()
 
         for lt_torrent in lt_torrents:
             status = lt_torrent.status()
@@ -454,7 +448,7 @@ class BoostingManager(TaskManager):
                                    lt_torrent.max_uploads(), lt_torrent.max_connections())
 
                 # piece_priorities will fail in libtorrent 1.0.9
-                if self.session.lm.ltmgr.get_libtorrent_version() == '1.0.9.0':
+                if self.session.download_manager.download_session_manager.get_libtorrent_version() == '1.0.9.0':
                     continue
                 else:
                     non_zero_values = []

@@ -10,7 +10,6 @@ import threading
 from collections import OrderedDict, defaultdict
 from copy import deepcopy
 from itertools import chain
-from libtorrent import bencode
 from pprint import pformat
 from struct import unpack_from
 from time import time
@@ -18,6 +17,7 @@ from traceback import print_exc
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
+from Tribler.Core.download.utilities import bencode
 from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.search_utils import split_into_keywords, filter_keywords
@@ -229,11 +229,11 @@ class TorrentDBHandler(BasicDBHandler):
 
     def initialize(self, *args, **kwargs):
         super(TorrentDBHandler, self).initialize(*args, **kwargs)
-        self.category = self.session.lm.category
+        self.category = self.session.download_manager.category
         self.mypref_db = self.session.open_dbhandler(NTFY_MYPREFERENCES)
         self.votecast_db = self.session.open_dbhandler(NTFY_VOTECAST)
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
-        self._rtorrent_handler = self.session.lm.rtorrent_handler
+        self._rtorrent_handler = self.session.download_manager.rtorrent_handler
 
     def close(self):
         super(TorrentDBHandler, self).close()
@@ -638,8 +638,8 @@ class TorrentDBHandler(BasicDBHandler):
         # update tracker info
         not_found_tracker_list = [tracker for tracker in tracker_list if tracker not in found_tracker_list]
         for tracker in not_found_tracker_list:
-            if self.session.lm.tracker_manager is not None:
-                self.session.lm.tracker_manager.add_tracker(tracker)
+            if self.session.download_manager.tracker_manager is not None:
+                self.session.download_manager.tracker_manager.add_tracker(tracker)
 
         # update torrent-tracker mapping
         sql = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
@@ -649,7 +649,7 @@ class TorrentDBHandler(BasicDBHandler):
             self._db.executemany(sql, new_mapping_list)
 
         # add trackers into the torrent file if it has been collected
-        if not self.session.config.get_torrent_store_enabled() or self.session.lm.torrent_store is None:
+        if not self.session.config.get_torrent_store_enabled() or self.session.download_manager.torrent_store is None:
             return
 
         infohash = self.getInfohash(torrent_id)
@@ -1436,7 +1436,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         if not self.my_dispersy_cid:
             from Tribler.community.channel.community import ChannelCommunity
 
-            for community in self.session.lm.dispersy.get_communities():
+            for community in self.session.download_manager.dispersy.get_communities():
                 if isinstance(community, ChannelCommunity) and community.master_member and community.master_member.private_key:
                     self.my_dispersy_cid = community.cid
                     break

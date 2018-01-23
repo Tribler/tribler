@@ -14,8 +14,7 @@ import Tribler.Core.CreditMining.BoostingManager as bm
 from Tribler.Core.CreditMining.BoostingPolicy import CreationDatePolicy, SeederRatioPolicy, RandomPolicy
 from Tribler.Core.CreditMining.BoostingSource import ent2chr
 from Tribler.Core.CreditMining.credit_mining_util import levenshtein_dist, source_to_string
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
-from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
+from Tribler.Core.download.Download import Download
 from Tribler.Core.Utilities import utilities
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockMeta, MockLtPeer, MockLtSession, MockLtTorrent, \
     MockPeerId
@@ -141,10 +140,6 @@ class TestBoostingManagerUtilities(TriblerCoreTest):
         self.bsettings.initial_logging_interval = 900
 
     def tearDown(self, annotate=True):
-        # TODO(ardhi) : remove it when Tribler free of singleton
-        # and 1 below
-        DefaultDownloadStartupConfig.delInstance()
-
         super(TestBoostingManagerUtilities, self).tearDown()
 
     def test_boosting_dependencies(self):
@@ -158,7 +153,7 @@ class TestBoostingManagerUtilities(TriblerCoreTest):
         self.bsettings.initial_tracker_interval = 9000
         self.bsettings.initial_logging_interval = 9000
         self.session.open_dbhandler = lambda _: None
-        self.session.lm.ltmgr = MockLtSession()
+        self.session.download_manager.ltmgr = MockLtSession()
 
         self.session.config.get_torrent_checking_enabled = lambda: True
         self.session.config.get_dispersy_enabled = lambda: True
@@ -179,7 +174,7 @@ class TestBoostingManagerUtilities(TriblerCoreTest):
         self.bsettings.initial_tracker_interval = 9000
         self.bsettings.initial_logging_interval = 9000
         self.session.open_dbhandler = lambda _: None
-        self.session.lm.ltmgr = MockLtSession()
+        self.session.download_manager.ltmgr = MockLtSession()
 
         # it will automatically load the default configuration
         boost_man = bm.BoostingManager(self.session, self.bsettings)
@@ -198,7 +193,7 @@ class TestBoostingManagerUtilities(TriblerCoreTest):
         """
         peerlist_dict = []
         for peer in self.peer:
-            peerlist_dict.append(LibtorrentDownloadImpl.create_peerlist_data(peer))
+            peerlist_dict.append(Download.create_peerlist_data(peer))
 
         num_seed, num_leech = utilities.translate_peers_into_health(peerlist_dict)
         self.assertEqual(num_seed, 4, "Seeder number don't match")
@@ -265,7 +260,7 @@ class TestBoostingManagerUtilities(TriblerCoreTest):
             "value": 8
         }
 
-        self.session.lm.ltmgr = MockLtSession()
+        self.session.download_manager.ltmgr = MockLtSession()
 
         boost_man = bm.BoostingManager(self.session, self.bsettings)
         boost_man.torrents = torrents
@@ -308,12 +303,12 @@ class TestBoostingManagerUtilities(TriblerCoreTest):
                 "last_seeding_stats": {}
             }
         }
-        self.session.lm.ltmgr = MockLtSession()
+        self.session.download_manager.ltmgr = MockLtSession()
 
         boost_man = bm.BoostingManager(self.session, self.bsettings)
         boost_man.torrents = torrents
 
-        boost_man.session.lm.ltmgr.get_session().get_torrents = \
+        boost_man.session.download_manager.ltmgr.get_session().get_torrents = \
             lambda: [MockLtTorrent(binascii.hexlify(infohash_1)),
                      MockLtTorrent(binascii.hexlify(infohash_2))]
 
@@ -337,18 +332,17 @@ class TestBoostingManagerError(TriblerCoreTest):
 
         self.session.open_dbhandler = lambda _: True
         self.session.get_libtorrent = lambda: True
-        self.session.lm.ltmgr = MockLtSession()
+        self.session.download_manager.ltmgr = MockLtSession()
 
         self.boost_setting = bm.BoostingSettings(SeederRatioPolicy(self.session))
         self.boost_setting.load_config = False
         self.boost_setting.initial_logging_interval = 900
         self.boost_setting.check_dependencies = False
         self.boosting_manager = bm.BoostingManager(self.session, self.boost_setting)
-        self.session.lm.boosting_manager = self.boosting_manager
+        self.session.download_manager.boosting_manager = self.boosting_manager
 
     def tearDown(self, annotate=True):
-        DefaultDownloadStartupConfig.delInstance()
-        self.session.lm.boosting_manager.cancel_all_pending_tasks()
+        self.session.download_manager.boosting_manager.cancel_all_pending_tasks()
         super(TestBoostingManagerError, self).tearDown()
 
     def test_insert_torrent_unknown_source(self):
@@ -384,7 +378,7 @@ class TestBoostingManagerError(TriblerCoreTest):
             'preload': False,
             'metainfo': MockMeta("1234")
         }
-        self.session.lm.download_exists = lambda _: True
+        self.session.download_manager.download_exists = lambda _: True
         self.boosting_manager.start_download(torrent)
 
         self.assertNotIn('download', torrent, "%s downloading despite error" % torrent)

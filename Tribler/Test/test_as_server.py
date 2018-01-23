@@ -7,8 +7,6 @@ Author(s): Arno Bakker, Jie Yang, Niels Zeilemaker
 """
 import functools
 import inspect
-import keyring
-from keyrings.alt.file import PlaintextKeyring
 import logging
 import os
 import re
@@ -18,7 +16,9 @@ import unittest
 from tempfile import mkdtemp
 from threading import enumerate as enumerate_threads
 
+import keyring
 from configobj import ConfigObj
+from keyrings.alt.file import PlaintextKeyring
 from twisted.internet import interfaces
 from twisted.internet.base import BasePort
 from twisted.internet.defer import maybeDeferred, inlineCallbacks, Deferred, succeed
@@ -29,12 +29,12 @@ from twisted.web.server import Site
 from twisted.web.static import File
 
 from Tribler.Core.Config.tribler_config import TriblerConfig, CONFIG_SPEC_PATH
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.download.DownloadConfig import DownloadConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.instrumentation import WatchDog
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
+from Tribler.Core.simpledefs import DOWNLOAD_STATUS_STRINGS, DOWNLOAD_STATUS_SEEDING
 from Tribler.Test.twisted_thread import reactor
 from Tribler.Test.util.util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -98,7 +98,7 @@ class AbstractServer(BaseTestCase):
         self.annotate_dict = {}
 
         self.file_server = None
-        self.dscfg_seed = None
+        self.download_config_seed = None
 
         if annotate:
             self.annotate(self._testMethodName, start=True)
@@ -272,9 +272,9 @@ class TestAsServer(AbstractServer):
         self.tribler_started_deferred = self.session.start()
         yield self.tribler_started_deferred
 
-        self.assertTrue(self.session.lm.initComplete)
+        self.assertTrue(self.session.download_manager.initComplete)
 
-        self.hisport = self.session.config.get_libtorrent_port()
+        self.hisport = self.session.config.get_downloading_port()
 
         self.annotate(self._testMethodName, start=True)
 
@@ -290,7 +290,7 @@ class TestAsServer(AbstractServer):
         self.config.set_torrent_search_enabled(False)
         self.config.set_channel_search_enabled(False)
         self.config.set_torrent_collecting_enabled(False)
-        self.config.set_libtorrent_enabled(False)
+        self.config.set_downloading_enabled(False)
         self.config.set_video_server_enabled(False)
         self.config.set_metadata_enabled(False)
         self.config.set_http_api_enabled(False)
@@ -346,16 +346,18 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_channel_search_enabled(False)
         self.seed_config.set_http_api_enabled(False)
         self.seed_config.set_torrent_collecting_enabled(False)
-        self.seed_config.set_libtorrent_enabled(True)
+        self.seed_config.set_downloading_enabled(True)
         self.seed_config.set_video_server_enabled(False)
         self.seed_config.set_metadata_enabled(False)
         self.seed_config.set_tunnel_community_enabled(False)
         self.seed_config.set_state_dir(self.getStateDir(2))
 
         def start_seed_download(_):
-            self.dscfg_seed = DownloadStartupConfig()
-            self.dscfg_seed.set_dest_dir(seed_dir)
-            d = self.seeder_session.start_download_from_tdef(tdef, self.dscfg_seed)
+            self.download_config_seed = DownloadConfig()
+            self.download_config_seed.set_destination_dir(seed_dir)
+            self.download_config_seed.set_number_hops(0)
+            self.download_config_seed.set_safe_seeding_enabled(False)
+            d = self.seeder_session.start_download_from_tdef(tdef, self.download_config_seed)
             d.set_state_callback(self.seeder_state_callback)
 
         self._logger.debug("starting to wait for download to reach seeding state")
@@ -374,10 +376,10 @@ class TestAsServer(AbstractServer):
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
-        self._logger.debug("seeder status: %s %s %s", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()],
+        self._logger.debug("seeder status: %s %s %s", repr(d.get_torrent().get_name()), DOWNLOAD_STATUS_STRINGS[ds.get_status()],
                            ds.get_progress())
 
-        if ds.get_status() == DLSTATUS_SEEDING:
+        if ds.get_status() == DOWNLOAD_STATUS_SEEDING:
             self.seeding_deferred.callback(None)
             return 0.0, False
 

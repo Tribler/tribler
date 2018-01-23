@@ -33,10 +33,10 @@ class TriblerStatistics(object):
                       "database_size": os.path.getsize(
                           os.path.join(self.session.config.get_state_dir(), DB_FILE_RELATIVE_PATH))}
 
-        if self.session.lm.rtorrent_handler:
-            torrent_queue_stats = self.session.lm.rtorrent_handler.get_queue_stats()
-            torrent_queue_size_stats = self.session.lm.rtorrent_handler.get_queue_size_stats()
-            torrent_queue_bandwidth_stats = self.session.lm.rtorrent_handler.get_bandwidth_stats()
+        if self.session.download_manager.rtorrent_handler:
+            torrent_queue_stats = self.session.download_manager.rtorrent_handler.get_queue_stats()
+            torrent_queue_size_stats = self.session.download_manager.rtorrent_handler.get_queue_size_stats()
+            torrent_queue_bandwidth_stats = self.session.download_manager.rtorrent_handler.get_bandwidth_stats()
 
             stats_dict["torrent_queue_stats"] = torrent_queue_stats
             stats_dict["torrent_queue_size_stats"] = torrent_queue_size_stats

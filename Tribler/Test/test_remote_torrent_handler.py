@@ -86,7 +86,7 @@ class TestRemoteTorrentHandler(TestAsServer):
 
             # Put the torrents into the uploader's store
             with open(os.path.join(TESTS_DATA_DIR, file_name), 'r') as torrent_file:
-                self.session.lm.torrent_store.put(infohash, torrent_file.read())
+                self.session.download_manager.torrent_store.put(infohash, torrent_file.read())
 
         self.setup_downloader().addCallback(start_download)
         return self.test_deferred
@@ -106,7 +106,7 @@ class TestRemoteTorrentHandler(TestAsServer):
         thumb_hash = sha1(self.thumb_data).digest()
 
         thumb_hash_str = hexlify(thumb_hash)
-        self.session.lm.metadata_store[thumb_hash_str] = self.thumb_data
+        self.session.download_manager.metadata_store[thumb_hash_str] = self.thumb_data
 
         def start_download(_):
             candidate = Candidate(("127.0.0.1", session1_port), False)

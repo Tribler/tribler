@@ -29,11 +29,11 @@ class TestTorrentChecker(TriblerCoreTest):
 
         self.session = Session(config)
         self.session.start_database()
-        self.session.lm.torrent_db = TorrentDBHandler(self.session)
-        self.session.lm.torrent_checker = TorrentChecker(self.session)
-        self.session.lm.tracker_manager = TrackerManager(self.session)
+        self.session.download_manager.torrent_db = TorrentDBHandler(self.session)
+        self.session.download_manager.torrent_checker = TorrentChecker(self.session)
+        self.session.download_manager.tracker_manager = TrackerManager(self.session)
 
-        self.torrent_checker = self.session.lm.torrent_checker
+        self.torrent_checker = self.session.download_manager.torrent_checker
         self.torrent_checker._torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.torrent_checker._torrent_db.category = Category()
 
@@ -149,9 +149,15 @@ class TestTorrentChecker(TriblerCoreTest):
         self.torrent_checker._torrent_db.addExternalTorrentNoDef(
             'a' * 20, 'ubuntu.iso', [['a.test', 1234]], [tracker_url], 5)
 
-        # Write invalid url to the database
-        sql_stmt = u"UPDATE TrackerInfo SET tracker = ? WHERE tracker = ?"
-        self.session.sqlite_db.execute(sql_stmt, (bad_tracker_url, tracker_url))
+        # write invalid url to dictionary and database
+        self.session.download_manager.tracker_manager._tracker_dict[bad_tracker_url] = \
+            self.session.download_manager.tracker_manager._tracker_dict[tracker_url]
+        del self.session.download_manager.tracker_manager._tracker_dict[tracker_url]
+
+        tracker_id = self.session.download_manager.tracker_manager._tracker_dict[bad_tracker_url][u'id']
+        sql_stmt = u"UPDATE TrackerInfo SET tracker = ? WHERE tracker_id = ?"
+        value_tuple = (bad_tracker_url, tracker_id)
+        self.session.sqlite_db.execute(sql_stmt, value_tuple)
 
         def verify_response(resp):
             self.assertIsNone(resp)
@@ -163,7 +169,7 @@ class TestTorrentChecker(TriblerCoreTest):
         """
         Test the check of a tracker without associated torrents
         """
-        self.session.lm.tracker_manager.add_tracker('http://trackertest.com:80/announce')
+        self.session.download_manager.tracker_manager.add_tracker('http://trackertest.com:80/announce')
         return self.torrent_checker._task_select_tracker()
 
     @inlineCallbacks

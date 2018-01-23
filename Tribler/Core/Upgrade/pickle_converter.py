@@ -4,7 +4,7 @@ import os
 import pickle
 from ConfigParser import RawConfigParser
 
-from Tribler.Core.simpledefs import PERSISTENTSTATE_CURRENTVERSION
+from Tribler.Core.download.DownloadPersistence import PERSISTENTSTATE_CURRENTVERSION
 
 
 class PickleConverter(object):
@@ -81,7 +81,7 @@ class PickleConverter(object):
         """
         Convert all pickle download checkpoints to .state files.
         """
-        checkpoint_dir = self.session.get_downloads_pstate_dir()
+        checkpoint_dir = self.session.download_manager.get_downloads_resume_info_directory()
 
         filelist = os.listdir(checkpoint_dir)
         if not any([filename.endswith('.pickle') for filename in filelist]):

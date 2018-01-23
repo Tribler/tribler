@@ -3,15 +3,19 @@ Contains a snapshot of the state of the Download at a specific point in time.
 
 Author(s): Arno Bakker
 """
+import json
 import logging
+import os
 
-from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
-                                     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, UPLOAD)
+from copy import deepcopy
+
+from Tribler.Core.download.DownloadConfig import DownloadConfig
+from Tribler.Core.download.definitions import DownloadStatus, DownloadDirection
 
 
-class DownloadState(object):
+class DownloadSnapshot(object):
     """
-    Contains a snapshot of the state of the Download at a specific
+    Contains a snapshot of the state of the download at a specific
     point in time. Using a snapshot instead of providing live data and
     protecting access via locking should be faster.
 
@@ -21,10 +25,10 @@ class DownloadState(object):
     def __init__(self, download, status, error, progress, stats=None, seeding_stats=None, filepieceranges=None, logmsgs=None, peerid=None, videoinfo=None):
         """
         Internal constructor.
-        @param download The Download this state belongs too.
-        @param status The status of the Download (DLSTATUS_*)
-        @param progress The general progress of the Download.
-        @param stats The BT engine statistics for the Download.
+        @param download The download this state belongs too.
+        @param status The status of the download (DLSTATUS_*)
+        @param progress The general progress of the download.
+        @param stats The BT engine statistics for the download.
         @param filepieceranges The range of pieces that we are interested in.
         The get_pieces_complete() returns only completeness information about
         this range. This is used for playing a video in a multi-torrent file.
@@ -39,10 +43,10 @@ class DownloadState(object):
         self.seeding_stats = seeding_stats
 
         self.haveslice = None
-        self.stats = None
+        self.statistics = None
         self.length = None
 
-        name = self.download.get_def().get_name()
+        name = self.download.get_torrent().get_name()
 
         if stats is None:
             # No info available yet from download engine
@@ -50,7 +54,7 @@ class DownloadState(object):
             self.error = error  # readonly access
             self.progress = progress
             if self.error is not None:
-                self.status = DLSTATUS_STOPPED_ON_ERROR
+                self.status = DownloadStatus.STOPPED_ON_ERROR
             else:
                 self.status = status
 
@@ -58,14 +62,14 @@ class DownloadState(object):
             self._logger.debug("error is not None '%s'", name)
             self.error = error  # readonly access
             self.progress = 0.0  # really want old progress
-            self.status = DLSTATUS_STOPPED_ON_ERROR
+            self.status = DownloadStatus.STOPPED_ON_ERROR
 
-        elif status is not None and not status in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
+        elif status is not None and not status in [DownloadStatus.DOWNLOADING, DownloadStatus.SEEDING]:
             # For HASHCHECKING and WAITING4HASHCHECK
             self._logger.debug("we have status and it is not downloading or seeding '%s'", name)
             self.error = error
             self.status = status
-            if self.status == DLSTATUS_WAITING4HASHCHECK:
+            if self.status == DownloadStatus.WAITING_FOR_HASH_CHECK:
                 self.progress = 0.0
             else:
                 self.progress = stats['frac']
@@ -78,15 +82,15 @@ class DownloadState(object):
             self.error = None
             self.progress = stats['frac']
             if stats['frac'] == 1.0:
-                self.status = DLSTATUS_SEEDING
+                self.status = DownloadStatus.SEEDING
             else:
-                self.status = DLSTATUS_DOWNLOADING
+                self.status = DownloadStatus.DOWNLOADING
 
             # Safe to store the stats dict. The stats dict is created per
             # invocation of the BT1Download returned statsfunc and contains no
             # pointers.
             #
-            self.stats = stats
+            self.statistics = stats
 
         if stats and stats.get('stats', None):
             # for pieces complete
@@ -96,7 +100,7 @@ class DownloadState(object):
                 # For get_files_completion()
                 self.haveslice_total = stats['stats'].have
 
-                selected_files = self.download.get_selected_files()
+                selected_files = self.download.config.get_selected_files()
                 # Show only pieces complete for the selected ranges of files
                 totalpieces = 0
                 for t, tl, o, f in self.filepieceranges:
@@ -116,17 +120,17 @@ class DownloadState(object):
 
                             index += 1
                 self.haveslice = haveslice
-                if have == len(haveslice) and self.status == DLSTATUS_DOWNLOADING:
+                if have == len(haveslice) and self.status == DownloadStatus.DOWNLOADING:
                     # we have all pieces of the selected files
-                    self.status = DLSTATUS_SEEDING
+                    self.status = DownloadStatus.SEEDING
                     self.progress = 1.0
 
     def get_download(self):
-        """ Returns the Download object of which this is the state """
+        """ Returns the download object of which this is the state """
         return self.download
 
     def get_progress(self):
-        """ The general progress of the Download as a percentage. When status is
+        """ The general progress of the download as a percentage. When status is
          * DLSTATUS_HASHCHECKING it is the percentage of already downloaded
            content checked for integrity.
          * DLSTATUS_DOWNLOADING/SEEDING it is the percentage downloaded.
@@ -149,29 +153,29 @@ class DownloadState(object):
     #
     # Details
     #
-    def get_current_speed(self, direct):
+    def get_current_speed(self, direction):
         """
         Returns the current up or download speed.
         @return The speed in bytes/s.
         """
-        if self.stats is None:
+        if self.statistics is None:
             return 0
-        if direct == UPLOAD:
-            return self.stats['up']
-        else:
-            return self.stats['down']
+        if direction == DownloadDirection.UP:
+            return self.statistics['up']
+        elif direction == DownloadDirection.DOWN:
+            return self.statistics['down']
 
-    def get_total_transferred(self, direct):
+    def get_total_transferred(self, direction):
         """
         Returns the total amount of up or downloaded bytes.
         @return The amount in bytes.
         """
-        if self.stats is None:
+        if self.statistics is None:
             return 0
-        if direct == UPLOAD:
-            return self.stats['stats'].upTotal
-        else:
-            return self.stats['stats'].downTotal
+        if direction == DownloadDirection.UP:
+            return self.statistics['stats']['total_up']
+        elif direction == DownloadDirection.DOWN:
+            return self.statistics['stats']['total_down']
 
     def set_seeding_statistics(self, seeding_stats):
         self.seeding_stats = seeding_stats
@@ -202,7 +206,7 @@ class DownloadState(object):
         Returns the estimated time to finish of download.
         @return The time in ?, as ?.
         """
-        return self.stats['time'] if self.stats else 0.0
+        return self.statistics['time'] if self.statistics else 0.0
 
     def get_num_con_initiated(self):
         """
@@ -211,7 +215,7 @@ class DownloadState(object):
         (e.g. tracker timeout).
         @return An integer.
         """
-        return self.stats['stats'].numConInitiated if self.stats else 0
+        return self.statistics['stats'].numConInitiated if self.statistics else 0
 
     def get_num_peers(self):
         """
@@ -220,11 +224,11 @@ class DownloadState(object):
         (e.g. tracker timeout).
         @return An integer.
         """
-        if self.stats is None:
+        if self.statistics is None:
             return 0
 
         # Determine if we need statsobj to be requested, same as for spew
-        statsobj = self.stats['stats']
+        statsobj = self.statistics['stats']
         return statsobj.numSeeds + statsobj.numPeers
 
     def get_num_nonseeds(self):
@@ -232,28 +236,28 @@ class DownloadState(object):
         Returns the download's number of non-seeders.
         @return An integer.
         """
-        if self.stats is None:
+        if self.statistics is None:
             return 0
 
         # Determine if we need statsobj to be requested, same as for spew
-        statsobj = self.stats['stats']
+        statsobj = self.statistics['stats']
         return statsobj.numPeers
 
     def get_num_seeds_peers(self):
         """
         Returns the sum of the number of seeds and peers. This function
-        works only if the Download.set_state_callback() /
+        works only if the download.set_state_callback() /
         Session.set_download_states_callback() was called with the getpeerlist
         parameter set to True, otherwise returns (None,None)
         @return A tuple (num seeds, num peers)
         """
-        if self.stats is None or self.stats.get('spew', None) is None:
+        if self.statistics is None or self.statistics.get('spew', None) is None:
             total = self.get_num_peers()
             non_seeds = self.get_num_nonseeds()
             return (total - non_seeds, non_seeds)
 
-        total = len(self.stats['spew'])
-        seeds = len([i for i in self.stats['spew'] if i.get('completed', 0) == 1.0])
+        total = len(self.statistics['spew'])
+        seeds = len([i for i in self.statistics['spew'] if i.get('completed', 0) == 1.0])
         return seeds, total - seeds
 
     def get_pieces_complete(self):
@@ -282,10 +286,11 @@ class DownloadState(object):
         for every file selected using set_selected_files. Progress is a float
         between 0 and 1
         """
-        if len(self.download.get_selected_files()) > 0:
-            files = self.download.get_selected_files()
+        selected_files = self.download.config.get_selected_files()
+        if len(selected_files) > 0:
+            files = selected_files
         else:
-            files = self.download.get_def().get_files()
+            files = self.download.get_torrent().get_files()
 
         completion = []
         if self.filepieceranges:
@@ -310,7 +315,7 @@ class DownloadState(object):
         return completion
 
     def get_selected_files(self):
-        selected_files = self.download.get_selected_files()
+        selected_files = self.download.config.get_selected_files()
         if len(selected_files) > 0:
             return selected_files
 
@@ -318,9 +323,9 @@ class DownloadState(object):
         # Niels: 28/08/2012 for larger .torrent this methods gets quite expensive,
         # cache the result to prevent us calculating this unnecessarily.
         if not self.length:
-            files = self.get_selected_files()
+            files = self.download.config.get_selected_files()
 
-            tdef = self.download.get_def()
+            tdef = self.download.get_torrent()
             self.length = tdef.get_length(files)
         return self.length
 
@@ -364,34 +369,34 @@ class DownloadState(object):
         """ Returns the percentage of prebuffering for Video-On-Demand already
         completed.
         @return A float (0..1) """
-        if self.stats is None:
-            if self.status == DLSTATUS_STOPPED and self.progress == 1.0:
+        if self.statistics is None:
+            if self.status == DownloadStatus.STOPPED and self.progress == 1.0:
                 return 1.0
             else:
                 return 0.0
         else:
-            return self.stats['vod_prebuf_frac']
+            return self.statistics['vod_prebuf_frac']
 
     def get_vod_prebuffering_progress_consec(self):
         """ Returns the percentage of consecutive prebuffering for Video-On-Demand already
         completed.
         @return A float (0..1) """
-        if self.stats is None:
-            if self.status == DLSTATUS_STOPPED and self.progress == 1.0:
+        if self.statistics is None:
+            if self.status == DownloadStatus.STOPPED and self.progress == 1.0:
                 return 1.0
             else:
                 return 0.0
         else:
-            return self.stats.get('vod_prebuf_frac_consec', -1)
+            return self.statistics.get('vod_prebuf_frac_consec', -1)
 
     def is_vod(self):
         """ Returns if this download is currently in vod mode
 
         @return A Boolean"""
-        if self.stats is None:
+        if self.statistics is None:
             return False
         else:
-            return self.stats['vod']
+            return self.statistics['vod']
 
     def get_peerlist(self):
         """ Returns a list of dictionaries, one for each connected peer
@@ -410,10 +415,10 @@ class DownloadState(object):
         'uchoked' = Upload Choked: True/False
         'uhasqueries' = Upload has requests in buffer and not choked
         'uflushed' = Upload is not flushed
-        'downrate' = Download rate in KB/s
-        'dinterested' = Download interested: True/Flase
-        'dchoked' = Download choked: True/False
-        'snubbed' = Download snubbed: True/False
+        'downrate' = download rate in KB/s
+        'dinterested' = download interested: True/Flase
+        'dchoked' = download choked: True/False
+        'snubbed' = download snubbed: True/False
         'utotal' = Total uploaded from peer in KB
         'dtotal' = Total downloaded from peer in KB
         'completed' = Fraction of download completed by peer (0-1.0)
@@ -422,13 +427,75 @@ class DownloadState(object):
         'speed' = The peer's current total download speed (estimated)
         </pre>
         """
-        if self.stats is None or 'spew' not in self.stats or self.stats['spew'] is None:
+        if self.statistics is None or 'spew' not in self.statistics or self.statistics['spew'] is None:
             return []
         else:
-            return self.stats['spew']
+            return self.statistics['spew']
 
     def get_tracker_status(self):
-        if self.stats is None or 'tracker_status' not in self.stats or self.stats['tracker_status'] is None:
+        if self.statistics is None or 'tracker_status' not in self.statistics or self.statistics['tracker_status'] is None:
             return {}
         else:
-            return self.stats['tracker_status']
+            return self.statistics['tracker_status']
+
+
+class DownloadResumeInfo:
+    # TODO: Handle binary data
+    def __init__(self, id, config, state, resume_data=None):
+        self.id = id
+        self.config = config
+        self.state = state
+        self.resume_data = resume_data
+
+    def get_resume_data(self):
+        return self.resume_data
+
+    def set_resume_data(self, data):
+        self.resume_data = data
+
+    @staticmethod
+    def get_file_paths(directory, id):
+        root = os.path.join(directory, id)
+        return {
+            'root': root,
+            'config': os.path.join(root, 'config.json'),
+            'state': os.path.join(root, 'state.json'),
+            'resume_data': os.path.join(root, 'resume_data'),
+        }
+
+    def write_to_directory(self, directory):
+        paths = DownloadResumeInfo.get_file_paths(directory, self.id)
+
+        if not os.path.isdir(paths['root']):
+            os.makedirs(paths['root'])
+
+        with open(paths['config'], 'w') as output_file:
+            json.dumps(self.config, output_file)
+        with open(paths['state'], 'w') as output_file:
+            json.dump(self.state, output_file)
+        with open(paths['resume_data'], 'w') as output_file:
+            output_file.write(self.resume_data)
+
+    @staticmethod
+    def read_from_directory(directory, id):
+        paths = DownloadResumeInfo.get_file_paths(directory, id)
+
+        with open(paths['config'], 'r') as input_file:
+            config = json.loads(input_file)
+        with open(paths['config'], 'r') as input_file:
+            state = json.loads(input_file)
+        resume_data = None
+        if os.path.isfile(paths['resume_data']):
+            with open(paths['config'], 'r') as input_file:
+                resume_data = input_file.read()
+
+        return DownloadResumeInfo(id, config, state, resume_data)
+
+    def to_download_config(self):
+        config = DownloadConfig()
+        for key in config.config:
+            config.config[key] = deepcopy(self.state[key])
+        return config
+
+
+PERSISTENTSTATE_CURRENTVERSION = 5

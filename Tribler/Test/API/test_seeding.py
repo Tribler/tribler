@@ -8,7 +8,7 @@ import os
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
+from Tribler.Core.simpledefs import DOWNLOAD_STATUS_SEEDING, DOWNLOAD_STATUS_STRINGS
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
@@ -31,7 +31,7 @@ class TestSeeding(TestAsServer):
 
     def setUpPreSession(self):
         super(TestSeeding, self).setUpPreSession()
-        self.config.set_libtorrent_enabled(True)
+        self.config.set_downloading_enabled(True)
 
     def generate_torrent(self):
         self.tdef = TorrentDef()
@@ -42,11 +42,11 @@ class TestSeeding(TestAsServer):
 
         self.tdef.save(os.path.join(self.session.config.get_state_dir(), "gen.torrent"))
 
-    def start_download(self, dscfg):
-        download = self.session.start_download_from_tdef(self.tdef, dscfg)
+    def start_download(self, download_config):
+        download = self.session.start_download_from_tdef(self.tdef, download_config)
         download.set_state_callback(self.downloader_state_callback)
 
-        download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
+        download.add_peer(("127.0.0.1", self.seeder_session.config.get_downloading_port()))
 
     @deferred(timeout=60)
     def test_seeding(self):
@@ -56,9 +56,9 @@ class TestSeeding(TestAsServer):
         self.generate_torrent()
 
         def start_download(_):
-            dscfg = self.dscfg_seed.copy()
-            dscfg.set_dest_dir(self.getDestDir())
-            self.start_download(dscfg)
+            download_config = self.download_config_seed.copy()
+            download_config.set_destination_dir(self.getDestDir())
+            self.start_download(download_config)
 
         self.setup_seeder(self.tdef, TESTS_DATA_DIR).addCallback(start_download)
         return self.test_deferred
@@ -66,11 +66,11 @@ class TestSeeding(TestAsServer):
     def downloader_state_callback(self, ds):
         d = ds.get_download()
         self._logger.debug("download status: %s %s %s",
-                           repr(d.get_def().get_name()),
-                           dlstatus_strings[ds.get_status()],
+                           repr(d.get_torrent().get_name()),
+                           DOWNLOAD_STATUS_STRINGS[ds.get_status()],
                            ds.get_progress())
 
-        if ds.get_status() == DLSTATUS_SEEDING:
+        if ds.get_status() == DOWNLOAD_STATUS_SEEDING:
             # File is in
             destfn = os.path.join(self.getDestDir(), "video.avi")
             f = open(destfn, "rb")

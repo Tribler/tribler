@@ -2,6 +2,7 @@ import os
 import struct
 from binascii import unhexlify
 from shutil import copy as copyfile
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, ChannelCastDBHandler
@@ -38,6 +39,55 @@ class TestTorrentFullSessionDBHandler(AbstractDB):
 
 
 class TestTorrentDBHandler(AbstractDB):
+
+    def setUpPreSession(self):
+        super(TestTorrentDBHandler, self).setUpPreSession()
+        self.config.set_megacache_enabled(True)
+        self.config.set_torrent_store_enabled(True)
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def setUp(self):
+        yield super(TestTorrentDBHandler, self).setUp()
+
+        from Tribler.Core.download.DownloadManager import DownloadManager
+        from Tribler.Core.Modules.tracker_manager import TrackerManager
+        self.session.download_manager = DownloadManager()
+        self.session.download_manager.tracker_manager = TrackerManager(self.session)
+        self.session.download_manager.tracker_manager.initialize()
+        self.tdb = TorrentDBHandler(self.session)
+        self.tdb.torrent_dir = TESTS_DATA_DIR
+        self.tdb.category = Category()
+        self.tdb.mypref_db = MyPreferenceDBHandler(self.session)
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self):
+        self.tdb.mypref_db.close()
+        self.tdb.mypref_db = None
+        self.tdb.close()
+        self.tdb = None
+
+        yield super(TestTorrentDBHandler, self).tearDown()
+
+    @blocking_call_on_reactor_thread
+    def test_hasTorrent(self):
+        infohash_str = 'AA8cTG7ZuPsyblbRE7CyxsrKUCg='
+        infohash = str2bin(infohash_str)
+        self.assertTrue(self.tdb.hasTorrent(infohash))
+        self.assertTrue(self.tdb.hasTorrent(infohash)) # cache will trigger
+        fake_infohash = 'fake_infohash_100000'
+        self.assertFalse(self.tdb.hasTorrent(fake_infohash))
+
+    @blocking_call_on_reactor_thread
+    def test_get_infohash(self):
+        self.assertTrue(self.tdb.getInfohash(1))
+        self.assertFalse(self.tdb.getInfohash(1234567))
+
+    @blocking_call_on_reactor_thread
+    def test_add_update_Torrent(self):
+        self.addTorrent()
+        self.updateTorrent()
 
     @blocking_call_on_reactor_thread
     def addTorrent(self):
@@ -124,54 +174,6 @@ class TestTorrentDBHandler(AbstractDB):
         last_tracker_check = self.tdb.getOne('last_tracker_check', torrent_id=multiple_torrent_id)
         self.assertEqual(last_tracker_check, 1234567)
 
-    def setUpPreSession(self):
-        super(TestTorrentDBHandler, self).setUpPreSession()
-        self.config.set_megacache_enabled(True)
-        self.config.set_torrent_store_enabled(True)
-
-    @blocking_call_on_reactor_thread
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestTorrentDBHandler, self).setUp()
-
-        from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
-        from Tribler.Core.Modules.tracker_manager import TrackerManager
-        self.session.lm = TriblerLaunchMany()
-        self.session.lm.tracker_manager = TrackerManager(self.session)
-        self.tdb = TorrentDBHandler(self.session)
-        self.tdb.torrent_dir = TESTS_DATA_DIR
-        self.tdb.category = Category()
-        self.tdb.mypref_db = MyPreferenceDBHandler(self.session)
-
-    @blocking_call_on_reactor_thread
-    @inlineCallbacks
-    def tearDown(self):
-        self.tdb.mypref_db.close()
-        self.tdb.mypref_db = None
-        self.tdb.close()
-        self.tdb = None
-
-        yield super(TestTorrentDBHandler, self).tearDown()
-
-    @blocking_call_on_reactor_thread
-    def test_hasTorrent(self):
-        infohash_str = 'AA8cTG7ZuPsyblbRE7CyxsrKUCg='
-        infohash = str2bin(infohash_str)
-        self.assertTrue(self.tdb.hasTorrent(infohash))
-        self.assertTrue(self.tdb.hasTorrent(infohash)) # cache will trigger
-        fake_infohash = 'fake_infohash_100000'
-        self.assertFalse(self.tdb.hasTorrent(fake_infohash))
-
-    @blocking_call_on_reactor_thread
-    def test_get_infohash(self):
-        self.assertTrue(self.tdb.getInfohash(1))
-        self.assertFalse(self.tdb.getInfohash(1234567))
-
-    @blocking_call_on_reactor_thread
-    def test_add_update_torrent(self):
-        self.addTorrent()
-        self.updateTorrent()
-
     @blocking_call_on_reactor_thread
     def test_add_external_torrent_no_def_existing(self):
         infohash = str2bin('AA8cTG7ZuPsyblbRE7CyxsrKUCg=')
@@ -233,11 +235,11 @@ class TestTorrentDBHandler(AbstractDB):
     @blocking_call_on_reactor_thread
     def test_freeSpace(self):
         # Manually set the torrent store because register is not called.
-        self.session.lm.torrent_store = LevelDbStore(self.session.config.get_torrent_store_dir())
+        self.session.download_manager.torrent_store = LevelDbStore(self.session.config.get_torrent_store_dir())
         old_res = self.tdb.getNumberCollectedTorrents()
         self.tdb.freeSpace(20)
         res = self.tdb.getNumberCollectedTorrents()
-        self.session.lm.torrent_store.close()
+        self.session.download_manager.torrent_store.close()
         self.assertEqual(res, old_res-20)
 
     @blocking_call_on_reactor_thread

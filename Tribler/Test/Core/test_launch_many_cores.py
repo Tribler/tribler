@@ -1,22 +1,23 @@
 import os
+
+from configobj import ConfigObj
 from nose.tools import raises
 
 from twisted.internet.defer import Deferred
 
 from Tribler.Core import NoDispersyRLock
-from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
+from Tribler.Core.download.DownloadConfig import DownloadConfig
+from Tribler.Core.download.DownloadManager import DownloadManager
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Core.simpledefs import DOWNLOAD_STATUS_STOPPED_ON_ERROR
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
 from Tribler.community.allchannel.community import AllChannelCommunity
-from Tribler.community.trustchain.community import TrustChainCommunity
 from Tribler.community.search.community import SearchCommunity
+from Tribler.community.trustchain.community import TrustChainCommunity
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.dispersy.discovery.community import DiscoveryCommunity
 
@@ -29,13 +30,13 @@ class TestLaunchManyCore(TriblerCoreTest):
 
     def setUp(self, annotate=True):
         TriblerCoreTest.setUp(self, annotate=annotate)
-        self.lm = TriblerLaunchMany()
+        self.lm = DownloadManager()
         self.lm.session_lock = NoDispersyRLock()
         self.lm.session = MockObject()
         self.lm.session.config = MockObject()
         self.lm.session.config.get_max_upload_rate = lambda: 100
         self.lm.session.config.get_max_download_rate = lambda: 100
-        self.lm.session.config.get_default_number_hops = lambda: 0
+        self.lm.session.config.get_number_hops = lambda: 0
 
         # Ignore notifications
         mock_notifier = MockObject()
@@ -59,7 +60,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         tdef.metainfo_valid = True
         tdef.infohash = "abcd"
 
-        self.lm.add(tdef, DefaultDownloadStartupConfig.getInstance())
+        self.lm.add(tdef, DownloadConfig())
 
     def test_load_download_pstate(self):
         """
@@ -67,8 +68,8 @@ class TestLaunchManyCore(TriblerCoreTest):
         """
         config_file_path = os.path.abspath(os.path.join(self.DATA_DIR, u"config_files", u"config1.conf"))
         config = self.lm.load_download_pstate(config_file_path)
-        self.assertIsInstance(config, CallbackConfigParser)
-        self.assertEqual(config.get('general', 'version'), 11)
+        self.assertIsInstance(config, ConfigObj)
+        self.assertEqual(config['general'].as_int('version'), 11)
 
     @deferred(timeout=10)
     def test_dlstates_cb_error(self):
@@ -89,7 +90,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         fake_error_state = MockObject()
         fake_error_state.get_infohash = lambda: 'aaaa'
         fake_error_state.get_error = lambda: "test error"
-        fake_error_state.get_status = lambda: DLSTATUS_STOPPED_ON_ERROR
+        fake_error_state.get_status = lambda: DOWNLOAD_STATUS_STOPPED_ON_ERROR
         fake_error_state.get_download = lambda: fake_error_download
 
         self.lm.downloads = {'aaaa': fake_error_download}
@@ -107,9 +108,9 @@ class TestLaunchManyCore(TriblerCoreTest):
             mocked_resume_download.called = True
 
         mocked_resume_download.called = False
-        self.lm.session.get_downloads_pstate_dir = lambda: self.session_base_dir
+        self.lm.session.get_downloads_resume_info_directory = lambda: self.session_base_dir
 
-        with open(os.path.join(self.lm.session.get_downloads_pstate_dir(), 'abcd.state'), 'wb') as state_file:
+        with open(os.path.join(self.lm.session.get_downloads_resume_info_directory(), 'abcd.state'), 'wb') as state_file:
             state_file.write("hi")
 
         self.lm.initComplete = True
@@ -124,9 +125,9 @@ class TestLaunchManyCore(TriblerCoreTest):
         def mocked_load_download_pstate(_):
             raise ValueError()
 
-        def mocked_add(tdef, dscfg, pstate, **_):
+        def mocked_add(tdef, download_config, pstate, **_):
             self.assertTrue(tdef)
-            self.assertTrue(dscfg)
+            self.assertTrue(download_config)
             self.assertIsNone(pstate)
             mocked_add.called = True
         mocked_add.called = False
@@ -170,7 +171,7 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         Testing whether all Dispersy communities can be succesfully loaded
         """
         self.assertTrue(self.get_community(DiscoveryCommunity))
-        self.assertTrue(self.session.lm.initComplete)
+        self.assertTrue(self.session.download_manager.initComplete)
         self.assertTrue(self.get_community(SearchCommunity))
         self.assertTrue(self.get_community(AllChannelCommunity))
         self.assertTrue(self.get_community(HiddenTunnelCommunity))

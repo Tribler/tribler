@@ -13,10 +13,10 @@ from collections import defaultdict
 
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.Utilities.encoding import encode, decode
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
-    NTFY_TUNNEL, NTFY_IP_REMOVED, NTFY_RP_REMOVED, NTFY_IP_RECREATE, \
+from Tribler.Core.download.definitions import DownloadStatus
+from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_IP_REMOVED, NTFY_RP_REMOVED, NTFY_IP_RECREATE, \
     NTFY_DHT_LOOKUP, NTFY_KEY_REQUEST, NTFY_KEY_RESPOND, NTFY_KEY_RESPONSE, \
-    NTFY_CREATE_E2E, NTFY_ONCREATED_E2E, NTFY_IP_CREATED, NTFY_RP_CREATED, DLSTATUS_DOWNLOADING
+    NTFY_CREATE_E2E, NTFY_ONCREATED_E2E, NTFY_IP_CREATED, NTFY_RP_CREATED
 
 from Tribler.community.tunnel import CIRCUIT_TYPE_IP, CIRCUIT_TYPE_RP, CIRCUIT_TYPE_RENDEZVOUS, \
     EXIT_NODE, EXIT_NODE_SALT, CIRCUIT_ID_PORT
@@ -225,11 +225,11 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
         for ds in dslist:
             download = ds.get_download()
-            if download.get_hops() > 0:
+            if download.config.get_number_hops() > 0:
                 # Convert the real infohash to the infohash used for looking up introduction points
-                real_info_hash = download.get_def().get_infohash()
+                real_info_hash = download.get_torrent().get_infohash()
                 info_hash = self.get_lookup_info_hash(real_info_hash)
-                hops[info_hash] = download.get_hops()
+                hops[info_hash] = download.config.get_number_hops()
                 new_states[info_hash] = ds.get_status()
 
         self.hops = hops
@@ -256,14 +256,14 @@ class HiddenTunnelCommunity(TunnelCommunity):
             time_elapsed = (time.time() - self.last_dht_lookup.get(info_hash, 0))
             force_dht_lookup = time_elapsed >= self.settings.dht_lookup_interval
             if (state_changed or force_dht_lookup) and \
-               (new_state == DLSTATUS_SEEDING or new_state == DLSTATUS_DOWNLOADING):
+               (new_state == DownloadStatus.SEEDING or new_state == DownloadStatus.DOWNLOADING):
                 self.tunnel_logger.info('Do dht lookup to find hidden services peers for %s' % info_hash.encode('hex'))
                 self.do_dht_lookup(info_hash)
 
-            if state_changed and new_state == DLSTATUS_SEEDING:
+            if state_changed and new_state == DownloadStatus.SEEDING:
                 self.create_introduction_point(info_hash)
 
-            elif state_changed and new_state in [DLSTATUS_STOPPED, None]:
+            elif state_changed and new_state in [DownloadStatus.STOPPED, None]:
                 if info_hash in self.infohash_pex:
                     self.infohash_pex.pop(info_hash)
 
@@ -622,7 +622,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def find_download(self, lookup_info_hash):
         for download in self.tribler_session.get_downloads():
-            if lookup_info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
+            if lookup_info_hash == self.get_lookup_info_hash(download.get_torrent().get_infohash()):
                 return download
 
     def create_introduction_point(self, info_hash, amount=1):
@@ -743,7 +743,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def dht_lookup(self, info_hash, cb):
         if self.tribler_session:
-            self.tribler_session.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb)
+            self.tribler_session.download_manager.mainline_dht.get_peers(info_hash, Id(info_hash), cb)
         else:
             self.tunnel_logger.error("Need a Tribler session to lookup to the DHT")
 
@@ -753,7 +753,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 self.tunnel_logger.info("Announced %s to the DHT", info_hash.encode('hex'))
 
             port = self.tribler_session.config.get_dispersy_port()
-            self.tribler_session.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
+            self.tribler_session.download_manager.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
         else:
             self.tunnel_logger.error("Need a Tribler session to announce to the DHT")
 

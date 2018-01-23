@@ -33,7 +33,7 @@ class ChannelManager(TaskManager):
 
         # get all channels owned by me
         from Tribler.community.channel.community import ChannelCommunity
-        for community in self.session.lm.dispersy.get_communities():
+        for community in self.session.download_manager.dispersy.get_communities():
             if isinstance(community, ChannelCommunity) and community.master_member and community.master_member.private_key:
                 channel_obj = ChannelObject(self.session, community, is_created=True)
                 channel_obj.initialize()

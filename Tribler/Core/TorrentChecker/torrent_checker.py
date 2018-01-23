@@ -113,7 +113,7 @@ class TorrentChecker(TaskManager):
         self._reschedule_tracker_select()
 
         # start selecting torrents
-        tracker_url = self.tribler_session.lm.tracker_manager.get_next_tracker_for_auto_check()
+        tracker_url = self.tribler_session.download_manager.tracker_manager.get_next_tracker_for_auto_check()
         if tracker_url is None:
             self._logger.warn(u"No tracker to select from, skip")
             return succeed(None)
@@ -126,7 +126,7 @@ class TorrentChecker(TaskManager):
         if len(infohashes) == 0:
             # We have not torrent to recheck for this tracker. Still update the last_check for this tracker.
             self._logger.info("No torrent to check for tracker %s", tracker_url)
-            self.tribler_session.lm.tracker_manager.update_tracker_info(tracker_url, True)
+            self.tribler_session.download_manager.tracker_manager.update_tracker_info(tracker_url, True)
             return succeed(None)
         elif tracker_url != u'DHT' and tracker_url != u'no-DHT':
             try:
@@ -236,7 +236,7 @@ class TorrentChecker(TaskManager):
         # Do not update if the connection got cancelled, we are probably shutting down
         # and the tracker_manager may have shutdown already.
         if failure.check(CancelledError, ConnectingCancelledError) is None:
-            self.tribler_session.lm.tracker_manager.update_tracker_info(session.tracker_url, False)
+            self.tribler_session.download_manager.tracker_manager.update_tracker_info(session.tracker_url, False)
 
         failure.tracker_url = session.tracker_url
         return failure
@@ -252,7 +252,7 @@ class TorrentChecker(TaskManager):
         return session
 
     def clean_session(self, session):
-        self.tribler_session.lm.tracker_manager.update_tracker_info(session.tracker_url, not session.is_failed)
+        self.tribler_session.download_manager.tracker_manager.update_tracker_info(session.tracker_url, not session.is_failed)
         self.session_stop_defer_list.append(session.cleanup())
 
         # Remove the session from our session list dictionary

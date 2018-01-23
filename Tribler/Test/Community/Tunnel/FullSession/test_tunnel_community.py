@@ -2,7 +2,7 @@ from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.python.threadable import isInIOThread
 
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING
+from Tribler.Core.simpledefs import DOWNLOAD_STATUS_SEEDING
 from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
 from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -29,7 +29,7 @@ class TestTunnelCommunity(TestTunnelBase):
 
         def download_state_callback(ds):
             download = ds.get_download()
-            if download.get_progress() == 1.0 and ds.get_status() == DLSTATUS_SEEDING:
+            if download.get_progress() == 1.0 and ds.get_status() == DOWNLOAD_STATUS_SEEDING:
                 self.test_deferred.callback(None)
                 return 0.0, False
             return 2.0, False
