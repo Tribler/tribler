@@ -86,3 +86,6 @@ VIDEO_EXTS = ['aac', 'asf', 'avi', 'dv', 'divx', 'flac', 'flc', 'flv', 'mkv', 'm
 STATUS_GOOD = 0
 STATUS_UNKNOWN = 1
 STATUS_DEAD = 2
+
+# Tribler shutdown grace period in milliseconds
+SHUTDOWN_WAITING_PERIOD = 120000
