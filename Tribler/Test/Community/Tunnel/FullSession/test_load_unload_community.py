@@ -1,11 +1,10 @@
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-from Tribler.community.tunnel.tunnel_community import TunnelSettings
+from Tribler.Test.test_as_server import TestAsServer
+from Tribler.community.hiddentunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.crypto import ECCrypto
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from Tribler.Test.test_as_server import TestAsServer
 
 
 class DummyTunnelCommunity(HiddenTunnelCommunity):
@@ -69,23 +68,13 @@ class TestLoadUnloadTunnelCommunity(TestAsServer):
             self.assertNotIsInstance(community, HiddenTunnelCommunity)
 
     @blocking_call_on_reactor_thread
-    @inlineCallbacks
     def test_load_other_tunnel_community(self):
         """
         Testing whether we do not load two different tunnel communities in the same session
         """
-
-        # Load/unload this community so we have a classification
         dispersy = self.session.lm.dispersy
-        master_member = DummyTunnelCommunity.get_master_members(dispersy)[0]
-        keypair = self.session.trustchain_keypair
-        dispersy_member = dispersy.get_member(private_key=keypair.key_to_bin())
-        community = DummyTunnelCommunity.init_community(dispersy, master_member, dispersy_member,
-                                                        tribler_session=self.session, settings=TunnelSettings())
-        yield community.unload_community()
-
         some_candidate = Candidate(("1.2.3.4", 1234), False)
-        some_packet = self.create_valid_packet(community)
+        some_packet = self.create_valid_packet(self.session.lm.tunnel_community)
         dispersy.on_incoming_packets([(some_candidate, some_packet), ])
 
         tunnel_communities = 0

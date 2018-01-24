@@ -2,7 +2,7 @@ from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
-from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
+from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase, HiddenTunnelCommunityTests
 from Tribler.Test.twisted_thread import deferred
 
 
@@ -26,10 +26,8 @@ class FakeDHT(object):
 class TestHiddenTunnelCommunity(TestTunnelBase):
     """
     This class contains tests for the hidden tunnel community.
-
-    TODO(Martijn): currently, these tests are not working. It seems to run the whole protocol and it finally
-    adds the circuit to the hidden seeder to the download as peer but the download is not starting.
     """
+    TUNNEL_CLASS = HiddenTunnelCommunityTests
 
     def setUp(self, autoload_discovery=True):
         TestTunnelBase.setUp(self, autoload_discovery=autoload_discovery)

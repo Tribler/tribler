@@ -25,9 +25,6 @@ def convert_config_to_tribler71(current_config):
         current_config = add_libtribler_config(current_config, libtribler_cfg)
         os.remove(libtribler_file_loc)
 
-        # We enable TrustChain when upgrading from 7 to 7.1.
-        current_config.set_trustchain_enabled(True)
-
     tribler_file_loc = os.path.join(TriblerConfig.get_default_state_dir(), "tribler.conf")
     if os.path.exists(tribler_file_loc):
         tribler_cfg = RawConfigParser()
@@ -126,8 +123,6 @@ def add_libtribler_config(new_config, old_config):
                     temp_config.set_tunnel_community_socks5_listen_ports(value)
             elif section == "tunnel_community" and name == "exitnode_enabled":
                 temp_config.set_tunnel_community_exitnode_enabled(value)
-            elif section == "multichain" and name == "enabled":
-                temp_config.set_trustchain_enabled(value)
             elif section == "general" and name == "ec_keypair_filename_multichain":
                 temp_config.set_trustchain_permid_keypair_filename(value)
             elif section == "metadata" and name == "enabled":

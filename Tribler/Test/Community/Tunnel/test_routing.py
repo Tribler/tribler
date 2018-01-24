@@ -1,5 +1,5 @@
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+from Tribler.community.hiddentunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.routing import Circuit
 
 

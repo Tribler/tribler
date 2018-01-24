@@ -6,8 +6,6 @@ Author(s): Egbert Bouman
 import hashlib
 import logging
 import os
-import socket
-import struct
 import time
 from collections import defaultdict
 
@@ -17,18 +15,21 @@ from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
     NTFY_TUNNEL, NTFY_IP_REMOVED, NTFY_RP_REMOVED, NTFY_IP_RECREATE, \
     NTFY_DHT_LOOKUP, NTFY_KEY_REQUEST, NTFY_KEY_RESPOND, NTFY_KEY_RESPONSE, \
     NTFY_CREATE_E2E, NTFY_ONCREATED_E2E, NTFY_IP_CREATED, NTFY_RP_CREATED, DLSTATUS_DOWNLOADING
+from Tribler.community.hiddentunnel.conversion import HiddenTunnelConversion
+from Tribler.community.trustchain.conversion import TrustChainConversion
 
 from Tribler.community.tunnel import CIRCUIT_TYPE_IP, CIRCUIT_TYPE_RP, CIRCUIT_TYPE_RENDEZVOUS, \
     EXIT_NODE, EXIT_NODE_SALT, CIRCUIT_ID_PORT
-from Tribler.community.tunnel.payload import (EstablishIntroPayload, IntroEstablishedPayload,
-                                              EstablishRendezvousPayload, RendezvousEstablishedPayload,
-                                              KeyResponsePayload, KeyRequestPayload, CreateE2EPayload,
-                                              CreatedE2EPayload, LinkE2EPayload, LinkedE2EPayload,
-                                              DHTRequestPayload, DHTResponsePayload)
+from Tribler.community.hiddentunnel.payload import (EstablishIntroPayload, IntroEstablishedPayload,
+                                                    EstablishRendezvousPayload, RendezvousEstablishedPayload,
+                                                    KeyResponsePayload, KeyRequestPayload, CreateE2EPayload,
+                                                    CreatedE2EPayload, LinkE2EPayload, LinkedE2EPayload,
+                                                    DHTRequestPayload, DHTResponsePayload)
 from Tribler.community.tunnel.routing import RelayRoute, RendezvousPoint, Hop
 from Tribler.community.tunnel.tunnel_community import TunnelCommunity
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.candidate import Candidate
+from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.endpoint import TUNNEL_PREFIX
@@ -195,6 +196,9 @@ class HiddenTunnelCommunity(TunnelCommunity):
                      CandidateDestination(), RendezvousEstablishedPayload(), self.check_rendezvous_established,
                      self.on_rendezvous_established)]
 
+    def initiate_conversions(self):
+        return [DefaultConversion(self), TrustChainConversion(self), HiddenTunnelConversion(self)]
+
     def remove_circuit(self, circuit_id, additional_info='', destroy=False):
         super(HiddenTunnelCommunity, self).remove_circuit(circuit_id, additional_info, destroy)
 
@@ -209,12 +213,6 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 self.notifier.notify(NTFY_TUNNEL, NTFY_RP_REMOVED, circuit_id)
             self.tunnel_logger.info("removed rendezvous point %d" % circuit_id)
             self.my_download_points.pop(circuit_id)
-
-    def ip_to_circuit_id(self, ip_str):
-        return struct.unpack("!I", socket.inet_aton(ip_str))[0]
-
-    def circuit_id_to_ip(self, circuit_id):
-        return socket.inet_ntoa(struct.pack("!I", circuit_id))
 
     @call_on_reactor_thread
     def monitor_downloads(self, dslist):

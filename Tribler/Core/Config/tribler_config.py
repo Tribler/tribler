@@ -425,6 +425,12 @@ class TriblerConfig(object):
     def get_tunnel_community_enabled(self):
         return self.config['tunnel_community']['enabled']
 
+    def set_tunnel_community_hidden_seeding(self, value):
+        self.config['tunnel_community']['hidden_seeding_enabled'] = value
+
+    def get_tunnel_community_hidden_seeding(self):
+        return self.config['tunnel_community']['hidden_seeding_enabled']
+
     def set_tunnel_community_socks5_listen_ports(self, ports):
         self.config['tunnel_community']['socks5_listen_ports'] = [str(port) for port in ports]
 
@@ -581,14 +587,6 @@ class TriblerConfig(object):
 
     def get_preview_channel_community_enabled(self):
         return self.config['preview_channel_community']['enabled']
-
-    # Trustchain Community
-
-    def set_trustchain_enabled(self, value):
-        self.config['trustchain']['enabled'] = value
-
-    def get_trustchain_enabled(self):
-        return self.config['trustchain']['enabled']
 
     # Watch folder
 

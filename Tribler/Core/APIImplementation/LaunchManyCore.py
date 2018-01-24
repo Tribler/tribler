@@ -13,7 +13,7 @@ from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, returnValue, succeed
+from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, succeed
 from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
@@ -25,7 +25,6 @@ from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Modules.watch_folder import WatchFolder
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
-
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import get_lib_path
@@ -97,7 +96,6 @@ class TriblerLaunchMany(TaskManager):
         self.tracker_manager = None
         self.torrent_checker = None
         self.tunnel_community = None
-        self.trustchain_community = None
 
         self.startup_deferred = Deferred()
 
@@ -227,32 +225,20 @@ class TriblerLaunchMany(TaskManager):
             self.dispersy.define_auto_load(PreviewChannelCommunity,
                                            self.session.dispersy_member, kargs=default_kwargs)
 
-        # TrustChain Community
-        if self.session.config.get_trustchain_enabled():
-            trustchain_kwargs = {'tribler_session': self.session}
-
-            # If the trustchain is enabled, we use the permanent trustchain keypair
-            # for both the trustchain and the tunnel community
-            keypair = self.session.trustchain_keypair
-            dispersy_member = self.dispersy.get_member(private_key=keypair.key_to_bin())
-
-            from Tribler.community.triblerchain.community import TriblerChainCommunity
-            self.trustchain_community = self.dispersy.define_auto_load(TriblerChainCommunity,
-                                                                       dispersy_member,
-                                                                       load=True,
-                                                                       kargs=trustchain_kwargs)[0]
-        else:
-            keypair = self.dispersy.crypto.generate_key(u"curve25519")
-            dispersy_member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
-
         # Tunnel Community
         if self.session.config.get_tunnel_community_enabled():
             tunnel_settings = TunnelSettings(tribler_config=self.session.config)
             tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
 
-            from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+            keypair = self.session.trustchain_keypair
+            dispersy_member = self.dispersy.get_member(private_key=keypair.key_to_bin())
+            has_hidden_seeding = self.session.config.get_tunnel_community_hidden_seeding
+
+            from Tribler.community.hiddentunnel.hidden_community import HiddenTunnelCommunity
+            from Tribler.community.tunnel.tunnel_community import TunnelCommunity
+            class_to_load = HiddenTunnelCommunity if has_hidden_seeding else TunnelCommunity
             self.tunnel_community = self.dispersy.define_auto_load(
-                HiddenTunnelCommunity, dispersy_member, load=True, kargs=tunnel_kwargs)[0]
+                class_to_load, dispersy_member, load=True, kargs=tunnel_kwargs)[0]
 
             # We don't want to automatically load other instances of this community with other master members.
             self.dispersy.undefine_auto_load(HiddenTunnelCommunity)
@@ -264,7 +250,7 @@ class TriblerLaunchMany(TaskManager):
                                        testnet=self.session.config.get_btc_testnet())
             wallets[btc_wallet.get_identifier()] = btc_wallet
 
-            mc_wallet = TrustchainWallet(self.trustchain_community)
+            mc_wallet = TrustchainWallet(self.tunnel_community)
             wallets[mc_wallet.get_identifier()] = mc_wallet
 
             if self.session.config.get_dummy_wallets_enabled():
@@ -623,7 +609,9 @@ class TriblerLaunchMany(TaskManager):
         if do_checkpoint:
             self.session.checkpoint_downloads()
 
-        if self.state_cb_count % 4 == 0 and self.tunnel_community:
+        from Tribler.community.hiddentunnel.hidden_community import HiddenTunnelCommunity
+        if self.state_cb_count % 4 == 0 and self.tunnel_community and \
+                isinstance(self.tunnel_community, HiddenTunnelCommunity):
             self.tunnel_community.monitor_downloads(states_list)
 
         return []

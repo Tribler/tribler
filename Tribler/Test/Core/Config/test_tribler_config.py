@@ -217,6 +217,8 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         self.tribler_config.set_tunnel_community_enabled(True)
         self.assertEqual(self.tribler_config.get_tunnel_community_enabled(), True)
+        self.tribler_config.set_tunnel_community_hidden_seeding(False)
+        self.assertEqual(self.tribler_config.get_tunnel_community_hidden_seeding(), False)
         self.tribler_config.set_tunnel_community_socks5_listen_ports([-1])
         self.assertNotEqual(self.tribler_config.get_tunnel_community_socks5_listen_ports(), [-1])
         self.tribler_config.set_tunnel_community_socks5_listen_ports([5])
@@ -306,13 +308,6 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         self.tribler_config.set_preview_channel_community_enabled(True)
         self.assertEqual(self.tribler_config.get_preview_channel_community_enabled(), True)
-
-    def test_get_set_methods_trustchain_community(self):
-        """
-        Check whether trustchain community get and set methods are working as expected.
-        """
-        self.tribler_config.set_trustchain_enabled(True)
-        self.assertEqual(self.tribler_config.get_trustchain_enabled(), True)
 
     def test_get_set_methods_watch_folder(self):
         """

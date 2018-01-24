@@ -1,12 +1,11 @@
 import logging
 import time
 
-from twisted.internet.defer import Deferred
-
 from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, \
     CIRCUIT_TYPE_DATA
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.crypto import LibNaCLPK
+from twisted.internet.defer import Deferred
 
 __author__ = 'chris'
 
@@ -25,10 +24,10 @@ class Circuit(object):
         :return: Circuit
         """
 
-        from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+        from Tribler.community.tunnel.tunnel_community import TunnelCommunity
         assert isinstance(circuit_id, long)
         assert isinstance(goal_hops, int)
-        assert proxy is None or isinstance(proxy, HiddenTunnelCommunity)
+        assert proxy is None or isinstance(proxy, TunnelCommunity)
         assert first_hop is None or isinstance(first_hop, tuple) and isinstance(
             first_hop[0], basestring) and isinstance(first_hop[1], int)
 

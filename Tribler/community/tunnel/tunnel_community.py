@@ -10,6 +10,7 @@ import time
 from collections import defaultdict
 from itertools import chain
 
+import struct
 from cryptography.exceptions import InvalidTag
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred, succeed, inlineCallbacks, returnValue, fail
@@ -19,6 +20,8 @@ from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.Utilities.encoding import decode, encode
+from Tribler.community.triblerchain.community import TriblerChainCommunity
+from Tribler.community.trustchain.conversion import TrustChainConversion
 from Tribler.community.tunnel import (CIRCUIT_ID_PORT, CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA,
                                       CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, EXIT_NODE, EXIT_NODE_SALT, ORIGINATOR,
                                       ORIGINATOR_SALT, PING_INTERVAL)
@@ -32,7 +35,6 @@ from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, Create
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.distribution import DirectDistribution
@@ -260,11 +262,9 @@ class TunnelSettings(object):
         if tribler_config:
             self.socks_listen_ports = tribler_config.get_tunnel_community_socks5_listen_ports()
             self.become_exitnode = tribler_config.get_tunnel_community_exitnode_enabled()
-            self.enable_trustchain = tribler_config.get_trustchain_enabled()
         else:
             self.socks_listen_ports = range(1080, 1085)
             self.become_exitnode = False
-            self.enable_trustchain = False
 
 
 class RoundRobin(object):
@@ -295,7 +295,7 @@ class RoundRobin(object):
         return self.community.active_data_circuits()[circuit_id]
 
 
-class TunnelCommunity(Community):
+class TunnelCommunity(TriblerChainCommunity):
 
     def __init__(self, *args, **kwargs):
         super(TunnelCommunity, self).__init__(*args, **kwargs)
@@ -417,7 +417,7 @@ class TunnelCommunity(Community):
                                         self._generic_timeline_check, self.on_stats_response)]
 
     def initiate_conversions(self):
-        return [DefaultConversion(self), TunnelConversion(self)]
+        return [DefaultConversion(self), TrustChainConversion(self), TunnelConversion(self)]
 
     @inlineCallbacks
     def unload_community(self):
@@ -432,6 +432,12 @@ class TunnelCommunity(Community):
             self.remove_exit_socket(circuit_id, 'unload', destroy=True)
 
         yield super(TunnelCommunity, self).unload_community()
+
+    def ip_to_circuit_id(self, ip_str):
+        return struct.unpack("!I", socket.inet_aton(ip_str))[0]
+
+    def circuit_id_to_ip(self, circuit_id):
+        return socket.inet_ntoa(struct.pack("!I", circuit_id))
 
     @property
     def crypto(self):

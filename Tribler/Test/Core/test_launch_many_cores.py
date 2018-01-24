@@ -15,9 +15,9 @@ from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
 from Tribler.community.allchannel.community import AllChannelCommunity
-from Tribler.community.trustchain.community import TrustChainCommunity
+from Tribler.community.hiddentunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.search.community import SearchCommunity
-from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+from Tribler.community.trustchain.community import TrustChainCommunity
 from Tribler.dispersy.discovery.community import DiscoveryCommunity
 
 

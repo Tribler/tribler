@@ -6,16 +6,29 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
-from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-from Tribler.community.tunnel.tunnel_community import TunnelSettings
+from Tribler.community.hiddentunnel.hidden_community import HiddenTunnelCommunity
+from Tribler.community.tunnel.tunnel_community import TunnelSettings, TunnelCommunity
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.crypto import NoCrypto, ECCrypto
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
+class TunnelCommunityTests(TunnelCommunity):
+    """
+    We are using a separate community so we do not act as an exit node for the outside world.
+    """
+    master_key = ""
+
+    @classmethod
+    def get_master_members(cls, dispersy):
+        master_key_hex = TunnelCommunityTests.master_key.decode("HEX")
+        master = dispersy.get_member(public_key=master_key_hex)
+        return [master]
+
+
 class HiddenTunnelCommunityTests(HiddenTunnelCommunity):
     """
-    We are using a seperate community so we do not act as an exit node for the outside world.
+    We are using a separate community so we do not act as an exit node for the outside world.
     """
     master_key = ""
 
@@ -27,6 +40,8 @@ class HiddenTunnelCommunityTests(HiddenTunnelCommunity):
 
 
 class TestTunnelBase(TestAsServer):
+
+    TUNNEL_CLASS = TunnelCommunityTests
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -45,6 +60,7 @@ class TestTunnelBase(TestAsServer):
 
         self.eccrypto = ECCrypto()
         ec = self.eccrypto.generate_key(u"curve25519")
+        TunnelCommunityTests.master_key = self.eccrypto.key_to_bin(ec.pub()).encode('hex')
         HiddenTunnelCommunityTests.master_key = self.eccrypto.key_to_bin(ec.pub()).encode('hex')
 
         self.tunnel_community = self.load_tunnel_community_in_session(self.session, exitnode=True)
@@ -119,7 +135,7 @@ class TestTunnelBase(TestAsServer):
             settings.crypto = NoCrypto()
         settings.become_exitnode = exitnode
 
-        return dispersy.define_auto_load(HiddenTunnelCommunityTests, dispersy_member, (session, settings), load=True)[0]
+        return dispersy.define_auto_load(self.TUNNEL_CLASS, dispersy_member, (session, settings), load=True)[0]
 
     @inlineCallbacks
     def create_proxy(self, index, exitnode=False):

@@ -15,22 +15,22 @@ from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred, succeed
 from twisted.internet.stdio import StandardIO
 from twisted.internet.task import LoopingCall
-from twisted.web import server, resource
 from twisted.plugin import IPlugin
 from twisted.protocols.basic import LineReceiver
 from twisted.python import usage
 from twisted.python.log import msg
+from twisted.web import server, resource
 from zope.interface import implements
 
-from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-from Tribler.community.tunnel.tunnel_community import TunnelSettings
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
-from Tribler.Core.permid import read_keypair
 from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Core.TorrentDef import TorrentDef
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.permid import read_keypair
+from Tribler.Core.simpledefs import dlstatus_strings
+from Tribler.community.hiddentunnel.hidden_community import HiddenTunnelCommunity
+from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
 from Tribler.dispersy.util import blockingCallFromThread
@@ -234,7 +234,6 @@ class Tunnel(object):
         config.set_dispersy_port(self.dispersy_port)
         config.set_torrent_search_enabled(False)
         config.set_channel_search_enabled(False)
-        config.set_trustchain_enabled(self.settings.enable_trustchain)
 
         # We do not want to load the TunnelCommunity in the session but instead our own community
         config.set_tunnel_community_enabled(False)
