@@ -386,3 +386,65 @@ class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
         other_trust = blockingCallFromThread(reactor, other.community.get_trust, node.community.my_member)
         self.assertEqual(node_trust, 1)
         self.assertEqual(other_trust, 1)
+
+    def test_get_bandwidth_tokens_for_self(self):
+        """
+        Test that the bandwidth tokens the own node has is the upload - the download total of all blocks.
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+        transaction = {'up': 10, 'down': 5}
+        transaction2 = {'up': 5, 'down': 10}
+        TestTriblerChainCommunity.create_block(node, other, self._create_target(node, other), transaction)
+        TestTriblerChainCommunity.create_block(other, node, self._create_target(other, node), transaction2)
+
+        # Get statistics
+        node_trust = blockingCallFromThread(reactor, node.community.get_bandwidth_tokens, node.community.my_member)
+        other_trust = blockingCallFromThread(reactor, other.community.get_bandwidth_tokens, other.community.my_member)
+        self.assertEqual(node_trust, 5)
+        self.assertEqual(other_trust, -5)
+
+    def test_get_bandwidth_tokens(self):
+        """
+        Test that the bandwidth tokens nodes have is the upload - the download total of all blocks.
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+        transaction = {'up': 10, 'down': 5}
+        transaction2 = {'up': 5, 'down': 10}
+        TestTriblerChainCommunity.create_block(node, other, self._create_target(node, other), transaction)
+        TestTriblerChainCommunity.create_block(other, node, self._create_target(other, node), transaction2)
+
+        # Get statistics
+        node_trust = blockingCallFromThread(reactor, node.community.get_bandwidth_tokens, other.community.my_member)
+        other_trust = blockingCallFromThread(reactor, other.community.get_bandwidth_tokens, node.community.my_member)
+        self.assertEqual(node_trust, -5)
+        self.assertEqual(other_trust, 5)
+
+    def test_get_default_bandwidth_tokens(self):
+        """
+        Test that the bandwidth token amount for nodes without blocks is 0.
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+
+        # Get statistics
+        node_trust = blockingCallFromThread(reactor, node.community.get_bandwidth_tokens, other.community.my_member)
+        other_trust = blockingCallFromThread(reactor, other.community.get_bandwidth_tokens, node.community.my_member)
+        self.assertEqual(node_trust, 0)
+        self.assertEqual(other_trust, 0)
+
+    def test_bootstrapping(self):
+        """
+        Test that bootstrapping process works.
+        """
+        # Arrange
+        node, = self.create_nodes(1)
+
+        node_bootstrap = blockingCallFromThread(reactor, node.community.bootstrap_new_identity, 100)
+        self.assertNotEqual(node_bootstrap['private_key'],
+                            node.community.my_member.private_key.key_to_bin().encode('base64'))
+        self.assertEqual(node_bootstrap['transaction']['up'], 100)
+        self.assertEqual(node_bootstrap['transaction']['down'], 0)
+        self.assertEqual(node_bootstrap['block']['sequence_number'], 1)
+        self.assertNotEqual(node_bootstrap['block']['block_hash'], "")

@@ -16,7 +16,8 @@ class TrustchainEndpoint(resource.Resource):
         child_handler_dict = {
             "statistics": TrustchainStatsEndpoint,
             "blocks": TrustchainBlocksEndpoint,
-            "bootstrap": TrustchainBootstrapEndpoint}
+            "bootstrap": TrustchainBootstrapEndpoint
+        }
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
@@ -172,65 +173,63 @@ class TrustchainBlocksIdentityEndpoint(TrustchainBaseEndpoint):
 
 class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
     """
-    Bootstrap a new identity and transfer some reputation to the new key.
+    Bootstrap a new identity and transfer some bandwidth tokens to the new key.
     """
 
     def render_GET(self, request):
         """
-        .. http:get:: /trustchain/bootstrap?up=int&down=int
+        .. http:get:: /trustchain/bootstrap?amount=int
 
-        A GET request to this endpoint generates a new identity and transfers some reputation to it.
+        A GET request to this endpoint generates a new identity and transfers bandwidth tokens to it.
+        The amount specifies how much tokens need to be emptied into the new identity
 
             **Example request**:
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/trustchain/bootstrap?up=100000&down=40000
+                curl -X GET http://localhost:8085/trustchain/bootstrap?amount=1000
 
             **Example response**:
 
             .. sourcecode:: javascript
 
                 {
-                    "private_key" : "NEW_KEY",
-                    "public_key"  : "NEW_PUBLIC_KEY" ,
-                     "transactions" : [
-                         {
-                            "hash": "ab672fd6acc0",
-                            "tx" : {
-                                "up": 100000,
-                                "down": 40000,
-                                "total_up": 100000,
-                                "total_down": 40000,
-                            },
-                            "sequence_number": 0,
-                            "link_public_key": "PC_KEY",
-                            "link_sequence_number": 1210,
-                            "previous_hash": 00000000
-                        }
-                    ]
+                    "private_key": "TGliTmFDTFNLOmC4BR7otCpn+NzTBAFwKdSJdpT0KG9Zy5vPGX6s3rDXmNiDoGKyToLeYYB88vj9\nRj5NW
+                                    pbNf/ldcixYZ2YxQ7Q=\n",
+                    "transaction": {
+                        "down": 0,
+                        "up": 1000
+                    },
+                    "block": {
+                        "block_hash": "THJxNlKWMQG1Tio+Yz5CUCrnWahcyk6TDVfRLQf7w6M=\n",
+                        "sequence_number": 1
                     }
+                }
         """
+
         mc_community = self.get_trustchain_community()
         if not mc_community:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "trustchain community not found"})
 
-        statistics = mc_community.get_statistics()
-        up = statistics['total_up']
-        down = statistics['total_down']
-        if 'up' in request.args:
+        available_tokens = mc_community.get_bandwidth_tokens()
+
+        if 'amount' in request.args:
             try:
-                up = int(request.args['up'][0])
+                amount = int(request.args['amount'][0])
             except ValueError:
-                up = up
+                request.setResponseCode(http.BAD_REQUEST)
+                return json.dumps({"error": "Provided token amount is not a number"})
 
-        if 'down' in request.args:
-            try:
-                down = int(request.args['down'][0])
-            except ValueError:
-                down = down
+            if amount <= 0:
+                request.setResponseCode(http.BAD_REQUEST)
+                return json.dumps({"error": "Provided token amount is zero or negative"})
+        else:
+            amount = available_tokens
 
-        result = mc_community.bootstrap_new_identity(up, down)
+        if amount <= 0 or amount > available_tokens:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "Not enough bandwidth tokens available"})
 
+        result = mc_community.bootstrap_new_identity(amount)
         return json.dumps(result)

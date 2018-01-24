@@ -215,10 +215,29 @@ class TriblerChainCommunity(TrustChainCommunity):
             # We need a minimum of 1 trust to have a chance to be selected in the categorical distribution.
             return 1
 
-    def bootstrap_new_identity(self, up, down):
-        """ 
+    def get_bandwidth_tokens(self, member=None):
+        """
+        Get the bandwidth tokens for another member.
+        Currently this is just the difference in the amount of MBs exchanged with them.
+
+        :param member: the member we interacted with
+        :type member: dispersy.member.Member
+        :return: the amount of bandwidth tokens for this member
+        :rtype: int
+        """
+        if member is None:
+            member = self.my_member
+
+        block = self.persistence.get_latest(member.public_key)
+        if block:
+            return block.transaction['total_up'] - block.transaction['total_down']
+
+        return 0
+
+    def bootstrap_new_identity(self, amount):
+        """
         One-way payment channel.
-        Create a new temporary identity , and transfer funds to the new identity. 
+        Create a new temporary identity, and transfer funds to the new identity.
         A different party can then take the result and do a transfer from the temporary identity to itself
         """
 
@@ -227,15 +246,15 @@ class TriblerChainCommunity(TrustChainCommunity):
 
         # Create the transaction specification
         transaction = {
-            'up': up, 'down': down
+            'up': 0, 'down': amount
         }
 
         # Create the two half blocks that form the transaction
         local_half_block = TriblerChainBlock.create(transaction, self.persistence, self.my_member.public_key,
                                                     link_pk=tmp_member.public_key)
         local_half_block.sign(self.my_member.private_key)
-        tmp_half_block = TriblerChainBlock.create(transaction, DBShim(), tmp_member.public_key, link=local_half_block,
-                                                  link_pk=self.my_member.public_key)
+        tmp_half_block = TriblerChainBlock.create(transaction, self.persistence, tmp_member.public_key,
+                                                  link=local_half_block, link_pk=self.my_member.public_key)
         tmp_half_block.sign(tmp_member.private_key)
 
         self.persistence.add_block(local_half_block)
@@ -245,8 +264,8 @@ class TriblerChainCommunity(TrustChainCommunity):
         block = {'block_hash': tmp_half_block.hash.encode('base64'),
                  'sequence_number': tmp_half_block.sequence_number}
 
-        result = {'transaction': transaction, 'block': block,
-                  'private_key': tmp_member.private_key.key_to_bin().encode('base64')}
+        result = {'private_key': tmp_member.private_key.key_to_bin().encode('base64'),
+                  'transaction': {'up': amount, 'down': 0}, 'block': block}
         return result
 
 
@@ -266,8 +285,3 @@ class TriblerChainCommunityCrawler(TriblerChainCommunity):
 
     def start_walking(self):
         self.register_task("take step", LoopingCall(self.take_step)).start(self.CrawlerDelay, now=False)
-
-
-class DBShim:
-    def get_latest(self, x):
-        return {}

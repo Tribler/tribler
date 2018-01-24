@@ -20,6 +20,8 @@ from TriblerGUI.utilities import string_to_seconds, get_gui_setting, seconds_to_
 DEPENDENCY_ERROR_TITLE = "Dependency missing"
 DEPENDENCY_ERROR_MESSAGE = "'qrcode' module is missing. This module can be installed through apt-get or pip"
 
+MEBIBYTE = 1024 * 1024
+
 
 class SettingsPage(QWidget):
     """
@@ -32,9 +34,9 @@ class SettingsPage(QWidget):
         self.settings_request_mgr = None
         self.trustchain_request_mgr = None
         self.saved_dialog = None
-        self.empty_funds_barcode_dialog = None
-        self.empty_partial_funds_dialog = None
-        self.confirm_empty_funds_dialog = None
+        self.empty_tokens_barcode_dialog = None
+        self.empty_partial_tokens_dialog = None
+        self.confirm_empty_tokens_dialog = None
 
     def initialize_settings_page(self):
         self.window().settings_tab.initialize()
@@ -47,86 +49,100 @@ class SettingsPage(QWidget):
         self.window().developer_mode_enabled_checkbox.stateChanged.connect(self.on_developer_mode_checkbox_changed)
         self.window().use_monochrome_icon_checkbox.stateChanged.connect(self.on_use_monochrome_icon_checkbox_changed)
         self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
-        self.window().fully_empty_funds_button.clicked.connect(self.confirm_fully_empty_funds)
-        self.window().partially_empty_funds_button.clicked.connect(self.partially_empty_funds)
+        self.window().fully_empty_tokens_button.clicked.connect(self.confirm_fully_empty_tokens)
+        self.window().partially_empty_tokens_button.clicked.connect(self.partially_empty_tokens)
 
-    def confirm_fully_empty_funds(self):
-        self.confirm_empty_funds_dialog = ConfirmationDialog(self, "Empty funds into another account",
-                                                             "Are you sure you want to empty ALL funds into another account? "
-                                                             "Warning: one-way action that cannot be revered",
-                                                             [('EMPTY', BUTTON_TYPE_NORMAL), ('Cancel', BUTTON_TYPE_CONFIRM)])
-        self.confirm_empty_funds_dialog.button_clicked.connect(self.on_confirm_fully_empty_funds)
-        self.confirm_empty_funds_dialog.show()
+    def confirm_fully_empty_tokens(self):
+        self.confirm_empty_tokens_dialog = ConfirmationDialog(self, "Empty tokens into another account",
+                                                              "Are you sure you want to empty ALL bandwidth tokens "
+                                                              "into another account? "
+                                                              "Warning: one-way action that cannot be revered",
+                                                              [
+                                                                  ('EMPTY', BUTTON_TYPE_CONFIRM),
+                                                                  ('CANCEL', BUTTON_TYPE_NORMAL)
+                                                              ])
+        self.confirm_empty_tokens_dialog.button_clicked.connect(self.on_confirm_fully_empty_tokens)
+        self.confirm_empty_tokens_dialog.show()
 
-    def on_confirm_fully_empty_funds(self, action):
-        self.confirm_empty_funds_dialog.close_dialog()
-        self.confirm_empty_funds_dialog = None
+    def on_confirm_fully_empty_tokens(self, action):
+        self.confirm_empty_tokens_dialog.close_dialog()
+        self.confirm_empty_tokens_dialog = None
 
         if action == 0:
             self.trustchain_request_mgr = TriblerRequestManager()
-            self.trustchain_request_mgr.perform_request("trustchain/bootstrap", self.on_emptying_funds)
+            self.trustchain_request_mgr.perform_request("trustchain/bootstrap", self.on_emptying_tokens)
 
-    def partially_empty_funds(self):
-        self.empty_partial_funds_dialog = ConfirmationDialog(self, "Empty funds into another account",
-                                                             "Specify the amount of funds to empty into another account below:",
-                                                             [('EMPTY', BUTTON_TYPE_NORMAL), ('Cancel', BUTTON_TYPE_CONFIRM)],
-                                                             show_input=True)
-        self.empty_partial_funds_dialog.dialog_widget.dialog_input.setPlaceholderText('<number of funds>')
-        self.empty_partial_funds_dialog.dialog_widget.dialog_input.setFocus()
-        self.empty_partial_funds_dialog.button_clicked.connect(self.confirm_partially_empty_funds)
-        self.empty_partial_funds_dialog.show()
+    def partially_empty_tokens(self):
+        self.empty_partial_tokens_dialog = ConfirmationDialog(self, "Empty tokens into another account",
+                                                              "Specify the amount of bandwidth tokens to empty into "
+                                                              "another account below:",
+                                                              [
+                                                                  ('EMPTY', BUTTON_TYPE_CONFIRM),
+                                                                  ('CANCEL', BUTTON_TYPE_NORMAL)
+                                                              ], show_input=True)
+        self.empty_partial_tokens_dialog.dialog_widget.dialog_input.setPlaceholderText(
+            'Please enter the amount of tokens in MB')
+        self.empty_partial_tokens_dialog.dialog_widget.dialog_input.setFocus()
+        self.empty_partial_tokens_dialog.button_clicked.connect(self.confirm_partially_empty_tokens)
+        self.empty_partial_tokens_dialog.show()
 
-    def confirm_partially_empty_funds(self, action):
-        funds = self.empty_partial_funds_dialog.dialog_widget.dialog_input.text()
-        self.empty_partial_funds_dialog.close_dialog()
-        self.empty_partial_funds_dialog = None
-
-        try:
-            funds = int(float(funds))
-        except ValueError:
-            ConfirmationDialog.show_error(self.window(), "Input error", "Input is not a number")
-            return
+    def confirm_partially_empty_tokens(self, action):
+        tokens = self.empty_partial_tokens_dialog.dialog_widget.dialog_input.text()
+        self.empty_partial_tokens_dialog.close_dialog()
+        self.empty_partial_tokens_dialog = None
 
         if action == 0:
-            self.confirm_empty_funds_dialog = ConfirmationDialog(self, "Empty funds into another account",
-                                                                 "Are you sure you want to empty %d funds into another account? "
-                                                                 "Warning: one-way action that cannot be revered" %
-                                                                 funds,
-                                                                 [('EMPTY', BUTTON_TYPE_NORMAL), ('Cancel', BUTTON_TYPE_CONFIRM)])
-            self.confirm_empty_funds_dialog.button_clicked.connect(lambda action2: self.on_confirm_partially_empty_funds(action2, funds))
-            self.confirm_empty_funds_dialog.show()
+            try:
+                tokens = int(float(tokens))
+            except ValueError:
+                ConfirmationDialog.show_error(self.window(), "Wrong input", "The provided amount is not a number")
+                return
 
-    def on_confirm_partially_empty_funds(self, action, funds):
-        self.confirm_empty_funds_dialog.close_dialog()
-        self.confirm_empty_funds_dialog = None
+            self.confirm_empty_tokens_dialog = ConfirmationDialog(self, "Empty tokens into another account",
+                                                                  "Are you sure you want to empty %d bandwidth tokens "
+                                                                  "into another account? "
+                                                                  "Warning: one-way action that cannot be revered" %
+                                                                  tokens,
+                                                                  [
+                                                                      ('EMPTY', BUTTON_TYPE_NORMAL),
+                                                                      ('CANCEL', BUTTON_TYPE_CONFIRM)
+                                                                  ])
+            self.confirm_empty_tokens_dialog.button_clicked.connect(
+                lambda action2: self.on_confirm_partially_empty_tokens(action2, tokens))
+            self.confirm_empty_tokens_dialog.show()
+
+    def on_confirm_partially_empty_tokens(self, action, tokens):
+        self.confirm_empty_tokens_dialog.close_dialog()
+        self.confirm_empty_tokens_dialog = None
         if action == 0:
             self.trustchain_request_mgr = TriblerRequestManager()
-            self.trustchain_request_mgr.perform_request("trustchain/bootstrap?up=%d&down=0" % funds, self.on_emptying_funds)
+            self.trustchain_request_mgr.perform_request("trustchain/bootstrap?amount=%d" % (tokens * MEBIBYTE),
+                                                        self.on_emptying_tokens)
 
-    def on_emptying_funds(self, json_data):
-        data = json.dumps(json_data)
+    def on_emptying_tokens(self, data):
+        json_data = json.dumps(data)
 
         if has_qr:
-            self.empty_funds_barcode_dialog = QWidget()
-            self.empty_funds_barcode_dialog.setWindowTitle("Empty funds into another account")
-            self.empty_funds_barcode_dialog.setGeometry(10, 10, 500, 500)
+            self.empty_tokens_barcode_dialog = QWidget()
+            self.empty_tokens_barcode_dialog.setWindowTitle("Please scan the following QR code")
+            self.empty_tokens_barcode_dialog.setGeometry(10, 10, 500, 500)
             qr = qrcode.QRCode(
                 version=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_M,
                 box_size=10,
                 border=5,
             )
-            qr.add_data(data)
+            qr.add_data(json_data)
             qr.make(fit=True)
 
             img = qr.make_image()  # PIL format
 
             qim = ImageQt(img)
             pixmap = QtGui.QPixmap.fromImage(qim).scaled(600, 600, QtCore.Qt.KeepAspectRatio)
-            label = QLabel(self.empty_funds_barcode_dialog)
+            label = QLabel(self.empty_tokens_barcode_dialog)
             label.setPixmap(pixmap)
-            self.empty_funds_barcode_dialog.resize(pixmap.width(), pixmap.height())
-            self.empty_funds_barcode_dialog.show()
+            self.empty_tokens_barcode_dialog.resize(pixmap.width(), pixmap.height())
+            self.empty_tokens_barcode_dialog.show()
         else:
             ConfirmationDialog.show_error(self.window(), DEPENDENCY_ERROR_TITLE, DEPENDENCY_ERROR_MESSAGE)
 

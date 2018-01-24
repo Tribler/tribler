@@ -16,7 +16,7 @@ class TestBlock(TrustChainBlock):
     Also used in other test files for TrustChain.
     """
 
-    def __init__(self, transaction=None, previous=None):
+    def __init__(self, transaction=None, previous=None, key=None):
         crypto = ECCrypto()
         other = crypto.generate_key(u"curve25519").pub().key_to_bin()
 
@@ -27,7 +27,11 @@ class TestBlock(TrustChainBlock):
             TrustChainBlock.__init__(self, (encode(transaction), previous.public_key, previous.sequence_number + 1,
                                             other, 0, previous.hash, 0, 0))
         else:
-            self.key = crypto.generate_key(u"curve25519")
+            if key:
+                self.key = key
+            else:
+                self.key = crypto.generate_key(u"curve25519")
+
             TrustChainBlock.__init__(self, (
                 encode(transaction), self.key.pub().key_to_bin(), random.randint(50, 100), other, 0,
                 sha256(str(random.randint(0, 100000))).digest(), 0, 0))

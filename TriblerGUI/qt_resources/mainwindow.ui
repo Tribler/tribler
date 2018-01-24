@@ -6273,31 +6273,91 @@ color: white;</string>
 color: white;</string>
                 </property>
                 <property name="text">
-                 <string>Funds emptying into another account (offline)</string>
+                 <string>Bandwidth tokens emptying into another account (offline)</string>
                 </property>
                </widget>
               </item>
               <item>
-               <layout class="QHBoxLayout" name="empty_funds_button_layout">
+               <widget class="QLabel" name="label_60">
+                <property name="text">
+                 <string>Bandwidth tokens can be emptied into another </string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="empty_tokens_button_layout">
                 <item>
-                 <widget class="QPushButton" name="fully_empty_funds_button">
-                  <property name="styleSheet">
-                   <string notr="true">color: white;</string>
+                 <widget class="EllipseButton" name="fully_empty_tokens_button">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>24</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>24</height>
+                   </size>
                   </property>
                   <property name="text">
-                   <string>Fully empty funds</string>
+                   <string>FULLY EMPTY TOKENS</string>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="partially_empty_funds_button">
+                 <spacer name="horizontalSpacer_87">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeType">
+                   <enum>QSizePolicy::Fixed</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>15</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="EllipseButton" name="partially_empty_tokens_button">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>24</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>24</height>
+                   </size>
+                  </property>
                   <property name="styleSheet">
-                   <string notr="true">color: white;</string>
+                   <string notr="true"/>
                   </property>
                   <property name="text">
-                   <string>Partially empty funds</string>
+                   <string>PARTIALLY EMPTY TOKENS</string>
                   </property>
                  </widget>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacer_74">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeType">
+                   <enum>QSizePolicy::Expanding</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
                 </item>
                </layout>
               </item>
@@ -6308,7 +6368,10 @@ color: white;</string>
 color: orange;</string>
                 </property>
                 <property name="text">
-                 <string>Warning: one-way action that cannot be revered, if QR code is not scanned funds will be lost</string>
+                 <string>Warning: this is a one-way action that cannot be reverted. If the QR code is not scanned, funds will be lost.</string>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
                 </property>
                </widget>
               </item>
