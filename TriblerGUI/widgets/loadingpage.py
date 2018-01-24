@@ -37,6 +37,9 @@ class LoadingPage(QWidget):
         self.on_window_resize()
         self.loading_label.hide()
 
+        # Hide the force shutdown button initially. Should be triggered by shutdown timer from main window.
+        self.window().force_shutdown_btn.hide()
+
     def set_loading_text(self, text):
         self.loading_label.setText(text)
         self.loading_label.show()

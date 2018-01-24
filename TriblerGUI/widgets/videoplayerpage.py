@@ -20,7 +20,6 @@ class VideoPlayerPage(QWidget):
         self.video_player_port = None
         self.active_infohash = ""
         self.active_index = -1
-        self.is_full_screen = False
         self.media = None
         self.mediaplayer = None
         self.instance = None
@@ -93,7 +92,7 @@ class VideoPlayerPage(QWidget):
         self.window().video_player_play_pause_button.setEnabled(False)
 
     def hide_video_widgets(self):
-        if self.is_full_screen:
+        if self.window().windowState() & Qt.WindowFullScreen:
             self.window().video_player_header_label.setHidden(True)
             self.window().video_player_controls_container.setHidden(True)
 
@@ -172,13 +171,12 @@ class VideoPlayerPage(QWidget):
         self.mediaplayer.audio_set_volume(self.window().video_player_volume_slider.value())
 
     def on_full_screen_button_click(self):
-        if not self.is_full_screen:
+        if not self.window().windowState() & Qt.WindowFullScreen:
             self.window().top_bar.hide()
             self.window().left_menu.hide()
             self.window().showFullScreen()
         else:
             self.window().exit_full_screen()
-        self.is_full_screen = not self.is_full_screen
 
     def set_torrent_infohash(self, infohash):
         self.active_infohash = infohash

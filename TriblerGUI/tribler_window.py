@@ -8,7 +8,8 @@ import signal
 
 import time
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication, pyqtSlot, QUrl, QObject
+from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication, pyqtSlot, QUrl, \
+    QObject, QTimer
 from PyQt5.QtGui import QIcon, QDesktopServices
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtGui import QPixmap
@@ -17,6 +18,7 @@ from PyQt5.QtWidgets import QMainWindow, QLineEdit, QTreeWidget, QSystemTrayIcon
 from PyQt5.QtWidgets import QShortcut
 from PyQt5.QtWidgets import QSplitter
 
+from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Core.Utilities.utilities import quote_plus_unicode
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.core_manager import CoreManager
@@ -24,7 +26,7 @@ from TriblerGUI.debug_window import DebugWindow
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
     PAGE_HOME, PAGE_EDIT_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
     PAGE_CHANNEL_DETAILS, PAGE_PLAYLIST_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, PAGE_LOADING, \
-    PAGE_DISCOVERING, PAGE_DISCOVERED, PAGE_TRUST
+    PAGE_DISCOVERING, PAGE_DISCOVERED, PAGE_TRUST, SHUTDOWN_WAITING_PERIOD
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
@@ -40,7 +42,6 @@ fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'
 
 
 class MagnetHandler(QObject):
-
     def __init__(self, window):
         QObject.__init__(self)
         self.window = window
@@ -51,7 +52,6 @@ class MagnetHandler(QObject):
 
 
 class TriblerWindow(QMainWindow):
-
     resize_event = pyqtSignal()
     escape_pressed = pyqtSignal()
     received_search_completions = pyqtSignal(object)
@@ -473,7 +473,13 @@ class TriblerWindow(QMainWindow):
         self.download_uri = uri
 
         if get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True):
-            self.dialog = StartDownloadDialog(self.window().stackedWidget, self.download_uri)
+            # Clear any previous dialog if exists
+            if self.dialog:
+                self.dialog.button_clicked.disconnect()
+                self.dialog.setParent(None)
+                self.dialog = None
+
+            self.dialog = StartDownloadDialog(self, self.download_uri)
             self.dialog.button_clicked.connect(self.on_start_download_action)
             self.dialog.show()
             self.start_download_dialog_active = True
@@ -545,14 +551,15 @@ class TriblerWindow(QMainWindow):
         self.dialog.show()
 
     def on_torrent_from_url_dialog_done(self, action):
-        uri = self.dialog.dialog_widget.dialog_input.text()
+        if self.dialog and self.dialog.dialog_widget:
+            uri = self.dialog.dialog_widget.dialog_input.text()
 
-        # Remove first dialog
-        self.dialog.setParent(None)
-        self.dialog = None
+            # Remove first dialog
+            self.dialog.setParent(None)
+            self.dialog = None
 
-        if action == 0:
-            self.start_download_from_uri(uri)
+            if action == 0:
+                self.start_download_from_uri(uri)
 
     def on_download_added(self, result):
         if len(self.pending_uri_requests) == 0:  # Otherwise, we first process the remaining requests.
@@ -617,7 +624,8 @@ class TriblerWindow(QMainWindow):
         self.hide_left_menu_playlist()
 
     def clicked_menu_button_debug(self):
-        self.debug_window = DebugWindow(self.tribler_settings)
+        if not self.debug_window:
+            self.debug_window = DebugWindow(self.tribler_settings)
         self.debug_window.show()
 
     def clicked_menu_button_subscriptions(self):
@@ -691,10 +699,20 @@ class TriblerWindow(QMainWindow):
 
     def close_tribler(self):
         if not self.core_manager.shutting_down:
+            def show_force_shutdown():
+                self.loading_text_label.setText("Tribler is taking longer than expected to shut down. You can force "
+                                                "Tribler to shutdown by pressing the button below. This might lead "
+                                                "to data loss.")
+                self.window().force_shutdown_btn.show()
+
             if self.tray_icon:
                 self.tray_icon.deleteLater()
             self.show_loading_screen()
             self.loading_text_label.setText("Shutting down...")
+
+            self.shutdown_timer = QTimer()
+            self.shutdown_timer.timeout.connect(show_force_shutdown)
+            self.shutdown_timer.start(SHUTDOWN_WAITING_PERIOD)
 
             self.gui_settings.setValue("pos", self.pos())
             self.gui_settings.setValue("size", self.size())
@@ -717,3 +735,11 @@ class TriblerWindow(QMainWindow):
             self.escape_pressed.emit()
             if self.isFullScreen():
                 self.exit_full_screen()
+
+    def clicked_force_shutdown(self):
+        process_checker = ProcessChecker()
+        if process_checker.already_running:
+            core_pid = process_checker.get_pid_from_lock_file()
+            os.kill(int(core_pid), 9)
+        # Stop the Qt application
+        QApplication.quit()

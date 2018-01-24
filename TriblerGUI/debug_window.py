@@ -6,7 +6,7 @@ import datetime
 import matplotlib
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QTextCursor
-from PyQt5.QtWidgets import QFileDialog, QTextEdit
+from PyQt5.QtWidgets import QFileDialog, QTextEdit, QDesktopWidget
 from PyQt5.QtWidgets import QSizePolicy
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from meliae import scanner
@@ -142,6 +142,13 @@ class DebugWindow(QMainWindow):
         # Refresh logs
         self.window().log_refresh_button.clicked.connect(lambda: self.load_logs_tab())
         self.window().log_tab_widget.currentChanged.connect(lambda index: self.load_logs_tab())
+
+        # Position to center
+        frame_geometry = self.frameGeometry()
+        screen = QDesktopWidget().screenNumber(QDesktopWidget().cursor().pos())
+        center_point = QDesktopWidget().screenGeometry(screen).center()
+        frame_geometry.moveCenter(center_point)
+        self.move(frame_geometry.topLeft())
 
     def tab_changed(self, index):
         if index == 0:
@@ -466,3 +473,11 @@ class DebugWindow(QMainWindow):
 
         sb = log_display_widget.verticalScrollBar()
         sb.setValue(sb.maximum())
+
+    def show(self):
+        super(DebugWindow, self).show()
+
+        # this will remove minimized status
+        # and restore window with keeping maximized/normal state
+        self.window().setWindowState(self.window().windowState() & ~Qt.WindowMinimized | Qt.WindowActive)
+        self.window().activateWindow()
