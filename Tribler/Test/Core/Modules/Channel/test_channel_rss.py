@@ -73,10 +73,21 @@ class TestChannelRss(BaseTestChannel):
         Test parsing a rss feed
         """
         self.channel_rss.rss_url = 'http://localhost:%d/test_rss.xml' % self.file_server_port
-        self.channel_rss._url_cache = SimpleCache(os.path.join(self.session_base_dir, 'cache.txt'))
 
         def verify_rss(items):
             self.assertEqual(len(items), 2)
+
+        return self.channel_rss.parse_feed().addCallback(verify_rss)
+
+    @deferred(timeout=10)
+    def test_parse_no_rss(self):
+        """
+        Test parsing a non-rss feed
+        """
+        self.channel_rss.rss_url = 'http://localhost:%d/test_rsszz.xml' % self.file_server_port
+
+        def verify_rss(items):
+            self.assertIsNone(items)
 
         return self.channel_rss.parse_feed().addCallback(verify_rss)
 
