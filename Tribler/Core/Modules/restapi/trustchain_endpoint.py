@@ -13,7 +13,11 @@ class TrustchainEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
 
-        child_handler_dict = {"statistics": TrustchainStatsEndpoint, "blocks": TrustchainBlocksEndpoint}
+        child_handler_dict = {
+            "statistics": TrustchainStatsEndpoint,
+            "blocks": TrustchainBlocksEndpoint,
+            "bootstrap": TrustchainBootstrapEndpoint
+        }
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
@@ -165,3 +169,67 @@ class TrustchainBlocksIdentityEndpoint(TrustchainBaseEndpoint):
 
         blocks = mc_community.persistence.get_latest_blocks(self.identity.decode("HEX"), limit_blocks)
         return json.dumps({"blocks": [dict(block) for block in blocks]})
+
+
+class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
+    """
+    Bootstrap a new identity and transfer some bandwidth tokens to the new key.
+    """
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /trustchain/bootstrap?amount=int
+
+        A GET request to this endpoint generates a new identity and transfers bandwidth tokens to it.
+        The amount specifies how much tokens need to be emptied into the new identity
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/trustchain/bootstrap?amount=1000
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "private_key": "TGliTmFDTFNLOmC4BR7otCpn+NzTBAFwKdSJdpT0KG9Zy5vPGX6s3rDXmNiDoGKyToLeYYB88vj9\nRj5NW
+                                    pbNf/ldcixYZ2YxQ7Q=\n",
+                    "transaction": {
+                        "down": 0,
+                        "up": 1000
+                    },
+                    "block": {
+                        "block_hash": "THJxNlKWMQG1Tio+Yz5CUCrnWahcyk6TDVfRLQf7w6M=\n",
+                        "sequence_number": 1
+                    }
+                }
+        """
+
+        mc_community = self.get_trustchain_community()
+        if not mc_community:
+            request.setResponseCode(http.NOT_FOUND)
+            return json.dumps({"error": "trustchain community not found"})
+
+        available_tokens = mc_community.get_bandwidth_tokens()
+
+        if 'amount' in request.args:
+            try:
+                amount = int(request.args['amount'][0])
+            except ValueError:
+                request.setResponseCode(http.BAD_REQUEST)
+                return json.dumps({"error": "Provided token amount is not a number"})
+
+            if amount <= 0:
+                request.setResponseCode(http.BAD_REQUEST)
+                return json.dumps({"error": "Provided token amount is zero or negative"})
+        else:
+            amount = available_tokens
+
+        if amount <= 0 or amount > available_tokens:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "Not enough bandwidth tokens available"})
+
+        result = mc_community.bootstrap_new_identity(amount)
+        return json.dumps(result)

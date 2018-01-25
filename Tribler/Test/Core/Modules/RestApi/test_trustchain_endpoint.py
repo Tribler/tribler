@@ -166,3 +166,95 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('trustchain/blocks/%s' % TestBlock().public_key.encode("HEX"),
                                expected_code=200)
+
+    @deferred(timeout=10)
+    def test_get_bootstrap_identity_no_community(self):
+        """
+        Testing whether the API returns error 404 if no trustchain community is loaded when bootstrapping a new identity
+        """
+        self.dispersy.get_communities = lambda: []
+        return self.do_request('trustchain/bootstrap', expected_code=404)
+
+    @deferred(timeout=10)
+    def test_get_bootstrap_identity_all_tokens(self):
+        """
+        Testing whether the API return all available credit when no argument is supplied
+        """
+        transaction = {'up': 100, 'down': 0, 'total_up': 100, 'total_down': 0}
+        transaction2 = {'up': 100, 'down': 0}
+
+        def verify_response(response):
+            response_json = json.loads(response)
+            self.assertEqual(response_json['transaction'], transaction2)
+
+        test_block = TestBlock(transaction=transaction, key=self.tc_community.my_member.private_key)
+        self.tc_community.persistence.add_block(test_block)
+
+        self.should_check_equality = False
+        return self.do_request('trustchain/bootstrap', expected_code=200).addCallback(verify_response)
+
+    @deferred(timeout=10)
+    def test_get_bootstrap_identity_partial_tokens(self):
+        """
+        Testing whether the API return partial available credit when argument is supplied
+        """
+        transaction = {'up': 100, 'down': 0, 'total_up': 100, 'total_down': 0}
+        transaction2 = {'up': 50, 'down': 0}
+
+        def verify_response(response):
+            response_json = json.loads(response)
+            self.assertEqual(response_json['transaction'], transaction2)
+
+        test_block = TestBlock(transaction=transaction, key=self.tc_community.my_member.private_key)
+        self.tc_community.persistence.add_block(test_block)
+
+        self.should_check_equality = False
+        return self.do_request('trustchain/bootstrap?amount=50', expected_code=200).addCallback(verify_response)
+
+    @deferred(timeout=10)
+    def test_get_bootstrap_identity_not_enough_tokens(self):
+        """
+        Testing whether the API returns error 400 if bandwidth is to low when bootstrapping a new identity
+        """
+        transaction = {'up': 100, 'down': 0, 'total_up': 100, 'total_down': 0}
+        test_block = TestBlock(transaction=transaction, key=self.tc_community.my_member.private_key)
+        self.tc_community.persistence.add_block(test_block)
+
+        self.should_check_equality = False
+        return self.do_request('trustchain/bootstrap?amount=200', expected_code=400)
+
+    @deferred(timeout=10)
+    def test_get_bootstrap_identity_not_enough_tokens_2(self):
+        """
+        Testing whether the API returns error 400 if bandwidth is to low when bootstrapping a new identity
+        """
+        transaction = {'up': 0, 'down': 100, 'total_up': 0, 'total_down': 100}
+        test_block = TestBlock(transaction=transaction, key=self.tc_community.my_member.private_key)
+        self.tc_community.persistence.add_block(test_block)
+
+        self.should_check_equality = False
+        return self.do_request('trustchain/bootstrap?amount=10', expected_code=400)
+
+    @deferred(timeout=10)
+    def test_get_bootstrap_identity_zero_amount(self):
+        """
+        Testing whether the API returns error 400 if amount is zero when bootstrapping a new identity
+        """
+        self.should_check_equality = False
+        return self.do_request('trustchain/bootstrap?amount=0', expected_code=400)
+
+    @deferred(timeout=10)
+    def test_get_bootstrap_identity_negative_amount(self):
+        """
+        Testing whether the API returns error 400 if amount is negative when bootstrapping a new identity
+        """
+        self.should_check_equality = False
+        return self.do_request('trustchain/bootstrap?amount=-1', expected_code=400)
+
+    @deferred(timeout=10)
+    def test_get_bootstrap_identity_string(self):
+        """
+        Testing whether the API returns error 400 if amount is string when bootstrapping a new identity
+        """
+        self.should_check_equality = False
+        return self.do_request('trustchain/bootstrap?amount=aaa', expected_code=400)

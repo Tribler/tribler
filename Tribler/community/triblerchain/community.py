@@ -8,7 +8,7 @@ from Tribler.community.triblerchain.database import TriblerChainDB
 from Tribler.community.trustchain.community import TrustChainCommunity
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
-MIN_TRANSACTION_SIZE = 1024*1024
+MIN_TRANSACTION_SIZE = 1024 * 1024
 
 
 class PendingBytes(object):
@@ -163,7 +163,7 @@ class TriblerChainCommunity(TrustChainCommunity):
         from Tribler.community.tunnel.tunnel_community import Circuit, RelayRoute, TunnelExitSocket
         assert isinstance(tunnel, Circuit) or isinstance(tunnel, RelayRoute) or isinstance(tunnel, TunnelExitSocket), \
             "on_tunnel_remove() was called with an object that is not a Circuit, RelayRoute or TunnelExitSocket"
-        assert isinstance(tunnel.bytes_up, int) and isinstance(tunnel.bytes_down, int),\
+        assert isinstance(tunnel.bytes_up, int) and isinstance(tunnel.bytes_down, int), \
             "tunnel instance must provide byte counts in int"
 
         up = tunnel.bytes_up
@@ -214,6 +214,59 @@ class TriblerChainCommunity(TrustChainCommunity):
         else:
             # We need a minimum of 1 trust to have a chance to be selected in the categorical distribution.
             return 1
+
+    def get_bandwidth_tokens(self, member=None):
+        """
+        Get the bandwidth tokens for another member.
+        Currently this is just the difference in the amount of MBs exchanged with them.
+
+        :param member: the member we interacted with
+        :type member: dispersy.member.Member
+        :return: the amount of bandwidth tokens for this member
+        :rtype: int
+        """
+        if member is None:
+            member = self.my_member
+
+        block = self.persistence.get_latest(member.public_key)
+        if block:
+            return block.transaction['total_up'] - block.transaction['total_down']
+
+        return 0
+
+    def bootstrap_new_identity(self, amount):
+        """
+        One-way payment channel.
+        Create a new temporary identity, and transfer funds to the new identity.
+        A different party can then take the result and do a transfer from the temporary identity to itself
+        """
+
+        # Create new identity for the temporary identity
+        tmp_member = self.dispersy.get_new_member(u"curve25519")
+
+        # Create the transaction specification
+        transaction = {
+            'up': 0, 'down': amount
+        }
+
+        # Create the two half blocks that form the transaction
+        local_half_block = TriblerChainBlock.create(transaction, self.persistence, self.my_member.public_key,
+                                                    link_pk=tmp_member.public_key)
+        local_half_block.sign(self.my_member.private_key)
+        tmp_half_block = TriblerChainBlock.create(transaction, self.persistence, tmp_member.public_key,
+                                                  link=local_half_block, link_pk=self.my_member.public_key)
+        tmp_half_block.sign(tmp_member.private_key)
+
+        self.persistence.add_block(local_half_block)
+        self.persistence.add_block(tmp_half_block)
+
+        # Create the bootstrapped identity format
+        block = {'block_hash': tmp_half_block.hash.encode('base64'),
+                 'sequence_number': tmp_half_block.sequence_number}
+
+        result = {'private_key': tmp_member.private_key.key_to_bin().encode('base64'),
+                  'transaction': {'up': amount, 'down': 0}, 'block': block}
+        return result
 
 
 class TriblerChainCommunityCrawler(TriblerChainCommunity):
