@@ -1,9 +1,9 @@
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Community.AbstractTestCommunity import AbstractTestCommunity
+from Tribler.community.hiddentunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.Socks5.server import Socks5Server
 from Tribler.community.tunnel.conversion import TunnelConversion
-from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.dispersy.requestcache import RequestCache
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 

@@ -25,7 +25,6 @@ class TestTrustchainStartup(TestAsServer):
 
     def setUpPreSession(self):
         super(TestTrustchainStartup, self).setUpPreSession()
-        self.config.set_trustchain_enabled(False)
         self.config.set_dispersy_enabled(True)
         self.config.set_megacache_enabled(True)
         self.config.set_channel_search_enabled(True)

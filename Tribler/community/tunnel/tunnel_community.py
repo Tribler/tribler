@@ -10,15 +10,18 @@ import time
 from collections import defaultdict
 from itertools import chain
 
+import struct
 from cryptography.exceptions import InvalidTag
 from twisted.internet import reactor
-from twisted.internet.defer import maybeDeferred, succeed, inlineCallbacks, returnValue
+from twisted.internet.defer import maybeDeferred, succeed, inlineCallbacks, returnValue, fail
 from twisted.internet.error import MessageLengthError
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.Utilities.encoding import decode, encode
+from Tribler.community.triblerchain.community import TriblerChainCommunity
+from Tribler.community.trustchain.conversion import TrustChainConversion
 from Tribler.community.tunnel import (CIRCUIT_ID_PORT, CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA,
                                       CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, EXIT_NODE, EXIT_NODE_SALT, ORIGINATOR,
                                       ORIGINATOR_SALT, PING_INTERVAL)
@@ -32,7 +35,6 @@ from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, Create
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.distribution import DirectDistribution
@@ -45,10 +47,12 @@ from Tribler.dispersy.util import call_on_reactor_thread
 
 
 class CircuitRequestCache(NumberCache):
+    """
+    This request cache keeps track of an outstanding circuit being constructed.
+    """
 
     def __init__(self, community, circuit):
         super(CircuitRequestCache, self).__init__(community.request_cache, u"anon-circuit", circuit.circuit_id)
-        self.tunnel_logger = logging.getLogger('TunnelLogger')
         self.community = community
         self.circuit = circuit
         self.should_forward = False
@@ -61,6 +65,10 @@ class CircuitRequestCache(NumberCache):
 
 
 class ExtendRequestCache(NumberCache):
+    """
+    This request cache keeps track of a circuit that is being extended.
+    """
+
     def __init__(self, community, to_circuit_id, from_circuit_id, candidate_sock_addr, candidate_mid, to_candidate_sock_addr, to_candidate_mid):
         super(ExtendRequestCache, self).__init__(community.request_cache, u"anon-circuit", to_circuit_id)
         self.community = community
@@ -79,6 +87,9 @@ class ExtendRequestCache(NumberCache):
 
 
 class CreatedRequestCache(NumberCache):
+    """
+    This request cache keeps track of responses for 'created' messages, when a circuit has been extended.
+    """
 
     def __init__(self, community, circuit_id, candidate, candidates):
         super(CreatedRequestCache, self).__init__(community.request_cache, u"anon-created", circuit_id)
@@ -91,6 +102,9 @@ class CreatedRequestCache(NumberCache):
 
 
 class PingRequestCache(RandomNumberCache):
+    """
+    This request cache keeps track of ping messages (heartbeats) being sent.
+    """
 
     def __init__(self, community, circuit):
         super(PingRequestCache, self).__init__(community.request_cache, u"ping")
@@ -110,6 +124,9 @@ class PingRequestCache(RandomNumberCache):
 
 
 class StatsRequestCache(RandomNumberCache):
+    """
+    This request cache keeps track of stats requests by verified crawlers.
+    """
 
     def __init__(self, community, handler):
         super(StatsRequestCache, self).__init__(community.request_cache, u"stats")
@@ -121,6 +138,11 @@ class StatsRequestCache(RandomNumberCache):
 
 
 class TunnelExitSocket(DatagramProtocol, TaskManager):
+    """
+    The TunnelExitSocket class is responsible for exiting data to the outside world.
+    Note that every relay in a circuits creates an instance of this class, however, the socket is only enabled
+    by the exit node.
+    """
 
     def __init__(self, circuit_id, community, sock_addr, mid=None):
         self.tunnel_logger = logging.getLogger(self.__class__.__name__)
@@ -219,7 +241,7 @@ class TunnelExitSocket(DatagramProtocol, TaskManager):
 
 class TunnelSettings(object):
 
-    def __init__(self, tribler_session=None):
+    def __init__(self, tribler_config=None):
         self.tunnel_logger = logging.getLogger('TunnelLogger')
 
         self.crypto = TunnelCrypto()
@@ -237,14 +259,12 @@ class TunnelSettings(object):
         self.max_packets_without_reply = 50
         self.dht_lookup_interval = 30
 
-        if tribler_session:
-            self.socks_listen_ports = tribler_session.config.get_tunnel_community_socks5_listen_ports()
-            self.become_exitnode = tribler_session.config.get_tunnel_community_exitnode_enabled()
-            self.enable_trustchain = tribler_session.config.get_trustchain_enabled()
+        if tribler_config:
+            self.socks_listen_ports = tribler_config.get_tunnel_community_socks5_listen_ports()
+            self.become_exitnode = tribler_config.get_tunnel_community_exitnode_enabled()
         else:
             self.socks_listen_ports = range(1080, 1085)
             self.become_exitnode = False
-            self.enable_trustchain = False
 
 
 class RoundRobin(object):
@@ -275,7 +295,7 @@ class RoundRobin(object):
         return self.community.active_data_circuits()[circuit_id]
 
 
-class TunnelCommunity(Community):
+class TunnelCommunity(TriblerChainCommunity):
 
     def __init__(self, *args, **kwargs):
         super(TunnelCommunity, self).__init__(*args, **kwargs)
@@ -303,7 +323,7 @@ class TunnelCommunity(Community):
 
     def initialize(self, tribler_session=None, settings=None):
         self.tribler_session = tribler_session
-        self.settings = settings if settings else TunnelSettings(tribler_session=tribler_session)
+        self.settings = settings if settings else TunnelSettings(tribler_config=tribler_session.config)
 
         self.tunnel_logger.info("TunnelCommunity: setting become_exitnode = %s" % self.settings.become_exitnode)
 
@@ -336,24 +356,20 @@ class TunnelCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-        # generated: Tue Feb 28 18:52:56 2017
+        # generated: Thu Jan 25 16:55:21 2018
         # curve: None
         # len: 571 bits ~ 144 bytes signature
-        # pub: 170 3081a7301006072a8648ce3d020106052b8104002703819200040140110760621b9d81a286f5500b90e7be5355d88a545efc7
-        # 7f4326d0954182b40b3529da15ee51e9aa6d15497635d6c04131c6c70df32ba0bd82f1cdda456079cbfd7d0637250fd068ab36cde690ac
-        # 2b7d03888c7af3653733035a56a2b832644fe386270abe66d229e8ec93d7ee5fc51b35deb9a4fa7f097af79e715b0cecc1fb04b2ddd292
-        # 137e690fc4a3c92e93e
-        # pub-sha1 7d510d1f81f63deaf2020464d1abdf0eb167e02e
+        # pub-sha1 93ecda9cbd9084b7485db0c75fc6d7a6ff3962d0
         # -----BEGIN PUBLIC KEY-----
-        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQBQBEHYGIbnYGihvVQC5DnvlNV2IpU
-        # Xvx39DJtCVQYK0CzUp2hXuUemqbRVJdjXWwEExxscN8yugvYLxzdpFYHnL/X0GNy
-        # UP0GirNs3mkKwrfQOIjHrzZTczA1pWorgyZE/jhicKvmbSKejsk9fuX8UbNd65pP
-        # p/CXr3nnFbDOzB+wSy3dKSE35pD8SjyS6T4=
+        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQDeJsQfoaKw9tz2+6G8n0qmPklQno/
+        # u1vgTHZ9FLSid0Ra2tIjrIJcfqVBfcK5U/ihjsptFpMuoDj7UPX7g4PEWjjdmMxg
+        # dQ4Cx60ol/MK/tCyUOnAVZKHVXy5I1v+29yZe33WmDWqL389VfPuWjoXoj6+mY5P
+        # mQhk03JbUpjc72hXoPYKmc1iPSlmit5DVWo=
         # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040140110760621b9d81a286f5500b90e7be5355" + \
-                     "d88a545efc77f4326d0954182b40b3529da15ee51e9aa6d15497635d6c04131c6c70df32ba0bd82f1cdda45607" + \
-                     "9cbfd7d0637250fd068ab36cde690ac2b7d03888c7af3653733035a56a2b832644fe386270abe66d229e8ec93d" + \
-                     "7ee5fc51b35deb9a4fa7f097af79e715b0cecc1fb04b2ddd292137e690fc4a3c92e93e"
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403789b107e868ac3db73dbee86f27d2a98f925427" \
+                     "a3fbb5be04c767d14b4a277445adad223ac825c7ea5417dc2b953f8a18eca6d16932ea038fb50f5fb8383c45a38dd" \
+                     "98cc60750e02c7ad2897f30afed0b250e9c0559287557cb9235bfedbdc997b7dd69835aa2f7f3d55f3ee5a3a17a23" \
+                     "ebe998e4f990864d3725b5298dcef6857a0f60a99cd623d29668ade43556a"
         master = dispersy.get_member(public_key=master_key.decode("HEX"))
         return [master]
 
@@ -397,7 +413,7 @@ class TunnelCommunity(Community):
                                         self._generic_timeline_check, self.on_stats_response)]
 
     def initiate_conversions(self):
-        return [DefaultConversion(self), TunnelConversion(self)]
+        return [DefaultConversion(self), TrustChainConversion(self), TunnelConversion(self)]
 
     @inlineCallbacks
     def unload_community(self):
@@ -412,6 +428,12 @@ class TunnelCommunity(Community):
             self.remove_exit_socket(circuit_id, 'unload', destroy=True)
 
         yield super(TunnelCommunity, self).unload_community()
+
+    def ip_to_circuit_id(self, ip_str):
+        return struct.unpack("!I", socket.inet_aton(ip_str))[0]
+
+    def circuit_id_to_ip(self, circuit_id):
+        return socket.inet_ntoa(struct.pack("!I", circuit_id))
 
     @property
     def crypto(self):
@@ -445,10 +467,7 @@ class TunnelCommunity(Community):
             num_to_build = num_circuits - len(self.data_circuits(circuit_length))
             self.tunnel_logger.info("want %d data circuits of length %d", num_to_build, circuit_length)
             for _ in range(num_to_build):
-                if not self.create_circuit(circuit_length):
-                    self.tunnel_logger.info("circuit creation of %d circuits failed, no need to continue" %
-                                             num_to_build)
-                    break
+                self.create_circuit(circuit_length).addErrback(lambda _: None)
         self.do_remove()
 
     def tunnels_ready(self, hops):
@@ -541,7 +560,14 @@ class TunnelCommunity(Community):
         return (c for c in self.dispersy_yield_verified_candidates()
                 if self.crypto.is_key_compatible(c.get_member()._ec))
 
-    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, required_exit=None, info_hash=None):
+    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, required_exit=None):
+        """
+        Create a circuit of a given length.
+        @param goal_hops: the number of hops in the circuit, including the exit node
+        @param ctype: the type of the circuit
+        @param required_exit: optional required exit candidate
+        @return: a deferred that fires when the circuit is constructed.
+        """
         assert required_exit is None or isinstance(required_exit, Candidate), type(required_exit)
 
         self.tunnel_logger.info("Creating a new circuit of length %d", goal_hops)
@@ -558,7 +584,7 @@ class TunnelCommunity(Community):
 
         if not required_exit:
             self.tunnel_logger.info("Could not create circuit, no available exit-nodes")
-            return False
+            return fail(RuntimeError("No exit nodes available"))
 
         # Determine the first hop
         if goal_hops == 1 and required_exit:
@@ -573,12 +599,12 @@ class TunnelCommunity(Community):
 
         if not first_hop:
             self.tunnel_logger.info("Could not create circuit, no first hop available")
-            return False
+            return fail(RuntimeError("No first hop available"))
 
         # Finally, construct the Circuit object and send the CREATE message
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
-        circuit = Circuit(circuit_id, goal_hops, first_hop.sock_addr, self, ctype, callback,
-                          required_exit, first_hop.get_member().mid.encode('hex'), info_hash)
+        circuit = Circuit(circuit_id, goal_hops, first_hop.sock_addr, self, ctype,
+                          required_exit, first_hop.get_member().mid.encode('hex'))
 
         self.request_cache.add(CircuitRequestCache(self, circuit))
 
@@ -597,7 +623,7 @@ class TunnelCommunity(Community):
                                                                      circuit.unverified_hop.node_public_key,
                                                                      circuit.unverified_hop.dh_first_part)))
 
-        return circuit_id
+        return circuit.created_deferred
 
     def readd_bittorrent_peers(self):
         for torrent, peers in self.bittorrent_peers.items():
@@ -753,6 +779,13 @@ class TunnelCommunity(Community):
         return circuit_id > 0 and circuit_id in self.exit_sockets
 
     def send_cell(self, candidates, message_type, payload):
+        """
+        Send a cell to a set of candidates.
+        @param candidates: The set of candidates to send this cell to
+        @param message_type: The name of the message to send
+        @param payload: A tuple of items to put into the cell payload
+        @return: The number of bytes sent over the wire.
+        """
         meta = self.get_meta_message(message_type)
         message = meta.impl(distribution=(self.global_time,), payload=payload)
         packet = TunnelConversion.convert_to_cell(message.packet)
@@ -980,10 +1013,7 @@ class TunnelCommunity(Community):
             # Re-add BitTorrent peers, if needed.
             self.readd_bittorrent_peers()
 
-            # Execute callback
-            if circuit.callback:
-                circuit.callback(circuit)
-                circuit.callback = None
+            circuit.created_deferred.callback(circuit)
         else:
             return
 
@@ -1224,7 +1254,9 @@ class TunnelCommunity(Community):
             self.tunnel_logger.info("Got pong from %s", message.candidate)
 
     def do_ping(self):
-        # Ping circuits. Pings are only sent to the first hop, subsequent hops will relay the ping.
+        """
+        Ping circuits. Pings are only sent to the first hop, subsequent hops will relay the ping.
+        """
         for circuit in self.circuits.values():
             if circuit.state == CIRCUIT_STATE_READY and circuit.ctype != CIRCUIT_TYPE_RENDEZVOUS:
                 cache = self.request_cache.add(PingRequestCache(self, circuit))

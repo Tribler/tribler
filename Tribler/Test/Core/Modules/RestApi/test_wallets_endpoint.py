@@ -13,7 +13,6 @@ class TestWalletsEndpoint(AbstractApiTest):
     @blocking_call_on_reactor_thread
     def setUpPreSession(self):
         super(TestWalletsEndpoint, self).setUpPreSession()
-        self.config.set_trustchain_enabled(True)
         self.config.set_dispersy_enabled(True)
         self.config.set_tunnel_community_enabled(True)
         self.config.set_dummy_wallets_enabled(True)

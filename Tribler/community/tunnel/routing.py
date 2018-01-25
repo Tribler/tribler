@@ -5,6 +5,7 @@ from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, 
     CIRCUIT_TYPE_DATA
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.crypto import LibNaCLPK
+from twisted.internet.defer import Deferred
 
 __author__ = 'chris'
 
@@ -14,8 +15,7 @@ class Circuit(object):
     """ Circuit data structure storing the id, state and hops """
 
     def __init__(self, circuit_id, goal_hops=0, first_hop=None, proxy=None,
-                 ctype=CIRCUIT_TYPE_DATA, callback=None, required_exit=None,
-                 mid=None, info_hash=None):
+                 ctype=CIRCUIT_TYPE_DATA, required_exit=None, mid=None):
         """
         Instantiate a new Circuit data structure
         :type proxy: TunnelCommunity
@@ -24,10 +24,10 @@ class Circuit(object):
         :return: Circuit
         """
 
-        from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+        from Tribler.community.tunnel.tunnel_community import TunnelCommunity
         assert isinstance(circuit_id, long)
         assert isinstance(goal_hops, int)
-        assert proxy is None or isinstance(proxy, HiddenTunnelCommunity)
+        assert proxy is None or isinstance(proxy, TunnelCommunity)
         assert first_hop is None or isinstance(first_hop, tuple) and isinstance(
             first_hop[0], basestring) and isinstance(first_hop[1], int)
 
@@ -44,11 +44,10 @@ class Circuit(object):
 
         self.proxy = proxy
         self.ctype = ctype
-        self.callback = callback
+        self.created_deferred = Deferred()
         self.required_exit = required_exit
         self.mid = mid
         self.hs_session_keys = None
-        self.info_hash = info_hash
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -95,7 +94,7 @@ class Circuit(object):
         @param str payload: the packet's payload
         """
 
-        self._logger.info("Tunnel data (len %d) to end for circuit %s with ultimate destination %s", len(payload),
+        self._logger.debug("Tunnel data (len %d) to end for circuit %s with ultimate destination %s", len(payload),
                            self.circuit_id, destination)
 
         num_bytes = self.proxy.send_data([Candidate(self.first_hop, False)], self.circuit_id, destination, ('0.0.0.0', 0), payload)
