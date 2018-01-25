@@ -100,7 +100,7 @@ class MarketPage(QWidget):
         for wallet_id in wallets.keys():
             self.wallets.append(wallet_id)
 
-        if self.chosen_wallets is None:
+        if self.chosen_wallets is None and len(self.wallets) >= 2:
             self.chosen_wallets = (self.wallets[0], self.wallets[1])
             self.update_button_texts()
 
@@ -130,6 +130,11 @@ class MarketPage(QWidget):
 
         self.load_asks()
         self.load_bids()
+
+        # We need at least two wallets for trading
+        if len(wallets.keys()) < 2:
+            ConfirmationDialog.show_error(self.window(), "Trading disabled",
+                                          "You need at least two wallets for trading")
 
     def update_button_texts(self):
         self.window().market_currency_type_button.setText("%s / %s" % (self.chosen_wallets[0], self.chosen_wallets[1]))
