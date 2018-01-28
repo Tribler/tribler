@@ -32,7 +32,7 @@ from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, Create
                                               TunnelIntroductionResponsePayload)
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
-from Tribler.dispersy.candidate import Candidate
+from Tribler.dispersy.candidate import Candidate, WalkCandidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination
@@ -551,7 +551,7 @@ class TunnelCommunity(Community):
                 # For exit nodes that don't exit actual data, we prefer verified candidates,
                 # but we also consider exit candidates.
                 required_exit = next((c for c in chain(self.compatible_candidates, self.exit_candidates.itervalues())
-                                      if self.candidate_is_connectable(c)), None)
+                                      if isinstance(c, WalkCandidate) and self.candidate_is_connectable(c)), None)
 
         if not required_exit:
             self.tunnel_logger.info("Could not create circuit, no available exit-nodes")
