@@ -159,15 +159,18 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         self.update_health(total_seeders, total_leechers)
 
     def update_health(self, seeders, leechers):
-        if seeders > 0:
-            self.health_text.setText("good health (S%d L%d)" % (seeders, leechers))
-            self.set_health_indicator(STATUS_GOOD)
-        elif leechers > 0:
-            self.health_text.setText("unknown health (found peers)")
-            self.set_health_indicator(STATUS_UNKNOWN)
-        else:
-            self.health_text.setText("no peers found")
-            self.set_health_indicator(STATUS_DEAD)
+        try:
+            if seeders > 0:
+                self.health_text.setText("good health (S%d L%d)" % (seeders, leechers))
+                self.set_health_indicator(STATUS_GOOD)
+            elif leechers > 0:
+                self.health_text.setText("unknown health (found peers)")
+                self.set_health_indicator(STATUS_UNKNOWN)
+            else:
+                self.health_text.setText("no peers found")
+                self.set_health_indicator(STATUS_DEAD)
+        except RuntimeError:
+            self._logger.error("The underlying GUI widget has already been removed.")
 
     def set_health_indicator(self, status):
         color = "orange"
