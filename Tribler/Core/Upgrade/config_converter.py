@@ -108,6 +108,8 @@ def add_libtribler_config(new_config, old_config):
                 temp_config.set_megacache_enabled(value)
             elif section == "general" and name == "videoanalyserpath":
                 temp_config.set_video_analyser_path(value)
+            elif section == "general" and name == "log_dir":
+                temp_config.set_log_dir(value)
             elif section == "allchannel_community" and name == "enabled":
                 temp_config.set_channel_search_enabled(value)
             elif section == "channel_community" and name == "enabled":

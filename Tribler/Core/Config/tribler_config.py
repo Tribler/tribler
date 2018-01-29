@@ -217,7 +217,8 @@ class TriblerConfig(object):
         self.config['general']['log_dir'] = value
 
     def get_log_dir(self):
-        return self.config['general']['log_dir'] or os.path.join(self.get_state_dir(), 'logs')
+        log_dir = self.config['general']['log_dir']
+        return os.path.join(self.get_state_dir(), 'logs') if (not log_dir or log_dir == 'None') else log_dir
 
     # Torrent checking
 
