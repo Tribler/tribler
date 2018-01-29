@@ -9259,7 +9259,7 @@ border: none;
                    <string notr="true">font-size: 15px;</string>
                   </property>
                   <property name="text">
-                   <string>People which helped you</string>
+                   <string>People who helped you</string>
                   </property>
                  </widget>
                 </item>
