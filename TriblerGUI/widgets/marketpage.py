@@ -100,7 +100,7 @@ class MarketPage(QWidget):
         for wallet_id in wallets.keys():
             self.wallets.append(wallet_id)
 
-        if self.chosen_wallets is None:
+        if self.chosen_wallets is None and len(self.wallets) >= 2:
             self.chosen_wallets = (self.wallets[0], self.wallets[1])
             self.update_button_texts()
 

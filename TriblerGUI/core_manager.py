@@ -7,7 +7,6 @@ from twisted.internet.error import ReactorAlreadyInstalledError
 # We always use a selectreactor
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Utilities.install_dir import get_lib_path
-from Tribler.community.market.wallet.btc_wallet import BitcoinWallet
 from TriblerGUI.defs import API_PORT
 
 try:
@@ -60,9 +59,14 @@ def start_tribler_core(base_path, child_pipe):
         child_pipe.recv()
 
     def patch_wallet_methods():
-        BitcoinWallet.get_wallet_password = lambda _: get_keyring_password('tribler', 'btc_wallet_password')
-        BitcoinWallet.set_wallet_password = lambda _, password: set_keyring_password('tribler',
-                                                                                     'btc_wallet_password', password)
+        try:
+            from Tribler.community.market.wallet.btc_wallet import BitcoinWallet
+            BitcoinWallet.get_wallet_password = lambda _: get_keyring_password('tribler', 'btc_wallet_password')
+            BitcoinWallet.set_wallet_password = lambda _, password: set_keyring_password('tribler',
+                                                                                         'btc_wallet_password',
+                                                                                         password)
+        except ImportError:
+            pass
 
     def patch_iom_methods():
         try:

@@ -9,3 +9,4 @@ logger.conf usr/share/tribler
 run_tribler.py /usr/share/tribler
 check_os.py /usr/share/tribler
 twisted usr/share/tribler
+electrum /usr/share/tribler

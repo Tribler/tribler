@@ -36,7 +36,6 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
                                      STATE_INITIALIZE_CHANNEL_MGR, STATE_START_MAINLINE_DHT, STATE_START_LIBTORRENT,
                                      STATE_START_TORRENT_CHECKER, STATE_START_REMOTE_TORRENT_HANDLER,
                                      STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING)
-from Tribler.community.market.wallet.btc_wallet import BitcoinWallet
 from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
@@ -246,9 +245,14 @@ class TriblerLaunchMany(TaskManager):
         # Use the permanent TrustChain ID for Market community/TradeChain if it's available
         if self.session.config.get_market_community_enabled():
             wallets = {}
-            btc_wallet = BitcoinWallet(os.path.join(self.session.config.get_state_dir(), 'wallet'),
-                                       testnet=self.session.config.get_btc_testnet())
-            wallets[btc_wallet.get_identifier()] = btc_wallet
+
+            try:
+                from Tribler.community.market.wallet.btc_wallet import BitcoinWallet
+                btc_wallet = BitcoinWallet(os.path.join(self.session.config.get_state_dir(), 'wallet'),
+                                           testnet=self.session.config.get_btc_testnet())
+                wallets[btc_wallet.get_identifier()] = btc_wallet
+            except ImportError:
+                self._logger.error("Electrum wallet cannot be found, Bitcoin trading not available!")
 
             mc_wallet = TrustchainWallet(self.tunnel_community)
             wallets[mc_wallet.get_identifier()] = mc_wallet

@@ -43,6 +43,7 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
                           'boosting_enabled': ['testenabled'],
                           'boosting_disabled': ['testdisabled'],
                           'archive_sources': ['testarchive']})
+        self.assertEqual(result_config.get_log_dir(), '/a/b/c')
 
     def test_read_test_corr_tribler_conf(self):
         """
