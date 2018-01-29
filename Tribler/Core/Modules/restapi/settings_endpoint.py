@@ -17,7 +17,8 @@ class SettingsEndpoint(resource.Resource):
         .. http:get:: /settings
 
         A GET request to this endpoint returns all the session settings that can be found in Tribler.
-        Please note that a port with a value of -1 means that the port is randomly assigned at startup.
+        It also returns the runtime-determined ports, i.e. the port for the video server.
+        Please note that a port with a value of -1 in the settings means that the port is randomly assigned at startup.
 
             **Example request**:
 
@@ -39,7 +40,10 @@ class SettingsEndpoint(resource.Resource):
                     }
                 }
         """
-        return json.dumps({"settings": self.session.config.config})
+        return json.dumps({
+            "settings": self.session.config.config,
+            "ports": self.session.selected_ports
+        })
 
     def render_POST(self, request):
         """

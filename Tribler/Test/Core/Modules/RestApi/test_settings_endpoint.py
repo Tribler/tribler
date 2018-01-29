@@ -22,6 +22,7 @@ class TestSettingsEndpoint(AbstractApiTest):
 
         settings_json = json.loads(settings)
         self.assertTrue(settings_json['settings'])
+        self.assertTrue(settings_json['ports'])
         for section in check_section:
             self.assertTrue(settings_json['settings'][section])
 

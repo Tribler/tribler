@@ -396,17 +396,17 @@ class TriblerWindow(QMainWindow):
         # If we cannot receive the settings, stop Tribler with an option to send the crash report.
         if 'error' in settings:
             raise RuntimeError(TriblerRequestManager.get_message_from_error(settings))
-        else:
-            self.tribler_settings = settings['settings']
+
+        self.tribler_settings = settings['settings']
+
+        # Set the video server port
+        self.video_player_page.video_player_port = settings["ports"]["video_server~port"]
 
         # Disable various components based on the settings
         if not self.tribler_settings['search_community']['enabled']:
             self.window().top_search_bar.setHidden(True)
         if not self.tribler_settings['video_server']['enabled']:
             self.left_menu_button_video_player.setHidden(True)
-
-        # Set the video server port
-        self.video_player_page.video_player_port = self.tribler_settings["video_server"]["port"]
 
         # process pending file requests (i.e. someone clicked a torrent file when Tribler was closed)
         # We do this after receiving the settings so we have the default download location.
