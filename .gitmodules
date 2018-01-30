@@ -7,3 +7,6 @@
 [submodule "electrum"]
 	path = electrum
 	url = https://github.com/spesmilo/electrum
+[submodule "py-ipv8"]
+	path = Tribler/pyipv8
+	url = https://github.com/Tribler/py-ipv8.git

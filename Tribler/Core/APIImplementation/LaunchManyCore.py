@@ -52,6 +52,7 @@ class TriblerLaunchMany(TaskManager):
         self.initComplete = False
         self.registered = False
         self.dispersy = None
+        self.ipv8 = None
         self.state_cb_count = 0
         self.previous_active_downloads = []
         self.download_states_lc = None
@@ -167,10 +168,12 @@ class TriblerLaunchMany(TaskManager):
             self.tftp_handler = None
             if self.session.config.get_dispersy_enabled():
                 from Tribler.dispersy.dispersy import Dispersy
-                from Tribler.dispersy.endpoint import StandaloneEndpoint
+                from Tribler.dispersy.endpoint import MIMEndpoint
+                from Tribler.Core.APIImplementation.IPv8Module import IPv8Module
 
                 # set communication endpoint
-                endpoint = StandaloneEndpoint(self.session.config.get_dispersy_port())
+                endpoint = MIMEndpoint(self.session.config.get_dispersy_port())
+                self.ipv8 = IPv8Module(endpoint)
 
                 working_directory = unicode(self.session.config.get_state_dir())
                 self.dispersy = Dispersy(endpoint, working_directory)
@@ -813,6 +816,9 @@ class TriblerLaunchMany(TaskManager):
                 self._logger.info("lmc: Dispersy successfully shutdown in %.2f seconds", diff)
             else:
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
+
+        if self.ipv8:
+            self.ipv8.stop(stop_reactor=False)
 
         if self.metadata_store is not None:
             yield self.metadata_store.close()
