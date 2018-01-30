@@ -258,6 +258,35 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
                    .addCallback(verify_error_message)
 
     @deferred(timeout=10)
+    def test_timeout_on_add_torrent(self):
+        """
+        Testing timeout in adding torrent
+        """
+        self.create_fake_channel("channel", "")
+
+        def on_get_metainfo(_, callback, timeout=10, timeout_callback=None, notify=True):
+            timeout_callback("infohash_whatever")
+
+        self.session.lm.ltmgr.get_metainfo = on_get_metainfo
+
+        def verify_error_message(body):
+            error_response = json.loads(body)
+            expected_response = {
+                u"error": {
+                    u"handled": True,
+                    u"code": u"RuntimeError",
+                    u"message": u"Metainfo timeout"
+                }
+            }
+            self.assertDictContainsSubset(expected_response[u"error"], error_response[u"error"])
+
+        torrent_url = 'magnet:fake'
+        url = 'channels/discovered/%s/torrents/%s' % ('fakedispersyid'.encode('hex'), urllib.quote_plus(torrent_url))
+        self.should_check_equality = False
+        return self.do_request(url, expected_code=500, expected_json=None, request_type='PUT')\
+                   .addCallback(verify_error_message)
+
+    @deferred(timeout=10)
     def test_remove_tor_unknown_channel(self):
         """
         Testing whether the API returns an error 500 if a torrent is removed from an unknown channel
