@@ -173,9 +173,9 @@ class TriblerLaunchMany(TaskManager):
 
                 # set communication endpoint
                 endpoint = MIMEndpoint(self.session.config.get_dispersy_port())
-                self.ipv8 = IPv8Module(endpoint)
 
                 working_directory = unicode(self.session.config.get_state_dir())
+                self.ipv8 = IPv8Module(endpoint, working_directory)
                 self.dispersy = Dispersy(endpoint, working_directory)
 
                 # register TFTP service
