@@ -1,4 +1,7 @@
+from collections import namedtuple
+
 from Tribler.Core.Modules.resource_monitor import ResourceMonitor
+from Tribler.Core.simpledefs import SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 
 
@@ -8,8 +11,11 @@ class TestResourceMonitor(TriblerCoreTest):
         super(TestResourceMonitor, self).setUp(annotate=annotate)
 
         mock_session = MockObject()
+        mock_session.get_state_dir = lambda: "."
         mock_session.get_resource_monitor_history_size = lambda: 1
         self.resource_monitor = ResourceMonitor(mock_session)
+        self.resource_monitor.session.notifier = MockObject()
+        self.resource_monitor.session.notifier.notify = lambda subject, changeType, obj_id, *args: None
 
     def test_check_resources(self):
         """
@@ -18,16 +24,18 @@ class TestResourceMonitor(TriblerCoreTest):
         self.resource_monitor.check_resources()
         self.assertEqual(len(self.resource_monitor.cpu_data), 1)
         self.assertEqual(len(self.resource_monitor.memory_data), 1)
+        self.assertEqual(len(self.resource_monitor.disk_usage_data), 1)
 
         # Check that we remove old history
         self.resource_monitor.history_size = 1
         self.resource_monitor.check_resources()
         self.assertEqual(len(self.resource_monitor.cpu_data), 1)
         self.assertEqual(len(self.resource_monitor.memory_data), 1)
+        self.assertEqual(len(self.resource_monitor.disk_usage_data), 1)
 
     def test_get_history_dicts(self):
         """
-        Test the CPU/memory history dictionary of a resource monitor
+        Test the CPU/memory/disk usage history dictionary of a resource monitor
         """
         self.resource_monitor.check_resources()
         cpu_dict = self.resource_monitor.get_cpu_history_dict()
@@ -35,6 +43,9 @@ class TestResourceMonitor(TriblerCoreTest):
 
         memory_dict = self.resource_monitor.get_memory_history_dict()
         self.assertIsInstance(memory_dict, list)
+
+        disk_usage_history = self.resource_monitor.get_disk_usage()
+        self.assertIsInstance(disk_usage_history, list)
 
     def test_memory_full_error(self):
         """
@@ -49,3 +60,23 @@ class TestResourceMonitor(TriblerCoreTest):
         self.resource_monitor.check_resources()
 
         self.assertListEqual([], self.resource_monitor.memory_data)
+
+    def test_low_disk_notification(self):
+        """
+        Test low disk space notification
+        """
+        def fake_disk_usage(_):
+            disk = {"total":318271800, "used": 312005050, "free": 6266750, "percent": 98.0}
+            return namedtuple('sdiskusage', disk.keys())(*disk.values())
+
+        def on_notify(subject, changeType, obj_id, *args):
+            self.assertEquals(subject, SIGNAL_RESOURCE_CHECK)
+            self.assertEquals(changeType, SIGNAL_LOW_SPACE)
+
+        import psutil
+        psutil.disk_usage = fake_disk_usage
+        self.resource_monitor.session = MockObject()
+        self.resource_monitor.session.get_state_dir = lambda: "."
+        self.resource_monitor.session.notifier = MockObject()
+        self.resource_monitor.session.notifier.notify = on_notify
+        self.resource_monitor.check_resources()

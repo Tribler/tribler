@@ -4,7 +4,8 @@ from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, conver
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT,
                                      NTFY_UPGRADER, NTFY_STARTED, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT,
                                      NTFY_NEW_VERSION, NTFY_FINISHED, NTFY_TRIBLER, NTFY_UPGRADER_TICK, NTFY_CHANNEL,
-                                     NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_DELETE)
+                                     NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_DELETE, SIGNAL_RESOURCE_CHECK,
+                                     SIGNAL_LOW_SPACE)
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.version import version_id
 
@@ -65,6 +66,7 @@ class EventsEndpoint(resource.Resource):
         self.session.add_observer(self.on_torrent_removed_from_channel, NTFY_TORRENT, [NTFY_DELETE])
         self.session.add_observer(self.on_torrent_finished, NTFY_TORRENT, [NTFY_FINISHED])
         self.session.add_observer(self.on_torrent_error, NTFY_TORRENT, [NTFY_ERROR])
+        self.session.add_observer(self.on_resource_event, SIGNAL_RESOURCE_CHECK, [SIGNAL_LOW_SPACE])
 
     def write_data(self, message):
         """
@@ -153,6 +155,9 @@ class EventsEndpoint(resource.Resource):
 
     def on_tribler_exception(self, exception_text):
         self.write_data({"type": "tribler_exception", "event": {"text": exception_text}})
+
+    def on_resource_event(self, subject, changetype, objectID, *args):
+        self.write_data({"type": changetype, "event": args[0]})
 
     def render_GET(self, request):
         """

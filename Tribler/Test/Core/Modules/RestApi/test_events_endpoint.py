@@ -8,7 +8,7 @@ from twisted.web.http_headers import Headers
 
 from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT, NTFY_UPGRADER, \
     NTFY_STARTED, NTFY_FINISHED, NTFY_UPGRADER_TICK, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, NTFY_NEW_VERSION, \
-    NTFY_CHANNEL, NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_DELETE
+    NTFY_CHANNEL, NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_DELETE, SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.version import version_id
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -97,7 +97,7 @@ class TestEventsEndpoint(AbstractApiTest):
         """
         Testing whether various events are coming through the events endpoints
         """
-        self.messages_to_wait_for = 13
+        self.messages_to_wait_for = 14
 
         def send_notifications(_):
             self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
@@ -114,6 +114,7 @@ class TestEventsEndpoint(AbstractApiTest):
             self.session.notifier.notify(NTFY_TORRENT, NTFY_DELETE, None, {'a': 'b'})
             self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, 'a' * 10, None)
             self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, 'a' * 10, 'This is an error message')
+            self.session.notifier.notify(SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE, None, {})
             self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception("hi")
 
         self.socket_open_deferred.addCallback(send_notifications)
