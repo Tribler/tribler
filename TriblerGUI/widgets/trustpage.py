@@ -85,11 +85,16 @@ class TrustPage(QWidget):
         self.statistics = None
         self.blocks = None
         self.byte_scale = 1024 * 1024
+        self.timer = None
 
     def initialize_trust_page(self):
         vlayout = self.window().plot_widget.layout()
         self.trust_plot = TrustPlotMplCanvas(self.window().plot_widget, dpi=100)
         vlayout.addWidget(self.trust_plot)
+        
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.load_trust_statistics)
+        self.timer.start(60000)
 
         self.window().trade_button.clicked.connect(self.on_trade_button_clicked)
 
