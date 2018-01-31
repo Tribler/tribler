@@ -4,6 +4,7 @@ import time
 import psutil
 from twisted.internet.task import LoopingCall
 
+from Tribler.Core.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
 from Tribler.dispersy.taskmanager import TaskManager
 
 
@@ -20,6 +21,7 @@ class ResourceMonitor(TaskManager):
         self.check_interval = 5
         self.cpu_data = []
         self.memory_data = []
+        self.disk_usage_data = []
         self.process = psutil.Process()
         self.history_size = session.config.get_resource_monitor_history_size()
 
@@ -33,6 +35,9 @@ class ResourceMonitor(TaskManager):
     def stop(self):
         self.cancel_all_pending_tasks()
 
+    def get_free_disk_space(self):
+        return psutil.disk_usage(self.session.config.get_state_dir())
+
     def check_resources(self):
         """
         Check CPU and memory usage.
@@ -42,6 +47,8 @@ class ResourceMonitor(TaskManager):
             self.cpu_data.pop(0)
         if len(self.memory_data) == self.history_size:
             self.memory_data.pop(0)
+        if len(self.disk_usage_data) == self.history_size:
+            self.disk_usage_data.pop(0)
 
         time_seconds = time.time()
         self.cpu_data.append((time_seconds, self.process.cpu_percent(interval=None)))
@@ -62,6 +69,19 @@ class ResourceMonitor(TaskManager):
         elif hasattr(self.process, "memory_info") and callable(getattr(self.process, "memory_info")):
             self.memory_data.append((time_seconds, self.process.memory_info().rss))
 
+        # Check for available disk space
+        disk_usage = self.get_free_disk_space()
+        self.disk_usage_data.append({"time": time_seconds,
+                                     "total": disk_usage.total,
+                                     "used": disk_usage.used,
+                                     "free": disk_usage.free,
+                                     "percent": disk_usage.percent})
+
+        # Notify session if less than 100MB of disk space is available
+        if disk_usage.free < 10000 * (1024 * 1024):
+            self._logger.warn("Warning! Less than 100MB of disk space available")
+            self.session.notifier.notify(SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE, None, self.disk_usage_data[-1])
+
     def get_cpu_history_dict(self):
         """
         Return a dictionary containing the history of CPU usage, together with timestamps.
@@ -73,3 +93,9 @@ class ResourceMonitor(TaskManager):
         Return a dictionary containing the history of memory usage, together with timestamps.
         """
         return [{"time": memory_data[0], "mem": memory_data[1]} for memory_data in self.memory_data]
+
+    def get_disk_usage(self):
+        """
+        Return a list containing the history of free disk space
+        """
+        return self.disk_usage_data

@@ -234,6 +234,7 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.new_version_available.connect(self.on_new_version_available)
         self.core_manager.events_manager.tribler_started.connect(self.on_tribler_started)
         self.core_manager.events_manager.events_started.connect(self.on_events_started)
+        self.core_manager.events_manager.low_storage_signal.connect(self.on_low_storage)
 
         # Install signal handler for ctrl+c events
         def sigint_handler(*_):
@@ -254,6 +255,21 @@ class TriblerWindow(QMainWindow):
         else:
             self.tray_icon.setIcon(QIcon(QPixmap(get_image_path('tribler.png'))))
         self.tray_icon.show()
+
+    def on_low_storage(self):
+        """
+        Dealing with low storage space available. First stop the downloads and the core manager and ask user to user to
+        make free space.
+        :return:
+        """
+        self.downloads_page.stop_loading_downloads()
+        self.core_manager.stop(False)
+        close_dialog = ConfirmationDialog(self.window(), "<b>CRITICAL ERROR</b>",
+                                          "You are running low on disk space (<100MB). Please make sure to have "
+                                          "sufficient free space available and restart Tribler again.",
+                                          [("Close Tribler", BUTTON_TYPE_NORMAL)])
+        close_dialog.button_clicked.connect(lambda _: self.close_tribler())
+        close_dialog.show()
 
     def on_torrent_finished(self, torrent_info):
         if self.tray_icon:

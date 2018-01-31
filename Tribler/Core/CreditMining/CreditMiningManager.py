@@ -89,10 +89,13 @@ class CreditMiningManager(TaskManager):
 
         return DeferredList(deferreds)
 
+    def get_free_disk_space(self):
+        return psutil.disk_usage(self.settings.save_path).free
+
     def check_disk_space(self):
         # Note that we have a resource monitor that monitors the disk where the state-directory resides.
         # However, since the credit mining directory can be on a different disk, we query the disk space ourselves.
-        is_low = psutil.disk_usage(self.settings.save_path).free < self.settings.low_disk_space
+        is_low = self.get_free_disk_space() < self.settings.low_disk_space
         if self.upload_mode != is_low:
             self._logger.info('Setting upload mode to %s', is_low)
 
