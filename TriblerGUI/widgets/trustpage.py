@@ -5,9 +5,9 @@ from TriblerGUI.defs import PAGE_MARKET
 matplotlib.use('Qt5Agg')
 
 import datetime
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QWidget
-from PyQt5.QtCore import QTimer
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.dates import DateFormatter
 from matplotlib.figure import Figure
