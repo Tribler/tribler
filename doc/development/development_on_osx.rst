@@ -13,7 +13,7 @@ To install the Tribler dependencies using MacPorts, please run the following com
 
 .. code-block:: bash
 
-    sudo port -N install git ffmpeg qt5-qtcreator libtorrent-rasterbar gmp mpfr libmpc libsodium py27-m2crypto py27-apsw py27-Pillow py27-twisted py27-cherrypy3 py27-cffi py27-chardet py27-configobj py27-gmpy2 py27-pycparser py27-numpy py27-idna py27-leveldb py27-cryptography py27-decorator py27-feedparser py27-netifaces py27-service_identity py27-asn1-modules py27-pyinstaller py27-pyqt5 py27-sqlite py27-matplotlib
+    sudo port -N install git ffmpeg qt5-qtcreator libtorrent-rasterbar gmp mpfr libmpc libsodium py27-m2crypto py27-apsw py27-Pillow py27-twisted py27-cherrypy3 py27-cffi py27-chardet py27-configobj py27-gmpy2 py27-pycparser py27-numpy py27-idna py27-leveldb py27-cryptography py27-decorator py27-feedparser py27-netifaces py27-service_identity py27-asn1-modules py27-pyinstaller py27-pyqt5 py27-sqlite py27-matplotlib py27-libnacl
     
 HomeBrew
 --------
@@ -139,7 +139,7 @@ There are a bunch of other packages that can easily be installed using pip and b
     brew install homebrew/python/pillow gmp mpfr libmpc libsodium
     sudo easy_install pip
     pip install --user cython  # Needs to be installed first for meliae
-    pip install --user cherrypy cffi chardet configobj cryptography decorator dnspython ecdsa feedparser gmpy2 jsonrpclib idna keyring leveldb meliae netifaces numpy pbkdf2 pillow protobuf pyasn1 pysocks pycparser requests scipy twisted service_identity
+    pip install --user cherrypy cffi chardet configobj cryptography decorator dnspython ecdsa feedparser gmpy2 jsonrpclib idna keyring leveldb meliae netifaces numpy pbkdf2 pillow protobuf pyasn1 pysocks pycparser requests scipy twisted service_identity libnacl
 
 If you encounter any error during the installation of Pillow, make sure that libjpeg and zlib are installed. They can be installed using:
 
