@@ -407,6 +407,9 @@ class TriblerWindow(QMainWindow):
             self.window().top_search_bar.setHidden(True)
         if not self.tribler_settings['video_server']['enabled']:
             self.left_menu_button_video_player.setHidden(True)
+        self.downloads_creditmining_button.setHidden(not self.tribler_settings["credit_mining"]["enabled"])
+        self.downloads_all_button.click()
+
 
         # process pending file requests (i.e. someone clicked a torrent file when Tribler was closed)
         # We do this after receiving the settings so we have the default download location.

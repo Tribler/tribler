@@ -4517,6 +4517,60 @@ background-color: transparent;</string>
                   </property>
                  </widget>
                 </item>
+                <item>
+                 <spacer name="horizontalSpacer_70">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeType">
+                   <enum>QSizePolicy::Fixed</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>5</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="QToolButton" name="credit_mining_button">
+                  <property name="minimumSize">
+                   <size>
+                    <width>28</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>28</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="cursor">
+                   <cursorShape>PointingHandCursor</cursorShape>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">QToolButton {
+border: none;
+background-color: transparent;
+}</string>
+                  </property>
+                  <property name="text">
+                   <string>Mine credits</string>
+                  </property>
+                  <property name="icon">
+                   <iconset>
+                    <normaloff>../images/credit_mining_not.png</normaloff>../images/credit_mining_not.png</iconset>
+                  </property>
+                  <property name="iconSize">
+                   <size>
+                    <width>18</width>
+                    <height>18</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
                </layout>
               </widget>
              </item>
@@ -6260,6 +6314,29 @@ color: white;</string>
                 </property>
                </widget>
               </item>
+             <item>
+               <widget class="QCheckBox" name="credit_mining_enabled_checkbox">
+                <property name="text">
+                 <string>Enable multichain mining</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_11">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="MinimumExpanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>Multichain mining is the automated process of uploading to swarms in order increase your reputation. Go to channels and choose a channel from which to select swarms.</string>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
               <item>
                <widget class="QLabel" name="label_58">
                 <property name="font">
@@ -7603,6 +7680,40 @@ padding-left: 2px;</string>
                </property>
                <property name="text">
                 <string>INACTIVE</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="UnderlineTabButton" name="downloads_creditmining_button">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>36</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>36</height>
+                </size>
+               </property>
+               <property name="cursor">
+                <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="styleSheet">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>CREDIT MINING</string>
                </property>
                <property name="checkable">
                 <bool>true</bool>

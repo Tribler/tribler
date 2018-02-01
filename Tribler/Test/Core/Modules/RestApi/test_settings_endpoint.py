@@ -94,7 +94,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         Testing whether settings in the API can be successfully set
         """
         download = DownloadConfigInterface()
-        download.get_share_mode = lambda: False
+        download.get_credit_mining = lambda: False
         self.session.get_downloads = lambda: [download]
 
         old_filter_setting = self.session.config.get_family_filter_enabled()
@@ -119,7 +119,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         yield self.do_request('settings', expected_code=200, request_type='POST', post_data=post_data, raw_data=True) \
             .addCallback(verify_response2)
 
-        download.get_share_mode = lambda: True
+        download.get_credit_mining = lambda: True
 
         def verify_response3(_):
             self.assertNotEqual(download.get_seeding_mode(), 'never')

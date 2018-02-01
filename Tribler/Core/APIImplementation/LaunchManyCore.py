@@ -99,7 +99,7 @@ class TriblerLaunchMany(TaskManager):
 
         self.startup_deferred = Deferred()
 
-        self.boosting_manager = None
+        self.credit_mining_manager = None
         self.market_community = None
 
     def register(self, session, session_lock):
@@ -363,8 +363,8 @@ class TriblerLaunchMany(TaskManager):
 
         if self.session.config.get_credit_mining_enabled():
             self.session.readable_status = STATE_START_CREDIT_MINING
-            from Tribler.Core.CreditMining.BoostingManager import BoostingManager
-            self.boosting_manager = BoostingManager(self.session)
+            from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningManager
+            self.credit_mining_manager = CreditMiningManager(self.session)
 
         if self.session.config.get_resource_monitor_enabled():
             self.resource_monitor = ResourceMonitor(self.session)
@@ -617,9 +617,11 @@ class TriblerLaunchMany(TaskManager):
             self.session.checkpoint_downloads()
 
         from Tribler.community.hiddentunnel.hidden_community import HiddenTunnelCommunity
-        if self.state_cb_count % 4 == 0 and self.tunnel_community and \
-                isinstance(self.tunnel_community, HiddenTunnelCommunity):
-            self.tunnel_community.monitor_downloads(states_list)
+        if self.state_cb_count % 4 == 0:
+            if self.tunnel_community and isinstance(self.tunnel_community, HiddenTunnelCommunity):
+                self.tunnel_community.monitor_downloads(states_list)
+            if self.credit_mining_manager:
+                self.credit_mining_manager.monitor_downloads(states_list)
 
         return []
 
@@ -768,9 +770,9 @@ class TriblerLaunchMany(TaskManager):
 
         # Note: session_lock not held
         self.shutdownstarttime = timemod.time()
-        if self.boosting_manager:
-            yield self.boosting_manager.shutdown()
-        self.boosting_manager = None
+        if self.credit_mining_manager:
+            yield self.credit_mining_manager.shutdown()
+        self.credit_mining_manager = None
 
         if self.torrent_checker:
             yield self.torrent_checker.shutdown()

@@ -1,6 +1,8 @@
 from twisted.web import resource
+from twisted.internet.defer import DeferredList
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningManager
 
 
 class SettingsEndpoint(resource.Resource):
@@ -88,7 +90,7 @@ class SettingsEndpoint(resource.Resource):
         # Apply changes to the default downloadconfig to already existing downloads
         if section == "download_defaults" and option in ["seeding_mode", "seeding_time", "seeding_ratio"]:
             for download in self.session.get_downloads():
-                if download.get_share_mode():
+                if download.get_credit_mining():
                     # Do not interfere with credit mining downloads
                     continue
                 elif option == "seeding_mode":
@@ -97,6 +99,23 @@ class SettingsEndpoint(resource.Resource):
                     download.set_seeding_time(value)
                 elif option == "seeding_ratio":
                     download.set_seeding_ratio(value)
+        elif section == 'credit_mining' and option == 'enabled' and \
+             value != bool(self.session.lm.credit_mining_manager):
+            if value:
+                self.session.lm.credit_mining_manager = CreditMiningManager(self.session)
+            else:
+                self.session.lm.credit_mining_manager.shutdown(remove_downloads=True)
+                self.session.lm.credit_mining_manager = None
+        elif section == 'credit_mining' and option == 'sources':
+            if self.session.config.get_credit_mining_enabled():
+                def add_sources(_):
+                    for source in value:
+                        self.session.lm.credit_mining_manager.add_source(source)
+
+                deferreds = []
+                for source in self.session.lm.credit_mining_manager.sources.keys():
+                    deferreds.append(self.session.lm.credit_mining_manager.remove_source(source))
+                DeferredList(deferreds).addCallback(add_sources)
 
     def parse_settings_dict(self, settings_dict, depth=1, root_key=None):
         """
