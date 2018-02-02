@@ -51,6 +51,7 @@ pyz = PYZ(a.pure, a.zipped_data,
 
 # Add libsodium.dylib on OS X
 if sys.platform == 'darwin':
+    a.binaries = a.binaries - TOC([('/usr/local/lib/libsodium.so', None, None),])
     a.binaries = a.binaries + TOC([('libsodium.dylib', '/usr/local/lib/libsodium.dylib', None),])
 
 exe = EXE(pyz,
