@@ -24,6 +24,7 @@ class EventRequestManager(QNetworkAccessManager):
     discovered_channel = pyqtSignal(object)
     discovered_torrent = pyqtSignal(object)
     torrent_finished = pyqtSignal(object)
+    low_storage_signal = pyqtSignal(object)
 
     def __init__(self):
         QNetworkAccessManager.__init__(self)
@@ -95,6 +96,8 @@ class EventRequestManager(QNetworkAccessManager):
                         self.emitted_tribler_started = True
                 elif json_dict["type"] == "torrent_finished":
                     self.torrent_finished.emit(json_dict["event"])
+                elif json_dict["type"] == "signal_low_space":
+                    self.low_storage_signal.emit(json_dict["event"])
                 elif json_dict["type"] == "tribler_exception":
                     raise RuntimeError(json_dict["event"]["text"])
             self.current_event_string = ""
