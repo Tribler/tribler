@@ -78,7 +78,7 @@ class ResourceMonitor(TaskManager):
                                      "percent": disk_usage.percent})
 
         # Notify session if less than 100MB of disk space is available
-        if disk_usage.free < 10000 * (1024 * 1024):
+        if disk_usage.free < 100 * (1024 * 1024):
             self._logger.warn("Warning! Less than 100MB of disk space available")
             self.session.notifier.notify(SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE, None, self.disk_usage_data[-1])
 
