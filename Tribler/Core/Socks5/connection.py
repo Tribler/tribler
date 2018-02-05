@@ -73,11 +73,15 @@ class Socks5Connection(Protocol):
             self.close()
         else:
             self._logger.info("Client has sent METHOD REQUEST")
+            self._logger.debug("    METHOD_REQUEST <- %s:%d  %s bytes local ('%s', %d)",
+                               self.transport.getPeer().host, self.transport.getPeer().port,
+                               offset,
+                               self.transport.getHost().host, self.transport.getHost().port)
 
             # Respond that we would like to use NO AUTHENTICATION (0x00)
             if self.state is not ConnectionState.CONNECTED:
                 response = conversion.encode_method_selection_message(conversion.SOCKS_VERSION, 0x00)
-                self.transport.write(response)
+                self.write_response(response, "SOCKS_VERSION")
 
             # We are connected now, the next incoming message will be a REQUEST
             self.state = ConnectionState.CONNECTED
@@ -102,6 +106,11 @@ class Socks5Connection(Protocol):
         if request is None:
             return False
 
+        self._logger.debug("    PROXY_REQUEST <- %s:%d  %s bytes local ('%s', %d)",
+                           self.transport.getPeer().host, self.transport.getPeer().port,
+                           offset,
+                           self.transport.getHost().host, self.transport.getHost().port)
+
         self.buffer = self.buffer[offset:]
 
         self.state = ConnectionState.PROXY_REQUEST_RECEIVED
@@ -114,7 +123,7 @@ class Socks5Connection(Protocol):
                 response = conversion.encode_reply(0x05, conversion.REP_SUCCEEDED, 0x00,
                                                    conversion.ADDRESS_TYPE_IPV4, "127.0.0.1", 1081)
 
-                self.transport.write(response)
+                self.write_response(response, "SUCCEEDED")
                 self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
 
             elif request.cmd == conversion.REQ_CMD_CONNECT:
@@ -123,17 +132,25 @@ class Socks5Connection(Protocol):
 
                 response = conversion.encode_reply(0x05, conversion.REP_HOST_UNREACHABLE, 0x00,
                                                    conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
-                self.transport.write(response)
+                self.write_response(response, "HOST_UNREACHABLE")
 
             else:
                 self.deny_request(request, "CMD not recognized")
         except:
             response = conversion.encode_reply(0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
                                                conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
-            self.transport.write(response)
+            self.write_response(response, "COMMAND_NOT_SUPPORTED")
             self._logger.exception("Exception thrown, returning unsupported command response")
 
         return True
+
+    def write_response(self, response, message_type):
+        self._logger.debug("    %s -> %s:%d  %s bytes local ('%s', %d)",
+                           message_type,
+                           self.transport.getPeer().host, self.transport.getPeer().port,
+                           len(response),
+                           self.transport.getHost().host, self.transport.getHost().port)
+        self.transport.write(response)
 
     def deny_request(self, request, reason):
         """
@@ -145,7 +162,7 @@ class Socks5Connection(Protocol):
         response = conversion.encode_reply(0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
                                            conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
 
-        self.transport.write(response)
+        self.write_response(response, "COMMAND_NOT_SUPPORTED")
         self._logger.error("DENYING SOCKS5 request, reason: %s" % reason)
 
     def on_udp_associate_request(self, connection, request):
@@ -160,7 +177,7 @@ class Socks5Connection(Protocol):
 
         response = conversion.encode_reply(
             0x05, conversion.REP_SUCCEEDED, 0x00, conversion.ADDRESS_TYPE_IPV4, ip, port)
-        self.transport.write(response)
+        self.write_response(response, "SUCCEEDED")
 
     def circuit_dead(self, broken_circuit):
         """
@@ -181,6 +198,10 @@ class Socks5Connection(Protocol):
             self._logger.debug("Deleted %d peers from destination list", counter)
 
         return affected_destinations
+
+    def connectionMade(self):
+        self._logger.debug("SOCKS5 TCP connection made %s:%d", self.transport.getPeer().host,
+                           self.transport.getPeer().port)
 
     def connectionLost(self, reason=connectionDone):
         self.socksserver.connectionLost(self)
