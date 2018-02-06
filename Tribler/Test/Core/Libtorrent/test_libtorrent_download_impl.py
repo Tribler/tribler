@@ -431,6 +431,28 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.handle.get_torrent_info = lambda: None
         self.libtorrent_download_impl.on_metadata_received_alert(None)
 
+
+    def test_metadata_received_invalid_torrent_with_value_error(self):
+        """
+        Testing whether the right operations happen when we receive metadata but the torrent info is invalid and throws
+        Value Error
+        """
+        def mocked_checkpoint():
+            raise RuntimeError("This code should not be reached!")
+
+        mocked_file = MockObject()
+        mocked_file.path = 'test'
+
+        # The line below should trigger Value Error
+        self.libtorrent_download_impl.handle.trackers = lambda: [{'url': 'no-DHT'}]
+
+        torrent_dict = {'name': 'test', 'piece length': 42, 'pieces': '', 'files': []}
+        get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: lt.bencode(torrent_dict)
+        get_info_from_handle(self.libtorrent_download_impl.handle).files = lambda: [mocked_file]
+
+        self.libtorrent_download_impl.checkpoint = mocked_checkpoint
+        self.libtorrent_download_impl.on_metadata_received_alert(None)
+
     def test_torrent_checked_alert(self):
         """
         Testing whether the right operations happen after a torrent checked alert is received
