@@ -653,3 +653,11 @@ class TriblerConfig(object):
 
     def get_credit_mining_disk_space(self):
         return self.config['credit_mining']['max_disk_space']
+
+    # DHT Community
+
+    def set_dht_community_enabled(self, value):
+        self.config['dht_community']['enabled'] = value
+
+    def get_dht_community_enabled(self):
+        return self.config['dht_community']['enabled']

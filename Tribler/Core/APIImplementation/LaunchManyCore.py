@@ -45,6 +45,7 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
                                      STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING)
 from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
+from Tribler.community.dht.provider import DHTCommunityProvider
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
 
@@ -108,6 +109,7 @@ class TriblerLaunchMany(TaskManager):
 
         self.credit_mining_manager = None
         self.market_community = None
+        self.dht_community = None
 
     def register(self, session, session_lock):
         assert isInIOThread()
@@ -254,16 +256,25 @@ class TriblerLaunchMany(TaskManager):
             self.ipv8.overlays.append(self.triblerchain_community)
             self.ipv8.strategies.append((EdgeWalk(self.triblerchain_community), 20))
 
+        # DHT Community
+        if self.session.config.get_dht_community_enabled():
+            from Tribler.community.dht.community import DHTCommunity
+            self.dht_community = DHTCommunity(peer, self.ipv8.endpoint, self.ipv8.network)
+            self.ipv8.overlays.append(self.dht_community)
+            self.ipv8.strategies.append((RandomWalk(self.dht_community), 20))
+
         # Tunnel Community
         if self.session.config.get_tunnel_community_enabled():
             tunnel_peer = Peer(self.session.trustchain_keypair)
+            if self.dht_community:
+                dht_provider = DHTCommunityProvider(self.dht_community, self.session.config.get_dispersy_port())
+            else:
+                dht_provider = MainlineDHTProvider(self.mainline_dht, self.session.config.get_dispersy_port())
 
             from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
             self.tunnel_community = TriblerTunnelCommunity(tunnel_peer, self.ipv8.endpoint, self.ipv8.network,
                                                            tribler_session=self.session,
-                                                           dht_provider=MainlineDHTProvider(
-                                                               self.mainline_dht,
-                                                               self.session.config.get_dispersy_port()),
+                                                           dht_provider=dht_provider,
                                                            triblerchain_community=self.triblerchain_community)
             self.ipv8.overlays.append(self.tunnel_community)
             self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
