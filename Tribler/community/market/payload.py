@@ -1,425 +1,439 @@
-from Tribler.community.market.core.message import TraderId, MessageNumber
-from Tribler.community.market.core.order import OrderNumber
+from Tribler.community.market.core.message import MessageId, TraderId, MessageNumber
+from Tribler.community.market.core.order import OrderNumber, OrderId
 from Tribler.community.market.core.payment_id import PaymentId
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.socket_address import SocketAddress
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.core.transaction import TransactionNumber
+from Tribler.community.market.core.transaction import TransactionId, TransactionNumber
 from Tribler.community.market.core.wallet_address import WalletAddress
-from Tribler.dispersy.payload import Payload
+from Tribler.pyipv8.ipv8.deprecated.payload import Payload
 
 
 class MessagePayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, trader_id, message_number, timestamp):
-            assert isinstance(trader_id, TraderId), type(trader_id)
-            assert isinstance(message_number, MessageNumber), type(message_number)
-            assert isinstance(timestamp, Timestamp), type(timestamp)
-            super(MessagePayload.Implementation, self).__init__(meta)
-            self._trader_id = trader_id
-            self._message_number = message_number
-            self._timestamp = timestamp
+    """
+    Payload for a generic message in the market community.
+    """
 
-        @property
-        def trader_id(self):
-            return self._trader_id
+    format_list = ['varlenI', 'I', 'f']
 
-        @property
-        def message_number(self):
-            return self._message_number
+    def __init__(self, message_id, timestamp):
+        super(MessagePayload, self).__init__()
+        self.message_id = message_id
+        self.timestamp = timestamp
 
-        @property
-        def timestamp(self):
-            return self._timestamp
+    def to_pack_list(self):
+        data = [('varlenI', str(self.message_id.trader_id)),
+                ('I', int(self.message_id.message_number)),
+                ('f', self.timestamp)]
+
+        return data
+
+    @property
+    def trader_id(self):
+        return self.message_id.trader_id
+
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp):
+        return MessagePayload(MessageId(TraderId(trader_id), MessageNumber(message_number)), timestamp)
 
 
 class InfoPayload(MessagePayload):
-    class Implementation(MessagePayload.Implementation):
-        def __init__(self, meta, trader_id, message_number, timestamp, is_matchmaker):
-            assert isinstance(is_matchmaker, bool), type(is_matchmaker)
-            super(InfoPayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
-            self._is_matchmaker = is_matchmaker
+    """
+    Payload for an info message in the market community.
+    """
 
-        @property
-        def is_matchmaker(self):
-            return self._is_matchmaker
+    format_list = ['varlenI', 'I', 'f', '?']
+
+    def __init__(self, message_id, timestamp, is_matchmaker):
+        super(InfoPayload, self).__init__(message_id, timestamp)
+        self.is_matchmaker = is_matchmaker
+
+    def to_pack_list(self):
+        data = super(InfoPayload, self).to_pack_list()
+        data.append(('?', self.is_matchmaker))
+        return data
+
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, is_matchmaker):
+        return InfoPayload(MessageId(TraderId(trader_id), MessageNumber(message_number)), timestamp, is_matchmaker)
 
 
 class OfferPayload(MessagePayload):
-    class Implementation(MessagePayload.Implementation):
-        def __init__(self, meta, trader_id, message_number, order_number, price, quantity, timeout, timestamp,
-                     ip, port):
-            assert isinstance(order_number, OrderNumber), type(order_number)
-            assert isinstance(price, Price), type(price)
-            assert isinstance(quantity, Quantity), type(quantity)
-            assert isinstance(timeout, Timeout), type(timeout)
-            assert isinstance(ip, str), type(ip)
-            assert isinstance(port, int), type(port)
-            super(OfferPayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
-            self._order_number = order_number
-            self._price = price
-            self._quantity = quantity
-            self._timeout = timeout
-            self._ip = ip
-            self._port = port
+    """
+    Payload for a message with an offer in the market community.
+    """
 
-        @property
-        def order_number(self):
-            return self._order_number
+    format_list = ['varlenI', 'I', 'f', 'I', 'f', 'varlenI', 'f', 'varlenI', 'f', 'varlenI', 'I']
 
-        @property
-        def price(self):
-            return self._price
+    def __init__(self, message_id, timestamp, order_number, price, quantity, timeout, address):
+        super(OfferPayload, self).__init__(message_id, timestamp)
+        self.order_number = order_number
+        self.price = price
+        self.quantity = quantity
+        self.timeout = timeout
+        self.address = address
 
-        @property
-        def quantity(self):
-            return self._quantity
+    def to_pack_list(self):
+        data = super(OfferPayload, self).to_pack_list()
+        data += [('I', int(self.order_number)),
+                 ('f', float(self.price)),
+                 ('varlenI', self.price.wallet_id),
+                 ('f', float(self.quantity)),
+                 ('varlenI', self.quantity.wallet_id),
+                 ('f', float(self.timeout)),
+                 ('varlenI', self.address.ip),
+                 ('I', self.address.port)]
+        return data
 
-        @property
-        def timeout(self):
-            return self._timeout
-
-        @property
-        def address(self):
-            return SocketAddress(self._ip, self._port)
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, order_number, price, price_type, quantity,
+                         quantity_type, timeout, ip, port):
+        return OfferPayload(MessageId(TraderId(trader_id), MessageNumber(message_number)), Timestamp(timestamp),
+                            OrderNumber(order_number), Price(price, price_type), Quantity(quantity, quantity_type),
+                            Timeout(timeout), SocketAddress(ip, port))
 
 
 class MatchPayload(OfferPayload):
-    class Implementation(OfferPayload.Implementation):
-        def __init__(self, meta, trader_id, message_number, order_number, price, quantity, timeout, timestamp,
-                     ip, port, recipient_order_number, match_quantity, match_trader_id,
-                     matchmaker_trader_id, match_id):
-            assert isinstance(recipient_order_number, OrderNumber), type(recipient_order_number)
-            assert isinstance(match_quantity, Quantity), type(match_quantity)
-            assert isinstance(match_trader_id, TraderId), type(match_trader_id)
-            assert isinstance(matchmaker_trader_id, TraderId), type(matchmaker_trader_id)
-            assert isinstance(match_id, str), type(match_id)
-            super(MatchPayload.Implementation, self).__init__(meta, trader_id, message_number, order_number, price,
-                                                              quantity, timeout, timestamp, ip, port)
-            self._recipient_order_number = recipient_order_number
-            self._match_quantity = match_quantity
-            self._match_trader_id = match_trader_id
-            self._matchmaker_trader_id = matchmaker_trader_id
-            self._match_id = match_id
+    """
+    Payload for a match in the market community.
+    """
 
-        @property
-        def recipient_order_number(self):
-            return self._recipient_order_number
+    format_list = OfferPayload.format_list + ['I', 'f', 'varlenI', 'varlenI', 'varlenI', 'varlenI']
 
-        @property
-        def match_quantity(self):
-            return self._match_quantity
+    def __init__(self, message_id, timestamp, order_number, price, quantity, timeout, address, recipient_order_number,
+                 match_quantity, match_trader_id, matchmaker_trader_id, match_id):
+        super(MatchPayload, self).__init__(message_id, timestamp, order_number, price, quantity, timeout, address)
+        self.recipient_order_number = recipient_order_number
+        self.match_quantity = match_quantity
+        self.match_trader_id = match_trader_id
+        self.matchmaker_trader_id = matchmaker_trader_id
+        self.match_id = match_id
 
-        @property
-        def match_trader_id(self):
-            return self._match_trader_id
+    def to_pack_list(self):
+        data = super(MatchPayload, self).to_pack_list()
+        data += [('I', int(self.recipient_order_number)),
+                 ('f', float(self.match_quantity)),
+                 ('varlenI', self.match_quantity.wallet_id),
+                 ('varlenI', str(self.match_trader_id)),
+                 ('varlenI', str(self.matchmaker_trader_id)),
+                 ('varlenI', self.match_id)]
+        return data
 
-        @property
-        def matchmaker_trader_id(self):
-            return self._matchmaker_trader_id
-
-        @property
-        def match_id(self):
-            return self._match_id
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, order_number, price, price_type, quantity,
+                         quantity_type, timeout, ip, port, recipient_order_number, match_quantity, match_quantity_type,
+                         match_trader_id, matchmaker_trader_id, match_id):
+        return MatchPayload(MessageId(TraderId(trader_id), MessageNumber(message_number)), Timestamp(timestamp),
+                            OrderNumber(order_number), Price(price, price_type), Quantity(quantity, quantity_type),
+                            Timeout(timeout), SocketAddress(ip, port), OrderNumber(recipient_order_number),
+                            Quantity(match_quantity, match_quantity_type), TraderId(match_trader_id),
+                            TraderId(matchmaker_trader_id), match_id)
 
 
 class AcceptMatchPayload(MessagePayload):
-    class Implementation(MessagePayload.Implementation):
-        def __init__(self, meta, trader_id, message_number, timestamp, match_id, quantity):
-            assert isinstance(match_id, str), type(match_id)
-            assert isinstance(quantity, Quantity), type(quantity)
-            super(AcceptMatchPayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
-            self._match_id = match_id
-            self._quantity = quantity
+    """
+    Payload for an accepted match in the market community.
+    """
 
-        @property
-        def match_id(self):
-            return self._match_id
+    format_list = ['varlenI', 'I', 'f', 'varlenI', 'f', 'varlenI']
 
-        @property
-        def quantity(self):
-            return self._quantity
+    def __init__(self, message_id, timestamp, match_id, quantity):
+        super(AcceptMatchPayload, self).__init__(message_id, timestamp)
+        self.match_id = match_id
+        self.quantity = quantity
+
+    def to_pack_list(self):
+        data = super(AcceptMatchPayload, self).to_pack_list()
+        data += [('varlenI', self.match_id),
+                 ('f', float(self.quantity)),
+                 ('varlenI', self.quantity.wallet_id)]
+        return data
+
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, match_id, quantity, quantity_type):
+        return AcceptMatchPayload(MessageId(TraderId(trader_id), MessageNumber(message_number)), Timestamp(timestamp),
+                                  match_id, Quantity(quantity, quantity_type))
 
 
 class DeclineMatchPayload(MessagePayload):
-    class Implementation(MessagePayload.Implementation):
-        def __init__(self, meta, trader_id, message_number, timestamp, match_id, decline_reason):
-            assert isinstance(match_id, str), type(match_id)
-            assert isinstance(decline_reason, int), type(decline_reason)
-            super(DeclineMatchPayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
-            self._match_id = match_id
-            self._decline_reason = decline_reason
+    """
+    Payload for a declined match in the market community.
+    """
 
-        @property
-        def match_id(self):
-            return self._match_id
+    format_list = ['varlenI', 'I', 'f', 'varlenI', 'I']
 
-        @property
-        def decline_reason(self):
-            return self._decline_reason
+    def __init__(self, message_id, timestamp, match_id, decline_reason):
+        super(DeclineMatchPayload, self).__init__(message_id, timestamp)
+        self.match_id = match_id
+        self.decline_reason = decline_reason
+
+    def to_pack_list(self):
+        data = super(DeclineMatchPayload, self).to_pack_list()
+        data += [('varlenI', self.match_id),
+                 ('I', self.decline_reason)]
+        return data
+
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, match_id, decline_reason):
+        return DeclineMatchPayload(MessageId(TraderId(trader_id), MessageNumber(message_number)), Timestamp(timestamp),
+                                   match_id, decline_reason)
 
 
 class TradePayload(MessagePayload):
-    class Implementation(MessagePayload.Implementation):
-        def __init__(self, meta, trader_id, message_number, order_number, recipient_trader_id, recipient_order_number,
-                     proposal_id, price, quantity, timestamp, ip, port):
-            assert isinstance(order_number, OrderNumber), type(order_number)
-            assert isinstance(recipient_trader_id, TraderId), type(recipient_trader_id)
-            assert isinstance(recipient_order_number, OrderNumber), type(recipient_order_number)
-            assert isinstance(proposal_id, int), type(proposal_id)
-            assert isinstance(price, Price), type(price)
-            assert isinstance(quantity, Quantity), type(quantity)
-            super(TradePayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
-            self._order_number = order_number
-            self._recipient_trader_id = recipient_trader_id
-            self._recipient_order_number = recipient_order_number
-            self._proposal_id = proposal_id
-            self._price = price
-            self._quantity = quantity
-            self._ip = ip
-            self._port = port
+    """
+    Payload that contains a trade in the market community.
+    """
 
-        @property
-        def order_number(self):
-            return self._order_number
+    format_list = ['varlenI', 'I', 'f', 'I', 'varlenI', 'I', 'I', 'f', 'varlenI', 'f', 'varlenI', 'varlenI', 'I']
 
-        @property
-        def recipient_trader_id(self):
-            return self._recipient_trader_id
+    def __init__(self, message_id, timestamp, order_number, recipient_order_id, proposal_id, price, quantity, address):
+        super(TradePayload, self).__init__(message_id, timestamp)
+        self.order_number = order_number
+        self.recipient_order_id = recipient_order_id
+        self.proposal_id = proposal_id
+        self.price = price
+        self.quantity = quantity
+        self.address = address
 
-        @property
-        def recipient_order_number(self):
-            return self._recipient_order_number
+    def to_pack_list(self):
+        data = super(TradePayload, self).to_pack_list()
+        data += [('I', int(self.order_number)),
+                 ('varlenI', str(self.recipient_order_id.trader_id)),
+                 ('I', int(self.recipient_order_id.order_number)),
+                 ('I', self.proposal_id),
+                 ('f', float(self.price)),
+                 ('varlenI', self.price.wallet_id),
+                 ('f', float(self.quantity)),
+                 ('varlenI', self.quantity.wallet_id),
+                 ('varlenI', self.address.ip),
+                 ('I', self.address.port)]
+        return data
 
-        @property
-        def proposal_id(self):
-            return self._proposal_id
-
-        @property
-        def price(self):
-            return self._price
-
-        @property
-        def quantity(self):
-            return self._quantity
-
-        @property
-        def address(self):
-            return SocketAddress(self._ip, self._port)
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, order_number, recipient_trader_id,
+                         recipient_order_number, proposal_id, price, price_type, quantity, quantity_type, ip, port):
+        return TradePayload(MessageId(TraderId(trader_id), MessageNumber(message_number)), Timestamp(timestamp),
+                            OrderNumber(order_number),
+                            OrderId(TraderId(recipient_trader_id), OrderNumber(recipient_order_number)),
+                            proposal_id, Price(price, price_type),
+                            Quantity(quantity, quantity_type), SocketAddress(ip, port))
 
 
-class DeclinedTradePayload(MessagePayload):
-    class Implementation(MessagePayload.Implementation):
-        def __init__(self, meta, trader_id, message_number, order_number, recipient_trader_id, recipient_order_number,
-                     proposal_id, timestamp, decline_reason):
-            assert isinstance(order_number, OrderNumber), type(order_number)
-            assert isinstance(recipient_trader_id, TraderId), type(recipient_trader_id)
-            assert isinstance(recipient_order_number, OrderNumber), type(recipient_order_number)
-            assert isinstance(proposal_id, int), type(proposal_id)
-            assert isinstance(decline_reason, int), type(decline_reason)
-            super(DeclinedTradePayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
-            self._order_number = order_number
-            self._recipient_trader_id = recipient_trader_id
-            self._recipient_order_number = recipient_order_number
-            self._proposal_id = proposal_id
-            self._decline_reason = decline_reason
+class DeclineTradePayload(MessagePayload):
 
-        @property
-        def order_number(self):
-            return self._order_number
+    format_list = ['varlenI', 'I', 'f', 'I', 'varlenI', 'I', 'I', 'I']
 
-        @property
-        def recipient_trader_id(self):
-            return self._recipient_trader_id
+    def __init__(self, message_id, timestamp, order_number, recipient_order_id, proposal_id, decline_reason):
+        super(DeclineTradePayload, self).__init__(message_id, timestamp)
+        self.order_number = order_number
+        self.recipient_order_id = recipient_order_id
+        self.proposal_id = proposal_id
+        self.decline_reason = decline_reason
 
-        @property
-        def recipient_order_number(self):
-            return self._recipient_order_number
+    def to_pack_list(self):
+        data = super(DeclineTradePayload, self).to_pack_list()
+        data += [('I', int(self.order_number)),
+                 ('varlenI', str(self.recipient_order_id.trader_id)),
+                 ('I', int(self.recipient_order_id.order_number)),
+                 ('I', self.proposal_id),
+                 ('I', self.decline_reason)]
+        return data
 
-        @property
-        def proposal_id(self):
-            return self._proposal_id
-
-        @property
-        def decline_reason(self):
-            return self._decline_reason
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, order_number, recipient_trader_id,
+                         recipient_order_number, proposal_id, decline_reason):
+        return DeclineTradePayload(MessageId(TraderId(trader_id), MessageNumber(message_number)), Timestamp(timestamp),
+                                   OrderNumber(order_number),
+                                   OrderId(TraderId(recipient_trader_id), OrderNumber(recipient_order_number)),
+                                   proposal_id, decline_reason)
 
 
 class TransactionPayload(MessagePayload):
-    class Implementation(MessagePayload.Implementation):
-        def __init__(self, meta, trader_id, message_number, transaction_trader_id, transaction_number, timestamp):
-            assert isinstance(transaction_trader_id, TraderId), type(transaction_trader_id)
-            assert isinstance(transaction_number, TransactionNumber), type(transaction_number)
-            super(TransactionPayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
-            self._transaction_trader_id = transaction_trader_id
-            self._transaction_number = transaction_number
+    """
+    This payload contains a transaction in the market community.
+    """
 
-        @property
-        def transaction_trader_id(self):
-            return self._transaction_trader_id
+    format_list = ['varlenI', 'I', 'f', 'varlenI', 'I']
 
-        @property
-        def transaction_number(self):
-            return self._transaction_number
+    def __init__(self, message_id, timestamp, transaction_id):
+        super(TransactionPayload, self).__init__(message_id, timestamp)
+        self.transaction_id = transaction_id
+
+    def to_pack_list(self):
+        data = super(TransactionPayload, self).to_pack_list()
+        data += [('varlenI', str(self.transaction_id.trader_id)),
+                 ('I', int(self.transaction_id.transaction_number))]
+        return data
+
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, transaction_trader_id, transaction_number):
+        return TransactionPayload(MessageId(TraderId(trader_id), MessageNumber(message_number)), Timestamp(timestamp),
+                                  TransactionId(TraderId(transaction_trader_id), TransactionNumber(transaction_number)))
 
 
 class StartTransactionPayload(TransactionPayload):
-    class Implementation(TransactionPayload.Implementation):
-        def __init__(self, meta, trader_id, message_number, transaction_trader_id, transaction_number, order_trader_id,
-                     order_number, recipient_trader_id, recipient_order_number, proposal_id,
-                     price, quantity, timestamp):
-            assert isinstance(order_trader_id, TraderId), type(order_trader_id)
-            assert isinstance(order_number, OrderNumber), type(order_number)
-            assert isinstance(recipient_trader_id, TraderId), type(recipient_trader_id)
-            assert isinstance(recipient_order_number, OrderNumber), type(recipient_order_number)
-            assert isinstance(proposal_id, int), type(proposal_id)
-            assert isinstance(price, Price), type(price)
-            assert isinstance(quantity, Quantity), type(quantity)
-            super(StartTransactionPayload.Implementation, self).__init__(meta, trader_id, message_number,
-                                                                         transaction_trader_id, transaction_number,
-                                                                         timestamp)
-            self._order_trader_id = order_trader_id
-            self._order_number = order_number
-            self._recipient_trader_id = recipient_trader_id
-            self._recipient_order_number = recipient_order_number
-            self._proposal_id = proposal_id
-            self._price = price
-            self._quantity = quantity
+    """
+    This payload contains a transaction and order information in the market community.
+    """
 
-        @property
-        def order_trader_id(self):
-            return self._order_trader_id
+    format_list = ['varlenI', 'I', 'f', 'varlenI', 'I', 'varlenI', 'I', 'varlenI', 'I', 'I', 'f',
+                   'varlenI', 'f', 'varlenI']
 
-        @property
-        def order_number(self):
-            return self._order_number
+    def __init__(self, message_id, timestamp, transaction_id, order_id, recipient_order_id,
+                 proposal_id, price, quantity):
+        super(StartTransactionPayload, self).__init__(message_id, timestamp, transaction_id)
+        self.order_id = order_id
+        self.recipient_order_id = recipient_order_id
+        self.proposal_id = proposal_id
+        self.price = price
+        self.quantity = quantity
 
-        @property
-        def recipient_trader_id(self):
-            return self._recipient_trader_id
+    def to_pack_list(self):
+        data = super(StartTransactionPayload, self).to_pack_list()
+        data += [('varlenI', str(self.order_id.trader_id)),
+                 ('I', int(self.order_id.order_number)),
+                 ('varlenI', str(self.recipient_order_id.trader_id)),
+                 ('I', int(self.recipient_order_id.order_number)),
+                 ('I', self.proposal_id),
+                 ('f', float(self.price)),
+                 ('varlenI', self.price.wallet_id),
+                 ('f', float(self.quantity)),
+                 ('varlenI', self.quantity.wallet_id)]
+        return data
 
-        @property
-        def recipient_order_number(self):
-            return self._recipient_order_number
-
-        @property
-        def proposal_id(self):
-            return self._proposal_id
-
-        @property
-        def price(self):
-            return self._price
-
-        @property
-        def quantity(self):
-            return self._quantity
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, transaction_trader_id, transaction_number,
+                         order_trader_id, order_number, recipient_trader_id, recipient_order_number, proposal_id,
+                         price, price_type, quantity, quantity_type):
+        return StartTransactionPayload(MessageId(TraderId(trader_id), MessageNumber(message_number)),
+                                       Timestamp(timestamp), TransactionId(TraderId(transaction_trader_id),
+                                                                           TransactionNumber(transaction_number)),
+                                       OrderId(TraderId(order_trader_id), OrderNumber(order_number)),
+                                       OrderId(TraderId(recipient_trader_id), OrderNumber(recipient_order_number)),
+                                       proposal_id, Price(price, price_type), Quantity(quantity, quantity_type))
 
 
 class WalletInfoPayload(TransactionPayload):
-    class Implementation(TransactionPayload.Implementation):
-        def __init__(self, meta, trader_id, message_number, transaction_trader_id, transaction_number,
-                     incoming_address, outgoing_address, timestamp):
-            assert isinstance(incoming_address, WalletAddress), type(incoming_address)
-            assert isinstance(outgoing_address, WalletAddress), type(outgoing_address)
-            super(WalletInfoPayload.Implementation, self).__init__(meta, trader_id, message_number,
-                                                                   transaction_trader_id, transaction_number, timestamp)
-            self._incoming_address = incoming_address
-            self._outgoing_address = outgoing_address
+    """
+    This payload contains wallet information.
+    """
 
-        @property
-        def incoming_address(self):
-            return self._incoming_address
+    format_list = TransactionPayload.format_list + ['varlenI', 'varlenI']
 
-        @property
-        def outgoing_address(self):
-            return self._outgoing_address
+    def __init__(self, message_id, timestamp, transaction_id, incoming_address, outgoing_address):
+        super(WalletInfoPayload, self).__init__(message_id, timestamp, transaction_id)
+        self.incoming_address = incoming_address
+        self.outgoing_address = outgoing_address
+
+    def to_pack_list(self):
+        data = super(WalletInfoPayload, self).to_pack_list()
+        data += [('varlenI', str(self.incoming_address)),
+                 ('varlenI', str(self.outgoing_address))]
+        return data
+
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, transaction_trader_id, transaction_number,
+                         incoming_address, outgoing_address):
+        return WalletInfoPayload(MessageId(TraderId(trader_id), MessageNumber(message_number)), Timestamp(timestamp),
+                                 TransactionId(TraderId(transaction_trader_id), TransactionNumber(transaction_number)),
+                                 WalletAddress(incoming_address), WalletAddress(outgoing_address))
 
 
 class PaymentPayload(TransactionPayload):
-    class Implementation(TransactionPayload.Implementation):
-        def __init__(self, meta, trader_id, message_number, transaction_trader_id, transaction_number,
-                     transferee_quantity, transferee_price, address_from, address_to, payment_id, timestamp, success):
-            assert isinstance(transferee_quantity, Quantity), type(transferee_quantity)
-            assert isinstance(transferee_price, Price), type(transferee_price)
-            assert isinstance(address_from, WalletAddress), type(address_from)
-            assert isinstance(address_to, WalletAddress), type(address_to)
-            assert isinstance(payment_id, PaymentId), type(payment_id)
-            assert isinstance(success, bool), type(success)
-            super(PaymentPayload.Implementation, self).__init__(meta, trader_id, message_number,
-                                                                transaction_trader_id, transaction_number, timestamp)
-            self._transferee_quantity = transferee_quantity
-            self._transferee_price = transferee_price
-            self._address_from = address_from
-            self._address_to = address_to
-            self._payment_id = payment_id
-            self._success = success
+    """
+    This payload contains a payment in the market community.
+    """
 
-        @property
-        def transferee_quantity(self):
-            return self._transferee_quantity
+    format_list = TransactionPayload.format_list + ['f', 'varlenI', 'f', 'varlenI', 'varlenI', 'varlenI',
+                                                    'varlenI', '?']
 
-        @property
-        def transferee_price(self):
-            return self._transferee_price
+    def __init__(self, message_id, timestamp, transaction_id, transferee_quantity, transferee_price, address_from,
+                 address_to, payment_id, success):
+        super(PaymentPayload, self).__init__(message_id, timestamp, transaction_id)
+        self.transferee_quantity = transferee_quantity
+        self.transferee_price = transferee_price
+        self.address_from = address_from
+        self.address_to = address_to
+        self.payment_id = payment_id
+        self.success = success
 
-        @property
-        def address_from(self):
-            return self._address_from
+    def to_pack_list(self):
+        data = super(PaymentPayload, self).to_pack_list()
+        data += [('f', float(self.transferee_quantity)),
+                 ('varlenI', self.transferee_quantity.wallet_id),
+                 ('f', float(self.transferee_price)),
+                 ('varlenI', self.transferee_price.wallet_id),
+                 ('varlenI', str(self.address_from)),
+                 ('varlenI', str(self.address_to)),
+                 ('varlenI', str(self.payment_id)),
+                 ('?', self.success)]
+        return data
 
-        @property
-        def address_to(self):
-            return self._address_to
-
-        @property
-        def payment_id(self):
-            return self._payment_id
-
-        @property
-        def success(self):
-            return self._success
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, transaction_trader_id, transaction_number,
+                         transferee_quantity, transferee_quantity_type, transferee_price, transferee_price_type,
+                         address_from, address_to, payment_id, success):
+        return PaymentPayload(MessageId(TraderId(trader_id), MessageNumber(message_number)), Timestamp(timestamp),
+                              TransactionId(TraderId(transaction_trader_id), TransactionNumber(transaction_number)),
+                              Quantity(transferee_quantity, transferee_quantity_type),
+                              Price(transferee_price, transferee_price_type),
+                              WalletAddress(address_from), WalletAddress(address_to), PaymentId(payment_id),
+                              success)
 
 
 class OrderStatusRequestPayload(MessagePayload):
-    class Implementation(MessagePayload.Implementation):
-        def __init__(self, meta, trader_id, message_number, timestamp, order_trader_id, order_number, identifier):
-            assert isinstance(order_trader_id, TraderId), type(order_trader_id)
-            assert isinstance(order_number, OrderNumber), type(order_number)
-            assert isinstance(identifier, int), type(identifier)
-            super(OrderStatusRequestPayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
-            self._order_trader_id = order_trader_id
-            self._order_number = order_number
-            self._identifier = identifier
+    """
+    This payload contains a request for an order status.
+    """
 
-        @property
-        def order_trader_id(self):
-            return self._order_trader_id
+    format_list = ['varlenI', 'I', 'f', 'varlenI', 'I', 'I']
 
-        @property
-        def order_number(self):
-            return self._order_number
+    def __init__(self, message_id, timestamp, order_id, identifier):
+        super(OrderStatusRequestPayload, self).__init__(message_id, timestamp)
+        self.order_id = order_id
+        self.identifier = identifier
 
-        @property
-        def identifier(self):
-            return self._identifier
+    def to_pack_list(self):
+        data = super(OrderStatusRequestPayload, self).to_pack_list()
+        data += [('varlenI', str(self.order_id.trader_id)),
+                 ('I', int(self.order_id.order_number)),
+                 ('I', self.identifier)]
+        return data
+
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, order_trader_id, order_number, identifier):
+        return OrderStatusRequestPayload(MessageId(TraderId(trader_id), MessageNumber(message_number)),
+                                         Timestamp(timestamp),
+                                         OrderId(TraderId(order_trader_id), OrderNumber(order_number)), identifier)
 
 
 class OrderStatusResponsePayload(OfferPayload):
-    class Implementation(OfferPayload.Implementation):
-        def __init__(self, meta, trader_id, message_number, order_number, price, quantity, timeout, timestamp,
-                     traded_quantity, ip, port, identifier):
-            assert isinstance(traded_quantity, Quantity), type(traded_quantity)
-            super(OrderStatusResponsePayload.Implementation, self).__init__(meta, trader_id, message_number,
-                                                                            order_number, price, quantity, timeout,
-                                                                            timestamp, ip, port)
-            self._traded_quantity = traded_quantity
-            self._identifier = identifier
+    """
+    This payload contains the status of an order in the market community.
+    """
 
-        @property
-        def traded_quantity(self):
-            return self._traded_quantity
+    format_list = OfferPayload.format_list + ['f', 'varlenI', 'I']
 
-        @property
-        def identifier(self):
-            return self._identifier
+    def __init__(self, message_id, timestamp, order_number, price, quantity, timeout, address,
+                 traded_quantity, identifier):
+        super(OrderStatusResponsePayload, self).__init__(message_id, timestamp, order_number, price, quantity,
+                                                         timeout, address)
+        self.traded_quantity = traded_quantity
+        self.identifier = identifier
+
+    def to_pack_list(self):
+        data = super(OrderStatusResponsePayload, self).to_pack_list()
+        data += [('f', float(self.traded_quantity)),
+                 ('varlenI', self.traded_quantity.wallet_id),
+                 ('I', self.identifier)]
+        return data
+
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, order_number, price, price_type, quantity,
+                         quantity_type, timeout, ip, port, traded_quantity, traded_quantity_type, identifier):
+        return OrderStatusResponsePayload(MessageId(TraderId(trader_id), MessageNumber(message_number)),
+                                          Timestamp(timestamp), OrderNumber(order_number), Price(price, price_type),
+                                          Quantity(quantity, quantity_type), Timeout(timeout), SocketAddress(ip, port),
+                                          Quantity(traded_quantity, traded_quantity_type), identifier)

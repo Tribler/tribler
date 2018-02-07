@@ -24,7 +24,8 @@ class TestReputationBase(AbstractServer):
                 "quantity": float(quantity),
                 "price_type": price.wallet_id,
                 "price": float(price)
-            }
+            },
+            "type": "tx_done"
         }
         block = TradeChainBlock.create(transaction, self.market_db, pubkey1, link=None, link_pk=pubkey2)
         link_block = TradeChainBlock.create(transaction, self.market_db, pubkey2, link=block, link_pk=pubkey1)

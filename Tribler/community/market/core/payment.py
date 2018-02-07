@@ -37,7 +37,7 @@ class Payment(Message):
         trader_id, message_number, transaction_trader_id, transaction_number, payment_id, transferee_quantity,\
         quantity_type, transferee_price, price_type, address_from, address_to, timestamp, success = data
 
-        message_id = MessageId(TraderId(str(trader_id)), MessageNumber(str(message_number)))
+        message_id = MessageId(TraderId(str(trader_id)), MessageNumber(int(message_number)))
         transaction_id = TransactionId(TraderId(str(transaction_trader_id)), TransactionNumber(transaction_number))
         return cls(message_id, transaction_id, Quantity(transferee_quantity, str(quantity_type)),
                    Price(transferee_price, str(price_type)), WalletAddress(str(address_from)),
@@ -93,28 +93,16 @@ class Payment(Message):
         :return: Restored payment
         :rtype: Payment
         """
-        assert hasattr(data, 'trader_id'), isinstance(data.trader_id, TraderId)
-        assert hasattr(data, 'message_number'), isinstance(data.message_number, MessageNumber)
-        assert hasattr(data, 'transaction_trader_id'), isinstance(data.transaction_trader_id, TraderId)
-        assert hasattr(data, 'transaction_number'), isinstance(data.transaction_number, TransactionNumber)
-        assert hasattr(data, 'transferee_quantity'), isinstance(data.transferee_quantity, Quantity)
-        assert hasattr(data, 'transferee_price'), isinstance(data.transferee_price, Price)
-        assert hasattr(data, 'address_from'), isinstance(data.address_from, WalletAddress)
-        assert hasattr(data, 'address_to'), isinstance(data.address_to, WalletAddress)
-        assert hasattr(data, 'payment_id'), isinstance(data.payment_id, PaymentId)
-        assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
-        assert hasattr(data, 'success'), isinstance(data.success, bool)
-
         return cls(
-            MessageId(data.trader_id, data.message_number),
-            TransactionId(data.transaction_trader_id, data.transaction_number),
+            data.message_id,
+            data.transaction_id,
             data.transferee_quantity,
             data.transferee_price,
             data.address_from,
             data.address_to,
             data.payment_id,
             data.timestamp,
-            data.success,
+            data.success
         )
 
     def to_network(self):
@@ -122,16 +110,14 @@ class Payment(Message):
         Return network representation of the multi chain payment
         """
         return (
-            self._message_id.trader_id,
-            self._message_id.message_number,
-            self._transaction_id.trader_id,
-            self._transaction_id.transaction_number,
+            self._message_id,
+            self._timestamp,
+            self._transaction_id,
             self._transferee_quantity,
             self._transferee_price,
             self._address_from,
             self._address_to,
             self._payment_id,
-            self._timestamp,
             self._success
         )
 

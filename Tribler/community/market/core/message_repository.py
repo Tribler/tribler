@@ -31,4 +31,4 @@ class MemoryMessageRepository(MessageRepository):
         :rtype: MessageId
         """
         self._next_id += 1
-        return MessageId(TraderId(self._mid), MessageNumber(str(self._next_id)))
+        return MessageId(TraderId(self._mid), MessageNumber(self._next_id))

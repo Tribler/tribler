@@ -144,13 +144,12 @@ class Tick(object):
         Return network representation of the tick
         """
         return (
-            self._order_id.trader_id,
-            message_id.message_number,
+            MessageId(self._order_id.trader_id, message_id.message_number),
+            self._timestamp,
             self._order_id.order_number,
             self._price,
             self._quantity,
             self._timeout,
-            self._timestamp,
         )
 
     def to_block_dict(self):

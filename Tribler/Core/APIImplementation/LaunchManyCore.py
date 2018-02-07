@@ -248,6 +248,42 @@ class TriblerLaunchMany(TaskManager):
             from Tribler.pyipv8.ipv8.peerdiscovery.discovery import RandomWalk
             self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
 
+        # Market Community
+        if self.session.config.get_market_community_enabled():
+            wallets = {}
+
+            try:
+                from Tribler.community.market.wallet.btc_wallet import BitcoinWallet
+                btc_wallet = BitcoinWallet(os.path.join(self.session.config.get_state_dir(), 'wallet'),
+                                           testnet=self.session.config.get_btc_testnet())
+                wallets[btc_wallet.get_identifier()] = btc_wallet
+            except ImportError:
+                self._logger.error("Electrum wallet cannot be found, Bitcoin trading not available!")
+
+            mc_wallet = TrustchainWallet(self.triblerchain_community)
+            wallets[mc_wallet.get_identifier()] = mc_wallet
+
+            if self.session.config.get_dummy_wallets_enabled():
+                # For debugging purposes, we create dummy wallets
+                dummy_wallet1 = DummyWallet1()
+                wallets[dummy_wallet1.get_identifier()] = dummy_wallet1
+
+                dummy_wallet2 = DummyWallet2()
+                wallets[dummy_wallet2.get_identifier()] = dummy_wallet2
+
+            from Tribler.community.market.community import MarketCommunity
+            market_peer = Peer(self.session.tradechain_keypair)
+
+            self.market_community = MarketCommunity(market_peer, self.ipv8.endpoint, self.ipv8.network,
+                                                    tribler_session=self.session,
+                                                    wallets=wallets,
+                                                    working_directory=self.session.config.get_state_dir())
+
+            self.ipv8.overlays.append(self.market_community)
+
+            from Tribler.pyipv8.ipv8.peerdiscovery.discovery import RandomWalk
+            self.ipv8.strategies.append((RandomWalk(self.market_community), 20))
+
     @blocking_call_on_reactor_thread
     def load_dispersy_communities(self):
         self._logger.info("tribler: Preparing Dispersy communities...")
@@ -277,37 +313,6 @@ class TriblerLaunchMany(TaskManager):
             from Tribler.community.channel.preview import PreviewChannelCommunity
             self.dispersy.define_auto_load(PreviewChannelCommunity,
                                            self.session.dispersy_member, kargs=default_kwargs)
-
-        # Use the permanent TradeChain ID for Market community/TradeChain if it's available
-        if self.session.config.get_market_community_enabled() and self.dispersy:
-            wallets = {}
-
-            try:
-                from Tribler.community.market.wallet.btc_wallet import BitcoinWallet
-                btc_wallet = BitcoinWallet(os.path.join(self.session.config.get_state_dir(), 'wallet'),
-                                           testnet=self.session.config.get_btc_testnet())
-                wallets[btc_wallet.get_identifier()] = btc_wallet
-            except ImportError:
-                self._logger.error("Electrum wallet cannot be found, Bitcoin trading not available!")
-
-            mc_wallet = TrustchainWallet(self.triblerchain_community)
-            wallets[mc_wallet.get_identifier()] = mc_wallet
-
-            if self.session.config.get_dummy_wallets_enabled():
-                # For debugging purposes, we create dummy wallets
-                dummy_wallet1 = DummyWallet1()
-                wallets[dummy_wallet1.get_identifier()] = dummy_wallet1
-
-                dummy_wallet2 = DummyWallet2()
-                wallets[dummy_wallet2.get_identifier()] = dummy_wallet2
-
-            from Tribler.community.market.community import MarketCommunity
-            keypair = self.session.tradechain_keypair
-            dispersy_member = self.dispersy.get_member(private_key=keypair.key_to_bin())
-
-            market_kwargs = {'tribler_session': self.session, 'wallets': wallets}
-            self.market_community = self.dispersy.define_auto_load(MarketCommunity, dispersy_member,
-                                                                   load=True, kargs=market_kwargs)[0]
 
         self._logger.info("tribler: communities are ready in %.2f seconds", timemod.time() - now_time)
 

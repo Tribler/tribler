@@ -15,7 +15,7 @@ class PaymentTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.payment = Payment(MessageId(TraderId("0"), MessageNumber("1")),
+        self.payment = Payment(MessageId(TraderId("0"), MessageNumber(1)),
                                TransactionId(TraderId('2'), TransactionNumber(2)),
                                Quantity(3, 'MC'), Price(2, 'BTC'),
                                WalletAddress('a'), WalletAddress('b'),
@@ -24,10 +24,8 @@ class PaymentTestSuite(unittest.TestCase):
     def test_from_network(self):
         # Test for from network
         data = Payment.from_network(
-            type('Data', (object,), {"trader_id": TraderId("0"),
-                                     "message_number": MessageNumber("1"),
-                                     "transaction_trader_id": TraderId('2'),
-                                     "transaction_number": TransactionNumber(2),
+            type('Data', (object,), {"message_id": MessageId(TraderId("0"), MessageNumber(1)),
+                                     "transaction_id": TransactionId(TraderId('2'), TransactionNumber(2)),
                                      "transferee_quantity": Quantity(3, 'MC'),
                                      "transferee_price": Price(2, 'BTC'),
                                      "address_from": WalletAddress('a'),
@@ -36,7 +34,7 @@ class PaymentTestSuite(unittest.TestCase):
                                      "timestamp": Timestamp(4.0),
                                      "success": True}))
 
-        self.assertEquals(MessageId(TraderId("0"), MessageNumber("1")), data.message_id)
+        self.assertEquals(MessageId(TraderId("0"), MessageNumber(1)), data.message_id)
         self.assertEquals(TransactionId(TraderId('2'), TransactionNumber(2)), data.transaction_id)
         self.assertEquals(Quantity(3, 'MC'), data.transferee_quantity)
         self.assertEquals(Price(2, 'BTC'), data.transferee_price)
@@ -47,17 +45,15 @@ class PaymentTestSuite(unittest.TestCase):
         # Test for to network
         data = self.payment.to_network()
 
-        self.assertEquals(data[0], TraderId("0"))
-        self.assertEquals(data[1], MessageNumber("1"))
-        self.assertEquals(data[2], TraderId("2"))
-        self.assertEquals(data[3], TransactionNumber(2))
-        self.assertEquals(data[4], Quantity(3, 'MC'))
-        self.assertEquals(data[5], Price(2, 'BTC'))
-        self.assertEquals(data[6], WalletAddress('a'))
-        self.assertEquals(data[7], WalletAddress('b'))
-        self.assertEquals(data[8], PaymentId('aaa'))
-        self.assertEquals(data[9], Timestamp(4.0))
-        self.assertEquals(data[10], True)
+        self.assertEquals(data[0], MessageId(TraderId("0"), MessageNumber(1)))
+        self.assertEquals(data[1], Timestamp(4.0))
+        self.assertEquals(data[2], TransactionId(TraderId("2"), TransactionNumber(2)))
+        self.assertEquals(data[3], Quantity(3, 'MC'))
+        self.assertEquals(data[4], Price(2, 'BTC'))
+        self.assertEquals(data[5], WalletAddress('a'))
+        self.assertEquals(data[6], WalletAddress('b'))
+        self.assertEquals(data[7], PaymentId('aaa'))
+        self.assertEquals(data[8], True)
 
     def test_to_dictionary(self):
         """

@@ -43,7 +43,7 @@ class TestDatabase(AbstractServer):
                                         OrderId(TraderId("0"), OrderNumber(1)), OrderId(TraderId("1"), OrderNumber(2)),
                                         Timestamp(20.0))
 
-        self.payment1 = Payment(MessageId(TraderId("0"), MessageNumber("4")), self.transaction_id1, Quantity(5, 'MC'),
+        self.payment1 = Payment(MessageId(TraderId("0"), MessageNumber(4)), self.transaction_id1, Quantity(5, 'MC'),
                                 Price(6, 'BTC'), WalletAddress('abc'), WalletAddress('def'), PaymentId("abc"),
                                 Timestamp(20.0), False)
 

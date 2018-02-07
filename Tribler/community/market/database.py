@@ -10,9 +10,7 @@ from Tribler.community.market.core.payment import Payment
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.transaction import Transaction, TransactionId, TransactionNumber
-from Tribler.community.trustchain.database import TrustChainDB
-from Tribler.dispersy.database import Database
-
+from Tribler.pyipv8.ipv8.attestation.trustchain.database import TrustChainDB
 
 DATABASE_DIRECTORY = path.join(u"sqlite")
 # Path to the database location + dispersy._workingdirectory
@@ -157,7 +155,7 @@ class MarketDB(TrustChainDB):
         """
         Return all orders in the database.
         """
-        db_result = self.execute(u"SELECT * FROM orders").fetchall()
+        db_result = self.execute(u"SELECT * FROM orders")
         return [Order.from_database(db_item, self.get_reserved_ticks(
             OrderId(TraderId(str(db_item[0])), OrderNumber(db_item[1])))) for db_item in db_result]
 
@@ -165,9 +163,12 @@ class MarketDB(TrustChainDB):
         """
         Return an order with a specific id.
         """
-        db_result = self.execute(u"SELECT * FROM orders WHERE trader_id = ? AND order_number = ?",
-                                 (unicode(order_id.trader_id), unicode(order_id.order_number))).fetchone()
-        return Order.from_database(db_result, self.get_reserved_ticks(order_id)) if db_result else None
+        try:
+            db_result = self.execute(u"SELECT * FROM orders WHERE trader_id = ? AND order_number = ?",
+                                     (unicode(order_id.trader_id), unicode(order_id.order_number))).next()
+        except StopIteration:
+            return None
+        return Order.from_database(db_result, self.get_reserved_ticks(order_id))
 
     def add_order(self, order):
         """
@@ -196,7 +197,7 @@ class MarketDB(TrustChainDB):
         """
         Return the next order number from the database
         """
-        highest_order_number = self.execute(u"SELECT MAX(order_number) FROM orders").fetchone()
+        highest_order_number = self.execute(u"SELECT MAX(order_number) FROM orders").next()
         if not highest_order_number[0]:
             return 1
         return highest_order_number[0] + 1
@@ -225,7 +226,7 @@ class MarketDB(TrustChainDB):
         Get all reserved ticks for a specific order.
         """
         db_results = self.execute(u"SELECT * FROM orders_reserved_ticks WHERE trader_id = ? AND order_number = ?",
-                                  (unicode(order_id.trader_id), unicode(order_id.order_number))).fetchall()
+                                  (unicode(order_id.trader_id), unicode(order_id.order_number)))
         return [(OrderId(TraderId(str(data[2])), OrderNumber(data[3])),
                  Quantity(data[4], str(data[5]))) for data in db_results]
 
@@ -233,7 +234,7 @@ class MarketDB(TrustChainDB):
         """
         Return all transactions in the database.
         """
-        db_result = self.execute(u"SELECT * FROM transactions").fetchall()
+        db_result = self.execute(u"SELECT * FROM transactions")
         return [Transaction.from_database(db_item,
                                           self.get_payments(TransactionId(TraderId(str(db_item[0])),
                                                                           TransactionNumber(db_item[1]))))
@@ -243,10 +244,13 @@ class MarketDB(TrustChainDB):
         """
         Return a transaction with a specific id.
         """
-        db_result = self.execute(u"SELECT * FROM transactions WHERE trader_id = ? AND transaction_number = ?",
-                                 (unicode(transaction_id.trader_id),
-                                  unicode(transaction_id.transaction_number))).fetchone()
-        return Transaction.from_database(db_result, self.get_payments(transaction_id)) if db_result else None
+        try:
+            db_result = self.execute(u"SELECT * FROM transactions WHERE trader_id = ? AND transaction_number = ?",
+                                     (unicode(transaction_id.trader_id),
+                                      unicode(transaction_id.transaction_number))).next()
+        except StopIteration:
+            return None
+        return Transaction.from_database(db_result, self.get_payments(transaction_id))
 
     def add_transaction(self, transaction):
         """
@@ -276,7 +280,7 @@ class MarketDB(TrustChainDB):
         """
         Return the next transaction number from the database
         """
-        highest_transaction_number = self.execute(u"SELECT MAX(transaction_number) FROM transactions").fetchone()
+        highest_transaction_number = self.execute(u"SELECT MAX(transaction_number) FROM transactions").next()
         if not highest_transaction_number[0]:
             return 1
         return highest_transaction_number[0] + 1
@@ -298,7 +302,7 @@ class MarketDB(TrustChainDB):
         db_result = self.execute(u"SELECT * FROM payments WHERE transaction_trader_id = ? AND transaction_number = ?"
                                  u"ORDER BY timestamp ASC",
                                  (unicode(transaction_id.trader_id),
-                                  unicode(transaction_id.transaction_number))).fetchall()
+                                  unicode(transaction_id.transaction_number)))
         return [Payment.from_database(db_item) for db_item in db_result]
 
     def delete_payments(self, transaction_id):
@@ -328,14 +332,14 @@ class MarketDB(TrustChainDB):
         """
         Get all ticks present in the database.
         """
-        return [Tick.from_database(db_tick) for db_tick in self.execute(u"SELECT * FROM ticks").fetchall()]
+        return [Tick.from_database(db_tick) for db_tick in self.execute(u"SELECT * FROM ticks")]
 
     def add_trader_identity(self, trader_id, ip, port):
         self.execute(u"INSERT OR REPLACE INTO traders VALUES(?,?,?)", (unicode(trader_id), unicode(ip), port))
         self.commit()
 
     def get_traders(self):
-        return self.execute(u"SELECT * FROM traders").fetchall()
+        return [res for res in self.execute(u"SELECT * FROM traders")]
 
     def open(self, initial_statements=True, prepare_visioning=True):
         return super(MarketDB, self).open(initial_statements, prepare_visioning)

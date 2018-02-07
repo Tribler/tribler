@@ -26,11 +26,11 @@ class TransactionManagerTestSuite(unittest.TestCase):
         self.transaction = Transaction(self.transaction_id, Price(100, 'BTC'), Quantity(30, 'MC'),
                                        OrderId(TraderId('3'), OrderNumber(2)),
                                        OrderId(TraderId('2'), OrderNumber(1)), Timestamp(0.0))
-        self.proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber('message_number')),
+        self.proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber(1)),
                                             OrderId(TraderId('0'), OrderNumber(1)),
                                             OrderId(TraderId('1'), OrderNumber(2)),
                                             Price(63400, 'BTC'), Quantity(30, 'MC'), Timestamp(1462224447.117))
-        self.start_transaction = StartTransaction(MessageId(TraderId('0'), MessageNumber('1')),
+        self.start_transaction = StartTransaction(MessageId(TraderId('0'), MessageNumber(1)),
                                                   TransactionId(TraderId("0"), TransactionNumber(1)),
                                                   OrderId(TraderId('0'), OrderNumber(1)),
                                                   OrderId(TraderId('1'), OrderNumber(2)), 1235,
@@ -66,7 +66,7 @@ class TransactionManagerTestSuite(unittest.TestCase):
         self.transaction.outgoing_address = WalletAddress('def')
         self.transaction.partner_incoming_address = WalletAddress('ghi')
         self.transaction.partner_outgoing_address = WalletAddress('jkl')
-        payment_msg = self.transaction_manager.create_payment_message(MessageId(TraderId("0"), MessageNumber('3')),
+        payment_msg = self.transaction_manager.create_payment_message(MessageId(TraderId("0"), MessageNumber(3)),
                                                                       PaymentId('abc'), self.transaction,
                                                                       (Quantity(3, 'MC'), Price(4, 'BTC')),
                                                                       True)

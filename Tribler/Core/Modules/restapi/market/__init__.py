@@ -16,8 +16,7 @@ class BaseMarketEndpoint(resource.Resource):
         self.session = session
 
     def get_market_community(self):
-        for community in self.session.get_dispersy_instance().get_communities():
-            if isinstance(community, MarketCommunity):
-                return community
+        if not self.session.lm.market_community:
+            raise RuntimeError("Market community cannot be found!")
 
-        raise RuntimeError("Market community cannot be found!")
+        return self.session.lm.market_community

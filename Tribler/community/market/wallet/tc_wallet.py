@@ -5,6 +5,7 @@ from twisted.internet.task import LoopingCall
 
 from Tribler.community.market.wallet.wallet import Wallet, InsufficientFunds
 
+
 MEGA_DIV = 1024 * 1024
 
 

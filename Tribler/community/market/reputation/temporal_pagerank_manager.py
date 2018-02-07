@@ -1,7 +1,7 @@
 import networkx as nx
 
 from Tribler.community.market.reputation.reputation_manager import ReputationManager
-from Tribler.community.trustchain.block import UNKNOWN_SEQ
+from Tribler.pyipv8.ipv8.attestation.trustchain.block import UNKNOWN_SEQ
 
 
 class TemporalPagerankReputationManager(ReputationManager):
@@ -15,7 +15,7 @@ class TemporalPagerankReputationManager(ReputationManager):
         G = nx.DiGraph()
 
         for block in self.blocks:
-            if block.link_sequence_number == UNKNOWN_SEQ:
+            if block.link_sequence_number == UNKNOWN_SEQ or block.transaction['type'] != 'tx_done':
                 continue  # Don't consider half interactions
 
             pubkey_requester = block.link_public_key

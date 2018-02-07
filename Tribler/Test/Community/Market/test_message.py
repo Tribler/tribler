@@ -41,13 +41,13 @@ class MessageNumberTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.message_number = MessageNumber('message_number')
-        self.message_number2 = MessageNumber('message_number')
-        self.message_number3 = MessageNumber('message_number_2')
+        self.message_number = MessageNumber(1)
+        self.message_number2 = MessageNumber(1)
+        self.message_number3 = MessageNumber(3)
 
     def test_conversion(self):
         # Test for conversions
-        self.assertEqual('message_number', str(self.message_number))
+        self.assertEqual('1', str(self.message_number))
 
     def test_init(self):
         # Test for init validation
@@ -72,9 +72,9 @@ class MessageIdTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.message_id = MessageId(TraderId('0'), MessageNumber('message_number'))
-        self.message_id2 = MessageId(TraderId('0'), MessageNumber('message_number'))
-        self.message_id3 = MessageId(TraderId('0'), MessageNumber('message_number2'))
+        self.message_id = MessageId(TraderId('0'), MessageNumber(1))
+        self.message_id2 = MessageId(TraderId('0'), MessageNumber(1))
+        self.message_id3 = MessageId(TraderId('0'), MessageNumber(2))
 
     def test_properties(self):
         # Test for properties
@@ -82,7 +82,7 @@ class MessageIdTestSuite(unittest.TestCase):
 
     def test_conversion(self):
         # Test for conversions
-        self.assertEqual('0.message_number', str(self.message_id))
+        self.assertEqual('0.1', str(self.message_id))
 
     def test_equality(self):
         # Test for equality
