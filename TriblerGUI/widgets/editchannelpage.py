@@ -524,6 +524,10 @@ class EditChannelPage(QWidget):
             self.load_channel_rss_feeds()
 
     def on_rss_feeds_remove_selected_clicked(self):
+        if len(self.window().edit_channel_rss_feeds_list.selectedItems()) == 0:
+            ConfirmationDialog.show_message(self, "Remove RSS Feeds",
+                                            "Selection is empty. Please select the feeds to remove.", "OK")
+            return
         self.dialog = ConfirmationDialog(self, "Remove RSS feed",
                                          "Are you sure you want to remove the selected RSS feed?",
                                          [('REMOVE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)])
