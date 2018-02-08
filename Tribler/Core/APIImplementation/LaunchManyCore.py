@@ -70,7 +70,6 @@ class TriblerLaunchMany(TaskManager):
         self.upnp_ports = []
 
         self.session = None
-        self.session_lock = None
         self.sessdoneflag = Event()
 
         self.shutdownstarttime = None
@@ -109,13 +108,12 @@ class TriblerLaunchMany(TaskManager):
         self.credit_mining_manager = None
         self.market_community = None
 
-    def register(self, session, session_lock):
+    def register(self, session):
         assert isInIOThread()
         if not self.registered:
             self.registered = True
 
             self.session = session
-            self.session_lock = session_lock
 
             # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
             # certificates provided by the system trust store.
@@ -430,40 +428,39 @@ class TriblerLaunchMany(TaskManager):
     def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,
             share_mode=False, checkpoint_disabled=False):
         """ Called by any thread """
-        with self.session_lock:
-            if not isinstance(tdef, TorrentDefNoMetainfo) and not tdef.is_finalized():
-                raise ValueError("TorrentDef not finalized")
+        if not isinstance(tdef, TorrentDefNoMetainfo) and not tdef.is_finalized():
+            raise ValueError("TorrentDef not finalized")
 
-            infohash = tdef.get_infohash()
+        infohash = tdef.get_infohash()
 
-            # Create the destination directory if it does not exist yet
-            try:
-                if not os.path.isdir(dscfg.get_dest_dir()):
-                    os.makedirs(dscfg.get_dest_dir())
-            except OSError:
-                self._logger.error("Unable to create the download destination directory.")
+        # Create the destination directory if it does not exist yet
+        try:
+            if not os.path.isdir(dscfg.get_dest_dir()):
+                os.makedirs(dscfg.get_dest_dir())
+        except OSError:
+            self._logger.error("Unable to create the download destination directory.")
 
-            if dscfg.get_time_added() == 0:
-                dscfg.set_time_added(int(timemod.time()))
+        if dscfg.get_time_added() == 0:
+            dscfg.set_time_added(int(timemod.time()))
 
-            # Check if running or saved on disk
-            if infohash in self.downloads:
-                raise DuplicateDownloadException("This download already exists.")
+        # Check if running or saved on disk
+        if infohash in self.downloads:
+            raise DuplicateDownloadException("This download already exists.")
 
-            from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
-            d = LibtorrentDownloadImpl(self.session, tdef)
+        from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
+        d = LibtorrentDownloadImpl(self.session, tdef)
 
-            if pstate is None:  # not already resuming
-                pstate = self.load_download_pstate_noexc(infohash)
-                if pstate is not None:
-                    self._logger.debug("tlm: add: pstate is %s %s",
-                                       pstate.get('dlstate', 'status'), pstate.get('dlstate', 'progress'))
+        if pstate is None:  # not already resuming
+            pstate = self.load_download_pstate_noexc(infohash)
+            if pstate is not None:
+                self._logger.debug("tlm: add: pstate is %s %s",
+                                   pstate.get('dlstate', 'status'), pstate.get('dlstate', 'progress'))
 
-            # Store in list of Downloads, always.
-            self.downloads[infohash] = d
-            setup_deferred = d.setup(dscfg, pstate, wrapperDelay=setupDelay,
-                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled)
-            setup_deferred.addCallback(self.on_download_handle_created)
+        # Store in list of Downloads, always.
+        self.downloads[infohash] = d
+        setup_deferred = d.setup(dscfg, pstate, wrapperDelay=setupDelay,
+                                 share_mode=share_mode, checkpoint_disabled=checkpoint_disabled)
+        setup_deferred.addCallback(self.on_download_handle_created)
 
         if d and not hidden and self.session.config.get_megacache_enabled():
             @forceDBThread
@@ -493,11 +490,10 @@ class TriblerLaunchMany(TaskManager):
 
     def remove(self, d, removecontent=False, removestate=True, hidden=False):
         """ Called by any thread """
-        with self.session_lock:
-            out = d.stop_remove(removestate=removestate, removecontent=removecontent)
-            infohash = d.get_def().get_infohash()
-            if infohash in self.downloads:
-                del self.downloads[infohash]
+        out = d.stop_remove(removestate=removestate, removecontent=removecontent)
+        infohash = d.get_def().get_infohash()
+        if infohash in self.downloads:
+            del self.downloads[infohash]
 
         if not hidden:
             self.remove_id(infohash)
@@ -519,17 +515,14 @@ class TriblerLaunchMany(TaskManager):
 
     def get_downloads(self):
         """ Called by any thread """
-        with self.session_lock:
-            return self.downloads.values()  # copy, is mutable
+        return self.downloads.values()  # copy, is mutable
 
     def get_download(self, infohash):
         """ Called by any thread """
-        with self.session_lock:
-            return self.downloads.get(infohash, None)
+        return self.downloads.get(infohash, None)
 
     def download_exists(self, infohash):
-        with self.session_lock:
-            return infohash in self.downloads
+        return infohash in self.downloads
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -681,9 +674,8 @@ class TriblerLaunchMany(TaskManager):
         """ Called by any thread """
 
         def do_load_checkpoint():
-            with self.session_lock:
-                for i, filename in enumerate(iglob(os.path.join(self.session.get_downloads_pstate_dir(), '*.state'))):
-                    self.resume_download(filename, setupDelay=i * 0.1)
+            for i, filename in enumerate(iglob(os.path.join(self.session.get_downloads_pstate_dir(), '*.state'))):
+                self.resume_download(filename, setupDelay=i * 0.1)
 
         if self.initComplete:
             do_load_checkpoint()
@@ -691,7 +683,6 @@ class TriblerLaunchMany(TaskManager):
             self.register_task("load_checkpoint", reactor.callLater(1, do_load_checkpoint))
 
     def load_download_pstate_noexc(self, infohash):
-        """ Called by any thread, assume session_lock already held """
         try:
             basename = binascii.hexlify(infohash) + '.state'
             filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
@@ -817,7 +808,6 @@ class TriblerLaunchMany(TaskManager):
 
         self.cancel_all_pending_tasks()
 
-        # Note: session_lock not held
         self.shutdownstarttime = timemod.time()
         if self.credit_mining_manager:
             yield self.credit_mining_manager.shutdown()

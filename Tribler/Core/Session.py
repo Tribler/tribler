@@ -16,7 +16,6 @@ from twisted.python.log import addObserver
 from twisted.python.threadable import isInIOThread
 
 import Tribler.Core.permid as permid_module
-from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_FILE_RELATIVE_PATH, DB_DIR_NAME
@@ -64,8 +63,6 @@ class Session(object):
         patch_crypto_be_discovery()
 
         self._logger = logging.getLogger(self.__class__.__name__)
-
-        self.session_lock = NoDispersyRLock()
 
         self.config = config or TriblerConfig()
         self.get_ports_in_config()
@@ -276,14 +273,11 @@ class Session(object):
         """
         Stops the download and removes it from the session.
 
-        Note that LaunchManyCore locks.
-
         :param download: the Download to remove
         :param remove_content: whether to delete the already downloaded content from disk
         :param remove_state: whether to delete the metadata files of the downloaded content from disk
         :param hidden: whether this torrent is added to the mypreference table and this entry should be removed
         """
-        # locking by lm
         return self.lm.remove(download, removecontent=remove_content, removestate=remove_state, hidden=hidden)
 
     def remove_download_by_id(self, infohash, remove_content=False, remove_state=True):
@@ -464,7 +458,7 @@ class Session(object):
             self.readable_status = STATE_UPGRADING_READABLE
             upgrader.run()
 
-        startup_deferred = self.lm.register(self, self.session_lock)
+        startup_deferred = self.lm.register(self)
 
         def load_checkpoint(_):
             if self.config.get_libtorrent_enabled():

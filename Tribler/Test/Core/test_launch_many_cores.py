@@ -3,7 +3,6 @@ from nose.tools import raises
 
 from twisted.internet.defer import Deferred
 
-from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
@@ -28,7 +27,6 @@ class TestLaunchManyCore(TriblerCoreTest):
     def setUp(self, annotate=True):
         TriblerCoreTest.setUp(self, annotate=annotate)
         self.lm = TriblerLaunchMany()
-        self.lm.session_lock = NoDispersyRLock()
         self.lm.session = MockObject()
         self.lm.session.config = MockObject()
         self.lm.session.config.get_max_upload_rate = lambda: 100
