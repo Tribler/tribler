@@ -164,6 +164,7 @@ class LibtorrentMgr(TaskManager):
             settings['enable_incoming_tcp'] = False
             settings['anonymous_mode'] = True
             settings['force_proxy'] = True
+            settings["enable_dht"] = False
 
             if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
                 settings["listen_interfaces"] = "0.0.0.0:%d" % self.tribler_session.config.get_anon_listen_port()
@@ -202,19 +203,19 @@ class LibtorrentMgr(TaskManager):
                     self._logger.warning("the lt.state appears to be corrupt, writing new data on shutdown")
             except Exception, exc:
                 self._logger.info("could not load libtorrent state, got exception: %r. starting from scratch" % exc)
+
+            for router in DEFAULT_DHT_ROUTERS:
+                ltsession.add_dht_router(*router)
+
             ltsession.start_dht()
         else:
             ltsession.listen_on(self.tribler_session.config.get_anon_listen_port(),
                                 self.tribler_session.config.get_anon_listen_port() + 20)
-            ltsession.start_dht()
 
             ltsession_settings = ltsession.get_settings()
             ltsession_settings['upload_rate_limit'] = self.tribler_session.config.get_libtorrent_max_upload_rate()
             ltsession_settings['download_rate_limit'] = self.tribler_session.config.get_libtorrent_max_download_rate()
             ltsession.set_settings(ltsession_settings)
-
-        for router in DEFAULT_DHT_ROUTERS:
-            ltsession.add_dht_router(*router)
 
         self._logger.debug("Started libtorrent session for %d hops on port %d", hops, ltsession.listen_port())
 
