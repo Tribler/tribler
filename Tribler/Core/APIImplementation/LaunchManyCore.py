@@ -430,7 +430,6 @@ class TriblerLaunchMany(TaskManager):
     def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,
             share_mode=False, checkpoint_disabled=False):
         """ Called by any thread """
-        d = None
         with self.session_lock:
             if not isinstance(tdef, TorrentDefNoMetainfo) and not tdef.is_finalized():
                 raise ValueError("TorrentDef not finalized")
@@ -494,7 +493,6 @@ class TriblerLaunchMany(TaskManager):
 
     def remove(self, d, removecontent=False, removestate=True, hidden=False):
         """ Called by any thread """
-        out = None
         with self.session_lock:
             out = d.stop_remove(removestate=removestate, removecontent=removecontent)
             infohash = d.get_def().get_infohash()
