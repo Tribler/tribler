@@ -358,6 +358,8 @@ class TriblerWindow(QMainWindow):
         # Save the download location to the GUI settings
         current_settings = get_gui_setting(self.gui_settings, "recent_download_locations", "")
         recent_locations = current_settings.split(",") if len(current_settings) > 0 else []
+        if isinstance(destination, unicode):
+            destination = destination.encode('utf-8')
         encoded_destination = destination.encode('hex')
         if encoded_destination in recent_locations:
             recent_locations.remove(encoded_destination)
