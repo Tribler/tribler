@@ -98,10 +98,6 @@ def decode_methods_request(offset, data):
 
     (version, number_of_methods) = struct.unpack_from("!BB", data, offset)
 
-    # We only know how to handle Socks5 protocol
-    if not version == SOCKS_VERSION:
-        return offset, None
-
     offset += 2
 
     methods = set([])

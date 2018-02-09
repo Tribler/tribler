@@ -1,10 +1,10 @@
 import struct
 
-from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.community.tunnel.Socks5.conversion import decode_request, IPV6AddrError
+from Tribler.Core.Socks5.conversion import decode_request, IPV6AddrError
+from Tribler.Test.test_as_server import AbstractServer
 
 
-class TestSocks5Conversion(TriblerCoreTest):
+class TestSocks5Conversion(AbstractServer):
 
     def test_decode_request(self):
         """
