@@ -11,6 +11,9 @@ from collections import defaultdict
 from itertools import chain
 
 import struct
+
+from Tribler.Core.Socks5.server import Socks5Server
+from Tribler.community.tunnel.dispatcher import TunnelDispatcher
 from cryptography.exceptions import InvalidTag
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred, succeed, inlineCallbacks, returnValue, fail
@@ -25,7 +28,6 @@ from Tribler.community.trustchain.conversion import TrustChainConversion
 from Tribler.community.tunnel import (CIRCUIT_ID_PORT, CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA,
                                       CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, EXIT_NODE, EXIT_NODE_SALT, ORIGINATOR,
                                       ORIGINATOR_SALT, PING_INTERVAL)
-from Tribler.community.tunnel.Socks5.server import Socks5Server
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.crypto.tunnelcrypto import CryptoException, TunnelCrypto
 from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, DestroyPayload, ExtendPayload,
@@ -319,7 +321,9 @@ class TunnelCommunity(TriblerChainCommunity):
                              'e79efd8853cef1640b93c149d7b0f067f6ccf221'.decode('hex')]
         self.bittorrent_peers = {}
 
-        self.tribler_session = self.settings = self.socks_server = None
+        self.tribler_session = self.settings = None
+        self.dispatcher = None
+        self.socks_servers = []
 
     def initialize(self, tribler_session=None, settings=None):
         self.tribler_session = tribler_session
@@ -338,8 +342,14 @@ class TunnelCommunity(TriblerChainCommunity):
         self.register_task("do_circuits", LoopingCall(self.do_circuits)).start(5, now=True)
         self.register_task("do_ping", LoopingCall(self.do_ping)).start(PING_INTERVAL)
 
-        self.socks_server = Socks5Server(self, self.settings.socks_listen_ports)
-        self.socks_server.start()
+        self.dispatcher = TunnelDispatcher(self)
+
+        for port in self.settings.socks_listen_ports:
+            socks_server = Socks5Server(port, self.dispatcher)
+            socks_server.start()
+            self.socks_servers.append(socks_server)
+
+        self.dispatcher.set_socks_servers(self.socks_servers)
 
         if self.tribler_session:
             self.notifier = self.tribler_session.notifier
@@ -417,7 +427,8 @@ class TunnelCommunity(TriblerChainCommunity):
 
     @inlineCallbacks
     def unload_community(self):
-        yield self.socks_server.stop()
+        for socks_server in self.socks_servers:
+            yield socks_server.stop()
 
         # Remove all circuits/relays/exitsockets
         for circuit_id in self.circuits.keys():
@@ -649,7 +660,7 @@ class TunnelCommunity(TriblerChainCommunity):
                 self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, self.copy_shallow_candidate(circuit, peer))
             circuit.destroy()
 
-            affected_peers = self.socks_server.circuit_dead(circuit)
+            affected_peers = self.dispatcher.circuit_dead(circuit)
             ltmgr = self.tribler_session.lm.ltmgr \
                 if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled() else None
             if ltmgr:
@@ -1233,7 +1244,7 @@ class TunnelCommunity(TriblerChainCommunity):
                                                       False, source=u"circuit_%d" % circuit_id)
                 else:
                     anon_seed = circuit.ctype == CIRCUIT_TYPE_RP
-                    self.socks_server.on_incoming_from_tunnel(self, circuit, origin, data, anon_seed)
+                    self.dispatcher.on_incoming_from_tunnel(self, circuit, origin, data, anon_seed)
 
             # It is not our circuit so we got it from a relay, we need to EXIT it!
             else:
