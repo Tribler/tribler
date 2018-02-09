@@ -19,7 +19,7 @@ class TestTunnelCommunity(TestTunnelBase):
         self.test_deferred = Deferred()
         yield super(TestTunnelCommunity, self).setUp(autoload_discovery=autoload_discovery)
 
-    @deferred(timeout=60)
+    @deferred(timeout=40)
     @inlineCallbacks
     def test_anon_download(self):
         """
