@@ -302,6 +302,14 @@ class TestSessionAsServer(TestAsServer):
         self.session.get_dispersy_instance()
 
     @raises(OperationNotEnabledByConfigurationException)
+    def test_get_ipv8_instance(self):
+        """
+        Test whether the get IPv8 instance throws an exception if IPv8 is not enabled.
+        """
+        self.session.config.set_ipv8_enabled(False)
+        self.session.get_ipv8_instance()
+
+    @raises(OperationNotEnabledByConfigurationException)
     def test_has_collected_torrent(self):
         """
         Test whether the has_collected_torrent throws an exception if dispersy is not enabled.

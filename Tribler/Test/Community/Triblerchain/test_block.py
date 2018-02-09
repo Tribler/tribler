@@ -1,11 +1,11 @@
 from Tribler.Test.Community.Triblerchain.test_triblerchain_utilities import TriblerTestBlock
 from Tribler.Test.Community.Trustchain.test_block import MockDatabase
-from Tribler.Test.Community.Trustchain.test_trustchain_utilities import TrustChainTestCase
+from Tribler.Test.test_as_server import AbstractServer
 from Tribler.community.triblerchain.block import TriblerChainBlock
-from Tribler.community.trustchain.block import ValidationResult, GENESIS_SEQ, GENESIS_HASH
+from Tribler.pyipv8.ipv8.attestation.trustchain.block import GENESIS_SEQ, GENESIS_HASH, ValidationResult
 
 
-class TestBlocks(TrustChainTestCase):
+class TestBlocks(AbstractServer):
     """
     This class contains tests for a TriblerChain block.
     """

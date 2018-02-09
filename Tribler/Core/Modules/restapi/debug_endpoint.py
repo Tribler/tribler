@@ -8,7 +8,6 @@ import psutil
 from meliae import scanner
 from twisted.web import http, resource
 
-from Tribler.community.tunnel.tunnel_community import TunnelCommunity
 from Tribler.Core.Utilities.instrumentation import WatchDog
 import Tribler.Core.Utilities.json_util as json
 
@@ -49,15 +48,6 @@ class DebugCircuitsEndpoint(resource.Resource):
         resource.Resource.__init__(self)
         self.session = session
 
-    def get_tunnel_community(self):
-        """
-        Search for the tunnel community in the dispersy communities.
-        """
-        for community in self.session.get_dispersy_instance().get_communities():
-            if isinstance(community, TunnelCommunity):
-                return community
-        return None
-
     def render_GET(self, request):
         """
         .. http:get:: /debug/circuits
@@ -91,7 +81,7 @@ class DebugCircuitsEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        tunnel_community = self.get_tunnel_community()
+        tunnel_community = self.session.lm.tunnel_community
         if not tunnel_community:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "tunnel community not found"})

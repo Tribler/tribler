@@ -1,38 +1,22 @@
-from twisted.internet.defer import inlineCallbacks, Deferred, succeed
-
-from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.test_as_server import AbstractServer
-from Tribler.Test.twisted_thread import deferred
+from Tribler.Test.ipv8_base import TestBase
+from Tribler.Test.mocking.ipv8 import MockIPv8
+from Tribler.Test.util.ipv8_util import twisted_wrapper
 from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
 from Tribler.community.market.wallet.wallet import InsufficientFunds
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
+from twisted.internet.defer import Deferred
 
 
-class TestTrustchainWallet(AbstractServer):
+class TestTrustchainWallet(TestBase):
 
-    @blocking_call_on_reactor_thread
-    @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestTrustchainWallet, self).setUp(annotate=annotate)
+    def setUp(self):
+        super(TestTrustchainWallet, self).setUp()
+        self.initialize(TrustChainCommunity, 2)
+        self.tc_wallet = TrustchainWallet(self.nodes[0].overlay)
+        self.tc_wallet.MONITOR_DELAY = 0.01
 
-        latest_block = MockObject()
-        latest_block.transaction = {"total_up": 10 * 1024 * 1024, "total_down": 5 * 1024 * 1024}
-        latest_block.previous_hash_requester = 'b' * 5
-
-        self.tc_community = MockObject()
-        self.tc_community.add_discovered_candidate = lambda _: None
-        self.tc_community.create_introduction_request = lambda *_: None
-        self.tc_community.wait_for_intro_of_candidate = lambda _: succeed(None)
-        self.tc_community.received_payment_message = lambda *_: None
-        self.tc_community.sign_block = lambda *_: None
-        self.tc_community.wait_for_signature_request = lambda _: succeed('a')
-        self.tc_community.my_member = MockObject()
-        self.tc_community.my_member.public_key = 'a' * 20
-        self.tc_community.persistence = MockObject()
-        self.tc_community.persistence.get_latest = lambda _: latest_block
-        self.tc_community.get_candidate = lambda _: MockObject()
-
-        self.tc_wallet = TrustchainWallet(self.tc_community)
+    def create_node(self):
+        return MockIPv8(u"curve25519", TrustChainCommunity, working_directory=u":memory:")
 
     def test_get_mc_wallet_name(self):
         """
@@ -46,15 +30,29 @@ class TestTrustchainWallet(AbstractServer):
         """
         self.assertEqual(self.tc_wallet.get_identifier(), 'MC')
 
-    @deferred(timeout=10)
+    @twisted_wrapper
     def test_get_balance(self):
         """
         Test the balance retrieval of a Trustchain wallet
         """
-        def on_balance(balance):
-            self.assertEqual(balance['available'], 5)
+        yield self.introduce_nodes()
 
-        return self.tc_wallet.get_balance().addCallback(on_balance)
+        balance = yield self.tc_wallet.get_balance()
+        self.assertEqual(balance['available'], 0)
+
+        his_pubkey = self.nodes[0].network.verified_peers[0].public_key.key_to_bin()
+        tx = {
+            'up': 20 * 1024 * 1024,
+            'down': 5 * 1024 * 1024,
+            'total_up': 20 * 1024 * 1024,
+            'total_down': 5 * 1024 * 1024
+        }
+        self.nodes[0].overlay.sign_block(self.nodes[0].network.verified_peers[0], public_key=his_pubkey, transaction=tx)
+
+        yield self.deliver_messages()
+
+        balance = yield self.tc_wallet.get_balance()
+        self.assertEqual(balance['available'], 15)
 
     def test_create_wallet(self):
         """
@@ -62,7 +60,7 @@ class TestTrustchainWallet(AbstractServer):
         """
         self.assertRaises(RuntimeError, self.tc_wallet.create_wallet)
 
-    @deferred(timeout=10)
+    @twisted_wrapper
     def test_transfer_invalid(self):
         """
         Test the transfer method of a Trustchain wallet
@@ -74,29 +72,21 @@ class TestTrustchainWallet(AbstractServer):
             test_deferred.callback(None)
 
         self.tc_wallet.transfer(200, None).addErrback(on_error)
-        return test_deferred
+        yield test_deferred
 
-    @deferred(timeout=10)
-    def test_transfer_missing_member(self):
-        """
-        Test the transfer method of a Trustchain wallet with a missing member
-        """
-        candidate = MockObject()
-        candidate.get_member = lambda: None
-        candidate.sock_addr = None
-        self.tc_wallet.check_negative_balance = False
-        self.tc_wallet.send_signature = lambda *_: None
-        return self.tc_wallet.transfer(200, candidate)
-
-    @deferred(timeout=10)
+    @twisted_wrapper
     def test_monitor_transaction(self):
         """
         Test the monitoring of a transaction in a Trustchain wallet
         """
-        def on_transaction(transaction):
-            self.assertEqual(transaction, 'a')
+        his_pubkey = self.nodes[0].overlay.my_peer.public_key.key_to_bin()
 
-        return self.tc_wallet.monitor_transaction('abc.1').addCallback(on_transaction)
+        tx_deferred = self.tc_wallet.monitor_transaction('%s.1' % his_pubkey.encode('hex'))
+
+        # Now create the transaction
+        self.nodes[1].overlay.sign_block(self.nodes[1].network.verified_peers[0], public_key=his_pubkey, transaction={})
+
+        yield tx_deferred
 
     def test_address(self):
         """
@@ -104,27 +94,18 @@ class TestTrustchainWallet(AbstractServer):
         """
         self.assertIsInstance(self.tc_wallet.get_address(), str)
 
-    @deferred(timeout=10)
+    @twisted_wrapper
     def test_get_transaction(self):
         """
-        Test the retrieval of transactions of a dummy wallet
+        Test the retrieval of transactions of a Trustchain wallet
         """
-
         def on_transactions(transactions):
             self.assertIsInstance(transactions, list)
 
-        return self.tc_wallet.get_transactions().addCallback(on_transactions)
+        yield self.tc_wallet.get_transactions().addCallback(on_transactions)
 
     def test_min_unit(self):
         """
         Test the minimum unit of a Trustchain wallet
         """
         self.assertEqual(self.tc_wallet.min_unit(), 1)
-
-    def test_wait_for_intro_of_candidate(self):
-        """
-        Test waiting for an introduction candidate in the TrustChain wallet
-        """
-        candidate = MockObject()
-        candidate.sock_addr = None
-        return self.tc_wallet.wait_for_intro_of_candidate(candidate)

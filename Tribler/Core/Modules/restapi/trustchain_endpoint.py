@@ -2,8 +2,6 @@ import json
 
 from twisted.web import http, resource
 
-from Tribler.community.triblerchain.community import TriblerChainCommunity
-
 
 class TrustchainEndpoint(resource.Resource):
     """
@@ -31,15 +29,6 @@ class TrustchainBaseEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
-
-    def get_trustchain_community(self):
-        """
-        Search for the trustchain community in the dispersy communities.
-        """
-        for community in self.session.get_dispersy_instance().get_communities():
-            if isinstance(community, TriblerChainCommunity):
-                return community
-        return None
 
 
 class TrustchainStatsEndpoint(TrustchainBaseEndpoint):
@@ -90,12 +79,12 @@ class TrustchainStatsEndpoint(TrustchainBaseEndpoint):
                     }
                 }
         """
-        mc_community = self.get_trustchain_community()
-        if not mc_community:
+        triblerchain_community = self.session.lm.triblerchain_community
+        if not triblerchain_community:
             request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "trustchain community not found"})
+            return json.dumps({"error": "triblerchain community not found"})
 
-        return json.dumps({'statistics': mc_community.get_statistics()})
+        return json.dumps({'statistics': triblerchain_community.get_statistics()})
 
 
 class TrustchainBlocksEndpoint(TrustchainBaseEndpoint):
@@ -150,10 +139,10 @@ class TrustchainBlocksIdentityEndpoint(TrustchainBaseEndpoint):
                     }, ...]
                 }
         """
-        mc_community = self.get_trustchain_community()
-        if not mc_community:
+        triblerchain_community = self.session.lm.triblerchain_community
+        if not triblerchain_community:
             request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "trustchain community not found"})
+            return json.dumps({"error": "triblerchain community not found"})
 
         limit_blocks = 100
 
@@ -167,7 +156,7 @@ class TrustchainBlocksIdentityEndpoint(TrustchainBaseEndpoint):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "limit parameter out of range"})
 
-        blocks = mc_community.persistence.get_latest_blocks(self.identity.decode("HEX"), limit_blocks)
+        blocks = triblerchain_community.persistence.get_latest_blocks(self.identity.decode("HEX"), limit_blocks)
         return json.dumps({"blocks": [dict(block) for block in blocks]})
 
 
@@ -207,12 +196,12 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
                 }
         """
 
-        mc_community = self.get_trustchain_community()
-        if not mc_community:
+        triblerchain_community = self.session.lm.triblerchain_community
+        if not triblerchain_community:
             request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "trustchain community not found"})
+            return json.dumps({"error": "triblerchain community not found"})
 
-        available_tokens = mc_community.get_bandwidth_tokens()
+        available_tokens = triblerchain_community.get_bandwidth_tokens()
 
         if 'amount' in request.args:
             try:
@@ -231,5 +220,5 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "Not enough bandwidth tokens available"})
 
-        result = mc_community.bootstrap_new_identity(amount)
+        result = triblerchain_community.bootstrap_new_identity(amount)
         return json.dumps(result)

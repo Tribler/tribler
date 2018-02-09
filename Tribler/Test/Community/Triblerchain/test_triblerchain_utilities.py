@@ -4,7 +4,7 @@ from hashlib import sha256
 
 from Tribler.Core.Utilities.encoding import encode
 from Tribler.community.triblerchain.block import TriblerChainBlock
-from Tribler.dispersy.crypto import ECCrypto
+from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 
 
 class TriblerTestBlock(TriblerChainBlock):

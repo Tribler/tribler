@@ -1,7 +1,8 @@
 import logging
 
 from Tribler.Core.Socks5 import conversion
-from Tribler.community.tunnel import CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, CIRCUIT_ID_PORT, CIRCUIT_STATE_READY
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP,\
+    CIRCUIT_ID_PORT, CIRCUIT_STATE_READY
 
 
 class TunnelDispatcher(object):
@@ -74,7 +75,8 @@ class TunnelDispatcher(object):
             return False
 
         self._logger.debug("Sending data over circuit destined for %r:%r", *request.destination)
-        circuit.tunnel_data(request.destination, request.payload)
+        self.tunnel_community.send_data([circuit.sock_addr], circuit.circuit_id, request.destination,
+                                        ('0.0.0.0', 0), request.payload)
         return True
 
     def circuit_dead(self, broken_circuit):

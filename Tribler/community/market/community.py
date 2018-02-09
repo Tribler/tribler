@@ -47,6 +47,7 @@ from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.message import Message, DelayMessageByProof, DropMessage
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 from Tribler.dispersy.resolution import PublicResolution
+from Tribler.pyipv8.ipv8.peer import Peer
 
 
 class ProposedTradeRequestCache(NumberCache):
@@ -1515,10 +1516,9 @@ class MarketCommunity(TrustChainCommunity):
         # While this conditional is not very pretty, the alternative is to move all this logic to the wallet which
         # requires the wallet to know about transactions, the market community and Dispersy.
         if isinstance(wallet, TrustchainWallet):
-            candidate = Candidate(self.lookup_ip(transaction.partner_order_id.trader_id), False)
-            member = self.dispersy.get_member(public_key=b64decode(str(transaction.partner_incoming_address)))
-            candidate.associate(member)
-            transfer_deferred = wallet.transfer(float(transfer_amount), candidate)
+            peer = Peer(b64decode(str(transaction.partner_incoming_address)),
+                        address=self.lookup_ip(transaction.partner_order_id.trader_id))
+            transfer_deferred = wallet.transfer(float(transfer_amount), peer)
         else:
             transfer_deferred = wallet.transfer(float(transfer_amount), str(transaction.partner_incoming_address))
 

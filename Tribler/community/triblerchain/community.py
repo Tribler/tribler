@@ -1,12 +1,12 @@
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
-from twisted.internet.task import LoopingCall
 
 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
 from Tribler.community.triblerchain.block import TriblerChainBlock
 from Tribler.community.triblerchain.database import TriblerChainDB
-from Tribler.community.trustchain.community import TrustChainCommunity
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
+from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
+from Tribler.pyipv8.ipv8.peer import Peer
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 MIN_TRANSACTION_SIZE = 1024 * 1024
 
@@ -36,90 +36,24 @@ class TriblerChainCommunity(TrustChainCommunity):
     BLOCK_CLASS = TriblerChainBlock
     DB_CLASS = TriblerChainDB
     SIGN_DELAY = 5
+    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000405c66d3deddb1721787a247b2285118c06ce9fb"
+                       "20ebd3546969fa2f4811fa92426637423d3bac1510f92b33e2ff5a785bf54eb3b28d29a77d557011d7d5241243c"
+                       "9c89c987cd049404c4024999e1505fa96e1d6668234bde28a666d458d67251d17ff45185515a28967ddcf50503c"
+                       "304750ae114f9bc857a79c03da1a9c9215ea07c91f166f24b6cfd1cf72309044fbd".decode('hex'))
 
     def __init__(self, *args, **kwargs):
+        self.tribler_session = kwargs.pop('tribler_session', None)
         super(TriblerChainCommunity, self).__init__(*args, **kwargs)
         self.notifier = None
+
+        if self.tribler_session:
+            self.notifier = self.tribler_session.notifier
+            self.notifier.add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
 
         # We store the bytes send and received in the tunnel community in a dictionary.
         # The key is the public key of the peer being interacted with, the value a tuple of the up and down bytes
         # This data is not used to create outgoing requests, but _only_ to verify incoming requests
         self.pending_bytes = dict()
-
-        # Store invalid messages since one of these might contain a block that is bought on the market
-        self.pending_sign_messages = {}
-
-    @classmethod
-    def get_master_members(cls, dispersy):
-        # generated: Mon Jun 19 09:25:14 2017
-        # curve: None
-        # len: 571 bits ~ 144 bytes signature
-        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000403a4cf6036eb2a9daa0ae4bd23c1be5343c0b2d30fa85
-        # da2554532e3e73ba1fde4db0c8864c7f472ce688afef5a9f7ccfe1396bb5ef09be80e00e0a5ab4814f43166d086720af10807dbb1f
-        # a71c06040bb4aadc85fdffe69cdc6125f5b5f81c785f6b3fece98c5ecfa6de61432822e52a049850d11802dc1050a60f6983ac3eed
-        # b8172ebc47e3cd50f1d97bfffe187b5
-        # pub-sha1 1742feacab3bcc3ee8c4d7ee16d9c0b57e0bb266
-        # prv-sha1 2d4025490ef949ea7347d020f09403c46222483a
-        # -----BEGIN PUBLIC KEY-----
-        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQDpM9gNusqnaoK5L0jwb5TQ8Cy0w+o
-        # XaJVRTLj5zuh/eTbDIhkx/RyzmiK/vWp98z+E5a7XvCb6A4A4KWrSBT0MWbQhnIK
-        # 8QgH27H6ccBgQLtKrchf3/5pzcYSX1tfgceF9rP+zpjF7Ppt5hQygi5SoEmFDRGA
-        # LcEFCmD2mDrD7tuBcuvEfjzVDx2Xv//hh7U=
-        # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403a4cf6036eb2a9daa0ae4bd23c1be5343c0b2d30f" \
-                     "a85da2554532e3e73ba1fde4db0c8864c7f472ce688afef5a9f7ccfe1396bb5ef09be80e00e0a5ab4814f43166d086" \
-                     "720af10807dbb1fa71c06040bb4aadc85fdffe69cdc6125f5b5f81c785f6b3fece98c5ecfa6de61432822e52a04985" \
-                     "0d11802dc1050a60f6983ac3eedb8172ebc47e3cd50f1d97bfffe187b5"
-        return [dispersy.get_member(public_key=master_key.decode("HEX"))]
-
-    def initialize(self, tribler_session=None):
-        super(TriblerChainCommunity, self).initialize(tribler_session)
-        if tribler_session:
-            self.notifier = tribler_session.notifier
-            self.notifier.add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
-
-    def received_payment_message(self, payment_id):
-        """
-        We received a payment message originating from the market community. We set pending bytes so the validator
-        passes when we receive the half block from the counterparty.
-
-        Note that it might also be possible that the half block has been received already. That's why we revalidate
-        the invalid messages again.
-        """
-        pub_key, seq_num, bytes_up, bytes_down = payment_id.split('.')
-        pub_key = pub_key.decode('hex')
-        pend = self.pending_bytes.get(pub_key)
-        if not pend:
-            self.pending_bytes[pub_key] = PendingBytes(int(bytes_up),
-                                                       int(bytes_down),
-                                                       None)
-        else:
-            pend.add(int(bytes_up), int(bytes_down))
-
-        block_id = "%s.%s" % (pub_key.encode('hex'), seq_num)
-        if block_id in self.pending_sign_messages:
-            self._logger.debug("Signing pending half block")
-            message = self.pending_sign_messages[block_id]
-            self.sign_block(message.candidate, linked=message.payload.block)
-            del self.pending_sign_messages[block_id]
-
-    def should_sign(self, message):
-        """
-        Return whether we should sign the block in the passed message.
-        @param message: the message containing a block we want to sign or not.
-        """
-        block = message.payload.block
-        pend = self.pending_bytes.get(block.public_key)
-        if not pend or not (pend.up - block.transaction['down'] >= 0 and pend.down - block.transaction['up'] >= 0):
-            self.logger.info("Request block counter party does not have enough bytes pending. U: %d D: %d",
-                             pend.up if pend is not None else 0, pend.down if pend is not None else 0)
-
-            # These bytes might have been bought on the market so we store this message and process it when we
-            # receive a payment message that confirms we have bought these bytes.
-            block_id = "%s.%s" % (block.public_key.encode('hex'), block.sequence_number)
-            self.pending_sign_messages[block_id] = message
-            return False
-        return True
 
     @blocking_call_on_reactor_thread
     def get_statistics(self, public_key=None):
@@ -128,7 +62,7 @@ class TriblerChainCommunity(TrustChainCommunity):
         :returns a dictionary with statistics
         """
         if public_key is None:
-            public_key = self.my_member.public_key
+            public_key = self.my_peer.public_key.key_to_bin()
         latest_block = self.persistence.get_latest(public_key)
         statistics = dict()
         statistics["id"] = public_key.encode("hex")
@@ -150,32 +84,35 @@ class TriblerChainCommunity(TrustChainCommunity):
             statistics["total_down"] = 0
         return statistics
 
-    @blocking_call_on_reactor_thread
-    def on_tunnel_remove(self, subject, change_type, tunnel, candidate):
+    def on_tunnel_remove(self, subject, change_type, tunnel, sock_addr):
         """
         Handler for the remove event of a tunnel. This function will attempt to create a block for the amounts that
         were transferred using the tunnel.
         :param subject: Category of the notifier event
         :param change_type: Type of the notifier event
         :param tunnel: The tunnel that was removed (closed)
-        :param candidate: The dispersy candidate with whom this node has interacted in the tunnel
+        :param sock_addr: The address of the peer with whom this node has interacted in the tunnel
         """
-        from Tribler.community.tunnel.tunnel_community import Circuit, RelayRoute, TunnelExitSocket
-        assert isinstance(tunnel, Circuit) or isinstance(tunnel, RelayRoute) or isinstance(tunnel, TunnelExitSocket), \
-            "on_tunnel_remove() was called with an object that is not a Circuit, RelayRoute or TunnelExitSocket"
-        assert isinstance(tunnel.bytes_up, int) and isinstance(tunnel.bytes_down, int), \
-            "tunnel instance must provide byte counts in int"
+        tunnel_peer = None
+        for verified_peer in self.tribler_session.lm.tunnel_community.network.verified_peers:
+            if verified_peer.address == sock_addr:
+                tunnel_peer = verified_peer
+                break
+
+        if not tunnel_peer:
+            self.logger.warning("Could not find interacting peer for signing a TriblerChain block!")
+            return
 
         up = tunnel.bytes_up
         down = tunnel.bytes_down
-        pk = candidate.get_member().public_key
+        pk = tunnel_peer.public_key.key_to_bin()
 
         # If the transaction is not big enough we discard the bytes up and down.
         if up + down >= MIN_TRANSACTION_SIZE:
             # Tie breaker to prevent both parties from requesting
-            if up > down or (up == down and self.my_member.public_key > pk):
+            if up > down or (up == down and self.my_peer.public_key.key_to_bin() > pk):
                 self.register_task("sign_%s" % tunnel.circuit_id,
-                                   reactor.callLater(self.SIGN_DELAY, self.sign_block, candidate, pk,
+                                   reactor.callLater(self.SIGN_DELAY, self.sign_block, tunnel_peer, pk,
                                                      {'up': tunnel.bytes_up, 'down': tunnel.bytes_down}))
             else:
                 pend = self.pending_bytes.get(pk)
@@ -189,46 +126,28 @@ class TriblerChainCommunity(TrustChainCommunity):
     def cleanup_pending(self, public_key):
         self.pending_bytes.pop(public_key, None)
 
-    @inlineCallbacks
-    def unload_community(self):
+    def unload(self):
         if self.notifier:
             self.notifier.remove_observer(self.on_tunnel_remove)
         for pk in self.pending_bytes:
             if self.pending_bytes[pk].clean is not None:
                 self.pending_bytes[pk].clean.reset(0)
-        yield super(TriblerChainCommunity, self).unload_community()
+        super(TriblerChainCommunity, self).unload()
 
-    def get_trust(self, member):
+    def get_bandwidth_tokens(self, peer=None):
         """
-        Get the trust for another member.
-        Currently this is just the amount of MBs exchanged with them.
-
-        :param member: the member we interacted with
-        :type member: dispersy.member.Member
-        :return: the trust value for this member
-        :rtype: int
-        """
-        block = self.persistence.get_latest(member.public_key)
-        if block:
-            return block.transaction['total_up'] + block.transaction['total_down']
-        else:
-            # We need a minimum of 1 trust to have a chance to be selected in the categorical distribution.
-            return 1
-
-    def get_bandwidth_tokens(self, member=None):
-        """
-        Get the bandwidth tokens for another member.
+        Get the bandwidth tokens for another peer.
         Currently this is just the difference in the amount of MBs exchanged with them.
 
-        :param member: the member we interacted with
-        :type member: dispersy.member.Member
-        :return: the amount of bandwidth tokens for this member
+        :param member: the peer we interacted with
+        :type member: Peer
+        :return: the amount of bandwidth tokens for this peer
         :rtype: int
         """
-        if member is None:
-            member = self.my_member
+        if peer is None:
+            peer = self.my_peer
 
-        block = self.persistence.get_latest(member.public_key)
+        block = self.persistence.get_latest(peer.public_key.key_to_bin())
         if block:
             return block.transaction['total_up'] - block.transaction['total_down']
 
@@ -242,7 +161,8 @@ class TriblerChainCommunity(TrustChainCommunity):
         """
 
         # Create new identity for the temporary identity
-        tmp_member = self.dispersy.get_new_member(u"curve25519")
+        crypto = ECCrypto()
+        tmp_peer = Peer(crypto.generate_key(u"curve25519"))
 
         # Create the transaction specification
         transaction = {
@@ -250,12 +170,12 @@ class TriblerChainCommunity(TrustChainCommunity):
         }
 
         # Create the two half blocks that form the transaction
-        local_half_block = TriblerChainBlock.create(transaction, self.persistence, self.my_member.public_key,
-                                                    link_pk=tmp_member.public_key)
-        local_half_block.sign(self.my_member.private_key)
-        tmp_half_block = TriblerChainBlock.create(transaction, self.persistence, tmp_member.public_key,
-                                                  link=local_half_block, link_pk=self.my_member.public_key)
-        tmp_half_block.sign(tmp_member.private_key)
+        local_half_block = TriblerChainBlock.create(transaction, self.persistence, self.my_peer.public_key.key_to_bin(),
+                                                    link_pk=tmp_peer.public_key.key_to_bin())
+        local_half_block.sign(self.my_peer.key)
+        tmp_half_block = TriblerChainBlock.create(transaction, self.persistence, tmp_peer.public_key.key_to_bin(),
+                                                  link=local_half_block, link_pk=self.my_peer.public_key.key_to_bin())
+        tmp_half_block.sign(tmp_peer.key)
 
         self.persistence.add_block(local_half_block)
         self.persistence.add_block(tmp_half_block)
@@ -264,24 +184,6 @@ class TriblerChainCommunity(TrustChainCommunity):
         block = {'block_hash': tmp_half_block.hash.encode('base64'),
                  'sequence_number': tmp_half_block.sequence_number}
 
-        result = {'private_key': tmp_member.private_key.key_to_bin().encode('base64'),
+        result = {'private_key': tmp_peer.key.key_to_bin().encode('base64'),
                   'transaction': {'up': amount, 'down': 0}, 'block': block}
         return result
-
-
-class TriblerChainCommunityCrawler(TriblerChainCommunity):
-    """
-    Extended TriblerChainCommunity that also crawls other TriblerChainCommunities.
-    It requests the chains of other TrustChains.
-    """
-
-    # Time the crawler waits between crawling a new candidate.
-    CrawlerDelay = 5.0
-
-    def on_introduction_response(self, messages):
-        super(TriblerChainCommunityCrawler, self).on_introduction_response(messages)
-        for message in messages:
-            self.send_crawl_request(message.candidate, message.candidate.get_member().public_key)
-
-    def start_walking(self):
-        self.register_task("take step", LoopingCall(self.take_step)).start(self.CrawlerDelay, now=False)

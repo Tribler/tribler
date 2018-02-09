@@ -137,7 +137,7 @@ class DebugWindow(QMainWindow):
         self.window().open_files_tree_widget.header().setSectionResizeMode(0, QHeaderView.Stretch)
 
         if settings and settings['trustchain']['enabled']:
-            self.window().debug_tab_widget.setTabEnabled(2, False)
+            self.window().debug_tab_widget.setTabEnabled(2, True)
 
         # Refresh logs
         self.window().log_refresh_button.clicked.connect(lambda: self.load_logs_tab())
