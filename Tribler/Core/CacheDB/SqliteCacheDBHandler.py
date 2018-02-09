@@ -6,7 +6,6 @@ Author(s): Jie Yang
 import logging
 import math
 import os
-import threading
 from collections import OrderedDict, defaultdict
 from copy import deepcopy
 from itertools import chain
@@ -1160,8 +1159,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
     def __init__(self, session):
         super(MyPreferenceDBHandler, self).__init__(session, u"MyPreference")
-
-        self.rlock = threading.RLock()
 
         self.recent_preflist = None
         self._torrent_db = None
