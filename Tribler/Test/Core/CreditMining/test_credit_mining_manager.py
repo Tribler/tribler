@@ -25,6 +25,8 @@ class FakeTorrent(object):
         self.download.restart = lambda: setattr(self.download, 'running', True)
         self.download.stop = lambda: setattr(self.download, 'running', False)
         self.download.get_status = lambda: DLSTATUS_STOPPED
+        self.download.get_length = lambda: 1024 * 1024
+        self.download.get_progress = lambda: 0.0
 
         tdef = MockObject()
         tdef.get_infohash = lambda: self.infohash
@@ -66,6 +68,7 @@ class TestCreditMiningManager(TestAsServer):
         self.config.set_dispersy_enabled(True)
         self.config.set_libtorrent_enabled(True)
         self.config.set_credit_mining_enabled(True)
+        self.config.set_market_community_enabled(False)
 
     def test_source_add_remove(self):
         self.credit_mining_manager.add_source(self.cid)
@@ -134,7 +137,7 @@ class TestCreditMiningManager(TestAsServer):
         del self.session.lm.downloads[self.infohash_bin]
 
     def test_select_torrent_single_policy(self):
-        self.credit_mining_manager.monitor_downloads = lambda: None
+        self.credit_mining_manager.monitor_downloads = lambda _: None
         self.credit_mining_manager.policies = [FakePolicy(reverse=False)]
 
         for i in range(5):
@@ -149,7 +152,7 @@ class TestCreditMiningManager(TestAsServer):
         self.assertFalse(torrents[4].download.running)
 
     def test_select_torrent_multiple_policies(self):
-        self.credit_mining_manager.monitor_downloads = lambda: None
+        self.credit_mining_manager.monitor_downloads = lambda _: None
         self.credit_mining_manager.policies = [FakePolicy(reverse=False), FakePolicy(reverse=True)]
 
         for i in range(5):
@@ -163,6 +166,23 @@ class TestCreditMiningManager(TestAsServer):
         torrents = self.credit_mining_manager.torrents
         self.assertTrue(all([torrents[i].download.running for i in [0, 1, 3, 4]]))
         self.assertFalse(torrents[2].download.running)
+
+    def test_select_torrent_disk_space_limit(self):
+        self.credit_mining_manager.settings.max_disk_space = 2 * 1024 * 1024
+        self.credit_mining_manager.monitor_downloads = lambda _: None
+        self.credit_mining_manager.policies = [FakePolicy(reverse=False), FakePolicy(reverse=True)]
+
+        for i in range(5):
+            self.credit_mining_manager.torrents[i] = FakeTorrent(i, self.name + str(i))
+
+        self.credit_mining_manager.select_torrents()
+
+        # Torrent 0 should be running according to FakePolicy(reverse=False)
+        # Torrent 4 should be running according to FakePolicy(reverse=True)
+        # Torrents 1,2,3 should not be running due to max_disk_space.
+        torrents = self.credit_mining_manager.torrents
+        self.assertTrue(all([torrents[i].download.running for i in [0, 4]]))
+        self.assertFalse(any([torrents[i].download.running for i in [1, 2, 3]]))
 
     def test_monitor_download_start_selecting(self):
         self.credit_mining_manager.monitor_downloads([])

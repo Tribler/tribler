@@ -28,13 +28,15 @@ class CreditMiningSettings(object):
     """
     This class contains settings used by the credit mining manager
     """
-    def __init__(self):
+    def __init__(self, config=None):
         self.max_torrents_active = 8
         self.max_torrents_listed = 100
         # Note: be sure to set this interval to something that gives torrents a fair chance of
         # discovering peers and uploading data
         self.auto_manage_interval = 600
         self.hops = 1
+        # Maximum number of bytes of disk space that credit mining is allowed to use.
+        self.max_disk_space = config.get_credit_mining_disk_space() if config else 50 * 1024 ** 3
         self.save_path = os.path.join(DefaultDownloadStartupConfig.getInstance().get_dest_dir(), 'credit_mining')
 
 
@@ -49,7 +51,7 @@ class CreditMiningManager(TaskManager):
         self._logger.info('Starting CreditMiningManager')
 
         self.session = session
-        self.settings = settings or CreditMiningSettings()
+        self.settings = settings or CreditMiningSettings(session.config)
 
         self.sources = {}
         self.torrents = {}
@@ -181,20 +183,38 @@ class CreditMiningManager(TaskManager):
         next iteration. It depends on the source and applied policy
         """
         if self.policies and self.torrents:
+            # Calculate number of bytes we have left for storing torrent data.
+            # We could also get the size of the download directory ourselves (without libtorrent), but depending
+            # on the size of the directory and the number of files in it, this could use too many resources.
+            bytes_left = self.settings.max_disk_space
+            for download in self.session.get_downloads():
+                if download.get_status() in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING,
+                                             DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]:
+                    bytes_left -= download.get_progress() * download.get_length()
+
             # Determine which torrent to start and which to stop.
             loaded_torrents = [torrent for torrent in self.torrents.itervalues() if torrent.download]
-
             policy_results = [iter(policy.sort(loaded_torrents)) for policy in self.policies]
 
             to_start = []
-            while len(to_start) < self.settings.max_torrents_active and \
-                  len(to_start) < len(self.torrents):
-                index = len(to_start) % len(self.policies)
-                policy_result = policy_results[index]
+            iterations = 0
+            bytes_scheduled = 0
+            while iterations - len(to_start) < len(policy_results):
+                if len(to_start) >= self.settings.max_torrents_active:
+                    break
+
+                policy_index = len(to_start) % len(self.policies)
+                policy_result = policy_results[policy_index]
+
                 for torrent in policy_result:
                     if torrent not in to_start:
-                        to_start.append(torrent)
-                        break
+                        # We add torrents such that the total bytes of all running torrents is < max_disk_space.
+                        bytes_todo = torrent.download.get_length() * (1.0 - torrent.download.get_progress())
+                        if bytes_left >= bytes_scheduled + bytes_todo:
+                            to_start.append(torrent)
+                            bytes_scheduled += bytes_todo
+                            break
+                iterations += 1
 
             started = stopped = 0
             for infohash, torrent in self.torrents.items():

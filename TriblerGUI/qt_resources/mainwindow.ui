@@ -6314,10 +6314,21 @@ color: white;</string>
                 </property>
                </widget>
               </item>
+              <item>
+               <widget class="QLabel" name="label_3">
+                <property name="styleSheet">
+                 <string notr="true">font-weight: bold;
+color: white;</string>
+                </property>
+                <property name="text">
+                 <string>Trustchain mining</string>
+                </property>
+               </widget>
+              </item>
              <item>
                <widget class="QCheckBox" name="credit_mining_enabled_checkbox">
                 <property name="text">
-                 <string>Enable multichain mining</string>
+                 <string>Enable Trustchain mining</string>
                 </property>
                </widget>
               </item>
@@ -6330,10 +6341,39 @@ color: white;</string>
                  </sizepolicy>
                 </property>
                 <property name="text">
-                 <string>Multichain mining is the automated process of uploading to swarms in order increase your reputation. Go to channels and choose a channel from which to select swarms.</string>
+                 <string>Trustchain mining is the automated process of uploading to swarms in order increase your reputation. Go to channels and choose a channel from which to select swarms.</string>
                 </property>
                 <property name="wordWrap">
                  <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_41">
+                <property name="text">
+                 <string>Maximum disk space usage (bytes)</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="max_disk_space_input">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>100</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>250</width>
+                  <height>16777215</height>
+                 </size>
                 </property>
                </widget>
               </item>
