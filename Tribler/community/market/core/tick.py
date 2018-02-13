@@ -212,7 +212,7 @@ class Ask(Tick):
         :return: Restored ask
         :rtype: Ask
         """
-        tx_dict = block.transaction["tick"]
+        tx_dict = block.transaction_dict["tick"]
         return cls(
             OrderId(TraderId(tx_dict["trader_id"]), OrderNumber(tx_dict["order_number"])),
             Price(tx_dict["price"], tx_dict["price_type"]),
@@ -249,7 +249,7 @@ class Bid(Tick):
         :return: Restored bid
         :rtype: Bid
         """
-        tx_dict = block.transaction["tick"]
+        tx_dict = block.transaction_dict["tick"]
         return cls(
             OrderId(TraderId(tx_dict["trader_id"]), OrderNumber(tx_dict["order_number"])),
             Price(tx_dict["price"], tx_dict["price_type"]),

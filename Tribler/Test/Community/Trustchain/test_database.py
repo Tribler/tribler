@@ -32,8 +32,12 @@ class TestDatabase(TrustChainTestCase):
         self.assertEqual_block(self.block1, result)
 
     @blocking_call_on_reactor_thread
-    def test_get_upgrade_script(self):
-        self.assertIsNone(self.db.get_upgrade_script(42))
+    def test_get_upgrade_script_future(self):
+        self.assertIsNone(self.db.get_upgrade_script(0, 42))
+
+    @blocking_call_on_reactor_thread
+    def test_get_upgrade_script_past(self):
+        self.assertIsNotNone(self.db.get_upgrade_script(0, 0))
 
     @blocking_call_on_reactor_thread
     def test_add_two_blocks(self):
@@ -176,5 +180,5 @@ class TestDatabase(TrustChainTestCase):
         Test whether a block is correctly represented when converted to a dictionary
         """
         block_dict = dict(self.block1)
-        self.assertDictEqual(block_dict["transaction"], {"id": 42})
+        self.assertListEqual(block_dict["transaction"], ['42'])
         self.assertEqual(block_dict["insert_time"], self.block1.insert_time)

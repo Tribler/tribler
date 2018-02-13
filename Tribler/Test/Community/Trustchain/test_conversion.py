@@ -149,6 +149,8 @@ class TestPlaceholder:
 class TestCommunity(Community):
     crypto = ECCrypto()
 
+    BLOCK_CLASS = TestBlock
+
     def __init__(self):
         self.key = self.crypto.generate_key(u"medium")
         self.pk = self.crypto.key_to_bin(self.key.pub())

@@ -29,7 +29,7 @@ class TestBlocks(TrustChainTestCase):
         db.add_block(block1)
         db.add_block(block3)
         # Act
-        block2.transaction["up"] += 10
+        block2.up += 10
         block2.sign(block2.key)
         block3.previous_hash = block2.hash
         result = block2.validate(db)
@@ -44,7 +44,7 @@ class TestBlocks(TrustChainTestCase):
         db.add_block(block1)
         db.add_block(block3)
         # Act
-        block2.transaction["down"] += 10
+        block2.down += 10
         block2.sign(block2.key)
         block3.previous_hash = block2.hash
         result = block2.validate(db)
@@ -61,7 +61,7 @@ class TestBlocks(TrustChainTestCase):
         db.add_block(block3)
         # Act
         block2 = TriblerChainBlock(block2.pack_db_insert())
-        block2.transaction["up"] += 10
+        block2.up += 10
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
         # Assert
@@ -77,7 +77,7 @@ class TestBlocks(TrustChainTestCase):
         db.add_block(block3)
         # Act
         block2 = TriblerChainBlock(block2.pack_db_insert())
-        block2.transaction["down"] += 10
+        block2.down += 10
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
         # Assert
@@ -93,7 +93,7 @@ class TestBlocks(TrustChainTestCase):
         db.add_block(block3)
         # Act
         block2 = TriblerChainBlock(block2.pack_db_insert())
-        block2.transaction["total_up"] += 10
+        block2.total_up += 10
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
         # Assert
@@ -109,7 +109,7 @@ class TestBlocks(TrustChainTestCase):
         db.add_block(block3)
         # Act
         block2 = TriblerChainBlock(block2.pack_db_insert())
-        block2.transaction["total_down"] += 10
+        block2.total_down += 10
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
         # Assert
@@ -121,8 +121,8 @@ class TestBlocks(TrustChainTestCase):
         db = MockDatabase()
         (block1, _, _, _) = TestBlocks.setup_validate()
         # Act
-        block1.transaction["up"] += 10
-        block1.transaction["down"] += 10
+        block1.up += 10
+        block1.down += 10
         block1.sign(block1.key)
         result = block1.validate(db)
         # Assert
@@ -137,7 +137,7 @@ class TestBlocks(TrustChainTestCase):
         db.add_block(block1)
         db.add_block(block3)
         # Act
-        block2.transaction["total_up"] += 10
+        block2.total_up += 10
         block2.sign(block2.key)
         block3.previous_hash = block2.hash
         result = block2.validate(db)
@@ -152,7 +152,7 @@ class TestBlocks(TrustChainTestCase):
         db.add_block(block1)
         db.add_block(block3)
         # Act
-        block2.transaction["total_down"] += 10
+        block2.total_down += 10
         block2.sign(block2.key)
         block3.previous_hash = block2.hash
         result = block2.validate(db)
@@ -166,7 +166,7 @@ class TestBlocks(TrustChainTestCase):
         db.add_block(block2)
         # Act
         db.add_block(TriblerChainBlock.create(block1.transaction, db, block1.link_public_key, block1))
-        block1.transaction["up"] += 5
+        block1.up += 5
         result = block1.validate(db)
         self.assertEqual(result[0], ValidationResult.invalid)
         self.assertIn("Up/down mismatch on linked block", result[1])
@@ -177,7 +177,7 @@ class TestBlocks(TrustChainTestCase):
         db.add_block(block2)
         # Act
         db.add_block(TriblerChainBlock.create(block1.transaction, db, block1.link_public_key, block1))
-        block1.transaction["down"] -= 5
+        block1.down -= 5
         result = block1.validate(db)
         self.assertEqual(result[0], ValidationResult.invalid)
         self.assertIn("Down/up mismatch on linked block", result[1])
@@ -186,7 +186,7 @@ class TestBlocks(TrustChainTestCase):
         db = MockDatabase()
         block1 = TriblerChainBlock()
         # Act
-        block1.transaction = {'up': -10, 'down': -10, 'total_up': -20, 'total_down': -10}
+        block1.transaction = [-10, -10, -10, -10]
         result = block1.validate(db)
         self.assertEqual(result[0], ValidationResult.invalid)
         self.assertIn("Up field is negative", result[1])
@@ -198,7 +198,7 @@ class TestBlocks(TrustChainTestCase):
         db = MockDatabase()
         block1 = TriblerChainBlock()
         # Act
-        block1.transaction = {'up': 0, 'down': 0, 'total_up': 30, 'total_down': 40}
+        block1.transaction = [0, 0, 0, 0]
         result = block1.validate(db)
         self.assertEqual(result[0], ValidationResult.invalid)
         self.assertIn("Up and down are zero", result[1])

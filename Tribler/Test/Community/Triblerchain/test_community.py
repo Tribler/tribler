@@ -148,14 +148,14 @@ class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
         TestTriblerChainCommunity.set_expectation(other, node, 10, 5)
-        transaction = {"up": 10, "down": 5}
+        transaction = [10, 5]
         node.call(node.community.sign_block, target_other, other.my_member.public_key, transaction)
         _, block_req = other.receive_message(names=[HALF_BLOCK]).next()
         # Act
         # construct faked block
         block = block_req.payload.block
-        block.transaction["up"] += 10
-        block.transaction["total_up"] = block.transaction["up"]
+        block.up += 10
+        block.total_up = block.up
         block_req = node.community.get_meta_message(HALF_BLOCK).impl(
             authentication=tuple(),
             distribution=(node.community.claim_global_time(),),
@@ -178,7 +178,7 @@ class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
         # Arrange
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
-        transaction = {"up": 10, "down": 5}
+        transaction = [10, 5]
         TestTriblerChainCommunity.set_expectation(node, other, 50, 50)
         TestTriblerChainCommunity.set_expectation(other, node, 50, 50)
         TestTriblerChainCommunity.create_block(node, other, target_other, transaction)
@@ -208,7 +208,7 @@ class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
         TestTriblerChainCommunity.set_expectation(other, node, 3, 3)
-        transaction = {"up": 10, "down": 5}
+        transaction = [10, 5]
         node.call(node.community.sign_block, target_other, other.my_member.public_key, transaction)
         # Act
         other.give_message(other.receive_message(names=[HALF_BLOCK]).next()[1], node)
@@ -228,7 +228,7 @@ class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
         # Arrange
         node, other = self.create_nodes(2)
         target_other = self._create_target(node, other)
-        transaction = {"up": 10, "down": 5}
+        transaction = [10, 5]
         node.call(node.community.sign_block, target_other, other.my_member.public_key, transaction)
         # Act
         other.give_message(other.receive_message(names=[HALF_BLOCK]).next()[1], node)
@@ -250,7 +250,7 @@ class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
         node, other = self.create_nodes(2)
         TestTriblerChainCommunity.set_expectation(node, other, 50, 50)
         TestTriblerChainCommunity.set_expectation(other, node, 50, 50)
-        transaction = {"up": 10, "down": 5}
+        transaction = [10, 5]
 
         # Act
         TestTriblerChainCommunity.create_block(node, other, self._create_target(node, other), transaction)
@@ -258,12 +258,12 @@ class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
         # Assert
         block = node.call(TriblerChainBlock.create, transaction, node.community.persistence,
                           node.community.my_member.public_key)
-        self.assertEqual(20, block.transaction["total_up"])
-        self.assertEqual(10, block.transaction["total_down"])
+        self.assertEqual(20, block.total_up)
+        self.assertEqual(10, block.total_down)
         block = other.call(TriblerChainBlock.create, transaction, other.community.persistence,
                            other.community.my_member.public_key)
-        self.assertEqual(15, block.transaction["total_up"])
-        self.assertEqual(15, block.transaction["total_down"])
+        self.assertEqual(15, block.total_up)
+        self.assertEqual(15, block.total_down)
 
     def test_block_values_after_request(self):
         """
@@ -271,14 +271,14 @@ class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
         """
         # Arrange
         node, other = self.create_nodes(2)
-        transaction = {"up": 10, "down": 5}
+        transaction = [10, 5]
         node.call(node.community.sign_block, self._create_target(node, other), other.my_member.public_key, transaction)
 
         # Assert
         block = node.call(TriblerChainBlock.create, transaction, node.community.persistence,
                           node.community.my_member.public_key)
-        self.assertEqual(20, block.transaction["total_up"])
-        self.assertEqual(10, block.transaction["total_down"])
+        self.assertEqual(20, block.total_up)
+        self.assertEqual(10, block.total_down)
 
     def test_crawler_on_introduction_received(self):
         """
@@ -336,7 +336,7 @@ class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
         """
         # Arrange
         node, other = self.create_nodes(2)
-        transaction = {"up": 10, "down": 5}
+        transaction = [10, 5]
         TestTriblerChainCommunity.create_block(node, other, self._create_target(node, other), transaction)
 
         # Get statistics
@@ -350,7 +350,7 @@ class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
         """
         # Arrange
         node, other = self.create_nodes(2)
-        transaction = {"up": 10, "down": 5}
+        transaction = [10, 5]
         TestTriblerChainCommunity.create_block(node, other, self._create_target(node, other), transaction)
 
         # Get statistics
@@ -364,7 +364,7 @@ class TestTriblerChainCommunity(BaseTestTrustChainCommunity):
         """
         # Arrange
         node, other = self.create_nodes(2)
-        transaction = {'up': 10, 'down': 5, 'total_up': 10, 'total_down': 5}
+        transaction = [10, 5]
         TestTriblerChainCommunity.create_block(node, other, self._create_target(node, other), transaction)
         TestTriblerChainCommunity.create_block(other, node, self._create_target(other, node), transaction)
 

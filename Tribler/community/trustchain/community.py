@@ -236,7 +236,7 @@ class TrustChainCommunity(Community):
             "Cannot counter sign block not addressed to self"
         assert linked is None or linked.link_sequence_number == UNKNOWN_SEQ, \
             "Cannot counter sign block that is not a request"
-        assert transaction is None or isinstance(transaction, dict), "Transaction should be a dictionary"
+        assert transaction is None or isinstance(transaction, list), "Transaction should be a list not %r" % transaction
 
         block = self.BLOCK_CLASS.create(transaction, self.persistence, self.my_member.public_key,
                                         link=linked, link_pk=public_key)
@@ -246,11 +246,11 @@ class TrustChainCommunity(Community):
                          block.link_public_key.encode("hex")[-8:], block, validation)
         if validation[0] != ValidationResult.partial_next and validation[0] != ValidationResult.valid:
             self.logger.error("Signed block did not validate?! Result %s", repr(validation))
+            return None
         else:
             self.persistence.add_block(block)
             self.send_block(block, candidate)
-
-        return block
+            return block
 
     def validate_persist_block(self, block):
         """

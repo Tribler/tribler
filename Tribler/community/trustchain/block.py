@@ -1,3 +1,4 @@
+from copy import deepcopy
 from hashlib import sha256
 from struct import pack_into, unpack_from, calcsize
 
@@ -26,9 +27,11 @@ class TrustChainBlock(object):
 
     def __init__(self, data=None):
         super(TrustChainBlock, self).__init__()
+        if hasattr(self, 'transaction'):
+            assert isinstance(self.transaction, list), "Transaction must be a list"
+        else:
+            self.transaction = []
         if data is None:
-            # data
-            self.transaction = {}
             # identity
             self.public_key = EMPTY_PK
             self.sequence_number = GENESIS_SEQ
@@ -41,9 +44,8 @@ class TrustChainBlock(object):
             # debug stuff
             self.insert_time = None
         else:
-            _, self.transaction = decode(str(data[0]))
             (self.public_key, self.sequence_number, self.link_public_key, self.link_sequence_number, self.previous_hash,
-             self.signature, self.insert_time) = (data[1], data[2], data[3], data[4], data[5], data[6], data[7])
+             self.signature, self.insert_time) = (data[0], data[1], data[2], data[3], data[4], data[5], data[6])
             if isinstance(self.public_key, buffer):
                 self.public_key = str(self.public_key)
             if isinstance(self.link_public_key, buffer):
@@ -52,16 +54,20 @@ class TrustChainBlock(object):
                 self.previous_hash = str(self.previous_hash)
             if isinstance(self.signature, buffer):
                 self.signature = str(self.signature)
+            for i in range(0, len(data) - 7):
+                self.transaction.append(data[i+7])
+                if isinstance(self.transaction[i], buffer):
+                    self.transaction[i] = str(self.transaction[i])
 
     def __str__(self):
         # This makes debugging and logging easier
-        return "Block {0} from ...{1}:{2} links ...{3}:{4} for {5}".format(
+        return "Block {0} from ...{1}:{2} links ...{3}:{4} transaction {5}".format(
             self.hash.encode("hex")[-8:],
             self.public_key.encode("hex")[-8:],
             self.sequence_number,
             self.link_public_key.encode("hex")[-8:],
             self.link_sequence_number,
-            self.transaction)
+            repr(self.transaction))
 
     @property
     def hash(self):
@@ -202,8 +208,8 @@ class TrustChainBlock(object):
                 err("Double sign fraud")
 
         # Step 5: does the database have the linked block? If so do the values match up? If the values do not match up
-        # someone comitted fraud, but it is impossible to decide who. So we just invalidate the block that is the latter
-        # to get validated. We can also detect double counter sign fraud at this point.
+        # someone committed fraud, but it is impossible to decide who. So we just invalidate the block that is the
+        # latter to get validated. We can also detect double counter sign fraud at this point.
         if link:
             # Sanity check to see if the database returned the expected block, we want to cover all our bases before
             # crying wolf and making a fraud claim.
@@ -256,17 +262,17 @@ class TrustChainBlock(object):
         :param transaction: the transaction to use in this block
         :param public_key: the public key to use for this block
         :param link: optionally create the block as a linked block to this block
-        :param link_pk: the public key of the counterparty in this transaction
+        :param link_pk: the public key of the counter party in this transaction
         :return: A newly created block
         """
         blk = database.get_latest(public_key)
         ret = cls()
         if link:
-            ret.transaction = link.transaction
+            ret.transaction = deepcopy(link.transaction)    # copy construct, alterations should not propagate
             ret.link_public_key = link.public_key
             ret.link_sequence_number = link.sequence_number
         else:
-            ret.transaction = transaction
+            ret.transaction = deepcopy(transaction)    # copy construct, alterations should not propagate
             ret.link_public_key = link_pk
 
         if blk:
@@ -298,7 +304,7 @@ class TrustChainBlock(object):
         :param offset: Optionally, the offset at which to start unpacking
         :return: The TrustChainBlock that was unpacked from the buffer
         """
-        ret = TrustChainBlock()
+        ret = cls()
         (ret.public_key, ret.sequence_number, ret.link_public_key,
          ret.link_sequence_number, ret.previous_hash, ret.signature) = unpack_from(block_pack_format, data, offset)
 
@@ -315,9 +321,9 @@ class TrustChainBlock(object):
         Prepare a tuple to use for inserting into the database
         :return: A database insertable tuple
         """
-        return (buffer(encode(self.transaction)), buffer(self.public_key), self.sequence_number,
-                buffer(self.link_public_key), self.link_sequence_number, buffer(self.previous_hash),
-                buffer(self.signature), buffer(self.hash))
+        return tuple([buffer(self.public_key), self.sequence_number, buffer(self.link_public_key),
+                      self.link_sequence_number, buffer(self.previous_hash), buffer(self.signature), buffer(self.hash)]
+                     + [buffer(tx) if isinstance(tx, basestring) else tx for tx in self.transaction])
 
     def __iter__(self):
         """
@@ -332,13 +338,6 @@ class TrustChainBlock(object):
             else:
                 yield key, value
         yield "hash", self.hash.encode("hex")
-
-        # "previous_hash_requester": base64.encodestring(self.previous_hash_requester).strip(),
-        # "previous_hash_responder": base64.encodestring(self.previous_hash_responder).strip(),
-        # "public_key_requester": base64.encodestring(self.public_key_requester).strip(),
-        # "signature_requester": base64.encodestring(self.signature_requester).strip(),
-        # "public_key_responder": base64.encodestring(self.public_key_responder).strip(),
-        # "signature_responder": base64.encodestring(self.signature_responder).strip(),
 
 
 class ValidationResult(object):

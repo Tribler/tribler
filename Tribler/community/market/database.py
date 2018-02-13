@@ -15,27 +15,10 @@ from Tribler.dispersy.database import Database
 
 
 DATABASE_DIRECTORY = path.join(u"sqlite")
-# Path to the database location + dispersy._workingdirectory
-DATABASE_PATH = path.join(DATABASE_DIRECTORY, u"market.db")
 # Version to keep track if the db schema needs to be updated.
-LATEST_DB_VERSION = 1
+LATEST_DB_VERSION = '1'
 # Schema for the Market DB.
-schema = u"""
-CREATE TABLE IF NOT EXISTS blocks(
- tx                   TEXT NOT NULL,
- public_key           TEXT NOT NULL,
- sequence_number      INTEGER NOT NULL,
- link_public_key      TEXT NOT NULL,
- link_sequence_number INTEGER NOT NULL,
- previous_hash	      TEXT NOT NULL,
- signature		      TEXT NOT NULL,
-
- insert_time          TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
- block_hash	          TEXT NOT NULL,
-
- PRIMARY KEY (public_key, sequence_number)
- );
-
+SCHEMA = u"""
 CREATE TABLE IF NOT EXISTS orders(
  trader_id            TEXT NOT NULL,
  order_number         INTEGER NOT NULL,
@@ -128,9 +111,6 @@ CREATE TABLE IF NOT EXISTS orders(
 
   PRIMARY KEY(trader_id)
  );
-
-CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
-INSERT INTO option(key, value) VALUES('database_version', '""" + str(LATEST_DB_VERSION) + u"""');
 """
 
 
@@ -141,11 +121,30 @@ class MarketDB(TrustChainDB):
     Ensures a proper DB schema on startup.
     """
 
-    def get_schema(self):
+    def get_schema(self, level = None):
         """
         Return the schema for the database.
+        :param level: the inheritance level who's db version to get, or Null (default) to get the entire schema
         """
-        return schema
+        if level is None:
+            return super(MarketDB, self).get_schema() + SCHEMA
+        elif level != 1:
+            return super(MarketDB, self).get_schema()
+        else:
+            return SCHEMA
+
+    def get_db_version(self, level=None):
+        """
+        Returns the current database version for a specific inheritance level. TrustChain = 0
+        :param level: the inheritance level who's db version to get, or Null (default) to pass the entire version string
+        :return: the current highest version of the database layout
+        """
+        if level is None:
+            return super(MarketDB, self).get_db_version(level) + ".%s" % LATEST_DB_VERSION
+        elif level != 1:
+            return super(MarketDB, self).get_db_version(level)
+        else:
+            return LATEST_DB_VERSION
 
     def get_all_blocks(self):
         """
@@ -340,19 +339,10 @@ class MarketDB(TrustChainDB):
     def open(self, initial_statements=True, prepare_visioning=True):
         return super(MarketDB, self).open(initial_statements, prepare_visioning)
 
-    def check_database(self, database_version):
+    def check_database(self, database_version, levels = 2):
         """
         Ensure the proper schema is used by the database.
         :param database_version: Current version of the database.
         :return:
         """
-        assert isinstance(database_version, unicode)
-        assert database_version.isdigit()
-        assert int(database_version) >= 0
-        database_version = int(database_version)
-
-        if database_version < LATEST_DB_VERSION:
-            self.executescript(self.get_schema())
-            self.commit()
-
-        return LATEST_DB_VERSION
+        return super(MarketDB, self).check_database(database_version, levels)
