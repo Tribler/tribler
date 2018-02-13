@@ -177,6 +177,9 @@ class TunnelExitSocket(DatagramProtocol, TaskManager):
                 def on_ip_address(ip_address):
                     self.tunnel_logger.debug("Resolved hostname %s to ip_address %s", destination[0], ip_address)
                     try:
+                        self.tunnel_logger.debug("    ??? -> %s:%d  %d bytes local ('%s', %d) circuit_id %s",
+                                                 ip_address, destination[1], len(data), self.transport.getHost().host,
+                                                 self.transport.getHost().port, self.circuit_id)
                         self.transport.write(data, (ip_address, destination[1]))
                         self.community.increase_bytes_sent(self, len(data))
                     except (AttributeError, MessageLengthError, socket.error) as exception:
@@ -192,6 +195,9 @@ class TunnelExitSocket(DatagramProtocol, TaskManager):
                                          self.circuit_id)
 
     def datagramReceived(self, data, source):
+        self.tunnel_logger.debug("    ??? <- %s:%d  %d bytes local ('%s', %d) circuit_id %s", source[0], source[1],
+                                 len(data), self.transport.getHost().host, self.transport.getHost().port,
+                                 self.circuit_id)
         self.community.increase_bytes_received(self, len(data))
         if self.check_num_packets(source, True):
             if TunnelConversion.is_allowed(data):

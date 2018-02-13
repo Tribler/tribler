@@ -15,6 +15,10 @@ class MockTransport(MockObject):
         self.written_data = []
         self.mock_host = MockObject()
         self.mock_host.host = '123.123.123.123'
+        self.mock_host.port = 12345
+        self.mock_peer = MockObject()
+        self.mock_peer.host = '210.210.210.210'
+        self.mock_peer.port = 54321
 
     def loseConnection(self):
         self.connected = False
@@ -24,6 +28,9 @@ class MockTransport(MockObject):
 
     def getHost(self):
         return self.mock_host
+
+    def getPeer(self):
+        return self.mock_peer
 
 
 class TestSocks5Connection(AbstractServer):

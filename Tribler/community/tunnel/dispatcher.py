@@ -44,6 +44,13 @@ class TunnelDispatcher(object):
                 if session._udp_socket:
                     socks5_data = conversion.encode_udp_packet(
                         0, 0, conversion.ADDRESS_TYPE_IPV4, origin[0], origin[1], data)
+                    self._logger.debug(
+                        "    ??? ->    %s:%d  %d bytes local ('%s', %d) circuit_id %d",
+                        session._udp_socket.remote_udp_address[0], session._udp_socket.remote_udp_address[1],
+                        len(data),
+                        session._udp_socket.transport.getHost().host,
+                        session._udp_socket.transport.getHost().port,
+                        circuit.circuit_id)
                     return session._udp_socket.sendDatagram(socks5_data)
                 else:
                     self._logger.error("UDP socket for socks server not available!")
@@ -74,6 +81,13 @@ class TunnelDispatcher(object):
             return False
 
         self._logger.debug("Sending data over circuit destined for %r:%r", *request.destination)
+        self._logger.debug("    ??? <-    %s:%d  %d bytes local ('%s', %d) circuit_id %d",
+                           udp_connection.remote_udp_address[0],
+                           udp_connection.remote_udp_address[1],
+                           len(request.payload),
+                           udp_connection.transport.getHost().host,
+                           udp_connection.transport.getHost().port,
+                           circuit.circuit_id)
         circuit.tunnel_data(request.destination, request.payload)
         return True
 

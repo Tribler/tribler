@@ -1,6 +1,7 @@
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.Core.Socks5.test_connection import MockTransport
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.community.tunnel import CIRCUIT_TYPE_DATA, CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY
 from Tribler.community.tunnel.dispatcher import TunnelDispatcher
@@ -35,6 +36,7 @@ class TestTunnelDispatcher(AbstractServer):
         mock_circuit = MockObject()
         mock_circuit.goal_hops = 300
         mock_circuit.ctype = CIRCUIT_TYPE_DATA
+        mock_circuit.circuit_id = 3
         origin = ("0.0.0.0", 1024)
         self.assertFalse(self.dispatcher.on_incoming_from_tunnel(self.mock_tunnel_community, mock_circuit, origin, 'a'))
 
@@ -49,6 +51,8 @@ class TestTunnelDispatcher(AbstractServer):
 
         mock_session._udp_socket = MockObject()
         mock_session._udp_socket.sendDatagram = lambda _: True
+        mock_session._udp_socket.remote_udp_address = ("host.example.com", 1234)
+        mock_session._udp_socket.transport = MockTransport()
         self.assertTrue(self.dispatcher.on_incoming_from_tunnel(self.mock_tunnel_community, mock_circuit, origin, 'a'))
 
     def test_on_socks_in(self):
@@ -59,6 +63,8 @@ class TestTunnelDispatcher(AbstractServer):
         self.dispatcher.set_socks_servers([mock_socks_server])
 
         mock_udp_connection = MockObject()
+        mock_udp_connection.remote_udp_address = ("host.example.com", 1234)
+        mock_udp_connection.transport = MockTransport()
         mock_udp_connection.socksconnection = MockObject()
         mock_udp_connection.socksconnection.socksserver = mock_socks_server
 
