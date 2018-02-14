@@ -6287,40 +6287,6 @@ High anonymity</string>
 color: white;</string>
                 </property>
                 <property name="text">
-                 <string>Trustchain</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QCheckBox" name="trustchain_enabled_checkbox">
-                <property name="text">
-                 <string>Enable trustchain</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_10">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="MinimumExpanding" vsizetype="Minimum">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="text">
-                 <string>Trustchain is a blockchain-based way to keep track of sharing ratio, and eventually prevent freeriding. It is currently still in an early phase of development.</string>
-                </property>
-                <property name="wordWrap">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_3">
-                <property name="styleSheet">
-                 <string notr="true">font-weight: bold;
-color: white;</string>
-                </property>
-                <property name="text">
                  <string>Trustchain mining</string>
                 </property>
                </widget>
@@ -6341,7 +6307,8 @@ color: white;</string>
                  </sizepolicy>
                 </property>
                 <property name="text">
-                 <string>Trustchain mining is the automated process of uploading to swarms in order increase your reputation. Go to channels and choose a channel from which to select swarms.</string>
+                 <string>Trustchain is a blockchain-based way to keep track of sharing ratio, and eventually prevent freeriding. It is currently still in an early phase of development.
+Trustchain mining is the automated process of uploading to swarms in order increase your reputation. Go to channels and choose a channel from which to select swarms.</string>
                 </property>
                 <property name="wordWrap">
                  <bool>true</bool>
