@@ -40,7 +40,7 @@ class AbstractTestOrderBook(AbstractServer):
                                Timeout(0), Timestamp(0.0))
         self.bid2 = Bid(OrderId(TraderId('3'), OrderNumber(1)), Price(300, 'BTC'), Quantity(30, 'MC'),
                         Timeout(1462224447.117), Timestamp(1462224447.117))
-        self.trade = Trade.propose(MessageId(TraderId('0'), MessageNumber('message_number')),
+        self.trade = Trade.propose(MessageId(TraderId('0'), MessageNumber(1)),
                                    OrderId(TraderId('0'), OrderNumber(1)),
                                    OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'),
                                    Quantity(30, 'MC'), Timestamp(1462224447.117))

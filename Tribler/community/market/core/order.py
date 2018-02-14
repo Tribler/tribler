@@ -1,6 +1,6 @@
 import logging
 
-from Tribler.community.market.core.message import TraderId
+from Tribler.community.market.core.message import TraderId, MessageId
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.timeout import Timeout
@@ -370,13 +370,12 @@ class Order(object):
         Return network representation of the order
         """
         return (
-            self._order_id.trader_id,
-            message_id.message_number,
+            MessageId(self._order_id.trader_id, message_id.message_number),
+            self._timestamp,
             self._order_id.order_number,
             self._price,
             self._quantity,
             self._timeout,
-            self._timestamp,
             self._traded_quantity
         )
 

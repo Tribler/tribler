@@ -22,7 +22,7 @@ class OrderTestSuite(unittest.TestCase):
         self.transaction = Transaction(self.transaction_id, Price(100, 'BTC'), Quantity(30, 'MC'),
                                        OrderId(TraderId('0'), OrderNumber(2)),
                                        OrderId(TraderId('1'), OrderNumber(1)), Timestamp(0.0))
-        self.proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber('1')),
+        self.proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber(1)),
                                             OrderId(TraderId('0'), OrderNumber(2)),
                                             OrderId(TraderId('1'), OrderNumber(3)),
                                             Price(100, 'BTC'), Quantity(30, 'MC'), Timestamp(0.0))

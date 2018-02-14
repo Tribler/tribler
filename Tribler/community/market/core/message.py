@@ -47,18 +47,21 @@ class MessageNumber(object):
     def __init__(self, message_number):
         """
         :param message_number: String representing the number of a message
-        :type message_number: str
+        :type message_number: int
         :raises ValueError: Thrown when one of the arguments are invalid
         """
         super(MessageNumber, self).__init__()
 
-        if not isinstance(message_number, str):
-            raise ValueError("Message number must be a string")
+        if not isinstance(message_number, int):
+            raise ValueError("Message number must be an int")
 
         self._message_number = message_number
 
+    def __int__(self):
+        return self._message_number
+
     def __str__(self):
-        return "%s" % self._message_number
+        return str(self._message_number)
 
     def __eq__(self, other):
         if not isinstance(other, MessageNumber):

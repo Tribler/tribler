@@ -1,4 +1,4 @@
-from Tribler.community.trustchain.block import TrustChainBlock
+from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock
 
 
 class TradeChainBlock(TrustChainBlock):

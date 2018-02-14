@@ -84,11 +84,11 @@ class TransactionTestSuite(unittest.TestCase):
         self.transaction = Transaction(self.transaction_id, Price(100, 'BTC'), Quantity(30, 'MC'),
                                        OrderId(TraderId('3'), OrderNumber(2)),
                                        OrderId(TraderId('2'), OrderNumber(1)), Timestamp(0.0))
-        self.proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber('1')),
+        self.proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber(1)),
                                             OrderId(TraderId('0'), OrderNumber(2)),
                                             OrderId(TraderId('1'), OrderNumber(3)),
                                             Price(100, 'BTC'), Quantity(30, 'MC'), Timestamp(0.0))
-        self.payment = Payment(MessageId(TraderId("0"), MessageNumber("1")),
+        self.payment = Payment(MessageId(TraderId("0"), MessageNumber(1)),
                                TransactionId(TraderId('2'), TransactionNumber(2)),
                                Quantity(3, 'MC'), Price(2, 'BTC'),
                                WalletAddress('a'), WalletAddress('b'),
@@ -200,7 +200,7 @@ class StartTransactionTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.start_transaction = StartTransaction(MessageId(TraderId('0'), MessageNumber('1')),
+        self.start_transaction = StartTransaction(MessageId(TraderId('0'), MessageNumber(1)),
                                                   TransactionId(TraderId("0"), TransactionNumber(1)),
                                                   OrderId(TraderId('0'), OrderNumber(1)),
                                                   OrderId(TraderId('1'), OrderNumber(1)), 1234,
@@ -210,19 +210,16 @@ class StartTransactionTestSuite(unittest.TestCase):
         # Test for from network
         data = StartTransaction.from_network(
             type('Data', (object,), {"trader_id": TraderId('0'),
-                                     "message_number": MessageNumber("1"),
-                                     "transaction_trader_id": TraderId('0'),
-                                     "transaction_number": TransactionNumber(1),
-                                     "order_trader_id": TraderId('0'),
-                                     "order_number": OrderNumber(1),
-                                     "recipient_trader_id": TraderId('1'),
-                                     "recipient_order_number": OrderNumber(2),
+                                     "message_id": MessageId(TraderId('0'), MessageNumber(1)),
+                                     "transaction_id": TransactionId(TraderId('0'), TransactionNumber(1)),
+                                     "order_id": OrderId(TraderId('0'), OrderNumber(1)),
+                                     "recipient_order_id": OrderId(TraderId('1'), OrderNumber(2)),
                                      "proposal_id": 1235,
                                      "price": Price(300, 'BTC'),
                                      "quantity": Quantity(20, 'MC'),
                                      "timestamp": Timestamp(0.0)}))
 
-        self.assertEquals(MessageId(TraderId("0"), MessageNumber("1")), data.message_id)
+        self.assertEquals(MessageId(TraderId("0"), MessageNumber(1)), data.message_id)
         self.assertEquals(TransactionId(TraderId("0"), TransactionNumber(1)), data.transaction_id)
         self.assertEquals(OrderId(TraderId('0'), OrderNumber(1)), data.order_id)
         self.assertEquals(OrderId(TraderId('1'), OrderNumber(2)), data.recipient_order_id)
@@ -234,7 +231,4 @@ class StartTransactionTestSuite(unittest.TestCase):
         Test the conversion of a StartTransaction object to the network
         """
         data = self.start_transaction.to_network()
-        self.assertEqual(data[0], self.start_transaction.message_id.trader_id)
-        self.assertEqual(data[1], self.start_transaction.message_id.message_number)
-        self.assertEqual(data[2], self.start_transaction.transaction_id.trader_id)
-        self.assertEqual(data[3], self.start_transaction.transaction_id.transaction_number)
+        self.assertEqual(data[0], self.start_transaction.message_id)

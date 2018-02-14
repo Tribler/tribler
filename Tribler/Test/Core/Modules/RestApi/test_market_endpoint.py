@@ -37,21 +37,21 @@ class TestMarketEndpoint(AbstractApiTest):
         Test the method to get the market community in the market API
         """
         endpoint = BaseMarketEndpoint(self.session)
-        self.session.get_dispersy_instance().get_communities = lambda: []
+        self.session.lm.market_community = None
         self.assertRaises(RuntimeError, endpoint.get_market_community)
 
     def add_transaction_and_payment(self):
         """
         Add a transaction and a payment to the market
         """
-        proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber('message_number')),
+        proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber(1)),
                                        OrderId(TraderId('0'), OrderNumber(1)),
                                        OrderId(TraderId('1'), OrderNumber(2)),
                                        Price(63400, 'BTC'), Quantity(30, 'MC'), Timestamp(1462224447.117))
         transaction = self.session.lm.market_community.transaction_manager.create_from_proposed_trade(
             proposed_trade, 'abcd')
 
-        payment = Payment(MessageId(TraderId("0"), MessageNumber("1")), transaction.transaction_id,
+        payment = Payment(MessageId(TraderId("0"), MessageNumber(1)), transaction.transaction_id,
                           Quantity(0, 'MC'), Price(20, 'BTC'), WalletAddress('a'), WalletAddress('b'),
                           PaymentId('aaa'), Timestamp(4.0), True)
         transaction.add_payment(payment)
@@ -62,7 +62,8 @@ class TestMarketEndpoint(AbstractApiTest):
     @blocking_call_on_reactor_thread
     def setUpPreSession(self):
         super(TestMarketEndpoint, self).setUpPreSession()
-        self.config.set_dispersy_enabled(True)
+        self.config.set_dispersy_enabled(False)
+        self.config.set_ipv8_enabled(True)
 
     @deferred(timeout=10)
     def test_get_asks(self):

@@ -190,20 +190,10 @@ class ProposedTrade(Trade):
         :return: Restored proposed trade
         :rtype: ProposedTrade
         """
-        assert hasattr(data, 'trader_id'), isinstance(data.trader_id, TraderId)
-        assert hasattr(data, 'message_number'), isinstance(data.message_number, MessageNumber)
-        assert hasattr(data, 'order_number'), isinstance(data.order_number, OrderNumber)
-        assert hasattr(data, 'recipient_trader_id'), isinstance(data.recipient_trader_id, TraderId)
-        assert hasattr(data, 'recipient_order_number'), isinstance(data.recipient_order_number, OrderNumber)
-        assert hasattr(data, 'proposal_id'), isinstance(data.proposal_id, int)
-        assert hasattr(data, 'price'), isinstance(data.price, Price)
-        assert hasattr(data, 'quantity'), isinstance(data.quantity, Quantity)
-        assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
-
         return cls(
-            MessageId(data.trader_id, data.message_number),
+            data.message_id,
             OrderId(data.trader_id, data.order_number),
-            OrderId(data.recipient_trader_id, data.recipient_order_number),
+            data.recipient_order_id,
             data.proposal_id,
             data.price,
             data.quantity,
@@ -237,16 +227,14 @@ class ProposedTrade(Trade):
         """
         Return network representation of a proposed trade
         """
-        return self._recipient_order_id.trader_id, (
-            self._order_id.trader_id,
-            self._message_id.message_number,
+        return (
+            MessageId(self._order_id.trader_id, self._message_id.message_number),
+            self._timestamp,
             self._order_id.order_number,
-            self._recipient_order_id.trader_id,
-            self._recipient_order_id.order_number,
+            self._recipient_order_id,
             self._proposal_id,
             self._price,
             self._quantity,
-            self._timestamp
         )
 
 
@@ -288,20 +276,10 @@ class CounterTrade(ProposedTrade):
         :return: Restored counter trade
         :rtype: CounterTrade
         """
-        assert hasattr(data, 'trader_id'), isinstance(data.trader_id, TraderId)
-        assert hasattr(data, 'message_number'), isinstance(data.message_number, MessageNumber)
-        assert hasattr(data, 'order_number'), isinstance(data.order_number, OrderNumber)
-        assert hasattr(data, 'recipient_trader_id'), isinstance(data.recipient_trader_id, TraderId)
-        assert hasattr(data, 'recipient_order_number'), isinstance(data.recipient_order_number, OrderNumber)
-        assert hasattr(data, 'proposal_id'), isinstance(data.proposal_id, int)
-        assert hasattr(data, 'price'), isinstance(data.price, Price)
-        assert hasattr(data, 'quantity'), isinstance(data.quantity, Quantity)
-        assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
-
         return cls(
-            MessageId(data.trader_id, data.message_number),
+            data.message_id,
             OrderId(data.trader_id, data.order_number),
-            OrderId(data.recipient_trader_id, data.recipient_order_number),
+            data.recipient_order_id,
             data.proposal_id,
             data.price,
             data.quantity,
@@ -312,16 +290,14 @@ class CounterTrade(ProposedTrade):
         """
         Return network representation of a counter trade
         """
-        return self._recipient_order_id.trader_id, (
-            self._order_id.trader_id,
-            self._message_id.message_number,
+        return (
+            self._message_id,
+            self._timestamp,
             self._order_id.order_number,
-            self._recipient_order_id.trader_id,
-            self._recipient_order_id.order_number,
+            self._recipient_order_id,
             self._proposal_id,
             self._price,
             self._quantity,
-            self._timestamp
         )
 
 
@@ -371,19 +347,10 @@ class DeclinedTrade(Trade):
         :return: Restored declined trade
         :rtype: DeclinedTrade
         """
-        assert hasattr(data, 'trader_id'), isinstance(data.trader_id, TraderId)
-        assert hasattr(data, 'message_number'), isinstance(data.message_number, MessageNumber)
-        assert hasattr(data, 'order_number'), isinstance(data.order_number, OrderNumber)
-        assert hasattr(data, 'recipient_trader_id'), isinstance(data.recipient_trader_id, TraderId)
-        assert hasattr(data, 'recipient_order_number'), isinstance(data.recipient_order_number, OrderNumber)
-        assert hasattr(data, 'proposal_id'), isinstance(data.proposal_id, int)
-        assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
-        assert hasattr(data, 'decline_reason'), isinstance(data.decline_reason, int)
-
         return cls(
-            MessageId(data.trader_id, data.message_number),
+            data.message_id,
             OrderId(data.trader_id, data.order_number),
-            OrderId(data.recipient_trader_id, data.recipient_order_number),
+            data.recipient_order_id,
             data.proposal_id,
             data.timestamp,
             data.decline_reason
@@ -393,13 +360,11 @@ class DeclinedTrade(Trade):
         """
         Return network representation of a declined trade
         """
-        return self._recipient_order_id.trader_id, (
-            self._order_id.trader_id,
-            self._message_id.message_number,
-            self._order_id.order_number,
-            self._recipient_order_id.trader_id,
-            self._recipient_order_id.order_number,
-            self._proposal_id,
+        return (
+            self._message_id,
             self._timestamp,
+            self._order_id.order_number,
+            self._recipient_order_id,
+            self._proposal_id,
             self._decline_reason
         )

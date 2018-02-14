@@ -468,24 +468,11 @@ class StartTransaction(Message):
         :return: Restored start transaction
         :rtype: StartTransaction
         """
-        assert hasattr(data, 'trader_id'), isinstance(data.trader_id, TraderId)
-        assert hasattr(data, 'message_number'), isinstance(data.message_number, MessageNumber)
-        assert hasattr(data, 'transaction_trader_id'), isinstance(data.transaction_trader_id, TraderId)
-        assert hasattr(data, 'transaction_number'), isinstance(data.transaction_number, TransactionNumber)
-        assert hasattr(data, 'order_trader_id'), isinstance(data.order_trader_id, TraderId)
-        assert hasattr(data, 'order_number'), isinstance(data.order_number, OrderNumber)
-        assert hasattr(data, 'recipient_trader_id'), isinstance(data.recipient_trader_id, TraderId)
-        assert hasattr(data, 'recipient_order_number'), isinstance(data.recipient_order_number, OrderNumber)
-        assert hasattr(data, 'proposal_id'), isinstance(data.proposal_id, int)
-        assert hasattr(data, 'price'), isinstance(data.price, Price)
-        assert hasattr(data, 'quantity'), isinstance(data.quantity, Quantity)
-        assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
-
         return cls(
-            MessageId(data.trader_id, data.message_number),
-            TransactionId(data.transaction_trader_id, data.transaction_number),
-            OrderId(data.order_trader_id, data.order_number),
-            OrderId(data.recipient_trader_id, data.recipient_order_number),
+            data.message_id,
+            data.transaction_id,
+            data.order_id,
+            data.recipient_order_id,
             data.proposal_id,
             data.price,
             data.quantity,
@@ -497,16 +484,12 @@ class StartTransaction(Message):
         Return network representation of the start transaction message
         """
         return (
-            self._message_id.trader_id,
-            self._message_id.message_number,
-            self._transaction_id.trader_id,
-            self._transaction_id.transaction_number,
-            self._order_id.trader_id,
-            self._order_id.order_number,
-            self._recipient_order_id.trader_id,
-            self._recipient_order_id.order_number,
+            self._message_id,
+            self._timestamp,
+            self._transaction_id,
+            self._order_id,
+            self._recipient_order_id,
             self._proposal_id,
             self._price,
             self._quantity,
-            self._timestamp,
         )

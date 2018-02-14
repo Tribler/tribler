@@ -1,6 +1,3 @@
-from Tribler.community.market.wallet import ASSET_MAP
-
-
 class Price(object):
     """Price is used for having a consistent comparable and usable class that deals with floats."""
 
@@ -32,13 +29,6 @@ class Price(object):
         :rtype: str
         """
         return self._wallet_id
-
-    @property
-    def int_wallet_id(self):
-        """
-        :rtype: int
-        """
-        return ASSET_MAP[self._wallet_id]
 
     def __int__(self):
         return int(self._price)

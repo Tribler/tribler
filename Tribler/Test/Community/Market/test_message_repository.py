@@ -30,5 +30,5 @@ class MemoryMessageRepositoryTestSuite(unittest.TestCase):
 
     def test_next_identity(self):
         # Test for next identity
-        self.assertEquals(MessageId(TraderId('0'), MessageNumber('1')),
+        self.assertEquals(MessageId(TraderId('0'), MessageNumber(1)),
                           self.memory_message_repository.next_identity())
