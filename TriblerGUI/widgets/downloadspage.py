@@ -235,7 +235,7 @@ class DownloadsPage(QWidget):
                                          method='PATCH', data="state=resume")
 
     def on_download_resumed(self, json_result):
-        if json_result["modified"]:
+        if json_result and 'modified' in json_result:
             self.selected_item.download_info['status'] = "DLSTATUS_DOWNLOADING"
             self.selected_item.update_item()
             self.on_download_item_clicked()
