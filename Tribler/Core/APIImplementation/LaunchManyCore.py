@@ -373,7 +373,7 @@ class TriblerLaunchMany(TaskManager):
         tunnel_community_ports = self.session.config.get_tunnel_community_socks5_listen_ports()
         self.session.config.set_anon_proxy_settings(2, ("127.0.0.1", tunnel_community_ports))
 
-        if self.session.config.get_channel_search_enabled():
+        if self.session.config.get_channel_search_enabled() and self.session.config.get_dispersy_enabled():
             self.session.readable_status = STATE_INITIALIZE_CHANNEL_MGR
             from Tribler.Core.Modules.channel.channel_manager import ChannelManager
             self.channel_manager = ChannelManager(self.session)
@@ -400,7 +400,7 @@ class TriblerLaunchMany(TaskManager):
             self.torrent_checker = TorrentChecker(self.session)
             self.torrent_checker.initialize()
 
-        if self.rtorrent_handler:
+        if self.rtorrent_handler and self.session.config.get_dispersy_enabled():
             self.session.readable_status = STATE_START_REMOTE_TORRENT_HANDLER
             self.rtorrent_handler.initialize()
 
