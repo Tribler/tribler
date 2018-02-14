@@ -45,7 +45,6 @@ class TestTunnelCommunity(TestTunnelBase):
         """
         Testing whether an anon download does not make progress without exit nodes
         """
-        assert isInIOThread()
         yield self.setup_nodes(num_exitnodes=0)
 
         def download_state_callback(ds):

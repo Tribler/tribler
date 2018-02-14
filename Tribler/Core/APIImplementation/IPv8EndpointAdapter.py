@@ -25,11 +25,15 @@ class IPv8EndpointAdapter(Endpoint):
         """
         pass
 
+    @property
+    def _port(self):
+        return self.endpoint._port
+
     def assert_open(self):
         assert self._is_open
 
     def is_open(self):
-        return self._is_open
+        return True
 
     def open(self, dispersy=None):
         self._is_open = self.endpoint.open(dispersy)

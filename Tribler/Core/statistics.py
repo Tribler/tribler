@@ -74,7 +74,7 @@ class TriblerStatistics(object):
             "bloom_skipped": sum(c.sync_bloom_skip for c in stats.communities),
         }
 
-    def get_community_statistics(self):
+    def get_dispersy_community_statistics(self):
         """
         Return a dictionary with general statistics of the active Dispersy communities.
         """
@@ -112,6 +112,25 @@ class TriblerStatistics(object):
                 "packets_delayed_success": community.msg_statistics.delay_success_count,
                 "packets_delayed_timeout": community.msg_statistics.delay_timeout_count,
                 "candidates": candidate_count
+            })
+
+        return communities_stats
+
+    def get_ipv8_overlays_statistics(self):
+        """
+        Return a dictionary with IPv8 overlay statistics.
+        """
+        communities_stats = []
+        ipv8 = self.session.get_ipv8_instance()
+
+        for overlay in ipv8.overlays:
+            verified_peers = overlay.network.verified_peers
+            peer_count = "%s" % len(verified_peers) if len(verified_peers) > 0 else "-"
+            communities_stats.append({
+                "master_peer": overlay.master_peer.public_key.key_to_bin().encode('hex'),
+                "my_peer": overlay.my_peer.public_key.key_to_bin().encode('hex'),
+                "global_time": overlay.global_time,
+                "verified_peers": peer_count
             })
 
         return communities_stats

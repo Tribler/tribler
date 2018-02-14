@@ -210,7 +210,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         network_create_engine_wrapper.
         """
         # Called by any thread, assume sessionlock is held
-        self.handle_check_lc.start(1, now=False)
         self.set_checkpoint_disabled(checkpoint_disabled)
 
         try:
@@ -250,6 +249,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
             self.pstate_for_restart = pstate
             self.checkpoint()
+            self.handle_check_lc.start(1, now=True)
             return deferred
 
         except Exception as e:

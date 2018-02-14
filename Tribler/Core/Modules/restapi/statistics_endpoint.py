@@ -131,7 +131,7 @@ class StatisticsCommunitiesEndpoint(resource.Resource):
             .. sourcecode:: javascript
 
                 {
-                    "community_statistics": [{
+                    "dispersy_community_statistics": [{
                         "identifier": "48d04e922dec4430daf22400c9d4cc5a3a53b27d",
                         "member": "a66ebac9d88a239ef348a030d5ed3837868fc06d",
                         "candidates": 43,
@@ -143,4 +143,7 @@ class StatisticsCommunitiesEndpoint(resource.Resource):
                     }, { ... }]
                 }
         """
-        return json.dumps({'community_statistics': self.session.get_community_statistics()})
+        return json.dumps({
+            'dispersy_community_statistics': self.session.get_dispersy_community_statistics(),
+            'ipv8_overlay_statistics': self.session.get_ipv8_overlay_statistics()
+        })

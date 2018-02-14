@@ -1,10 +1,11 @@
 from twisted.internet.defer import inlineCallbacks
 
+from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_EXTENDING, CIRCUIT_TYPE_DATA, \
+    CIRCUIT_STATE_READY
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.community.tunnel import CIRCUIT_TYPE_DATA, CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY
-from Tribler.community.tunnel.dispatcher import TunnelDispatcher
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTunnelDispatcher(AbstractServer):
@@ -21,11 +22,13 @@ class TestTunnelDispatcher(AbstractServer):
         self.selection_strategy = MockObject()
         self.selection_strategy.select = lambda *_: None
         self.mock_tunnel_community.selection_strategy = self.selection_strategy
+        self.mock_tunnel_community.send_data = lambda *_: None
         self.dispatcher = TunnelDispatcher(self.mock_tunnel_community)
 
         self.mock_circuit = MockObject()
         self.mock_circuit.state = CIRCUIT_STATE_EXTENDING
         self.mock_circuit.circuit_id = 3
+        self.mock_circuit.sock_addr = ("1.1.1.1", 1234)
         self.mock_circuit.tunnel_data = lambda *_: None
 
     def test_on_tunnel_in(self):

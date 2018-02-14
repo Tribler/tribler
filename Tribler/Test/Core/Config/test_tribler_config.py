@@ -202,8 +202,6 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         self.tribler_config.set_tunnel_community_enabled(True)
         self.assertEqual(self.tribler_config.get_tunnel_community_enabled(), True)
-        self.tribler_config.set_tunnel_community_hidden_seeding(False)
-        self.assertEqual(self.tribler_config.get_tunnel_community_hidden_seeding(), False)
         self.tribler_config.set_tunnel_community_socks5_listen_ports([-1])
         self.assertNotEqual(self.tribler_config.get_tunnel_community_socks5_listen_ports(), [-1])
         self.tribler_config.set_tunnel_community_socks5_listen_ports([5])

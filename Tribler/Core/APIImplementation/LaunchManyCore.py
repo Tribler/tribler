@@ -12,6 +12,9 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
+from Tribler.Core.DecentralizedTracking.dht_provider import MainlineDHTProvider
+from Tribler.pyipv8.ipv8.peer import Peer
+from Tribler.pyipv8.ipv8_service import IPv8
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, succeed
 from twisted.internet.task import LoopingCall
@@ -38,7 +41,6 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
                                      STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING)
 from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
-from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
 
@@ -96,6 +98,7 @@ class TriblerLaunchMany(TaskManager):
         self.tracker_manager = None
         self.torrent_checker = None
         self.tunnel_community = None
+        self.triblerchain_community = None
 
         self.startup_deferred = Deferred()
 
@@ -166,22 +169,39 @@ class TriblerLaunchMany(TaskManager):
 
             # Dispersy
             self.tftp_handler = None
+            dispersy_endpoint = None
             if self.session.config.get_dispersy_enabled():
                 from Tribler.dispersy.dispersy import Dispersy
                 from Tribler.dispersy.endpoint import MIMEndpoint
-                from Tribler.Core.APIImplementation.IPv8Module import IPv8Module
 
                 # set communication endpoint
-                endpoint = MIMEndpoint(self.session.config.get_dispersy_port())
+                dispersy_endpoint = MIMEndpoint(self.session.config.get_dispersy_port())
 
                 working_directory = unicode(self.session.config.get_state_dir())
-                self.ipv8 = IPv8Module(endpoint, working_directory)
-                self.dispersy = Dispersy(endpoint, working_directory)
+                self.dispersy = Dispersy(dispersy_endpoint, working_directory)
 
                 # register TFTP service
                 from Tribler.Core.TFTP.handler import TftpHandler
-                self.tftp_handler = TftpHandler(self.session, endpoint, "fffffffd".decode('hex'), block_size=1024)
+                self.tftp_handler = TftpHandler(self.session, dispersy_endpoint, "fffffffd".decode('hex'),
+                                                block_size=1024)
                 self.tftp_handler.initialize()
+
+            if self.session.config.get_ipv8_enabled():
+                from Tribler.pyipv8.ipv8.configuration import get_default_configuration
+                ipv8_config = get_default_configuration()
+                ipv8_config['port'] = self.session.config.get_dispersy_port()
+                ipv8_config['overlays'] = []
+                ipv8_config['keys'] = []  # We load the keys ourselves
+
+                if self.session.config.get_dispersy_enabled():
+                    from Tribler.Core.APIImplementation.IPv8EndpointAdapter import IPv8EndpointAdapter
+                    self.ipv8 = IPv8(ipv8_config, IPv8EndpointAdapter(dispersy_endpoint))
+                else:
+                    self.ipv8 = IPv8(ipv8_config)
+
+                self.session.config.set_anon_proxy_settings(2, ("127.0.0.1",
+                                                                self.session.
+                                                                config.get_tunnel_community_socks5_listen_ports()))
 
             if self.session.config.get_torrent_search_enabled() or self.session.config.get_channel_search_enabled():
                 self.search_manager = SearchManager(self.session)
@@ -198,55 +218,68 @@ class TriblerLaunchMany(TaskManager):
         reactor.callFromThread(self.startup_deferred.callback, None)
 
     @blocking_call_on_reactor_thread
-    def load_communities(self):
-        self._logger.info("tribler: Preparing communities...")
+    def load_ipv8_overlays(self):
+        # TriblerChain Community
+        if self.session.config.get_trustchain_enabled():
+            triblerchain_peer = Peer(self.session.trustchain_keypair)
+
+            from Tribler.community.triblerchain.community import TriblerChainCommunity
+            self.triblerchain_community = TriblerChainCommunity(triblerchain_peer, self.ipv8.endpoint,
+                                                                self.ipv8.network,
+                                                                tribler_session=self.session,
+                                                                working_directory=self.session.config.get_state_dir())
+            self.ipv8.overlays.append(self.triblerchain_community)
+
+            from Tribler.pyipv8.ipv8.peerdiscovery.discovery import EdgeWalk
+            self.ipv8.strategies.append((EdgeWalk(self.triblerchain_community), 20))
+
+        # Tunnel Community
+        if self.session.config.get_tunnel_community_enabled():
+            tunnel_peer = Peer(self.session.trustchain_keypair)
+
+            from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
+            self.tunnel_community = TriblerTunnelCommunity(tunnel_peer, self.ipv8.endpoint, self.ipv8.network,
+                                                           tribler_session=self.session,
+                                                           dht_provider=MainlineDHTProvider(
+                                                               self.mainline_dht,
+                                                               self.session.config.get_dispersy_port()))
+            self.ipv8.overlays.append(self.tunnel_community)
+
+            from Tribler.pyipv8.ipv8.peerdiscovery.discovery import RandomWalk
+            self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
+
+    @blocking_call_on_reactor_thread
+    def load_dispersy_communities(self):
+        self._logger.info("tribler: Preparing Dispersy communities...")
         now_time = timemod.time()
         default_kwargs = {'tribler_session': self.session}
 
         # Search Community
-        if self.session.config.get_torrent_search_enabled():
+        if self.session.config.get_torrent_search_enabled() and self.dispersy:
             from Tribler.community.search.community import SearchCommunity
             self.dispersy.define_auto_load(SearchCommunity, self.session.dispersy_member, load=True,
                                            kargs=default_kwargs)
 
         # AllChannel Community
-        if self.session.config.get_channel_search_enabled():
+        if self.session.config.get_channel_search_enabled() and self.dispersy:
             from Tribler.community.allchannel.community import AllChannelCommunity
             self.dispersy.define_auto_load(AllChannelCommunity, self.session.dispersy_member, load=True,
                                            kargs=default_kwargs)
 
         # Channel Community
-        if self.session.config.get_channel_community_enabled():
+        if self.session.config.get_channel_community_enabled() and self.dispersy:
             from Tribler.community.channel.community import ChannelCommunity
             self.dispersy.define_auto_load(ChannelCommunity,
                                            self.session.dispersy_member, load=True, kargs=default_kwargs)
 
         # PreviewChannel Community
-        if self.session.config.get_preview_channel_community_enabled():
+        if self.session.config.get_preview_channel_community_enabled() and self.dispersy:
             from Tribler.community.channel.preview import PreviewChannelCommunity
             self.dispersy.define_auto_load(PreviewChannelCommunity,
                                            self.session.dispersy_member, kargs=default_kwargs)
 
-        # Tunnel Community
-        if self.session.config.get_tunnel_community_enabled():
-            tunnel_settings = TunnelSettings(tribler_config=self.session.config)
-            tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
-
-            keypair = self.session.trustchain_keypair
-            dispersy_member = self.dispersy.get_member(private_key=keypair.key_to_bin())
-            has_hidden_seeding = self.session.config.get_tunnel_community_hidden_seeding
-
-            from Tribler.community.hiddentunnel.hidden_community import HiddenTunnelCommunity
-            from Tribler.community.tunnel.tunnel_community import TunnelCommunity
-            class_to_load = HiddenTunnelCommunity if has_hidden_seeding else TunnelCommunity
-            self.tunnel_community = self.dispersy.define_auto_load(
-                class_to_load, dispersy_member, load=True, kargs=tunnel_kwargs)[0]
-
-            # We don't want to automatically load other instances of this community with other master members.
-            self.dispersy.undefine_auto_load(HiddenTunnelCommunity)
-
-        # Use the permanent TrustChain ID for Market community/TradeChain if it's available
-        if self.session.config.get_market_community_enabled():
+        # Use the permanent TradeChain ID for Market community/TradeChain if it's available
+        if self.session.config.get_market_community_enabled() and self.dispersy:
             wallets = {}
 
             try:
@@ -257,7 +290,7 @@ class TriblerLaunchMany(TaskManager):
             except ImportError:
                 self._logger.error("Electrum wallet cannot be found, Bitcoin trading not available!")
 
-            mc_wallet = TrustchainWallet(self.tunnel_community)
+            mc_wallet = TrustchainWallet(self.triblerchain_community)
             wallets[mc_wallet.get_identifier()] = mc_wallet
 
             if self.session.config.get_dummy_wallets_enabled():
@@ -275,9 +308,6 @@ class TriblerLaunchMany(TaskManager):
             market_kwargs = {'tribler_session': self.session, 'wallets': wallets}
             self.market_community = self.dispersy.define_auto_load(MarketCommunity, dispersy_member,
                                                                    load=True, kargs=market_kwargs)[0]
-
-        self.session.config.set_anon_proxy_settings(2, ("127.0.0.1",
-                                                        self.session.config.get_tunnel_community_socks5_listen_ports()))
 
         self._logger.info("tribler: communities are ready in %.2f seconds", timemod.time() - now_time)
 
@@ -316,16 +346,21 @@ class TriblerLaunchMany(TaskManager):
             self.session.notifier.notify(NTFY_DISPERSY, NTFY_STARTED, None)
 
             self.session.readable_status = STATE_LOADING_COMMUNITIES
-            self.load_communities()
 
-            tunnel_community_ports = self.session.config.get_tunnel_community_socks5_listen_ports()
-            self.session.config.set_anon_proxy_settings(2, ("127.0.0.1", tunnel_community_ports))
+        if self.ipv8:
+            self.load_ipv8_overlays()
 
-            if self.session.config.get_channel_search_enabled():
-                self.session.readable_status = STATE_INITIALIZE_CHANNEL_MGR
-                from Tribler.Core.Modules.channel.channel_manager import ChannelManager
-                self.channel_manager = ChannelManager(self.session)
-                self.channel_manager.initialize()
+        if self.dispersy:
+            self.load_dispersy_communities()
+
+        tunnel_community_ports = self.session.config.get_tunnel_community_socks5_listen_ports()
+        self.session.config.set_anon_proxy_settings(2, ("127.0.0.1", tunnel_community_ports))
+
+        if self.session.config.get_channel_search_enabled():
+            self.session.readable_status = STATE_INITIALIZE_CHANNEL_MGR
+            from Tribler.Core.Modules.channel.channel_manager import ChannelManager
+            self.channel_manager = ChannelManager(self.session)
+            self.channel_manager.initialize()
 
         if self.session.config.get_mainline_dht_enabled():
             self.session.readable_status = STATE_START_MAINLINE_DHT
@@ -616,9 +651,8 @@ class TriblerLaunchMany(TaskManager):
         if do_checkpoint:
             self.session.checkpoint_downloads()
 
-        from Tribler.community.hiddentunnel.hidden_community import HiddenTunnelCommunity
         if self.state_cb_count % 4 == 0:
-            if self.tunnel_community and isinstance(self.tunnel_community, HiddenTunnelCommunity):
+            if self.tunnel_community:
                 self.tunnel_community.monitor_downloads(states_list)
             if self.credit_mining_manager:
                 self.credit_mining_manager.monitor_downloads(states_list)
@@ -820,7 +854,7 @@ class TriblerLaunchMany(TaskManager):
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
 
         if self.ipv8:
-            self.ipv8.stop(stop_reactor=False)
+            yield self.ipv8.stop(stop_reactor=False)
 
         if self.metadata_store is not None:
             yield self.metadata_store.close()

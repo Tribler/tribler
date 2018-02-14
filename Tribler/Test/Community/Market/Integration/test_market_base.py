@@ -4,6 +4,7 @@ import os
 import logging
 
 from Tribler.community.trustchain.community import BLOCK_PAIR_BROADCAST
+from Tribler.pyipv8.ipv8.peer import Peer
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 
@@ -101,6 +102,7 @@ class TestMarketBase(TestAsServer):
         self.config.set_video_server_enabled(False)
         self.config.set_tunnel_community_enabled(False)
         self.config.set_market_community_enabled(False)
+        self.config.set_trustchain_enabled(False)
 
     def generate_member(self, session):
         dispersy = session.get_dispersy_instance()
@@ -129,12 +131,20 @@ class TestMarketBase(TestAsServer):
         """
         Load a custom instance of the TriblerChain community in a given session.
         """
-        dispersy = session.get_dispersy_instance()
-        keypair = dispersy.crypto.generate_key(u"curve25519")
-        dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
-        triblerchain_kwargs = {'tribler_session': session}
-        return dispersy.define_auto_load(TriblerChainCommunityTests, dispersy_member,
-                                         load=True, kargs=triblerchain_kwargs)[0]
+        from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto as IPV8ECCrypto
+
+        triblerchain_peer = Peer(IPV8ECCrypto().generate_key(u"curve25519"))
+
+        overlay = TriblerChainCommunity(triblerchain_peer,
+                                        session.lm.ipv8.endpoint,
+                                        session.lm.ipv8.network,
+                                        tribler_session=session,
+                                        working_directory=session.config.get_state_dir())
+        session.lm.ipv8.overlays.append(overlay)
+
+        from Tribler.pyipv8.ipv8.peerdiscovery.discovery import EdgeWalk
+        session.lm.ipv8.strategies.append((EdgeWalk(overlay), 20))
+        return overlay
 
     @inlineCallbacks
     def create_session(self, index):

@@ -434,7 +434,6 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
     def setUpPreSession(self):
         super(TestDownloadsDispersyEndpoint, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
-        self.config.set_dispersy_enabled(True)
         self.config.set_tunnel_community_enabled(True)
 
     @deferred(timeout=10)

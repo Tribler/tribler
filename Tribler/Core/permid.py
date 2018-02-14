@@ -7,7 +7,7 @@ import logging
 import os
 from M2Crypto import Rand, EC, BIO
 
-from Tribler.dispersy.crypto import LibNaCLSK
+from Tribler.pyipv8.ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
 logger = logging.getLogger(__name__)
 

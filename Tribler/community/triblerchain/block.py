@@ -1,4 +1,5 @@
-from Tribler.community.trustchain.block import TrustChainBlock, ValidationResult, GENESIS_SEQ, GENESIS_HASH, EMPTY_SIG
+from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock, EMPTY_SIG, ValidationResult,\
+    GENESIS_SEQ, GENESIS_HASH
 
 
 class TriblerChainBlock(TrustChainBlock):

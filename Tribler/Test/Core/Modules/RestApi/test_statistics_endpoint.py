@@ -38,7 +38,7 @@ class TestStatisticsEndpoint(AbstractApiTest):
         Testing whether the API returns a correct community statistics dictionary when requested
         """
         def verify_dict(data):
-            self.assertTrue(json.loads(data)["community_statistics"])
+            self.assertTrue(json.loads(data)["dispersy_community_statistics"])
 
         self.should_check_equality = False
         return self.do_request('statistics/communities', expected_code=200).addCallback(verify_dict)

@@ -406,9 +406,13 @@ class Session(object):
         """Return a dictionary with general Dispersy statistics."""
         return TriblerStatistics(self).get_dispersy_statistics()
 
-    def get_community_statistics(self):
-        """Return a dictionary with general communities statistics."""
-        return TriblerStatistics(self).get_community_statistics()
+    def get_dispersy_community_statistics(self):
+        """Return a dictionary with Dispersy communities statistics."""
+        return TriblerStatistics(self).get_dispersy_community_statistics()
+
+    def get_ipv8_overlay_statistics(self):
+        """Return a dictionary with IPv8 overlay statistics."""
+        return TriblerStatistics(self).get_ipv8_overlays_statistics()
 
     #
     # Persistence and shutdown
@@ -575,6 +579,12 @@ class Session(object):
             raise OperationNotEnabledByConfigurationException()
 
         return self.lm.dispersy
+
+    def get_ipv8_instance(self):
+        if not self.config.get_ipv8_enabled():
+            raise OperationNotEnabledByConfigurationException()
+
+        return self.lm.ipv8
 
     def get_libtorrent_process(self):
         if not self.config.get_libtorrent_enabled():
