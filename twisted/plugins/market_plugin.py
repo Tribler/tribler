@@ -26,8 +26,7 @@ class Options(usage.Options):
         ["manhole", "m", 0, "Enable manhole telnet service listening at the specified port", int],
         ["statedir", "s", None, "Use an alternate statedir", str],
         ["restapi", "p", 8085, "Use an alternate port for the REST API", int],
-        ["dispersy", "d", -1, "Use an alternate port for Dispersy", int],
-        ["libtorrent", "l", -1, "Use an alternate port for libtorrent", int],
+        ["ipv8", "d", -1, "Use an alternate port for IPv8", int],
     ]
 
 
@@ -47,14 +46,6 @@ class MarketServiceMaker(object):
         msg(shutdown_message)
         reactor.addSystemEventTrigger('after', 'shutdown', os._exit, code)
         reactor.stop()
-
-    def load_market_community(self, _):
-        """
-        Load the Market community
-        """
-        msg("Loading market community...")
-        self.market_community = self.session.get_dispersy_instance().define_auto_load(
-            MarketCommunity, self.session.dispersy_member, load=True, kargs={'tribler_session': self.session})
 
     def start_tribler(self, options):
         """
@@ -77,10 +68,10 @@ class MarketServiceMaker(object):
         config = TriblerConfig()
         config.set_torrent_checking_enabled(False)
         config.set_megacache_enabled(True)
-        config.set_dispersy_enabled(True)
+        config.set_dispersy_enabled(False)
         config.set_mainline_dht_enabled(True)
         config.set_torrent_collecting_enabled(False)
-        config.set_libtorrent_enabled(True)
+        config.set_libtorrent_enabled(False)
         config.set_http_api_enabled(True)
         config.set_video_server_enabled(False)
         config.set_torrent_search_enabled(False)
@@ -101,15 +92,11 @@ class MarketServiceMaker(object):
             config.set_http_api_enabled(True)
             config.set_http_api_port(options["restapi"])
 
-        if options["dispersy"] != -1 and options["dispersy"] > 0:
-            config.set_dispersy_port(options["dispersy"])
-
-        if options["libtorrent"] != -1 and options["libtorrent"] > 0:
-            config.set_listen_port(options["libtorrent"])
+        if options["ipv8"] != -1 and options["ipv8"] > 0:
+            config.set_dispersy_port(options["ipv8"])
 
         self.session = Session(config)
-        self.session.start().addErrback(lambda failure: self.shutdown_process(failure.getErrorMessage()))\
-            .addCallback(self.load_market_community)
+        self.session.start().addErrback(lambda failure: self.shutdown_process(failure.getErrorMessage()))
         msg("Tribler started")
 
     def makeService(self, options):
