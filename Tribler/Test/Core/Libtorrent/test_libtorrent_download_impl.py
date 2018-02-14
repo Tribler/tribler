@@ -141,6 +141,8 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         fake_handler.is_valid = lambda: True
         fake_handler.status = lambda: fake_status
         fake_handler.set_share_mode = lambda _: None
+        fake_handler.set_priority = lambda _: None
+        fake_handler.set_sequential_download = lambda _: None
         fake_handler.resume = lambda: None
         fake_status = MockObject()
         fake_status.share_mode = False
