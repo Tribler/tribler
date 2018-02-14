@@ -1,4 +1,5 @@
 import os
+import psutil
 import logging
 
 from glob import glob
@@ -37,6 +38,7 @@ class CreditMiningSettings(object):
         self.hops = 1
         # Maximum number of bytes of disk space that credit mining is allowed to use.
         self.max_disk_space = config.get_credit_mining_disk_space() if config else 50 * 1024 ** 3
+        self.low_disk_space = 1000 * 1024 ** 2
         self.save_path = os.path.join(DefaultDownloadStartupConfig.getInstance().get_dest_dir(), 'credit_mining')
 
 
@@ -56,6 +58,7 @@ class CreditMiningManager(TaskManager):
         self.sources = {}
         self.torrents = {}
         self.policies = []
+        self.upload_mode = False
 
         # Our default policy: 50% of torrents are selected by upload, 50% of torrents are selected randomly
         self.policies = policies or [UploadPolicy(), RandomPolicy()]
@@ -63,6 +66,7 @@ class CreditMiningManager(TaskManager):
         if not os.path.exists(self.settings.save_path):
             os.makedirs(self.settings.save_path)
 
+        self.register_task('check_disk_space', LoopingCall(self.check_disk_space)).start(30, now=False)
         self.select_lc = self.register_task('select_torrents', LoopingCall(self.select_torrents))
         self.num_checkpoints = len(glob(os.path.join(self.session.get_downloads_pstate_dir(), '*.state')))
 
@@ -83,6 +87,22 @@ class CreditMiningManager(TaskManager):
         self.cancel_all_pending_tasks()
 
         return DeferredList(deferreds)
+
+    def check_disk_space(self):
+        # Note that we have a resource monitor that monitors the disk where the state-directory resides.
+        # However, since the credit mining directory can be on a different disk, we query the disk space ourselves.
+        is_low = psutil.disk_usage(self.settings.save_path).free < self.settings.low_disk_space
+        if self.upload_mode != is_low:
+            self._logger.info('Setting upload mode to %s', is_low)
+
+            self.upload_mode = is_low
+
+            def set_upload_mode(handle):
+                handle.set_upload_mode(is_low)
+
+            for download in self.session.get_downloads():
+                if download.get_credit_mining():
+                    download.get_handle().addCallback(set_upload_mode)
 
     def add_source(self, source_str):
         """
@@ -125,8 +145,8 @@ class CreditMiningManager(TaskManager):
                         del self.torrents[infohash]
 
                         if torrent.download:
-                            deferreds.append(self.session.remove_download(torrent.download,
-                                                                          remove_state=True, hidden=True))
+                            deferreds.append(self.session.remove_download(torrent.download, remove_state=True,
+                                                                          remove_content=True, hidden=True))
                             self._logger.info('Removing torrent %s', torrent.infohash)
             self._logger.info('Removing %s download(s)', len(deferreds))
 
@@ -228,7 +248,8 @@ class CreditMiningManager(TaskManager):
                     if torrent.state and torrent.state.get_availability() < 1:
                         self._logger.info('Removing torrent %s', torrent.infohash)
                         del self.torrents[infohash]
-                        self.session.remove_download(torrent.download, remove_state=True, hidden=True)
+                        self.session.remove_download(torrent.download, remove_state=True,
+                                                     remove_content=True, hidden=True)
                     else:
                         self._logger.info('Stopping torrent %s', torrent.infohash)
                         torrent.download.stop()

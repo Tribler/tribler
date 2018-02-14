@@ -3,6 +3,8 @@ Module of Credit mining function testing.
 
 Author(s): Mihai Capota, Ardhi Putra
 """
+import psutil
+
 from twisted.internet.defer import inlineCallbacks, succeed
 
 from Tribler.Core.CreditMining.CreditMiningPolicy import BasePolicy
@@ -19,6 +21,7 @@ class FakeTorrent(object):
     def __init__(self, infohash, name):
         self.infohash = infohash
         self.name = name
+        self.upload_mode = False
 
         self.download = MockObject()
         self.download.running = None
@@ -31,6 +34,12 @@ class FakeTorrent(object):
         tdef = MockObject()
         tdef.get_infohash = lambda: self.infohash
         self.download.get_def = lambda: tdef
+
+        self.handle = MockObject()
+        self.handle.set_upload_mode = lambda enable: setattr(self, 'upload_mode', enable)
+
+        self.get_handle = lambda: succeed(self.handle)
+        self.get_credit_mining = lambda: True
 
 
 class FakePolicy(BasePolicy):
@@ -221,6 +230,25 @@ class TestCreditMiningManager(TestAsServer):
         download.get_credit_mining = lambda: False
         self.credit_mining_manager.monitor_downloads([ds])
         self.assertNotIn(infohash2, self.credit_mining_manager.torrents)
+
+    def test_check_free_space(self):
+        self.credit_mining_manager.cancel_pending_task('check_disk_space')
+        self.credit_mining_manager.settings.low_disk_space = 1024 ** 2
+
+        downloads = [FakeTorrent(i, self.name + str(i)) for i in range(5)]
+        self.session.get_downloads = lambda: downloads
+
+        # Check that all download have upload_mode=False if we have enough disk space
+        disk_usage = MockObject()
+        disk_usage.free = 2 * 1024 ** 2
+        psutil.disk_usage = lambda _: disk_usage
+        self.credit_mining_manager.check_disk_space()
+        self.assertFalse(any([d.upload_mode for d in downloads]))
+
+        # Check that all download have upload_mode=True if we do not have enough disk space
+        disk_usage.free = 1
+        self.credit_mining_manager.check_disk_space()
+        self.assertTrue(all([d.upload_mode for d in downloads]))
 
     def test_shutdown(self):
         self.credit_mining_manager.add_source(self.cid)
