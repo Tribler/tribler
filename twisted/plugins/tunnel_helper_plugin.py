@@ -6,34 +6,21 @@ import os
 import random
 import signal
 import threading
-import time
-from collections import defaultdict, deque
 
 from twisted.application.service import MultiService, IServiceMaker
 from twisted.conch import manhole_tap
 from twisted.internet import reactor
-from twisted.internet.defer import maybeDeferred, succeed
 from twisted.internet.stdio import StandardIO
 from twisted.internet.task import LoopingCall
 from twisted.plugin import IPlugin
 from twisted.protocols.basic import LineReceiver
 from twisted.python import usage
 from twisted.python.log import msg
-from twisted.web import server, resource
 from zope.interface import implements
 
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Config.tribler_config import TriblerConfig
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.Session import Session
-from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.permid import read_keypair
-from Tribler.Core.simpledefs import dlstatus_strings
-from Tribler.community.hiddentunnel.hidden_community import HiddenTunnelCommunity
-from Tribler.community.tunnel.tunnel_community import TunnelSettings
-from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
-from Tribler.dispersy.util import blockingCallFromThread
 
 
 # Register yappi profiler
@@ -48,50 +35,23 @@ def check_socks5_port(val):
 check_socks5_port.coerceDoc = "Socks5 port must be greater than 0."
 
 
-def check_introduce_port(val):
-    introduce_port = int(val)
-    if introduce_port <= 0:
+def check_ipv8_port(val):
+    ipv8_port = int(val)
+    if ipv8_port < -1 or ipv8_port == 0:
         raise ValueError("Invalid port number")
-    return introduce_port
-check_introduce_port.coerceDoc = "Introduction port must be greater than 0."
-
-
-def check_dispersy_port(val):
-    dispersy_port = int(val)
-    if dispersy_port < -1 or dispersy_port == 0:
-        raise ValueError("Invalid port number")
-    return dispersy_port
-check_dispersy_port.coerceDoc = "Dispersy port must be greater than 0 or -1."
-
-
-def check_crawler_keypair(crawl_keypair_filename):
-    if crawl_keypair_filename and not os.path.exists(crawl_keypair_filename):
-        raise ValueError("Crawler file does not exist")
-    return crawl_keypair_filename
-check_crawler_keypair.coerceDoc = "Give a path to an existing file."
-
-
-def check_json_port(val):
-    json_port = int(val)
-    if json_port <= 0:
-        raise ValueError("Invalid port number")
-    return json_port
-check_json_port.coerceDoc = "Json API port must be greater than 0."
+    return ipv8_port
+check_ipv8_port.coerceDoc = "IPv8 port must be greater than 0 or -1."
 
 
 class Options(usage.Options):
     optFlags = [
         ["exit", "x", "Allow being an exit-node"],
-        ["trustchain", "M", "Enable the trustchain community"]
     ]
 
     optParameters = [
         ["manhole", "m", 0, "Enable manhole telnet service listening at the specified port", int],
         ["socks5", "p", None, "Socks5 port", check_socks5_port],
-        ["introduce", "i", None, 'Introduce the dispersy port of another tribler instance', check_introduce_port],
-        ["dispersy", "d", -1, 'Dispersy port', check_dispersy_port],
-        ["crawl", "c", None, 'Enable crawler and use the keypair specified in the given filename', check_crawler_keypair],
-        ["tunnelapi", "j", 0, 'Enable JSON api, which will run on the provided port number', check_json_port],
+        ["ipv8", "d", -1, 'IPv8 port', check_ipv8_port],
     ]
 
 
@@ -110,197 +70,60 @@ else:
 
 logger = logging.getLogger('TunnelMain')
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
-
-
-class TunnelRootEndpoint(resource.Resource):
-    """
-    This endpoint is responsible for handing all requests regarding the tunnel sessions.
-    """
-
-    def __init__(self, tunnel):
-        resource.Resource.__init__(self)
-        self.tunnel = tunnel
-        self.putChild("history", TunnelHistoryEndpoint(self.tunnel))
-        self.putChild("stats", TunnelStatsEndpoint(self.tunnel))
-
-
-class TunnelStatsEndpoint(resource.Resource):
-    """
-    This endpoint is responsible for handling tunnel stats requests.
-    """
-    def __init__(self, tunnel):
-        resource.Resource.__init__(self)
-        self.tunnel = tunnel
-
-    def render_GET(self, request):
-        return json.dumps(self.tunnel.get_stats())
-
-
-class TunnelHistoryEndpoint(resource.Resource):
-    """
-    This endpoint is responsible for handling tunnel history requests.
-    """
-    def __init__(self, tunnel):
-        resource.Resource.__init__(self)
-        self.tunnel = tunnel
-
-    def render_GET(self, request):
-        return json.dumps(list(self.tunnel.history_stats))
-
-
-class TunnelCommunityCrawler(HiddenTunnelCommunity):
-    def on_introduction_response(self, messages):
-        super(TunnelCommunityCrawler, self).on_introduction_response(messages)
-        handler = Tunnel.get_instance().stats_handler
-        for message in messages:
-            self.do_stats(message.candidate, lambda c, s, m=message: handler(c, s, m))
-
-    def start_walking(self):
-        self.register_task("take step", LoopingCall(self.take_step)).start(1.0, now=True)
-
 
 class Tunnel(object):
-    __single = None
 
-    def __init__(self, settings, crawl_keypair_filename=None, dispersy_port=-1):
-        if Tunnel.__single:
-            raise RuntimeError("Tunnel is singleton")
-        Tunnel.__single = self
-
-        self.settings = settings
+    def __init__(self, options, ipv8_port=-1):
+        self.options = options
         self.should_run = True
-        self.crawl_keypair_filename = crawl_keypair_filename
-        self.dispersy_port = dispersy_port
-        self.crawl_data = defaultdict(lambda: [])
-        self.crawl_message = {}
-        self.current_stats = [0, 0, 0]
-        self.history_stats = deque(maxlen=180)
-        self.start_tribler()
-        self.dispersy = self.session.lm.dispersy
+        self.ipv8_port = ipv8_port
+        self.session = None
         self.community = None
         self.clean_messages_lc = LoopingCall(self.clean_messages)
         self.clean_messages_lc.start(1800)
-        self.build_history_lc = LoopingCall(self.build_history)
-        self.build_history_lc.start(60, now=True)
-
-    def get_instance(*args, **kw):
-        if Tunnel.__single is None:
-            Tunnel(*args, **kw)
-        return Tunnel.__single
-
-    get_instance = staticmethod(get_instance)
 
     def clean_messages(self):
-        now = int(time.time())
-        for k in self.crawl_message.keys():
-            if now - 3600 > self.crawl_message[k]['time']:
-                self.crawl_message.pop(k)
-
         clean_twisted_observers()
 
-    def build_history(self):
-        self.history_stats.append(self.get_stats())
+    def start(self):
+        # Determine socks5 ports
+        socks5_port = self.options['socks5']
+        if socks5_port is not None:
+            socks_listen_ports = range(socks5_port, socks5_port + 5)
+        else:
+            socks_listen_ports = [random.randint(1000, 65535) for _ in range(5)]
 
-    def stats_handler(self, candidate, stats, message):
-        now = int(time.time())
-        logger.debug('@%d %r %r', now, message.candidate.get_member().mid.encode('hex'), json.dumps(stats))
-
-        candidate_mid = candidate.get_member().mid
-        stats = self.preprocess_stats(stats)
-        stats['time'] = now
-        stats_old = self.crawl_message.get(candidate_mid, None)
-        self.crawl_message[candidate_mid] = stats
-
-        if stats_old is None:
-            return
-
-        time_dif = float(stats['uptime'] - stats_old['uptime'])
-        if time_dif > 0:
-            for index, key in enumerate(['bytes_orig', 'bytes_exit', 'bytes_relay']):
-                self.current_stats[index] = self.current_stats[index] * 0.875 + \
-                                            (((stats[key] - stats_old[key]) / time_dif) / 1024) * 0.125
-
-    def start_tribler(self):
         config = TriblerConfig()
-        config.set_state_dir(os.path.join(config.get_state_dir(), "tunnel-%d") % self.settings.socks_listen_ports[0])
+        config.set_state_dir(os.path.join(config.get_state_dir(), "tunnel-%d") % socks_listen_ports[0])
+        config.set_tunnel_community_socks5_listen_ports(socks_listen_ports)
         config.set_torrent_checking_enabled(False)
         config.set_megacache_enabled(False)
-        config.set_dispersy_enabled(True)
+        config.set_dispersy_enabled(False)
+        config.set_ipv8_enabled(True)
         config.set_mainline_dht_enabled(True)
         config.set_torrent_collecting_enabled(False)
-        config.set_libtorrent_enabled(True)
+        config.set_libtorrent_enabled(False)
         config.set_video_server_enabled(False)
-        config.set_dispersy_port(self.dispersy_port)
+        config.set_dispersy_port(self.ipv8_port)
         config.set_torrent_search_enabled(False)
         config.set_channel_search_enabled(False)
-
-        # We do not want to load the TunnelCommunity in the session but instead our own community
-        config.set_tunnel_community_enabled(False)
+        config.set_trustchain_enabled(True)
+        config.set_market_community_enabled(False)
+        config.set_mainline_dht_enabled(False)
+        config.set_tunnel_community_exitnode_enabled(bool(self.options["exit"]))
 
         self.session = Session(config)
-        self.session.start()
-        logger.info("Using Dispersy port %d" % self.session.config.get_dispersy_port())
-
-    def start(self, introduce_port):
-        def start_community():
-            if self.crawl_keypair_filename:
-                keypair = read_keypair(self.crawl_keypair_filename)
-                member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
-                cls = TunnelCommunityCrawler
-            else:
-                if self.settings.enable_trustchain:
-                    from Tribler.community.trustchain.community import TrustChainCommunity
-                    member = self.dispersy.get_member(private_key=self.session.trustchain_keypair.key_to_bin())
-                    self.dispersy.define_auto_load(TrustChainCommunity, member, load=True)
-                else:
-                    member = self.dispersy.get_new_member(u"curve25519")
-                cls = HiddenTunnelCommunity
-
-            self.community = self.dispersy.define_auto_load(cls, member, (self.session, self.settings), load=True)[0]
-
-            self.session.config.set_anon_proxy_settings(
-                2, ("127.0.0.1", self.session.config.get_tunnel_community_socks5_listen_ports()))
-            if introduce_port:
-                self.community.add_discovered_candidate(Candidate(('127.0.0.1', introduce_port), tunnel=False))
-
-        blockingCallFromThread(reactor, start_community)
-
-        self.session.set_download_states_callback(self.download_states_callback, interval=4.0)
-
-    def download_states_callback(self, dslist):
-        try:
-            self.community.monitor_downloads(dslist)
-        except:
-            logger.error("Monitoring downloads failed")
-
-        return []
+        logger.info("Using IPv8 port %d" % self.session.config.get_dispersy_port())
+        return self.session.start()
 
     def stop(self):
         if self.clean_messages_lc:
             self.clean_messages_lc.stop()
             self.clean_messages_lc = None
 
-        if self.build_history_lc:
-            self.build_history_lc.stop()
-            self.build_history_lc = None
-
         if self.session:
             logger.info("Going to shutdown session")
             return self.session.shutdown()
-
-    def preprocess_stats(self, stats):
-        result = defaultdict(int)
-        result['uptime'] = stats['uptime']
-        keys_to_from = {'bytes_orig': ('bytes_up', 'bytes_down'),
-                        'bytes_exit': ('bytes_enter', 'bytes_exit'),
-                        'bytes_relay': ('bytes_relay_up', 'bytes_relay_down')}
-        for key_to, key_from in keys_to_from.iteritems():
-            result[key_to] = sum([stats.get(k, 0) for k in key_from])
-        return result
-
-    def get_stats(self):
-        return [round(f, 2) for f in self.current_stats]
 
 
 class LineHandler(LineReceiver):
@@ -328,72 +151,6 @@ class LineHandler(LineReceiver):
                                                                        circuit.bytes_up / 1024.0 / 1024.0,
                                                                        info_hash,
                                                                        circuit.ctype)
-
-        elif line.startswith('s'):
-            cur_path = os.getcwd()
-            line_split = line.split(' ')
-            filename = 'test_file' if len(line_split) == 1 else line_split[1]
-
-            if not os.path.exists(filename):
-                logger.info("Creating torrent..")
-                with open(filename, 'wb') as fp:
-                    fp.write(os.urandom(50 * 1024 * 1024))
-                tdef = TorrentDef()
-                tdef.add_content(os.path.join(cur_path, filename))
-                tdef.set_tracker("udp://localhost/announce")
-                tdef.set_private()
-                tdef.finalize()
-                tdef.save(os.path.join(cur_path, filename + '.torrent'))
-            else:
-                logger.info("Loading existing torrent..")
-                tdef = TorrentDef.load(filename + '.torrent')
-            logger.info("loading torrent done, infohash of torrent: %s" % (tdef.get_infohash().encode('hex')[:10]))
-
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            dscfg = defaultDLConfig.copy()
-            dscfg.set_hops(1)
-            dscfg.set_dest_dir(cur_path)
-
-            reactor.callFromThread(anon_tunnel.session.start_download_from_tdef, tdef, dscfg)
-        elif line.startswith('i'):
-            # Introduce dispersy port from other main peer to this peer
-            line_split = line.split(' ')
-            to_introduce_ip = line_split[1]
-            to_introduce_port = int(line_split[2])
-            self.anon_tunnel.community.add_discovered_candidate(
-                Candidate((to_introduce_ip, to_introduce_port), tunnel=False))
-        elif line.startswith('d'):
-            line_split = line.split(' ')
-            filename = 'test_file' if len(line_split) == 1 else line_split[1]
-
-            logger.info("Loading torrent..")
-            tdef = TorrentDef.load(filename + '.torrent')
-            logger.info("Loading torrent done")
-
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            dscfg = defaultDLConfig.copy()
-            dscfg.set_hops(1)
-            dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.config.get_dispersy_port()))
-
-            def start_download():
-                def cb(ds):
-                    logger.info('Download infohash=%s, down=%s, progress=%s, status=%s, seedpeers=%s, candidates=%d' %
-                                (tdef.get_infohash().encode('hex')[:10],
-                                 ds.get_current_speed('down'),
-                                 ds.get_progress(),
-                                 dlstatus_strings[ds.get_status()],
-                                 sum(ds.get_num_seeds_peers()),
-                                 sum(1 for _ in anon_tunnel.community.dispersy_yield_verified_candidates())))
-                    return 1.0, False
-
-                download = anon_tunnel.session.start_download_from_tdef(tdef, dscfg)
-                download.set_state_callback(cb)
-
-            reactor.callFromThread(start_download)
-
-        elif line == 'q':
-            anon_tunnel.should_run = False
-
         elif line == 'r':
             logger.debug("circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)")
             from_to = anon_tunnel.community.relay_from_to
@@ -414,48 +171,15 @@ class TunnelHelperServiceMaker(object):
         Initialize the variables of this service and the logger.
         """
         self._stopping = False
-        self.tunnel_site = None
 
     def start_tunnel(self, options):
         """
         Main method to startup a tunnel helper and add a signal handler.
         """
+        ipv8_port = options["ipv8"]
 
-        socks5_port = options["socks5"]
-        introduce_port = options["introduce"]
-        dispersy_port = options["dispersy"]
-        crawl_keypair_filename = options["crawl"]
-
-        settings = TunnelSettings()
-
-        # For disabling anonymous downloading, limiting download to hidden services only.
-        settings.min_circuits = 0
-        settings.max_circuits = 0
-
-        if socks5_port is not None:
-            settings.socks_listen_ports = range(socks5_port, socks5_port + 5)
-        else:
-            settings.socks_listen_ports = [random.randint(1000, 65535) for _ in range(5)]
-
-        settings.become_exitnode = bool(options["exit"])
-        if settings.become_exitnode:
-            logger.info("Exit-node enabled")
-        else:
-            logger.info("Exit-node disabled")
-
-        settings.enable_trustchain = bool(options["trustchain"])
-        if settings.enable_trustchain:
-            logger.info("Trustchain enabled")
-        else:
-            logger.info("Trustchain disabled")
-
-        tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
+        tunnel = Tunnel(options, ipv8_port)
         StandardIO(LineHandler(tunnel))
-
-        def stop_tunnel_api():
-            if self.tunnel_site:
-                return maybeDeferred(self.tunnel_site.stopListening)
-            return succeed(None)
 
         def signal_handler(sig, _):
             msg("Received shut down signal %s" % sig)
@@ -463,16 +187,12 @@ class TunnelHelperServiceMaker(object):
                 self._stopping = True
                 msg("Setting the tunnel should_run variable to False")
                 tunnel.should_run = False
-                tunnel.stop().addCallback(lambda _: stop_tunnel_api().addCallback(lambda _: reactor.stop()))
+                tunnel.stop().addCallback(lambda _: reactor.stop())
 
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
-        tunnel.start(introduce_port)
-
-        if options["tunnelapi"] > 0:
-            self.tunnel_site = self.site = reactor.listenTCP(options["tunnelapi"],
-                                                             server.Site(resource=TunnelRootEndpoint(tunnel)))
+        tunnel.start()
 
     def makeService(self, options):
         """

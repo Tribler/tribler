@@ -59,7 +59,6 @@ class EventsEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
-        self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.events_requests = []
 
         self.infohashes_sent = set()
