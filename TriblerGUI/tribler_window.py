@@ -231,6 +231,7 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.torrent_finished.connect(self.on_torrent_finished)
         self.core_manager.events_manager.new_version_available.connect(self.on_new_version_available)
         self.core_manager.events_manager.tribler_started.connect(self.on_tribler_started)
+        self.core_manager.events_manager.events_started.connect(self.on_events_started)
 
         # Install signal handler for ctrl+c events
         def sigint_handler(*_):
@@ -288,6 +289,9 @@ class TriblerWindow(QMainWindow):
             self.stackedWidget.setCurrentIndex(PAGE_DISCOVERING)
         else:
             self.clicked_menu_button_home()
+
+    def on_events_started(self, json_dict):
+        self.setWindowTitle("Tribler %s" % json_dict["version"])
 
     def show_status_bar(self, message):
         self.tribler_status_bar_label.setText(message)
@@ -628,7 +632,7 @@ class TriblerWindow(QMainWindow):
 
     def clicked_menu_button_debug(self):
         if not self.debug_window:
-            self.debug_window = DebugWindow(self.tribler_settings)
+            self.debug_window = DebugWindow(self.tribler_settings, self.core_manager.events_manager.tribler_version)
         self.debug_window.show()
 
     def clicked_menu_button_subscriptions(self):
