@@ -321,6 +321,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         mock_download = MockObject()
         mock_download.get_def = lambda: mock_tdef
+        mock_download.get_credit_mining = lambda: False
         self.tribler_session.get_download = lambda _: mock_download
 
         self.ltmgr.tribler_session = self.tribler_session

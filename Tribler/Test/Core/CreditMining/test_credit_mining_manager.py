@@ -11,6 +11,7 @@ from Tribler.Core.CreditMining.CreditMiningPolicy import BasePolicy
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningTorrent
 
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED
+from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.Core.base_test import MockObject
@@ -21,25 +22,25 @@ class FakeTorrent(object):
     def __init__(self, infohash, name):
         self.infohash = infohash
         self.name = name
-        self.upload_mode = False
 
         self.download = MockObject()
+        self.download.upload_mode = False
         self.download.running = None
         self.download.restart = lambda: setattr(self.download, 'running', True)
         self.download.stop = lambda: setattr(self.download, 'running', False)
         self.download.get_status = lambda: DLSTATUS_STOPPED
         self.download.get_length = lambda: 1024 * 1024
         self.download.get_progress = lambda: 0.0
+        self.download.get_credit_mining = lambda: True
+        self.download.get_handle = lambda: succeed(self.handle)
 
-        tdef = MockObject()
-        tdef.get_infohash = lambda: self.infohash
-        self.download.get_def = lambda: tdef
+        self.tdef = MockObject()
+        self.tdef.get_infohash = lambda: self.infohash
+        self.tdef.get_trackers_as_single_tuple = lambda: ()
+        self.download.get_def = lambda: self.tdef
 
         self.handle = MockObject()
-        self.handle.set_upload_mode = lambda enable: setattr(self, 'upload_mode', enable)
-
-        self.get_handle = lambda: succeed(self.handle)
-        self.get_credit_mining = lambda: True
+        self.handle.set_upload_mode = lambda enable: setattr(self.download, 'upload_mode', enable)
 
 
 class FakePolicy(BasePolicy):
@@ -235,7 +236,7 @@ class TestCreditMiningManager(TestAsServer):
         self.credit_mining_manager.cancel_pending_task('check_disk_space')
         self.credit_mining_manager.settings.low_disk_space = 1024 ** 2
 
-        downloads = [FakeTorrent(i, self.name + str(i)) for i in range(5)]
+        downloads = [FakeTorrent(i, self.name + str(i)).download for i in range(5)]
         self.session.get_downloads = lambda: downloads
 
         # Check that all download have upload_mode=False if we have enough disk space
@@ -249,6 +250,31 @@ class TestCreditMiningManager(TestAsServer):
         disk_usage.free = 1
         self.credit_mining_manager.check_disk_space()
         self.assertTrue(all([d.upload_mode for d in downloads]))
+
+    def test_add_download_while_credit_mining(self):
+        infohash_str = '00' * 20
+        infohash_bin = '\00' * 20
+        magnet = 'magnet:?xt=urn:btih:' + infohash_str
+
+        torrent = FakeTorrent(infohash_bin, self.name)
+        self.credit_mining_manager.torrents[infohash_str] = torrent
+
+        # Credit mining downloads should get removed
+        torrent.download.removed = False
+        self.session.get_download = lambda _: torrent.download
+        self.session.remove_download = lambda d: setattr(d, 'removed', True) or \
+                                                 setattr(self.session, 'get_download', lambda _: None) or \
+                                                 succeed(None)
+        self.session.start_download_from_uri(magnet)
+        self.assertNotIn(infohash_str, self.credit_mining_manager.torrents)
+        self.assertTrue(torrent.download.removed)
+
+        # Non credit mining downloads should not get removed
+        torrent.download.removed = False
+        torrent.download.get_credit_mining = lambda: False
+        self.session.get_download = lambda _: torrent.download
+        self.assertRaises(DuplicateDownloadException, self.session.start_download_from_uri, magnet, {})
+        self.assertFalse(torrent.download.removed)
 
     def test_shutdown(self):
         self.credit_mining_manager.add_source(self.cid)
