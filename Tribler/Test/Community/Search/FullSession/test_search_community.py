@@ -70,15 +70,16 @@ class TestSearchCommunity(TestAsServer):
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
-        self.config.set_dispersy(True)
-        self.config.set_torrent_store(True)
-        self.config.set_enable_torrent_search(True)
-        self.config.set_enable_channel_search(True)
+        self.config.set_dispersy_enabled(True)
+        self.config.set_torrent_store_enabled(True)
+        self.config.set_torrent_search_enabled(True)
+        self.config.set_channel_search_enabled(True)
+        self.config.set_metadata_enabled(True)
         self.config.set_channel_community_enabled(True)
         self.config.set_preview_channel_community_enabled(True)
-        self.config.set_torrent_collecting(True)
-        self.config.set_torrent_checking(True)
-        self.config.set_megacache(True)
+        self.config.set_torrent_collecting_enabled(True)
+        self.config.set_torrent_checking_enabled(True)
+        self.config.set_megacache_enabled(True)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -91,7 +92,7 @@ class TestSearchCommunity(TestAsServer):
         self.config2 = self.config.copy()
         self.config2.set_state_dir(self.getStateDir(2))
 
-        self.session2 = Session(self.config2, ignore_singleton=True)
+        self.session2 = Session(self.config2)
 
         yield self.session2.start()
         self.dispersy2 = self.session2.get_dispersy_instance()
@@ -151,8 +152,6 @@ class TestSearchCommunity(TestAsServer):
         test_deferred = Deferred()
 
         def on_search_results_torrents(_dummy1, _dummy2, _dummy3, results):
-            print "finally"
-            print results
             self.assertEqual(len(results['result_list']), 1)
             test_deferred.callback(None)
 

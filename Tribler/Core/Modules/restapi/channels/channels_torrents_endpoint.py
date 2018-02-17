@@ -1,5 +1,4 @@
 import base64
-import json
 
 from twisted.internet.defer import Deferred
 from twisted.web import http
@@ -8,7 +7,8 @@ from twisted.web.server import NOT_DONE_YET
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.exceptions import DuplicateTorrentFileError
+from Tribler.Core.exceptions import DuplicateTorrentFileError, HttpError
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.utilities import http_get
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -71,7 +71,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         results_local_torrents_channel = self.channel_db_handler\
             .getTorrentsFromChannelId(channel_info[0], True, torrent_db_columns)
 
-        should_filter = self.session.tribler_config.get_family_filter_enabled()
+        should_filter = self.session.config.get_family_filter_enabled()
         if 'disable_filter' in request.args and len(request.args['disable_filter']) > 0 \
                 and request.args['disable_filter'][0] == "1":
             should_filter = False
@@ -79,7 +79,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         results_json = []
         for torrent_result in results_local_torrents_channel:
             torrent_json = convert_db_torrent_to_json(torrent_result)
-            if (should_filter and torrent_json['category'] == 'xxx') or torrent_json['name'] is None:
+            if torrent_json['name'] is None or (should_filter and torrent_json['category'] == 'xxx'):
                 continue
 
             results_json.append(torrent_json)
@@ -132,7 +132,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
             torrent_def = TorrentDef.load_from_memory(torrent)
             self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
 
-        except (DuplicateTorrentFileError, ValueError) as ex:
+        except (DuplicateTorrentFileError, ValueError, HttpError) as ex:
             return BaseChannelsEndpoint.return_500(self, request, ex)
 
         return json.dumps({"added": True})
@@ -226,16 +226,16 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
 
     def render_DELETE(self, request):
         """
-        .. http:delete:: /channels/discovered/(string: channelid)/torrents/(string: torrent infohash)
+        .. http:delete:: /channels/discovered/(string: channelid)/torrents/(string: comma separated torrent infohashes)
 
-        Remove a torrent with a given infohash from a given channel.
+        Remove a single or multiple torrents with the given comma separated infohashes from a given channel.
 
             **Example request**:
 
             .. sourcecode:: none
 
                 curl -X DELETE http://localhost:8085/channels/discovered/abcdefg/torrents/
-                97d2d8f5d37e56cfaeaae151d55f05b077074779
+                97d2d8f5d37e56cfaeaae151d55f05b077074779,971d55f05b077074779d2d8f5d37e56cfaeaae15
 
             **Example response**:
 
@@ -245,24 +245,37 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
                     "removed": True
                 }
 
-            :statuscode 404: if the channel is not found or if the torrent is not found in the specified channel
+            .. sourcecode:: javascript
+
+                {
+                    "removed": False, "failed_torrents":["97d2d8f5d37e56cfaeaae151d55f05b077074779"]
+                }
+
+            :statuscode 404: if the channel is not found
         """
         channel_info = self.get_channel_from_db(self.cid)
         if channel_info is None:
             return ChannelsTorrentsEndpoint.return_404(request)
 
-        torrent_db_columns = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
-                              'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.dispersy_id']
-        torrent_info = self.channel_db_handler.getTorrentFromChannelId(channel_info[0], self.path.decode('hex'),
-                                                                       torrent_db_columns)
-
-        if torrent_info is None:
-            return BaseChannelsEndpoint.return_404(request, message=UNKNOWN_TORRENT_MSG)
-
         channel_community = self.get_community_for_channel_id(channel_info[0])
         if channel_community is None:
             return BaseChannelsEndpoint.return_404(request, message=UNKNOWN_COMMUNITY_MSG)
 
-        channel_community.remove_torrents([torrent_info[8]])  # the 8th index is the dispersy id of the channel torrent
+        torrent_db_columns = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
+                              'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.dispersy_id']
+
+        failed_torrents = []
+        for torrent_path in self.path.split(","):
+            torrent_info = self.channel_db_handler.getTorrentFromChannelId(channel_info[0],
+                                                                           torrent_path.decode('hex'),
+                                                                           torrent_db_columns)
+            if torrent_info is None:
+                failed_torrents.append(torrent_path)
+            else:
+                # the 8th index is the dispersy id of the channel torrent
+                channel_community.remove_torrents([torrent_info[8]])
+
+        if failed_torrents:
+            return json.dumps({"removed": False, "failed_torrents": failed_torrents})
 
         return json.dumps({"removed": True})

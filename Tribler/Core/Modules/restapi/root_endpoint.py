@@ -6,7 +6,7 @@ from Tribler.Core.Modules.restapi.create_torrent_endpoint import CreateTorrentEn
 from Tribler.Core.Modules.restapi.debug_endpoint import DebugEndpoint
 from Tribler.Core.Modules.restapi.downloads_endpoint import DownloadsEndpoint
 from Tribler.Core.Modules.restapi.events_endpoint import EventsEndpoint
-from Tribler.Core.Modules.restapi.multichain_endpoint import MultichainEndpoint
+from Tribler.Core.Modules.restapi.market_endpoint import MarketEndpoint
 from Tribler.Core.Modules.restapi.search_endpoint import SearchEndpoint
 from Tribler.Core.Modules.restapi.settings_endpoint import SettingsEndpoint
 from Tribler.Core.Modules.restapi.shutdown_endpoint import ShutdownEndpoint
@@ -14,7 +14,8 @@ from Tribler.Core.Modules.restapi.state_endpoint import StateEndpoint
 from Tribler.Core.Modules.restapi.statistics_endpoint import StatisticsEndpoint
 from Tribler.Core.Modules.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
 from Tribler.Core.Modules.restapi.torrents_endpoint import TorrentsEndpoint
-from Tribler.Core.Modules.restapi.variables_endpoint import VariablesEndpoint
+from Tribler.Core.Modules.restapi.trustchain_endpoint import TrustchainEndpoint
+from Tribler.Core.Modules.restapi.wallets_endpoint import WalletsEndpoint
 
 
 class RootEndpoint(resource.Resource):
@@ -32,8 +33,10 @@ class RootEndpoint(resource.Resource):
         self.session = session
         self.events_endpoint = EventsEndpoint(self.session)
         self.state_endpoint = StateEndpoint(self.session)
+        self.shutdown_endpoint = ShutdownEndpoint(self.session)
         self.putChild("events", self.events_endpoint)
         self.putChild("state", self.state_endpoint)
+        self.putChild("shutdown", self.shutdown_endpoint)
 
     def start_endpoints(self):
         """
@@ -41,11 +44,11 @@ class RootEndpoint(resource.Resource):
         on a fully started Tribler.
         """
         child_handler_dict = {"search": SearchEndpoint, "channels": ChannelsEndpoint, "mychannel": MyChannelEndpoint,
-                              "settings": SettingsEndpoint, "variables": VariablesEndpoint,
-                              "downloads": DownloadsEndpoint, "createtorrent": CreateTorrentEndpoint,
-                              "torrents": TorrentsEndpoint, "debug": DebugEndpoint, "shutdown": ShutdownEndpoint,
-                              "multichain": MultichainEndpoint, "statistics": StatisticsEndpoint,
-                              "torrentinfo": TorrentInfoEndpoint}
+                              "settings": SettingsEndpoint, "downloads": DownloadsEndpoint,
+                              "createtorrent": CreateTorrentEndpoint, "torrents": TorrentsEndpoint,
+                              "debug": DebugEndpoint, "shutdown": ShutdownEndpoint, "trustchain": TrustchainEndpoint,
+                              "statistics": StatisticsEndpoint, "torrentinfo": TorrentInfoEndpoint,
+                              "market": MarketEndpoint, "wallets": WalletsEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(self.session))

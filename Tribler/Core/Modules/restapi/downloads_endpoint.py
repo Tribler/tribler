@@ -1,14 +1,31 @@
-import json
-import os
-
 import logging
+
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
+
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
-from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
+from Tribler.Core.Modules.restapi.util import return_handled_exception
+from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
+import Tribler.Core.Utilities.json_util as json
 
-from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, NTFY_TORRENTS, DLMODE_VOD
+
+def _safe_extended_peer_info(ext_peer_info):
+    """
+    Given a string describing peer info, return a JSON.dumps() safe representation.
+
+    :param ext_peer_info: the string to convert to a dumpable format
+    :return: the safe string
+    """
+    # First see if we can use this as-is
+    if not ext_peer_info:
+        ext_peer_info = u''
+    try:
+        json.dumps(ext_peer_info)
+        return ext_peer_info
+    except UnicodeDecodeError:
+        # We might have some special unicode characters in here
+        return u''.join([unichr(ord(c)) for c in ext_peer_info])
 
 
 class DownloadBaseEndpoint(resource.Resource):
@@ -198,20 +215,24 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                              "total_down": stats.downTotal, "ratio": ratio,
                              "files": files_array, "trackers": tracker_info, "hops": download.get_hops(),
                              "anon_download": download.get_anon_mode(), "safe_seeding": download.get_safe_seeding(),
-                             "max_upload_speed": download.get_max_speed(UPLOAD),
-                             "max_download_speed": download.get_max_speed(DOWNLOAD),
+                             # Maximum upload/download rates are set for entire sessions
+                             "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
+                             "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
                              "destination": download.get_dest_dir(), "availability": state.get_availability(),
                              "total_pieces": download.get_num_pieces(), "vod_mode": download.get_mode() == DLMODE_VOD,
                              "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
                              "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec(),
                              "error": repr(state.get_error()) if state.get_error() else "",
-                             "time_added": download.get_time_added()}
+                             "time_added": download.get_time_added(),
+                             "credit_mining": download.get_credit_mining()}
 
             # Add peers information if requested
             if get_peers:
                 peer_list = state.get_peerlist()
                 for peer_info in peer_list:  # Remove have field since it is very large to transmit.
                     del peer_info['have']
+                    if 'extended_version' in peer_info:
+                        peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
                     peer_info['id'] = peer_info['id'].encode('hex')
 
                 download_json["peers"] = peer_list
@@ -317,9 +338,30 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             return DownloadSpecificEndpoint.return_404(request)
 
         remove_data = parameters['remove_data'][0] == "1"
-        self.session.remove_download(download, removecontent=remove_data)
 
-        return json.dumps({"removed": True})
+        def _on_torrent_removed(_):
+            """
+            Success callback
+            """
+            request.write(json.dumps({"removed": True}))
+            request.finish()
+
+        def _on_remove_failure(failure):
+            """
+            Error callback
+            :param failure: from remove_download
+            """
+            self._logger.exception(failure)
+            request.write(return_handled_exception(request, failure.value))
+            # If the above request.write failed, the request will have already been finished
+            if not request.finished:
+                request.finish()
+
+        deferred = self.session.remove_download(download, remove_content=remove_data)
+        deferred.addCallback(_on_torrent_removed)
+        deferred.addErrback(_on_remove_failure)
+
+        return NOT_DONE_YET
 
     def render_PATCH(self, request):
         """
@@ -361,7 +403,31 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             return json.dumps({"error": "anon_hops must be the only parameter in this request"})
         elif 'anon_hops' in parameters:
             anon_hops = int(parameters['anon_hops'][0])
-            self.session.lm.update_download_hops(download, anon_hops)
+            deferred = self.session.lm.update_download_hops(download, anon_hops)
+
+            def _on_download_readded(_):
+                """
+                Success callback
+                """
+                request.write(json.dumps({"modified": True}))
+                request.finish()
+
+            def _on_download_readd_failure(failure):
+                """
+                Error callback
+                :param failure: from LibtorrentDownloadImp.setup()
+                """
+                self._logger.exception(failure)
+                request.write(return_handled_exception(request, failure.value))
+                # If the above request.write failed, the request will have already been finished
+                if not request.finished:
+                    request.finish()
+
+            deferred.addCallback(_on_download_readded)
+            deferred.addErrback(_on_download_readd_failure)
+            # As we already checked for len(parameters) > 1, we know there are no other parameters.
+            # As such, we can return immediately.
+            return NOT_DONE_YET
 
         if 'selected_files[]' in parameters:
             selected_files_list = []

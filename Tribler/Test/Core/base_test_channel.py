@@ -25,8 +25,11 @@ class BaseTestChannel(TestAsServer):
             self.annotate(self._testMethodName, start=True)
 
         self.fake_session = MockObject()
-        self.fake_session.get_state_dir = lambda: self.session_base_dir
         self.fake_session.add_observer = lambda a, b, c: False
+
+        self.fake_session_config = MockObject()
+        self.fake_session_config.get_state_dir = lambda: self.session_base_dir
+        self.fake_session.config = self.fake_session_config
 
         fake_notifier = MockObject()
         fake_notifier.add_observer = lambda a, b, c, d: False
@@ -46,7 +49,7 @@ class BaseTestChannel(TestAsServer):
 
     def setUpPreSession(self):
         super(BaseTestChannel, self).setUpPreSession()
-        self.config.set_megacache(True)
+        self.config.set_megacache_enabled(True)
 
     def insert_channel_in_db(self, dispersy_cid, peer_id, name, description):
         return self.channel_db_handler.on_channel_from_dispersy(dispersy_cid, peer_id, name, description)

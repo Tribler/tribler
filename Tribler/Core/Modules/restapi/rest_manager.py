@@ -1,13 +1,12 @@
-import json
 import logging
 from traceback import format_tb
-
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred
 from twisted.python.compat import intToBytes
 from twisted.web import server, http
 
 from Tribler.Core.Modules.restapi.root_endpoint import RootEndpoint
+import Tribler.Core.Utilities.json_util as json
 from Tribler.dispersy.taskmanager import TaskManager
 
 
@@ -30,7 +29,7 @@ class RESTManager(TaskManager):
         self.root_endpoint = RootEndpoint(self.session)
         site = server.Site(resource=self.root_endpoint)
         site.requestFactory = RESTRequest
-        self.site = reactor.listenTCP(self.session.get_http_api_port(), site, interface="127.0.0.1")
+        self.site = reactor.listenTCP(self.session.config.get_http_api_port(), site, interface="127.0.0.1")
 
     def stop(self):
         """
@@ -41,7 +40,8 @@ class RESTManager(TaskManager):
 
 class RESTRequest(server.Request):
     """
-    This class gracefully takes care of unhandled exceptions raised during the processing of any request.
+    This class overrides the write(data) method to do a safe write only when channel is not None and gracefully
+    takes care of unhandled exceptions raised during the processing of any request.
     """
     defaultContentType = b"text/json"
 
@@ -68,3 +68,10 @@ class RESTRequest(server.Request):
         self.write(body)
         self.finish()
         return failure
+
+    def write(self, data):
+        """
+        Writes data only if request has not finished and channel is not None
+        """
+        if not self.finished and self.channel:
+            server.Request.write(self, data)

@@ -1,4 +1,5 @@
 from nose.tools import raises
+
 from Tribler.Core.TFTP.exception import InvalidStringException, InvalidPacketException, InvalidOptionException
 from Tribler.Core.TFTP.packet import _get_string, _decode_options, _decode_data, _decode_ack, _decode_error, \
     decode_packet, OPCODE_ERROR, encode_packet

@@ -1,4 +1,5 @@
 import os
+import time
 
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
@@ -6,9 +7,9 @@ from PyQt5.QtWidgets import QWidget, QAction, QFileDialog, QSystemTrayIcon
 
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.defs import DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_COMPLETED, \
-    DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_INACTIVE, DOWNLOADS_FILTER_DEFINITION, DLSTATUS_STOPPED, \
-    DLSTATUS_STOPPED_ON_ERROR, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, DLSTATUS_METADATA, DLSTATUS_HASHCHECKING, \
-    DLSTATUS_WAITING4HASHCHECK
+    DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_INACTIVE, DOWNLOADS_FILTER_CREDITMINING, DOWNLOADS_FILTER_DEFINITION, \
+    DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, DLSTATUS_METADATA, \
+    DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.widgets.downloadwidgetitem import DownloadWidgetItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -30,10 +31,19 @@ class DownloadsPage(QWidget):
         self.downloads = None
         self.downloads_timer = QTimer()
         self.downloads_timeout_timer = QTimer()
+        self.downloads_last_update = 0
         self.selected_item = None
         self.dialog = None
-        self.downloads_request_mgr = None
+        self.downloads_request_mgr = TriblerRequestManager()
         self.request_mgr = None
+
+    def showEvent(self, QShowEvent):
+        """
+        When the downloads tab is clicked, we want to update the downloads list immediately.
+        """
+        super(DownloadsPage, self).showEvent(QShowEvent)
+        self.stop_loading_downloads()
+        self.schedule_downloads_timer(True)
 
     def initialize_downloads_page(self):
         self.window().downloads_tab.initialize()
@@ -90,8 +100,13 @@ class DownloadsPage(QWidget):
         if self.window().download_details_widget.currentIndex() == 3:
             url = "downloads?get_peers=1&get_pieces=1"
 
-        self.downloads_request_mgr = TriblerRequestManager()
-        self.downloads_request_mgr.perform_request(url, self.on_received_downloads)
+        if not self.isHidden() or (time.time() - self.downloads_last_update > 30):
+            # Update if the downloads page is visible or if we haven't updated for longer than 30 seconds
+            self.downloads_last_update = time.time()
+            priority = "LOW" if self.isHidden() else "HIGH"
+            self.downloads_request_mgr.cancel_request()
+            self.downloads_request_mgr = TriblerRequestManager()
+            self.downloads_request_mgr.perform_request(url, self.on_received_downloads, priority=priority)
 
     def on_received_downloads(self, downloads):
         if not downloads:
@@ -128,17 +143,13 @@ class DownloadsPage(QWidget):
                 self.window().download_details_widget.update_pages()
 
         # Check whether there are download that should be removed
-        toremove = set()
-        for infohash, item in self.download_widgets.iteritems():
+        for infohash, item in self.download_widgets.items():
             if infohash not in download_infohashes:
                 index = self.window().downloads_list.indexOfTopLevelItem(item)
-                toremove.add((infohash, index))
+                self.window().downloads_list.takeTopLevelItem(index)
+                del self.download_widgets[infohash]
 
-        for infohash, index in toremove:
-            self.window().downloads_list.takeTopLevelItem(index)
-            del self.download_widgets[infohash]
-
-        if QSystemTrayIcon.isSystemTrayAvailable():
+        if self.window().tray_icon:
             self.window().tray_icon.setToolTip(
                 "Down: %s, Up: %s" % (format_speed(total_download), format_speed(total_upload)))
         self.update_download_visibility()
@@ -152,8 +163,12 @@ class DownloadsPage(QWidget):
         for i in range(self.window().downloads_list.topLevelItemCount()):
             item = self.window().downloads_list.topLevelItem(i)
             filter_match = self.window().downloads_filter_input.text().lower() in item.download_info["name"].lower()
-            item.setHidden(
-                not item.get_raw_download_status() in DOWNLOADS_FILTER_DEFINITION[self.filter] or not filter_match)
+            is_creditmining = item.download_info["credit_mining"]
+            if self.filter == DOWNLOADS_FILTER_CREDITMINING:
+                item.setHidden(not is_creditmining or not filter_match)
+            else:
+                item.setHidden(not item.get_raw_download_status() in DOWNLOADS_FILTER_DEFINITION[self.filter] or \
+                               not filter_match or is_creditmining)
 
     def on_downloads_tab_button_clicked(self, button_name):
         if button_name == "downloads_all_button":
@@ -166,6 +181,8 @@ class DownloadsPage(QWidget):
             self.filter = DOWNLOADS_FILTER_ACTIVE
         elif button_name == "downloads_inactive_button":
             self.filter = DOWNLOADS_FILTER_INACTIVE
+        elif button_name == "downloads_creditmining_button":
+            self.filter = DOWNLOADS_FILTER_CREDITMINING
 
         self.window().downloads_list.clearSelection()
         self.window().download_details_widget.hide()
@@ -282,16 +299,36 @@ class DownloadsPage(QWidget):
                                          method='PATCH', data='anon_hops=%d' % hops)
 
     def on_explore_files(self):
-        QDesktopServices.openUrl(QUrl.fromLocalFile(self.selected_item.download_info["destination"]))
+        path = os.path.normpath(os.path.join(self.window().tribler_settings['downloadconfig']['saveas'],
+		                                     self.selected_item.download_info["destination"]))
+        QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def on_export_download(self):
         self.export_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory", "",
                                                            QFileDialog.ShowDirsOnly)
 
         if len(self.export_dir) > 0:
+            # Show confirmation dialog where we specify the name of the file
+            torrent_name = self.selected_item.download_info['name']
+            self.dialog = ConfirmationDialog(self, "Export torrent file",
+                                             "Please enter the name of the torrent file:",
+                                             [('SAVE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+                                             show_input=True)
+            self.dialog.dialog_widget.dialog_input.setPlaceholderText('Torrent file name')
+            self.dialog.dialog_widget.dialog_input.setText("%s.torrent" % torrent_name)
+            self.dialog.dialog_widget.dialog_input.setFocus()
+            self.dialog.button_clicked.connect(self.on_export_download_dialog_done)
+            self.dialog.show()
+
+    def on_export_download_dialog_done(self, action):
+        if action == 0:
+            filename = self.dialog.dialog_widget.dialog_input.text()
             self.request_mgr = TriblerRequestManager()
             self.request_mgr.download_file("downloads/%s/torrent" % self.selected_item.download_info['infohash'],
-                                           self.on_export_download_request_done)
+                                           lambda data: self.on_export_download_request_done(filename, data))
+
+        self.dialog.setParent(None)
+        self.dialog = None
 
     def on_export_download_request_done(self, filename, data):
         dest_path = os.path.join(self.export_dir, filename)
@@ -304,7 +341,8 @@ class DownloadsPage(QWidget):
                                           "Error when exporting file",
                                           "An error occurred when exporting the torrent file: %s" % str(exc))
         else:
-            self.window().tray_icon.showMessage("Torrent file exported", "Torrent file exported to %s" % dest_path)
+            if self.window().tray_icon:
+                self.window().tray_icon.showMessage("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
     def on_right_click_item(self, pos):
         item_clicked = self.window().downloads_list.itemAt(pos)

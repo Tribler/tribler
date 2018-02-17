@@ -1,4 +1,5 @@
 import os
+
 from Tribler.Core.Utilities.torrent_utils import create_torrent_file, get_info_from_handle
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 

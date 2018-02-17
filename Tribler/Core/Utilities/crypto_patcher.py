@@ -1,4 +1,5 @@
 import sys
+
 from Tribler.Core.Utilities.install_dir import is_frozen
 
 

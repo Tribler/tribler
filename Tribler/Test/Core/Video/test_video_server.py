@@ -116,7 +116,7 @@ class TestVideoServerSession(TestAsServer):
     def setUp(self, autoload_discovery=True):
         """ unittest test setup code """
         yield TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
-        self.port = self.session.get_videoserver_port()
+        self.port = self.session.config.get_video_server_port()
         self.sourcefn = os.path.join(TESTS_DATA_DIR, "video.avi")
         self.sourcesize = os.path.getsize(self.sourcefn)
         self.tdef = None
@@ -125,8 +125,8 @@ class TestVideoServerSession(TestAsServer):
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
-        self.config.set_libtorrent(True)
-        self.config.set_videoserver_enabled(True)
+        self.config.set_libtorrent_enabled(True)
+        self.config.set_video_server_enabled(True)
 
     #
     # Tests

@@ -1,5 +1,5 @@
-import json
 from twisted.web import http
+
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.channels.channels_playlists_endpoint import ChannelsPlaylistsEndpoint
 from Tribler.Core.Modules.restapi.channels.channels_rss_endpoint import ChannelsRssFeedsEndpoint, \
@@ -7,6 +7,7 @@ from Tribler.Core.Modules.restapi.channels.channels_rss_endpoint import Channels
 from Tribler.Core.Modules.restapi.channels.channels_torrents_endpoint import ChannelsTorrentsEndpoint
 from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json
 from Tribler.Core.exceptions import DuplicateChannelNameError
+import Tribler.Core.Utilities.json_util as json
 
 
 class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
@@ -51,7 +52,7 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
         results_json = []
         for channel in all_channels_db:
             channel_json = convert_db_channel_to_json(channel)
-            if self.session.tribler_config.get_family_filter_enabled() and \
+            if self.session.config.get_family_filter_enabled() and \
                     self.session.lm.category.xxx_filter.isXXX(channel_json['name']):
                 continue
 

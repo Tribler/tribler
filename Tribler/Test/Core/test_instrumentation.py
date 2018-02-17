@@ -1,4 +1,5 @@
 from threading import Event, Thread
+
 from Tribler.Core.Utilities.instrumentation import synchronized, WatchDog
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
@@ -120,3 +121,9 @@ class TriblerCoreTestWatchDog(TriblerCoreTest):
         self.watchdog.start()
         # The even gets set when a thread has the same stack for more than 0 seconds.
         self.assertTrue(self._printe_event.wait(1))
+
+    def test_watchdog_thread_name(self):
+        """
+        Test thread names outputted by watchdog
+        """
+        self.assertEquals("Unknown", self.watchdog.get_thread_name(-1))

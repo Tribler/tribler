@@ -106,8 +106,8 @@ class TestSearchEndpoint(AbstractApiTest):
         self.insert_torrents_in_db(6)
         self.expected_num_results_list = [5, 6, 0, 0]
 
-        self.session.get_enable_torrent_search = lambda: True
-        self.session.get_enable_channel_search = lambda: True
+        self.session.config.get_torrent_search_enabled = lambda: True
+        self.session.config.get_channel_search_enabled = lambda: True
         self.session.lm.search_manager = FakeSearchManager(self.session.notifier)
 
         expected_json = {"queried": True}

@@ -3,14 +3,14 @@ Tests for the LevelDB.
 
 Author(s): Elric Milon
 """
-from nose.tools import raises
+import os
 
+from nose.tools import raises
 from shutil import rmtree
 from tempfile import mkdtemp
-
 from twisted.internet.task import Clock
 
-from Tribler.Core.leveldbstore import LevelDbStore, WRITEBACK_PERIOD, get_write_batch_plyvel, get_write_batch_leveldb
+from Tribler.Core.leveldbstore import LevelDbStore, WRITEBACK_PERIOD, get_write_batch_leveldb
 from Tribler.Test.test_as_server import BaseTestCase
 
 
@@ -112,3 +112,16 @@ class AbstractTestLevelDBStore(BaseTestCase):
 class TestLevelDBStore(AbstractTestLevelDBStore):
     __test__ = True
     _storetype = ClockedLevelDBStore
+
+    def test_invalid_handle(self):
+        self.store.close()
+
+        open(os.path.join(self.store_dir, 'test.txt'), 'a').close()
+
+        # Make the leveldb files corrupt
+        for dir_file in os.listdir(self.store_dir):
+            with open(os.path.join(self.store_dir, dir_file), 'a') as file_handler:
+                file_handler.write('abcde')
+
+        self.openStore(self.store_dir)
+        self.assertFalse(os.path.exists(os.path.join(self.store_dir, 'test.txt')))

@@ -1,11 +1,14 @@
+import json
 import os
 from urllib import quote_plus
 from PyQt5 import uic
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QDialog, QTreeWidgetItem, QAction
 import sys
 import platform
 import time
+
+from TriblerGUI.event_request_manager import received_events
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import performed_requests as tribler_performed_requests, TriblerRequestManager
 from TriblerGUI.utilities import get_ui_file_path
@@ -13,7 +16,7 @@ from TriblerGUI.utilities import get_ui_file_path
 
 class FeedbackDialog(QDialog):
 
-    def __init__(self, parent, exception_text, tribler_version):
+    def __init__(self, parent, exception_text, tribler_version, start_time):
         QDialog.__init__(self, parent)
 
         uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
@@ -47,6 +50,7 @@ class FeedbackDialog(QDialog):
         add_item_to_info_widget('platform.machine', platform.machine())
         add_item_to_info_widget('python.version', sys.version)
         add_item_to_info_widget('indebug', str(__debug__))
+        add_item_to_info_widget('tribler_uptime', "%s" % (time.time() - start_time))
 
         for argv in sys.argv:
             add_item_to_info_widget('sys.argv', '%s' % argv)
@@ -57,12 +61,19 @@ class FeedbackDialog(QDialog):
         for key in os.environ.keys():
             add_item_to_info_widget('os.environ', '%s: %s' % (key, os.environ[key]))
 
+        # Add recent requests to feedback dialog
         request_ind = 1
-        for endpoint, method, data, timestamp, status_code in sorted(tribler_performed_requests.values(),
+        for endpoint, method, data, timestamp, status_code in sorted(tribler_performed_requests,
                                                                      key=lambda x: x[3])[-30:]:
             add_item_to_info_widget('request_%d' % request_ind, '%s %s %s (time: %s, code: %s)' %
-                                    (endpoint, method, data, timestamp, status_code))
+                                    (endpoint, method, data, timestamp, status_code()))
             request_ind += 1
+
+        # Add recent events to feedback dialog
+        events_ind = 1
+        for event, event_time in received_events[:30][::-1]:
+            add_item_to_info_widget('event_%d' % events_ind, '%s (time: %s)' % (json.dumps(event), event_time))
+            events_ind += 1
 
         # Users can remove specific lines in the report
         self.env_variables_list.customContextMenuRequested.connect(self.on_right_click_item)
@@ -85,10 +96,17 @@ class FeedbackDialog(QDialog):
         menu.exec_(self.env_variables_list.mapToGlobal(pos))
 
     def on_cancel_clicked(self):
-        QCoreApplication.instance().quit()
+        QApplication.quit()
 
-    def on_report_sent(self, _):
-        QCoreApplication.instance().quit()
+    def on_report_sent(self, response):
+        sent = response[u'sent']
+        QApplication.quit()
+        from check_os import error_and_exit
+        if sent:
+            error_and_exit("Report Sent", "Successfully sent the report! Thanks for your contribution.")
+        else:
+            error_and_exit("ERROR: Report Sending Failed",
+                           "Could not send the report! Please post this issue on GitHub.")
 
     def on_send_clicked(self):
         self.request_mgr = TriblerRequestManager()
@@ -113,5 +131,5 @@ class FeedbackDialog(QDialog):
         self.request_mgr.perform_request("report", self.on_report_sent, data=str(post_data), method='POST')
 
     def closeEvent(self, close_event):
-        QCoreApplication.instance().quit()
+        QApplication.quit()
         close_event.ignore()

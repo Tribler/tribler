@@ -60,13 +60,17 @@ REM copy C:\Build\ffmpeg\bin\ffmpeg.exe dist\tribler
 mkdir dist\tribler\tools
 copy win\tools\reset*.bat dist\tribler\tools
 
-REM Laurens, 2016-04-20: Copy the redistributables of 2008 and 2012 and the VLC installer to the install dir
+REM Laurens, 2016-04-20: Copy the redistributables of 2008, 2012 and 2015 and the VLC installer to the install dir
 copy C:\build\vc_redist_90.exe dist\tribler
 copy C:\build\vc_redist_110.exe dist\tribler
+copy C:\build\vc_redist_140.exe dist\tribler
 
 REM Copy various libraries required on runtime (libsodium and openssl)
 copy C:\build\libsodium.dll dist\tribler
 copy C:\build\openssl\*.dll dist\tribler
+
+REM Copy missing dll files
+copy C:\build\missing_dlls\*.dll dist\tribler
 
 REM Copy VLC, different files based on 32-bit or 64-bit
 if %1==32 copy C:\build\vlc-2.2.4-win32.exe dist\tribler
@@ -80,14 +84,13 @@ set /p PASSWORD="Enter the PFX password:"
 
 REM Arno: Sign Tribler.exe so MS "Block / Unblock" dialog has publisher info.
 REM --- Doing this in ugly way for now
-SET PATH=%PATH%;C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin
 
-signtool.exe sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" tribler.exe
+signtool.exe sign /f C:\build\certs\certificate.pfx /p "%PASSWORD%" /d "Tribler" /t "http://timestamp.digicert.com" tribler.exe
 
 :makeinstaller
 %NSIS% tribler.nsi
 move Tribler_*.exe ..
 cd ..
 REM Arno: Sign installer
-signtool.exe sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" Tribler_*.exe
+signtool.exe sign /f c:\build\certs\certificate.pfx /p "%PASSWORD%" /d "Tribler" /t "http://timestamp.digicert.com" Tribler_*.exe
 cd ..

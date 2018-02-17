@@ -1,16 +1,17 @@
 import os
 import shutil
-from Tribler.Test.test_as_server import TestAsServer
+
 from Tribler.Test.common import TORRENT_UBUNTU_FILE, TESTS_DATA_DIR
+from Tribler.Test.test_as_server import TestAsServer
 
 
 class TestWatchFolder(TestAsServer):
 
     def setUpPreSession(self):
         super(TestWatchFolder, self).setUpPreSession()
-        self.config.set_libtorrent(True)
+        self.config.set_libtorrent_enabled(True)
         self.config.set_watch_folder_enabled(True)
-        self.config.set_dispersy(True)
+        self.config.set_dispersy_enabled(True)
 
         self.watch_dir = os.path.join(self.session_base_dir, 'watch')
         os.mkdir(self.watch_dir)
@@ -28,7 +29,8 @@ class TestWatchFolder(TestAsServer):
 
     def test_watchfolder_invalid_dir(self):
         shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(self.watch_dir, "test.txt"))
-        self.session.set_watch_folder_path(os.path.join(self.watch_dir, "test.txt"))
+        self.session.config.set_watch_folder_path(os.path.join(self.watch_dir, "test.txt"))
+
         self.session.lm.watch_folder.check_watch_folder()
         self.assertEqual(len(self.session.get_downloads()), 0)
 

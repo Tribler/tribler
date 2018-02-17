@@ -1,8 +1,6 @@
 """
 This twistd plugin enables to start a tunnel helper headless using the twistd command.
 """
-import json
-import logging
 import logging.config
 import os
 import random
@@ -17,29 +15,21 @@ from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred, succeed
 from twisted.internet.stdio import StandardIO
 from twisted.internet.task import LoopingCall
-
-# Laurens(23-05-2016): As of writing, Debian stable does not have
-# the globalLogPublisher in the current version of Twisted.
-# So we make it a conditional import.
-from twisted.web import server, resource
-
-try:
-    global_log_publisher_available = True
-except:
-    pass
 from twisted.plugin import IPlugin
 from twisted.protocols.basic import LineReceiver
 from twisted.python import usage
 from twisted.python.log import msg
+from twisted.web import server, resource
 from zope.interface import implements
 
+import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Config.tribler_config import TriblerConfig
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.permid import read_keypair
 from Tribler.Core.simpledefs import dlstatus_strings
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
-from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+from Tribler.community.hiddentunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
@@ -92,7 +82,7 @@ check_json_port.coerceDoc = "Json API port must be greater than 0."
 class Options(usage.Options):
     optFlags = [
         ["exit", "x", "Allow being an exit-node"],
-        ["multichain", "M", "Enable the multichain community"]
+        ["trustchain", "M", "Enable the trustchain community"]
     ]
 
     optParameters = [
@@ -108,7 +98,16 @@ class Options(usage.Options):
 if not os.path.exists("logger.conf"):
     print "Unable to find logger.conf"
 else:
-    logging.config.fileConfig("logger.conf")
+    log_directory = os.path.abspath(os.environ.get('APPDATA', os.path.expanduser('~')))
+    log_directory = os.path.join(log_directory, '.Tribler', 'logs')
+
+    if not os.path.exists(log_directory):
+        os.makedirs(log_directory)
+
+    logging.info_log_file = '%s/tribler-info.log' % log_directory
+    logging.error_log_file = '%s/tribler-error.log' % log_directory
+    logging.config.fileConfig("logger.conf", disable_existing_loggers=False)
+
 logger = logging.getLogger('TunnelMain')
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
@@ -223,29 +222,25 @@ class Tunnel(object):
                                             (((stats[key] - stats_old[key]) / time_dif) / 1024) * 0.125
 
     def start_tribler(self):
-        config = SessionStartupConfig()
+        config = TriblerConfig()
         config.set_state_dir(os.path.join(config.get_state_dir(), "tunnel-%d") % self.settings.socks_listen_ports[0])
-        config.set_torrent_checking(False)
-        config.set_multicast_local_peer_discovery(False)
-        config.set_megacache(False)
-        config.set_dispersy(True)
-        config.set_mainline_dht(True)
-        config.set_torrent_collecting(False)
-        config.set_libtorrent(True)
-        config.set_dht_torrent_collecting(False)
-        config.set_enable_torrent_search(False)
-        config.set_videoserver_enabled(False)
+        config.set_torrent_checking_enabled(False)
+        config.set_megacache_enabled(False)
+        config.set_dispersy_enabled(True)
+        config.set_mainline_dht_enabled(True)
+        config.set_torrent_collecting_enabled(False)
+        config.set_libtorrent_enabled(True)
+        config.set_video_server_enabled(False)
         config.set_dispersy_port(self.dispersy_port)
-        config.set_enable_torrent_search(False)
-        config.set_enable_channel_search(False)
-        config.set_enable_multichain(self.settings.enable_multichain)
+        config.set_torrent_search_enabled(False)
+        config.set_channel_search_enabled(False)
 
         # We do not want to load the TunnelCommunity in the session but instead our own community
         config.set_tunnel_community_enabled(False)
 
         self.session = Session(config)
         self.session.start()
-        logger.info("Using Dispersy port %d" % self.session.get_dispersy_port())
+        logger.info("Using Dispersy port %d" % self.session.config.get_dispersy_port())
 
     def start(self, introduce_port):
         def start_community():
@@ -254,18 +249,18 @@ class Tunnel(object):
                 member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
                 cls = TunnelCommunityCrawler
             else:
-                if self.settings.enable_multichain:
-                    from Tribler.community.multichain.community import MultiChainCommunity
-                    member = self.dispersy.get_member(private_key=self.session.multichain_keypair.key_to_bin())
-                    self.dispersy.define_auto_load(MultiChainCommunity, member, load=True)
+                if self.settings.enable_trustchain:
+                    from Tribler.community.trustchain.community import TrustChainCommunity
+                    member = self.dispersy.get_member(private_key=self.session.trustchain_keypair.key_to_bin())
+                    self.dispersy.define_auto_load(TrustChainCommunity, member, load=True)
                 else:
                     member = self.dispersy.get_new_member(u"curve25519")
                 cls = HiddenTunnelCommunity
 
             self.community = self.dispersy.define_auto_load(cls, member, (self.session, self.settings), load=True)[0]
 
-            self.session.set_anon_proxy_settings(
-                2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
+            self.session.config.set_anon_proxy_settings(
+                2, ("127.0.0.1", self.session.config.get_tunnel_community_socks5_listen_ports()))
             if introduce_port:
                 self.community.add_discovered_candidate(Candidate(('127.0.0.1', introduce_port), tunnel=False))
 
@@ -378,7 +373,7 @@ class LineHandler(LineReceiver):
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
             dscfg.set_hops(1)
-            dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.get_dispersy_port()))
+            dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.config.get_dispersy_port()))
 
             def start_download():
                 def cb(ds):
@@ -448,11 +443,11 @@ class TunnelHelperServiceMaker(object):
         else:
             logger.info("Exit-node disabled")
 
-        settings.enable_multichain = bool(options["multichain"])
-        if settings.enable_multichain:
-            logger.info("Multichain enabled")
+        settings.enable_trustchain = bool(options["trustchain"])
+        if settings.enable_trustchain:
+            logger.info("Trustchain enabled")
         else:
-            logger.info("Multichain disabled")
+            logger.info("Trustchain disabled")
 
         tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
         StandardIO(LineHandler(tunnel))

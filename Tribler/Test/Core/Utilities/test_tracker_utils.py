@@ -2,7 +2,6 @@ from nose.tools import raises
 
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url, get_uniformed_tracker_url, \
     MalformedTrackerURLException
-
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 

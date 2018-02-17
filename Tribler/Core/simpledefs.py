@@ -31,28 +31,11 @@ DLMODE_NORMAL = 0
 DLMODE_VOD = 1
 
 PERSISTENTSTATE_CURRENTVERSION = 5
-"""
-V1 = SwarmPlayer 1.0.0
-V2 = Tribler 4.5.0: SessionConfig: Added NAT fields
-V3 = SessionConfig: Added multicast_local_peer_discovery,
-     Removed rss_reload_frequency + rss_check_frequency.
-V4 = ... + added pickled SwiftDef
-V5 = no longer pickling data
-For details see API.py
-"""
 
 STATEDIR_DLPSTATE_DIR = u'dlcheckpoints'
-STATEDIR_PEERICON_DIR = u'icons'
-STATEDIR_TORRENT_STORE_DIR = u'collected_torrents'
-STATEDIR_METADATA_STORE_DIR = u'collected_metadata'
-
-STATEDIR_SESSCONFIG = 'libtribler.conf'
-STATEDIR_DLCONFIG = 'tribler.conf'
-STATEDIR_GUICONFIG = 'tribler.conf'
-STATEDIR_CONFIG = 'triblerd.conf'
+STATEDIR_WALLET_DIR = u'wallet'
 
 # For observer/callback mechanism, see Session.add_observer()
-
 # subjects
 NTFY_PEERS = 'peers'
 NTFY_TORRENTS = 'torrents'
@@ -87,6 +70,15 @@ NTFY_UPGRADER_TICK = 'upgradertick'
 
 NTFY_STARTUP_TICK = 'startuptick'
 NTFY_CLOSE_TICK = 'closetick'
+
+NTFY_MARKET_ON_ASK = 'onmarketask'
+NTFY_MARKET_ON_BID = 'onmarketbid'
+NTFY_MARKET_ON_ASK_TIMEOUT = 'onmarketasktimeout'
+NTFY_MARKET_ON_BID_TIMEOUT = 'onmarketbidtimeout'
+NTFY_MARKET_ON_TRANSACTION_COMPLETE = 'onmarkettransactioncomplete'
+NTFY_MARKET_ON_PAYMENT_RECEIVED = 'onmarketpaymentreceived'
+NTFY_MARKET_ON_PAYMENT_SENT = 'onmarketpaymentsent'
+NTFY_MARKET_IOM_INPUT_REQUIRED = 'onmarketiominputrequired'
 
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)
@@ -147,3 +139,20 @@ STATE_STARTING = "STARTING"
 STATE_UPGRADING = "UPGRADING"
 STATE_STARTED = "STARTED"
 STATE_EXCEPTION = "EXCEPTION"
+
+STATE_OPEN_DB = 'Opening database...'
+STATE_START_API = 'Starting HTTP API...'
+STATE_UPGRADING_READABLE = 'Upgrading Tribler...'
+STATE_LOAD_CHECKPOINTS = 'Loading download checkpoints...'
+STATE_STARTING_DISPERSY = 'Starting Dispersy...'
+STATE_LOADING_COMMUNITIES = 'Loading communities...'
+STATE_INITIALIZE_CHANNEL_MGR = 'Initializing channel manager...'
+STATE_START_MAINLINE_DHT = 'Starting mainline DHT...'
+STATE_START_LIBTORRENT = 'Starting libtorrent...'
+STATE_START_TORRENT_CHECKER = 'Starting torrent checker...'
+STATE_START_REMOTE_TORRENT_HANDLER = 'Starting remote torrent handler...'
+STATE_START_API_ENDPOINTS = 'Starting API endpoints...'
+STATE_START_WATCH_FOLDER = 'Starting watch folder...'
+STATE_START_CREDIT_MINING = 'Starting credit mining...'
+STATE_START_RESOURCE_MONITOR = 'Starting resource monitor...'
+STATE_READABLE_STARTED = 'Started'

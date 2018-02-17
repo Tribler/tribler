@@ -1,18 +1,33 @@
-from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.channel.channel import ChannelObject
-from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
+from Tribler.Core.Session import Session
+from Tribler.Core.exceptions import DuplicateChannelNameError
+from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from twisted.internet.defer import inlineCallbacks
+from twisted.python.log import removeObserver
 
 
 class TestChannelManager(TriblerCoreTest):
 
     @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def setUp(self, annotate=True):
+        yield super(TestChannelManager, self).setUp(annotate=annotate)
+        self.session = None
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self, annotate=True):
+        removeObserver(self.session.unhandled_error_observer)
+        yield super(TestChannelManager, self).tearDown(annotate=annotate)
+
+    @blocking_call_on_reactor_thread
     def test_create_channel_duplicate_name_error(self):
-        self.config = SessionStartupConfig()
-        self.session = Session(self.config, ignore_singleton=True)
+        config = TriblerConfig()
+        config.set_state_dir(self.getStateDir())
+        self.session = Session(config)
 
         class LmMock(object):
             channel_manager = ChannelManager(self.session)

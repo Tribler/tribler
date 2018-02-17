@@ -19,7 +19,7 @@ class TestTunnelCommunity(TestTunnelBase):
         self.test_deferred = Deferred()
         yield super(TestTunnelCommunity, self).setUp(autoload_discovery=autoload_discovery)
 
-    @deferred(timeout=60)
+    @deferred(timeout=40)
     @inlineCallbacks
     def test_anon_download(self):
         """
@@ -45,7 +45,6 @@ class TestTunnelCommunity(TestTunnelBase):
         """
         Testing whether an anon download does not make progress without exit nodes
         """
-        assert isInIOThread()
         yield self.setup_nodes(num_exitnodes=0)
 
         def download_state_callback(ds):

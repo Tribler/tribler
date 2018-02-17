@@ -38,7 +38,8 @@ MOCK_MODULES = ['twisted', 'twisted.web', 'twisted.web.server', 'twisted.web.cli
                 'twisted.internet', 'twisted.internet.defer', 'twisted.internet.task', 'twisted.python',
                 'twisted.python.threadable', 'twisted.internet.base', 'twisted.internet.error',
                 'twisted.internet.protocol', 'apsw', 'libtorrent', 'chardet',
-                'Tribler.community.tunnel.crypto.cryptowrapper']
+                'Tribler.community.tunnel.crypto.cryptowrapper', 'Tribler.community.market.core.orderbook',
+                'M2Crypto', 'M2Crypto.EC', 'M2Crypto.BIO', 'Tribler.dispersy.crypto']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 

@@ -3,9 +3,15 @@ LevelDBStore.
 
 Author(s): Elric Milon
 """
+import os
 from collections import MutableMapping
 from itertools import chain
-import os
+
+from shutil import rmtree
+
+import logging
+
+import sys
 
 
 def get_write_batch_leveldb(self, _):
@@ -18,13 +24,15 @@ def get_write_batch_plyvel(self, db):
     return WriteBatch(db)
 
 try:
-    from leveldb import LevelDB
+    from leveldb import LevelDB, LevelDBError
 
+    use_leveldb = True
     get_write_batch = get_write_batch_leveldb
 
 except ImportError:
     from plyveladapter import LevelDB
 
+    use_leveldb = False
     get_write_batch = get_write_batch_plyvel
 
 from twisted.internet import reactor
@@ -49,17 +57,32 @@ class LevelDbStore(MutableMapping, TaskManager):
 
         self._store_dir = store_dir
         self._pending_torrents = {}
+        self._logger = logging.getLogger(self.__class__.__name__)
         # This is done to work around LevelDB's inability to deal with non-ascii paths on windows.
         try:
-            self._db = self._leveldb(os.path.relpath(store_dir, os.getcwdu()))
+            db_path = store_dir.decode('windows-1252') if sys.platform == "win32" else store_dir
+            self._db = self._leveldb(db_path)
         except ValueError:
             # This can happen on Windows when the state dir and Tribler installation are on different disks.
             # In this case, hope for the best by using the full path.
             self._db = self._leveldb(store_dir)
+        except Exception as exc:
+            # We cannot simply catch LevelDBError since that class might not be available on some systems.
+            if use_leveldb and isinstance(exc, LevelDBError):
+                # The database might be corrupt, start with a fresh one
+                self._logger.error("Corrupt LevelDB store detected; recreating database")
+                rmtree(self._store_dir)
+                os.makedirs(self._store_dir)
+                self._db = self._leveldb(os.path.relpath(store_dir, os.getcwdu()))
+            else:  # If something else goes wrong, we throw the exception again
+                raise
 
         self._writeback_lc = self.register_task("flush cache ", LoopingCall(self.flush))
         self._writeback_lc.clock = self._reactor
         self._writeback_lc.start(WRITEBACK_PERIOD)
+
+    def get_db(self):
+        return self._db
 
     def __getitem__(self, key):
         try:
@@ -69,7 +92,6 @@ class LevelDbStore(MutableMapping, TaskManager):
 
     def __setitem__(self, key, value):
         self._pending_torrents[key] = value
-        # self._db.Put(key, value)
 
     def __delitem__(self, key):
         if key in self._pending_torrents:

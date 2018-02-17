@@ -1,6 +1,5 @@
-import json
-
 from Tribler.Core.exceptions import TriblerException
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.twisted_thread import deferred
 from base_api_test import AbstractApiTest
 

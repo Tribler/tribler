@@ -17,7 +17,7 @@ for file in os.listdir("TriblerGUI/widgets"):
     if file.endswith(".py"):
         widget_files.append('TriblerGUI.widgets.%s' % file[:-3])
 
-data_to_copy = [('Tribler/dispersy/libnacl/libnacl', 'libnacl'), ('TriblerGUI/qt_resources', 'qt_resources'), ('TriblerGUI/images', 'images'), ('TriblerGUI/scripts', 'scripts'), ('twisted', 'twisted'), ('Tribler', 'tribler_source/Tribler')]
+data_to_copy = [('Tribler/dispersy/libnacl/libnacl', 'libnacl'), ('electrum', 'electrum'), ('TriblerGUI/qt_resources', 'qt_resources'), ('TriblerGUI/images', 'images'), ('TriblerGUI/scripts', 'scripts'), ('twisted', 'twisted'), ('Tribler', 'tribler_source/Tribler'), ('logger.conf', '.')]
 if sys.platform.startswith('darwin'):
     data_to_copy += [('/Applications/VLC.app/Contents/MacOS/lib', 'vlc/lib'), ('/Applications/VLC.app/Contents/MacOS/plugins', 'vlc/plugins')]
 
@@ -30,14 +30,19 @@ if sys.platform.startswith('darwin'):
     with open('Tribler/Main/Build/Mac/Info.plist', 'w') as f:
         f.write(content)
 
-a = Analysis(['run_tribler.py'],
+# We use plyvel on Windows since leveldb is unable to deal with unicode paths
+excluded_libs = ['wx', 'leveldb'] if sys.platform == 'win32' else ['wx']
+
+electrum_files = ['electrum/electrum', 'electrum/lib/util.py', 'electrum/lib/wallet.py', 'electrum/lib/simple_config.py', 'electrum/lib/bitcoin.py', 'electrum/lib/dnssec.py', 'electrum/lib/commands.py']
+
+a = Analysis(['run_tribler.py'] + electrum_files,
              pathex=['/Users/martijndevos/Documents/tribler'],
              binaries=None,
              datas=data_to_copy,
-             hiddenimports=['csv'] + widget_files,
+             hiddenimports=['csv', 'socks'] + widget_files,
              hookspath=[],
              runtime_hooks=[],
-             excludes=['wx'],
+             excludes=excluded_libs,
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher)

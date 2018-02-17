@@ -1,22 +1,21 @@
 """
 Make torrent.
 
-Author(s): Arno Bakker, Bram Cohen, Arno Bakker
+Author(s): Arno Bakker, Bram Cohen
 """
 import logging
 import os
-
-import chardet
-from hashlib import sha1
 from copy import copy
+from hashlib import sha1
 from time import time
-from libtorrent import bencode
 
+from libtorrent import bencode
+import chardet
 
 from Tribler.Core.Utilities.unicode import bin2unicode
-from Tribler.Core.osutils import fix_filebasename
-from Tribler.Core.defaults import tdefdictdefaults
 from Tribler.Core.Utilities.utilities import create_valid_metainfo
+from Tribler.Core.defaults import tdefdictdefaults
+from Tribler.Core.osutils import fix_filebasename
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +247,8 @@ def pathlist2filename(pathlist):
         return fullpath.decode('utf-8')
     except UnicodeDecodeError:
         charenc = chardet.detect(fullpath)['encoding']
+        if not charenc:
+            return fullpath  # Hope for the best
         return fullpath.decode(charenc)
 
 

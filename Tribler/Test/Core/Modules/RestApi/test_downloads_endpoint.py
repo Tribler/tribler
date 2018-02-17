@@ -1,9 +1,12 @@
-import json
 import os
 from binascii import hexlify
 from urllib import pathname2url
 
+from twisted.internet.defer import fail
+
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.DownloadState import DownloadState
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.common import UBUNTU_1504_INFOHASH, TESTS_DATA_DIR
@@ -14,8 +17,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
 
     def setUpPreSession(self):
         super(TestDownloadsEndpoint, self).setUpPreSession()
-        self.config.set_libtorrent(True)
-        self.config.set_megacache(True)
+        self.config.set_libtorrent_enabled(True)
+        self.config.set_megacache_enabled(True)
 
     @deferred(timeout=10)
     def test_get_downloads_no_downloads(self):
@@ -74,6 +77,120 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         def verify_download(_):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
+
+        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
+        expected_json = {'started': True, 'infohash': '42bb0a78d8a10bef4a5aee3a7d9f1edf9941cee4'}
+        return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
+                               expected_json=expected_json).addCallback(verify_download)
+
+    @deferred(timeout=10)
+    def test_start_download_from_file_unicode(self):
+        """
+        Testing whether we can start a download from a file with a unicode name
+        """
+        def verify_download(response):
+            self.assertTrue(json.loads(response)['started'])
+            self.assertGreaterEqual(len(self.session.get_downloads()), 1)
+            dl = self.session.get_downloads()[0]
+            dl.tracker_status[u"\u266b"] = [0, 'Not contacted yet']
+            tdef = dl.get_def()
+            tdef.input['name'] = u'video\u266b'
+            return self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200)
+
+        ufile = os.path.join(TESTS_DATA_DIR, u'video\u266b.avi.torrent')
+        udest = os.path.join(self.session_base_dir, u'video\u266b')
+
+        post_data = (u'uri=file:%s&destination=%s' % (ufile, udest)).encode('utf-8')
+        self.should_check_equality = False
+        return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
+                               raw_data=True).addCallback(verify_download)
+
+    @deferred(timeout=10)
+    def test_get_peers_illegal_fields_ascii(self):
+        """
+        Testing whether illegal fields are stripped from the Libtorrent download info response.
+        """
+
+        def verify_download_list(response):
+            response_dict = json.loads(response)
+            self.assertIn("downloads", response_dict)
+            self.assertEqual(1, len(response_dict["downloads"]))
+            self.assertIn("peers", response_dict["downloads"][0])
+            self.assertEqual(1, len(response_dict["downloads"][0]["peers"]))
+            self.assertNotIn('have', response_dict["downloads"][0]["peers"][0])
+            self.assertEqual('uTorrent 1.6.1', response_dict["downloads"][0]["peers"][0]['extended_version'])
+
+        def verify_download(response):
+            self.assertTrue(json.loads(response)['started'])
+            self.assertGreaterEqual(len(self.session.get_downloads()), 1)
+            dl = self.session.get_downloads()[0]
+            ds = DownloadState(dl, dl.dlstate, dl.error, 0.0)
+            ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': 'uTorrent 1.6.1'}]
+            dl.network_get_state = lambda x, y: ds
+            self.should_check_equality = False
+            return self.do_request('downloads?get_peers=1&get_pieces=1',
+                                   expected_code=200).addCallback(verify_download_list)
+
+        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
+        expected_json = {'started': True, 'infohash': '42bb0a78d8a10bef4a5aee3a7d9f1edf9941cee4'}
+        return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
+                               expected_json=expected_json).addCallback(verify_download)
+
+    @deferred(timeout=10)
+    def test_get_peers_illegal_fields_unicode(self):
+        """
+        Testing whether illegal fields are stripped from the Libtorrent download info response.
+        """
+        def verify_download_list(response):
+            response_dict = json.loads(response)
+            self.assertIn("downloads", response_dict)
+            self.assertEqual(1, len(response_dict["downloads"]))
+            self.assertIn("peers", response_dict["downloads"][0])
+            self.assertEqual(1, len(response_dict["downloads"][0]["peers"]))
+            self.assertNotIn('have', response_dict["downloads"][0]["peers"][0])
+            self.assertEqual(u'\xb5Torrent 1.6.1', response_dict["downloads"][0]["peers"][0]['extended_version'])
+
+        def verify_download(response):
+            self.assertTrue(json.loads(response)['started'])
+            self.assertGreaterEqual(len(self.session.get_downloads()), 1)
+            dl = self.session.get_downloads()[0]
+            ds = DownloadState(dl, dl.dlstate, dl.error, 0.0)
+            ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': '\xb5Torrent 1.6.1'}]
+            dl.network_get_state = lambda x, y: ds
+            self.should_check_equality = False
+            return self.do_request('downloads?get_peers=1&get_pieces=1',
+                                   expected_code=200).addCallback(verify_download_list)
+
+        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
+        expected_json = {'started': True, 'infohash': '42bb0a78d8a10bef4a5aee3a7d9f1edf9941cee4'}
+        return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
+                               expected_json=expected_json).addCallback(verify_download)
+
+    @deferred(timeout=10)
+    def test_get_peers_illegal_fields_unknown(self):
+        """
+        Testing whether illegal fields are stripped from the Libtorrent download info response.
+        """
+
+        def verify_download_list(response):
+            response_dict = json.loads(response)
+            self.assertIn("downloads", response_dict)
+            self.assertEqual(1, len(response_dict["downloads"]))
+            self.assertIn("peers", response_dict["downloads"][0])
+            self.assertEqual(1, len(response_dict["downloads"][0]["peers"]))
+            self.assertNotIn('have', response_dict["downloads"][0]["peers"][0])
+            self.assertEqual(u'', response_dict["downloads"][0]["peers"][0]['extended_version'])
+
+        def verify_download(response):
+            self.assertTrue(json.loads(response)['started'])
+            self.assertGreaterEqual(len(self.session.get_downloads()), 1)
+            dl = self.session.get_downloads()[0]
+            ds = DownloadState(dl, dl.dlstate, dl.error, 0.0)
+            ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': None}]
+            dl.network_get_state = lambda x, y: ds
+            self.should_check_equality = False
+            return self.do_request('downloads?get_peers=1&get_pieces=1',
+                                   expected_code=200).addCallback(verify_download_list)
 
         post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'video.avi.torrent')}
         expected_json = {'started': True, 'infohash': '42bb0a78d8a10bef4a5aee3a7d9f1edf9941cee4'}
@@ -316,8 +433,7 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
 
     def setUpPreSession(self):
         super(TestDownloadsDispersyEndpoint, self).setUpPreSession()
-        self.config.set_libtorrent(True)
-        self.config.set_dispersy(True)
+        self.config.set_libtorrent_enabled(True)
         self.config.set_tunnel_community_enabled(True)
 
     @deferred(timeout=10)
@@ -331,3 +447,17 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
 
         return self.do_request('downloads/%s' % infohash, post_data={'anon_hops': 1},
                                expected_code=200, expected_json={'modified': True}, request_type='PATCH')
+
+    @deferred(timeout=10)
+    def test_change_hops_fail(self):
+        def on_remove_download(d, remove_content=False, remove_state=True, hidden=False):
+            return fail(RuntimeError())
+        self.session.remove_download = on_remove_download
+
+        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        infohash = video_tdef.get_infohash().encode('hex')
+
+        return self.do_request('downloads/%s' % infohash, post_data={"remove_data": True}, expected_code=500,
+                               expected_json={u'error': {u'message': u'', u'code': u'RuntimeError', u'handled': True}},
+                               request_type='DELETE')

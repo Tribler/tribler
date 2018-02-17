@@ -1,12 +1,15 @@
 import time
-from twisted.internet.defer import succeed
+from twisted.internet.defer import succeed, fail
+from twisted.python.failure import Failure
 
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE, VOTE_UNSUBSCRIBE
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN_CHANNEL_RESPONSE_MSG
 from Tribler.Core.Modules.restapi.channels.channels_subscription_endpoint import ALREADY_SUBSCRIBED_RESPONSE_MSG, \
-    NOT_SUBSCRIBED_RESPONSE_MSG
+    NOT_SUBSCRIBED_RESPONSE_MSG, ChannelsModifySubscriptionEndpoint
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.twisted_thread import deferred
+from Tribler.dispersy.dispersy import Dispersy
+from Tribler.dispersy.endpoint import ManualEnpoint
 
 
 class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
@@ -23,7 +26,9 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
 
         fake_community = self.create_fake_allchannel_community()
         fake_community.disp_create_votecast = self.on_dispersy_create_votecast
-
+        self.session.config.get_dispersy_enabled = lambda: True
+        self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
+        self.session.lm.dispersy.attach_community(fake_community)
         for i in xrange(0, 10):
             self.insert_channel_in_db('rand%d' % i, 42 + i, 'Test channel %d' % i, 'Test description %d' % i)
 
@@ -62,6 +67,22 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         self.expected_votecast_vote = VOTE_SUBSCRIBE
         return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'), expected_code=200,
                                expected_json=expected_json, request_type='PUT').addCallback(verify_votecast_made)
+
+    @deferred(timeout=10)
+    def test_sub_channel_throw_error(self):
+        """
+        Testing whether an error is returned when we subscribe to a channel and an error pops up
+        """
+        def mocked_vote(*_):
+            return fail(Failure(RuntimeError("error")))
+
+        mod_sub_endpoint = ChannelsModifySubscriptionEndpoint(self.session, '')
+        mod_sub_endpoint.vote_for_channel = mocked_vote
+        subscribed_endpoint = self.session.lm.api_manager.root_endpoint.children['channels'].children["subscribed"]
+        subscribed_endpoint.getChild = lambda *_: mod_sub_endpoint
+
+        self.should_check_equality = False
+        return self.do_request('channels/subscribed/', expected_code=500, request_type='PUT')
 
     @deferred(timeout=10)
     def test_unsubscribe_channel_not_exist(self):
@@ -123,3 +144,24 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         self.expected_votecast_vote = VOTE_UNSUBSCRIBE
         return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'), expected_code=200,
                                expected_json=expected_json, request_type='DELETE').addCallback(verify_votecast_made)
+
+    @deferred(timeout=10)
+    def test_is_channel_subscribed(self):
+        """
+        Testing the subscription status of channel
+        """
+        cid = self.insert_channel_in_db('rand1', 42, 'Test channel', 'Test description')
+        self.vote_for_channel(cid, int(time.time()))
+
+        expected_json = {"subscribed": True, "votes": 0}  # here votes represent previous dispersy votes which is zero
+        return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'), expected_code=200,
+                               expected_json=expected_json, request_type='GET')
+
+    @deferred(timeout=10)
+    def test_subscribed_status_of_non_existing_channel(self):
+        """
+        Testing the subscription status of non-existing channel
+        """
+        expected_json = {"error": UNKNOWN_CHANNEL_RESPONSE_MSG}
+        return self.do_request('channels/subscribed/deadbeef', expected_code=404, expected_json=expected_json,
+                               request_type='GET')

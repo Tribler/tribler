@@ -1,17 +1,16 @@
-from binascii import hexlify
 import codecs
 import collections
-import json
 import logging
 import os
-
+from binascii import hexlify
 from twisted.internet import reactor
+from twisted.internet.defer import DeferredList
 
+from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser
+import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_CREATED, SIGNAL_RSS_FEED, SIGNAL_ON_UPDATED
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
-
-from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_CREATED, SIGNAL_RSS_FEED, SIGNAL_ON_UPDATED
-from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser
 
 
 class ChannelObject(TaskManager):
@@ -26,7 +25,7 @@ class ChannelObject(TaskManager):
         self._rss_feed_dict = collections.OrderedDict()
 
         rss_name = u"channel_rss_%s.json" % hexlify(self._channel_community.cid)
-        self._rss_file_path = os.path.join(self._session.get_state_dir(), rss_name)
+        self._rss_file_path = os.path.join(self._session.config.get_state_dir(), rss_name)
 
     @property
     def channel_id(self):
@@ -48,7 +47,8 @@ class ChannelObject(TaskManager):
         return [url for url in self._rss_feed_dict.iterkeys()]
 
     def refresh_all_feeds(self):
-        [feed.parse_feed() for feed in self._rss_feed_dict.itervalues()]
+        deferreds = [feed.parse_feed() for feed in self._rss_feed_dict.itervalues()]
+        return DeferredList(deferreds, consumeErrors=True)
 
     @call_on_reactor_thread
     def initialize(self):
@@ -57,7 +57,7 @@ class ChannelObject(TaskManager):
             self._logger.debug(u"loading existing channel rss list from %s...", self._rss_file_path)
 
             with codecs.open(self._rss_file_path, 'rb', encoding='utf8') as f:
-                rss_list = json.load(f, encoding='utf8')
+                rss_list = json.load(f)
                 for rss_url in rss_list:
                     self._rss_feed_dict[rss_url] = None
 

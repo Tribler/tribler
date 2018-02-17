@@ -1,9 +1,8 @@
-import json
-
 from twisted.web import resource
 
 from Tribler.Core.simpledefs import STATE_STARTING, STATE_UPGRADING, STATE_STARTED, NTFY_UPGRADER, NTFY_STARTED, \
     NTFY_TRIBLER, NTFY_FINISHED, STATE_EXCEPTION
+import Tribler.Core.Utilities.json_util as json
 
 
 class StateEndpoint(resource.Resource):
@@ -42,6 +41,7 @@ class StateEndpoint(resource.Resource):
         - STARTING: The core of Tribler is starting
         - UPGRADING: The upgrader is active
         - STARTED: The Tribler core has started
+        - EXCEPTION: An exception has occurred in the core
 
             **Example request**:
 
@@ -55,7 +55,12 @@ class StateEndpoint(resource.Resource):
 
                 {
                     "state": "STARTED",
-                    "last_exception": None
+                    "last_exception": None,
+                    "readable_state": ""
                 }
         """
-        return json.dumps({"state": self.tribler_state, "last_exception": self.last_exception})
+        return json.dumps({
+            "state": self.tribler_state,
+            "last_exception": self.last_exception,
+            "readable_state": self.session.readable_status
+        })

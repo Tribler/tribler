@@ -1,4 +1,5 @@
 from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Test.Community.AbstractTestCommunity import AbstractTestCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.dispersy.util import blocking_call_on_reactor_thread

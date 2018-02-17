@@ -7,11 +7,11 @@ from unittest import skipUnless
 from PyQt5.QtCore import QPoint, Qt, QTimer
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget
+from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget, QTextEdit
 
-from Tribler.Core.Utilities.network_utils import get_random_port
 import TriblerGUI.core_manager as core_manager
 import TriblerGUI.defs as gui_defs
+from Tribler.Core.Utilities.network_utils import get_random_port
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.widgets.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
@@ -138,10 +138,10 @@ class AbstractTriblerGUITest(unittest.TestCase):
             cur_attr = getattr(cur_attr, part)
         return cur_attr
 
-    def wait_for_variable(self, var, timeout=10):
+    def wait_for_variable(self, var, timeout=10, cmp_var=None):
         for _ in range(0, timeout * 1000, 100):
             QTest.qWait(100)
-            if self.get_attr_recursive(var) is not None:
+            if self.get_attr_recursive(var) is not cmp_var:
                 return
 
         raise TimeoutException("Variable %s within 10 seconds" % var)
@@ -164,6 +164,16 @@ class AbstractTriblerGUITest(unittest.TestCase):
 
         raise TimeoutException("Signal %s not raised within 10 seconds" % signal)
 
+    def wait_for_qtext_edit_populated(self, qtext_edit, timeout=10):
+        for _ in range(0, timeout * 1000, 100):
+            QTest.qWait(100)
+            if not isinstance(qtext_edit, QTextEdit):
+                return
+            if qtext_edit.toPlainText():
+                return
+
+        # QTextEdit was not populated in time, fail the test
+        raise TimeoutException("QTextEdit was not populated within 10 seconds")
 
 @skipUnless(os.environ.get("TEST_GUI") == "yes", "Not testing the GUI by default")
 class TriblerGUITest(AbstractTriblerGUITest):
@@ -414,6 +424,11 @@ class TriblerGUITest(AbstractTriblerGUITest):
         window.dialog.dialog_widget.dialog_input.setText("http://test.url/test.torrent")
         QTest.mouseClick(window.dialog.buttons[0], Qt.LeftButton)
         self.screenshot(window, name="add_torrent_url_startdownload_dialog")
+
+        # set the download directory to a writable path
+        download_dir = os.path.join(os.path.expanduser("~"), "downloads")
+        window.dialog.dialog_widget.destination_input.setCurrentText(download_dir)
+
         self.wait_for_signal(window.dialog.received_metainfo)
         self.screenshot(window, name="add_torrent_url_startdownload_dialog_files")
         QTest.mouseClick(window.dialog.dialog_widget.download_button, Qt.LeftButton)
@@ -439,7 +454,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
             self.screenshot(dialog, name="feedback_dialog")
             dialog.close()
 
-        dialog = FeedbackDialog(window, "test", "1.2.3")
+        dialog = FeedbackDialog(window, "test", "1.2.3", 23)
         dialog.closeEvent = lambda _: None  # Otherwise, the application will stop
         QTimer.singleShot(1000, screenshot_dialog)
         dialog.exec_()
@@ -467,8 +482,8 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window.debug_window, name="debug_panel_requests_tab")
 
         window.debug_window.debug_tab_widget.setCurrentIndex(2)
-        self.wait_for_list_populated(window.debug_window.multichain_tree_widget)
-        self.screenshot(window.debug_window, name="debug_panel_multichain_tab")
+        self.wait_for_list_populated(window.debug_window.trustchain_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_trustchain_tab")
 
         window.debug_window.debug_tab_widget.setCurrentIndex(3)
         self.wait_for_list_populated(window.debug_window.dispersy_general_tree_widget)
@@ -481,6 +496,43 @@ class TriblerGUITest(AbstractTriblerGUITest):
         window.debug_window.debug_tab_widget.setCurrentIndex(4)
         self.wait_for_list_populated(window.debug_window.events_tree_widget)
         self.screenshot(window.debug_window, name="debug_panel_events_tab")
+
+        window.debug_window.debug_tab_widget.setCurrentIndex(5)
+        self.wait_for_list_populated(window.debug_window.open_files_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_open_files_tab")
+
+        window.debug_window.system_tab_widget.setCurrentIndex(1)
+        self.wait_for_list_populated(window.debug_window.open_sockets_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_open_sockets_tab")
+
+        window.debug_window.system_tab_widget.setCurrentIndex(2)
+        self.wait_for_list_populated(window.debug_window.threads_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_threads_tab")
+
+        # Logs shown in ui and from the debug endpoint should be same
+        window.debug_window.debug_tab_widget.setCurrentIndex(6)
+        # logs from FakeTriblerApi
+        fake_logs = ''.join(["Sample log [%d]\n" % i for i in xrange(10)]).strip()
+
+        window.debug_window.log_tab_widget.setCurrentIndex(0)   # Core tab
+        self.wait_for_qtext_edit_populated(window.debug_window.core_log_display_area)
+        core_logs = window.debug_window.core_log_display_area.toPlainText().strip()
+        self.assertEqual(core_logs, fake_logs, "Core logs found different than expected.")
+        self.screenshot(window.debug_window, name="debug_panel_logs_core")
+
+        window.debug_window.log_tab_widget.setCurrentIndex(1)  # GUI tab
+        self.wait_for_qtext_edit_populated(window.debug_window.gui_log_display_area)
+        gui_logs = window.debug_window.gui_log_display_area.toPlainText().strip()
+        self.assertEqual(gui_logs, fake_logs, "GUI logs found different than expected.")
+        self.screenshot(window.debug_window, name="debug_panel_logs_gui")
+
+        window.debug_window.system_tab_widget.setCurrentIndex(3)
+        QTest.qWait(1000)
+        self.screenshot(window.debug_window, name="debug_panel_cpu_tab")
+
+        window.debug_window.system_tab_widget.setCurrentIndex(4)
+        QTest.qWait(1000)
+        self.screenshot(window.debug_window, name="debug_panel_memory_tab")
 
         window.debug_window.close()
 
@@ -519,6 +571,34 @@ class TriblerGUITest(AbstractTriblerGUITest):
         QTest.mouseClick(window.trust_button, Qt.LeftButton)
         self.wait_for_variable("trust_page.blocks")
         self.screenshot(window, name="trust_page_values")
+
+    def test_market_overview_page(self):
+        QTest.mouseClick(window.trust_button, Qt.LeftButton)
+        QTest.mouseClick(window.trade_button, Qt.LeftButton)
+        self.wait_for_list_populated(window.asks_list)
+        self.wait_for_list_populated(window.bids_list)
+        self.screenshot(window, name="market_page_overview")
+
+    def test_market_orders_page(self):
+        QTest.mouseClick(window.trust_button, Qt.LeftButton)
+        QTest.mouseClick(window.trade_button, Qt.LeftButton)
+        QTest.mouseClick(window.market_orders_button, Qt.LeftButton)
+        self.wait_for_list_populated(window.market_orders_list)
+        self.screenshot(window, name="market_page_orders")
+
+    def test_market_transactions_page(self):
+        QTest.mouseClick(window.trust_button, Qt.LeftButton)
+        QTest.mouseClick(window.trade_button, Qt.LeftButton)
+        QTest.mouseClick(window.market_transactions_button, Qt.LeftButton)
+        self.wait_for_list_populated(window.market_transactions_list)
+        self.screenshot(window, name="market_page_transactions")
+
+    def test_market_wallets_page(self):
+        QTest.mouseClick(window.trust_button, Qt.LeftButton)
+        QTest.mouseClick(window.trade_button, Qt.LeftButton)
+        QTest.mouseClick(window.market_wallets_button, Qt.LeftButton)
+        self.wait_for_variable("market_wallets_page.wallets")
+        self.screenshot(window, name="market_page_wallets")
 
 if __name__ == "__main__":
     unittest.main()

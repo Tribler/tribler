@@ -1,19 +1,18 @@
-from binascii import hexlify
 import logging
+import socket
 import time
-from twisted.internet.error import ConnectingCancelledError
-
-from twisted.internet.defer import DeferredList, CancelledError, fail, succeed
+from binascii import hexlify
 
 from twisted.internet import reactor
+from twisted.internet.defer import DeferredList, CancelledError, fail, succeed, maybeDeferred
+from twisted.internet.error import ConnectingCancelledError
 from twisted.python.failure import Failure
 
+from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession, UdpSocketManager
+from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
+from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
-
-from Tribler.Core.simpledefs import NTFY_TORRENTS
-from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession
-from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 
 # some settings
 DEFAULT_TORRENT_SELECTION_INTERVAL = 20  # every 20 seconds, the thread will select torrents to check
@@ -44,10 +43,28 @@ class TorrentChecker(TaskManager):
         # Track all session cleanups
         self.session_stop_defer_list = []
 
+        self.socket_mgr = self.udp_port = None
+
     @blocking_call_on_reactor_thread
     def initialize(self):
         self._torrent_db = self.tribler_session.open_dbhandler(NTFY_TORRENTS)
         self._reschedule_tracker_select()
+        self.socket_mgr = UdpSocketManager()
+        self.create_socket_or_schedule()
+
+    def listen_on_udp(self):
+        return reactor.listenUDP(0, self.socket_mgr)
+
+    def create_socket_or_schedule(self):
+        """
+        This method attempts to bind to a UDP port. If it fails for some reason (i.e. no network connection), we try
+        again later.
+        """
+        try:
+            self.udp_port = self.listen_on_udp()
+        except socket.error as exc:
+            self._logger.error("Error when creating UDP socket in torrent checker: %s", exc)
+            self.register_task("listen_udp_port", reactor.callLater(10, self.create_socket_or_schedule))
 
     def shutdown(self):
         """
@@ -58,6 +75,10 @@ class TorrentChecker(TaskManager):
         """
         self._should_stop = True
 
+        if self.udp_port:
+            self.session_stop_defer_list.append(maybeDeferred(self.udp_port.stopListening))
+            self.udp_port = None
+
         self.cancel_all_pending_tasks()
 
         # kill all the tracker sessions.
@@ -66,14 +87,7 @@ class TorrentChecker(TaskManager):
             for session in self._session_list[tracker_url]:
                 self.session_stop_defer_list.append(session.cleanup())
 
-        defer_stop_list = DeferredList(self.session_stop_defer_list)
-
-        self._session_list = None
-
-        self._torrent_db = None
-        self.tribler_session = None
-
-        return defer_stop_list
+        return DeferredList(self.session_stop_defer_list)
 
     def _reschedule_tracker_select(self):
         """
@@ -99,12 +113,11 @@ class TorrentChecker(TaskManager):
         self._reschedule_tracker_select()
 
         # start selecting torrents
-        result = self.tribler_session.lm.tracker_manager.get_next_tracker_for_auto_check()
-        if result is None:
+        tracker_url = self.tribler_session.lm.tracker_manager.get_next_tracker_for_auto_check()
+        if tracker_url is None:
             self._logger.warn(u"No tracker to select from, skip")
             return succeed(None)
 
-        tracker_url, _ = result
         self._logger.debug(u"Start selecting torrents on tracker %s.", tracker_url)
 
         # get the torrents that should be checked
@@ -115,9 +128,7 @@ class TorrentChecker(TaskManager):
             self._logger.info("No torrent to check for tracker %s", tracker_url)
             self.tribler_session.lm.tracker_manager.update_tracker_info(tracker_url, True)
             return succeed(None)
-        elif tracker_url != u'DHT' and tracker_url != u'no-DHT'\
-                and self.tribler_session.lm.tracker_manager.should_check_tracker(tracker_url):
-
+        elif tracker_url != u'DHT' and tracker_url != u'no-DHT':
             try:
                 session = self._create_session_for_request(tracker_url, timeout=30)
             except MalformedTrackerURLException as e:
@@ -220,6 +231,8 @@ class TorrentChecker(TaskManager):
         failure.trap(ValueError, CancelledError, ConnectingCancelledError, RuntimeError)
         self._logger.warning(u"Got session error for URL %s: %s", session.tracker_url, failure)
 
+        self.clean_session(session)
+
         # Do not update if the connection got cancelled, we are probably shutting down
         # and the tracker_manager may have shutdown already.
         if failure.check(CancelledError, ConnectingCancelledError) is None:
@@ -229,7 +242,7 @@ class TorrentChecker(TaskManager):
         return failure
 
     def _create_session_for_request(self, tracker_url, timeout=20):
-        session = create_tracker_session(tracker_url, timeout)
+        session = create_tracker_session(tracker_url, timeout, self.socket_mgr)
 
         if tracker_url not in self._session_list:
             self._session_list[tracker_url] = []
@@ -244,6 +257,8 @@ class TorrentChecker(TaskManager):
 
         # Remove the session from our session list dictionary
         self._session_list[session.tracker_url].remove(session)
+        if len(self._session_list[session.tracker_url]) == 0 and session.tracker_url != u"DHT":
+            del self._session_list[session.tracker_url]
 
     def _on_result_from_session(self, session, result_list):
         if self._should_stop:

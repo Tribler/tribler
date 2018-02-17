@@ -10,10 +10,10 @@
 
 ##### Operating system and version: #####
 
+##### Steps to reproduce the behavior: #####
+
 ##### Expected behavior: #####
 
 ##### Actual behavior: #####
-
-##### Steps to reproduce the behavior: #####
 
 ##### Relevant log file output: #####

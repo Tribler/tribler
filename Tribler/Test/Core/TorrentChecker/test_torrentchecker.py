@@ -1,12 +1,13 @@
+import socket
 import time
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 from Tribler.Core.Category.Category import Category
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.tracker_manager import TrackerManager
 from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.TorrentChecker.session import HttpTrackerSession
+from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UdpSocketManager
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Test.Core.base_test import TriblerCoreTest
@@ -22,11 +23,11 @@ class TestTorrentChecker(TriblerCoreTest):
     def setUp(self, annotate=True):
         super(TestTorrentChecker, self).setUp(annotate=annotate)
 
-        config = SessionStartupConfig()
+        config = TriblerConfig()
         config.set_state_dir(self.getStateDir())
-        config.set_megacache(True)
+        config.set_megacache_enabled(True)
 
-        self.session = Session(config, ignore_singleton=True)
+        self.session = Session(config)
         self.session.start_database()
         self.session.lm.torrent_db = TorrentDBHandler(self.session)
         self.session.lm.torrent_checker = TorrentChecker(self.session)
@@ -44,6 +45,21 @@ class TestTorrentChecker(TriblerCoreTest):
         self.torrent_checker.initialize()
         self.assertIsNotNone(self.torrent_checker._torrent_db)
         self.assertTrue(self.torrent_checker.is_pending_task_active("torrent_checker_tracker_selection"))
+
+    @blocking_call_on_reactor_thread
+    def test_create_socket_or_schedule_fail(self):
+        """
+        Test creation of the UDP socket of the torrent checker when it fails
+        """
+        def mocked_listen_on_udp():
+            raise socket.error("Something went wrong")
+
+        self.torrent_checker.socket_mgr = UdpSocketManager()
+        self.torrent_checker.listen_on_udp = mocked_listen_on_udp
+        self.torrent_checker.create_socket_or_schedule()
+
+        self.assertIsNone(self.torrent_checker.udp_port)
+        self.assertTrue(self.torrent_checker.is_pending_task_active("listen_udp_port"))
 
     @blocking_call_on_reactor_thread
     def test_reschedule_tracker_select(self):
@@ -114,11 +130,15 @@ class TestTorrentChecker(TriblerCoreTest):
         """
         Test whether we capture the error when a tracker check fails
         """
+        def verify_cleanup(_):
+            # Verify whether we successfully cleaned up the session after an error
+            self.assertEqual(len(self.torrent_checker._session_list), 1)
+
         self.torrent_checker._torrent_db.addExternalTorrentNoDef(
             'a' * 20, 'ubuntu.iso', [['a.test', 1234]], ['udp://non123exiszzting456tracker89fle.abc:80/announce'], 5)
-        return self.torrent_checker._task_select_tracker()
+        return self.torrent_checker._task_select_tracker().addCallback(verify_cleanup)
 
-    @blocking_call_on_reactor_thread
+    @deferred(timeout=30)
     def test_tracker_test_invalid_tracker(self):
         """
         Test whether we do nothing when tracker URL is invalid
@@ -129,18 +149,14 @@ class TestTorrentChecker(TriblerCoreTest):
         self.torrent_checker._torrent_db.addExternalTorrentNoDef(
             'a' * 20, 'ubuntu.iso', [['a.test', 1234]], [tracker_url], 5)
 
-        # write invalid url to dictionary and database
-        self.session.lm.tracker_manager._tracker_dict[bad_tracker_url] = \
-            self.session.lm.tracker_manager._tracker_dict[tracker_url]
-        del self.session.lm.tracker_manager._tracker_dict[tracker_url]
+        # Write invalid url to the database
+        sql_stmt = u"UPDATE TrackerInfo SET tracker = ? WHERE tracker = ?"
+        self.session.sqlite_db.execute(sql_stmt, (bad_tracker_url, tracker_url))
 
-        tracker_id = self.session.lm.tracker_manager._tracker_dict[bad_tracker_url][u'id']
-        sql_stmt = u"UPDATE TrackerInfo SET tracker = ? WHERE tracker_id = ?"
-        value_tuple = (bad_tracker_url, tracker_id)
-        self.session.sqlite_db.execute(sql_stmt, value_tuple)
+        def verify_response(resp):
+            self.assertIsNone(resp)
 
-        self.torrent_checker._task_select_tracker()
-
+        return self.torrent_checker._task_select_tracker().addCallback(verify_response)
 
     @deferred(timeout=10)
     def test_tracker_no_infohashes(self):
@@ -150,7 +166,8 @@ class TestTorrentChecker(TriblerCoreTest):
         self.session.lm.tracker_manager.add_tracker('http://trackertest.com:80/announce')
         return self.torrent_checker._task_select_tracker()
 
+    @inlineCallbacks
     @blocking_call_on_reactor_thread
     def tearDown(self, annotate=True):
-        self.torrent_checker.shutdown()
-        super(TestTorrentChecker, self).tearDown(annotate=annotate)
+        yield self.torrent_checker.shutdown()
+        yield super(TestTorrentChecker, self).tearDown(annotate=annotate)

@@ -6,7 +6,6 @@ import libtorrent as lt
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
-from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
@@ -24,18 +23,14 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
     def setUpPreSession(self):
         super(TestLibtorrentDownloadImpl, self).setUpPreSession()
-        self.config = SessionStartupConfig()
-        self.config.set_state_dir(self.getStateDir())
-        self.config.set_multicast_local_peer_discovery(False)
-        self.config.set_megacache(True)
-        self.config.set_dispersy(False)
+        self.config.set_torrent_checking_enabled(False)
+        self.config.set_megacache_enabled(True)
+        self.config.set_dispersy_enabled(False)
         self.config.set_tunnel_community_enabled(False)
-        self.config.set_mainline_dht(False)
-        self.config.set_torrent_collecting(False)
-        self.config.set_libtorrent(True)
-        self.config.set_dht_torrent_collecting(False)
-        self.config.set_videoserver_enabled(False)
-        self.config.set_torrent_collecting_dir(os.path.join(self.session_base_dir, 'torrent_collecting_dir'))
+        self.config.set_mainline_dht_enabled(False)
+        self.config.set_torrent_collecting_enabled(False)
+        self.config.set_libtorrent_enabled(True)
+        self.config.set_video_server_enabled(False)
 
     def create_tdef(self):
         """
@@ -47,7 +42,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         tdef.set_tracker("http://localhost/announce")
         tdef.finalize()
 
-        torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
+        torrentfn = os.path.join(self.session.config.get_state_dir(), "gen.torrent")
         tdef.save(torrentfn)
 
         return tdef
@@ -147,7 +142,6 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         fake_handler.status = lambda: fake_status
         fake_handler.set_share_mode = lambda _: None
         fake_handler.resume = lambda: None
-        fake_handler.resolve_countries = lambda _: None
         fake_status = MockObject()
         fake_status.share_mode = False
         # Create a dummy download config
@@ -191,6 +185,34 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
         result_deferred = impl.setup(None, None, 0)
         result_deferred.addCallback(callback)
+
+        return result_deferred.addCallback(lambda _: impl.stop())
+
+    @deferred(timeout=10)
+    def test_save_resume_disabled(self):
+        """
+        testing call resume data alert, if checkpointing is disabled
+        """
+        tdef = self.create_tdef()
+
+        impl = LibtorrentDownloadImpl(self.session, tdef)
+
+        def callback(_):
+            """
+            callback after finishing setup in LibtorrentDownloadImpl
+            """
+            basename = binascii.hexlify(tdef.get_infohash()) + '.state'
+            filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
+
+            self.assertFalse(os.path.isfile(filename))
+
+        # This should not cause a checkpoint
+        result_deferred = impl.setup(None, None, 0, checkpoint_disabled=True)
+        result_deferred.addCallback(callback)
+
+        # This shouldn't either
+        impl.checkpoint()
+        callback(None)
 
         return result_deferred.addCallback(lambda _: impl.stop())
 
@@ -313,12 +335,12 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         mocked_set_download_limit.called = False
         self.libtorrent_download_impl.handle.set_download_limit = mocked_set_download_limit
 
-        self.libtorrent_download_impl.dlconfig_changed_callback('downloadconfig', 'max_upload_rate', 3, 4)
+        self.libtorrent_download_impl.dlconfig_changed_callback('libtorrent', 'max_upload_rate', 3, 4)
         self.assertTrue(mocked_set_upload_limit)
-        self.libtorrent_download_impl.dlconfig_changed_callback('downloadconfig', 'max_download_rate', 3, 4)
+        self.libtorrent_download_impl.dlconfig_changed_callback('libtorrent', 'max_download_rate', 3, 4)
         self.assertTrue(mocked_set_download_limit)
         self.assertFalse(self.libtorrent_download_impl.dlconfig_changed_callback(
-            'downloadconfig', 'super_seeder', 3, 4))
+            'download_defaults', 'super_seeder', 3, 4))
 
     def test_add_trackers(self):
         """
@@ -373,16 +395,24 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         def mocked_checkpoint():
             test_deferred.callback(None)
 
+        mocked_file = MockObject()
+        mocked_file.path = 'test'
+
         self.libtorrent_download_impl.handle.trackers = lambda: []
         self.libtorrent_download_impl.handle.save_resume_data = lambda: None
         torrent_dict = {'name': 'test', 'piece length': 42, 'pieces': '', 'files': []}
         get_info_from_handle(self.libtorrent_download_impl.handle).metadata = lambda: lt.bencode(torrent_dict)
+        get_info_from_handle(self.libtorrent_download_impl.handle).files = lambda: [mocked_file]
 
         self.libtorrent_download_impl.checkpoint = mocked_checkpoint
         self.libtorrent_download_impl.session = MockObject()
         self.libtorrent_download_impl.session.lm = MockObject()
         self.libtorrent_download_impl.session.lm.rtorrent_handler = None
         self.libtorrent_download_impl.session.lm.torrent_db = None
+        self.libtorrent_download_impl.handle.save_path = lambda: None
+        self.libtorrent_download_impl.handle.prioritize_files = lambda _: None
+        self.libtorrent_download_impl.get_save_path = lambda: ''
+        self.libtorrent_download_impl.get_share_mode = lambda: False
         self.libtorrent_download_impl.on_metadata_received_alert(None)
 
         return test_deferred

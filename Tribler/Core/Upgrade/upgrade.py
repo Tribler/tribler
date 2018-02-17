@@ -1,10 +1,10 @@
 import logging
 import os
 import shutil
-
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION, LOWEST_SUPPORTED_DB_VERSION
+from Tribler.Core.Upgrade.config_converter import convert_config_to_tribler71
 from Tribler.Core.Upgrade.db_upgrader import DBUpgrader
 from Tribler.Core.Upgrade.pickle_converter import PickleConverter
 from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65
@@ -34,8 +34,14 @@ class TriblerUpgrader(object):
         self.current_status = u"Initializing"
 
     def run(self):
+        """
+        Run the upgrader if it is enabled in the config.
+
+        Note that by default, upgrading is enabled in the config. It is then disabled
+        after upgrading to Tribler 7.
+        """
         self.current_status = u"Checking Tribler version..."
-        failed, has_to_upgrade = self.check_should_upgrade()
+        failed, has_to_upgrade = self.check_should_upgrade_database()
         if has_to_upgrade and not failed:
             self.notify_starting()
             self.upgrade_database_to_current_version()
@@ -44,11 +50,11 @@ class TriblerUpgrader(object):
             pickle_converter = PickleConverter(self.session)
             pickle_converter.convert()
 
-            self.upgrade_to_tribler7()
-
         if self.failed:
             self.notify_starting()
             self.stash_database()
+
+        self.upgrade_to_tribler7()
 
     def update_status(self, status_text):
         self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, status_text)
@@ -58,8 +64,8 @@ class TriblerUpgrader(object):
         """
         This method performs actions necessary to upgrade to Tribler 7.
         """
-        self.session.set_enable_multichain(True)
-        self.session.save_session_config()
+        self.session.config = convert_config_to_tribler71(self.session.config)
+        self.session.config.write()
 
     def notify_starting(self):
         """
@@ -78,8 +84,7 @@ class TriblerUpgrader(object):
         self.session.notifier.notify(NTFY_UPGRADER, NTFY_FINISHED, None)
 
     @blocking_call_on_reactor_thread
-    def check_should_upgrade(self):
-
+    def check_should_upgrade_database(self):
         self.failed = True
         should_upgrade = False
         if self.db.version > LATEST_DB_VERSION:
@@ -107,9 +112,9 @@ class TriblerUpgrader(object):
         """
         try:
             from Tribler.Core.leveldbstore import LevelDbStore
-            torrent_store = LevelDbStore(self.session.get_torrent_store_dir())
+            torrent_store = LevelDbStore(self.session.config.get_torrent_store_dir())
             torrent_migrator = TorrentMigrator65(
-                self.session.get_torrent_collecting_dir(), self.session.get_state_dir(),
+                self.session.config.get_torrent_collecting_dir(), self.session.config.get_state_dir(),
                 torrent_store=torrent_store, status_update_func=self.update_status)
             yield torrent_migrator.start_migrate()
 

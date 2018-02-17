@@ -1,11 +1,11 @@
-import json
 import logging
-
 from twisted.web import http, resource
+
 from Tribler.Core.Utilities.search_utils import split_into_keywords
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, \
     SIGNAL_CHANNEL
+import Tribler.Core.Utilities.json_util as json
 
 
 class SearchEndpoint(resource.Resource):

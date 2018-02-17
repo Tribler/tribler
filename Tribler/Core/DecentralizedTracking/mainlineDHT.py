@@ -1,18 +1,16 @@
 # written by Fabian van der Werf, Arno Bakker
 # Modified by Raul Jimenez to integrate KTH DHT
 # see LICENSE for license information
-import os
-
-import sys
 import logging
+import os
+import sys
+
 from Tribler.Core.Utilities.install_dir import get_lib_path
 
 logger = logging.getLogger(__name__)
 
 # Add the pymdht directory to the sys path
 sys.path.append(os.path.join(get_lib_path(), 'Core', 'DecentralizedTracking'))
-
-DEBUG = False
 
 DHT_IMPORTED = False
 try:
@@ -27,10 +25,6 @@ except ImportError:
 
 
 def init(addr, conf_path):
-    if DEBUG:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.ERROR
     logger.debug(u"DHT initialization %s", DHT_IMPORTED)
 
     if DHT_IMPORTED:
@@ -41,7 +35,7 @@ def init(addr, conf_path):
                             lookup_mod,
                             experimental_m_mod,
                             private_dht_name,
-                            log_level)
+                            logging.DEBUG)
         logger.debug(u"DHT running")
         return dht
 

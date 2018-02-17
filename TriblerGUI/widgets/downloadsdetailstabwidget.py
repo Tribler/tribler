@@ -91,6 +91,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
             if eval(self.current_download["status"]) == DLSTATUS_STOPPED_ON_ERROR:
                 status_string += " (error: %s)" % self.current_download["error"]
             self.window().download_detail_status_label.setText(status_string)
+
         self.window().download_detail_filesize_label.setText("%s in %d files" %
                                                              (format_size(float(self.current_download["size"])),
                                                               len(self.current_download["files"])))
@@ -99,6 +100,11 @@ class DownloadsDetailsTabWidget(QTabWidget):
                                                             self.current_download["num_peers"]))
         self.window().download_detail_infohash_label.setText(self.current_download['infohash'])
         self.window().download_detail_destination_label.setText(self.current_download["destination"])
+        self.window().download_detail_ratio_label.setText(
+            "%.3f, up: %s, down: %s" % (
+                self.current_download["ratio"],
+                format_size(self.current_download["total_up"]),
+                format_size(self.current_download["total_down"])))
         self.window().download_detail_availability_label.setText("%.2f" % self.current_download['availability'])
 
         if new_download or len(self.current_download["files"]) != len(self.files_widgets.keys()):

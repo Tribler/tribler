@@ -3,10 +3,11 @@ Permanent Identifier.
 
 Author(s): Arno Bakker
 """
-import os
 import logging
+import os
 from M2Crypto import Rand, EC, BIO
-from Tribler.dispersy.crypto import LibNaCLSK
+
+from Tribler.pyipv8.ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
 logger = logging.getLogger(__name__)
 
@@ -53,22 +54,22 @@ def save_pub_key(keypair, pubkeyfilename):
     membuf.close()
 
 
-def generate_keypair_multichain():
+def generate_keypair_trustchain():
     return LibNaCLSK()
 
 
-def read_keypair_multichain(keypairfilename):
+def read_keypair_trustchain(keypairfilename):
     with open(keypairfilename, 'rb') as keyfile:
         binarykey = keyfile.read()
     return LibNaCLSK(binarykey=binarykey)
 
 
-def save_keypair_multichain(keypair, keypairfilename):
+def save_keypair_trustchain(keypair, keypairfilename):
     with open(keypairfilename, 'wb') as keyfile:
         keyfile.write(keypair.key.sk)
         keyfile.write(keypair.key.seed)
 
-def save_pub_key_multichain(keypair, pubkeyfilename):
+def save_pub_key_trustchain(keypair, pubkeyfilename):
     with open(pubkeyfilename, 'wb') as keyfile:
         keyfile.write(keypair.key.pk)
 

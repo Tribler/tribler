@@ -1,21 +1,21 @@
 import logging
+from base64 import b64encode
+from binascii import hexlify
+from hashlib import sha1
+from random import randint
 from socket import inet_aton
 from struct import unpack
-from random import randint
-from binascii import hexlify
 from time import time
-from hashlib import sha1
-from base64 import b64encode
 from twisted.internet import reactor
 
-from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
 from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread, attach_runtime_statistics
-from .session import Session, DEFAULT_BLOCK_SIZE, DEFAULT_TIMEOUT
+from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
+from Tribler.dispersy.util import (call_on_reactor_thread, blocking_call_on_reactor_thread, attach_runtime_statistics,
+                                   is_valid_address)
+from .exception import InvalidPacketException, FileNotFound
 from .packet import (encode_packet, decode_packet, OPCODE_RRQ, OPCODE_WRQ, OPCODE_ACK, OPCODE_DATA, OPCODE_OACK,
                      OPCODE_ERROR, ERROR_DICT)
-from .exception import InvalidPacketException, FileNotFound
-
+from .session import Session, DEFAULT_BLOCK_SIZE, DEFAULT_TIMEOUT
 
 MAX_INT16 = 2 ** 16 - 1
 
@@ -210,7 +210,7 @@ class TftpHandler(TaskManager):
         :param addr: The (IP, port) address tuple of the sender.
         :param data: The data received.
         """
-        if not self._is_running:
+        if not self._is_running or not is_valid_address(addr):
             return
 
         ip, port = addr
@@ -296,10 +296,12 @@ class TftpHandler(TaskManager):
         # read the file/directory into memory
         try:
             if file_name.startswith(METADATA_PREFIX):
-                if not self.session.get_enable_metadata():
+                if not self.session.config.get_metadata_enabled():
                     return
                 file_data, file_size = self._load_metadata(file_name[len(METADATA_PREFIX):])
             else:
+                if not self.session.config.get_torrent_store_enabled():
+                    return
                 file_data, file_size = self._load_torrent(file_name)
             checksum = b64encode(sha1(file_data).digest())
         except FileNotFound as e:

@@ -24,34 +24,39 @@ class CreateTorrentPage(QWidget):
         self.request_mgr = None
         self.dialog = None
         self.selected_item_index = -1
+        self.initialized = False
 
     def initialize(self, identifier):
         self.channel_identifier = identifier
-        self.window().manage_channel_create_torrent_back.setIcon(QIcon(get_image_path('page_back.png')))
-        self.window().seed_after_adding_checkbox.setChecked(True)
-
         self.window().create_torrent_name_field.setText('')
         self.window().create_torrent_description_field.setText('')
         self.window().create_torrent_files_list.clear()
-        self.window().create_torrent_files_list.customContextMenuRequested.connect(self.on_right_click_file_item)
+        self.window().seed_after_adding_checkbox.setChecked(True)
+        self.window().edit_channel_create_torrent_progress_label.hide()
 
-        self.window().manage_channel_create_torrent_back.clicked.connect(self.on_create_torrent_manage_back_clicked)
-        self.window().create_torrent_choose_files_button.clicked.connect(self.on_choose_files_clicked)
-        self.window().create_torrent_choose_dir_button.clicked.connect(self.on_choose_dir_clicked)
-        self.window().edit_channel_create_torrent_button.clicked.connect(self.on_create_clicked)
+        if not self.initialized:
+            self.window().manage_channel_create_torrent_back.setIcon(QIcon(get_image_path('page_back.png')))
+
+            self.window().create_torrent_files_list.customContextMenuRequested.connect(self.on_right_click_file_item)
+            self.window().manage_channel_create_torrent_back.clicked.connect(self.on_create_torrent_manage_back_clicked)
+            self.window().create_torrent_choose_files_button.clicked.connect(self.on_choose_files_clicked)
+            self.window().create_torrent_choose_dir_button.clicked.connect(self.on_choose_dir_clicked)
+            self.window().edit_channel_create_torrent_button.clicked.connect(self.on_create_clicked)
+
+            self.initialized = True
 
     def on_create_torrent_manage_back_clicked(self):
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_TORRENTS)
 
     def on_choose_files_clicked(self):
-        filenames = QFileDialog.getOpenFileNames(self, "Please select the files", "")
+        filenames, _ = QFileDialog.getOpenFileNames(self.window(), "Please select the files", "")
 
-        for filename in filenames[0]:
+        for filename in filenames:
             self.window().create_torrent_files_list.addItem(filename)
 
     def on_choose_dir_clicked(self):
-        chosen_dir = QFileDialog.getExistingDirectory(self, "Please select the directory containing the files", "",
-                                                      QFileDialog.ShowDirsOnly)
+        chosen_dir = QFileDialog.getExistingDirectory(self.window(), "Please select the directory containing the files",
+                                                      "", QFileDialog.ShowDirsOnly)
 
         if len(chosen_dir) == 0:
             return
@@ -78,11 +83,14 @@ class CreateTorrentPage(QWidget):
             files_str += u"files[]=%s&" % urllib.quote_plus(
                 self.window().create_torrent_files_list.item(ind).text().encode('utf-8'))
 
-        description = urllib.quote_plus(self.window().create_torrent_description_field.toPlainText())
-        post_data = (u"%s&description=%s" % (files_str[:-1], description)).encode('utf-8')
+        name = urllib.quote_plus(self.window().create_torrent_name_field.text().encode('utf-8'))
+        description = urllib.quote_plus(self.window().create_torrent_description_field.toPlainText().encode('utf-8'))
+        post_data = (u"%s&name=%s&description=%s" % (files_str[:-1], name, description)).encode('utf-8')
         url = "createtorrent?download=1" if self.window().seed_after_adding_checkbox.isChecked() else "createtorrent"
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(url, self.on_torrent_created, data=post_data, method='POST')
+        # Show creating torrent text
+        self.window().edit_channel_create_torrent_progress_label.show()
 
     def on_dialog_ok_clicked(self, _):
         self.dialog.setParent(None)
@@ -100,6 +108,7 @@ class CreateTorrentPage(QWidget):
                                          data=post_data, method='PUT')
 
     def on_torrent_to_channel_added(self, result):
+        self.window().edit_channel_create_torrent_progress_label.hide()
         if 'added' in result:
             self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_TORRENTS)
             self.window().edit_channel_page.load_channel_torrents()

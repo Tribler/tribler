@@ -3,7 +3,6 @@ SqlitecacheDBHanler.
 
 Author(s): Jie Yang
 """
-import json
 import logging
 import math
 import os
@@ -16,11 +15,11 @@ from pprint import pformat
 from struct import unpack_from
 from time import time
 from traceback import print_exc
-
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.TorrentDef import TorrentDef
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.search_utils import split_into_keywords, filter_keywords
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.Utilities.unicode import dunno2unicode
@@ -283,6 +282,9 @@ class TorrentDBHandler(BasicDBHandler):
 
         return to_return
 
+    def getTorrentFiles(self, torrent_id):
+        return self._db.fetchall("SELECT path, length FROM TorrentFiles WHERE torrent_id = ?", (torrent_id,))
+
     def getInfohash(self, torrent_id):
         sql_get_infohash = "SELECT infohash FROM Torrent WHERE torrent_id==?"
         ret = self._db.fetchone(sql_get_infohash, (torrent_id,))
@@ -350,8 +352,8 @@ class TorrentDBHandler(BasicDBHandler):
                 sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
                 self._db.executemany(sql_insert_files, insert_files)
             except:
-                self._logger.error("Could not create a TorrentDef instance %r %r %r %r %r %r", infohash, timestamp, name, files, trackers, extra_info)
-                print_exc()
+                self._logger.exception("Could not create a TorrentDef instance %r %r %r %r %r %r",
+                                       infohash, timestamp, name, files, trackers, extra_info)
 
     def addOrGetTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
@@ -647,7 +649,7 @@ class TorrentDBHandler(BasicDBHandler):
             self._db.executemany(sql, new_mapping_list)
 
         # add trackers into the torrent file if it has been collected
-        if not self.session.get_torrent_store() or self.session.lm.torrent_store is None:
+        if not self.session.config.get_torrent_store_enabled() or self.session.lm.torrent_store is None:
             return
 
         infohash = self.getInfohash(torrent_id)
@@ -868,6 +870,30 @@ class TorrentDBHandler(BasicDBHandler):
         self._logger.info("Erased %d torrents", deleted)
         return deleted
 
+    def relevance_score_remote_torrent(self, torrent_name):
+        """
+        Calculate the relevance score of a remote torrent, based on the name and the matchinfo object
+        of the last torrent from the database.
+        The algorithm used is the same one as in search_in_local_torrents_db in SqliteCacheDBHandler.py.
+        """
+        if self.latest_matchinfo_torrent is None:
+            return 0.0
+        matchinfo, keywords = self.latest_matchinfo_torrent
+
+        num_phrases, num_cols, num_rows = unpack_from('III', matchinfo)
+        unpack_str = 'I' * (3 * num_cols * num_phrases)
+        matchinfo = unpack_from('I' * 9 + unpack_str, matchinfo)[9:]
+
+        score = 0.0
+        for phrase_ind in xrange(num_phrases):
+            rows_with_term = matchinfo[3 * (phrase_ind * num_cols) + 2]
+            term_freq = torrent_name.lower().count(keywords[phrase_ind])
+
+            inv_doc_freq = math.log((num_rows - rows_with_term + 0.5) / (rows_with_term + 0.5), 2)
+            right_side = ((term_freq * (1.2 + 1)) / (term_freq + 1.2))
+
+            score += inv_doc_freq * right_side
+
     def search_in_local_torrents_db(self, query, keys=None):
         """
         Search in the local database for torrents matching a specific query. This method also assigns a relevance
@@ -920,7 +946,12 @@ class TorrentDBHandler(BasicDBHandler):
 
             # Our score is 80% dependent on matching in the name of the torrent, 10% on the names of the files in the
             # torrent and 10% on the extensions of files in the torrent.
-            extended_result = result + [0.8 * scores[0] + 0.1 * scores[1] + 0.1 * scores[2]]
+            rel_score = 0.8 * scores[0] + 0.1 * scores[1] + 0.1 * scores[2]
+            if 'num_seeders' in keys and result[keys.index('num_seeders')] > 0:
+                # If this torrent has a non-zero amount of seeders, we make it more relevant
+                rel_score += result[keys.index('num_seeders')]
+
+            extended_result = result + [rel_score]
             search_results.append(extended_result)
 
         return search_results

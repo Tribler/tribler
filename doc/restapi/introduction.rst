@@ -90,5 +90,7 @@ Endpoints
    variables
    settings
    events
+   wallets
+   market
    debug
    statistics

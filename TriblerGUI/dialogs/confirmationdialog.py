@@ -26,6 +26,8 @@ class ConfirmationDialog(DialogContainer):
 
         if not show_input:
             self.dialog_widget.dialog_input.setHidden(True)
+        else:
+            self.dialog_widget.dialog_input.returnPressed.connect(lambda: self.button_clicked.emit(0))
 
         hspacer_left = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.dialog_widget.dialog_button_container.layout().addSpacerItem(hspacer_left)
@@ -43,6 +45,16 @@ class ConfirmationDialog(DialogContainer):
     @classmethod
     def show_error(cls, window, title, error_text):
         error_dialog = ConfirmationDialog(window, title, error_text, [('CLOSE', BUTTON_TYPE_NORMAL)])
+
+        def on_close():
+            error_dialog.setParent(None)
+
+        error_dialog.button_clicked.connect(on_close)
+        error_dialog.show()
+
+    @classmethod
+    def show_message(cls, window, title, message_text, button_text):
+        error_dialog = ConfirmationDialog(window, title, message_text, [(button_text, BUTTON_TYPE_NORMAL)])
 
         def on_close():
             error_dialog.setParent(None)

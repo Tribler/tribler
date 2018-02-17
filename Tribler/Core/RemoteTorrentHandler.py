@@ -10,7 +10,6 @@ import urllib
 from abc import ABCMeta, abstractmethod
 from binascii import hexlify, unhexlify
 from collections import deque
-
 from decorator import decorator
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
@@ -20,7 +19,6 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_TORRENTS
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
-
 
 TORRENT_OVERFLOW_CHECKING_INTERVAL = 30 * 60
 LOW_PRIO_COLLECTING = 0
@@ -59,10 +57,10 @@ class RemoteTorrentHandler(TaskManager):
 
     def initialize(self):
         self.dispersy = self.session.get_dispersy_instance()
-        self.max_num_torrents = self.session.get_torrent_collecting_max_torrents()
+        self.max_num_torrents = self.session.config.get_torrent_collecting_max_torrents()
 
         self.torrent_db = None
-        if self.session.get_megacache():
+        if self.session.config.get_megacache_enabled():
             self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
             self.__check_overflow()
 
@@ -603,6 +601,8 @@ class TftpRequester(Requester):
             elif thumb_hash is not None:
                 # save metadata
                 self._remote_torrent_handler.save_metadata(thumb_hash, file_data)
+        except ValueError:
+            self._logger.warning("Remote peer sent us invalid (torrent) content over TFTP socket, ignoring it.")
         finally:
             # start the next request
             self._clear_active_request(key)

@@ -3,21 +3,22 @@ This module mainly provides validation and correction for both metainfo and urls
 provides a method for HTTP GET requests as well as a function to translate peers into health.
 Author(s): Jie Yang
 """
-from base64 import b32decode
-from types import StringType, LongType, IntType, ListType, DictType
-import urlparse
-from urlparse import urlsplit, parse_qsl
 import binascii
 import logging
-from libtorrent import bencode, bdecode
+import urlparse
+from base64 import b32decode
+from types import StringType, LongType, IntType, ListType, DictType
+from urllib import quote_plus
+from urlparse import urlsplit, parse_qsl
 
+from libtorrent import bencode, bdecode
 from twisted.internet import reactor
 from twisted.web import http
 from twisted.web.client import Agent, readBody
 from twisted.web.http_headers import Headers
 
-from Tribler.Core.version import version_id
 from Tribler.Core.exceptions import HttpError
+from Tribler.Core.version import version_id
 
 logger = logging.getLogger(__name__)
 
@@ -393,7 +394,7 @@ def parse_magnetlink(url):
                 # vliegendhart: Adding support for base32 in magnet links (BEP 0009)
                 encoded_infohash = value[9:49]
                 if len(encoded_infohash) == 32:
-                    xt = b32decode(encoded_infohash)
+                    xt = b32decode(encoded_infohash.upper())
                 else:
                     xt = binascii.unhexlify(encoded_infohash)
 
@@ -462,3 +463,26 @@ def translate_peers_into_health(peer_info_dicts):
     num_seeders = max(upload_only, finished)
     num_leech = max(interest_in_us, min(unfinished_able_dl, len(peer_info_dicts) - finished))
     return num_seeders, num_leech
+
+
+def unicode_quoter(c):
+    """
+    Quote a single unicode character for URI form.
+
+    :param c: the character to quote
+    :return: the safe URI string
+    """
+    try:
+        return quote_plus(c)
+    except KeyError:
+        return c
+
+
+def quote_plus_unicode(s):
+    """
+    Quote a unicode string for URI form.
+
+    :param s: the string to quote
+    :return: the safe URI string
+    """
+    return ''.join([unicode_quoter(c) for c in s])

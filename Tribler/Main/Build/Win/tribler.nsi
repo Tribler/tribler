@@ -120,16 +120,20 @@ Section "!Main EXE" SecMain
     SetOutPath "$INSTDIR"
     File /r *
 
-    ; Install MSVCR 2008 and 2012
+    ; Install MSVCR 2008, 2012 and 2015
     SetOutPath "$INSTDIR"
 
-    ; Libraries dependant on 2008 are: Python, APSW
+    ; Libraries dependant on 2008 are: APSW
     File vc_redist_90.exe
     ExecWait "$INSTDIR\vc_redist_90.exe /q /norestart"
 
     ; Libraries dependant on 2012 are: LevelDB, LibTorrent
     File vc_redist_110.exe
     ExecWait "$INSTDIR\vc_redist_110.exe /q /norestart"
+
+    ; Libraries dependant on 2015 are: Python, Qt5
+    File vc_redist_140.exe
+    ExecWait "$INSTDIR\vc_redist_140.exe /q /norestart"
 
     ; Install VLC
     File "vlc-2.2.4-win${VLCBITVERSION}.exe"
@@ -287,7 +291,9 @@ Function .onInit
 		; Do NOT use $INSTDIR as this points to the current $INSTDIR var of the INSTALLER, 
         ; which is the default location at this point.
         ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
-        ExecWait '"$R0" _?=$INSTDIR' ; This prevents the installer from being ran in a tmp directory, causing execwait not to wait.
+        ReadRegStr $R1 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "InstallLocation"
+        ExecWait '"$R0" _?=$R1' ; This prevents the installer from being ran in a tmp directory, causing execwait not to wait.
+        RMDir /r "$R1"  ; Remove the previous install directory
         ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
         StrCmp $R0 "" done
         Abort

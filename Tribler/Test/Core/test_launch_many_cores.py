@@ -1,5 +1,6 @@
 import os
 from nose.tools import raises
+
 from twisted.internet.defer import Deferred
 
 from Tribler.Core import NoDispersyRLock
@@ -8,15 +9,13 @@ from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_SEEDING
+from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
 from Tribler.community.allchannel.community import AllChannelCommunity
-from Tribler.community.multichain.community import MultiChainCommunity
 from Tribler.community.search.community import SearchCommunity
-from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.dispersy.discovery.community import DiscoveryCommunity
 
 
@@ -29,8 +28,12 @@ class TestLaunchManyCore(TriblerCoreTest):
     def setUp(self, annotate=True):
         TriblerCoreTest.setUp(self, annotate=annotate)
         self.lm = TriblerLaunchMany()
-        self.lm.sesslock = NoDispersyRLock()
+        self.lm.session_lock = NoDispersyRLock()
         self.lm.session = MockObject()
+        self.lm.session.config = MockObject()
+        self.lm.session.config.get_max_upload_rate = lambda: 100
+        self.lm.session.config.get_max_download_rate = lambda: 100
+        self.lm.session.config.get_default_number_hops = lambda: 0
 
         # Ignore notifications
         mock_notifier = MockObject()
@@ -65,23 +68,6 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.assertIsInstance(config, CallbackConfigParser)
         self.assertEqual(config.get('general', 'version'), 11)
 
-    def test_sessconfig_changed_cb(self):
-        """
-        Testing whether the callback works correctly when changing session config parameters
-        """
-        self.assertFalse(self.lm.sessconfig_changed_callback('blabla', 'fancyname', '3', '4'))
-        self.lm.ltmgr = MockObject()
-
-        def mocked_set_utp(val):
-            self.assertEqual(val, '42')
-            mocked_set_utp.called = True
-
-        self.lm.ltmgr.set_utp = mocked_set_utp
-        mocked_set_utp.called = False
-        self.assertTrue(self.lm.sessconfig_changed_callback('libtorrent', 'utp', '42', '3'))
-        self.assertTrue(mocked_set_utp.called)
-        self.assertTrue(self.lm.sessconfig_changed_callback('libtorrent', 'anon_listen_port', '42', '43'))
-
     @deferred(timeout=10)
     def test_dlstates_cb_error(self):
         """
@@ -108,42 +94,6 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.lm.sesscb_states_callback([fake_error_state])
 
         return error_stop_deferred
-
-    @deferred(timeout=10)
-    def test_dlstates_cb_seeding(self):
-        """
-        Testing whether a download is readded when safe seeding in the download states callback in LaunchManyCore
-        """
-        readd_deferred = Deferred()
-
-        def mocked_start_download(tdef, dscfg):
-            self.assertEqual(tdef, seed_tdef)
-            self.assertEqual(dscfg, seed_download)
-            readd_deferred.callback(None)
-
-        def mocked_remove_download(download):
-            self.assertEqual(download, seed_download)
-
-        self.lm.session.start_download_from_tdef = mocked_start_download
-        self.lm.session.remove_download = mocked_remove_download
-
-        seed_tdef = TorrentDef()
-        seed_tdef.get_infohash = lambda: 'aaaa'
-        seed_download = MockObject()
-        seed_download.get_def = lambda: seed_tdef
-        seed_download.get_def().get_name_as_unicode = lambda: "test.iso"
-        seed_download.get_hops = lambda: 0
-        seed_download.get_safe_seeding = lambda: True
-        seed_download.copy = lambda: seed_download
-        seed_download.set_hops = lambda _: None
-        fake_seed_download_state = MockObject()
-        fake_seed_download_state.get_infohash = lambda: 'aaaa'
-        fake_seed_download_state.get_status = lambda: DLSTATUS_SEEDING
-        fake_seed_download_state.get_download = lambda: seed_download
-
-        self.lm.sesscb_states_callback([fake_seed_download_state])
-
-        return readd_deferred
 
     def test_load_checkpoint(self):
         """
@@ -198,15 +148,15 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         TestAsServer.setUpPreSession(self)
 
         # Enable all communities
-        config_sections = ['search_community', 'multichain', 'allchannel_community', 'channel_community',
+        config_sections = ['search_community', 'trustchain', 'allchannel_community', 'channel_community',
                            'preview_channel_community', 'tunnel_community', 'dispersy']
 
         for section in config_sections:
-            self.config.sessconfig.set(section, 'enabled', True)
+            self.config.config[section]['enabled'] = True
 
-        self.config.set_megacache(True)
+        self.config.set_megacache_enabled(True)
         self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
-        self.config.set_mainline_dht(True)
+        self.config.set_mainline_dht_enabled(True)
 
     def get_community(self, community_cls):
         for community in self.session.get_dispersy_instance().get_communities():
@@ -221,5 +171,3 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         self.assertTrue(self.session.lm.initComplete)
         self.assertTrue(self.get_community(SearchCommunity))
         self.assertTrue(self.get_community(AllChannelCommunity))
-        self.assertTrue(self.get_community(HiddenTunnelCommunity))
-        self.assertTrue(self.get_community(MultiChainCommunity))

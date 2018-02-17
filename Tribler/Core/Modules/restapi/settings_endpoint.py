@@ -1,12 +1,8 @@
-from ConfigParser import RawConfigParser
-import json
-import os
-
 from twisted.web import resource
+from twisted.internet.defer import DeferredList
 
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.defaults import tribler_defaults
-from Tribler.Core.simpledefs import STATEDIR_GUICONFIG
+import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningManager
 
 
 class SettingsEndpoint(resource.Resource):
@@ -18,17 +14,13 @@ class SettingsEndpoint(resource.Resource):
         resource.Resource.__init__(self)
         self.session = session
 
-        # Load the Tribler GUI configuration file
-        self.gui_config_file_path = os.path.join(self.session.get_state_dir(), STATEDIR_GUICONFIG)
-        self.tribler_gui_config = CallbackConfigParser()
-        self.tribler_gui_config.read_file(self.gui_config_file_path, 'utf-8-sig')
-
     def render_GET(self, request):
         """
         .. http:get:: /settings
 
         A GET request to this endpoint returns all the session settings that can be found in Tribler.
-        Please note that a port with a value of -1 means that the port is randomly assigned at startup.
+        It also returns the runtime-determined ports, i.e. the port for the video server.
+        Please note that a port with a value of -1 in the settings means that the port is randomly assigned at startup.
 
             **Example request**:
 
@@ -50,15 +42,10 @@ class SettingsEndpoint(resource.Resource):
                     }
                 }
         """
-        libtribler_settings = self.session.sessconfig.get_config_as_json()
-        tribler_settings = self.tribler_gui_config.get_config_as_json()
-
-        # Merge the configuration of libtribler and the Tribler configuration
-        settings_dict = libtribler_settings.copy()
-        settings_dict.update(tribler_settings)
-        settings_dict["general"]["family_filter"] = self.session.tribler_config.config["general"]["family_filter"]
-
-        return json.dumps({"settings": settings_dict})
+        return json.dumps({
+            "settings": self.session.config.config,
+            "ports": self.session.selected_ports
+        })
 
     def render_POST(self, request):
         """
@@ -81,9 +68,9 @@ class SettingsEndpoint(resource.Resource):
                     "modified": True
                 }
         """
-        settings_dict = json.loads(request.content.read())
+        settings_dict = json.loads(request.content.read(), encoding='latin_1')
         self.parse_settings_dict(settings_dict)
-        self.session.save_session_config()
+        self.session.config.write()
 
         return json.dumps({"modified": True})
 
@@ -91,41 +78,49 @@ class SettingsEndpoint(resource.Resource):
         """
         Set a specific Tribler setting. Throw a ValueError if this setting is not available.
         """
-        if section == "general" and option == "family_filter":
-            self.session.tribler_config.set_family_filter_enabled(value)
-            return
-
-        if section == "Tribler" or section == "downloadconfig":
-            # Write to the Tribler GUI config file
-            if not self.tribler_gui_config.has_option(section, option):
-                raise ValueError("Section %s with option %s does not exist" % (section, option))
-            RawConfigParser.set(self.tribler_gui_config, section, option, value)
-            self.tribler_gui_config.write_file(self.gui_config_file_path)
-            return
-
-        if not RawConfigParser.has_option(self.session.sessconfig, section, option):
+        if section in self.session.config.config and option in self.session.config.config[section]:
+            self.session.config.config[section][option] = value
+        else:
             raise ValueError("Section %s with option %s does not exist" % (section, option))
-        RawConfigParser.set(self.session.sessconfig, section, option, value)
-
-        # Reload the GUI settings in Tribler (there might have been download settings that have changed)
-        self.session.setup_tribler_gui_config()
 
         # Perform some actions when specific keys are set
         if section == "libtorrent" and (option == "max_download_rate" or option == "max_upload_rate"):
-            for lt_session in self.session.lm.ltmgr.ltsessions.itervalues():
-                ltsession_settings = lt_session.get_settings()
-                ltsession_settings['upload_rate_limit'] = self.session.get_libtorrent_max_upload_rate()
-                ltsession_settings['download_rate_limit'] = self.session.get_libtorrent_max_download_rate()
-                lt_session.set_settings(ltsession_settings)
+            self.session.lm.ltmgr.update_max_rates_from_config()
+
+        # Apply changes to the default downloadconfig to already existing downloads
+        if section == "download_defaults" and option in ["seeding_mode", "seeding_time", "seeding_ratio"]:
+            for download in self.session.get_downloads():
+                if download.get_credit_mining():
+                    # Do not interfere with credit mining downloads
+                    continue
+                elif option == "seeding_mode":
+                    download.set_seeding_mode(value)
+                elif option == "seeding_time":
+                    download.set_seeding_time(value)
+                elif option == "seeding_ratio":
+                    download.set_seeding_ratio(value)
+        elif section == 'credit_mining' and option == 'enabled' and \
+             value != bool(self.session.lm.credit_mining_manager):
+            if value:
+                self.session.lm.credit_mining_manager = CreditMiningManager(self.session)
+            else:
+                self.session.lm.credit_mining_manager.shutdown(remove_downloads=True)
+                self.session.lm.credit_mining_manager = None
+        elif section == 'credit_mining' and option == 'sources':
+            if self.session.config.get_credit_mining_enabled():
+                def add_sources(_):
+                    for source in value:
+                        self.session.lm.credit_mining_manager.add_source(source)
+
+                deferreds = []
+                for source in self.session.lm.credit_mining_manager.sources.keys():
+                    deferreds.append(self.session.lm.credit_mining_manager.remove_source(source))
+                DeferredList(deferreds).addCallback(add_sources)
 
     def parse_settings_dict(self, settings_dict, depth=1, root_key=None):
         """
-        Parse the settings dictionary. Throws an error if the options dictionary seems to be invalid (i.e. there are
-        keys not available in the configuration or the depth of the dictionary is too high.
+        Parse the settings dictionary.
         """
-        if depth == 3:
-            raise ValueError("Invalid settings dictionary depth (%d)" % depth)
-
         for key, value in settings_dict.iteritems():
             if isinstance(value, dict):
                 self.parse_settings_dict(value, depth=depth+1, root_key=key)

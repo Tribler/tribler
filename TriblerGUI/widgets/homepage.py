@@ -1,3 +1,4 @@
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.defs import PAGE_CHANNEL_DETAILS
@@ -43,16 +44,25 @@ class HomePage(QWidget):
         elif tab_button_name == "home_tab_torrents_button":
             self.load_popular_torrents()
 
+    def set_no_results_table(self, label_text):
+        self.has_loaded_cells = False
+        self.window().home_page_table_view.clear()
+        for x in xrange(0, 3):
+            for y in xrange(0, 3):
+                widget_item = LoadingListItem(self, label_text="")
+                self.window().home_page_table_view.setCellWidget(x, y, widget_item)
+
+        self.window().home_page_table_view.setCellWidget(
+            0, 1, LoadingListItem(self, label_text=label_text))
+        self.window().resizeEvent(None)
+
     def received_popular_channels(self, result):
         self.show_channels = True
         if not self.has_loaded_cells:
             self.load_cells()
 
         if len(result["channels"]) == 0:
-            self.has_loaded_cells = False
-            self.window().home_page_table_view.clear()
-            self.window().home_page_table_view.setCellWidget(
-                0, 1, LoadingListItem(self, label_text="No recommended channels"))
+            self.set_no_results_table(label_text="No recommended channels")
             return
 
         cur_ind = 0
@@ -68,10 +78,7 @@ class HomePage(QWidget):
             self.load_cells()
 
         if len(result["torrents"]) == 0:
-            self.has_loaded_cells = False
-            self.window().home_page_table_view.clear()
-            self.window().home_page_table_view.setCellWidget(
-                0, 1, LoadingListItem(self, label_text="No recommended torrents"))
+            self.set_no_results_table(label_text="No recommended torrents")
             return
 
         cur_ind = 0

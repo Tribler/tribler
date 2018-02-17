@@ -3,20 +3,18 @@ Video server.
 
 Author(s): Jan David Mol, Arno Bakker, Egbert Bouman
 """
-import os
-import socket
 import logging
 import mimetypes
-
+import os
+import socket
+import time
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from SocketServer import ThreadingMixIn
+from binascii import unhexlify
+from cherrypy.lib.httputil import get_ranges
 from collections import defaultdict
 from threading import Event, Thread, RLock
 from traceback import print_exc
-from binascii import unhexlify
-
-import time
-from cherrypy.lib.httputil import get_ranges
 
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.simpledefs import DLMODE_VOD, DLMODE_NORMAL

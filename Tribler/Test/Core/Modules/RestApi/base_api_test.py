@@ -1,6 +1,6 @@
-import json
 import os
 import urllib
+
 from twisted.internet.defer import succeed, inlineCallbacks
 from twisted.python.threadable import isInIOThread
 from twisted.web.client import Agent, readBody, HTTPConnectionPool
@@ -8,6 +8,8 @@ from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
 from zope.interface import implements
 
+from Tribler.Core.Modules.restapi import get_param
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.version import version_id
 from Tribler.Test.test_as_server import TestAsServer
@@ -29,6 +31,9 @@ class POSTDataProducer(object):
 
     def startProducing(self, consumer):
         consumer.write(self.body)
+        return succeed(None)
+
+    def stopProducing(self):
         return succeed(None)
 
 
@@ -58,7 +63,7 @@ class AbstractBaseApiTest(TestAsServer):
     def setUpPreSession(self):
         super(AbstractBaseApiTest, self).setUpPreSession()
         self.config.set_http_api_enabled(True)
-        self.config.set_megacache(True)
+        self.config.set_megacache_enabled(True)
         self.config.set_tunnel_community_enabled(False)
 
         # Make sure we select a random port for the HTTP API
@@ -66,10 +71,12 @@ class AbstractBaseApiTest(TestAsServer):
             else int(os.environ['TEST_BUCKET']) * 2000 + 2000
         self.config.set_http_api_port(get_random_port(min_port=min_base_port, max_port=min_base_port + 2000))
 
-    def do_request(self, endpoint, request_type, post_data, raw_data):
+    def do_request(self, endpoint, req_type, post_data, raw_data):
         agent = Agent(reactor, pool=self.connection_pool)
-        return agent.request(request_type, 'http://localhost:%s/%s' % (self.session.get_http_api_port(), endpoint),
-                             Headers({'User-Agent': ['Tribler ' + version_id]}), POSTDataProducer(post_data, raw_data))
+        return agent.request(req_type, 'http://localhost:%s/%s' % (self.session.config.get_http_api_port(), endpoint),
+                             Headers({'User-Agent': ['Tribler ' + version_id],
+                                      "Content-Type": ["text/plain; charset=utf-8"]}),
+                             POSTDataProducer(post_data, raw_data))
 
 
 class AbstractApiTest(AbstractBaseApiTest):
@@ -104,3 +111,17 @@ class AbstractApiTest(AbstractBaseApiTest):
         return super(AbstractApiTest, self).do_request(endpoint, request_type, post_data, raw_data)\
                                            .addCallback(self.parse_response)\
                                            .addCallback(self.parse_body)
+
+
+class TestBaseApi(TestAsServer):
+    """
+    Test some basic functionality of the restful API
+    """
+
+    def test_get_parameters(self):
+        """
+        Test the get_parameters method
+        """
+        parameters = {'abc': [3]}
+        self.assertIsNone(get_param(parameters, 'abcd'))
+        self.assertIsNotNone(get_param(parameters, 'abc'))
