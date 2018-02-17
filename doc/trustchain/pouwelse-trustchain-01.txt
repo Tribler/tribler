@@ -1,0 +1,528 @@
+
+
+
+Internet Engineering Task Force                       J.A. Pouwelse, Ed.
+Internet-Draft                            Delft University of Technology
+Intended status: Informational                              May 07, 2017
+Expires: November 06, 2017
+
+                          TrustChain protocol
+                      draft-pouwelse-trustchain-01
+
+Abstract
+
+   TrustChain is a novel implementation of blockchain technology
+   specifically designed to create trust.  The structure and
+   communications protocol version 0.1 are described.  It is
+   specifically designed to created trusted transactions among strangers
+   without central control.  This version includes recording
+   transactions in an ordered list using blockchain structure.  The
+   unique approach of TrustChain is that each participant creates their
+   own genesis block, resulting in seamless scalability.
+
+Status of this Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at http://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on November 06, 2017.
+
+Copyright Notice
+
+   Copyright (c) 2017 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (http://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+
+
+
+
+
+
+
+
+
+Pouwelse               Expires November 06, 2017                [Page 1]
+
+Internet-Draft            Trustchain protocol                   May 2017
+
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Simplified BSD License text
+   as described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Simplified BSD License.
+
+Table of Contents
+
+   1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  2
+     1.1.  Requirements Language  . . . . . . . . . . . . . . . . . .  3
+   2.  Trustchain Architecture  . . . . . . . . . . . . . . . . . . .  3
+   3.  Trustchain data structure  . . . . . . . . . . . . . . . . . .  4
+   4.  Block format . . . . . . . . . . . . . . . . . . . . . . . . .  5
+     4.1.  A true half block  . . . . . . . . . . . . . . . . . . . .  6
+     4.2.  Half block fields  . . . . . . . . . . . . . . . . . . . .  6
+     4.3.  Asynchronicity . . . . . . . . . . . . . . . . . . . . . .  6
+   5.  Attack resistance  . . . . . . . . . . . . . . . . . . . . . .  7
+     5.1.  Sybil attacks  . . . . . . . . . . . . . . . . . . . . . .  7
+     5.2.  Branching attack resistance  . . . . . . . . . . . . . . .  8
+     5.3.  Replay attack resistance . . . . . . . . . . . . . . . . .  8
+     5.4.  Tragedy of the commons . . . . . . . . . . . . . . . . . .  8
+   6.  Discovering the network using Random Walk  . . . . . . . . . .  8
+   7.  Acknowledgements to Brussels . . . . . . . . . . . . . . . . .  8
+   8.  IANA Considerations  . . . . . . . . . . . . . . . . . . . . .  8
+   9.  Security Considerations  . . . . . . . . . . . . . . . . . . .  8
+   10. References . . . . . . . . . . . . . . . . . . . . . . . . . .  8
+     10.1.  Normative References  . . . . . . . . . . . . . . . . . .  8
+     10.2.  Informative References  . . . . . . . . . . . . . . . . .  9
+   Appendix A. Additional Stuff . . . . . . . . . . . . . . . . . . .  9
+   Author's Address . . . . . . . . . . . . . . . . . . . . . . . . .  9
+
+1.  Introduction
+
+   We present TrustChain, blockhain technology specifically designed to
+   help create trust.  The only mechanism used is recording transactions
+   and signatures in a multi-chain manner.  By using ordered records of
+   historical transactions it is possible to calculate reputations and
+   be tamper-proof.
+
+   In essence, trust is a feeling of security, based on the belief that
+   someone or something is knowledgeable, reliable, good, honest, and
+   effective.  The Trustchain is an approach which holds the promise of
+   reducing the cost of establishing and maintaining trust for both
+   individuals and organizations.  This blockchain implementation lets
+   people who have no particular confidence in each other collaborate
+   without having to go through a neutral central authority.  The main
+   TrustChain design principle is having entities that would otherwise
+   not trust each other agree on a common record of events in a
+   continuous growing process, either by direct trust analysis or by
+
+
+
+
+
+
+Pouwelse               Expires November 06, 2017                [Page 2]
+
+Internet-Draft            Trustchain protocol                   May 2017
+
+   using transitive trust.  Cryptographically signed records of events
+   are used to create an unbroken, irrefutable, and sequential chain of
+   evidence.  It is then possible to combine this chain-of-evidence with
+   proven approaches to create trust, such as reputation systems.
+
+   The TrustChain work contributes to an ambitious goal: establishing a
+   generic method to create trust, whilst bein resitant against sybil
+   attacks and providing methods of coping with freeriding.  A generic
+   method can be re-used in a wide range of contexts, can be applied in
+   varying fields of applications, and provides a shared common
+   infrastructure.
+
+   An Open Source implementation of TrustChain is available.  It is used
+   in an operational setting for a distributed video streaming system.
+   Specifically, it is used to record the bandwidth exchanges in
+   Bittorrent swarms and relaying in an onion routing setting with the
+   goal of prevent freeriding.
+
+1.1.  Requirements Language
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in RFC 2119 [RFC2119].
+
+2.  Trustchain Architecture
+
+   TrustChain is a simple blockchain-based data structure.  It can be
+   used to record transactions and to make these transactions tamper-
+   proof.  The design specifically strives for simplicity and avoids
+   complexity.  TrustChain gives each node in the network their own
+   chain of transactions, or genesis block.  Using what are essentially
+   parallel chains yields inherent seamless scalability, removes the
+   need for a proof-of-work mechanism, global transaction broadcasts,
+   leadership elections, forks, or permissions.
+
+   The general architecture of TrustChain is illustrated in Figure 1.
+   Each element in the data structure represents a transaction between
+   two participants.  When initiating new transactions, each participant
+   includes the hash of their last interaction, creating a chain of
+   temporally ordered interactions, or essentially a Directed Acyclic
+   Graph.  In addition, each record is provided with a sequence number
+   that is unique in the chain of each participant.  TrustChain records
+   are cryptographically signed by both parties and together form a
+   directed graph.
+
+
+
+
+
+
+
+
+
+
+
+Pouwelse               Expires November 06, 2017                [Page 3]
+
+Internet-Draft            Trustchain protocol                   May 2017
+
+
+   This agreement by *both parties* is a key novelty of TrustChain and a
+   fundamental difference between our approach and related blockchain
+   work.  The remarkable simplicity of TrustChain is a direct
+   consequence of the hard requirement for agreement by both
+   participating parties.  TrustChain records are tamper-proof and
+   irrefutable since modification of a specific record can be detected
+   by verification of the cryptographic signature or sequence numbers.
+   This removes the need for Bitcoin-like global consensus mechanisms
+   and competing forks which may invalidate transactions.  The
+   vulnerability of existing blockchains to the 51% attack is also
+   addressed.  The validity of a block of transactions is easy to
+   establish and immediate, confirmation time is avoided.  We call this
+   a *bottom-up consensus model*.
+
+   In a directed graph representation each historical encounter in
+   TrustChain has two incoming edges and two outgoing edges.  Violations
+   of these rules can be efficiently detected, for instance, signing two
+   records with the same prior record pointer or hiding a record by
+   using the same pointer with another chain (see Section 5). This is
+   due to the agents publishing their own unique chains, which can then
+   be analysed and the immutable structure of the chain itself.
+
+3.  Trustchain data structure
+
+   As is mentioned, Trustchain depends on signatures from both
+   participants in a transaction, creating a 2-to-2 multi-chain system.
+   Each transaction is stored in a block, signed and sequenced so that
+   each sequence number is unique in both chains.  This general
+   structure can be seen below.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Pouwelse               Expires November 06, 2017                [Page 4]
+
+Internet-Draft            Trustchain protocol                   May 2017
+
+
+         
+             +---------+--+---------+
+             |                      |
+             | Transaction A with D |
+             |                      |
+             |                      |
+             +----------------------+
+             | sequence number A: 3 |
+             +----------------------+
+             | signed by A          |
+             +----------------------+
+             | sequence number D: 49|
+             +----------------------+
+             | signed by D          |
+             +---------+--+---------+
+                       |  |
+                       |  +----------------------+
+                       |                         |  |
+             +---------+--+---------+  +---------+--+---------+
+             |                      |  |                      |
+             | Transaction A with C |  | Transaction D with B |
+             |                      |  |                      |
+             |                      |  |                      |
+             +----------------------+  +----------------------+
+             | sequence number A: 2 |  | sequence number D: 48|
+             +----------------------+  +----------------------+
+             | signed by A          |  | signed by D          |
+             +----------------------+  +----------------------+
+             | sequence number C: 4 |  | sequence number B: 12|
+             +----------------------+  +----------------------+
+             | signed by C          |  | signed by B          |
+             +---------+--+---------+  +---------+--+---------+
+                       |                         |  |
+                       |  +----------------------+
+                       |  |
+             +---------+--+---------+
+             |                      |
+             | Transaction A with B |
+             |                      |
+             |                      |
+             +----------------------+
+             | sequence number A: 1 |
+             +----------------------+
+             | signed by A          |
+             +----------------------+
+             | sequence number B: 11|
+             +----------------------+
+             | signed by B          |
+             +---------+--+---------+
+         
+
+4.  Block format
+
+
+Pouwelse               Expires November 06, 2017                [Page 5]
+
+Internet-Draft            Trustchain protocol                   May 2017
+
+
+   The Trustchain is designed to be a non-blocking multichain format for
+   peer that supports simultaeous interactions with other peers.  Non-
+   blocking is a requirement rooted in the immutability of the chain and
+   the strict ordering of the blocks.  To support this, the blocks are
+   designed as half blocks, as is described in this section.
+
+4.1.  A true half block
+
+   Using the true half block format means singing the blocks on the
+   current views of the respective parties: the requester and the
+   responder.  Each party signs and fills the block with the information
+   that it has at that specific point in time.  The requester fills the
+   structure with his own previous hash and his own part of the
+   transaction data, signs it and sends it to the responder, which in
+   turn construct the other half of the block, if it agrees with the
+   content before sending it back.  This nullifies any ordering and
+   asynchronicity issues, since the requester constructs the block with
+   the information that he has, and keeps it in memory while it waits on
+   the responder to send the finished block back.
+
+4.2.  Half block fields
+
+   The current half block format used for Tribler is used as reference,
+   including their  type and size:
+
+   +--------+------------------------+-----------------+--------------+
+   | Number |      Description       |       Type      | Size (bytes) |
+   +--------+------------------------+-----------------+--------------+
+   |        |     *Transaction:*     |                 |              |
+   |   1    |     Bytes uploaded     |   Unsigned int  |      8       |
+   |   2    |    Bytes downloaded    |   Unsigned int  |      8       |
+   |   3    |  Total Bytes uploaded  |   Unsigned int  |      8       |
+   |   4    | Total Bytes downloaded |   Unsigned int  |      8       |
+   |        |     *Own dentity:*     |                 |              |
+   |   5    |       Public key       | Character array |      74      |
+   |   6    |    Sequence number     |   Unsigned int  |      4       |
+   |        |   *Other identity:*    |                 |              |
+   |   7    |   Linked public key    | Character array |      74      |
+   |   8    | Linked sequence number |   Unsigned int  |      4       |
+   |        |     *Validation:*      |                 |              |
+   |   9    |     Previous hash      | Character array |      32      |
+   |   10   |       Signature        | Character array |      64      |
+   |        |        *Total:*        |                 |     284      |
+   +--------+------------------------+-----------------+--------------+
+
+                TODO reference Pim Veldhuisens' msc thesis
+
+4.3.  Asynchronicity
+
+
+
+
+
+
+Pouwelse               Expires November 06, 2017                [Page 6]
+
+Internet-Draft            Trustchain protocol                   May 2017
+
+
+   Because there is the need to communicate between the requester and
+   responder, there will be a delay which may be significant.  To have a
+   high level of asynchronicity and enable multiple peers interacting
+   simultaneously, extending the chain should be able while waiting for
+   a response.  In order to do this, the block refers to the previous
+   block using the hash of the requesters part, since this is the only
+   stable reference at that point.  The other hash reference (the
+   "previous hash responder") can then be either the "hash requester" or
+   "hash responder" part of the head-block of the responder chain.
+   Which one is used depends on whether the responder was the requester
+   or responder in its previous interaction.  This mechanic is also used
+   for the "previous hash requester" field, but this reference is known
+   when the block is created.
+
+   One of the drawbacks of this mechanic is when the responders does not
+   sign and respond, whether because it will/can not, there will be an
+   orphan block.  While this is not a vulerability on itself, it might
+   be the starting point of a certain type of attack (the other "normal"
+   types of attacks used for blockchains can be mitigated, at elast to a
+   certain level, as is described in Section 5.).  The adversary might
+   let someone initiate a transaction an block creation, after which he
+   will have to sign it.  But when he does not, it will create an
+   orphan.  Doing this multiple times in a short timespan will force the
+   requester to use a considerable amount of processing power and
+   memory, all the while injecting orphan block into his chain.  As
+   mentioned before, this is not a vulnerability in itself, but might be
+   a launchpad for a more elaborate attack.
+
+5.  Attack resistance
+
+   When dealing with trust, especially in an self-managed and peer-to-
+   peer environment, unsupervised attack resistance is an important
+   requirement.  Because Trustchain is a blockchain implementation, it
+   will have to cope with the same difficulties and attacks that other
+   blockchain implementations have to.  Some attacks and Trustchains
+   resistance to them is detailed below, to give an insight how this
+   novel approach can deal with attacks.
+
+5.1.  Sybil attacks
+
+   One of the most difficult attacks to repel for a blockchain is the
+   sybil attack.  In a sybil attack, many peers are injected into the
+   chain (where authenticity cannot easily be verified) to subvert a
+   large portion of the systems trust.  Usually peer verification is
+   used to cope with these attacks, such as proof-of-work validation by
+   other peers, usually resulting in slow systems.  But when the
+   influence of the attacker is large enough, even these methods will
+   not be able to stop such an attack.
+
+
+
+
+
+
+Pouwelse               Expires November 06, 2017                [Page 7]
+
+Internet-Draft            Trustchain protocol                   May 2017
+
+
+   Trustchain deal with this problem by having an inherently different
+   structure, where each peer has its own chain.  On top of that,
+   transaction injection can only be done with two valid signatures,
+   meaning a sybil attacker can only create trust with himself.  This
+   results in a network of interconnected chains that contains clusters,
+   and outliers can easily be identified.  Even when the sybils acquire
+   some degree of trust outside of their cluster, using accounting
+   mechanisms the profit from such an attack can only be weakly
+   profitably benficial with bounded profit (using Netflow, not
+   discussed in this paper).
+
+5.2.  Branching attack resistance
+
+   TODO
+
+5.3.  Replay attack resistance
+
+   TODO
+
+5.4.  Tragedy of the commons
+
+   TODO
+
+6.  Discovering the network using Random Walk
+
+   TODO
+
+7.  Acknowledgements to Brussels
+
+   We very much thank the EU for providing us the required funding.  An
+   estimated 3.4 million Euro has been granted through.
+
+8.  IANA Considerations
+
+   This memo includes no request to IANA.
+
+   All drafts are required to have an IANA considerations section (see
+   Guidelines for Writing an IANA Considerations Section in RFCs
+   [RFC5226] for a guide). If the draft does not require IANA to do
+   anything, the section contains an explicit statement that this is the
+   case (as above). If there are no requirements for IANA, the section
+   will be removed during conversion into an RFC by the RFC Editor.
+
+9.  Security Considerations
+
+   All drafts are required to have a security considerations section.
+   See RFC 3552 [RFC3552] for a guide.  See RFC min_ref [min_ref] for a
+   guide.  See RFC DOMINATION [DOMINATION] for a guide.
+
+10.  References
+
+10.1.  Normative References
+
+
+Pouwelse               Expires November 06, 2017                [Page 8]
+
+Internet-Draft            Trustchain protocol                   May 2017
+
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119, DOI 10.17487/
+              RFC2119, March 1997, <http://www.rfc-editor.org/info/
+              rfc2119>.
+
+   [min_ref]  authSurName, authInitials., "Minimal Reference", 2006.
+
+10.2.  Informative References
+
+   [DOMINATION]
+              Mad Dominators, Inc., "Ultimate Plan for Taking Over the
+              World", 1984, <http://www.example.com/dominator.html>.
+
+   [RFC3552]  Rescorla, E. and B. Korver, "Guidelines for Writing RFC
+              Text on Security Considerations", BCP 72, RFC 3552, DOI
+              10.17487/RFC3552, July 2003, <http://www.rfc-editor.org/
+              info/rfc3552>.
+
+   [RFC5226]  Narten, T. and H. Alvestrand, "Guidelines for Writing an
+              IANA Considerations Section in RFCs", BCP 26, RFC 5226,
+              DOI 10.17487/RFC5226, May 2008, <http://www.rfc-editor.org
+              /info/rfc5226>.
+
+Appendix A.  Additional Stuff
+
+   This becomes an Appendix.
+
+Author's Address
+
+   Dr. J.A. Pouwelse, editor
+   Delft University of Technology
+   Delft,
+   Netherlands
+   
+   Phone: +44 7889 488 335
+   Email: elwynd@dial.pipex.com
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Pouwelse               Expires November 06, 2017                [Page 9]
