@@ -872,6 +872,7 @@ class TriblerLaunchMany(TaskManager):
 
         if self.ipv8:
             yield self.ipv8.stop(stop_reactor=False)
+            self.ipv8.endpoint.close()
 
         if self.metadata_store is not None:
             yield self.metadata_store.close()
