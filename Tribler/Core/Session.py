@@ -377,6 +377,9 @@ class Session(object):
         :return: a reference to a DBHandler class for the specified subject or
         None when the Session was not started with megacache enabled.
         """
+        if not self.config.get_megacache_enabled():
+            raise OperationNotEnabledByConfigurationException()
+
         if subject == NTFY_PEERS:
             return self.lm.peer_db
         elif subject == NTFY_TORRENTS:
