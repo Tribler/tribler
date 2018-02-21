@@ -1,6 +1,9 @@
 import os
 import types
 
+from twisted.internet import reactor
+from twisted.internet.task import deferLater
+
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import DataChecker
@@ -14,6 +17,26 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
+
+
+# Map of info_hash -> peer list
+global_dht_services = {}
+
+
+class MockDHTProvider(object):
+
+    def __init__(self, address):
+        self.address = ("127.0.0.1", address[1])
+
+    def lookup(self, info_hash, cb):
+        if info_hash in global_dht_services:
+            cb(info_hash, global_dht_services[info_hash], None)
+
+    def announce(self, info_hash):
+        if info_hash in global_dht_services:
+            global_dht_services[info_hash].append(self.address)
+        else:
+            global_dht_services[info_hash] = [self.address]
 
 
 class TestTunnelBase(TestAsServer):
@@ -34,7 +57,8 @@ class TestTunnelBase(TestAsServer):
 
         self.eccrypto = ECCrypto()
         ec = self.eccrypto.generate_key(u"curve25519")
-        TriblerTunnelCommunity.master_peer = Peer(ec)
+        self.test_class = TriblerTunnelCommunity
+        self.test_class.master_peer = Peer(ec)
 
         self.tunnel_community = self.load_tunnel_community_in_session(self.session, exitnode=True)
         self.tunnel_communities = []
@@ -42,9 +66,11 @@ class TestTunnelBase(TestAsServer):
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
         self.config.set_dispersy_enabled(False)
+        self.config.set_ipv8_enabled(True)
         self.config.set_libtorrent_enabled(True)
         self.config.set_trustchain_enabled(False)
         self.config.set_market_community_enabled(False)
+        self.config.set_resource_monitor_enabled(False)
         self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
     @blocking_call_on_reactor_thread
@@ -75,7 +101,7 @@ class TestTunnelBase(TestAsServer):
             self.tunnel_communities.append(proxy)
 
         # Setup the seeder session
-        self.setup_tunnel_seeder(seed_hops)
+        yield self.setup_tunnel_seeder(seed_hops)
 
         # Add the tunnel community of the downloader session
         self.tunnel_communities.append(self.tunnel_community)
@@ -88,6 +114,8 @@ class TestTunnelBase(TestAsServer):
                 if community != community_introduce:
                     community.walk_to(community_introduce.endpoint.get_address())
 
+        yield self.deliver_messages()
+
     @blocking_call_on_reactor_thread
     def load_tunnel_community_in_session(self, session, exitnode=False):
         """
@@ -97,8 +125,9 @@ class TestTunnelBase(TestAsServer):
         keypair = ECCrypto().generate_key(u"curve25519")
         tunnel_peer = Peer(keypair)
         session.config.set_tunnel_community_exitnode_enabled(exitnode)
-        overlay = TriblerTunnelCommunity(tunnel_peer, session.lm.ipv8.endpoint, session.lm.ipv8.network,
-                                         tribler_session=session)
+        overlay = self.test_class(tunnel_peer, session.lm.ipv8.endpoint, session.lm.ipv8.network,
+                                  tribler_session=session,
+                                  dht_provider=MockDHTProvider(session.lm.ipv8.endpoint.get_address()))
         session.lm.ipv8.overlays.append(overlay)
         session.lm.ipv8.strategies.append((RandomWalk(overlay), 20))
 
@@ -125,8 +154,6 @@ class TestTunnelBase(TestAsServer):
 
         returnValue(self.load_tunnel_community_in_session(session, exitnode=exitnode))
 
-    @blocking_call_on_reactor_thread
-    @inlineCallbacks
     def setup_tunnel_seeder(self, hops):
         """
         Setup the seeder.
@@ -152,10 +179,6 @@ class TestTunnelBase(TestAsServer):
         if hops > 0:  # Safe seeding enabled
             self.tunnel_community_seeder = self.load_tunnel_community_in_session(self.session2)
             self.tunnel_community_seeder.build_tunnels(hops)
-
-            from twisted.internet import reactor, task
-            while not list(self.tunnel_community_seeder.active_data_circuits()):
-                yield task.deferLater(reactor, .05, lambda: None)
 
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
@@ -185,3 +208,29 @@ class TestTunnelBase(TestAsServer):
         download = self.session.start_download_from_tdef(self.seed_tdef, dscfg)
         download.add_peer(("127.0.0.1", self.session2.config.get_libtorrent_port()))
         return download
+
+    @inlineCallbacks
+    def deliver_messages(self, timeout=.1):
+        """
+        Allow peers to communicate.
+        The strategy is as follows:
+         1. Measure the amount of working threads in the threadpool
+         2. After 10 milliseconds, check if we are down to 0 twice in a row
+         3. If not, go back to handling calls (step 2) or return, if the timeout has been reached
+        :param timeout: the maximum time to wait for messages to be delivered
+        """
+        rtime = 0
+        probable_exit = False
+        while rtime < timeout:
+            yield self.sleep(.01)
+            rtime += .01
+            if len(reactor.getThreadPool().working) == 0:
+                if probable_exit:
+                    break
+                probable_exit = True
+            else:
+                probable_exit = False
+
+    @inlineCallbacks
+    def sleep(self, time=.05):
+        yield deferLater(reactor, time, lambda: None)

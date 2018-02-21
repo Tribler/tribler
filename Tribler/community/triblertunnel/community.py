@@ -9,6 +9,7 @@ from Tribler.Core.Socks5.server import Socks5Server
 from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.pyipv8.ipv8.messaging.anonymization.community import CreatePayload
 from Tribler.pyipv8.ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
+from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_RP
 from Tribler.pyipv8.ipv8.peer import Peer
 
@@ -185,7 +186,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if (state_changed or force_dht_lookup) and \
                     (new_state == DLSTATUS_SEEDING or new_state == DLSTATUS_DOWNLOADING):
                 self.logger.info('Do dht lookup to find hidden services peers for %s', info_hash.encode('hex'))
-                self.do_dht_lookup(real_info_hash)
+                self.do_raw_dht_lookup(info_hash)
 
             if state_changed and new_state == DLSTATUS_SEEDING:
                 self.create_introduction_point(info_hash)
@@ -207,6 +208,28 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                         self.remove_circuit(cid, 'all downloads stopped', destroy=True)
 
         self.download_states = new_states
+
+    def get_download(self, lookup_info_hash):
+        for download in self.tribler_session.get_downloads():
+            if lookup_info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
+                return download
+
+    def create_introduction_point(self, info_hash, amount=1):
+        download = self.get_download(info_hash)
+        if download:
+            download.add_peer(('1.1.1.1', 1024))
+        super(TriblerTunnelCommunity, self).create_introduction_point(info_hash, amount)
+
+    def on_linked_e2e(self, source_address, data, circuit_id):
+        _, payload = self._ez_unpack_noauth(LinkedE2EPayload, data)
+        cache = self.request_cache.get(u"link-request", payload.identifier)
+        if cache:
+            download = self.get_download(cache.info_hash)
+            if download:
+                download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), 1024))
+            else:
+                self.logger.error('On linked e2e: could not find download!')
+        super(TriblerTunnelCommunity, self).on_linked_e2e(source_address, data, circuit_id)
 
     @inlineCallbacks
     def unload(self):

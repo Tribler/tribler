@@ -76,9 +76,10 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_tdef.get_infohash = lambda: 'a'
         mock_download.get_hops = lambda: 1
         mock_download.get_def = lambda: mock_tdef
-        mock_download.add_peer = lambda: None
+        mock_download.add_peer = lambda x: None
         mock_state.get_status = lambda: 1
         mock_state.get_download = lambda: mock_download
+        tribler_session.get_downloads = lambda: [mock_download, ]
 
         real_ih = self.nodes[0].overlay.get_lookup_info_hash('a')
         self.nodes[0].overlay.infohash_ip_circuits[real_ih] = [(3, 0)]
