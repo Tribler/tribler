@@ -108,7 +108,7 @@ class DebugWindow(QMainWindow):
     community information.
     """
 
-    def __init__(self, settings):
+    def __init__(self, settings, tribler_version):
         QMainWindow.__init__(self)
 
         self.request_mgr = None
@@ -118,6 +118,7 @@ class DebugWindow(QMainWindow):
         self.initialized_memory_plot = False
         self.cpu_plot_timer = None
         self.memory_plot_timer = None
+        self.tribler_version = tribler_version
 
         uic.loadUi(get_ui_file_path('debugwindow.ui'), self)
         self.setWindowTitle("Tribler debug pane")
@@ -197,6 +198,7 @@ class DebugWindow(QMainWindow):
     def on_tribler_statistics(self, data):
         data = data["tribler_statistics"]
         self.window().general_tree_widget.clear()
+        self.create_and_add_widget_item("Tribler version", self.tribler_version, self.window().general_tree_widget)
         self.create_and_add_widget_item("Number of channels", data["num_channels"], self.window().general_tree_widget)
         self.create_and_add_widget_item("Database size", format_size(data["database_size"]),
                                         self.window().general_tree_widget)
