@@ -248,8 +248,8 @@ class SettingsPage(QWidget):
         # Anonymity settings
         self.window().allow_exit_node_checkbox.setChecked(settings['tunnel_community']['exitnode_enabled'])
         self.window().number_hops_slider.setValue(int(settings['download_defaults']['number_hops']) - 1)
-        self.window().trustchain_enabled_checkbox.setChecked(settings['trustchain']['enabled'])
         self.window().credit_mining_enabled_checkbox.setChecked(settings['credit_mining']['enabled'])
+        self.window().max_disk_space_input.setText(str(settings['credit_mining']['max_disk_space']))
 
     def load_settings(self):
         self.settings_request_mgr = TriblerRequestManager()
@@ -341,8 +341,8 @@ class SettingsPage(QWidget):
                                           "You've entered an invalid format for the seeding time (expected HH:MM)")
             return
 
-        settings_data['trustchain']['enabled'] = self.window().trustchain_enabled_checkbox.isChecked()
         settings_data['credit_mining']['enabled'] = self.window().credit_mining_enabled_checkbox.isChecked()
+        settings_data['credit_mining']['max_disk_space'] = int(self.window().max_disk_space_input.text())
         settings_data['tunnel_community']['exitnode_enabled'] = self.window().allow_exit_node_checkbox.isChecked()
         settings_data['download_defaults']['number_hops'] = self.window().number_hops_slider.value() + 1
         settings_data['download_defaults']['anonymity_enabled'] = \

@@ -116,6 +116,9 @@ class SettingsEndpoint(resource.Resource):
                 for source in self.session.lm.credit_mining_manager.sources.keys():
                     deferreds.append(self.session.lm.credit_mining_manager.remove_source(source))
                 DeferredList(deferreds).addCallback(add_sources)
+        elif section == 'credit_mining' and option == 'max_disk_space':
+            if self.session.config.get_credit_mining_enabled():
+                self.session.lm.credit_mining_manager.settings.max_disk_space = value
 
     def parse_settings_dict(self, settings_dict, depth=1, root_key=None):
         """

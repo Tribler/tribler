@@ -341,7 +341,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             self.handle = self.ltmgr.add_torrent(self, atp)
             # assert self.handle.status().share_mode == share_mode
             if self.handle.is_valid():
-
                 self.set_selected_files()
 
                 user_stopped = pstate.get('download_defaults', 'user_stopped') if pstate else False
@@ -353,8 +352,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     # If we only needed to perform checking, pause download after it is complete
                     self.pause_after_next_hashcheck = user_stopped
 
-                if self.get_mode() == DLMODE_VOD:
-                    self.set_vod_mode(True)
+                self.set_vod_mode(self.get_mode() == DLMODE_VOD)
 
                 # Limit the amount of connections if we have specified that
                 max_conn_download = self.session.config.get_libtorrent_max_conn_download()
@@ -398,7 +396,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             self._logger.debug("LibtorrentDownloadImpl: going into VOD mode %s", filename)
         else:
             self.handle.set_sequential_download(False)
-            self.handle.set_priority(0)
+            self.handle.set_priority(0 if self.get_credit_mining() else 1)
             if self.get_vod_fileindex() >= 0:
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
 

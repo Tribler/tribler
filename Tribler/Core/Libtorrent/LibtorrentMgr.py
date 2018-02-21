@@ -648,6 +648,14 @@ class LibtorrentMgr(TaskManager):
 
         d = self.tribler_session.get_download(tdef.get_infohash())
         if d:
+            # If there is an existing credit mining download with the same infohash, remove it and restart
+            if d.get_credit_mining():
+                self.tribler_session.lm.credit_mining_manager.torrents.pop(hexlify(tdef.get_infohash()), None)
+                self.tribler_session.remove_download(d).addCallback(
+                    lambda _, tf=torrentfilename, ih=infohash, td=tdef, dc=dconfig: self.start_download(tf, ih, td, dc)
+                )
+                return
+
             new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(
                 d.get_def().get_trackers_as_single_tuple()))
             if not new_trackers:

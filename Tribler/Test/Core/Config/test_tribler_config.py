@@ -320,3 +320,5 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_credit_mining_enabled(), True)
         self.tribler_config.set_credit_mining_sources(True)
         self.assertEqual(self.tribler_config.get_credit_mining_sources(), True)
+        self.tribler_config.set_credit_mining_disk_space(1024 ** 2)
+        self.assertEqual(self.tribler_config.get_credit_mining_disk_space(), 1024 ** 2)
