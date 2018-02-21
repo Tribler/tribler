@@ -228,7 +228,7 @@ class MarketCommunity(TrustChainCommunity):
         Returns the address of the IPV8 instance. This method is here to make the experiments on the DAS5 succeed;
         direct messaging is not possible there with a wan address so we are using the local address instead.
         """
-        return self.endpoint.lan_address if self.use_local_address else self.endpoint.wan_address
+        return self.my_estimated_lan if self.use_local_address else self.my_estimated_wan
 
     def get_wallet_address(self, wallet_id):
         """
