@@ -1,6 +1,6 @@
 import binascii
 import os
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, succeed
 
 import libtorrent as lt
 
@@ -135,7 +135,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         impl = LibtorrentDownloadImpl(self.session, tdef)
         # Override the add_torrent because it will be called
         impl.ltmgr = MockObject()
-        impl.ltmgr.add_torrent = lambda _, _dummy2: fake_handler
+        impl.ltmgr.add_torrent = lambda _, _dummy2: succeed(fake_handler)
         impl.set_selected_files = lambda: None
         fake_handler = MockObject()
         fake_handler.is_valid = lambda: True
@@ -144,6 +144,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         fake_handler.set_priority = lambda _: None
         fake_handler.set_sequential_download = lambda _: None
         fake_handler.resume = lambda: None
+        fake_handler.set_max_connections = lambda _: None
         fake_status = MockObject()
         fake_status.share_mode = False
         # Create a dummy download config

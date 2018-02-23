@@ -3,7 +3,7 @@ import os
 import shutil
 import tempfile
 from libtorrent import bencode
-from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.defer import inlineCallbacks, Deferred, succeed
 
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
@@ -234,8 +234,10 @@ class TestLibtorrentMgr(AbstractServer):
         mock_handle.info_hash = lambda: 'a' * 20
         mock_handle.is_valid = lambda: False
 
+        mock_alert = type('add_torrent_alert', (object,), dict(handle=mock_handle))
+
         mock_ltsession = MockObject()
-        mock_ltsession.add_torrent = lambda _: mock_handle
+        mock_ltsession.async_add_torrent = lambda _: self.ltmgr.process_alert(mock_alert)
         mock_ltsession.find_torrent = lambda _: mock_handle
         mock_ltsession.get_torrents = lambda: []
         mock_ltsession.stop_upnp = lambda: None
@@ -246,8 +248,15 @@ class TestLibtorrentMgr(AbstractServer):
 
         infohash = MockObject()
         infohash.info_hash = lambda: 'a' * 20
-        self.assertEqual(self.ltmgr.add_torrent(None, {'ti': infohash}), mock_handle)
-        self.assertRaises(DuplicateDownloadException, self.ltmgr.add_torrent, None, {'ti': infohash})
+
+        mock_download = MockObject()
+        mock_download.deferred_added = Deferred()
+
+        def cb_torrent_added(handle):
+            self.assertEqual(handle, mock_handle)
+            self.assertRaises(DuplicateDownloadException, self.ltmgr.add_torrent, None, {'ti': infohash})
+
+        self.ltmgr.add_torrent(mock_download, {'ti': infohash}).addCallback(cb_torrent_added)
 
     def test_add_torrent_desync(self):
         """
@@ -257,8 +266,10 @@ class TestLibtorrentMgr(AbstractServer):
         mock_handle.info_hash = lambda: 'a' * 20
         mock_handle.is_valid = lambda: True
 
+        mock_alert = type('add_torrent_alert', (object,), dict(handle=mock_handle))
+
         mock_ltsession = MockObject()
-        mock_ltsession.add_torrent = lambda _: mock_handle
+        mock_ltsession.async_add_torrent = lambda _: self.ltmgr.process_alert(mock_alert)
         mock_ltsession.find_torrent = lambda _: mock_handle
         mock_ltsession.get_torrents = lambda: [mock_handle]
         mock_ltsession.stop_upnp = lambda: None
@@ -269,7 +280,10 @@ class TestLibtorrentMgr(AbstractServer):
 
         infohash = MockObject()
         infohash.info_hash = lambda: 'a' * 20
-        self.assertEqual(self.ltmgr.add_torrent(None, {'ti': infohash}), mock_handle)
+
+        mock_download = MockObject()
+        mock_download.deferred_added = Deferred()
+        self.ltmgr.add_torrent(mock_download, {'ti': infohash}).addCallback(lambda handle: self.assertEqual(handle, mock_handle))
 
     def test_remove_invalid_torrent(self):
         """

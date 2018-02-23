@@ -442,11 +442,13 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
         Testing whether the API returns 200 if we change the amount of hops of a download
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
         infohash = video_tdef.get_infohash().encode('hex')
 
-        return self.do_request('downloads/%s' % infohash, post_data={'anon_hops': 1},
-                               expected_code=200, expected_json={'modified': True}, request_type='PATCH')
+        return download.get_handle().addCallback(
+            lambda _: self.do_request('downloads/%s' % infohash, post_data={'anon_hops': 1},
+                                      expected_code=200, expected_json={'modified': True}, request_type='PATCH')
+        )
 
     @deferred(timeout=10)
     def test_change_hops_fail(self):

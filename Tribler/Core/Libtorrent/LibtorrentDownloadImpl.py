@@ -11,9 +11,10 @@ import sys
 import time
 from binascii import hexlify
 from traceback import print_exc
-from twisted.internet import defer, reactor
+from twisted.internet import reactor
 from twisted.internet.defer import Deferred, CancelledError, succeed
 from twisted.internet.task import LoopingCall
+from twisted.python.failure import Failure
 
 import libtorrent as lt
 
@@ -159,6 +160,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         self.deferreds_resume = []
         self.deferreds_handle = []
+        self.deferred_added = Deferred()
         self.deferred_removed = Deferred()
 
         self.handle_check_lc = self.register_task("handle_check", LoopingCall(self.check_handle))
@@ -338,8 +340,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
                 atp["name"] = self.tdef.get_name_as_unicode()
 
-            self.handle = self.ltmgr.add_torrent(self, atp)
-            # assert self.handle.status().share_mode == share_mode
+        def on_torrent_added(handle):
+            self.handle = handle
+
             if self.handle.is_valid():
                 self.set_selected_files()
 
@@ -355,21 +358,17 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 self.set_vod_mode(self.get_mode() == DLMODE_VOD)
 
                 # Limit the amount of connections if we have specified that
-                max_conn_download = self.session.config.get_libtorrent_max_conn_download()
-                if max_conn_download != -1:
-                    self.handle.set_max_connections(max(2, max_conn_download))
-            else:
-                self._logger.error("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
+                self.handle.set_max_connections(self.session.config.get_libtorrent_max_conn_download())
+                return self
 
-                self.cew_scheduled = False
-
-                # Return a deferred with the errback already being called
-                return defer.fail((self, pstate))
+        def on_torrent_failed(failure):
+            self._logger.error("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
 
             self.cew_scheduled = False
 
-            # Return a deferred with the callback already being called
-            return defer.succeed(self)
+            return Failure((self, pstate))
+
+        return self.ltmgr.add_torrent(self, atp).addCallbacks(on_torrent_added, on_torrent_failed)
 
     def get_anon_mode(self):
         return self.get_hops() > 0

@@ -315,18 +315,16 @@ class LibtorrentMgr(TaskManager):
             if infohash in known:
                 self.torrents[infohash] = (torrentdl, ltsession)
                 infohash_bin = binascii.unhexlify(infohash)
-                return ltsession.find_torrent(lt.big_number(infohash_bin))
+                return succeed(ltsession.find_torrent(lt.big_number(infohash_bin)))
 
-            # Otherwise, add it anew
-            torrent_handle = ltsession.add_torrent(encode_atp(atp))
-            infohash = str(torrent_handle.info_hash())
             if infohash in self.torrents:
                 raise DuplicateDownloadException("This download already exists.")
+
+            # Otherwise, add it anew
+            ltsession.async_add_torrent(encode_atp(atp))
             self.torrents[infohash] = (torrentdl, ltsession)
-
-            self._logger.debug("added torrent %s", infohash)
-
-            return torrent_handle
+            self._logger.debug("Adding torrent %s", infohash)
+            return torrentdl.deferred_added
 
     def remove_torrent(self, torrentdl, removecontent=False):
         """
@@ -367,6 +365,7 @@ class LibtorrentMgr(TaskManager):
     def process_alert(self, alert):
         alert_type = str(type(alert)).split("'")[1].split(".")[-1]
         handle = getattr(alert, 'handle', None)
+
         if handle and handle.is_valid():
             infohash = str(handle.info_hash())
             if infohash in self.torrents:
@@ -374,23 +373,23 @@ class LibtorrentMgr(TaskManager):
             else:
                 self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
 
-        if alert_type == 'torrent_removed_alert':
+        if alert_type == 'add_torrent_alert':
+            info_hash = str(handle.info_hash())
+            if alert.error.value():
+                self.torrents[info_hash][0].deferred_added.errback(alert.error.message())
+                self._logger.debug("Failed to add torrent (%s)", alert.error.message())
+            else:
+                self.torrents[info_hash][0].deferred_added.callback(handle)
+                self._logger.debug("Added torrent %s", infohash)
+
+        elif alert_type == 'torrent_removed_alert':
             info_hash = str(alert.info_hash)
             if info_hash in self.torrents:
                 deferred = self.torrents[info_hash][0].deferred_removed
                 del self.torrents[info_hash]
                 deferred.callback(None)
                 self._logger.debug("LibtorrentMgr: ['torrent_removed_alert'] removed torrent %s", info_hash)
-            else:
-                if alert_type == 'torrent_removed_alert':
-                    info_hash = str(alert.info_hash)
-                    if info_hash in self.torrents:
-                        deferred = self.torrents[info_hash][0].deferred_removed
-                        del self.torrents[info_hash]
-                        deferred.callback(None)
-                    else:
-                        self._logger.debug("LibtorrentMgr: ['torrent_removed_alert'] invalid torrent %s", info_hash)
-                self._logger.debug("Alert for invalid torrent")
+
         if self.alert_callback:
             self.alert_callback(alert)
 
@@ -538,7 +537,7 @@ class LibtorrentMgr(TaskManager):
         oldest_time = time.time() - METAINFO_CACHE_PERIOD
 
         for info_hash, values in self.metainfo_cache.items():
-            last_time, metainfo = values
+            last_time, _ = values
             if last_time < oldest_time:
                 del self.metainfo_cache[info_hash]
 
