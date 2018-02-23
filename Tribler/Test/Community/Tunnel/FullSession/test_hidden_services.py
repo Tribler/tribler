@@ -29,12 +29,12 @@ class TestHiddenServices(TestTunnelBase):
             self.tunnel_community.monitor_downloads([ds])
             download = ds.get_download()
             import time
-            print time.time(), ds.get_status(), download.get_progress()
-            if download.get_progress() == 1.0 and ds.get_status() == DLSTATUS_SEEDING:
+            print time.time(), ds.get_status(), ds.get_progress()
+            if ds.get_progress() == 1.0 and ds.get_status() == DLSTATUS_SEEDING:
                 self.test_deferred.callback(None)
-                return 0.0, False
+                return 0.0
 
-            return 2.0, False
+            return 2.0
 
         self.tunnel_community.build_tunnels(1)
 

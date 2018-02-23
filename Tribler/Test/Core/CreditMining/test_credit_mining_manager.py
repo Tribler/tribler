@@ -28,16 +28,19 @@ class FakeTorrent(object):
         self.download.running = None
         self.download.restart = lambda: setattr(self.download, 'running', True)
         self.download.stop = lambda: setattr(self.download, 'running', False)
-        self.download.get_status = lambda: DLSTATUS_STOPPED
-        self.download.get_length = lambda: 1024 * 1024
-        self.download.get_progress = lambda: 0.0
         self.download.get_credit_mining = lambda: True
         self.download.get_handle = lambda: succeed(self.handle)
 
         self.tdef = MockObject()
         self.tdef.get_infohash = lambda: self.infohash
         self.tdef.get_trackers_as_single_tuple = lambda: ()
+        self.tdef.get_length = lambda: 1024 * 1024
         self.download.get_def = lambda: self.tdef
+
+        self.ds = MockObject()
+        self.ds.get_status = lambda: DLSTATUS_STOPPED
+        self.ds.get_progress = lambda: 0.0
+        self.download.get_state = lambda: self.ds
 
         self.handle = MockObject()
         self.handle.set_upload_mode = lambda enable: setattr(self.download, 'upload_mode', enable)
@@ -217,7 +220,7 @@ class TestCreditMiningManager(TestAsServer):
         ds = MockObject()
         ds.get_download = lambda: download
         ds.get_status = lambda: DLSTATUS_STOPPED
-        ds.seeding_uploaded = 0
+        ds.get_total_transferred = lambda _: 0
 
         # Credit mining downloads should automatically be inserted in to self.credit_mining_mananger.torrents
         self.credit_mining_manager.monitor_downloads([ds])

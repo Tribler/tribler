@@ -4,7 +4,6 @@ from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
 import Tribler.Core.Utilities.json_util as json
@@ -182,15 +181,15 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
         downloads_json = []
         downloads = self.session.get_downloads()
         for download in downloads:
-            stats = download.network_create_statistics_reponse() or LibtorrentStatisticsResponse(0, 0, 0, 0, 0, 0, 0)
-            state = download.network_get_state(None, get_peers)
+            state = download.get_state()
+            tdef = download.get_def()
 
             # Create files information of the download
             files_completion = dict((name, progress) for name, progress in state.get_files_completion())
             selected_files = download.get_selected_files()
             files_array = []
             file_index = 0
-            for file, size in download.get_def().get_files_with_length():
+            for file, size in tdef.get_files_with_length():
                 files_array.append({"index": file_index, "name": file, "size": size,
                                     "included": (file in selected_files or not selected_files),
                                     "progress": files_completion.get(file, 0.0)})
@@ -198,28 +197,27 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
             # Create tracker information of the download
             tracker_info = []
-            for url, url_info in download.network_tracker_status().iteritems():
+            for url, url_info in download.get_tracker_status().iteritems():
                 tracker_info.append({"url": url, "peers": url_info[0], "status": url_info[1]})
 
-            ratio = 0.0
-            if stats.downTotal > 0:
-                ratio = stats.upTotal / float(stats.downTotal)
+            num_seeds, num_peers = state.get_num_seeds_peers()
 
-            download_json = {"name": download.get_def().get_name(), "progress": download.get_progress(),
-                             "infohash": download.get_def().get_infohash().encode('hex'),
-                             "speed_down": download.get_current_speed(DOWNLOAD),
-                             "speed_up": download.get_current_speed(UPLOAD),
-                             "status": dlstatus_strings[download.get_status()],
-                             "size": download.get_def().get_length(), "eta": download.network_calc_eta(),
-                             "num_peers": stats.numPeers, "num_seeds": stats.numSeeds, "total_up": stats.upTotal,
-                             "total_down": stats.downTotal, "ratio": ratio,
+            download_json = {"name": tdef.get_name(), "progress": state.get_progress(),
+                             "infohash": tdef.get_infohash().encode('hex'),
+                             "speed_down": state.get_current_speed(DOWNLOAD),
+                             "speed_up": state.get_current_speed(UPLOAD),
+                             "status": dlstatus_strings[state.get_status()],
+                             "size": tdef.get_length(), "eta": state.get_eta(),
+                             "num_peers": num_peers, "num_seeds": num_seeds,
+                             "total_up": state.get_total_transferred(UPLOAD),
+                             "total_down": state.get_total_transferred(DOWNLOAD), "ratio": state.get_seeding_ratio(),
                              "files": files_array, "trackers": tracker_info, "hops": download.get_hops(),
                              "anon_download": download.get_anon_mode(), "safe_seeding": download.get_safe_seeding(),
                              # Maximum upload/download rates are set for entire sessions
                              "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
                              "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
                              "destination": download.get_dest_dir(), "availability": state.get_availability(),
-                             "total_pieces": download.get_num_pieces(), "vod_mode": download.get_mode() == DLMODE_VOD,
+                             "total_pieces": tdef.get_nr_pieces(), "vod_mode": download.get_mode() == DLMODE_VOD,
                              "vod_prebuffering_progress": state.get_vod_prebuffering_progress(),
                              "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec(),
                              "error": repr(state.get_error()) if state.get_error() else "",

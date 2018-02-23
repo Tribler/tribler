@@ -27,11 +27,10 @@ from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.osutils import fix_filebasename
-from Tribler.Core.simpledefs import (DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA,
-                                     DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE,
-                                     DLSTATUS_CIRCUITS, DLSTATUS_STOPPED, DLMODE_VOD, DLSTATUS_STOPPED_ON_ERROR,
-                                     UPLOAD, DOWNLOAD, DLMODE_NORMAL, PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings)
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLMODE_VOD, DLMODE_NORMAL, \
+                                    PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
 from Tribler.dispersy.taskmanager import TaskManager
+
 
 if sys.platform == "win32":
     try:
@@ -118,8 +117,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.vod_index = None
         self.orig_files = None
 
-        # Just enough so error saving and get_state() works
-        self.error = None
         # To be able to return the progress of a stopped torrent, how far it got.
         self.progressbeforestop = 0.0
         self.filepieceranges = []
@@ -129,16 +126,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.ltmgr = None
 
         # Libtorrent status
-        self.dlstates = [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA, DLSTATUS_DOWNLOADING,
-                         DLSTATUS_SEEDING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING]
-        self.dlstate = DLSTATUS_WAITING4HASHCHECK
-        self.length = 0
-        self.progress = 0.0
-        self.curspeeds = {DOWNLOAD: 0.0, UPLOAD: 0.0}  # bytes/s
-        self.all_time_upload = 0.0
-        self.all_time_download = 0.0
-        self.all_time_ratio = 0.0
-        self.finished_time = 0.0
+        self.lt_status = None
+        self.error = None
         self.done = False
         self.pause_after_next_hashcheck = False
         self.checkpoint_after_next_hashcheck = False
@@ -231,8 +220,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     self.set_corrected_infoname()
                     self.set_filepieceranges()
 
-                self.dlstate = DLSTATUS_CIRCUITS if self.get_hops() > 0 else self.dlstate
-
                 self._logger.debug(u"setup: %s", hexlify(self.tdef.get_infohash()))
 
                 def schedule_create_engine():
@@ -255,9 +242,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             return deferred
 
         except Exception as e:
-            with self.dllock:
-                self.error = e
-                print_exc()
+            self.error = e
+            print_exc()
 
     def can_create_engine_wrapper(self):
         """
@@ -278,10 +264,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                         self._logger.info(u"LTMGR/DHT/session not ready, rescheduling create_engine_wrapper")
 
                         if tunnels_ready < 1:
-                            self.dlstate = DLSTATUS_CIRCUITS
                             tunnel_community.build_tunnels(self.get_hops())
-                        else:
-                            self.dlstate = DLSTATUS_METADATA
 
                         # Schedule this function call to be called again in 5 seconds
                         self.register_task("check_create_wrapper", reactor.callLater(5, do_check))
@@ -391,7 +374,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             self.set_byte_priority([(self.get_vod_fileindex(), 0, self.prebuffsize)], 1)
             self.set_byte_priority([(self.get_vod_fileindex(), -self.endbuffsize, -1)], 1)
 
-            self.progress = self.get_byte_progress([(self.get_vod_fileindex(), 0, -1)])
             self._logger.debug("LibtorrentDownloadImpl: going into VOD mode %s", filename)
         else:
             self.handle.set_sequential_download(False)
@@ -445,14 +427,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         for i in range(0, len(bitstr), 8):
             encoded_str += chr(int(bitstr[i:i+8].ljust(8, '0'), 2))
         return base64.b64encode(encoded_str)
-
-    @checkHandleAndSynchronize(0)
-    def get_num_pieces(self):
-        """
-        Return the total number of pieces
-        """
-        if get_info_from_handle(self.handle):
-            return get_info_from_handle(self.handle).num_pieces()
 
     @checkHandleAndSynchronize(0.0)
     def get_byte_progress(self, byteranges, consecutive=False):
@@ -664,19 +638,20 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
     @checkHandleAndSynchronize()
     def on_torrent_finished_alert(self, alert):
         self.update_lt_status(self.handle.status())
+        progress = self.get_state().get_progress()
         if self.get_mode() == DLMODE_VOD:
-            if self.progress == 1.0:
+            if progress == 1.0:
                 self.handle.set_sequential_download(False)
                 self.handle.set_priority(0)
                 if self.get_vod_fileindex() >= 0:
                     self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
-            elif self.progress < 1.0:
+            elif progress < 1.0:
                 # If we are in VOD mode and still need to download pieces and libtorrent
                 # says we are finished, reset the piece priorities to 1.
                 def reset_priorities():
                     if not self:
                         return
-                    if self.handle.status().progress == 1.0:
+                    if self.get_state().get_progress() == 1.0:
                         self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
                 random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
                 self.register_task("reset_priorities_%s" % random_id, reactor.callLater(5, reset_priorities))
@@ -685,36 +660,17 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
                 self.endbuffsize = 0
 
-    def update_lt_status(self, status):
+    def update_lt_status(self, lt_status):
         """ Update libtorrent stats and check if the download should be stopped."""
-        self.dlstate = self.dlstates[status.state] if not status.paused else DLSTATUS_STOPPED
-        self.dlstate = DLSTATUS_STOPPED_ON_ERROR if self.dlstate == DLSTATUS_STOPPED and status.error else self.dlstate
-        if self.get_mode() == DLMODE_VOD:
-            self.progress = self.get_byte_progress([(self.get_vod_fileindex(), 0, -1)])
-            self.dlstate = (
-                DLSTATUS_SEEDING if self.progress == 1.0 else self.dlstate) if not status.paused else DLSTATUS_STOPPED
-        else:
-            self.progress = status.progress
-        self.error = status.error.decode('utf-8') if status.error else None
-        self.length = float(status.total_wanted)
-        self.curspeeds[DOWNLOAD] = float(status.download_payload_rate) if self.dlstate not in [
-            DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
-        self.curspeeds[UPLOAD] = float(status.upload_payload_rate) if self.dlstate not in [
-            DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
-        self.all_time_upload = status.all_time_upload
-        self.all_time_download = status.all_time_download
-        if status.all_time_download:
-            self.all_time_ratio = status.all_time_upload / float(status.all_time_download)
-        self.finished_time = status.finished_time
-
+        self.lt_status = lt_status
         self._stop_if_finished()
 
     def _stop_if_finished(self):
-        if self.dlstate == DLSTATUS_SEEDING:
+        if self.get_state().get_status() == DLSTATUS_SEEDING:
             mode = self.get_seeding_mode()
             if mode == 'never' \
-                    or (mode == 'ratio' and self.all_time_ratio >= self.get_seeding_ratio()) \
-                    or (mode == 'time' and self.finished_time >= self.get_seeding_time()):
+                    or (mode == 'ratio' and self.get_all_time_ratio() >= self.get_seeding_ratio()) \
+                    or (mode == 'time' and self.get_finished_time() >= self.get_seeding_time()):
                 self.stop()
 
     def set_corrected_infoname(self):
@@ -805,39 +761,20 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
     @checkHandleAndSynchronize()
     def force_recheck(self):
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
-            if self.dlstate == DLSTATUS_STOPPED:
+            if self.get_state().get_status() == DLSTATUS_STOPPED:
                 self.pause_after_next_hashcheck = True
             self.checkpoint_after_next_hashcheck = True
             self.handle.resume()
             self.handle.force_recheck()
 
-    def get_status(self):
-        """ Returns the status of the download.
-        @return DLSTATUS_*
+    def get_state(self):
+        """ Returns a snapshot of the current state of the download
+        @return DownloadState
         """
-        with self.dllock:
-            return self.dlstate
+        vod = {'vod_prebuf_frac': self.calc_prebuf_frac(),
+               'vod_prebuf_frac_consec': self.calc_prebuf_frac(True)} if self.get_mode() == DLMODE_VOD else {}
 
-    def get_length(self):
-        """ Returns the size of the torrent content.
-        @return float
-        """
-        with self.dllock:
-            return self.length
-
-    def get_progress(self):
-        """ Return fraction of content downloaded.
-        @return float 0..1
-        """
-        with self.dllock:
-            return self.progress
-
-    def get_current_speed(self, dir):
-        """ Return last reported speed in bytes/s
-        @return float
-        """
-        with self.dllock:
-            return self.curspeeds[dir]
+        return DownloadState(self, self.lt_status, self.error, vod)
 
     def _on_resume_err(self, failure):
         failure.trap(CancelledError, SaveResumeDataError)
@@ -863,56 +800,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         self.askmoreinfo = enable
 
-    def network_get_stats(self, getpeerlist):
-        """
-        @return (status, stats, seeding_stats, logmsgs, coopdl_helpers, coopdl_coordinator)
-        """
-        # Called by any thread, assume dllock already acquired
-
-        stats = {}
-        stats['down'] = self.curspeeds[DOWNLOAD]
-        stats['up'] = self.curspeeds[UPLOAD]
-        stats['frac'] = self.progress
-        stats['wanted'] = self.length
-        stats['stats'] = self.network_create_statistics_reponse()
-        stats['time'] = self.network_calc_eta()
-        stats['vod_prebuf_frac'] = self.network_calc_prebuf_frac()
-        stats['vod_prebuf_frac_consec'] = self.network_calc_prebuf_frac(consecutive=True)
-        stats['vod'] = self.get_mode()
-        stats['spew'] = self.network_create_spew_from_peerlist() if getpeerlist or self.askmoreinfo else None
-        stats['tracker_status'] = self.network_tracker_status() if getpeerlist or self.askmoreinfo else None
-
-        seeding_stats = {}
-        seeding_stats['total_up'] = self.all_time_upload
-        seeding_stats['total_down'] = self.all_time_download
-        seeding_stats['ratio'] = self.all_time_ratio
-        seeding_stats['time_seeding'] = self.finished_time
-
-        logmsgs = []
-
-        self._logger.debug("Torrent %s PROGRESS %s DLSTATE %s SEEDTIME %s",
-                           self.tdef.get_name(), self.progress, self.dlstate, self.finished_time)
-
-        return (self.dlstate, stats, seeding_stats, logmsgs)
-
-    @checkHandleAndSynchronize()
-    def network_create_statistics_reponse(self):
-        status = self.handle.status()
-        numTotSeeds = status.num_complete if status.num_complete >= 0 else status.list_seeds
-        numTotPeers = status.num_incomplete if status.num_incomplete >= 0 else status.list_peers
-        numleech = max(status.num_peers - status.num_seeds, 0)  # When anon downloading, this might become negative
-        numseeds = status.num_seeds
-        pieces = status.pieces
-        upTotal = status.all_time_upload
-        downTotal = status.all_time_download
-        return LibtorrentStatisticsResponse(numTotSeeds, numTotPeers, numseeds, numleech, pieces, upTotal, downTotal)
-
-    def network_calc_eta(self):
-        bytestogof = (1.0 - self.progress) * float(self.length)
-        dlspeed = max(0.000001, self.curspeeds[DOWNLOAD])
-        return bytestogof / dlspeed
-
-    def network_calc_prebuf_frac(self, consecutive=False):
+    def calc_prebuf_frac(self, consecutive=False):
         if self.get_mode() == DLMODE_VOD and self.get_vod_fileindex() >= 0 and self.vod_seekpos is not None:
             if self.endbuffsize:
                 return self.get_byte_progress(
@@ -924,61 +812,68 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         else:
             return 0.0
 
-    @staticmethod
-    def create_peerlist_data(peer_info):
+    def get_peerlist(self):
+        """ Returns a list of dictionaries, one for each connected peer
+        containing the statistics for that peer. In particular, the
+        dictionary contains the keys:
+        <pre>
+        'id' = PeerID or 'http seed'
+        'extended_version' = Peer client version, as received during the extend handshake message
+        'ip' = IP address as string or URL of httpseed
+        'port' = Port
+        'pex_received' = True/False
+        'optimistic' = True/False
+        'direction' = 'L'/'R' (outgoing/incoming)
+        'uprate' = Upload rate in KB/s
+        'uinterested' = Upload Interested: True/False
+        'uchoked' = Upload Choked: True/False
+        'uhasqueries' = Upload has requests in buffer and not choked
+        'uflushed' = Upload is not flushed
+        'downrate' = Download rate in KB/s
+        'dinterested' = Download interested: True/Flase
+        'dchoked' = Download choked: True/False
+        'snubbed' = Download snubbed: True/False
+        'utotal' = Total uploaded from peer in KB
+        'dtotal' = Total downloaded from peer in KB
+        'completed' = Fraction of download completed by peer (0-1.0)
+        -- QUESTION(lipu): swift and Bitfield are gone. Does this 'have' thing has anything to do with swift?
+        'have' = Bitfield object for this peer if not complete
+        'speed' = The peer's current total download speed (estimated)
+        </pre>
         """
-        A function to convert peer_info libtorrent object into dictionary
-        This data is used to identify peers with combination of several flags
-        """
-        peer_dict = {'id': peer_info.pid.to_bytes().encode('hex'),
-                     'extended_version': peer_info.client,
-                     'ip': peer_info.ip[0],
-                     'port': peer_info.ip[1],
-                     # optimistic_unchoke = 0x800 seems unavailable in python bindings
-                     'optimistic': bool(peer_info.flags & 0x800),
-                     'direction': 'L' if bool(peer_info.flags & peer_info.local_connection) else 'R',
-                     'uprate': peer_info.payload_up_speed,
-                     'uinterested': bool(peer_info.flags & peer_info.remote_interested),
-                     'uchoked': bool(peer_info.flags & peer_info.remote_choked),
-                     'uhasqueries': peer_info.upload_queue_length > 0,
-                     'uflushed': peer_info.used_send_buffer > 0,
-                     'downrate': peer_info.payload_down_speed,
-                     'dinterested': bool(peer_info.flags & peer_info.interesting),
-                     'dchoked': bool(peer_info.flags & peer_info.choked),
-                     'snubbed': bool(peer_info.flags & 0x1000),
-                     'utotal': peer_info.total_upload,
-                     'dtotal': peer_info.total_download,
-                     'completed': peer_info.progress,
-                     'have': peer_info.pieces, 'speed': peer_info.remote_dl_rate,
-                     'connection_type': peer_info.connection_type,
-                     # add upload_only and/or seed
-                     'seed': bool(peer_info.flags & peer_info.seed),
-                     'upload_only': bool(peer_info.flags & peer_info.upload_only),
-                     # add read and write state (check unchoke/choke peers)
-                     # read and write state is char with value 0, 1, 2, 4. May be empty
-                     'rstate': peer_info.read_state,
-                     'wstate': peer_info.write_state}
-
-        return peer_dict
-
-    def network_create_spew_from_peerlist(self):
-        plist = []
-        with self.dllock:
-            peer_infos = self.handle.get_peer_info()
+        peers = []
+        peer_infos = self.handle.get_peer_info() if self.handle and self.handle.is_valid() else []
         for peer_info in peer_infos:
-            # Only consider fully connected peers.
-            # Disabling for now, to avoid presenting the user with conflicting information
-            # (partially connected peers are included in seeder/leecher stats).
-            # if peer_info.flags & peer_info.connecting or peer_info.flags & peer_info.handshake:
-            #     continue
-            peer_dict = LibtorrentDownloadImpl.create_peerlist_data(peer_info)
-
-            plist.append(peer_dict)
-
-        return plist
+            peer_dict = {'id': peer_info.pid.to_bytes().encode('hex'),
+                         'extended_version': peer_info.client,
+                         'ip': peer_info.ip[0],
+                         'port': peer_info.ip[1],
+                         # optimistic_unchoke = 0x800 seems unavailable in python bindings
+                         'optimistic': bool(peer_info.flags & 0x800),
+                         'direction': 'L' if bool(peer_info.flags & peer_info.local_connection) else 'R',
+                         'uprate': peer_info.payload_up_speed,
+                         'uinterested': bool(peer_info.flags & peer_info.remote_interested),
+                         'uchoked': bool(peer_info.flags & peer_info.remote_choked),
+                         'uhasqueries': peer_info.upload_queue_length > 0,
+                         'uflushed': peer_info.used_send_buffer > 0,
+                         'downrate': peer_info.payload_down_speed,
+                         'dinterested': bool(peer_info.flags & peer_info.interesting),
+                         'dchoked': bool(peer_info.flags & peer_info.choked),
+                         'snubbed': bool(peer_info.flags & 0x1000),
+                         'utotal': peer_info.total_upload,
+                         'dtotal': peer_info.total_download,
+                         'completed': peer_info.progress,
+                         'have': peer_info.pieces, 'speed': peer_info.remote_dl_rate,
+                         'connection_type': peer_info.connection_type,
+                         'seed': bool(peer_info.flags & peer_info.seed),
+                         'upload_only': bool(peer_info.flags & peer_info.upload_only),
+                         'rstate': peer_info.read_state,
+                         'wstate': peer_info.write_state}
+            peers.append(peer_dict)
+        return peers
 
     @checkHandleAndSynchronize(default={})
-    def network_tracker_status(self):
+    def get_tracker_status(self):
         # Make sure all trackers are in the tracker_status dict
         for announce_entry in self.handle.trackers():
             if announce_entry['url'] not in self.tracker_status:
@@ -1004,29 +899,15 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         result['[PeX]'] = [pex_peers, 'Working' if not self.get_anon_mode() else 'Disabled']
         return result
 
-    def set_state_callback(self, usercallback, getpeerlist=False):
+    def set_state_callback(self, usercallback):
         """ Called by any thread """
         with self.dllock:
-            reactor.callFromThread(lambda: self.network_get_state(usercallback, getpeerlist))
+            reactor.callFromThread(lambda: self.network_get_state(usercallback))
 
-    def network_get_state(self, usercallback, getpeerlist):
+    def network_get_state(self, usercallback):
         """ Called by network thread """
         with self.dllock:
-            if self.handle is None:
-                self._logger.debug("LibtorrentDownloadImpl: network_get_state: Download not running")
-                if self.dlstate != DLSTATUS_CIRCUITS:
-                    progress = self.progressbeforestop
-                else:
-                    tunnel_community = self.ltmgr.tribler_session.lm.tunnel_community
-                    progress = tunnel_community.tunnels_ready(self.get_hops()) if tunnel_community else 1
-
-                ds = DownloadState(self, self.dlstate, self.error, progress)
-            else:
-                (status, stats, seeding_stats, logmsgs) = self.network_get_stats(getpeerlist)
-                ds = DownloadState(self, status, self.error, self.get_progress(), stats=stats,
-                                   seeding_stats=seeding_stats, filepieceranges=self.filepieceranges, logmsgs=logmsgs)
-                self.progressbeforestop = ds.get_progress()
-
+            ds = self.get_state()
 
             if usercallback:
                 # Invoke the usercallback function via a new thread.
@@ -1035,11 +916,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 if not self.done and not self.session.lm.shutdownstarttime:
                     # runs on the reactor
                     def session_getstate_usercallback_target():
-                        when, getpeerlist = usercallback(ds)
+                        when = usercallback(ds)
                         if when > 0.0 and not self.session.lm.shutdownstarttime:
                             # Schedule next invocation, either on general or DL specific
                             def reschedule_cb():
-                                dc = reactor.callLater(when, lambda: self.network_get_state(usercallback, getpeerlist))
+                                dc = reactor.callLater(when, lambda: self.network_get_state(usercallback))
                                 random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
                                 self.register_task("downloads_cb_%s" % random_id, dc)
 
@@ -1079,8 +960,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             else:
                 self._logger.debug("LibtorrentDownloadImpl: network_stop: handle is None")
                 self.cancel_pending_task("check_create_wrapper")
-                if self.dlstate == DLSTATUS_CIRCUITS:
-                    self.dlstate = DLSTATUS_STOPPED
 
             if removestate:
                 self.session.lm.remove_pstate(self.tdef.get_infohash())
@@ -1108,8 +987,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         with self.dllock:
             if self.handle is None:
-                self.error = None
-
                 def schedule_create_engine(_):
                     self.cew_scheduled = True
                     create_engine_wrapper_deferred = self.network_create_engine_wrapper(
@@ -1184,7 +1061,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         if self.get_share_mode():
             pstate.set('state', 'share_mode', True)
 
-        ds = self.network_get_state(None, False)
+        ds = self.get_state()
         dlstate = {'status': ds.get_status(), 'progress': ds.get_progress(), 'swarmcache': None}
         pstate.set('state', 'dlstate', dlstate)
 
@@ -1235,17 +1112,3 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     def set_share_mode(self, share_mode):
         self.get_handle().addCallback(lambda handle: handle.set_share_mode(share_mode))
-
-
-class LibtorrentStatisticsResponse:
-
-    def __init__(self, numTotSeeds, numTotPeers, numseeds, numleech, have, upTotal, downTotal):
-        self.numTotSeeds = numTotSeeds
-        self.numTotPeers = numTotPeers
-        self.numSeeds = numseeds
-        self.numPeers = numleech
-        self.have = have
-        self.upTotal = upTotal
-        self.downTotal = downTotal
-        self.numConCandidates = 0
-        self.numConInitiated = 0

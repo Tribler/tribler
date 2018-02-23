@@ -455,13 +455,6 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.assertFalse(self.libtorrent_download_impl.checkpoint_after_next_hashcheck)
         self.assertTrue(mocked_pause_checkpoint.called)
 
-    def test_get_length(self):
-        """
-        Testing whether the right length of the content of the download is returned
-        """
-        self.libtorrent_download_impl.length = 1234
-        self.assertEqual(self.libtorrent_download_impl.get_length(), 1234)
-
     def test_get_dest_files(self):
         """
         Testing whether the right list of files is returned when fetching files from a download
@@ -533,6 +526,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         Testing whether an exception in the setup method of LibtorrentDownloadImpl is handled correctly
         """
         self.libtorrent_download_impl.setup()
+        print self.libtorrent_download_impl.get_state().get_error()
         self.assertIsInstance(self.libtorrent_download_impl.error, Exception)
 
     def test_tracker_reply_alert(self):

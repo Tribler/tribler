@@ -3,7 +3,7 @@ import os
 import shutil
 import tempfile
 from libtorrent import bencode
-from twisted.internet.defer import inlineCallbacks, Deferred, succeed
+from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
@@ -283,7 +283,9 @@ class TestLibtorrentMgr(AbstractServer):
 
         mock_download = MockObject()
         mock_download.deferred_added = Deferred()
-        self.ltmgr.add_torrent(mock_download, {'ti': infohash}).addCallback(lambda handle: self.assertEqual(handle, mock_handle))
+        self.ltmgr.add_torrent(mock_download, {'ti': infohash}).addCallback(
+            lambda handle: self.assertEqual(handle, mock_handle)
+        )
 
     def test_remove_invalid_torrent(self):
         """

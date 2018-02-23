@@ -207,7 +207,7 @@ class TestTunnelBase(TestAsServer):
         d = ds.get_download()
         self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()),
                            dlstatus_strings[ds.get_status()], ds.get_progress())
-        return 5.0, False
+        return 5.0
 
     def start_anon_download(self, hops=1):
         """

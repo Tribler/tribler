@@ -76,7 +76,8 @@ class LibtorrentMgr(TaskManager):
 
         self.process_alerts_lc = self.register_task("process_alerts", LoopingCall(self._task_process_alerts))
         self.check_reachability_lc = self.register_task("check_reachability", LoopingCall(self._check_reachability))
-        self.request_torrent_updates_lc = self.register_task("request_torrent_updates", LoopingCall(self._request_torrent_updates))
+        self.request_torrent_updates_lc = self.register_task("request_torrent_updates",
+                                                             LoopingCall(self._request_torrent_updates))
 
         self.default_alert_mask = lt.alert.category_t.error_notification | lt.alert.category_t.status_notification | \
                                   lt.alert.category_t.storage_notification | lt.alert.category_t.performance_warning | \
@@ -369,7 +370,6 @@ class LibtorrentMgr(TaskManager):
 
         # Periodically, libtorrent will send us a state_update_alert, which contains the torrent status of
         # all torrents changed since the last time we received this alert.
-        print alert_type
         if alert_type == 'state_update_alert':
             for status in alert.status:
                 infohash = str(status.info_hash)
@@ -381,28 +381,33 @@ class LibtorrentMgr(TaskManager):
 
         handle = getattr(alert, 'handle', None)
         if handle and handle.is_valid():
-            # Process torrent alerts
-
             infohash = str(handle.info_hash())
-            if infohash not in self.torrents:
-                self._logger.debug("Got alert %s for unknown torrent %s", alert_type, infohash)
-                return
+            if infohash in self.torrents:
+                self.torrents[infohash][0].process_alert(alert, alert_type)
+            else:
+                self._logger.debug("Got %s for unknown torrent %s", alert_type, infohash)
 
-            download = self.torrents[infohash][0]
-            download.process_alert(alert, alert_type)
-
-            if alert_type == 'add_torrent_alert':
+        if alert_type == 'add_torrent_alert':
+            infohash = str(handle.info_hash())
+            if infohash in self.torrents:
                 if alert.error.value():
-                    download.deferred_added.errback(alert.error.message())
+                    self.torrents[infohash][0].deferred_added.errback(alert.error.message())
                     self._logger.debug("Failed to add torrent (%s)", alert.error.message())
                 else:
-                    download.deferred_added.callback(handle)
-                    self._logger.debug("Added torrent %s", infohash)
+                    self.torrents[infohash][0].deferred_added.callback(handle)
+                    self._logger.debug("Added torrent %s", str(handle.info_hash()))
+            else:
+                self._logger.debug("Added alert for unknown torrent")
 
-            elif alert_type == 'torrent_removed_alert':
+        elif alert_type == 'torrent_removed_alert':
+            infohash = str(alert.info_hash)
+            if infohash in self.torrents:
+                deferred = self.torrents[infohash][0].deferred_removed
                 del self.torrents[infohash]
-                download.deferred_removed.callback(None)
-                self._logger.debug('Removed torrent %s', infohash)
+                deferred.callback(None)
+                self._logger.debug("Removed torrent %s", infohash)
+            else:
+                self._logger.debug("Removed alert for unknown torrent")
 
         if self.alert_callback:
             self.alert_callback(alert)

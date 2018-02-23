@@ -28,11 +28,10 @@ class TestTunnelCommunity(TestTunnelBase):
         yield self.setup_nodes()
 
         def download_state_callback(ds):
-            download = ds.get_download()
-            if download.get_progress() == 1.0 and ds.get_status() == DLSTATUS_SEEDING:
+            if ds.get_progress() == 1.0 and ds.get_status() == DLSTATUS_SEEDING:
                 self.test_deferred.callback(None)
-                return 0.0, False
-            return 2.0, False
+                return 0.0
+            return 2.0
 
         download = self.start_anon_download()
         download.set_state_callback(download_state_callback)
@@ -48,12 +47,11 @@ class TestTunnelCommunity(TestTunnelBase):
         yield self.setup_nodes(num_exitnodes=0)
 
         def download_state_callback(ds):
-            download = ds.get_download()
-            if download.get_progress() != 0.0:
+            if ds.get_progress() != 0.0:
                 self.test_deferred.errback(
                     RuntimeError("Anonymous download should not make progress without exit nodes"))
-                return 0.0, False
-            return 2.0, False
+                return 0.0
+            return 2.0
 
         download = self.start_anon_download()
         download.set_state_callback(download_state_callback)
@@ -71,12 +69,11 @@ class TestTunnelCommunity(TestTunnelBase):
         yield self.setup_nodes(num_relays=0, num_exitnodes=1)
 
         def download_state_callback(ds):
-            download = ds.get_download()
-            if download.get_progress() != 0.0:
+            if ds.get_progress() != 0.0:
                 self.test_deferred.errback(
                     RuntimeError("Anonymous download should not make progress without relay nodes"))
-                return 0.0, False
-            return 2.0, False
+                return 0.0
+            return 2.0
 
         download = self.start_anon_download(hops=2)
         download.set_state_callback(download_state_callback)
