@@ -526,12 +526,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         alert_types = ('tracker_reply_alert', 'tracker_error_alert', 'tracker_warning_alert', 'metadata_received_alert',
                        'file_renamed_alert', 'performance_alert', 'torrent_checked_alert', 'torrent_finished_alert',
-                       'save_resume_data_alert', 'save_resume_data_failed_alert')
+                       'save_resume_data_alert', 'save_resume_data_failed_alert', 'state_update_alert')
 
         if alert_type in alert_types:
             getattr(self, 'on_' + alert_type)(alert)
-        else:
-            self.update_lt_stats()
 
     def on_save_resume_data_alert(self, alert):
         """
@@ -665,7 +663,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     @checkHandleAndSynchronize()
     def on_torrent_finished_alert(self, alert):
-        self.update_lt_stats()
+        self.update_lt_status(self.handle.status())
         if self.get_mode() == DLMODE_VOD:
             if self.progress == 1.0:
                 self.handle.set_sequential_download(False)
@@ -687,9 +685,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
                 self.endbuffsize = 0
 
-    def update_lt_stats(self):
+    def update_lt_status(self, status):
         """ Update libtorrent stats and check if the download should be stopped."""
-        status = self.handle.status()
         self.dlstate = self.dlstates[status.state] if not status.paused else DLSTATUS_STOPPED
         self.dlstate = DLSTATUS_STOPPED_ON_ERROR if self.dlstate == DLSTATUS_STOPPED and status.error else self.dlstate
         if self.get_mode() == DLMODE_VOD:
@@ -1029,6 +1026,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 ds = DownloadState(self, status, self.error, self.get_progress(), stats=stats,
                                    seeding_stats=seeding_stats, filepieceranges=self.filepieceranges, logmsgs=logmsgs)
                 self.progressbeforestop = ds.get_progress()
+
 
             if usercallback:
                 # Invoke the usercallback function via a new thread.
