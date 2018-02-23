@@ -25,7 +25,7 @@ from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Core.Session import Session
 
 from TriblerGUI.event_request_manager import EventRequestManager
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.tribler_request_manager import TriblerRequestManager, QueuePriorityEnum
 from TriblerGUI.utilities import get_base_path, is_frozen
 
 START_FAKE_API = False
@@ -186,7 +186,8 @@ class CoreManager(QObject):
 
     def check_core_ready(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("state", self.on_received_state, capture_errors=False)
+        self.request_mgr.perform_request("state", self.on_received_state, capture_errors=False,
+                                         priority=QueuePriorityEnum.CRITICAL)
 
     def on_received_state(self, state):
         if not state or state['state'] not in ['STARTED', 'EXCEPTION']:
@@ -207,7 +208,8 @@ class CoreManager(QObject):
         if self.core_process:
             self.events_manager.shutting_down = True
             self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("shutdown", lambda _: None, method="PUT")
+            self.request_mgr.perform_request("shutdown", lambda _: None, method="PUT",
+                                             priority=QueuePriorityEnum.CRITICAL)
 
             if stop_app_on_shutdown:
                 self.stop_timer.start(100)

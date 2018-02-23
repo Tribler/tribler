@@ -87,7 +87,7 @@ class RequestQueue(object):
         self.lock.release()
 
     def enqueue(self, request_manager, method, endpoint, data, read_callback, capture_errors,
-                priority=QueuePriorityEnum.CRITICAL):
+                priority=QueuePriorityEnum.HIGH):
         """
         Add a new request to the queue based on priority
 
@@ -108,11 +108,8 @@ class RequestQueue(object):
         self.lock.acquire()
         queue_item = (request_manager, endpoint, read_callback, data, method, capture_errors, time())
         if priority == QueuePriorityEnum.CRITICAL:
-            if len(self.critical_queue) < self.max_outstanding:
-                self.critical_queue.append(queue_item)
-            else:
-                # no space left, reduce the priority to high
-                priority = QueuePriorityEnum.HIGH
+            self.critical_queue.append(queue_item)
+
         if priority == QueuePriorityEnum.HIGH:
             if len(self.high_queue) < self.max_outstanding:
                 self.high_queue.append(queue_item)
