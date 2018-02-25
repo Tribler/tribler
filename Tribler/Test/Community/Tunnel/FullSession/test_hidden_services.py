@@ -14,13 +14,16 @@ class TestHiddenServices(TestTunnelBase):
     @deferred(timeout=180)
     @inlineCallbacks
     def test_hidden_services(self):
+        """
+        Test the hidden services overlay by constructing an end-to-end circuit and downloading a torrent over it
+        """
         yield self.setup_nodes(num_relays=4, num_exitnodes=2, seed_hops=1)
 
-        yield self.deliver_messages
+        yield self.deliver_messages()
 
         for c in self.tunnel_communities:
-            self.assertEqual(7, len(c.network.verified_peers))
-        self.assertEqual(7, len(self.tunnel_community_seeder.network.verified_peers))
+            self.assertEqual(7, len(c.get_peers()))
+        self.assertEqual(7, len(self.tunnel_community_seeder.get_peers()))
 
         def download_state_callback(ds):
             self.tunnel_community.monitor_downloads([ds])
