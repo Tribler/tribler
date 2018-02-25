@@ -10,6 +10,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
 
     def setUpPreSession(self):
         super(TestCircuitDebugEndpoint, self).setUpPreSession()
+        self.config.set_ipv8_enabled(True)
         self.config.set_tunnel_community_enabled(True)
         self.config.set_trustchain_enabled(False)
 
