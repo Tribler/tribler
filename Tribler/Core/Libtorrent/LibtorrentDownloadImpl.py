@@ -17,7 +17,6 @@ from twisted.internet.task import LoopingCall
 
 import libtorrent as lt
 
-from Tribler.Core import NoDispersyRLock
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface, get_default_dest_dir
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Libtorrent import checkHandleAndSynchronize
@@ -110,7 +109,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.dllock = NoDispersyRLock()
         self.session = session
         self.tdef = tdef
         self.handle = None
@@ -215,37 +213,35 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         try:
             # The deferred to be returned
             deferred = Deferred()
-            with self.dllock:
-                # Copy dlconfig, from default if not specified
-                if dcfg is None:
-                    cdcfg = DownloadStartupConfig()
-                else:
-                    cdcfg = dcfg
-                self.dlconfig = cdcfg.dlconfig.copy()
-                self.dlconfig.lock = self.dllock
-                self.dlconfig.set_callback(self.dlconfig_changed_callback)
+            # Copy dlconfig, from default if not specified
+            if dcfg is None:
+                cdcfg = DownloadStartupConfig()
+            else:
+                cdcfg = dcfg
+            self.dlconfig = cdcfg.dlconfig.copy()
+            self.dlconfig.set_callback(self.dlconfig_changed_callback)
 
-                if not isinstance(self.tdef, TorrentDefNoMetainfo):
-                    self.set_corrected_infoname()
-                    self.set_filepieceranges()
+            if not isinstance(self.tdef, TorrentDefNoMetainfo):
+                self.set_corrected_infoname()
+                self.set_filepieceranges()
 
-                self.dlstate = DLSTATUS_CIRCUITS if self.get_hops() > 0 else self.dlstate
+            self.dlstate = DLSTATUS_CIRCUITS if self.get_hops() > 0 else self.dlstate
 
-                self._logger.debug(u"setup: %s", hexlify(self.tdef.get_infohash()))
+            self._logger.debug(u"setup: %s", hexlify(self.tdef.get_infohash()))
 
-                def schedule_create_engine():
-                    self.cew_scheduled = True
-                    create_engine_wrapper_deferred = self.network_create_engine_wrapper(
-                        self.pstate_for_restart, share_mode=share_mode, checkpoint_disabled=checkpoint_disabled)
-                    create_engine_wrapper_deferred.chainDeferred(deferred)
+            def schedule_create_engine():
+                self.cew_scheduled = True
+                create_engine_wrapper_deferred = self.network_create_engine_wrapper(
+                    self.pstate_for_restart, share_mode=share_mode, checkpoint_disabled=checkpoint_disabled)
+                create_engine_wrapper_deferred.chainDeferred(deferred)
 
-                def schedule_create_engine_call(_):
-                    self.register_task("schedule_create_engine",
-                                       reactor.callLater(wrapperDelay, schedule_create_engine))
+            def schedule_create_engine_call(_):
+                self.register_task("schedule_create_engine",
+                                   reactor.callLater(wrapperDelay, schedule_create_engine))
 
-                # Add a lambda callback that ignored the parameter of the callback which schedules
-                # a task using the taskamanger with wrapperDelay as delay.
-                self.can_create_engine_wrapper().addCallback(schedule_create_engine_call)
+            # Add a lambda callback that ignored the parameter of the callback which schedules
+            # a task using the taskamanger with wrapperDelay as delay.
+            self.can_create_engine_wrapper().addCallback(schedule_create_engine_call)
 
             self.pstate_for_restart = pstate
             self.checkpoint()
@@ -253,9 +249,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             return deferred
 
         except Exception as e:
-            with self.dllock:
-                self.error = e
-                print_exc()
+            self.error = e
+            print_exc()
 
     def can_create_engine_wrapper(self):
         """
@@ -265,111 +260,109 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         """
         can_create_deferred = Deferred()
         def do_check():
-            with self.dllock:
-                if not self.cew_scheduled:
-                    self.ltmgr = self.session.lm.ltmgr
-                    dht_ok = not isinstance(self.tdef, TorrentDefNoMetainfo) or self.ltmgr.is_dht_ready()
-                    tunnel_community = self.ltmgr.tribler_session.lm.tunnel_community
-                    tunnels_ready = tunnel_community.tunnels_ready(self.get_hops()) if tunnel_community else 1
+            if not self.cew_scheduled:
+                self.ltmgr = self.session.lm.ltmgr
+                dht_ok = not isinstance(self.tdef, TorrentDefNoMetainfo) or self.ltmgr.is_dht_ready()
+                tunnel_community = self.ltmgr.tribler_session.lm.tunnel_community
+                tunnels_ready = tunnel_community.tunnels_ready(self.get_hops()) if tunnel_community else 1
 
-                    if not self.ltmgr or not dht_ok or tunnels_ready < 1:
-                        self._logger.info(u"LTMGR/DHT/session not ready, rescheduling create_engine_wrapper")
+                if not self.ltmgr or not dht_ok or tunnels_ready < 1:
+                    self._logger.info(u"LTMGR/DHT/session not ready, rescheduling create_engine_wrapper")
 
-                        if tunnels_ready < 1:
-                            self.dlstate = DLSTATUS_CIRCUITS
-                            tunnel_community.build_tunnels(self.get_hops())
-                        else:
-                            self.dlstate = DLSTATUS_METADATA
-
-                        # Schedule this function call to be called again in 5 seconds
-                        self.register_task("check_create_wrapper", reactor.callLater(5, do_check))
+                    if tunnels_ready < 1:
+                        self.dlstate = DLSTATUS_CIRCUITS
+                        tunnel_community.build_tunnels(self.get_hops())
                     else:
-                        can_create_deferred.callback(True)
-                else:
+                        self.dlstate = DLSTATUS_METADATA
+
                     # Schedule this function call to be called again in 5 seconds
                     self.register_task("check_create_wrapper", reactor.callLater(5, do_check))
+                else:
+                    can_create_deferred.callback(True)
+            else:
+                # Schedule this function call to be called again in 5 seconds
+                self.register_task("check_create_wrapper", reactor.callLater(5, do_check))
 
         do_check()
         return can_create_deferred
 
     def network_create_engine_wrapper(self, pstate, checkpoint_disabled=False, share_mode=False):
-        with self.dllock:
-            self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
+        self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
 
-            atp = {}
-            atp["save_path"] = os.path.normpath(os.path.join(get_default_dest_dir(), self.get_dest_dir()))
-            atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
-            atp["paused"] = True
-            atp["auto_managed"] = False
-            atp["duplicate_is_error"] = True
-            atp["hops"] = self.get_hops()
+        atp = {}
+        atp["save_path"] = os.path.normpath(os.path.join(get_default_dest_dir(), self.get_dest_dir()))
+        atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
+        atp["paused"] = True
+        atp["auto_managed"] = False
+        atp["duplicate_is_error"] = True
+        atp["hops"] = self.get_hops()
 
-            if share_mode:
-                atp["flags"] = lt.add_torrent_params_flags_t.flag_share_mode
+        if share_mode:
+            atp["flags"] = lt.add_torrent_params_flags_t.flag_share_mode
 
-            self.set_checkpoint_disabled(checkpoint_disabled)
+        self.set_checkpoint_disabled(checkpoint_disabled)
 
-            resume_data = pstate.get('state', 'engineresumedata') if pstate else None
-            if not isinstance(self.tdef, TorrentDefNoMetainfo):
-                metainfo = self.tdef.get_metainfo()
-                torrentinfo = lt.torrent_info(metainfo)
+        resume_data = pstate.get('state', 'engineresumedata') if pstate else None
+        if not isinstance(self.tdef, TorrentDefNoMetainfo):
+            metainfo = self.tdef.get_metainfo()
+            torrentinfo = lt.torrent_info(metainfo)
 
-                self.orig_files = [file_entry.path.decode('utf-8') for file_entry in torrentinfo.files()]
-                is_multifile = len(self.orig_files) > 1
-                commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else ''
-                swarmname = commonprefix.partition(os.path.sep)[0]
+            self.orig_files = [file_entry.path.decode('utf-8') for file_entry in torrentinfo.files()]
+            is_multifile = len(self.orig_files) > 1
+            commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else ''
+            swarmname = commonprefix.partition(os.path.sep)[0]
 
-                if is_multifile and swarmname != self.correctedinfoname:
-                    for i, filename_old in enumerate(self.orig_files):
-                        filename_new = os.path.join(self.correctedinfoname, filename_old[len(swarmname) + 1:])
-                        # Path should be unicode if Libtorrent is using std::wstring (on Windows),
-                        # else we use str (on Linux).
-                        try:
-                            torrentinfo.rename_file(i, filename_new)
-                        except TypeError:
-                            torrentinfo.rename_file(i, filename_new.encode("utf-8"))
-                        self.orig_files[i] = filename_new
+            if is_multifile and swarmname != self.correctedinfoname:
+                for i, filename_old in enumerate(self.orig_files):
+                    filename_new = os.path.join(self.correctedinfoname, filename_old[len(swarmname) + 1:])
+                    # Path should be unicode if Libtorrent is using std::wstring (on Windows),
+                    # else we use str (on Linux).
+                    try:
+                        torrentinfo.rename_file(i, filename_new)
+                    except TypeError:
+                        torrentinfo.rename_file(i, filename_new.encode("utf-8"))
+                    self.orig_files[i] = filename_new
 
-                atp["ti"] = torrentinfo
-                has_resume_data = resume_data and isinstance(resume_data, dict)
-                if has_resume_data:
-                    atp["resume_data"] = lt.bencode(resume_data)
-            else:
-                atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
-                atp["name"] = self.tdef.get_name_as_unicode()
+            atp["ti"] = torrentinfo
+            has_resume_data = resume_data and isinstance(resume_data, dict)
+            if has_resume_data:
+                atp["resume_data"] = lt.bencode(resume_data)
+        else:
+            atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
+            atp["name"] = self.tdef.get_name_as_unicode()
 
-            self.handle = self.ltmgr.add_torrent(self, atp)
-            # assert self.handle.status().share_mode == share_mode
-            if self.handle.is_valid():
-                self.set_selected_files()
+        self.handle = self.ltmgr.add_torrent(self, atp)
+        # assert self.handle.status().share_mode == share_mode
+        if self.handle.is_valid():
+            self.set_selected_files()
 
-                user_stopped = pstate.get('download_defaults', 'user_stopped') if pstate else False
+            user_stopped = pstate.get('download_defaults', 'user_stopped') if pstate else False
 
-                # If we lost resume_data always resume download in order to force checking
-                if not user_stopped or not resume_data:
-                    self.handle.resume()
+            # If we lost resume_data always resume download in order to force checking
+            if not user_stopped or not resume_data:
+                self.handle.resume()
 
-                    # If we only needed to perform checking, pause download after it is complete
-                    self.pause_after_next_hashcheck = user_stopped
+                # If we only needed to perform checking, pause download after it is complete
+                self.pause_after_next_hashcheck = user_stopped
 
-                self.set_vod_mode(self.get_mode() == DLMODE_VOD)
+            self.set_vod_mode(self.get_mode() == DLMODE_VOD)
 
-                # Limit the amount of connections if we have specified that
-                max_conn_download = self.session.config.get_libtorrent_max_conn_download()
-                if max_conn_download != -1:
-                    self.handle.set_max_connections(max(2, max_conn_download))
-            else:
-                self._logger.error("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
-
-                self.cew_scheduled = False
-
-                # Return a deferred with the errback already being called
-                return defer.fail((self, pstate))
+            # Limit the amount of connections if we have specified that
+            max_conn_download = self.session.config.get_libtorrent_max_conn_download()
+            if max_conn_download != -1:
+                self.handle.set_max_connections(max(2, max_conn_download))
+        else:
+            self._logger.error("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
 
             self.cew_scheduled = False
 
-            # Return a deferred with the callback already being called
-            return defer.succeed(self)
+            # Return a deferred with the errback already being called
+            return defer.fail((self, pstate))
+
+        self.cew_scheduled = False
+
+        # Return a deferred with the callback already being called
+        return defer.succeed(self)
 
     def get_anon_mode(self):
         return self.get_hops() > 0
@@ -819,29 +812,25 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         """ Returns the status of the download.
         @return DLSTATUS_*
         """
-        with self.dllock:
-            return self.dlstate
+        return self.dlstate
 
     def get_length(self):
         """ Returns the size of the torrent content.
         @return float
         """
-        with self.dllock:
-            return self.length
+        return self.length
 
     def get_progress(self):
         """ Return fraction of content downloaded.
         @return float 0..1
         """
-        with self.dllock:
-            return self.progress
+        return self.progress
 
     def get_current_speed(self, dir):
         """ Return last reported speed in bytes/s
         @return float
         """
-        with self.dllock:
-            return self.curspeeds[dir]
+        return self.curspeeds[dir]
 
     def _on_resume_err(self, failure):
         failure.trap(CancelledError, SaveResumeDataError)
@@ -967,9 +956,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     def network_create_spew_from_peerlist(self):
         plist = []
-        with self.dllock:
-            peer_infos = self.handle.get_peer_info()
-        for peer_info in peer_infos:
+        for peer_info in self.handle.get_peer_info():
             # Only consider fully connected peers.
             # Disabling for now, to avoid presenting the user with conflicting information
             # (partially connected peers are included in seeder/leecher stats).
@@ -1010,39 +997,38 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     def network_get_state(self, usercallback, getpeerlist):
         """ Called by network thread """
-        with self.dllock:
-            if self.handle is None:
-                self._logger.debug("LibtorrentDownloadImpl: network_get_state: Download not running")
-                if self.dlstate != DLSTATUS_CIRCUITS:
-                    progress = self.progressbeforestop
-                else:
-                    tunnel_community = self.ltmgr.tribler_session.lm.tunnel_community
-                    progress = tunnel_community.tunnels_ready(self.get_hops()) if tunnel_community else 1
-
-                ds = DownloadState(self, self.dlstate, self.error, progress)
+        if self.handle is None:
+            self._logger.debug("LibtorrentDownloadImpl: network_get_state: Download not running")
+            if self.dlstate != DLSTATUS_CIRCUITS:
+                progress = self.progressbeforestop
             else:
-                (status, stats, seeding_stats, logmsgs) = self.network_get_stats(getpeerlist)
-                ds = DownloadState(self, status, self.error, self.get_progress(), stats=stats,
-                                   seeding_stats=seeding_stats, filepieceranges=self.filepieceranges, logmsgs=logmsgs)
-                self.progressbeforestop = ds.get_progress()
+                tunnel_community = self.ltmgr.tribler_session.lm.tunnel_community
+                progress = tunnel_community.tunnels_ready(self.get_hops()) if tunnel_community else 1
 
-            if usercallback:
-                # Invoke the usercallback function via a new thread.
-                # After the callback is invoked, the return values will be passed to the
-                # returncallback for post-callback processing.
-                if not self.done and not self.session.lm.shutdownstarttime:
-                    # runs on the reactor
-                    def session_getstate_usercallback_target():
-                        when, getpeerlist = usercallback(ds)
-                        if when > 0.0 and not self.session.lm.shutdownstarttime:
-                            # Schedule next invocation, either on general or DL specific
-                            dc = reactor.callLater(when, lambda: self.network_get_state(usercallback, getpeerlist))
-                            random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
-                            self.register_task("downloads_cb_%s" % random_id, dc)
+            ds = DownloadState(self, self.dlstate, self.error, progress)
+        else:
+            (status, stats, seeding_stats, logmsgs) = self.network_get_stats(getpeerlist)
+            ds = DownloadState(self, status, self.error, self.get_progress(), stats=stats,
+                               seeding_stats=seeding_stats, filepieceranges=self.filepieceranges, logmsgs=logmsgs)
+            self.progressbeforestop = ds.get_progress()
 
-                    reactor.callInThread(session_getstate_usercallback_target)
-            else:
-                return ds
+        if usercallback:
+            # Invoke the usercallback function via a new thread.
+            # After the callback is invoked, the return values will be passed to the
+            # returncallback for post-callback processing.
+            if not self.done and not self.session.lm.shutdownstarttime:
+                # runs on the reactor
+                def session_getstate_usercallback_target():
+                    when, getpeerlist = usercallback(ds)
+                    if when > 0.0 and not self.session.lm.shutdownstarttime:
+                        # Schedule next invocation, either on general or DL specific
+                        dc = reactor.callLater(when, lambda: self.network_get_state(usercallback, getpeerlist))
+                        random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
+                        self.register_task("downloads_cb_%s" % random_id, dc)
+
+                reactor.callInThread(session_getstate_usercallback_target)
+        else:
+            return ds
 
     def stop(self):
         self.set_user_stopped(True)
@@ -1058,27 +1044,26 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.cancel_all_pending_tasks()
 
         out = None
-        with self.dllock:
-            self._logger.debug("LibtorrentDownloadImpl: network_stop %s", self.tdef.get_name())
+        self._logger.debug("LibtorrentDownloadImpl: network_stop %s", self.tdef.get_name())
 
-            if self.handle is not None:
-                self._logger.debug("LibtorrentDownloadImpl: network_stop: engineresumedata from torrent handle")
-                self.pstate_for_restart = self.get_persistent_download_config()
-                if removestate:
-                    out = self.ltmgr.remove_torrent(self, removecontent)
-                    self.handle = None
-                else:
-                    self.set_vod_mode(False)
-                    self.handle.pause()
-                    self.save_resume_data()
-            else:
-                self._logger.debug("LibtorrentDownloadImpl: network_stop: handle is None")
-                self.cancel_pending_task("check_create_wrapper")
-                if self.dlstate == DLSTATUS_CIRCUITS:
-                    self.dlstate = DLSTATUS_STOPPED
-
+        if self.handle is not None:
+            self._logger.debug("LibtorrentDownloadImpl: network_stop: engineresumedata from torrent handle")
+            self.pstate_for_restart = self.get_persistent_download_config()
             if removestate:
-                self.session.lm.remove_pstate(self.tdef.get_infohash())
+                out = self.ltmgr.remove_torrent(self, removecontent)
+                self.handle = None
+            else:
+                self.set_vod_mode(False)
+                self.handle.pause()
+                self.save_resume_data()
+        else:
+            self._logger.debug("LibtorrentDownloadImpl: network_stop: handle is None")
+            self.cancel_pending_task("check_create_wrapper")
+            if self.dlstate == DLSTATUS_CIRCUITS:
+                self.dlstate = DLSTATUS_STOPPED
+
+        if removestate:
+            self.session.lm.remove_pstate(self.tdef.get_infohash())
 
         return out or succeed(None)
 
@@ -1101,21 +1086,20 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         # We stop a previous restart if it's active
         self.cancel_pending_task("check_create_wrapper")
 
-        with self.dllock:
-            if self.handle is None:
-                self.error = None
+        if self.handle is None:
+            self.error = None
 
-                def schedule_create_engine(_):
-                    self.cew_scheduled = True
-                    create_engine_wrapper_deferred = self.network_create_engine_wrapper(
-                        self.pstate_for_restart, share_mode=self.get_share_mode())
-                    create_engine_wrapper_deferred.addCallback(self.session.lm.on_download_handle_created)
+            def schedule_create_engine(_):
+                self.cew_scheduled = True
+                create_engine_wrapper_deferred = self.network_create_engine_wrapper(
+                    self.pstate_for_restart, share_mode=self.get_share_mode())
+                create_engine_wrapper_deferred.addCallback(self.session.lm.on_download_handle_created)
 
-                can_create_engine_deferred = self.can_create_engine_wrapper()
-                can_create_engine_deferred.addCallback(schedule_create_engine)
-            else:
-                self.handle.resume()
-                self.set_vod_mode(self.get_mode() == DLMODE_VOD)
+            can_create_engine_deferred = self.can_create_engine_wrapper()
+            can_create_engine_deferred.addCallback(schedule_create_engine)
+        else:
+            self.handle.resume()
+            self.set_vod_mode(self.get_mode() == DLMODE_VOD)
 
     @checkHandleAndSynchronize([])
     def get_dest_files(self, exts=None):
@@ -1190,8 +1174,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         return pstate
 
     def set_def(self, tdef):
-        with self.dllock:
-            self.tdef = tdef
+        self.tdef = tdef
 
     @checkHandleAndSynchronize()
     def add_trackers(self, trackers):
