@@ -8,7 +8,9 @@ from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import DataChecker
 from Tribler.pyipv8.ipv8.peer import Peer
+from Tribler.pyipv8.ipv8.peerdiscovery.deprecated.discovery import DiscoveryCommunity
 from Tribler.pyipv8.ipv8.peerdiscovery.discovery import RandomWalk
+from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from twisted.internet.defer import returnValue, inlineCallbacks
 from twisted.python.threadable import isInIOThread
@@ -130,6 +132,14 @@ class TestTunnelBase(TestAsServer):
                                   dht_provider=MockDHTProvider(session.lm.ipv8.endpoint.get_address()))
         session.lm.ipv8.overlays.append(overlay)
         session.lm.ipv8.strategies.append((RandomWalk(overlay), 20))
+
+        # We disable the discovery communities in this session since we don't want to walk to the live network
+        for overlay in session.lm.ipv8.overlays:
+            if isinstance(overlay, DiscoveryCommunity):
+                overlay.unload()
+
+        # Also reset the IPv8 network
+        session.lm.ipv8.network = Network()
 
         return overlay
 

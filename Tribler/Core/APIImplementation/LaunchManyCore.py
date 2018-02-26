@@ -13,7 +13,11 @@ from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
 from Tribler.Core.DecentralizedTracking.dht_provider import MainlineDHTProvider
+from Tribler.pyipv8.ipv8.keyvault.private.m2crypto import M2CryptoSK
 from Tribler.pyipv8.ipv8.peer import Peer
+from Tribler.pyipv8.ipv8.peerdiscovery.churn import RandomChurn
+from Tribler.pyipv8.ipv8.peerdiscovery.deprecated.discovery import DiscoveryCommunity
+from Tribler.pyipv8.ipv8.peerdiscovery.discovery import EdgeWalk, RandomWalk
 from Tribler.pyipv8.ipv8_service import IPv8
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, succeed
@@ -219,6 +223,19 @@ class TriblerLaunchMany(TaskManager):
 
     @blocking_call_on_reactor_thread
     def load_ipv8_overlays(self):
+        # Discovery Community
+        with open(self.session.config.get_permid_keypair_filename(), 'r') as key_file:
+            content = key_file.read()
+        content = content[31:-30].replace('\n', '').decode("BASE64")
+        peer = Peer(M2CryptoSK(keystring=content))
+        discovery_community = DiscoveryCommunity(peer, self.ipv8.endpoint, self.ipv8.network)
+        discovery_community.resolve_dns_bootstrap_addresses()
+        self.ipv8.overlays.append(discovery_community)
+        self.ipv8.strategies.append((RandomChurn(discovery_community), -1))
+
+        if not self.session.config.get_dispersy_enabled():
+            self.ipv8.strategies.append((RandomWalk(discovery_community), 20))
+
         # TriblerChain Community
         if self.session.config.get_trustchain_enabled():
             triblerchain_peer = Peer(self.session.trustchain_keypair)
@@ -229,8 +246,6 @@ class TriblerLaunchMany(TaskManager):
                                                                 tribler_session=self.session,
                                                                 working_directory=self.session.config.get_state_dir())
             self.ipv8.overlays.append(self.triblerchain_community)
-
-            from Tribler.pyipv8.ipv8.peerdiscovery.discovery import EdgeWalk
             self.ipv8.strategies.append((EdgeWalk(self.triblerchain_community), 20))
 
         # Tunnel Community
@@ -244,8 +259,6 @@ class TriblerLaunchMany(TaskManager):
                                                                self.mainline_dht,
                                                                self.session.config.get_dispersy_port()))
             self.ipv8.overlays.append(self.tunnel_community)
-
-            from Tribler.pyipv8.ipv8.peerdiscovery.discovery import RandomWalk
             self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
 
         # Market Community
@@ -281,7 +294,6 @@ class TriblerLaunchMany(TaskManager):
 
             self.ipv8.overlays.append(self.market_community)
 
-            from Tribler.pyipv8.ipv8.peerdiscovery.discovery import RandomWalk
             self.ipv8.strategies.append((RandomWalk(self.market_community), 20))
 
     @blocking_call_on_reactor_thread
@@ -361,7 +373,7 @@ class TriblerLaunchMany(TaskManager):
         tunnel_community_ports = self.session.config.get_tunnel_community_socks5_listen_ports()
         self.session.config.set_anon_proxy_settings(2, ("127.0.0.1", tunnel_community_ports))
 
-        if self.session.config.get_channel_search_enabled():
+        if self.session.config.get_channel_search_enabled() and self.session.config.get_dispersy_enabled():
             self.session.readable_status = STATE_INITIALIZE_CHANNEL_MGR
             from Tribler.Core.Modules.channel.channel_manager import ChannelManager
             self.channel_manager = ChannelManager(self.session)
@@ -388,7 +400,7 @@ class TriblerLaunchMany(TaskManager):
             self.torrent_checker = TorrentChecker(self.session)
             self.torrent_checker.initialize()
 
-        if self.rtorrent_handler:
+        if self.rtorrent_handler and self.session.config.get_dispersy_enabled():
             self.session.readable_status = STATE_START_REMOTE_TORRENT_HANDLER
             self.rtorrent_handler.initialize()
 
@@ -860,6 +872,7 @@ class TriblerLaunchMany(TaskManager):
 
         if self.ipv8:
             yield self.ipv8.stop(stop_reactor=False)
+            self.ipv8.endpoint.close()
 
         if self.metadata_store is not None:
             yield self.metadata_store.close()

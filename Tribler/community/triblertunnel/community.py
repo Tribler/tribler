@@ -15,10 +15,10 @@ from Tribler.pyipv8.ipv8.peer import Peer
 
 
 class TriblerTunnelCommunity(HiddenTunnelCommunity):
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000401a4903559f4e39f290e03b81aa2e648700a104b"
-                       "286a724afc95257be04c664786c429766128c733838da51b1c314a44e71fe4d1591b06e84084bf12dc650491e235"
-                       "4eb8d908470506ee1fc1c689c4389559e8cef6d9cb00c51d1eab740efd3de64d59375fa5e954876d28ff4d6d7ac7"
-                       "3337c95b003e4fd9cf8cc798e257b5f082a3191757c644f1e81b0a94e4b77145".decode('hex'))
+    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000402e1cd2a8158c078f5a048dd2caa4a868852e1758"
+                       "71c819947b2aabe414a6b1b6c35e89f554dd94b475c612a692a3132bbe4a30813702acd7647eb8023700dcda5b47d"
+                       "fe15f94a88049c2bb05f83f37d2cd85cce5efb8a9da6ac97dcdf97f83ae8696ffd1fab783ed28d004a99942fba756"
+                       "8a3edc2052ce379db4b3f40411d55c28e16466e9750038c677bb561eab325".decode('hex'))
 
     def __init__(self, *args, **kwargs):
         self.tribler_session = kwargs.pop('tribler_session', None)

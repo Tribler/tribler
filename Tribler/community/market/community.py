@@ -88,10 +88,10 @@ class MarketCommunity(TrustChainCommunity):
     BLOCK_CLASS = TradeChainBlock
     DB_CLASS = MarketDB
     DB_NAME = 'market'
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000407c78a0f74058fe70e6101709389ba198cd7f41826"
-                       "f160b546e3b9ad1c634e041cbd1da82849968f9736ef1d4ccc6c7ebd41ad4c29e6988e99f0f597925dd956b1f7b809"
-                       "fe13fe7702a34f95662699ad6e4756b169fd6cf61b2658818e0d0e9e144827c1b5c476603b8ba3b21a735f206e9c58"
-                       "a361c53f133de14b9552dfc317627e1014c901030bca5d88cea35c7489".decode('hex'))
+    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000405825d086899ad4c48fcb24cf5fc3df44f909dde8"
+                       "fc76486337c072c09f5e19753af9132e0a1ad13e90c70babf81eea9891fb73ca9bb3a52637a188358fe75769ccc7a"
+                       "100e2f3ca602de3ce8ed4a8607c495eb90125cbcbc1c85c0a3868ea5faaca135083eadf0b757d99d4a22efbb44656"
+                       "c105a5f8cf5c1339ccb238f62e715369630ad3a50301efe4c11f97f5d89fe".decode('hex'))
 
     def __init__(self, *args, **kwargs):
         self.is_matchmaker = kwargs.pop('is_matchmaker', True)
@@ -228,7 +228,7 @@ class MarketCommunity(TrustChainCommunity):
         Returns the address of the IPV8 instance. This method is here to make the experiments on the DAS5 succeed;
         direct messaging is not possible there with a wan address so we are using the local address instead.
         """
-        return self.endpoint.lan_address if self.use_local_address else self.endpoint.wan_address
+        return self.my_estimated_lan if self.use_local_address else self.my_estimated_wan
 
     def get_wallet_address(self, wallet_id):
         """
