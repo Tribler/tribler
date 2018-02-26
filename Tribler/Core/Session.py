@@ -464,15 +464,7 @@ class Session(object):
             self.readable_status = STATE_UPGRADING_READABLE
             upgrader.run()
 
-        startup_deferred = self.lm.register(self, self.session_lock)
-
-        def load_checkpoint(_):
-            if self.config.get_libtorrent_enabled():
-                self.readable_status = STATE_LOAD_CHECKPOINTS
-                self.load_checkpoint()
-            self.readable_status = STATE_READABLE_STARTED
-
-        return startup_deferred.addCallback(load_checkpoint)
+        self.lm.register(self, self.session_lock)
 
     @blocking_call_on_reactor_thread
     def shutdown(self):
