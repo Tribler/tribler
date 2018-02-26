@@ -42,7 +42,8 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
                                      DLSTATUS_SEEDING, NTFY_TORRENT, STATE_STARTING_DISPERSY, STATE_LOADING_COMMUNITIES,
                                      STATE_INITIALIZE_CHANNEL_MGR, STATE_START_MAINLINE_DHT, STATE_START_LIBTORRENT,
                                      STATE_START_TORRENT_CHECKER, STATE_START_REMOTE_TORRENT_HANDLER,
-                                     STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING)
+                                     STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING,
+                                     STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED)
 from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
 from Tribler.dispersy.taskmanager import TaskManager
@@ -103,8 +104,6 @@ class TriblerLaunchMany(TaskManager):
         self.torrent_checker = None
         self.tunnel_community = None
         self.triblerchain_community = None
-
-        self.startup_deferred = Deferred()
 
         self.credit_mining_manager = None
         self.market_community = None
@@ -214,12 +213,11 @@ class TriblerLaunchMany(TaskManager):
         if not self.initComplete:
             self.init()
 
-        self.session.add_observer(self.on_tribler_started, NTFY_TRIBLER, [NTFY_STARTED])
+        if self.session.config.get_libtorrent_enabled():
+            self.session.readable_status = STATE_LOAD_CHECKPOINTS
+            self.load_checkpoint()
+        self.session.readable_status = STATE_READABLE_STARTED
         self.session.notifier.notify(NTFY_TRIBLER, NTFY_STARTED, None)
-        return self.startup_deferred
-
-    def on_tribler_started(self, subject, changetype, objectID, *args):
-        reactor.callFromThread(self.startup_deferred.callback, None)
 
     @blocking_call_on_reactor_thread
     def load_ipv8_overlays(self):
