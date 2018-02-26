@@ -42,6 +42,6 @@ class TestHiddenServices(TestTunnelBase):
             yield self.deliver_messages()
 
         download = self.start_anon_download(hops=1)
-        download.set_state_callback(download_state_callback)
+        download.network_get_state(download_state_callback, False)
 
         yield self.test_deferred

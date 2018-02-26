@@ -1008,11 +1008,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         result['[PeX]'] = [pex_peers, 'Working' if not self.get_anon_mode() else 'Disabled']
         return result
 
-    def set_state_callback(self, usercallback, getpeerlist=False):
-        """ Called by any thread """
-        with self.dllock:
-            reactor.callFromThread(lambda: self.network_get_state(usercallback, getpeerlist))
-
     def network_get_state(self, usercallback, getpeerlist):
         """ Called by network thread """
         with self.dllock:
@@ -1041,12 +1036,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                         when, getpeerlist = usercallback(ds)
                         if when > 0.0 and not self.session.lm.shutdownstarttime:
                             # Schedule next invocation, either on general or DL specific
-                            def reschedule_cb():
-                                dc = reactor.callLater(when, lambda: self.network_get_state(usercallback, getpeerlist))
-                                random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
-                                self.register_task("downloads_cb_%s" % random_id, dc)
-
-                            reactor.callFromThread(reschedule_cb)
+                            dc = reactor.callLater(when, lambda: self.network_get_state(usercallback, getpeerlist))
+                            random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
+                            self.register_task("downloads_cb_%s" % random_id, dc)
 
                     reactor.callInThread(session_getstate_usercallback_target)
             else:

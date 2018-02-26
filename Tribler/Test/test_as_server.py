@@ -357,7 +357,7 @@ class TestAsServer(AbstractServer):
             self.dscfg_seed = DownloadStartupConfig()
             self.dscfg_seed.set_dest_dir(seed_dir)
             d = self.seeder_session.start_download_from_tdef(tdef, self.dscfg_seed)
-            d.set_state_callback(self.seeder_state_callback)
+            d.network_get_state(self.seeder_state_callback, False)
 
         self._logger.debug("starting to wait for download to reach seeding state")
 

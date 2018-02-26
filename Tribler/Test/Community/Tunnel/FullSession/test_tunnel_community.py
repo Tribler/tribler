@@ -35,7 +35,7 @@ class TestTunnelCommunity(TestTunnelBase):
             return 2.0, False
 
         download = self.start_anon_download()
-        download.set_state_callback(download_state_callback)
+        download.network_get_state(download_state_callback, False)
 
         yield self.test_deferred
 
@@ -56,7 +56,7 @@ class TestTunnelCommunity(TestTunnelBase):
             return 2.0, False
 
         download = self.start_anon_download()
-        download.set_state_callback(download_state_callback)
+        download.network_get_state(download_state_callback, False)
 
         reactor.callLater(30, self.test_deferred.callback, None)
 
@@ -79,7 +79,7 @@ class TestTunnelCommunity(TestTunnelBase):
             return 2.0, False
 
         download = self.start_anon_download(hops=2)
-        download.set_state_callback(download_state_callback)
+        download.network_get_state(download_state_callback, False)
 
         reactor.callLater(30, self.test_deferred.callback, None)
 

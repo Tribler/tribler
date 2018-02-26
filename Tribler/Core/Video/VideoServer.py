@@ -224,6 +224,6 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
                 self.event.set()
                 return 0, False
             return 1.0, False
-        download.set_state_callback(wait_for_buffer)
+        download.network_get_state(wait_for_buffer, False)
         self.event.wait()
         self.event.clear()

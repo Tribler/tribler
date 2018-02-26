@@ -33,7 +33,7 @@ class TestDownload(TestAsServer):
 
     def on_download(self, download):
         self._logger.debug("Download started: %s", download)
-        download.set_state_callback(self.downloader_state_callback)
+        download.network_get_state(self.downloader_state_callback, False)
 
     @deferred(timeout=60)
     def test_download_torrent_from_url(self):

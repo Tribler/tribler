@@ -44,7 +44,7 @@ class TestSeeding(TestAsServer):
 
     def start_download(self, dscfg):
         download = self.session.start_download_from_tdef(self.tdef, dscfg)
-        download.set_state_callback(self.downloader_state_callback)
+        download.network_get_state(self.downloader_state_callback, False)
 
         download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
 

@@ -194,7 +194,7 @@ class TestTunnelBase(TestAsServer):
         dscfg.set_dest_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
         dscfg.set_hops(hops)
         d = self.session2.start_download_from_tdef(tdef, dscfg)
-        d.set_state_callback(self.seeder_state_callback)
+        d.network_get_state(self.seeder_state_callback, False)
 
     def seeder_state_callback(self, ds):
         """

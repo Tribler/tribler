@@ -58,7 +58,7 @@ class TestVideoOnDemand(TestAsServer):
         dscfg.set_mode(DLMODE_VOD)
 
         download = self.session.start_download_from_tdef(self.tdef, dscfg)
-        download.set_state_callback(self.state_callback)
+        download.network_get_state(self.state_callback, False)
 
         self.session.set_download_states_callback(self.states_callback)
 
