@@ -860,8 +860,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         """
         @return (status, stats, seeding_stats, logmsgs, coopdl_helpers, coopdl_coordinator)
         """
-        # Called by any thread, assume dllock already acquired
-
         stats = {}
         stats['down'] = self.curspeeds[DOWNLOAD]
         stats['up'] = self.curspeeds[UPLOAD]

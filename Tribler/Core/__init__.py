@@ -4,7 +4,6 @@ Core functionality of the Tribler.
 Author(s): Arno Bakker
 """
 import logging
-from threading import RLock
 
 logger = logging.getLogger(__name__)
 
@@ -37,19 +36,3 @@ def warnIfDispersyThread(func):
 
     invoke_func.__name__ = func.__name__
     return invoke_func
-
-
-class NoDispersyRLock():
-
-    def __init__(self):
-        self.lock = RLock()
-        self.__enter__ = self.lock.__enter__
-        self.__exit__ = self.lock.__exit__
-
-    @warnIfDispersyThread
-    def acquire(self, blocking=1):
-        return self.lock.acquire(blocking)
-
-    @warnIfDispersyThread
-    def release(self):
-        return self.lock.release()
