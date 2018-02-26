@@ -1,6 +1,7 @@
 import os
 
 from Tribler.Core.CacheDB.sqlitecachedb import DB_FILE_RELATIVE_PATH
+from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_CHANNELCAST
 
 
@@ -79,8 +80,11 @@ class TriblerStatistics(object):
         Return a dictionary with general statistics of the active Dispersy communities.
         """
         communities_stats = []
-        dispersy = self.session.get_dispersy_instance()
-        dispersy.statistics.update()
+        try:
+            dispersy = self.session.get_dispersy_instance()
+            dispersy.statistics.update()
+        except OperationNotEnabledByConfigurationException:
+            return []
 
         for community in dispersy.statistics.communities:
             if community.dispersy_enable_candidate_walker or community.dispersy_enable_candidate_walker_responses or \
@@ -121,16 +125,19 @@ class TriblerStatistics(object):
         Return a dictionary with IPv8 overlay statistics.
         """
         communities_stats = []
-        ipv8 = self.session.get_ipv8_instance()
+        try:
+            ipv8 = self.session.get_ipv8_instance()
+        except OperationNotEnabledByConfigurationException:
+            return []
 
         for overlay in ipv8.overlays:
             verified_peers = overlay.network.verified_peers
-            peer_count = "%s" % len(verified_peers) if len(verified_peers) > 0 else "-"
             communities_stats.append({
                 "master_peer": overlay.master_peer.public_key.key_to_bin().encode('hex'),
                 "my_peer": overlay.my_peer.public_key.key_to_bin().encode('hex'),
                 "global_time": overlay.global_time,
-                "verified_peers": peer_count
+                "verified_peers": [str(peer) for peer in verified_peers],
+                "overlay_name": overlay.__class__.__name__
             })
 
         return communities_stats
