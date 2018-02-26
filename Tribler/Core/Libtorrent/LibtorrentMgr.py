@@ -396,13 +396,10 @@ class LibtorrentMgr(TaskManager):
         if not self.is_dht_ready() and timeout > 5:
             self._logger.info("DHT not ready, rescheduling get_metainfo")
 
-            def schedule_call():
-                random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
-                self.register_task("schedule_metainfo_lookup_%s" % random_id,
-                                   reactor.callLater(5, lambda i=infohash_or_magnet, c=callback, t=timeout - 5,
-                                                  tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n)))
-
-            reactor.callFromThread(schedule_call)
+            random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
+            self.register_task("schedule_metainfo_lookup_%s" % random_id,
+                               reactor.callLater(5, lambda i=infohash_or_magnet, c=callback, t=timeout - 5,
+                                              tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n)))
             return
 
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
@@ -450,12 +447,9 @@ class LibtorrentMgr(TaskManager):
                 self.got_metainfo(infohash, timeout=False)
                 return
 
-            def schedule_call():
-                random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
-                self.register_task("schedule_got_metainfo_lookup_%s" % random_id,
-                                   reactor.callLater(timeout, lambda: self.got_metainfo(infohash, timeout=True)))
-
-            reactor.callFromThread(schedule_call)
+            random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
+            self.register_task("schedule_got_metainfo_lookup_%s" % random_id,
+                               reactor.callLater(timeout, lambda: self.got_metainfo(infohash, timeout=True)))
         else:
             self.metainfo_requests[infohash]['notify'] = self.metainfo_requests[infohash]['notify'] and notify
             callbacks = self.metainfo_requests[infohash]['callbacks']
