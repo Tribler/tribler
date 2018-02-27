@@ -364,6 +364,14 @@ class TriblerLaunchMany(TaskManager):
 
             self.session.readable_status = STATE_LOADING_COMMUNITIES
 
+        # We should load the mainline DHT before loading the IPv8 overlays since the DHT is used for the tunnel overlay.
+        if self.session.config.get_mainline_dht_enabled():
+            self.session.readable_status = STATE_START_MAINLINE_DHT
+            from Tribler.Core.DecentralizedTracking import mainlineDHT
+            self.mainline_dht = mainlineDHT.init(('127.0.0.1', self.session.config.get_mainline_dht_port()),
+                                                 self.session.config.get_state_dir())
+            self.upnp_ports.append((self.session.config.get_mainline_dht_port(), 'UDP'))
+
         if self.ipv8:
             self.load_ipv8_overlays()
 
@@ -378,13 +386,6 @@ class TriblerLaunchMany(TaskManager):
             from Tribler.Core.Modules.channel.channel_manager import ChannelManager
             self.channel_manager = ChannelManager(self.session)
             self.channel_manager.initialize()
-
-        if self.session.config.get_mainline_dht_enabled():
-            self.session.readable_status = STATE_START_MAINLINE_DHT
-            from Tribler.Core.DecentralizedTracking import mainlineDHT
-            self.mainline_dht = mainlineDHT.init(('127.0.0.1', self.session.config.get_mainline_dht_port()),
-                                                 self.session.config.get_state_dir())
-            self.upnp_ports.append((self.session.config.get_mainline_dht_port(), 'UDP'))
 
         if self.session.config.get_libtorrent_enabled():
             self.session.readable_status = STATE_START_LIBTORRENT
