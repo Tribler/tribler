@@ -13,8 +13,8 @@ class DownloadWidgetItem(QTreeWidgetItem):
     This class is responsible for managing the item in the downloads list and fills the item with the relevant data.
     """
 
-    def __init__(self, parent):
-        QTreeWidgetItem.__init__(self, parent)
+    def __init__(self):
+        QTreeWidgetItem.__init__(self)
         self.download_info = None
         self._logger = logging.getLogger('TriblerGUI')
 
@@ -39,8 +39,8 @@ class DownloadWidgetItem(QTreeWidgetItem):
         bar_container.layout().addWidget(self.progress_slider)
         bar_container.layout().setContentsMargins(4, 4, 8, 4)
 
-        parent.setItemWidget(self, 2, bar_container)
         self.progress_slider.setAutoFillBackground(True)
+        self.bar_container = bar_container
 
     def update_with_download(self, download):
         self.download_info = download
