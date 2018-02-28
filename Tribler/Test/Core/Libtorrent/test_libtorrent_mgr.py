@@ -2,8 +2,10 @@ import binascii
 import os
 import shutil
 import tempfile
+
 from libtorrent import bencode
 from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet import reactor
 
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
@@ -226,18 +228,24 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.get_metainfo(magnet_link, lambda _: None)
         return test_deferred
 
+    @deferred(timeout=20)
     def test_add_torrent(self):
         """
         Testing the addition of a torrent to the libtorrent manager
         """
+        test_deferred = Deferred()
+
         mock_handle = MockObject()
         mock_handle.info_hash = lambda: 'a' * 20
         mock_handle.is_valid = lambda: False
 
-        mock_alert = type('add_torrent_alert', (object,), dict(handle=mock_handle))
+        mock_error = MockObject()
+        mock_error.value = lambda: None
+
+        mock_alert = type('add_torrent_alert', (object,), dict(handle=mock_handle, error=mock_error))()
 
         mock_ltsession = MockObject()
-        mock_ltsession.async_add_torrent = lambda _: self.ltmgr.process_alert(mock_alert)
+        mock_ltsession.async_add_torrent = lambda _: reactor.callLater(0.1, self.ltmgr.process_alert, mock_alert)
         mock_ltsession.find_torrent = lambda _: mock_handle
         mock_ltsession.get_torrents = lambda: []
         mock_ltsession.stop_upnp = lambda: None
@@ -255,9 +263,13 @@ class TestLibtorrentMgr(AbstractServer):
         def cb_torrent_added(handle):
             self.assertEqual(handle, mock_handle)
             self.assertRaises(DuplicateDownloadException, self.ltmgr.add_torrent, None, {'ti': infohash})
+            test_deferred.callback(None)
 
         self.ltmgr.add_torrent(mock_download, {'ti': infohash}).addCallback(cb_torrent_added)
 
+        return test_deferred
+
+    @deferred(timeout=20)
     def test_add_torrent_desync(self):
         """
         Testing the addition of a torrent to the libtorrent manager, if it already exists in the session.
@@ -283,7 +295,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         mock_download = MockObject()
         mock_download.deferred_added = Deferred()
-        self.ltmgr.add_torrent(mock_download, {'ti': infohash}).addCallback(
+        return self.ltmgr.add_torrent(mock_download, {'ti': infohash}).addCallback(
             lambda handle: self.assertEqual(handle, mock_handle)
         )
 

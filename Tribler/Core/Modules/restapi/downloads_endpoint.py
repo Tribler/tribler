@@ -178,22 +178,13 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                 and request.args['get_pieces'][0] == "1":
             get_pieces = True
 
+        get_files = 'get_files' in request.args and request.args['get_files'] and request.args['get_files'][0] == "1"
+
         downloads_json = []
         downloads = self.session.get_downloads()
         for download in downloads:
             state = download.get_state()
             tdef = download.get_def()
-
-            # Create files information of the download
-            files_completion = dict((name, progress) for name, progress in state.get_files_completion())
-            selected_files = download.get_selected_files()
-            files_array = []
-            file_index = 0
-            for file, size in tdef.get_files_with_length():
-                files_array.append({"index": file_index, "name": file, "size": size,
-                                    "included": (file in selected_files or not selected_files),
-                                    "progress": files_completion.get(file, 0.0)})
-                file_index += 1
 
             # Create tracker information of the download
             tracker_info = []
@@ -211,7 +202,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                              "num_peers": num_peers, "num_seeds": num_seeds,
                              "total_up": state.get_total_transferred(UPLOAD),
                              "total_down": state.get_total_transferred(DOWNLOAD), "ratio": state.get_seeding_ratio(),
-                             "files": files_array, "trackers": tracker_info, "hops": download.get_hops(),
+                             "trackers": tracker_info, "hops": download.get_hops(),
                              "anon_download": download.get_anon_mode(), "safe_seeding": download.get_safe_seeding(),
                              # Maximum upload/download rates are set for entire sessions
                              "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
@@ -238,6 +229,21 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             # Add piece information if requested
             if get_pieces:
                 download_json["pieces"] = download.get_pieces_base64()
+
+            # Add files if requested
+            if get_files:
+                files_completion = dict((name, progress) for name, progress in state.get_files_completion())
+                selected_files = download.get_selected_files()
+                files_array = []
+                file_index = 0
+                for fn, size in tdef.get_files_with_length():
+                    files_array.append({"index": file_index, "name": fn, "size": size,
+                                        "included": (fn in selected_files or not selected_files),
+                                        "progress": files_completion.get(fn, 0.0)})
+                    file_index += 1
+
+                download_json["files"] = files_array
+
 
             downloads_json.append(download_json)
         return json.dumps({"downloads": downloads_json})

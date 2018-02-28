@@ -98,7 +98,9 @@ class DownloadsPage(QWidget):
     def load_downloads(self):
         url = "downloads?get_pieces=1"
         if self.window().download_details_widget.currentIndex() == 3:
-            url = "downloads?get_peers=1&get_pieces=1"
+            url += "&get_peers=1"
+        elif self.window().download_details_widget.currentIndex() == 1:
+            url += "&get_files=1"
 
         if not self.isHidden() or (time.time() - self.downloads_last_update > 30):
             # Update if the downloads page is visible or if we haven't updated for longer than 30 seconds
