@@ -14,6 +14,8 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
     @inlineCallbacks
     def setUp(self, autoload_discovery=True):
         yield super(TestTrustchainStatsEndpoint, self).setUp(autoload_discovery=autoload_discovery)
+        self.session.lm.triblerchain_community._use_main_thread = False
+        self.session.lm.market_community._use_main_thread = False
 
     def setUpPreSession(self):
         super(TestTrustchainStatsEndpoint, self).setUpPreSession()

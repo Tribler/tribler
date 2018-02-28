@@ -26,6 +26,7 @@ class TestMarketEndpoint(AbstractApiTest):
     @inlineCallbacks
     def setUp(self, autoload_discovery=True):
         yield super(TestMarketEndpoint, self).setUp(autoload_discovery=autoload_discovery)
+        self.session.lm.market_community._use_main_thread = False
         dummy1_wallet = DummyWallet1()
         dummy2_wallet = DummyWallet2()
 

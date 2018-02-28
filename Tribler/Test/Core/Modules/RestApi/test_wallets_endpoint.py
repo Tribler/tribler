@@ -11,6 +11,12 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 class TestWalletsEndpoint(AbstractApiTest):
 
     @blocking_call_on_reactor_thread
+    def setUp(self, autoload_discovery=True):
+        super(TestWalletsEndpoint, self).setUp(autoload_discovery)
+        self.session.lm.triblerchain_community._use_main_thread = False
+        self.session.lm.market_community._use_main_thread = False
+
+    @blocking_call_on_reactor_thread
     def setUpPreSession(self):
         super(TestWalletsEndpoint, self).setUpPreSession()
         self.config.set_ipv8_enabled(True)
