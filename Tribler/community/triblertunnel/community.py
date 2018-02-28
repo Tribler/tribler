@@ -23,6 +23,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     def __init__(self, *args, **kwargs):
         self.tribler_session = kwargs.pop('tribler_session', None)
         super(TriblerTunnelCommunity, self).__init__(*args, **kwargs)
+        self._use_main_thread = True
 
         if self.tribler_session:
             self.settings.become_exitnode = self.tribler_session.config.get_tunnel_community_exitnode_enabled()

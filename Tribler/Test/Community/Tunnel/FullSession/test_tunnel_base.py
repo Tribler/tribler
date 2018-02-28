@@ -130,6 +130,7 @@ class TestTunnelBase(TestAsServer):
         overlay = self.test_class(tunnel_peer, session.lm.ipv8.endpoint, session.lm.ipv8.network,
                                   tribler_session=session,
                                   dht_provider=MockDHTProvider(session.lm.ipv8.endpoint.get_address()))
+        overlay._use_main_thread = False
         session.lm.ipv8.overlays.append(overlay)
         session.lm.ipv8.strategies.append((RandomWalk(overlay), 20))
 
