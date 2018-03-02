@@ -257,7 +257,8 @@ class TriblerLaunchMany(TaskManager):
                                                            tribler_session=self.session,
                                                            dht_provider=MainlineDHTProvider(
                                                                self.mainline_dht,
-                                                               self.session.config.get_dispersy_port()))
+                                                               self.session.config.get_dispersy_port()),
+                                                           triblerchain_community=self.triblerchain_community)
             self.ipv8.overlays.append(self.tunnel_community)
             self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
 

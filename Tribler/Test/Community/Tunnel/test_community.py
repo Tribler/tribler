@@ -1,18 +1,94 @@
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.ipv8_base import TestBase
+from Tribler.Test.mocking.exit_socket import MockTunnelExitSocket
 from Tribler.Test.mocking.ipv8 import MockIPv8
+from Tribler.Test.util.ipv8_util import twisted_wrapper
+from Tribler.community.triblerchain.community import TriblerChainCommunity
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RENDEZVOUS
+from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
+from twisted.internet.defer import inlineCallbacks
+
+
+# Map of info_hash -> peer list
+global_dht_services = {}
+
+
+class MockDHTProvider(object):
+
+    def __init__(self, address):
+        self.address = address
+
+    def lookup(self, info_hash, cb):
+        if info_hash in global_dht_services:
+            cb(info_hash, global_dht_services[info_hash], None)
+
+    def announce(self, info_hash):
+        if info_hash in global_dht_services:
+            global_dht_services[info_hash].append(self.address)
+        else:
+            global_dht_services[info_hash] = [self.address]
 
 
 class TestTriblerTunnelCommunity(TestBase):
 
     def setUp(self):
         super(TestTriblerTunnelCommunity, self).setUp()
+        self.private_nodes = []
         self.initialize(TriblerTunnelCommunity, 1)
 
+    def tearDown(self):
+        super(TestTriblerTunnelCommunity, self).tearDown()
+
+        for node in self.private_nodes:
+            node.unload()
+
     def create_node(self):
-        return MockIPv8(u"curve25519", TriblerTunnelCommunity)
+        mock_ipv8 = MockIPv8(u"curve25519", TriblerTunnelCommunity, socks_listen_ports=[])
+        mock_ipv8.overlay._use_main_thread = False
+
+        # Load the TriblerChain community
+        overlay = TriblerChainCommunity(mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network,
+                                        working_directory=u":memory:")
+        mock_ipv8.overlay.triblerchain_community = overlay
+        mock_ipv8.overlay.dht_provider = MockDHTProvider(mock_ipv8.endpoint.wan_address)
+
+        return mock_ipv8
+
+    @inlineCallbacks
+    def create_intro(self, node_nr, service):
+        """
+        Create an 1 hop introduction point for some node for some service.
+        """
+        lookup_service = self.nodes[node_nr].overlay.get_lookup_info_hash(service)
+        self.nodes[node_nr].overlay.hops[lookup_service] = 1
+        self.nodes[node_nr].overlay.create_introduction_point(lookup_service)
+
+        yield self.deliver_messages()
+
+        for node in self.nodes:
+            exit_sockets = node.overlay.exit_sockets
+            for exit_socket in exit_sockets:
+                exit_sockets[exit_socket] = MockTunnelExitSocket(exit_sockets[exit_socket])
+
+    @inlineCallbacks
+    def assign_exit_node(self, node_nr):
+        """
+        Give a node a dedicated exit node to play with.
+        """
+        exit_node = self.create_node()
+        self.private_nodes.append(exit_node)
+        exit_node.overlay.settings.become_exitnode = True
+        public_peer = Peer(exit_node.my_peer.public_key, exit_node.my_peer.address)
+        self.nodes[node_nr].network.add_verified_peer(public_peer)
+        self.nodes[node_nr].network.discover_services(public_peer, exit_node.overlay.master_peer.mid)
+        self.nodes[node_nr].overlay.update_exit_candidates(public_peer, True)
+        self.nodes[node_nr].overlay.build_tunnels(1)
+        yield self.deliver_messages()
+        exit_sockets = exit_node.overlay.exit_sockets
+        for exit_socket in exit_sockets:
+            exit_sockets[exit_socket] = MockTunnelExitSocket(exit_sockets[exit_socket])
 
     @blocking_call_on_reactor_thread
     def test_download_remove(self):
@@ -143,3 +219,64 @@ class TestTriblerTunnelCommunity(TestBase):
         # Test adding peers
         self.nodes[0].overlay.bittorrent_peers['a'] = {4}
         self.nodes[0].overlay.update_torrent(peers, mock_handle, 'a')
+
+    @twisted_wrapper
+    def test_payouts(self):
+        """
+        Test whether nodes are correctly paid after transferring data
+        """
+        self.add_node_to_experiment(self.create_node())
+        self.add_node_to_experiment(self.create_node())
+
+        # Build a tunnel
+        self.nodes[2].overlay.settings.become_exitnode = True
+        yield self.introduce_nodes()
+        self.nodes[0].overlay.build_tunnels(2)
+        yield self.deliver_messages()
+
+        self.assertEqual(self.nodes[0].overlay.tunnels_ready(2), 1.0)
+
+        # Destroy the circuit
+        for circuit_id, circuit in self.nodes[0].overlay.circuits.items():
+            circuit.bytes_down = 250 * 1024 * 1024
+            self.nodes[0].overlay.remove_circuit(circuit_id, destroy=True)
+
+        yield self.deliver_messages()
+
+        # Verify whether the downloader (node 0) correctly paid the relay and exit nodes.
+        self.assertTrue(self.nodes[0].overlay.triblerchain_community.get_bandwidth_tokens() < 0)
+        self.assertTrue(self.nodes[1].overlay.triblerchain_community.get_bandwidth_tokens() > 0)
+        self.assertTrue(self.nodes[2].overlay.triblerchain_community.get_bandwidth_tokens() > 0)
+
+    @twisted_wrapper
+    def test_payouts_e2e(self):
+        """
+        Check if payouts work for an e2e-linked circuit
+        """
+        self.add_node_to_experiment(self.create_node())
+        self.add_node_to_experiment(self.create_node())
+
+        service = '0' * 20
+
+        self.nodes[0].overlay.register_service(service, 1, None, 0)
+
+        yield self.introduce_nodes()
+        yield self.create_intro(2, service)
+        yield self.assign_exit_node(0)
+
+        self.nodes[0].overlay.do_dht_lookup(service)
+
+        yield self.deliver_messages(timeout=.2)
+
+        # Destroy the e2e-circuit
+        for circuit_id, circuit in self.nodes[0].overlay.circuits.items():
+            if circuit.ctype == CIRCUIT_TYPE_RENDEZVOUS:
+                circuit.bytes_down = 250 * 1024 * 1024
+                self.nodes[0].overlay.remove_circuit(circuit_id, destroy=True)
+
+        yield self.deliver_messages()
+
+        # Verify whether the downloader (node 0) correctly paid the subsequent nodes.
+        self.assertTrue(self.nodes[0].overlay.triblerchain_community.get_bandwidth_tokens() < 0)
+        self.assertTrue(self.nodes[1].overlay.triblerchain_community.get_bandwidth_tokens() > 0)
+        self.assertTrue(self.nodes[2].overlay.triblerchain_community.get_bandwidth_tokens() > 0)
