@@ -151,6 +151,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.deferreds_handle = []
         self.deferred_added = Deferred()
         self.deferred_removed = Deferred()
+        self.deferred_finished = Deferred()
 
         self.handle_check_lc = self.register_task("handle_check", LoopingCall(self.check_handle))
 
@@ -663,6 +664,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             if self.endbuffsize:
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
                 self.endbuffsize = 0
+        if not self.deferred_finished.called:
+            self.deferred_finished.callback(self)
 
     def update_lt_status(self, lt_status):
         """ Update libtorrent stats and check if the download should be stopped."""
