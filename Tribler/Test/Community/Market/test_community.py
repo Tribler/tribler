@@ -116,12 +116,12 @@ class TestMarketCommunity(TestMarketCommunityBase):
         order = self.nodes[0].overlay.create_ask(2, 'DUM1', 2, 'DUM2', 3600)
         order._traded_quantity._quantity = 1  # Partially fulfill this order
 
-        yield self.deliver_messages(timeout=.2)
+        yield self.deliver_messages(timeout=.4)
 
         self.assertEqual(len(self.nodes[2].overlay.order_book.asks), 1)
         self.nodes[1].overlay.create_bid(2, 'DUM1', 2, 'DUM2', 3600)
 
-        yield self.deliver_messages(timeout=.2)
+        yield self.deliver_messages(timeout=.4)
 
         self.assertTrue(self.nodes[0].overlay.transaction_manager.find_all())
         self.assertTrue(self.nodes[1].overlay.transaction_manager.find_all())
@@ -136,7 +136,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
         self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
 
-        yield self.deliver_messages(timeout=.2)
+        yield self.deliver_messages(timeout=.5)
 
         # Compute reputation
         self.nodes[0].overlay.compute_reputation()
@@ -164,7 +164,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
 
         ask_order = self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
 
-        yield self.deliver_messages(timeout=.2)
+        yield self.deliver_messages(timeout=.4)
 
         self.nodes[0].overlay.cancel_order(ask_order.order_id)
 
@@ -186,7 +186,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
         self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
 
-        yield self.deliver_messages(timeout=.2)
+        yield self.deliver_messages(timeout=.4)
 
         self.assertEqual(self.nodes[0].overlay.transaction_manager.find_all()[0].status, "error")
         self.assertEqual(self.nodes[1].overlay.transaction_manager.find_all()[0].status, "error")
@@ -205,7 +205,7 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
         self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
 
-        yield self.deliver_messages(timeout=.2)
+        yield self.deliver_messages(timeout=.5)
 
         # Verify that the trade has been made
         self.assertTrue(self.nodes[0].overlay.transaction_manager.find_all())

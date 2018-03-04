@@ -36,7 +36,6 @@ class TriblerChainCommunity(TrustChainCommunity):
     """
     BLOCK_CLASS = TriblerChainBlock
     DB_CLASS = TriblerChainDB
-    SIGN_DELAY = 5
     master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000405c66d3deddb1721787a247b2285118c06ce9fb"
                        "20ebd3546969fa2f4811fa92426637423d3bac1510f92b33e2ff5a785bf54eb3b28d29a77d557011d7d5241243c"
                        "9c89c987cd049404c4024999e1505fa96e1d6668234bde28a666d458d67251d17ff45185515a28967ddcf50503c"
@@ -45,11 +44,6 @@ class TriblerChainCommunity(TrustChainCommunity):
     def __init__(self, *args, **kwargs):
         self.tribler_session = kwargs.pop('tribler_session', None)
         super(TriblerChainCommunity, self).__init__(*args, **kwargs)
-        self.notifier = None
-
-        if self.tribler_session:
-            self.notifier = self.tribler_session.notifier
-            self.notifier.add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
 
         # We store the bytes send and received in the tunnel community in a dictionary.
         # The key is the public key of the peer being interacted with, the value a tuple of the up and down bytes
@@ -85,51 +79,10 @@ class TriblerChainCommunity(TrustChainCommunity):
             statistics["total_down"] = 0
         return statistics
 
-    def on_tunnel_remove(self, subject, change_type, tunnel, sock_addr):
-        """
-        Handler for the remove event of a tunnel. This function will attempt to create a block for the amounts that
-        were transferred using the tunnel.
-        :param subject: Category of the notifier event
-        :param change_type: Type of the notifier event
-        :param tunnel: The tunnel that was removed (closed)
-        :param sock_addr: The address of the peer with whom this node has interacted in the tunnel
-        """
-        tunnel_peer = None
-        for verified_peer in self.tribler_session.lm.tunnel_community.network.verified_peers:
-            if verified_peer.address == sock_addr:
-                tunnel_peer = verified_peer
-                break
-
-        if not tunnel_peer:
-            self.logger.warning("Could not find interacting peer for signing a TriblerChain block!")
-            return
-
-        up = tunnel.bytes_up
-        down = tunnel.bytes_down
-        pk = tunnel_peer.public_key.key_to_bin()
-
-        # If the transaction is not big enough we discard the bytes up and down.
-        if up + down >= MIN_TRANSACTION_SIZE:
-            # Tie breaker to prevent both parties from requesting
-            if up > down or (up == down and self.my_peer.public_key.key_to_bin() > pk):
-                self.register_task("sign_%s" % tunnel.circuit_id,
-                                   reactor.callLater(self.SIGN_DELAY, self.sign_block, tunnel_peer, pk,
-                                                     {'up': tunnel.bytes_up, 'down': tunnel.bytes_down}))
-            else:
-                pend = self.pending_bytes.get(pk)
-                if not pend:
-                    task = self.register_task("cleanup_pending_%s" % tunnel.circuit_id,
-                                              reactor.callLater(2 * 60, self.cleanup_pending, pk))
-                    self.pending_bytes[pk] = PendingBytes(up, down, task)
-                else:
-                    pend.add(up, down)
-
     def cleanup_pending(self, public_key):
         self.pending_bytes.pop(public_key, None)
 
     def unload(self):
-        if self.notifier:
-            self.notifier.remove_observer(self.on_tunnel_remove)
         for pk in self.pending_bytes:
             if self.pending_bytes[pk].clean is not None:
                 self.pending_bytes[pk].clean.reset(0)
