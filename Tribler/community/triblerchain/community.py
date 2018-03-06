@@ -1,7 +1,5 @@
 from Tribler.pyipv8.ipv8.deprecated.payload import IntroductionResponsePayload
-from twisted.internet import reactor
 
-from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
 from Tribler.community.triblerchain.block import TriblerChainBlock
 from Tribler.community.triblerchain.database import TriblerChainDB
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity

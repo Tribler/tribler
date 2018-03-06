@@ -306,39 +306,74 @@ color: black;
         </spacer>
        </item>
        <item>
-        <widget class="QToolButton" name="trust_button">
+        <widget class="QWidget" name="token_balance_widget" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="minimumSize">
           <size>
-           <width>24</width>
-           <height>24</height>
+           <width>88</width>
+           <height>34</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>24</width>
-           <height>24</height>
+           <width>88</width>
+           <height>34</height>
           </size>
          </property>
          <property name="cursor">
           <cursorShape>PointingHandCursor</cursorShape>
          </property>
          <property name="styleSheet">
-          <string notr="true">border: none;
-background: none;</string>
+          <string notr="true">QWidget { background-color: #4c4c4c; border-radius: 4px; }</string>
          </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset>
-           <normaloff>../images/trust.png</normaloff>../images/trust.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>24</width>
-           <height>24</height>
-          </size>
-         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_6">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>2</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>2</number>
+          </property>
+          <item>
+           <widget class="QLabel" name="token_balance_label">
+            <property name="styleSheet">
+             <string notr="true">color: #ddd; font-weight: bold; font-size: 14px; border: none;</string>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="token_name_label">
+            <property name="styleSheet">
+             <string notr="true">color: #ddd; font-size: 12px; border: none;</string>
+            </property>
+            <property name="text">
+             <string>Tokens (MB)</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
        <item>
@@ -11937,22 +11972,6 @@ color: #eee;</string>
    <hints>
     <hint type="sourcelabel">
      <x>789</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>trust_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_trust_button_click()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>757</x>
      <y>24</y>
     </hint>
     <hint type="destinationlabel">

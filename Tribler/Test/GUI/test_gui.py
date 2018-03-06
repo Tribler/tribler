@@ -568,33 +568,33 @@ class TriblerGUITest(AbstractTriblerGUITest):
         QTest.mouseClick(window.edit_channel_manage_playlist_save_button, Qt.LeftButton)
 
     def test_trust_page(self):
-        QTest.mouseClick(window.trust_button, Qt.LeftButton)
+        QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
         self.wait_for_variable("trust_page.blocks")
         self.screenshot(window, name="trust_page_values")
 
     def test_market_overview_page(self):
-        QTest.mouseClick(window.trust_button, Qt.LeftButton)
+        QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
         QTest.mouseClick(window.trade_button, Qt.LeftButton)
         self.wait_for_list_populated(window.asks_list)
         self.wait_for_list_populated(window.bids_list)
         self.screenshot(window, name="market_page_overview")
 
     def test_market_orders_page(self):
-        QTest.mouseClick(window.trust_button, Qt.LeftButton)
+        QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
         QTest.mouseClick(window.trade_button, Qt.LeftButton)
         QTest.mouseClick(window.market_orders_button, Qt.LeftButton)
         self.wait_for_list_populated(window.market_orders_list)
         self.screenshot(window, name="market_page_orders")
 
     def test_market_transactions_page(self):
-        QTest.mouseClick(window.trust_button, Qt.LeftButton)
+        QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
         QTest.mouseClick(window.trade_button, Qt.LeftButton)
         QTest.mouseClick(window.market_transactions_button, Qt.LeftButton)
         self.wait_for_list_populated(window.market_transactions_list)
         self.screenshot(window, name="market_page_transactions")
 
     def test_market_wallets_page(self):
-        QTest.mouseClick(window.trust_button, Qt.LeftButton)
+        QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
         QTest.mouseClick(window.trade_button, Qt.LeftButton)
         QTest.mouseClick(window.market_wallets_button, Qt.LeftButton)
         self.wait_for_variable("market_wallets_page.wallets")
