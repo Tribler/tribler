@@ -73,6 +73,8 @@ class MarketWalletsPage(QWidget):
 
         if len(self.wallets_to_create) > 0:
             self.window().add_wallet_button.setEnabled(True)
+        else:
+            self.window().add_wallet_button.hide()
 
     def load_transactions(self, wallet_id):
         self.request_mgr = TriblerRequestManager()
