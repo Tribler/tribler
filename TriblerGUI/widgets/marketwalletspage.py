@@ -1,6 +1,6 @@
 from PyQt5.QtGui import QCursor
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction
+from PyQt5.QtWidgets import QAction, QPushButton
 from PyQt5.QtWidgets import QTreeWidgetItem
 from PyQt5.QtWidgets import QWidget
 
@@ -27,11 +27,16 @@ class MarketWalletsPage(QWidget):
     def initialize_wallets_page(self):
         if not self.initialized:
             self.window().wallets_back_button.setIcon(QIcon(get_image_path('page_back.png')))
-            self.window().wallet_btc_overview_button.clicked.connect(lambda: self.load_transactions('BTC'))
-            self.window().wallet_mc_overview_button.clicked.connect(lambda: self.load_transactions('MC'))
-            self.window().wallet_paypal_overview_button.clicked.connect(lambda: self.load_transactions('PP'))
-            self.window().wallet_abn_overview_button.clicked.connect(lambda: self.load_transactions('ABNA'))
-            self.window().wallet_rabo_overview_button.clicked.connect(lambda: self.load_transactions('RABO'))
+            self.window().wallet_btc_overview_button.clicked.connect(
+                lambda: self.load_transactions('BTC', self.window().wallet_btc_overview_button))
+            self.window().wallet_mc_overview_button.clicked.connect(
+                lambda: self.load_transactions('MB', self.window().wallet_mc_overview_button))
+            self.window().wallet_paypal_overview_button.clicked.connect(
+                lambda: self.load_transactions('PP', self.window().wallet_paypal_overview_button))
+            self.window().wallet_abn_overview_button.clicked.connect(
+                lambda: self.load_transactions('ABNA', self.window().wallet_abn_overview_button))
+            self.window().wallet_rabo_overview_button.clicked.connect(
+                lambda: self.load_transactions('RABO', self.window().wallet_rabo_overview_button))
             self.window().add_wallet_button.clicked.connect(self.on_add_wallet_clicked)
             self.window().wallet_mc_overview_button.hide()
             self.window().wallet_btc_overview_button.hide()
@@ -50,7 +55,7 @@ class MarketWalletsPage(QWidget):
     def on_wallets(self, wallets):
         self.wallets = wallets["wallets"]
 
-        if 'MC' in self.wallets and self.wallets["MC"]["created"]:
+        if 'MB' in self.wallets and self.wallets["MB"]["created"]:
             self.window().wallet_mc_overview_button.show()
 
         if 'BTC' in self.wallets and self.wallets["BTC"]["created"]:
@@ -76,7 +81,12 @@ class MarketWalletsPage(QWidget):
         else:
             self.window().add_wallet_button.hide()
 
-    def load_transactions(self, wallet_id):
+    def load_transactions(self, wallet_id, pressed_button):
+        # Clear the selection of all other buttons, except the pressed button
+        for button in self.window().wallet_buttons_container.findChildren(QPushButton):
+            if button != pressed_button:
+                button.setChecked(False)
+
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("wallets/%s/transactions" % wallet_id, self.on_transactions)
 

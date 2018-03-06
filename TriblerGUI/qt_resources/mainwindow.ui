@@ -1015,7 +1015,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>9</number>
+         <number>15</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -5463,7 +5463,7 @@ color: white;</string>
                 </layout>
                </widget>
               </item>
-<item row="14" column="0">
+              <item row="14" column="0">
                <widget class="QLabel" name="tribler_profile_header_label">
                 <property name="styleSheet">
                  <string notr="true">font-weight: bold;
@@ -6291,7 +6291,7 @@ color: white;</string>
                 </property>
                </widget>
               </item>
-             <item>
+              <item>
                <widget class="QCheckBox" name="credit_mining_enabled_checkbox">
                 <property name="text">
                  <string>Enable Trustchain mining</string>
@@ -10874,7 +10874,7 @@ background-color: transparent;
            </widget>
           </item>
           <item>
-           <widget class="QWidget" name="widget_34" native="true">
+           <widget class="QWidget" name="wallet_buttons_container" native="true">
             <property name="styleSheet">
              <string notr="true">QPushButton {
 background: none;
@@ -10922,7 +10922,7 @@ background-color: #333;
                 <cursorShape>PointingHandCursor</cursorShape>
                </property>
                <property name="text">
-                <string>Reputation</string>
+                <string>Tokens</string>
                </property>
                <property name="icon">
                 <iconset>

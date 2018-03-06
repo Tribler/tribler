@@ -22,13 +22,13 @@ class TestTrustchainWallet(TestBase):
         """
         Test the identifier of the Trustchain wallet
         """
-        self.assertEqual(self.tc_wallet.get_name(), 'Reputation')
+        self.assertEqual(self.tc_wallet.get_name(), 'Tokens (MB)')
 
     def test_get_mc_wallet_id(self):
         """
         Test the identifier of a Trustchain wallet
         """
-        self.assertEqual(self.tc_wallet.get_identifier(), 'MC')
+        self.assertEqual(self.tc_wallet.get_identifier(), 'MB')
 
     @twisted_wrapper
     def test_get_balance(self):
