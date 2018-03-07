@@ -178,3 +178,16 @@ class TestDatabase(AbstractServer):
         Test the check of the database
         """
         self.assertEqual(self.database.check_database(unicode(LATEST_DB_VERSION)), LATEST_DB_VERSION)
+
+    @blocking_call_on_reactor_thread
+    def test_get_upgrade_script(self):
+        """
+        Test fetching the upgrade script of the database
+        """
+        self.assertTrue(self.database.get_upgrade_script(1))
+
+    @blocking_call_on_reactor_thread
+    def test_db_upgrade(self):
+        self.database.execute(u"DROP TABLE orders;")
+        self.database.execute(u"CREATE TABLE orders(x INTEGER PRIMARY KEY ASC);")
+        self.assertEqual(self.database.check_database(u"1"), 2)

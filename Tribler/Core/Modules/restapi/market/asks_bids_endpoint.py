@@ -1,6 +1,7 @@
 import json
 
 from twisted.web import http
+from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.Modules.restapi import has_param, get_param
 from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
@@ -54,11 +55,11 @@ class AsksEndpoint(BaseAsksBidsEndpoint):
                 {
                     "asks": [{
                         "price_type": "BTC",
-                        "quantity_type": "MC",
+                        "quantity_type": "MB",
                         "ticks": [{
                             "trader_id": "12c406358ba05e5883a75da3f009477e4ca699a9",
                             "timeout": 3600,
-                            "quantity_type": "MC",
+                            "quantity_type": "MB",
                             "price_type": "BTC",
                             "timestamp": 1493905920.68573,
                             "price": 10.0,
@@ -81,7 +82,7 @@ class AsksEndpoint(BaseAsksBidsEndpoint):
             .. sourcecode:: none
 
                 curl -X PUT http://localhost:8085/market/asks --data
-                "price=10&quantity=10&price_type=BTC&quantity_type=MC"
+                "price=10&quantity=10&price_type=BTC&quantity_type=MB"
 
             **Example response**:
 
@@ -101,8 +102,15 @@ class AsksEndpoint(BaseAsksBidsEndpoint):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "price_type or quantity_type parameter missing"})
 
-        self.get_market_community().create_ask(*BaseAsksBidsEndpoint.create_ask_bid_from_params(parameters))
-        return json.dumps({"created": True})
+        def on_ask_created(_):
+            if not request.finished:
+                request.write(json.dumps({"created": True}))
+                request.finish()
+
+        self.get_market_community().create_ask(*BaseAsksBidsEndpoint.create_ask_bid_from_params(parameters))\
+            .addCallback(on_ask_created)
+
+        return NOT_DONE_YET
 
 
 class BidsEndpoint(BaseAsksBidsEndpoint):
@@ -129,11 +137,11 @@ class BidsEndpoint(BaseAsksBidsEndpoint):
                 {
                     "bids": [{
                         "price_type": "BTC",
-                        "quantity_type": "MC",
+                        "quantity_type": "MB",
                         "ticks": [{
                             "trader_id": "12c406358ba05e5883a75da3f009477e4ca699a9",
                             "timeout": 3600,
-                            "quantity_type": "MC",
+                            "quantity_type": "MB",
                             "price_type": "BTC",
                             "timestamp": 1493905920.68573,
                             "price": 10.0,
@@ -156,7 +164,7 @@ class BidsEndpoint(BaseAsksBidsEndpoint):
             .. sourcecode:: none
 
                 curl -X PUT http://localhost:8085/market/bids --data
-                "price=10&quantity=10&price_type=BTC&quantity_type=MC"
+                "price=10&quantity=10&price_type=BTC&quantity_type=MB"
 
             **Example response**:
 
@@ -176,5 +184,12 @@ class BidsEndpoint(BaseAsksBidsEndpoint):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "price_type or quantity_type parameter missing"})
 
-        self.get_market_community().create_bid(*BaseAsksBidsEndpoint.create_ask_bid_from_params(parameters))
-        return json.dumps({"created": True})
+        def on_bid_created(_):
+            if not request.finished:
+                request.write(json.dumps({"created": True}))
+                request.finish()
+
+        self.get_market_community().create_bid(*BaseAsksBidsEndpoint.create_ask_bid_from_params(parameters))\
+            .addCallback(on_bid_created)
+
+        return NOT_DONE_YET
