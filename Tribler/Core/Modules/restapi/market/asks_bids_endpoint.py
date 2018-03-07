@@ -22,7 +22,7 @@ class BaseAsksBidsEndpoint(BaseMarketEndpoint):
             timeout = float(get_param(parameters, 'timeout'))
 
         price = float(get_param(parameters, 'price'))
-        quantity = int(get_param(parameters, 'quantity'))
+        quantity = float(get_param(parameters, 'quantity'))
 
         price_type = get_param(parameters, 'price_type')
         quantity_type = get_param(parameters, 'quantity_type')
