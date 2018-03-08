@@ -153,8 +153,6 @@ def get_existing_tribler_pids():
         core_pid = process_checker.get_pid_from_lock_file()
         if core_pid not in pids:
             pids.append(int(core_pid))
-    # ProcessChecker creates a lock file, remove it before continuing
-    process_checker.remove_lock_file()
 
     return pids
 
@@ -185,6 +183,9 @@ def should_kill_other_tribler_instances():
                 os.kill(pid, 9)
             window.update()
             window.quit()
+
+            # Restart Tribler again with the same arguments
+            os.execl(sys.executable, sys.executable, *sys.argv)
         else:
             window.update()
             window.quit()

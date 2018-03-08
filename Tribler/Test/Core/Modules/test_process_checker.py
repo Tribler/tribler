@@ -26,27 +26,49 @@ class TestProcessChecker(AbstractServer):
         with open(os.path.join(self.state_dir, LOCK_FILE_NAME), 'wb') as lock_file:
             lock_file.write(str(pid))
 
-    def test_no_lock_file(self):
-        """Testing whether the process checker returns false when there is no lock file."""
+    def test_create_lock_file(self):
+        """
+        Testing if lock file is created
+        """
         process_checker = ProcessChecker(state_directory=self.state_dir)
+        process_checker.create_lock_file()
         self.assertTrue(os.path.exists(os.path.join(self.state_dir, LOCK_FILE_NAME)))
+
+    def test_remove_lock_file(self):
+        """
+        Testing if lock file is removed on calling remove_lock_file()
+        """
+        process_checker = ProcessChecker(state_directory=self.state_dir)
+        process_checker.create_lock_file()
+        process_checker.remove_lock_file()
+        self.assertFalse(os.path.exists(os.path.join(self.state_dir, LOCK_FILE_NAME)))
+
+    def test_no_lock_file(self):
+        """
+        Testing whether the process checker returns false when there is no lock file
+        """
+        process_checker = ProcessChecker(state_directory=self.state_dir)
+        # Process checker does not create a lock file itself now, Core manager will call to create it.
+        self.assertFalse(os.path.exists(os.path.join(self.state_dir, LOCK_FILE_NAME)))
         self.assertFalse(process_checker.already_running)
 
     def test_invalid_pid_in_lock_file(self):
         """
-        Test whether a new lock file is created when an invalid pid is written inside the current lock file
+        Testing pid should be -1 if the lock file is invalid
         """
         with open(os.path.join(self.state_dir, LOCK_FILE_NAME), 'wb') as lock_file:
             lock_file.write("Hello world")
 
-        process_checker = ProcessChecker()
-        self.assertGreater(int(process_checker.get_pid_from_lock_file()), 0)
+        process_checker = ProcessChecker(state_directory=self.state_dir)
+        self.assertEqual(process_checker.get_pid_from_lock_file(), -1)
 
     def test_own_pid_in_lock_file(self):
-        """Testing whether the process checker returns false when it finds its own pid in the lock file."""
+        """
+        Testing whether the process checker returns True when it finds its own pid in the lock file
+        """
         self.create_lock_file_with_pid(os.getpid())
         process_checker = ProcessChecker(state_directory=self.state_dir)
-        self.assertFalse(process_checker.already_running)
+        self.assertTrue(process_checker.already_running)
 
     def test_other_instance_running(self):
         """Testing whether the process checker returns true when another process is running."""

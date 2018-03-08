@@ -101,6 +101,8 @@ def start_tribler_core(base_path, child_pipe):
         process_checker = ProcessChecker(config.get_state_dir())
         if process_checker.already_running:
             return
+        else:
+            process_checker.create_lock_file()
 
         session = Session(config)
 
