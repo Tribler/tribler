@@ -34,7 +34,8 @@ class Options(usage.Options):
     ]
     optFlags = [
         ["auto-join-channel", "a", "Automatically join a channel when discovered"],
-        ["log-incoming-searches", "i", "Write information about incoming remote searches to a file"]
+        ["log-incoming-searches", "i", "Write information about incoming remote searches to a file"],
+        ["testnet", "t", "Join the Tribler Testnet"]
     ]
 
 
@@ -99,9 +100,14 @@ class TriblerServiceMaker(object):
 
         if options["dispersy"] > 0:
             config.set_dispersy_port(options["dispersy"])
+        elif options["dispersy"] == 0:
+            config.set_dispersy_enabled(False)
 
         if options["libtorrent"] != -1 and options["libtorrent"] > 0:
             config.set_libtorrent_port(options["libtorrent"])
+
+        if "testnet" in options and options["testnet"]:
+            config.set_ipv8_use_testnet(True)
 
         self.session = Session(config)
         self.session.start().addErrback(lambda failure: self.shutdown_process(failure.getErrorMessage()))

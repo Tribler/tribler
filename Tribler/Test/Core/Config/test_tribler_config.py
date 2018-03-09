@@ -151,6 +151,15 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_dispersy_port(True)
         self.assertEqual(self.tribler_config.get_dispersy_port(), True)
 
+    def test_get_set_methods_ipv8(self):
+        """
+        Check whether IPv8 get and set methods are working as expected.
+        """
+        self.tribler_config.set_ipv8_enabled(False)
+        self.assertEqual(self.tribler_config.get_ipv8_enabled(), False)
+        self.tribler_config.set_ipv8_use_testnet(True)
+        self.assertEqual(self.tribler_config.get_ipv8_use_testnet(), True)
+
     def test_get_set_methods_libtorrent(self):
         """
         Check whether libtorrent get and set methods are working as expected.

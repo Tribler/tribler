@@ -89,6 +89,7 @@ port = integer(min=-1, max=65536, default=-1)
 
 [ipv8]
 enabled = boolean(default=True)
+use_testnet = boolean(default=False)
 
 [video_server]
 enabled = boolean(default=True)

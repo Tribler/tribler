@@ -197,6 +197,12 @@ class TriblerLaunchMany(TaskManager):
                 ipv8_config['overlays'] = []
                 ipv8_config['keys'] = []  # We load the keys ourselves
 
+                if self.session.config.get_ipv8_use_testnet():
+                    # Replace the default servers with our testnet server
+                    import Tribler.pyipv8.ipv8.deprecated.community as community_file
+                    community_file._DEFAULT_ADDRESSES = [("95.211.155.142", 7001)]
+                    community_file._DNS_ADDRESSES = []
+
                 if self.session.config.get_dispersy_enabled():
                     from Tribler.Core.APIImplementation.IPv8EndpointAdapter import IPv8EndpointAdapter
                     self.ipv8 = IPv8(ipv8_config, IPv8EndpointAdapter(dispersy_endpoint))
