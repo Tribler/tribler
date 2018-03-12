@@ -65,8 +65,8 @@ class TunnelDispatcher(object):
                 return False
 
             self.destinations[hops][destination] = selected_circuit
-            self._logger.info("SELECT circuit %d for %s", self.destinations[hops][destination].circuit_id,
-                              destination)
+            self._logger.debug("SELECT circuit %d for %s", self.destinations[hops][destination].circuit_id,
+                               destination)
         circuit = self.destinations[hops][destination]
 
         if circuit.state != CIRCUIT_STATE_READY:
