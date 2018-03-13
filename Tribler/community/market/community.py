@@ -118,6 +118,7 @@ class MarketCommunity(TrustChainCommunity):
         self.matchmakers = set()
         self.pending_matchmaker_deferreds = []
         self.request_cache = RequestCache()
+        self.cancelled_orders = set()  # Keep track of cancelled orders so we don't add them again to the orderbook.
 
         if use_database:
             order_repository = DatabaseOrderRepository(self.mid, self.market_database)
@@ -379,6 +380,7 @@ class MarketCommunity(TrustChainCommunity):
         order_id = OrderId(TraderId(block.transaction["trader_id"]), OrderNumber(block.transaction["order_number"]))
         if self.is_matchmaker and self.order_book.tick_exists(order_id):
             self.order_book.remove_tick(order_id)
+            self.cancelled_orders.add(order_id)
 
     def send_info(self, peer):
         """
@@ -719,7 +721,8 @@ class MarketCommunity(TrustChainCommunity):
             insert_method = self.order_book.insert_ask if isinstance(tick, Ask) else self.order_book.insert_bid
             timeout_method = self.on_ask_timeout if isinstance(tick, Ask) else self.on_bid_timeout
 
-            if not self.order_book.tick_exists(tick.order_id) and tick.quantity > Quantity(0, tick.quantity.wallet_id):
+            if not self.order_book.tick_exists(tick.order_id) and tick.quantity > Quantity(0, tick.quantity.wallet_id) \
+                    and tick.order_id not in self.cancelled_orders:
                 self.logger.debug("Inserting %s from %s (price: %s, quantity: %s)",
                                   tick, tick.order_id, tick.price, tick.quantity)
                 insert_method(tick).addCallback(timeout_method)
