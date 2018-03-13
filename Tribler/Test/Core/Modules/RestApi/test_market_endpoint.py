@@ -1,6 +1,6 @@
 import json
 
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, succeed
 
 from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -78,6 +78,8 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertIn('ticks', json_response['asks'][0])
             self.assertEqual(len(json_response['asks'][0]['ticks']), 1)
 
+        self.session.lm.market_community.send_block_pair = lambda *_: None
+        self.session.lm.market_community.create_new_tick_block = lambda _: succeed((None, None))
         self.session.lm.market_community.create_ask(10, 'DUM1', 10, 'DUM2', 3600)
         self.should_check_equality = False
         return self.do_request('market/asks', expected_code=200).addCallback(on_response)
@@ -91,6 +93,8 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertEqual(len(self.session.lm.market_community.order_book.asks), 1)
 
         self.should_check_equality = False
+        self.session.lm.market_community.send_block_pair = lambda *_: None
+        self.session.lm.market_community.create_new_tick_block = lambda _: succeed((None, None))
         post_data = {'price': 10, 'quantity': 10, 'price_type': 'DUM1', 'quantity_type': 'DUM2', 'timeout': 3400}
         return self.do_request('market/asks', expected_code=200, request_type='PUT', post_data=post_data)\
             .addCallback(on_response)
@@ -125,6 +129,8 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertIn('ticks', json_response['bids'][0])
             self.assertEqual(len(json_response['bids'][0]['ticks']), 1)
 
+        self.session.lm.market_community.send_block_pair = lambda *_: None
+        self.session.lm.market_community.create_new_tick_block = lambda _: succeed((None, None))
         self.session.lm.market_community.create_bid(10, 'DUM1', 10, 'DUM2', 3600)
         self.should_check_equality = False
         return self.do_request('market/bids', expected_code=200).addCallback(on_response)
@@ -138,6 +144,8 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertEqual(len(self.session.lm.market_community.order_book.bids), 1)
 
         self.should_check_equality = False
+        self.session.lm.market_community.send_block_pair = lambda *_: None
+        self.session.lm.market_community.create_new_tick_block = lambda _: succeed((None, None))
         post_data = {'price': 10, 'quantity': 10, 'price_type': 'DUM1', 'quantity_type': 'DUM2'}
         return self.do_request('market/bids', expected_code=200, request_type='PUT', post_data=post_data) \
             .addCallback(on_response)
@@ -229,8 +237,10 @@ class TestMarketEndpoint(AbstractApiTest):
         """
         Test whether an error is returned when we try to cancel an order that has expired
         """
-        self.session.lm.market_community.order_manager.create_ask_order(
+        order = self.session.lm.market_community.order_manager.create_ask_order(
             Price(3, 'DUM1'), Quantity(4, 'DUM2'), Timeout(0))
+        order.set_verified()
+        self.session.lm.market_community.order_manager.order_repository.update(order)
         self.should_check_equality = False
         return self.do_request('market/orders/1/cancel', request_type='POST', expected_code=400)
 

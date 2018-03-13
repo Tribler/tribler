@@ -1,6 +1,9 @@
+from PIL.ImageQt import ImageQt
+from PyQt5 import QtGui, QtCore
+
 from PyQt5.QtGui import QCursor
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction
+from PyQt5.QtWidgets import QAction, QPushButton, QSizePolicy
 from PyQt5.QtWidgets import QTreeWidgetItem
 from PyQt5.QtWidgets import QWidget
 
@@ -22,22 +25,31 @@ class MarketWalletsPage(QWidget):
         self.initialized = False
         self.wallets_to_create = []
         self.wallets = None
+        self.active_wallet = None
         self.dialog = None
 
     def initialize_wallets_page(self):
         if not self.initialized:
             self.window().wallets_back_button.setIcon(QIcon(get_image_path('page_back.png')))
-            self.window().wallet_btc_overview_button.clicked.connect(lambda: self.load_transactions('BTC'))
-            self.window().wallet_mc_overview_button.clicked.connect(lambda: self.load_transactions('MC'))
-            self.window().wallet_paypal_overview_button.clicked.connect(lambda: self.load_transactions('PP'))
-            self.window().wallet_abn_overview_button.clicked.connect(lambda: self.load_transactions('ABNA'))
-            self.window().wallet_rabo_overview_button.clicked.connect(lambda: self.load_transactions('RABO'))
+            self.window().wallet_btc_overview_button.clicked.connect(
+                lambda: self.initialize_wallet_info('BTC', self.window().wallet_btc_overview_button))
+            self.window().wallet_mc_overview_button.clicked.connect(
+                lambda: self.initialize_wallet_info('MB', self.window().wallet_mc_overview_button))
+            self.window().wallet_paypal_overview_button.clicked.connect(
+                lambda: self.initialize_wallet_info('PP', self.window().wallet_paypal_overview_button))
+            self.window().wallet_abn_overview_button.clicked.connect(
+                lambda: self.initialize_wallet_info('ABNA', self.window().wallet_abn_overview_button))
+            self.window().wallet_rabo_overview_button.clicked.connect(
+                lambda: self.initialize_wallet_info('RABO', self.window().wallet_rabo_overview_button))
             self.window().add_wallet_button.clicked.connect(self.on_add_wallet_clicked)
             self.window().wallet_mc_overview_button.hide()
             self.window().wallet_btc_overview_button.hide()
             self.window().wallet_paypal_overview_button.hide()
             self.window().wallet_abn_overview_button.hide()
             self.window().wallet_rabo_overview_button.hide()
+            self.window().wallet_info_tabs.hide()
+
+            self.window().wallet_info_tabs.currentChanged.connect(self.tab_changed)
 
             self.initialized = True
 
@@ -50,7 +62,7 @@ class MarketWalletsPage(QWidget):
     def on_wallets(self, wallets):
         self.wallets = wallets["wallets"]
 
-        if 'MC' in self.wallets and self.wallets["MC"]["created"]:
+        if 'MB' in self.wallets and self.wallets["MB"]["created"]:
             self.window().wallet_mc_overview_button.show()
 
         if 'BTC' in self.wallets and self.wallets["BTC"]["created"]:
@@ -73,6 +85,45 @@ class MarketWalletsPage(QWidget):
 
         if len(self.wallets_to_create) > 0:
             self.window().add_wallet_button.setEnabled(True)
+        else:
+            self.window().add_wallet_button.hide()
+
+    def tab_changed(self, index):
+        if index == 1 and self.active_wallet:
+            self.load_transactions(self.active_wallet)
+
+    def initialize_wallet_info(self, wallet_id, pressed_button):
+        # Show the tab again
+        self.window().wallet_info_tabs.show()
+        self.window().wallet_management_placeholder_widget.hide()
+
+        # Clear the selection of all other buttons, except the pressed button
+        for button in self.window().wallet_buttons_container.findChildren(QPushButton):
+            if button != pressed_button:
+                button.setChecked(False)
+
+        self.active_wallet = wallet_id
+        self.window().wallet_address_label.setText(self.wallets[wallet_id]['address'])
+
+        # Create a QR code of the wallet address
+        try:
+            import qrcode
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_M,
+                box_size=10,
+                border=5,
+            )
+            qr.add_data(self.wallets[wallet_id]['address'])
+            qr.make(fit=True)
+
+            img = qr.make_image()  # PIL format
+
+            qim = ImageQt(img)
+            pixmap = QtGui.QPixmap.fromImage(qim).scaled(300, 300, QtCore.Qt.KeepAspectRatio)
+            self.window().wallet_address_qr_label.setPixmap(pixmap)
+        except ImportError:
+            self.window().wallet_address_qr_label.setText("QR Code functionality not available!")
 
     def load_transactions(self, wallet_id):
         self.request_mgr = TriblerRequestManager()

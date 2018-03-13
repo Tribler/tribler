@@ -35,8 +35,10 @@ class OrderTestSuite(unittest.TestCase):
         self.order_timestamp = Timestamp.now()
         self.order = Order(OrderId(TraderId("0"), OrderNumber(3)), Price(100, 'BTC'), Quantity(30, 'MC'),
                            Timeout(5000), self.order_timestamp, False)
+        self.order.set_verified()
         self.order2 = Order(OrderId(TraderId("0"), OrderNumber(4)), Price(100, 'BTC'), Quantity(30, 'MC'),
                             Timeout(5), Timestamp(time.time() - 1000), True)
+        self.order2.set_verified()
 
     def test_add_trade(self):
         """
@@ -93,6 +95,9 @@ class OrderTestSuite(unittest.TestCase):
         """
         Test the status of an order
         """
+        self.order._verified = False
+        self.assertEqual(self.order.status, "unverified")
+        self.order.set_verified()
         self.assertEqual(self.order.status, "open")
         self.order._timeout = Timeout(0)
         self.assertEqual(self.order.status, "expired")

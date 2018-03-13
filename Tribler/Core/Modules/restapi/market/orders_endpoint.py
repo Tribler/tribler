@@ -102,9 +102,9 @@ class OrderCancelEndpoint(BaseMarketEndpoint):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "order not found"})
 
-        if order.status != "open":
+        if order.status != "open" and order.status != "unverified":
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "only open orders can be cancelled"})
+            return json.dumps({"error": "only open and unverified orders can be cancelled"})
 
         market_community.cancel_order(order_id)
 

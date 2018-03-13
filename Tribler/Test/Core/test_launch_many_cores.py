@@ -149,7 +149,7 @@ class TestLaunchManyCoreFullSession(TestAsServer):
 
         # Enable all communities
         config_sections = ['search_community', 'trustchain', 'allchannel_community', 'channel_community',
-                           'preview_channel_community', 'tunnel_community', 'dispersy']
+                           'preview_channel_community', 'tunnel_community', 'dispersy', 'ipv8']
 
         for section in config_sections:
             self.config.config[section]['enabled'] = True
@@ -157,6 +157,7 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         self.config.set_megacache_enabled(True)
         self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
         self.config.set_mainline_dht_enabled(True)
+        self.config.set_ipv8_use_testnet(True)
 
     def get_community(self, community_cls):
         for community in self.session.get_dispersy_instance().get_communities():
@@ -165,7 +166,7 @@ class TestLaunchManyCoreFullSession(TestAsServer):
 
     def test_load_communities(self):
         """
-        Testing whether all Dispersy communities can be succesfully loaded
+        Testing whether all Dispersy/IPv8 communities can be succesfully loaded
         """
         self.assertTrue(self.get_community(DiscoveryCommunity))
         self.assertTrue(self.session.lm.initComplete)

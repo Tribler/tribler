@@ -59,12 +59,13 @@ class TestMarketCommunity(TestMarketCommunityBase):
         """
         yield self.introduce_nodes()
 
-        self.nodes[0].overlay.create_ask(1, 'DUM1', 2, 'DUM2', 3600)
+        yield self.nodes[0].overlay.create_ask(1, 'DUM1', 2, 'DUM2', 3600)
 
         yield self.deliver_messages()
 
         orders = self.nodes[0].overlay.order_manager.order_repository.find_all()
         self.assertTrue(orders)
+        self.assertTrue(orders[0].verified)
         self.assertTrue(orders[0].is_ask())
         self.assertEqual(len(self.nodes[2].overlay.order_book.asks), 1)
 
@@ -75,12 +76,13 @@ class TestMarketCommunity(TestMarketCommunityBase):
         """
         yield self.introduce_nodes()
 
-        self.nodes[0].overlay.create_bid(1, 'DUM1', 2, 'DUM2', 3600)
+        yield self.nodes[0].overlay.create_bid(1, 'DUM1', 2, 'DUM2', 3600)
 
         yield self.deliver_messages()
 
         orders = self.nodes[0].overlay.order_manager.order_repository.find_all()
         self.assertTrue(orders)
+        self.assertTrue(orders[0].verified)
         self.assertFalse(orders[0].is_ask())
         self.assertEqual(len(self.nodes[2].overlay.order_book.bids), 1)
 
@@ -92,7 +94,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.nodes[0].overlay.disable_matchmaker()
         yield self.introduce_nodes()
 
-        order = self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
+        order = yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
         order._traded_quantity._quantity = 1  # So it looks like this order has already been fulfilled
 
         yield self.deliver_messages()
@@ -113,7 +115,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.nodes[0].overlay.disable_matchmaker()
         yield self.introduce_nodes()
 
-        order = self.nodes[0].overlay.create_ask(2, 'DUM1', 2, 'DUM2', 3600)
+        order = yield self.nodes[0].overlay.create_ask(2, 'DUM1', 2, 'DUM2', 3600)
         order._traded_quantity._quantity = 1  # Partially fulfill this order
 
         yield self.deliver_messages(timeout=.4)
@@ -133,8 +135,8 @@ class TestMarketCommunity(TestMarketCommunityBase):
         """
         yield self.introduce_nodes()
 
-        self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
-        self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
+        yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
+        yield self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
 
         yield self.deliver_messages(timeout=.5)
 
@@ -162,9 +164,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         """
         yield self.introduce_nodes()
 
-        ask_order = self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
-
-        yield self.deliver_messages(timeout=.4)
+        ask_order = yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
 
         self.nodes[0].overlay.cancel_order(ask_order.order_id)
 
@@ -183,10 +183,10 @@ class TestMarketCommunity(TestMarketCommunityBase):
             self.nodes[node_nr].overlay.wallets['DUM1'].transfer = lambda *_: fail(RuntimeError("oops"))
             self.nodes[node_nr].overlay.wallets['DUM2'].transfer = lambda *_: fail(RuntimeError("oops"))
 
-        self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
-        self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
-
-        yield self.deliver_messages(timeout=.4)
+        yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
+        yield self.deliver_messages()
+        yield self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
+        yield self.deliver_messages()
 
         self.assertEqual(self.nodes[0].overlay.transaction_manager.find_all()[0].status, "error")
         self.assertEqual(self.nodes[1].overlay.transaction_manager.find_all()[0].status, "error")
@@ -202,8 +202,8 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         """
         yield self.introduce_nodes()
 
-        self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
-        self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
+        yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
+        yield self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
 
         yield self.deliver_messages(timeout=.5)
 

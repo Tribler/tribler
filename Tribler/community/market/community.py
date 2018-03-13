@@ -118,6 +118,7 @@ class MarketCommunity(TrustChainCommunity):
         self.matchmakers = set()
         self.pending_matchmaker_deferreds = []
         self.request_cache = RequestCache()
+        self.cancelled_orders = set()  # Keep track of cancelled orders so we don't add them again to the orderbook.
 
         if use_database:
             order_repository = DatabaseOrderRepository(self.mid, self.market_database)
@@ -162,6 +163,7 @@ class MarketCommunity(TrustChainCommunity):
         """
         tx = block.transaction
         if tx["type"] == "tick" or tx["type"] == "cancel_order":
+            self.logger.info("Signing %s block as matchmaker!", tx["type"])
             return True  # Just sign it
         elif tx["type"] == "tx_payment":
             txid = TransactionId(TraderId(tx["payment"]["trader_id"]),
@@ -334,11 +336,13 @@ class MarketCommunity(TrustChainCommunity):
 
     def process_tick_block(self, block):
         """
-        Process a TradeChain block containing a tick
+        Process a TradeChain block containing a tick, only if we have a verified order.
         :param block: The TradeChain block containing the tick
         """
         tick = Ask.from_block(block) if block.transaction["tick"]["is_ask"] else Bid.from_block(block)
-        self.on_tick(tick, (block.transaction["tick"]["address"], block.transaction["tick"]["port"]))
+
+        if self.persistence.get_linked(block):
+            self.on_tick(tick, (block.transaction["tick"]["address"], block.transaction["tick"]["port"]))
 
     def process_tx_init_block(self, block):
         """
@@ -376,6 +380,7 @@ class MarketCommunity(TrustChainCommunity):
         order_id = OrderId(TraderId(block.transaction["trader_id"]), OrderNumber(block.transaction["order_number"]))
         if self.is_matchmaker and self.order_book.tick_exists(order_id):
             self.order_book.remove_tick(order_id)
+            self.cancelled_orders.add(order_id)
 
     def send_info(self, peer):
         """
@@ -416,7 +421,6 @@ class MarketCommunity(TrustChainCommunity):
             raise RuntimeError("The quantity should be higher than or equal to the minimum unit of this currency (%f)."
                                % quantity_min_unit)
 
-    # Ask
     def create_ask(self, price, price_wallet_id, quantity, quantity_wallet_id, timeout):
         """
         Create an ask order (sell order)
@@ -448,16 +452,70 @@ class MarketCommunity(TrustChainCommunity):
         tick = Tick.from_order(order)
         assert isinstance(tick, Ask), type(tick)
 
-        if self.is_matchmaker:
-            # Search for matches
-            self.order_book.insert_ask(tick).addCallback(self.on_ask_timeout)
-            self.match(tick)
+        def on_verified_ask(blocks):
+            self.logger.info("Ask verified with price %s and quantity %s", price, quantity)
+            order.set_verified()
+            self.order_manager.order_repository.update(order)
+            self.send_block_pair(*blocks)
 
-        self.create_new_tick_block(tick).addCallback(self.send_block)
+            if self.is_matchmaker:
+                # Search for matches
+                self.order_book.insert_ask(tick).addCallback(self.on_ask_timeout)
+                self.match(tick)
 
-        self.logger.debug("Ask created with price %s and quantity %s", price, quantity)
+            return order
 
-        return order
+        self.logger.info("Ask created with price %s and quantity %s", price, quantity)
+
+        return self.create_new_tick_block(tick).addCallback(on_verified_ask)
+
+    def create_bid(self, price, price_wallet_id, quantity, quantity_wallet_id, timeout):
+        """
+        Create an ask order (sell order)
+
+        :param price: The price for the order in btc
+        :param price_wallet_id: The type of the price (i.e. EUR, BTC)
+        :param quantity: The quantity of the order
+        :param price_wallet_id: The type of the price (i.e. EUR, BTC)
+        :param timeout: The timeout of the order, when does the order need to be timed out
+        :type price: float
+        :type price_wallet_id: str
+        :type quantity: float
+        :type quantity_wallet_id: str
+        :type timeout: float
+        :return: The created order
+        :rtype: Order
+        """
+        self.verify_offer_creation(price, price_wallet_id, quantity, quantity_wallet_id)
+
+        # Convert values to value objects
+        price = Price(price, price_wallet_id)
+        quantity = Quantity(quantity, quantity_wallet_id)
+        timeout = Timeout(timeout)
+
+        # Create the order
+        order = self.order_manager.create_bid_order(price, quantity, timeout)
+
+        # Create the tick
+        tick = Tick.from_order(order)
+        assert isinstance(tick, Bid), type(tick)
+
+        def on_verified_bid(blocks):
+            self.logger.info("Bid verified with price %s and quantity %s", price, quantity)
+            order.set_verified()
+            self.order_manager.order_repository.update(order)
+            self.send_block_pair(*blocks)
+
+            if self.is_matchmaker:
+                # Search for matches
+                self.order_book.insert_bid(tick).addCallback(self.on_bid_timeout)
+                self.match(tick)
+
+            return order
+
+        self.logger.info("Bid created with price %s and quantity %s", price, quantity)
+
+        return self.create_new_tick_block(tick).addCallback(on_verified_bid)
 
     def received_half_block(self, source_address, data):
         super(MarketCommunity, self).received_half_block(source_address, data)
@@ -484,9 +542,7 @@ class MarketCommunity(TrustChainCommunity):
         self.process_market_block(block)
 
     def process_market_block(self, block):
-        if block.transaction["type"] == "tick":
-            self.process_tick_block(block)
-        elif block.transaction["type"] == "tx_init":
+        if block.transaction["type"] == "tx_init":
             self.process_tx_init_block(block)
         elif block.transaction["type"] == "tx_done":
             self.process_tx_done_block(block)
@@ -509,6 +565,9 @@ class MarketCommunity(TrustChainCommunity):
         block1, block2 = TrustChainBlock.from_pair_payload(payload, self.serializer)
         if block1.transaction["type"] == "tx_done" and block2.transaction["type"] == "tx_done":
             self.on_transaction_completed_bc_message(block1, block2)
+        elif block1.transaction["type"] == "tick" and block2.transaction["type"] == "tick":
+            self.process_tick_block(block1)
+            self.process_tick_block(block2)
 
     def add_matchmaker(self, matchmaker):
         """
@@ -552,8 +611,7 @@ class MarketCommunity(TrustChainCommunity):
                 "tick": tick.to_block_dict()
             }
             tx_dict["tick"]['address'], tx_dict["tick"]['port'] = self.get_ipv8_address()
-            return self.sign_block(matchmaker, matchmaker.public_key.key_to_bin(), tx_dict)\
-                .addCallback(lambda (blk1, blk2): blk1)
+            return self.sign_block(matchmaker, matchmaker.public_key.key_to_bin(), tx_dict)
 
         return self.get_random_matchmaker().addCallback(create_send_block)
 
@@ -663,7 +721,8 @@ class MarketCommunity(TrustChainCommunity):
             insert_method = self.order_book.insert_ask if isinstance(tick, Ask) else self.order_book.insert_bid
             timeout_method = self.on_ask_timeout if isinstance(tick, Ask) else self.on_bid_timeout
 
-            if not self.order_book.tick_exists(tick.order_id) and tick.quantity > Quantity(0, tick.quantity.wallet_id):
+            if not self.order_book.tick_exists(tick.order_id) and tick.quantity > Quantity(0, tick.quantity.wallet_id) \
+                    and tick.order_id not in self.cancelled_orders:
                 self.logger.debug("Inserting %s from %s (price: %s, quantity: %s)",
                                   tick, tick.order_id, tick.price, tick.quantity)
                 insert_method(tick).addCallback(timeout_method)
@@ -682,49 +741,6 @@ class MarketCommunity(TrustChainCommunity):
 
                     # Only after we have matched our own orders, do the matching with other ticks if necessary
                     self.match(tick)
-
-    # Bid
-    def create_bid(self, price, price_wallet_id, quantity, quantity_wallet_id, timeout):
-        """
-        Create an ask order (sell order)
-
-        :param price: The price for the order in btc
-        :param price_wallet_id: The type of the price (i.e. EUR, BTC)
-        :param quantity: The quantity of the order
-        :param price_wallet_id: The type of the price (i.e. EUR, BTC)
-        :param timeout: The timeout of the order, when does the order need to be timed out
-        :type price: float
-        :type price_wallet_id: str
-        :type quantity: float
-        :type quantity_wallet_id: str
-        :type timeout: float
-        :return: The created order
-        :rtype: Order
-        """
-        self.verify_offer_creation(price, price_wallet_id, quantity, quantity_wallet_id)
-
-        # Convert values to value objects
-        price = Price(price, price_wallet_id)
-        quantity = Quantity(quantity, quantity_wallet_id)
-        timeout = Timeout(timeout)
-
-        # Create the order
-        order = self.order_manager.create_bid_order(price, quantity, timeout)
-
-        # Create the tick
-        tick = Tick.from_order(order)
-        assert isinstance(tick, Bid), type(tick)
-
-        if self.is_matchmaker:
-            # Search for matches
-            self.order_book.insert_bid(tick).addCallback(self.on_bid_timeout)
-            self.match(tick)
-
-        self.create_new_tick_block(tick).addCallback(self.send_block)
-
-        self.logger.debug("Bid created with price %s and quantity %s", price, quantity)
-
-        return order
 
     def send_match_messages(self, matching_ticks, order_id):
         return [self.send_match_message(match_id, tick_entry.tick, order_id, matching_quantity)
@@ -782,7 +798,8 @@ class MarketCommunity(TrustChainCommunity):
         auth, _, payload = self._ez_unpack_auth(MatchPayload, data)
         peer = Peer(auth.public_key_bin, source_address)
 
-        self.logger.debug("We received a match message for order %s", payload.order_number)
+        self.logger.debug("We received a match message for order %s.%s",
+                          TraderId(self.mid), payload.recipient_order_number)
 
         # We got a match, check whether we can respond to this match
         self.update_ip(payload.matchmaker_trader_id, source_address)
@@ -796,6 +813,9 @@ class MarketCommunity(TrustChainCommunity):
         order_id = OrderId(TraderId(self.mid), payload.recipient_order_number)
         other_order_id = OrderId(payload.trader_id, payload.order_number)
         order = self.order_manager.order_repository.find_by_id(order_id)
+        if not order:
+            self.logger.warning("Cannot find order %s in order repository!", order_id)
+            return
 
         # Store the message for later
         self.incoming_match_messages[payload.match_id] = payload
@@ -914,13 +934,14 @@ class MarketCommunity(TrustChainCommunity):
 
     def cancel_order(self, order_id):
         order = self.order_manager.order_repository.find_by_id(order_id)
-        if order and order.status == "open":
+        if order and (order.status == "open" or order.status == "unverified"):
             self.order_manager.cancel_order(order_id)
 
             if self.is_matchmaker:
                 self.order_book.remove_tick(order_id)
 
-            return self.create_new_cancel_order_block(order).addCallback(self.send_block)
+            if order.verified:
+                return self.create_new_cancel_order_block(order).addCallback(self.send_block)
 
         return succeed(None)
 

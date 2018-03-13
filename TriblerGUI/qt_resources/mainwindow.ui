@@ -306,39 +306,74 @@ color: black;
         </spacer>
        </item>
        <item>
-        <widget class="QToolButton" name="trust_button">
+        <widget class="QWidget" name="token_balance_widget" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="minimumSize">
           <size>
-           <width>24</width>
-           <height>24</height>
+           <width>88</width>
+           <height>34</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>24</width>
-           <height>24</height>
+           <width>88</width>
+           <height>34</height>
           </size>
          </property>
          <property name="cursor">
           <cursorShape>PointingHandCursor</cursorShape>
          </property>
          <property name="styleSheet">
-          <string notr="true">border: none;
-background: none;</string>
+          <string notr="true">QWidget { background-color: #4c4c4c; border-radius: 4px; }</string>
          </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset>
-           <normaloff>../images/trust.png</normaloff>../images/trust.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>24</width>
-           <height>24</height>
-          </size>
-         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_6">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>2</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>2</number>
+          </property>
+          <item>
+           <widget class="QLabel" name="token_balance_label">
+            <property name="styleSheet">
+             <string notr="true">color: #ddd; font-weight: bold; font-size: 14px; border: none;</string>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="token_name_label">
+            <property name="styleSheet">
+             <string notr="true">color: #ddd; font-size: 12px; border: none;</string>
+            </property>
+            <property name="text">
+             <string>Tokens (MB)</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
        <item>
@@ -1015,7 +1050,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>9</number>
+         <number>15</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -5463,7 +5498,7 @@ color: white;</string>
                 </layout>
                </widget>
               </item>
-<item row="14" column="0">
+              <item row="14" column="0">
                <widget class="QLabel" name="tribler_profile_header_label">
                 <property name="styleSheet">
                  <string notr="true">font-weight: bold;
@@ -6291,7 +6326,7 @@ color: white;</string>
                 </property>
                </widget>
               </item>
-             <item>
+              <item>
                <widget class="QCheckBox" name="credit_mining_enabled_checkbox">
                 <property name="text">
                  <string>Enable Trustchain mining</string>
@@ -7909,7 +7944,7 @@ QTabBar::tab:selected {
 }</string>
                 </property>
                 <property name="currentIndex">
-                 <number>2</number>
+                 <number>0</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -7947,8 +7982,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>131</width>
-                       <height>260</height>
+                       <width>673</width>
+                       <height>341</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -10874,7 +10909,7 @@ background-color: transparent;
            </widget>
           </item>
           <item>
-           <widget class="QWidget" name="widget_34" native="true">
+           <widget class="QWidget" name="wallet_buttons_container" native="true">
             <property name="styleSheet">
              <string notr="true">QPushButton {
 background: none;
@@ -10922,7 +10957,7 @@ background-color: #333;
                 <cursorShape>PointingHandCursor</cursorShape>
                </property>
                <property name="text">
-                <string>Reputation</string>
+                <string>Tokens</string>
                </property>
                <property name="icon">
                 <iconset>
@@ -11117,36 +11152,17 @@ background-color: #333;
            </widget>
           </item>
           <item>
-           <spacer name="verticalSpacer_23">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Fixed</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>6</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_47">
-            <property name="styleSheet">
-             <string notr="true">color: #eee;
-margin-left: 8px;
-font-size: 16px;
-font-weight: bold;</string>
-            </property>
-            <property name="text">
-             <string>Past transactions</string>
+           <widget class="QWidget" name="wallet_management_placeholder_widget" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
            </widget>
           </item>
           <item>
-           <spacer name="verticalSpacer_22">
+           <spacer name="wallet_management_spacer">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
             </property>
@@ -11162,45 +11178,143 @@ font-weight: bold;</string>
            </spacer>
           </item>
           <item>
-           <widget class="QTreeWidget" name="wallet_transactions_list">
-            <property name="indentation">
-             <number>8</number>
+           <widget class="QTabWidget" name="wallet_info_tabs">
+            <property name="styleSheet">
+             <string notr="true">QLabel {
+color: white;
+}
+QTabWidget {
+border: none;
+}
+QTabBar::tab {
+    color: white;
+    background-color: #555;
+}
+QTabBar::tab:selected {
+    color: #555;
+    background-color: #777;
+}</string>
             </property>
-            <column>
-             <property name="text">
-              <string>Direction</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>From</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>To</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Amount</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Fee</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>ID</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Time</string>
-             </property>
-            </column>
+            <property name="currentIndex">
+             <number>0</number>
+            </property>
+            <widget class="QWidget" name="tab_4">
+             <attribute name="title">
+              <string>General</string>
+             </attribute>
+             <layout class="QFormLayout" name="formLayout_8">
+              <property name="fieldGrowthPolicy">
+               <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+              </property>
+              <property name="labelAlignment">
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+              </property>
+              <property name="formAlignment">
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="label_10">
+                <property name="styleSheet">
+                 <string notr="true">font-weight: bold;</string>
+                </property>
+                <property name="text">
+                 <string>Address</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLabel" name="wallet_address_label">
+                <property name="text">
+                 <string>-</string>
+                </property>
+                <property name="textInteractionFlags">
+                 <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_47">
+                <property name="styleSheet">
+                 <string notr="true">font-weight: bold;</string>
+                </property>
+                <property name="text">
+                 <string>QR Code</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLabel" name="wallet_address_qr_label">
+                <property name="text">
+                 <string>-</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+            <widget class="QWidget" name="tab_5">
+             <attribute name="title">
+              <string>Transactions</string>
+             </attribute>
+             <layout class="QVBoxLayout" name="verticalLayout_21">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QTreeWidget" name="wallet_transactions_list">
+                <property name="indentation">
+                 <number>8</number>
+                </property>
+                <column>
+                 <property name="text">
+                  <string>Direction</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>From</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>To</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Amount</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Fee</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>ID</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Time</string>
+                 </property>
+                </column>
+               </widget>
+              </item>
+             </layout>
+            </widget>
            </widget>
           </item>
          </layout>
@@ -11937,22 +12051,6 @@ color: #eee;</string>
    <hints>
     <hint type="sourcelabel">
      <x>789</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>trust_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_trust_button_click()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>757</x>
      <y>24</y>
     </hint>
     <hint type="destinationlabel">

@@ -46,6 +46,7 @@ check_ipv8_port.coerceDoc = "IPv8 port must be greater than 0 or -1."
 class Options(usage.Options):
     optFlags = [
         ["exit", "x", "Allow being an exit-node"],
+        ["testnet", "t", "Join the Tribler Testnet"]
     ]
 
     optParameters = [
@@ -108,9 +109,13 @@ class Tunnel(object):
         config.set_torrent_search_enabled(False)
         config.set_channel_search_enabled(False)
         config.set_trustchain_enabled(True)
+        config.set_credit_mining_enabled(False)
         config.set_market_community_enabled(False)
         config.set_mainline_dht_enabled(False)
         config.set_tunnel_community_exitnode_enabled(bool(self.options["exit"]))
+
+        if "testnet" in self.options and self.options["testnet"]:
+            config.set_ipv8_use_testnet(True)
 
         self.session = Session(config)
         logger.info("Using IPv8 port %d" % self.session.config.get_dispersy_port())

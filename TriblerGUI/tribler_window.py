@@ -114,6 +114,7 @@ class TriblerWindow(QMainWindow):
         self.last_search_time = None
         self.start_time = time.time()
         self.exception_handler_called = False
+        self.token_refresh_timer = None
 
         sys.excepthook = self.on_exception
 
@@ -134,6 +135,7 @@ class TriblerWindow(QMainWindow):
         self.search_torrents_detail_widget.initialize_details_widget()
         self.search_results_list.itemClicked.connect(self.on_channel_item_click)
         self.search_results_list.itemClicked.connect(self.search_results_page.clicked_item)
+        self.token_balance_widget.mouseReleaseEvent = self.on_token_balance_click
 
         def on_state_update(new_state):
             self.loading_text_label.setText(new_state)
@@ -187,7 +189,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_debug.setHidden(True)
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
-        self.trust_button.setHidden(True)
+        self.token_balance_widget.setHidden(True)
         self.settings_button.setHidden(True)
         self.add_torrent_button.setHidden(True)
         self.top_search_bar.setHidden(True)
@@ -261,7 +263,7 @@ class TriblerWindow(QMainWindow):
     def show_loading_screen(self):
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
-        self.trust_button.setHidden(True)
+        self.token_balance_widget.setHidden(True)
         self.settings_button.setHidden(True)
         self.add_torrent_button.setHidden(True)
         self.top_search_bar.setHidden(True)
@@ -272,7 +274,7 @@ class TriblerWindow(QMainWindow):
 
         self.top_menu_button.setHidden(False)
         self.left_menu.setHidden(False)
-        self.trust_button.setHidden(False)
+        self.token_balance_widget.setHidden(False)
         self.settings_button.setHidden(False)
         self.add_torrent_button.setHidden(False)
         self.top_search_bar.setHidden(False)
@@ -414,10 +416,16 @@ class TriblerWindow(QMainWindow):
         self.downloads_creditmining_button.setHidden(not self.tribler_settings["credit_mining"]["enabled"])
         self.downloads_all_button.click()
 
-
         # process pending file requests (i.e. someone clicked a torrent file when Tribler was closed)
         # We do this after receiving the settings so we have the default download location.
         self.process_uri_request()
+
+        # Set token balance refresh timer and load the token balance
+        self.token_refresh_timer = QTimer()
+        self.token_refresh_timer.timeout.connect(self.load_token_balance)
+        self.token_refresh_timer.start(60000)
+
+        self.load_token_balance()
 
     def on_top_search_button_click(self):
         current_ts = time.time()
@@ -445,12 +453,25 @@ class TriblerWindow(QMainWindow):
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
-    def on_trust_button_click(self):
+    def on_token_balance_click(self, _):
         self.deselect_all_menu_buttons()
         self.stackedWidget.setCurrentIndex(PAGE_TRUST)
         self.trust_page.load_trust_statistics()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
+
+    def load_token_balance(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("trustchain/statistics", self.received_token_balance, capture_errors=False)
+
+    def received_token_balance(self, statistics):
+        statistics = statistics["statistics"]
+        if 'latest_block' in statistics:
+            balance = statistics["latest_block"]["transaction"]["total_up"] - \
+                      statistics["latest_block"]["transaction"]["total_down"]
+            self.token_balance_label.setText("%d" % balance)
+        else:
+            self.token_balance_label.setText("0")
 
     def on_add_torrent_button_click(self, pos):
         menu = TriblerActionMenu(self)

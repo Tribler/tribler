@@ -243,7 +243,7 @@ class MarketPage(QWidget):
         self.dialog = None
 
     def create_order(self, is_ask, price, price_type, quantity, quantity_type):
-        post_data = str("price=%f&price_type=%s&quantity=%d&quantity_type=%s" %
+        post_data = str("price=%f&price_type=%s&quantity=%f&quantity_type=%s" %
                         (price, price_type, quantity, quantity_type))
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("market/%s" % ('asks' if is_ask else 'bids'),

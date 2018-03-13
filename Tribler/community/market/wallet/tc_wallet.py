@@ -11,7 +11,7 @@ MEGA_DIV = 1024 * 1024
 
 class TrustchainWallet(Wallet):
     """
-    This class is responsible for handling your wallet of TrustChain credits.
+    This class is responsible for handling your wallet of Tribler tokens.
     """
     MONITOR_DELAY = 1
 
@@ -24,13 +24,13 @@ class TrustchainWallet(Wallet):
         self.transaction_history = []
 
     def get_name(self):
-        return 'Reputation'
+        return 'Tokens (MB)'
 
     def get_identifier(self):
-        return 'MC'
+        return 'MB'
 
     def create_wallet(self, *args, **kwargs):
-        raise RuntimeError("You cannot create a TrustChain wallet")
+        raise RuntimeError("You cannot create a Tribler Token wallet")
 
     def get_balance(self):
         latest_block = self.tc_community.persistence.get_latest(self.tc_community.my_peer.public_key.key_to_bin())
@@ -83,7 +83,6 @@ class TrustchainWallet(Wallet):
         def check_has_block():
             self._logger.info("Checking for block with id %s and num %d", pub_key.encode('hex'), sequence_number)
             db_block = self.tc_community.persistence.get(pub_key, sequence_number)
-            self._logger.error("BLOCKS: %s", self.tc_community.persistence.get_latest(pub_key))
             if db_block:
                 monitor_lc.stop()
                 monitor_deferred.callback(db_block)

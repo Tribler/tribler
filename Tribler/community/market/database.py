@@ -16,7 +16,7 @@ DATABASE_DIRECTORY = path.join(u"sqlite")
 # Path to the database location + dispersy._workingdirectory
 DATABASE_PATH = path.join(DATABASE_DIRECTORY, u"market.db")
 # Version to keep track if the db schema needs to be updated.
-LATEST_DB_VERSION = 1
+LATEST_DB_VERSION = 2
 # Schema for the Market DB.
 schema = u"""
 CREATE TABLE IF NOT EXISTS blocks(
@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS orders(
  completed_timestamp  TIMESTAMP,
  is_ask               INTEGER NOT NULL,
  cancelled            INTEGER NOT NULL,
+ verified             INTEGER NOT NULL,
 
  PRIMARY KEY (trader_id, order_number)
  );
@@ -176,8 +177,8 @@ class MarketDB(TrustChainDB):
         """
         self.execute(
             u"INSERT INTO orders (trader_id, order_number, price, price_type, quantity, quantity_type,"
-            u"traded_quantity, timeout, order_timestamp, completed_timestamp, is_ask, cancelled) "
-            u"VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+            u"traded_quantity, timeout, order_timestamp, completed_timestamp, is_ask, cancelled, verified) "
+            u"VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
             order.to_database())
         self.commit()
 
@@ -344,6 +345,11 @@ class MarketDB(TrustChainDB):
     def open(self, initial_statements=True, prepare_visioning=True):
         return super(MarketDB, self).open(initial_statements, prepare_visioning)
 
+    def get_upgrade_script(self, current_version):
+        if current_version == 1:
+            return u"ALTER TABLE orders ADD COLUMN verified INTEGER DEFAULT 1 NOT NULL;" \
+                   u"UPDATE option SET value=\"2\" WHERE key = \"database_version\""
+
     def check_database(self, database_version):
         """
         Ensure the proper schema is used by the database.
@@ -355,8 +361,15 @@ class MarketDB(TrustChainDB):
         assert int(database_version) >= 0
         database_version = int(database_version)
 
-        if database_version < LATEST_DB_VERSION:
+        if database_version == 0:
             self.executescript(self.get_schema())
             self.commit()
+            database_version = LATEST_DB_VERSION
+
+        while database_version < LATEST_DB_VERSION:
+            upgrade_script = self.get_upgrade_script(current_version=database_version)
+            if upgrade_script:
+                self.executescript(upgrade_script)
+            database_version += 1
 
         return LATEST_DB_VERSION
