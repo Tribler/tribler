@@ -14,6 +14,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.config.set_ipv8_enabled(True)
         self.config.set_tunnel_community_enabled(True)
         self.config.set_trustchain_enabled(False)
+        self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
     @deferred(timeout=10)
     def test_get_circuit_no_community(self):
