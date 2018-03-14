@@ -12,6 +12,7 @@ from urllib import quote_plus
 from urlparse import urlsplit, parse_qsl
 
 from libtorrent import bencode, bdecode
+import treq
 from twisted.internet import reactor
 from twisted.web import http
 from twisted.web.client import Agent, readBody
@@ -345,14 +346,9 @@ def http_get(uri):
             return readBody(response)
         raise HttpError(response)
 
-    agent = Agent(reactor)
-    deferred = agent.request(
-        'GET',
-        uri,
-        Headers({'User-Agent': ['Tribler ' + version_id]}),
-        None)
-    deferred.addCallback(_on_response)
-    return deferred
+    treq_deferred = treq.get(uri, persistent=False)
+    treq_deferred.addCallback(_on_response)
+    return treq_deferred
 
 
 def parse_magnetlink(url):
