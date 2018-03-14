@@ -1,0 +1,21 @@
+[Unit]
+Description="Tribler runner"
+After=network.target
+
+[Service]
+ProtectSystem=yes
+PrivateTmp=true
+Type=simple
+User=tribler
+Group=tribler
+Restart=always
+Environment=HOME=/var/lib/tribler/%I
+Environment=EXTRA_TRIBLER_ARGS=--
+Environment=PYTHONPATH=/opt/tribler
+
+WorkingDirectory=/opt/tribler
+ExecStartPre=/bin/mkdir -p ${HOME}
+ExecStart=/usr/bin/twistd --nodaemon --pidfile= tribler ${EXTRA_TRIBLER_ARGS}
+
+[Install]
+WantedBy=multi-user.target
