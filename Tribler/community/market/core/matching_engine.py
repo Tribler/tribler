@@ -237,8 +237,8 @@ class PriceTimeStrategy(MatchingStrategy):
     def _search_for_quantity_in_price_level_total(self, tick_entry, quantity_to_trade):
         trading_quantity = quantity_to_trade
 
-        self._logger.debug("Match with the id (%s) was found: price %i, quantity %i",
-                           str(tick_entry.order_id), float(tick_entry.price), int(trading_quantity))
+        self._logger.debug("Match with the id (%s) was found: price %f, quantity %f",
+                           str(tick_entry.order_id), float(tick_entry.price), float(trading_quantity))
 
         return [(self.get_unique_match_id(), tick_entry, trading_quantity)]
 
@@ -250,8 +250,8 @@ class PriceTimeStrategy(MatchingStrategy):
                 tick_entry.is_blocked_for_matching(order_id):
             quantity_to_trade -= matched_quantity
 
-            self._logger.debug("Match with the id (%s) was found: price %i, quantity %i",
-                               str(tick_entry.order_id), float(tick_entry.price), int(matched_quantity))
+            self._logger.debug("Match with the id (%s) was found: price %f, quantity %f",
+                               str(tick_entry.order_id), float(tick_entry.price), float(matched_quantity))
 
             matching_ticks = [(self.get_unique_match_id(), tick_entry, matched_quantity)]
 

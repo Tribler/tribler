@@ -20,7 +20,7 @@ class TrustchainWallet(Wallet):
 
         self.tc_community = tc_community
         self.created = True
-        self.check_negative_balance = True
+        self.check_negative_balance = False
         self.transaction_history = []
 
     def get_name(self):

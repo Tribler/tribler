@@ -736,6 +736,7 @@ class TriblerWindow(QMainWindow):
             if self.tray_icon:
                 self.tray_icon.deleteLater()
             self.show_loading_screen()
+            self.hide_status_bar()
             self.loading_text_label.setText("Shutting down...")
 
             self.shutdown_timer = QTimer()
