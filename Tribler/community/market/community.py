@@ -114,7 +114,7 @@ class MarketCommunity(TrustChainCommunity):
         self.use_local_address = False
         self.matching_enabled = True
         self.message_repository = MemoryMessageRepository(self.mid)
-        self.use_incremental_payments = True
+        self.use_incremental_payments = False
         self.matchmakers = set()
         self.pending_matchmaker_deferreds = []
         self.request_cache = RequestCache()
