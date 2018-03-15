@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
         if app.is_running():
             for arg in sys.argv[1:]:
-                if os.path.exists(arg):
+                if os.path.exists(arg) and arg.endswith(".torrent"):
                     app.send_message("file:%s" % arg)
                 elif arg.startswith('magnet'):
                     app.send_message(arg)
