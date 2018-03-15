@@ -1482,9 +1482,11 @@ class MarketCommunity(TrustChainCommunity):
         """
         self.logger.error("Aborting transaction %s", transaction.transaction_id)
         order = self.order_manager.order_repository.find_by_id(transaction.order_id)
-        order.release_quantity_for_tick(transaction.partner_order_id,
-                                        transaction.total_quantity - transaction.transferred_quantity)
-        self.order_manager.order_repository.update(order)
+        if (transaction.total_quantity - transaction.transferred_quantity) > \
+                Quantity(0, transaction.total_quantity.wallet_id):
+            order.release_quantity_for_tick(transaction.partner_order_id,
+                                            transaction.total_quantity - transaction.transferred_quantity)
+            self.order_manager.order_repository.update(order)
 
     def notify_transaction_complete(self, tx_dict, mine=False):
         if self.tribler_session:

@@ -184,12 +184,37 @@ class TestMarketCommunity(TestMarketCommunityBase):
             self.nodes[node_nr].overlay.wallets['DUM2'].transfer = lambda *_: fail(RuntimeError("oops"))
 
         yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
-        yield self.deliver_messages()
         yield self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
+
         yield self.deliver_messages()
 
         self.assertEqual(self.nodes[0].overlay.transaction_manager.find_all()[0].status, "error")
         self.assertEqual(self.nodes[1].overlay.transaction_manager.find_all()[0].status, "error")
+
+    @twisted_wrapper
+    def test_proposed_trade_timeout(self):
+        """
+        Test whether we unreserve the quantity if a proposed trade timeouts
+        """
+        yield self.introduce_nodes()
+
+        self.nodes[0].overlay.decode_map[chr(10)] = lambda *_: None
+
+        ask_order = yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
+        bid_order = yield self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
+
+        yield self.deliver_messages(timeout=.5)
+
+        outstanding = self.nodes[1].overlay.get_outstanding_proposals(bid_order.order_id, ask_order.order_id)
+        self.assertTrue(outstanding)
+        outstanding[0][1].on_timeout()
+
+        yield self.deliver_messages(timeout=.5)
+
+        ask_tick_entry = self.nodes[2].overlay.order_book.get_tick(ask_order.order_id)
+        bid_tick_entry = self.nodes[2].overlay.order_book.get_tick(bid_order.order_id)
+        self.assertEqual(float(bid_tick_entry.reserved_for_matching), 0)
+        self.assertEqual(float(ask_tick_entry.reserved_for_matching), 0)
 
 
 class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
@@ -220,3 +245,36 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         balance2 = yield self.nodes[1].overlay.wallets['DUM2'].get_balance()
         self.assertEqual(balance1['available'], 999)
         self.assertEqual(balance2['available'], 1001)
+
+    @twisted_wrapper
+    def test_partial_trade(self):
+        """
+        Test a partial trade
+        """
+        yield self.introduce_nodes()
+
+        yield self.nodes[0].overlay.create_ask(1, 'DUM1', 2, 'DUM2', 3600)
+        bid_order = yield self.nodes[1].overlay.create_bid(1, 'DUM1', 10, 'DUM2', 3600)
+
+        yield self.deliver_messages(timeout=.5)
+
+        # Verify that the trade has been made
+        self.assertEqual(len(self.nodes[0].overlay.transaction_manager.find_all()), 1)
+        self.assertEqual(len(self.nodes[1].overlay.transaction_manager.find_all()), 1)
+
+        # There should be no reserved quantity for the bid tick
+        for node_nr in [0, 1]:
+            bid_tick_entry = self.nodes[node_nr].overlay.order_book.get_tick(bid_order.order_id)
+            self.assertEqual(float(bid_tick_entry.reserved_for_matching), 0)
+
+        yield self.nodes[0].overlay.create_ask(1, 'DUM1', 8, 'DUM2', 3600)
+
+        yield self.deliver_messages(timeout=.5)
+
+        # Verify that the trade has been made
+        self.assertEqual(len(self.nodes[0].overlay.transaction_manager.find_all()), 2)
+        self.assertEqual(len(self.nodes[1].overlay.transaction_manager.find_all()), 2)
+
+        for node_nr in [0, 1]:
+            self.assertEqual(len(self.nodes[node_nr].overlay.order_book.asks), 0)
+            self.assertEqual(len(self.nodes[node_nr].overlay.order_book.bids), 0)
