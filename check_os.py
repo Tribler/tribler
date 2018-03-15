@@ -1,5 +1,6 @@
 import logging
 import os
+import psutil
 import subprocess
 import sys
 import tempfile
@@ -184,9 +185,25 @@ def should_kill_other_tribler_instances():
             window.update()
             window.quit()
 
-            # Restart Tribler again with the same arguments
-            os.execl(sys.executable, sys.executable, *sys.argv)
+            # Restart Tribler properly
+            restart_tribler_properly()
         else:
             window.update()
             window.quit()
             sys.exit(0)
+
+
+def restart_tribler_properly():
+    """
+    Restarting Tribler with proper cleanup of file objects and descriptors
+    """
+    try:
+        process = psutil.Process(os.getpid())
+        for handler in process.open_files() + process.connections():
+            os.close(handler.fd)
+    except Exception as e:
+        # If exception occurs on cleaning up the resources, simply log it and continue with the restart
+        logging.error(e)
+
+    python = sys.executable
+    os.execl(python, python, *sys.argv)
