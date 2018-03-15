@@ -1,8 +1,9 @@
 from nose.tools import raises
 
 from Tribler.Core.Utilities.encoding import add_url_params
-from Tribler.Core.Utilities.utilities import validTorrentFile, isValidTorrentFile, parse_magnetlink
+from Tribler.Core.Utilities.utilities import validTorrentFile, isValidTorrentFile, parse_magnetlink, http_get
 from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.Test.twisted_thread import deferred
 
 
 class TriblerCoreTestUtilities(TriblerCoreTest):
@@ -236,4 +237,18 @@ class TriblerCoreTestUtilities(TriblerCoreTest):
         result = add_url_params(url, new_params)
         self.assertEqual(result, 'http://stackoverflow.com/test?data=some&data=values')
 
+    @deferred(timeout=10)
+    def test_http_get_expired(self):
+        uri = "https://expired.badssl.com"
 
+        def cbResponse(_):
+            self.fail("Error was expected.")
+
+        def cbErrorResponse(response):
+            self.assertIsNotNone(response)
+
+        http_deferred = http_get(uri)
+        http_deferred.addCallback(cbResponse)
+        http_deferred.addErrback(cbErrorResponse)
+
+        return http_deferred
