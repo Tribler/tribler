@@ -273,7 +273,7 @@ class TriblerRequestManager(QObject):
             json_result = json.loads(str(data), encoding='latin_1')
 
             if 'error' in json_result and capture_errors:
-                self.show_error(TriblerRequestWorker.get_message_from_error(json_result))
+                self.show_error(TriblerRequestManager.get_message_from_error(json_result))
             else:
                 self.received_json.emit(json_result, reply.error())
         except ValueError:
