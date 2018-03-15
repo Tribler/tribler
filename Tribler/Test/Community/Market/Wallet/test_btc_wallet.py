@@ -1,3 +1,4 @@
+from jsonrpclib import ProtocolError
 from twisted.internet.defer import inlineCallbacks, succeed, Deferred
 
 from Tribler.Test.Core.base_test import MockObject
@@ -143,8 +144,43 @@ class TestBtcWallet(AbstractServer):
         wallet = BitcoinWallet(self.session_base_dir)
         mock_daemon = MockObject()
         mock_server = MockObject()
-        transactions = [{'value': -1, 'txid': 'a', 'timestamp': 1}, {'value': 1, 'txid': 'a', 'timestamp': 1}]
+        transactions = [{
+            'value': -1,
+            'txid': 'a',
+            'timestamp': 1,
+            'input_addresses': ['a', 'b'],
+            'output_addresses': ['c', 'd'],
+            'confirmations': 3
+        }, {
+            'value': 1,
+            'txid': 'b',
+            'timestamp': False,  # In Electrum, this means that the transaction has not been confirmed yet
+            'input_addresses': ['a', 'b'],
+            'output_addresses': ['c', 'd'],
+            'confirmations': 0
+        }]
         mock_server.run_cmdline = lambda _: transactions
         mock_daemon.get_server = lambda _: mock_server
         wallet.get_daemon = lambda: mock_daemon
         return wallet.get_transactions()
+
+    @deferred(timeout=10)
+    def test_get_transactions_error(self):
+        """
+        Test whether no transactions are returned when there's a protocol in the JSON RPC protocol
+        """
+        wallet = BitcoinWallet(self.session_base_dir)
+        mock_daemon = MockObject()
+        mock_server = MockObject()
+
+        def failing_run_cmdline(*_):
+            raise ProtocolError()
+
+        mock_server.run_cmdline = failing_run_cmdline
+        mock_daemon.get_server = lambda _: mock_server
+        wallet.get_daemon = lambda: mock_daemon
+
+        def verify_transactions(transactions):
+            self.assertFalse(transactions)
+
+        return wallet.get_transactions().addCallback(verify_transactions)

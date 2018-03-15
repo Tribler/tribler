@@ -48,7 +48,7 @@ def timestamp_to_time(timestamp):
 
     diff = today - discovered
     if diff.days > 0 or today.day != discovered.day:
-        return discovered.strftime('%d-%m-%Y')
+        return discovered.strftime('%d-%m-%Y %H:%M')
     return discovered.strftime('Today %H:%M')
 
 

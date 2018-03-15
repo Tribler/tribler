@@ -11,7 +11,7 @@ from TriblerGUI.defs import BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_image_path
+from TriblerGUI.utilities import get_image_path, timestamp_to_time
 
 
 class MarketWalletsPage(QWidget):
@@ -103,6 +103,7 @@ class MarketWalletsPage(QWidget):
                 button.setChecked(False)
 
         self.active_wallet = wallet_id
+        self.window().wallet_info_tabs.setCurrentIndex(0)
         self.window().wallet_address_label.setText(self.wallets[wallet_id]['address'])
 
         # Create a QR code of the wallet address
@@ -126,11 +127,11 @@ class MarketWalletsPage(QWidget):
             self.window().wallet_address_qr_label.setText("QR Code functionality not available!")
 
     def load_transactions(self, wallet_id):
+        self.window().wallet_transactions_list.clear()
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("wallets/%s/transactions" % wallet_id, self.on_transactions)
 
     def on_transactions(self, transactions):
-        self.window().wallet_transactions_list.clear()
         for transaction in transactions["transactions"]:
             item = QTreeWidgetItem(self.window().wallet_transactions_list)
             item.setText(0, "Sent" if transaction["outgoing"] else "Received")
@@ -139,7 +140,8 @@ class MarketWalletsPage(QWidget):
             item.setText(3, "%g %s" % (transaction["amount"], transaction["currency"]))
             item.setText(4, "%g %s" % (transaction["fee_amount"], transaction["currency"]))
             item.setText(5, transaction["id"])
-            item.setText(6, transaction["timestamp"])
+            timestamp = timestamp_to_time(float(transaction["timestamp"])) if transaction["timestamp"] != "False" else "-"
+            item.setText(6, timestamp)
             self.window().wallet_transactions_list.addTopLevelItem(item)
 
     def on_add_wallet_clicked(self):

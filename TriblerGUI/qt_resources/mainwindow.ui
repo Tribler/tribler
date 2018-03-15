@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>875</width>
-    <height>768</height>
+    <height>777</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -7982,8 +7982,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>673</width>
-                       <height>341</height>
+                       <width>131</width>
+                       <height>260</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -11196,7 +11196,7 @@ QTabBar::tab:selected {
 }</string>
             </property>
             <property name="currentIndex">
-             <number>0</number>
+             <number>1</number>
             </property>
             <widget class="QWidget" name="tab_4">
              <attribute name="title">
@@ -11273,8 +11273,11 @@ QTabBar::tab:selected {
               </property>
               <item>
                <widget class="QTreeWidget" name="wallet_transactions_list">
+                <property name="selectionMode">
+                 <enum>QAbstractItemView::NoSelection</enum>
+                </property>
                 <property name="indentation">
-                 <number>8</number>
+                 <number>0</number>
                 </property>
                 <column>
                  <property name="text">

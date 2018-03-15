@@ -214,6 +214,7 @@ class MarketPage(QWidget):
 
     def on_transaction_complete(self, transaction):
         if transaction["mine"]:
+            transaction = transaction["tx"]
             main_text = "Transaction with price %f %s and quantity %f %s completed." \
                         % (transaction["price"], transaction["price_type"],
                            transaction["quantity"], transaction["quantity_type"])

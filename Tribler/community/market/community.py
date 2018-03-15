@@ -1033,10 +1033,10 @@ class MarketCommunity(TrustChainCommunity):
             declined_trade = Trade.decline(self.message_repository.next_identity(),
                                            Timestamp.now(), proposed_trade, decline_reason)
             self.logger.debug("Declined trade made with id: %s for proposed trade with id: %s "
-                              "(valid? %s, available quantity of order: %s, reserved: %s, traded: %s)",
+                              "(valid? %s, available quantity of order: %s, reserved: %s, traded: %s), reason: %s",
                               str(declined_trade.message_id), str(proposed_trade.message_id),
                               order.is_valid(), order.available_quantity, order.reserved_quantity,
-                              order.traded_quantity)
+                              order.traded_quantity, decline_reason)
             self.send_declined_trade(declined_trade)
         else:
             self.logger.debug("Proposed trade received with id: %s for order with id: %s",

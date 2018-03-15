@@ -22,7 +22,6 @@ class TradeTestSuite(unittest.TestCase):
         # Test for to network
         self.assertEquals(NotImplemented, self.trade.to_network())
 
-
 class ProposedTradeTestSuite(unittest.TestCase):
     """Proposed trade test cases."""
 
@@ -60,6 +59,19 @@ class ProposedTradeTestSuite(unittest.TestCase):
         self.assertEquals(Price(63400, 'BTC'), data.price)
         self.assertEquals(Quantity(30, 'MC'), data.quantity)
         self.assertEquals(Timestamp(1462224447.117), data.timestamp)
+
+    def test_has_acceptable_price(self):
+        """
+        Test the acceptable price method
+        """
+        self.assertTrue(self.proposed_trade.has_acceptable_price(True, Price(63000, 'BTC')))
+        self.assertFalse(self.proposed_trade.has_acceptable_price(False, Price(63000, 'BTC')))
+        self.assertTrue(self.proposed_trade.has_acceptable_price(False, Price(64000, 'BTC')))
+        self.assertFalse(self.proposed_trade.has_acceptable_price(True, Price(64000, 'BTC')))
+
+        # Test a price close to the proposed price
+        self.assertTrue(self.proposed_trade.has_acceptable_price(False, Price(63400.0 - 1e-07, 'BTC')))
+        self.assertTrue(self.proposed_trade.has_acceptable_price(True, Price(63400.0 - 1e-07, 'BTC')))
 
 
 class DeclinedTradeTestSuite(unittest.TestCase):

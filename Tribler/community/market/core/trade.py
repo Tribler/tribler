@@ -221,7 +221,13 @@ class ProposedTrade(Trade):
         Return whether this trade proposal has an acceptable price.
         :rtype: bool
         """
-        return (is_ask and self.price >= order_price) or (not is_ask and self.price <= order_price)
+        def isclose(price_a, price_b):
+            price_a = float(price_a)
+            price_b = float(price_b)
+            return abs(price_a - price_b) <= 1e-06
+
+        return (is_ask and (self.price >= order_price or isclose(self.price, order_price))) or \
+               (not is_ask and (self.price <= order_price or isclose(self.price, order_price)))
 
     def to_network(self):
         """
