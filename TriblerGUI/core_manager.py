@@ -55,6 +55,8 @@ def start_tribler_core(base_path):
         process_checker = ProcessChecker()
         if process_checker.already_running:
             return
+        else:
+            process_checker.create_lock_file()
 
         session = Session(config)
 
