@@ -88,7 +88,7 @@ class BitcoinWallet(Wallet):
         if not fd:
             return
 
-        self.daemon = self.get_daemon().Daemon(config, fd)
+        self.daemon = self.get_daemon().Daemon(config, fd, is_gui=False)
         self.daemon.start()
 
     def open_wallet(self):
@@ -247,7 +247,7 @@ class BitcoinWallet(Wallet):
                 'fee_amount': 0.0,
                 'currency': 'BTC',
                 'timestamp': str(transaction['timestamp']),
-                'description': ''
+                'description': 'Confirmations: %d' % transaction['confirmations']
             })
 
         return succeed(transactions)
