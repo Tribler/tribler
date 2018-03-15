@@ -530,6 +530,14 @@ class TriblerWindow(QMainWindow):
             self.dialog.show()
             self.start_download_dialog_active = True
         else:
+            # In the unlikely scenario that tribler settings are not available yet, try to fetch settings again and
+            # add the download uri back to self.pending_uri_requests to process again.
+            if not self.tribler_settings:
+                self.fetch_settings()
+                if self.download_uri not in self.pending_uri_requests:
+                    self.pending_uri_requests.append(self.download_uri)
+                return
+
             self.window().perform_start_download_request(self.download_uri,
                                                          self.window().tribler_settings['download_defaults'][
                                                              'anonymity_enabled'],
