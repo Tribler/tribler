@@ -252,7 +252,7 @@ class DownloadsPage(QWidget):
         self.window().left_menu_playlist.set_loading()
 
     def on_download_stopped(self, json_result):
-        if json_result["modified"]:
+        if json_result and "modified" in json_result:
             self.selected_item.download_info['status'] = "DLSTATUS_STOPPED"
             self.selected_item.update_item()
             self.on_download_item_clicked()
@@ -281,7 +281,7 @@ class DownloadsPage(QWidget):
         self.dialog = None
 
     def on_download_removed(self, json_result):
-        if json_result["removed"]:
+        if json_result and "removed" in json_result:
             infohash = self.selected_item.download_info["infohash"]
             index = self.window().downloads_list.indexOfTopLevelItem(self.selected_item)
             self.window().downloads_list.takeTopLevelItem(index)
@@ -296,7 +296,7 @@ class DownloadsPage(QWidget):
                                          method='PATCH', data='state=recheck')
 
     def on_forced_recheck(self, result):
-        if result['modified']:
+        if result and "modified" in result:
             self.selected_item.download_info['status'] = "DLSTATUS_HASHCHECKING"
             self.selected_item.update_item()
             self.on_download_item_clicked()
