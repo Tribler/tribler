@@ -12,8 +12,8 @@ import binascii
 import logging
 from libtorrent import bencode, bdecode
 
-import treq
 from twisted.internet import reactor
+from twisted.internet.defer import fail
 from twisted.web import http
 from twisted.web.client import Agent, readBody
 from twisted.web.http_headers import Headers
@@ -22,6 +22,12 @@ from Tribler.Core.version import version_id
 from Tribler.Core.exceptions import HttpError
 
 logger = logging.getLogger(__name__)
+
+try:
+    import treq
+    use_treq = True
+except ImportError:
+    use_treq = False
 
 
 def validTorrentFile(metainfo):
@@ -208,9 +214,17 @@ def http_get(uri):
             return readBody(response)
         raise HttpError(response)
 
-    treq_deferred = treq.get(uri, persistent=False)
-    treq_deferred.addCallback(_on_response)
-    return treq_deferred
+    try:
+        if use_treq:
+            deferred = treq.get(uri, persistent=False)
+        else:
+            agent = Agent(reactor)
+            deferred = agent.request('GET', uri, Headers({'User-Agent': ['Tribler ' + version_id]}), None)
+
+        deferred.addCallback(_on_response)
+        return deferred
+    except:
+        return fail()
 
 
 def parse_magnetlink(url):
