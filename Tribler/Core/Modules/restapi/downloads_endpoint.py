@@ -1,4 +1,5 @@
 import logging
+from urllib import unquote_plus
 
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
@@ -294,7 +295,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             request.finish()
 
         download_deferred = self.session.start_download_from_uri(
-            unicode(parameters['uri'][0], 'utf-8'), download_config)
+            unquote_plus(unicode(parameters['uri'][0], 'utf-8')), download_config)
         download_deferred.addCallback(download_added)
         download_deferred.addErrback(on_error)
 
