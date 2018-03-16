@@ -540,7 +540,7 @@ class TriblerWindow(QMainWindow):
     def on_confirm_add_directory_dialog(self, action):
         if action == 0:
             for torrent_file in self.selected_torrent_files:
-                escaped_uri = quote_plus((u"file:%s" % torrent_file).encode('utf-8'))
+                escaped_uri = u"file:%s" % quote_plus((torrent_file).encode('utf-8'))
                 self.perform_start_download_request(escaped_uri,
                                                     get_gui_setting(self.gui_settings,
                                                                     "default_anonymity_enabled", True, is_bool=True),
