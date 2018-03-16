@@ -213,17 +213,22 @@ class MarketPage(QWidget):
         self.update_filter_bids_list()
 
     def on_transaction_complete(self, transaction):
-        main_text = "Transaction with price %f %s and quantity %f %s completed." \
-                    % (transaction["price"], transaction["price_type"],
-                       transaction["quantity"], transaction["quantity_type"])
-        self.window().tray_icon.showMessage("Transaction completed", main_text)
-        self.window().hide_status_bar()
+        if transaction["mine"]:
+            transaction = transaction["tx"]
+            main_text = "Transaction with price %f %s and quantity %f %s completed." \
+                        % (transaction["price"], transaction["price_type"],
+                           transaction["quantity"], transaction["quantity_type"])
+            self.window().tray_icon.showMessage("Transaction completed", main_text)
+            self.window().hide_status_bar()
 
-        # Reload wallets
-        self.load_wallets()
+            # Reload wallets
+            self.load_wallets()
 
-        # Reload transactions
-        self.window().market_transactions_page.load_transactions()
+            # Reload transactions
+            self.window().market_transactions_page.load_transactions()
+        else:
+            self.load_asks()
+            self.load_bids()
 
     def on_iom_input_required(self, event_dict):
         self.dialog = IomInputDialog(self.window().stackedWidget, event_dict['bank_name'], event_dict['input'])

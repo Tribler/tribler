@@ -67,7 +67,7 @@ class ProposedTradeRequestCache(NumberCache):
         if self.match_id:
             # Inform the matchmaker about the failed trade
             match_message = self.community.incoming_match_messages[self.match_id]
-            self.community.send_decline_match_message(self.match_id, match_message.payload.matchmaker_trader_id,
+            self.community.send_decline_match_message(self.match_id, match_message.matchmaker_trader_id,
                                                       DeclineMatchReason.OTHER)
 
 
@@ -114,7 +114,7 @@ class MarketCommunity(TrustChainCommunity):
         self.use_local_address = False
         self.matching_enabled = True
         self.message_repository = MemoryMessageRepository(self.mid)
-        self.use_incremental_payments = True
+        self.use_incremental_payments = False
         self.matchmakers = set()
         self.pending_matchmaker_deferreds = []
         self.request_cache = RequestCache()
@@ -529,6 +529,7 @@ class MarketCommunity(TrustChainCommunity):
                                            TransactionNumber(block.transaction["tx"]["transaction_number"]))
             transaction = self.transaction_manager.find_by_id(transaction_id)
             if transaction and self.market_database.get_linked(block):
+                self.notify_transaction_complete(transaction.to_dictionary(), mine=True)
                 self.send_transaction_completed(transaction, block)
 
         self.process_market_block(block)
@@ -798,8 +799,8 @@ class MarketCommunity(TrustChainCommunity):
         auth, _, payload = self._ez_unpack_auth(MatchPayload, data)
         peer = Peer(auth.public_key_bin, source_address)
 
-        self.logger.debug("We received a match message for order %s.%s",
-                          TraderId(self.mid), payload.recipient_order_number)
+        self.logger.debug("We received a match message for order %s.%s (matched quantity: %s)",
+                          TraderId(self.mid), payload.recipient_order_number, payload.match_quantity)
 
         # We got a match, check whether we can respond to this match
         self.update_ip(payload.matchmaker_trader_id, source_address)
@@ -1032,10 +1033,10 @@ class MarketCommunity(TrustChainCommunity):
             declined_trade = Trade.decline(self.message_repository.next_identity(),
                                            Timestamp.now(), proposed_trade, decline_reason)
             self.logger.debug("Declined trade made with id: %s for proposed trade with id: %s "
-                              "(valid? %s, available quantity of order: %s, reserved: %s, traded: %s)",
+                              "(valid? %s, available quantity of order: %s, reserved: %s, traded: %s), reason: %s",
                               str(declined_trade.message_id), str(proposed_trade.message_id),
                               order.is_valid(), order.available_quantity, order.reserved_quantity,
-                              order.traded_quantity)
+                              order.traded_quantity, decline_reason)
             self.send_declined_trade(declined_trade)
         else:
             self.logger.debug("Proposed trade received with id: %s for order with id: %s",
@@ -1356,7 +1357,7 @@ class MarketCommunity(TrustChainCommunity):
             When a payment fails, log the error and still send a payment message to inform the other party that the
             payment has failed.
             """
-            self.logger.error("Payment of %f to %s failed: %s", transfer_amount,
+            self.logger.error("Payment of %s to %s failed: %s", transfer_amount,
                               str(transaction.partner_incoming_address), failure.value)
             self.send_payment_message(PaymentId(''), transaction, payment_tup, False)
 
@@ -1449,7 +1450,7 @@ class MarketCommunity(TrustChainCommunity):
             """
             We received the signed block from the counterparty, wrap everything up
             """
-            self.notify_transaction_complete(transaction)
+            self.notify_transaction_complete(transaction.to_dictionary(), mine=True)
             self.send_transaction_completed(transaction, block)
 
         def build_tx_done_block(other_order_dict):
@@ -1481,14 +1482,16 @@ class MarketCommunity(TrustChainCommunity):
         """
         self.logger.error("Aborting transaction %s", transaction.transaction_id)
         order = self.order_manager.order_repository.find_by_id(transaction.order_id)
-        order.release_quantity_for_tick(transaction.partner_order_id,
-                                        transaction.total_quantity - transaction.transferred_quantity)
-        self.order_manager.order_repository.update(order)
+        if (transaction.total_quantity - transaction.transferred_quantity) > \
+                Quantity(0, transaction.total_quantity.wallet_id):
+            order.release_quantity_for_tick(transaction.partner_order_id,
+                                            transaction.total_quantity - transaction.transferred_quantity)
+            self.order_manager.order_repository.update(order)
 
-    def notify_transaction_complete(self, transaction):
+    def notify_transaction_complete(self, tx_dict, mine=False):
         if self.tribler_session:
             self.tribler_session.notifier.notify(NTFY_MARKET_ON_TRANSACTION_COMPLETE, NTFY_UPDATE, None,
-                                                 transaction.to_dictionary())
+                                                 {"tx": tx_dict, "mine": mine})
 
     def send_transaction_completed(self, transaction, block):
         """
@@ -1534,6 +1537,8 @@ class MarketCommunity(TrustChainCommunity):
         self.logger.debug("Received transaction-completed-bc message")
         if not self.is_matchmaker:
             return
+
+        self.notify_transaction_complete(tx_dict["tx"])
 
         # Update ticks in order book, release the reserved quantity
         quantity = Quantity(tx_dict["tx"]["quantity"], tx_dict["tx"]["quantity_type"])

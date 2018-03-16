@@ -117,9 +117,9 @@ class OrderBook(TaskManager):
                            str(ask_order_id), str(bid_order_id), str(traded_quantity))
 
         # Update ask tick
-        new_ask_quantity = Quantity(ask_order_dict["quantity"] - float(traded_quantity),
+        new_ask_quantity = Quantity(ask_order_dict["quantity"] - ask_order_dict["traded_quantity"],
                                     ask_order_dict["quantity_type"])
-        if self.tick_exists(ask_order_id) and new_ask_quantity < self.get_tick(ask_order_id).quantity:
+        if self.tick_exists(ask_order_id) and new_ask_quantity <= self.get_tick(ask_order_id).quantity:
             tick = self.get_tick(ask_order_id)
             tick.quantity = new_ask_quantity
             if unreserve:
@@ -133,9 +133,9 @@ class OrderBook(TaskManager):
             self.insert_ask(ask)
 
         # Update bid tick
-        new_bid_quantity = Quantity(bid_order_dict["quantity"] - float(traded_quantity),
+        new_bid_quantity = Quantity(bid_order_dict["quantity"] - bid_order_dict["traded_quantity"],
                                     bid_order_dict["quantity_type"])
-        if self.tick_exists(bid_order_id) and new_bid_quantity < self.get_tick(bid_order_id).quantity:
+        if self.tick_exists(bid_order_id) and new_bid_quantity <= self.get_tick(bid_order_id).quantity:
             tick = self.get_tick(bid_order_id)
             tick.quantity = new_bid_quantity
             if unreserve:

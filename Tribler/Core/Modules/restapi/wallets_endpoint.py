@@ -232,15 +232,15 @@ class WalletTransferEndpoint(resource.Resource):
 
     def render_POST(self, request):
         """
-        .. http:get:: /wallets/(string:wallet identifier)/transfer
+        .. http:post:: /wallets/(string:wallet identifier)/transfer
 
-        A GET request to this endpoint will return past transactions of a specific wallet.
+        A POST request to this endpoint will transfer some units from a wallet to another address.
 
             **Example request**:
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/wallets/BTC/transfer
+                curl -X POST http://localhost:8085/wallets/BTC/transfer
                 --data "amount=0.3&destination=mpC1DDgSP4PKc5HxJzQ5w9q6CGLBEQuLsN"
 
             **Example response**:

@@ -261,3 +261,16 @@ class TestMarketEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('market/orders/1/cancel', request_type='POST', expected_code=200)\
             .addCallback(on_response)
+
+    @deferred(timeout=10)
+    def test_get_matchmakers(self):
+        """
+        Test the request to fetch known matchmakers
+        """
+        def on_response(response):
+            json_response = json.loads(response)
+            self.assertGreaterEqual(len(json_response['matchmakers']), 1)
+
+        self.session.lm.market_community.matchmakers.add(self.session.lm.market_community.my_peer)
+        self.should_check_equality = False
+        return self.do_request('market/matchmakers', expected_code=200).addCallback(on_response)

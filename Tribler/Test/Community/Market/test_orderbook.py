@@ -187,13 +187,15 @@ class TestOrderBook(AbstractTestOrderBook):
             "trader_id": str(self.ask.order_id.trader_id),
             "order_number": int(self.ask.order_id.order_number),
             "quantity": 3,
-            "quantity_type": self.ask.quantity.wallet_id
+            "quantity_type": self.ask.quantity.wallet_id,
+            "traded_quantity": 3
         }
         bid_dict = {
             "trader_id": str(self.bid.order_id.trader_id),
             "order_number": int(self.bid.order_id.order_number),
             "quantity": 3,
-            "quantity_type": self.bid.quantity.wallet_id
+            "quantity_type": self.bid.quantity.wallet_id,
+            "traded_quantity": 3
         }
 
         self.order_book.get_tick(self.ask.order_id).reserve_for_matching(Quantity(3, self.ask.quantity.wallet_id))

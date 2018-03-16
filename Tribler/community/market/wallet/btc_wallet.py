@@ -5,6 +5,7 @@ from threading import Thread
 import imp
 import keyring
 from Tribler.Core.Utilities.install_dir import get_base_path
+from jsonrpclib import ProtocolError
 from twisted.internet.defer import Deferred, succeed, fail, inlineCallbacks
 from twisted.internet.task import LoopingCall
 
@@ -88,7 +89,7 @@ class BitcoinWallet(Wallet):
         if not fd:
             return
 
-        self.daemon = self.get_daemon().Daemon(config, fd)
+        self.daemon = self.get_daemon().Daemon(config, fd, is_gui=False)
         self.daemon.start()
 
     def open_wallet(self):
@@ -150,12 +151,23 @@ class BitcoinWallet(Wallet):
         """
         Return the balance of the wallet.
         """
-        divider = 100000000
         if self.created:
-            confirmed, unconfirmed, unmatured = self.wallet.get_balance()
+            options = {'nolnet': False, 'password': None, 'verbose': False, 'cmd': 'getbalance',
+                       'wallet_path': self.wallet_file, 'testnet': self.testnet, 'segwit': False,
+                       'cwd': self.wallet_dir,
+                       'portable': False}
+            config = SimpleConfig(options)
+
+            server = self.get_daemon().get_server(config)
+            result = server.run_cmdline(options)
+
+            confirmed = float(result['confirmed'])
+            unconfirmed = float(result['unconfirmed']) if 'unconfirmed' in result else 0
+            unconfirmed += (float(result['unmatured']) if 'unmatured' in result else 0)
+
             return succeed({
-                "available": float(confirmed) / divider,
-                "pending": float(unconfirmed + unmatured) / divider,
+                "available": confirmed,
+                "pending": unconfirmed,
                 "currency": 'BTC'
             })
         else:
@@ -226,17 +238,17 @@ class BitcoinWallet(Wallet):
         config = SimpleConfig(options)
 
         server = self.get_daemon().get_server(config)
-        result = server.run_cmdline(options)
+        try:
+            result = server.run_cmdline(options)
+        except ProtocolError:
+            self._logger.error("Unable to fetch transactions from BTC wallet!")
+            return succeed([])
 
         transactions = []
         for transaction in result:
             outgoing = transaction['value'] < 0
-            if outgoing:
-                from_address = self.get_address()
-                to_address = ''
-            else:
-                from_address = ''
-                to_address = self.get_address()
+            from_address = ','.join(transaction['input_addresses'])
+            to_address = ','.join(transaction['output_addresses'])
 
             transactions.append({
                 'id': transaction['txid'],
@@ -247,7 +259,7 @@ class BitcoinWallet(Wallet):
                 'fee_amount': 0.0,
                 'currency': 'BTC',
                 'timestamp': str(transaction['timestamp']),
-                'description': ''
+                'description': 'Confirmations: %d' % transaction['confirmations']
             })
 
         return succeed(transactions)

@@ -878,6 +878,11 @@ class TriblerLaunchMany(TaskManager):
             else:
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
 
+        if self.tunnel_community and self.triblerchain_community:
+            # We unload these overlays manually since the triblerchain has to be unloaded after the tunnel overlay.
+            yield self.ipv8.unload_overlay(self.tunnel_community)
+            yield self.ipv8.unload_overlay(self.triblerchain_community)
+
         if self.ipv8:
             yield self.ipv8.stop(stop_reactor=False)
             self.ipv8.endpoint.close()

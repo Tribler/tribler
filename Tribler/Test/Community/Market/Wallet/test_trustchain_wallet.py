@@ -14,6 +14,7 @@ class TestTrustchainWallet(TestBase):
         self.initialize(TrustChainCommunity, 2)
         self.tc_wallet = TrustchainWallet(self.nodes[0].overlay)
         self.tc_wallet.MONITOR_DELAY = 0.01
+        self.tc_wallet.check_negative_balance = True
 
     def create_node(self):
         return MockIPv8(u"curve25519", TrustChainCommunity, working_directory=u":memory:")
