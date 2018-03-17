@@ -468,3 +468,29 @@ class OrderbookSyncPayload(MessagePayload):
         bloomfilter = BloomFilter(bf_bytes, bf_functions, prefix=bf_prefix)
         return OrderbookSyncPayload(MessageId(TraderId(trader_id), MessageNumber(message_number)), timestamp,
                                     bloomfilter)
+
+
+class PingPongPayload(MessagePayload):
+    """
+    Payload for a ping and pong message in the market community.
+    """
+
+    format_list = ['varlenI', 'I', 'f', 'I']
+
+    def __init__(self, message_id, timestamp, identifier):
+        super(PingPongPayload, self).__init__(message_id, timestamp)
+        self.message_id = message_id
+        self.timestamp = timestamp
+        self.identifier = identifier
+
+    def to_pack_list(self):
+        data = [('varlenI', str(self.message_id.trader_id)),
+                ('I', int(self.message_id.message_number)),
+                ('f', self.timestamp),
+                ('I', self.identifier)]
+
+        return data
+
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, identifier):
+        return PingPongPayload(MessageId(TraderId(trader_id), MessageNumber(message_number)), timestamp, identifier)

@@ -2,7 +2,7 @@ from Tribler.Test.ipv8_base import TestBase
 from Tribler.Test.mocking.ipv8 import MockIPv8
 from Tribler.Test.util.ipv8_util import twisted_wrapper
 from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
-from Tribler.community.market.community import MarketCommunity
+from Tribler.community.market.community import MarketCommunity, PingRequestCache
 from twisted.internet.defer import fail
 
 
@@ -306,3 +306,26 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         for node_nr in [0, 1]:
             self.assertEqual(len(self.nodes[node_nr].overlay.order_book.asks), 0)
             self.assertEqual(len(self.nodes[node_nr].overlay.order_book.bids), 0)
+
+    @twisted_wrapper
+    def test_churn_matchmaker(self):
+        """
+        Test whether we finish constructing a tick as soon as the first matchmaker comes online
+        """
+        deferred = self.nodes[0].overlay.create_ask(1, 'DUM1', 2, 'DUM2', 3600)
+        yield self.introduce_nodes()
+        yield deferred
+
+    @twisted_wrapper
+    def test_offline_matchmaker(self):
+        """
+        Test whether offline matchmakers are successfully removed
+        """
+        yield self.introduce_nodes()
+
+        PingRequestCache.TIMEOUT_DELAY = 0.1
+        self.nodes[1].overlay.decode_map[chr(20)] = lambda *_: None
+        self.assertTrue(self.nodes[0].overlay.matchmakers)
+        self.nodes[0].overlay.get_online_matchmaker()
+        yield self.sleep(0.2)
+        self.assertFalse(self.nodes[0].overlay.matchmakers)

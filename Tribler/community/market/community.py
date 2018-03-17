@@ -2,7 +2,7 @@ import random
 from base64 import b64decode
 
 from Tribler.pyipv8.ipv8.deprecated.bloomfilter import BloomFilter
-from twisted.internet.defer import inlineCallbacks, succeed, Deferred
+from twisted.internet.defer import inlineCallbacks, succeed, Deferred, returnValue
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.simpledefs import NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_TRANSACTION_COMPLETE, \
@@ -33,7 +33,7 @@ from Tribler.community.market.core.wallet_address import WalletAddress
 from Tribler.community.market.database import MarketDB
 from Tribler.community.market.payload import InfoPayload, MatchPayload, TradePayload, StartTransactionPayload, \
     AcceptMatchPayload, OrderStatusRequestPayload, OrderStatusResponsePayload, WalletInfoPayload, PaymentPayload, \
-    DeclineMatchPayload, DeclineTradePayload, OrderbookSyncPayload
+    DeclineMatchPayload, DeclineTradePayload, OrderbookSyncPayload, PingPongPayload
 from Tribler.community.market.reputation.temporal_pagerank_manager import TemporalPagerankReputationManager
 from Tribler.community.market.tradechain.block import TradeChainBlock
 from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
@@ -80,6 +80,24 @@ class OrderStatusRequestCache(RandomNumberCache):
 
     def on_timeout(self):
         self._logger.warning("No response in time from remote peer when requesting order status")
+
+
+class PingRequestCache(RandomNumberCache):
+    """
+    This request cache keeps track of outstanding ping messages to matchmakers.
+    """
+    TIMEOUT_DELAY = 5.0
+
+    def __init__(self, community, request_deferred):
+        super(PingRequestCache, self).__init__(community.request_cache, u"ping")
+        self.request_deferred = request_deferred
+
+    @property
+    def timeout_delay(self):
+        return PingRequestCache.TIMEOUT_DELAY
+
+    def on_timeout(self):
+        self.request_deferred.callback(False)
 
 
 class MarketCommunity(TrustChainCommunity):
@@ -155,6 +173,8 @@ class MarketCommunity(TrustChainCommunity):
             chr(17): self.received_order_status,
             chr(18): self.received_info,
             chr(19): self.received_orderbook_sync,
+            chr(20): self.received_ping,
+            chr(21): self.received_pong
         })
 
         self.logger.info("Market community initialized with mid %s", self.mid)
@@ -446,6 +466,60 @@ class MarketCommunity(TrustChainCommunity):
                     if other_tick_block:
                         self.send_block_pair(tick_block, other_tick_block, source_address)
 
+    def ping_peer(self, peer):
+        """
+        Ping a specific peer. Return a deferred that fires with a boolean value whether the peer responded within time.
+        """
+        deferred = Deferred()
+        cache = PingRequestCache(self, deferred)
+        self.request_cache.add(cache)
+        self.send_ping(peer, cache.number)
+        return deferred
+
+    def send_ping(self, peer, identifier):
+        """
+        Send a ping message with an identifier to a specific peer.
+        """
+        message_id = self.message_repository.next_identity()
+
+        global_time = self.claim_global_time()
+        auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
+        payload = PingPongPayload(message_id, Timestamp.now(), identifier).to_pack_list()
+        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
+
+        packet = self._ez_pack(self._prefix, 20, [auth, dist, payload])
+        self.endpoint.send(peer.address, packet)
+
+    def received_ping(self, source_address, data):
+        auth, _, payload = self._ez_unpack_auth(PingPongPayload, data)
+        peer = Peer(auth.public_key_bin, source_address)
+
+        self.send_pong(peer, payload.identifier)
+
+    def send_pong(self, peer, identifier):
+        """
+        Send a pong message with an identifier to a specific peer.
+        """
+        message_id = self.message_repository.next_identity()
+
+        global_time = self.claim_global_time()
+        auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
+        payload = PingPongPayload(message_id, Timestamp.now(), identifier).to_pack_list()
+        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
+
+        packet = self._ez_pack(self._prefix, 21, [auth, dist, payload])
+        self.endpoint.send(peer.address, packet)
+
+    def received_pong(self, _, data):
+        _, _, payload = self._ez_unpack_auth(PingPongPayload, data)
+
+        if not self.request_cache.has(u"ping", payload.identifier):
+            self.logger.warning("ping cache with id %s not found", payload.identifier)
+            return
+
+        cache = self.request_cache.pop(u"ping", payload.identifier)
+        cache.request_deferred.callback(True)
+
     def verify_offer_creation(self, price, price_wallet_id, quantity, quantity_wallet_id):
         if price_wallet_id == quantity_wallet_id:
             raise RuntimeError("You cannot trade between the same wallet")
@@ -641,17 +715,28 @@ class MarketCommunity(TrustChainCommunity):
 
         self.pending_matchmaker_deferreds = []
 
-    def get_random_matchmaker(self):
+    @inlineCallbacks
+    def get_online_matchmaker(self):
         """
-        Get a random matchmaker. If there is no matchmaker available, wait until there's one.
+        Get an online matchmaker. If there is no matchmaker available, wait until there's one.
         :return: A Deferred that fires with a matchmaker.
         """
-        if len(self.matchmakers) > 0:
-            return succeed(random.sample(self.matchmakers, 1)[0])
+        while True:
+            if not self.matchmakers:
+                break
+            random_matchmaker = random.sample(self.matchmakers, 1)[0]
+            online = yield self.ping_peer(random_matchmaker)
+            if not online:
+                self.matchmakers.remove(random_matchmaker)
+            else:
+                returnValue(random_matchmaker)
 
+        # We didn't find an online matchmaker; wait until we find one
+        self.logger.info("No matchmaker found, wait until there's one available")
         matchmaker_deferred = Deferred()
         self.pending_matchmaker_deferreds.append(matchmaker_deferred)
-        return matchmaker_deferred
+        matchmaker = yield matchmaker_deferred
+        returnValue(matchmaker)
 
     @synchronized
     def create_new_tick_block(self, tick):
@@ -671,7 +756,7 @@ class MarketCommunity(TrustChainCommunity):
             tx_dict["tick"]['address'], tx_dict["tick"]['port'] = self.get_ipv8_address()
             return self.sign_block(matchmaker, matchmaker.public_key.key_to_bin(), tx_dict)
 
-        return self.get_random_matchmaker().addCallback(create_send_block)
+        return self.get_online_matchmaker().addCallback(create_send_block)
 
     @synchronized
     def create_new_cancel_order_block(self, order):
@@ -692,7 +777,7 @@ class MarketCommunity(TrustChainCommunity):
             return self.sign_block(matchmaker, matchmaker.public_key.key_to_bin(), tx_dict)\
                 .addCallback(lambda (blk1, blk2): blk1)
 
-        return self.get_random_matchmaker().addCallback(create_send_block)
+        return self.get_online_matchmaker().addCallback(create_send_block)
 
     @synchronized
     def create_new_tx_init_block(self, peer, ask_order_dict, bid_order_dict, transaction):
