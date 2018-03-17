@@ -1,26 +1,20 @@
 from jsonrpclib import ProtocolError
-from twisted.internet.defer import inlineCallbacks, succeed, Deferred
+from twisted.internet.defer import succeed, Deferred
 
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.Test.twisted_thread import deferred
-from Tribler.community.market.wallet.btc_wallet import BitcoinWallet
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.community.market.wallet.btc_wallet import BitcoinTestnetWallet, BitcoinWallet
 
 
 class TestBtcWallet(AbstractServer):
-
-    @blocking_call_on_reactor_thread
-    @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestBtcWallet, self).setUp(annotate=annotate)
 
     @deferred(timeout=20)
     def test_btc_wallet(self):
         """
         Test the creating, opening, transactions and balance query of a Bitcoin wallet
         """
-        wallet = BitcoinWallet(self.session_base_dir, testnet=True)
+        wallet = BitcoinTestnetWallet(self.session_base_dir)
 
         def on_wallet_transactions(transactions):
             self.assertFalse(transactions)
@@ -36,9 +30,9 @@ class TestBtcWallet(AbstractServer):
             self.assertIsNotNone(wallet.wallet)
             self.assertTrue(wallet.get_address())
 
-            _ = BitcoinWallet(self.session_base_dir, testnet=True)
+            _ = BitcoinTestnetWallet(self.session_base_dir)
             wallet.set_wallet_password('abc')
-            self.assertRaises(Exception, BitcoinWallet, self.session_base_dir, testnet=True)
+            self.assertRaises(Exception, BitcoinTestnetWallet, self.session_base_dir, testnet=True)
 
             return wallet.get_balance().addCallback(on_wallet_balance)
 
@@ -48,28 +42,28 @@ class TestBtcWallet(AbstractServer):
         """
         Test the name of a Bitcoin wallet
         """
-        wallet = BitcoinWallet(self.session_base_dir)
-        self.assertEqual(wallet.get_name(), 'Bitcoin')
+        wallet = BitcoinTestnetWallet(self.session_base_dir)
+        self.assertEqual(wallet.get_name(), 'Testnet BTC')
 
     def test_btc_wallet_identfier(self):
         """
         Test the identifier of a Bitcoin wallet
         """
-        wallet = BitcoinWallet(self.session_base_dir)
-        self.assertEqual(wallet.get_identifier(), 'BTC')
+        wallet = BitcoinTestnetWallet(self.session_base_dir)
+        self.assertEqual(wallet.get_identifier(), 'TBTC')
 
     def test_btc_wallet_address(self):
         """
         Test the address of a Bitcoin wallet
         """
-        wallet = BitcoinWallet(self.session_base_dir)
+        wallet = BitcoinTestnetWallet(self.session_base_dir)
         self.assertEqual(wallet.get_address(), '')
 
     def test_btc_wallet_unit(self):
         """
         Test the mininum unit of a Bitcoin wallet
         """
-        wallet = BitcoinWallet(self.session_base_dir)
+        wallet = BitcoinTestnetWallet(self.session_base_dir)
         self.assertEqual(wallet.min_unit(), 0.0001)
 
     def test_btc_balance_no_wallet(self):
@@ -79,7 +73,7 @@ class TestBtcWallet(AbstractServer):
         def on_wallet_balance(balance):
             self.assertDictEqual(balance, {'available': 0, 'pending': 0, 'currency': 'BTC'})
 
-        wallet = BitcoinWallet(self.session_base_dir)
+        wallet = BitcoinTestnetWallet(self.session_base_dir)
         return wallet.get_balance().addCallback(on_wallet_balance)
 
     @deferred(timeout=10)
@@ -89,7 +83,7 @@ class TestBtcWallet(AbstractServer):
         """
         test_deferred = Deferred()
 
-        wallet = BitcoinWallet(self.session_base_dir)
+        wallet = BitcoinTestnetWallet(self.session_base_dir)
         mock_daemon = MockObject()
         wallet.get_daemon = lambda: mock_daemon
 
@@ -107,7 +101,7 @@ class TestBtcWallet(AbstractServer):
             elif request['cmd'] == 'broadcast':
                 return True, 'abcd'
 
-        wallet = BitcoinWallet(self.session_base_dir)
+        wallet = BitcoinTestnetWallet(self.session_base_dir)
         mock_daemon = MockObject()
         mock_server = MockObject()
         mock_server.run_cmdline = mocked_run_cmdline
@@ -129,7 +123,7 @@ class TestBtcWallet(AbstractServer):
                 return False, 'abcd'
 
         test_deferred = Deferred()
-        wallet = BitcoinWallet(self.session_base_dir)
+        wallet = BitcoinTestnetWallet(self.session_base_dir)
         mock_daemon = MockObject()
         mock_server = MockObject()
         mock_server.run_cmdline = mocked_run_cmdline
@@ -141,7 +135,7 @@ class TestBtcWallet(AbstractServer):
 
     @deferred(timeout=10)
     def test_get_transactions(self):
-        wallet = BitcoinWallet(self.session_base_dir)
+        wallet = BitcoinTestnetWallet(self.session_base_dir)
         mock_daemon = MockObject()
         mock_server = MockObject()
         transactions = [{
@@ -169,7 +163,7 @@ class TestBtcWallet(AbstractServer):
         """
         Test whether no transactions are returned when there's a protocol in the JSON RPC protocol
         """
-        wallet = BitcoinWallet(self.session_base_dir)
+        wallet = BitcoinTestnetWallet(self.session_base_dir)
         mock_daemon = MockObject()
         mock_server = MockObject()
 
@@ -184,3 +178,20 @@ class TestBtcWallet(AbstractServer):
             self.assertFalse(transactions)
 
         return wallet.get_transactions().addCallback(verify_transactions)
+
+
+class TestBtcTestnetWallet(AbstractServer):
+
+    def test_btc_wallet_name(self):
+        """
+        Test the name of a Bitcoin wallet
+        """
+        wallet = BitcoinWallet(self.session_base_dir)
+        self.assertEqual(wallet.get_name(), 'Bitcoin')
+
+    def test_btc_wallet_identfier(self):
+        """
+        Test the identifier of a Bitcoin wallet
+        """
+        wallet = BitcoinWallet(self.session_base_dir)
+        self.assertEqual(wallet.get_identifier(), 'BTC')
