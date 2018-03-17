@@ -189,5 +189,7 @@ class TestDatabase(AbstractServer):
     @blocking_call_on_reactor_thread
     def test_db_upgrade(self):
         self.database.execute(u"DROP TABLE orders;")
+        self.database.execute(u"DROP TABLE ticks;")
         self.database.execute(u"CREATE TABLE orders(x INTEGER PRIMARY KEY ASC);")
+        self.database.execute(u"CREATE TABLE ticks(x INTEGER PRIMARY KEY ASC);")
         self.assertEqual(self.database.check_database(u"1"), 2)

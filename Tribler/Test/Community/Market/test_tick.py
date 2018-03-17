@@ -76,4 +76,5 @@ class TickTestSuite(unittest.TestCase):
             "quantity_type": "MC",
             "timeout": 30.0,
             "timestamp": float(self.timestamp_now),
+            "block_hash": ('0' * 32).encode('hex')
         })

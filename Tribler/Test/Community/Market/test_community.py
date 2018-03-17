@@ -216,6 +216,34 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.assertEqual(float(bid_tick_entry.reserved_for_matching), 0)
         self.assertEqual(float(ask_tick_entry.reserved_for_matching), 0)
 
+    @twisted_wrapper
+    def test_orderbook_sync(self):
+        """
+        Test whether orderbooks are synchronized with a new node
+        """
+        yield self.introduce_nodes()
+
+        ask_order = yield self.nodes[0].overlay.create_ask(100, 'DUM1', 2, 'DUM2', 3600)
+        bid_order = yield self.nodes[1].overlay.create_bid(1, 'DUM1', 2, 'DUM2', 3600)
+
+        yield self.deliver_messages(timeout=.5)
+
+        # Add a node that crawls the matchmaker
+        self.add_node_to_experiment(self.create_node())
+        self.nodes[3].discovery.take_step()
+        yield self.deliver_messages(timeout=.5)
+
+        self.assertTrue(self.nodes[3].overlay.order_book.get_tick(ask_order.order_id))
+        self.assertTrue(self.nodes[3].overlay.order_book.get_tick(bid_order.order_id))
+
+        # Add another node that crawls our newest node
+        self.add_node_to_experiment(self.create_node())
+        self.nodes[4].overlay.send_orderbook_sync(self.nodes[3].overlay.my_peer)
+        yield self.deliver_messages(timeout=.5)
+
+        self.assertTrue(self.nodes[4].overlay.order_book.get_tick(ask_order.order_id))
+        self.assertTrue(self.nodes[4].overlay.order_book.get_tick(bid_order.order_id))
+
 
 class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
     __testing__ = True

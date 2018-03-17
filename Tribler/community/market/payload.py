@@ -8,6 +8,7 @@ from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.transaction import TransactionId, TransactionNumber
 from Tribler.community.market.core.wallet_address import WalletAddress
+from Tribler.pyipv8.ipv8.deprecated.bloomfilter import BloomFilter
 from Tribler.pyipv8.ipv8.deprecated.payload import Payload
 
 
@@ -437,3 +438,33 @@ class OrderStatusResponsePayload(OfferPayload):
                                           Timestamp(timestamp), OrderNumber(order_number), Price(price, price_type),
                                           Quantity(quantity, quantity_type), Timeout(timeout), SocketAddress(ip, port),
                                           Quantity(traded_quantity, traded_quantity_type), identifier)
+
+
+class OrderbookSyncPayload(MessagePayload):
+    """
+    Payload for synchronization of orders in the market community.
+    """
+
+    format_list = ['varlenI', 'I', 'f', 'B', 'c', 'varlenI']
+
+    def __init__(self, message_id, timestamp, bloomfilter):
+        super(OrderbookSyncPayload, self).__init__(message_id, timestamp)
+        self.message_id = message_id
+        self.timestamp = timestamp
+        self.bloomfilter = bloomfilter
+
+    def to_pack_list(self):
+        data = [('varlenI', str(self.message_id.trader_id)),
+                ('I', int(self.message_id.message_number)),
+                ('f', self.timestamp),
+                ('B', self.bloomfilter.functions),
+                ('c', self.bloomfilter.prefix),
+                ('varlenI', self.bloomfilter.bytes)]
+
+        return data
+
+    @classmethod
+    def from_unpack_list(cls, trader_id, message_number, timestamp, bf_functions, bf_prefix, bf_bytes):
+        bloomfilter = BloomFilter(bf_bytes, bf_functions, prefix=bf_prefix)
+        return OrderbookSyncPayload(MessageId(TraderId(trader_id), MessageNumber(message_number)), timestamp,
+                                    bloomfilter)

@@ -6,6 +6,7 @@ from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
+from Tribler.pyipv8.ipv8.attestation.trustchain.block import GENESIS_HASH
 
 
 class Tick(object):
@@ -15,7 +16,7 @@ class Tick(object):
     """
     TIME_TOLERANCE = 10  # A small tolerance for the timestamp, to account for network delays
 
-    def __init__(self, order_id, price, quantity, timeout, timestamp, is_ask):
+    def __init__(self, order_id, price, quantity, timeout, timestamp, is_ask, block_hash=GENESIS_HASH):
         """
         Don't use this class directly, use one of the class methods
 
@@ -25,12 +26,14 @@ class Tick(object):
         :param timeout: A timeout when this tick is going to expire
         :param timestamp: A timestamp when the tick was created
         :param is_ask: A bool to indicate if this tick is an ask
+        :param block_hash: The hash of the block that created this tick
         :type order_id: OrderId
         :type price: Price
         :type quantity: Quantity
         :type timeout: Timeout
         :type timestamp: Timestamp
         :type is_ask: bool
+        :type block_hash: str
         """
         assert isinstance(order_id, OrderId), type(order_id)
         assert isinstance(price, Price), type(price)
@@ -38,6 +41,7 @@ class Tick(object):
         assert isinstance(timeout, Timeout), type(timeout)
         assert isinstance(timestamp, Timestamp), type(timestamp)
         assert isinstance(is_ask, bool), type(is_ask)
+        assert isinstance(block_hash, str), type(block_hash)
 
         self._order_id = order_id
         self._price = price
@@ -45,20 +49,22 @@ class Tick(object):
         self._timeout = timeout
         self._timestamp = timestamp
         self._is_ask = is_ask
+        self._block_hash = block_hash
 
     @classmethod
     def from_database(cls, data):
-        trader_id, order_number, price, price_type, quantity, quantity_type, timeout, timestamp, is_ask = data
+        trader_id, order_number, price, price_type, quantity, quantity_type, timeout, timestamp,\
+        is_ask, block_hash = data
 
         tick_cls = Ask if is_ask else Bid
         order_id = OrderId(TraderId(str(trader_id)), OrderNumber(order_number))
         return tick_cls(order_id, Price(price, str(price_type)), Quantity(quantity, str(quantity_type)),
-                        Timeout(timeout), Timestamp(timestamp))
+                        Timeout(timeout), Timestamp(timestamp), block_hash=str(block_hash))
 
     def to_database(self):
         return (unicode(self.order_id.trader_id), int(self.order_id.order_number), float(self.price),
                 unicode(self.price.wallet_id), float(self.quantity), unicode(self.quantity.wallet_id),
-                float(self.timeout), float(self.timestamp), self.is_ask())
+                float(self.timeout), float(self.timestamp), self.is_ask(), buffer(self.block_hash))
 
     @classmethod
     def from_order(cls, order):
@@ -131,6 +137,23 @@ class Tick(object):
         """
         return self._is_ask
 
+    @property
+    def block_hash(self):
+        """
+        Return the hash of the associated block
+        :rtype str
+        """
+        return self._block_hash
+
+    @block_hash.setter
+    def block_hash(self, new_hash):
+        """
+        :param new_hash: The new block hash
+        :type new_hash: str
+        """
+        assert isinstance(new_hash, str), type(new_hash)
+        self._block_hash = new_hash
+
     def is_valid(self):
         """
         :return: True if valid, False otherwise
@@ -180,27 +203,30 @@ class Tick(object):
             "quantity": float(self.quantity),
             "quantity_type": self.quantity.wallet_id,
             "timeout": float(self.timeout),
-            "timestamp": float(self.timestamp)
+            "timestamp": float(self.timestamp),
+            "block_hash": self.block_hash.encode('hex')
         }
 
 
 class Ask(Tick):
     """Represents an ask from a order located on another node."""
 
-    def __init__(self, order_id, price, quantity, timeout, timestamp):
+    def __init__(self, order_id, price, quantity, timeout, timestamp, block_hash=GENESIS_HASH):
         """
         :param order_id: A order id to identify the order this tick represents
         :param price: A price that needs to be paid for the ask
         :param quantity: The quantity that needs to be sold
         :param timeout: A timeout for the ask
         :param timestamp: A timestamp for when the ask was created
+        :param block_hash: The hash of the block that created this tick
         :type order_id: OrderId
         :type price: Price
         :type quantity: Quantity
         :type timeout: Timeout
         :type timestamp: Timestamp
+        :type block_hash: str
         """
-        super(Ask, self).__init__(order_id, price, quantity, timeout, timestamp, True)
+        super(Ask, self).__init__(order_id, price, quantity, timeout, timestamp, True, block_hash=block_hash)
 
     @classmethod
     def from_block(cls, block):
@@ -217,27 +243,30 @@ class Ask(Tick):
             Price(tx_dict["price"], tx_dict["price_type"]),
             Quantity(tx_dict["quantity"], tx_dict["quantity_type"]),
             Timeout(tx_dict["timeout"]),
-            Timestamp(tx_dict["timestamp"])
+            Timestamp(tx_dict["timestamp"]),
+            block_hash=block.hash
         )
 
 
 class Bid(Tick):
     """Represents a bid from a order located on another node."""
 
-    def __init__(self, order_id, price, quantity, timeout, timestamp):
+    def __init__(self, order_id, price, quantity, timeout, timestamp, block_hash=GENESIS_HASH):
         """
         :param order_id: A order id to identify the order this tick represents
         :param price: A price that you are willing to pay for the bid
         :param quantity: The quantity that you want to buy
         :param timeout: A timeout for the bid
         :param timestamp: A timestamp for when the bid was created
+        :param block_hash: The hash of the block that created this tick
         :type order_id: OrderId
         :type price: Price
         :type quantity: Quantity
         :type timeout: Timeout
         :type timestamp: Timestamp
+        :type block_hash: str
         """
-        super(Bid, self).__init__(order_id, price, quantity, timeout, timestamp, False)
+        super(Bid, self).__init__(order_id, price, quantity, timeout, timestamp, False, block_hash=block_hash)
 
     @classmethod
     def from_block(cls, block):
@@ -254,5 +283,6 @@ class Bid(Tick):
             Price(tx_dict["price"], tx_dict["price_type"]),
             Quantity(tx_dict["quantity"], tx_dict["quantity_type"]),
             Timeout(tx_dict["timeout"]),
-            Timestamp(tx_dict["timestamp"])
+            Timestamp(tx_dict["timestamp"]),
+            block_hash=block.hash
         )
