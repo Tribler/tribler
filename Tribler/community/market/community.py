@@ -1533,10 +1533,11 @@ class MarketCommunity(TrustChainCommunity):
             self.match(tick_entry_sender.tick)
 
     def on_transaction_completed_bc_message(self, block1, _):
-        tx_dict = block1.transaction
         self.logger.debug("Received transaction-completed-bc message")
-        if not self.is_matchmaker:
+        if not self.is_matchmaker or not self.persistence.get_linked(block1):
             return
+
+        tx_dict = block1.transaction
 
         self.notify_transaction_complete(tx_dict["tx"])
 
