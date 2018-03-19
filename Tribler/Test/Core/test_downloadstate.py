@@ -1,6 +1,6 @@
 from Tribler.Core.DownloadState import DownloadState
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, UPLOAD, DOWNLOAD, DLSTATUS_STOPPED, DLSTATUS_SEEDING, \
-    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK
+from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, UPLOAD, DOWNLOAD,
+                                     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_CIRCUITS)
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 
 
@@ -14,7 +14,7 @@ class TestDownloadState(TriblerCoreTest):
         self.mock_download = MockObject()
         mocked_tdef = MockObject()
         mocked_tdef.get_name = lambda: "test"
-        mocked_tdef.get_length = lambda _: 43
+        mocked_tdef.get_length = lambda: 43
         self.mock_download.get_def = lambda: mocked_tdef
 
         self.mock_transferred = MockObject()
@@ -24,111 +24,112 @@ class TestDownloadState(TriblerCoreTest):
         self.mock_transferred.numSeeds = 11
         self.mock_transferred.numPeers = 12
 
-    def test_init(self):
-        """
-        Testing the init method of DownloadState
-        """
-        download_state = DownloadState(self.mock_download, DLSTATUS_DOWNLOADING, "error", 0.5)
-        self.assertEqual(download_state.get_error(), "error")
-
-        download_state = DownloadState(self.mock_download, DLSTATUS_SEEDING, None, 0.5)
-        self.assertEqual(download_state.get_status(), DLSTATUS_SEEDING)
-
-        download_state = DownloadState(self.mock_download, DLSTATUS_SEEDING, "error", 0.5, stats={})
-        self.assertEqual(download_state.get_status(), DLSTATUS_STOPPED_ON_ERROR)
-
-        download_state = DownloadState(self.mock_download, DLSTATUS_WAITING4HASHCHECK, None, 0.5, stats={})
-        self.assertEqual(download_state.get_progress(), 0.0)
-
-        download_state = DownloadState(self.mock_download, DLSTATUS_STOPPED, None, 0.5, stats={'frac': 0.6})
-        self.assertEqual(download_state.get_progress(), 0.6)
-
     def test_getters_setters_1(self):
         """
         Testing various getters and setters in DownloadState
         """
-        download_state = DownloadState(self.mock_download, DLSTATUS_DOWNLOADING, None, 0.5)
-        self.assertEqual(download_state.get_download(), self.mock_download)
-        self.assertEqual(download_state.get_progress(), 0.5)
-        self.assertEqual(download_state.get_status(), DLSTATUS_DOWNLOADING)
-        self.assertIsNone(download_state.get_error())
+        self.mock_download.get_hops = lambda: 0
+        self.mock_download.get_peerlist = lambda: []
+        download_state = DownloadState(self.mock_download, None, None)
 
+        self.assertEqual(download_state.get_download(), self.mock_download)
+        self.assertEqual(download_state.get_progress(), 0)
+        self.assertEqual(download_state.get_status(), DLSTATUS_WAITING4HASHCHECK)
+        self.assertIsNone(download_state.get_error())
         self.assertEqual(download_state.get_current_speed(UPLOAD), 0)
         self.assertEqual(download_state.get_total_transferred(UPLOAD), 0)
-        self.assertEqual(download_state.get_num_peers(), 0)
-        self.assertEqual(download_state.get_num_nonseeds(), 0)
         self.assertEqual(download_state.get_num_seeds_peers(), (0, 0))
         self.assertEqual(download_state.get_vod_prebuffering_progress_consec(), 0)
         self.assertEqual(download_state.get_vod_prebuffering_progress(), 0)
-        download_state.status = DLSTATUS_STOPPED
-        download_state.progress = 1.0
-        self.assertEqual(download_state.get_vod_prebuffering_progress_consec(), 1.0)
-        self.assertEqual(download_state.get_vod_prebuffering_progress(), 1.0)
         self.assertFalse(download_state.is_vod())
         self.assertEqual(download_state.get_peerlist(), [])
-        self.assertEqual(download_state.get_tracker_status(), {})
+
+        self.mock_download.get_hops = lambda: 1
+        download_state = DownloadState(self.mock_download, None, None)
+        self.assertEqual(download_state.get_status(), DLSTATUS_CIRCUITS)
 
     def test_getters_setters_2(self):
         """
         Testing various getters and setters in DownloadState
         """
-        download_state = DownloadState(self.mock_download, DLSTATUS_DOWNLOADING, None, 0.5)
-        stats = {'up': 123, 'down': 1234, 'stats': self.mock_transferred, 'time': 42, 'vod_prebuf_frac_consec': 43,
-                 'vod_prebuf_frac': 44, 'vod': True, 'tracker_status': {'a': 'b'}}
-        download_state.stats = stats
+        lt_status = MockObject()
+        lt_status.state = 3
+        lt_status.upload_rate = 123
+        lt_status.download_rate = 43
+        lt_status.total_upload = 100
+        lt_status.total_download = 200
+        lt_status.all_time_upload = 100
+        lt_status.all_time_download = 200
+        lt_status.list_peers = 10
+        lt_status.list_seeds = 5
+        lt_status.progress = 0.75
+        lt_status.error = False
+        lt_status.paused = False
+        lt_status.state = 3
+        lt_status.num_pieces = 0
+        lt_status.pieces = []
+
+        download_state = DownloadState(self.mock_download, lt_status, None, {'vod_prebuf_frac_consec': 43,
+                                                                             'vod_prebuf_frac': 44})
+
+        self.assertEqual(download_state.get_status(), DLSTATUS_DOWNLOADING)
         self.assertEqual(download_state.get_current_speed(UPLOAD), 123)
-        self.assertEqual(download_state.get_current_speed(DOWNLOAD), 1234)
-        self.assertEqual(download_state.get_total_transferred(UPLOAD), 5)
-        self.assertEqual(download_state.get_total_transferred(DOWNLOAD), 6)
+        self.assertEqual(download_state.get_current_speed(DOWNLOAD), 43)
+        self.assertEqual(download_state.get_total_transferred(UPLOAD), 100)
+        self.assertEqual(download_state.get_total_transferred(DOWNLOAD), 200)
         self.assertEqual(download_state.get_vod_prebuffering_progress_consec(), 43)
+        self.assertEqual(download_state.get_vod_prebuffering_progress(), 44)
         self.assertTrue(download_state.is_vod())
-        self.assertEqual(download_state.get_tracker_status(), {'a': 'b'})
-
-        seeding_stats = {'total_down': 8, 'total_up': 9, 'ratio': 0.42}
-        download_state.set_seeding_statistics(seeding_stats)
-        self.assertEqual(download_state.get_seeding_statistics(), seeding_stats)
-        self.assertEqual(download_state.seeding_downloaded, 8)
-        self.assertEqual(download_state.seeding_uploaded, 9)
-        self.assertEqual(download_state.seeding_ratio, 0.42)
-
-        self.assertEqual(download_state.get_eta(), 42)
-        self.assertEqual(download_state.get_num_con_initiated(), 10)
-        self.assertEqual(download_state.get_num_peers(), 23)
-        self.assertEqual(download_state.get_num_nonseeds(), 12)
-        self.assertEqual(download_state.get_num_seeds_peers(), (11, 12))
-
+        self.assertEqual(download_state.get_seeding_ratio(), 0.5)
+        self.assertEqual(download_state.get_eta(), 0.25)
+        self.assertEqual(download_state.get_num_seeds_peers(), (5, 5))
         self.assertEqual(download_state.get_pieces_complete(), [])
         self.assertEqual(download_state.get_pieces_total_complete(), (0, 0))
-        download_state.haveslice = [1, 2, 3]
-        self.assertEqual(download_state.get_pieces_complete(), [1, 2, 3])
-        self.assertEqual(download_state.get_pieces_total_complete(), (3, 6))
+
+        lt_status.num_pieces = 6
+        lt_status.pieces = [1, 1, 1, 0, 0, 0]
+        self.assertEqual(download_state.get_pieces_complete(), [1, 1, 1, 0, 0, 0])
+        self.assertEqual(download_state.get_pieces_total_complete(), (6, 3))
 
         self.mock_download.get_selected_files = lambda: ['test']
         self.assertEqual(download_state.get_selected_files(), ['test'])
-        self.assertEqual(download_state.get_length(), 43)
+        self.assertEqual(download_state.get_progress(), 0.75)
 
     def test_get_files_completion(self):
         """
         Testing whether the right completion of files is returned
         """
-        self.mock_download.get_selected_files = lambda: [['test.txt', 42]]
-        download_state = DownloadState(self.mock_download, DLSTATUS_DOWNLOADING, None, 0.6)
-        self.assertEqual(download_state.get_files_completion(), [(['test.txt', 42], 0.6)])
-        download_state.filepieceranges = [(5, 10, None, ['test.txt', 42])]
-        self.assertEqual(download_state.get_files_completion(), [(['test.txt', 42], 0.0)])
-        download_state.progress = 1.0
-        self.assertEqual(download_state.get_files_completion(), [(['test.txt', 42], 1.0)])
-        self.mock_download.get_selected_files = lambda: [['test.txt', 42], ['test2.txt', 43]]
-        self.assertEqual(download_state.get_files_completion(), [(['test.txt', 42], 1.0)])
+        file_entry = MockObject()
+        file_entry.path = 'test.txt'
+        file_entry.size = 100
+
+        torrent_info = MockObject()
+        torrent_info.files = lambda: [file_entry]
+
+        handle = MockObject()
+        handle.get_torrent_info = lambda: torrent_info
+        handle.file_progress = lambda **_: [60]
+
+        self.mock_download.handle = handle
+
+        download_state = DownloadState(self.mock_download, MockObject(), None)
+        self.assertEqual(download_state.get_files_completion(), [('test.txt', 0.6)])
+        handle.file_progress = lambda **_: [0]
+        self.assertEqual(download_state.get_files_completion(), [('test.txt', 0.0)])
+        handle.file_progress = lambda **_: [100]
+        self.assertEqual(download_state.get_files_completion(), [('test.txt', 1.0)])
+        torrent_info.files = lambda: []
+        handle.file_progress = lambda **_: []
+        self.assertEqual(download_state.get_files_completion(), [])
 
     def test_get_availability(self):
         """
         Testing whether the right availability of a file is returned
         """
         download_state = DownloadState(self.mock_download, DLSTATUS_DOWNLOADING, None, 0.6)
-        download_state.stats = {'spew': [{}]}
+        download_state.get_peerlist = lambda: []
         self.assertEqual(download_state.get_availability(), 0)
-        download_state.stats = {'spew': [{'completed': 1.0}]}
+        download_state.get_peerlist = lambda: [{'completed': 1.0}]
         self.assertEqual(download_state.get_availability(), 1.0)
-        download_state.stats = {'spew': [{'completed': 0.6}]}
+        download_state.get_peerlist = lambda: [{'completed': 0.6}]
         self.assertEqual(download_state.get_availability(), 0.0)

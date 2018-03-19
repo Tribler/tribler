@@ -11,6 +11,7 @@ from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.common import UBUNTU_1504_INFOHASH, TESTS_DATA_DIR
 from Tribler.Test.twisted_thread import deferred
+from Tribler.Test.Core.base_test import MockObject
 
 
 class TestDownloadsEndpoint(AbstractApiTest):
@@ -25,7 +26,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns an empty list when downloads are fetched but no downloads are active
         """
-        return self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200, expected_json={"downloads": []})
+        return self.do_request('downloads?get_peers=1&get_pieces=1',
+                               expected_code=200, expected_json={"downloads": []})
 
     @deferred(timeout=20)
     def test_get_downloads(self):
@@ -42,7 +44,32 @@ class TestDownloadsEndpoint(AbstractApiTest):
             os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
 
         self.should_check_equality = False
-        return self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200).addCallback(verify_download)
+        return self.do_request('downloads?get_peers=1&get_pieces=1',
+                               expected_code=200).addCallback(verify_download)
+
+    @deferred(timeout=20)
+    def test_get_downloads_with_files(self):
+        """
+        Testing whether the API returns the right right filenames fpr each download
+        """
+        def verify_download(downloads):
+            downloads_json = json.loads(downloads)
+            self.assertEqual(len(downloads_json['downloads']), 2)
+            self.assertEqual(downloads_json['downloads'][0][u'files'],
+                             [{u'included': True, u'index': 0, u'size': 1583233,
+                               u'name': u'Tribler_4.1.7_src.zip', u'progress': 0.0}])
+            self.assertEqual(downloads_json['downloads'][1][u'files'],
+                             [{u'included': True, u'index': 0, u'size': 1942100,
+                               u'name': u'video.avi', u'progress': 0.0}])
+
+        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        self.session.start_download_from_uri("file:" + pathname2url(
+            os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
+
+        self.should_check_equality = False
+        return self.do_request('downloads?get_peers=1&get_pieces=1&&get_files=1',
+                               expected_code=200).addCallback(verify_download)
 
     @deferred(timeout=10)
     def test_start_download_no_uri(self):
@@ -95,7 +122,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
             dl.tracker_status[u"\u266b"] = [0, 'Not contacted yet']
             tdef = dl.get_def()
             tdef.input['name'] = u'video\u266b'
-            return self.do_request('downloads?get_peers=1&get_pieces=1', expected_code=200)
+            return self.do_request('downloads?get_peers=1&get_pieces=1',
+                                   expected_code=200)
 
         ufile = os.path.join(TESTS_DATA_DIR, u'video\u266b.avi.torrent')
         udest = os.path.join(self.session_base_dir, u'video\u266b')
@@ -104,6 +132,25 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                raw_data=True).addCallback(verify_download)
+
+    def create_mock_status(self):
+        status = MockObject()
+        status.state = 3
+        status.upload_rate = 123
+        status.download_rate = 43
+        status.total_upload = 100
+        status.total_download = 200
+        status.all_time_upload = 100
+        status.all_time_download = 200
+        status.list_peers = 10
+        status.list_seeds = 5
+        status.progress = 0.75
+        status.error = False
+        status.paused = False
+        status.state = 3
+        status.num_pieces = 0
+        status.pieces = []
+        return status
 
     @deferred(timeout=10)
     def test_get_peers_illegal_fields_ascii(self):
@@ -124,9 +171,9 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertTrue(json.loads(response)['started'])
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
-            ds = DownloadState(dl, dl.dlstate, dl.error, 0.0)
+            ds = DownloadState(dl, self.create_mock_status(), None)
             ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': 'uTorrent 1.6.1'}]
-            dl.network_get_state = lambda x, y: ds
+            dl.get_state = lambda: ds
             self.should_check_equality = False
             return self.do_request('downloads?get_peers=1&get_pieces=1',
                                    expected_code=200).addCallback(verify_download_list)
@@ -154,9 +201,9 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertTrue(json.loads(response)['started'])
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
-            ds = DownloadState(dl, dl.dlstate, dl.error, 0.0)
+            ds = DownloadState(dl, self.create_mock_status(), None)
             ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': '\xb5Torrent 1.6.1'}]
-            dl.network_get_state = lambda x, y: ds
+            dl.get_state = lambda: ds
             self.should_check_equality = False
             return self.do_request('downloads?get_peers=1&get_pieces=1',
                                    expected_code=200).addCallback(verify_download_list)
@@ -185,9 +232,9 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertTrue(json.loads(response)['started'])
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             dl = self.session.get_downloads()[0]
-            ds = DownloadState(dl, dl.dlstate, dl.error, 0.0)
+            ds = DownloadState(dl, self.create_mock_status(), None)
             ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': None}]
-            dl.network_get_state = lambda x, y: ds
+            dl.get_state = lambda: ds
             self.should_check_equality = False
             return self.do_request('downloads?get_peers=1&get_pieces=1',
                                    expected_code=200).addCallback(verify_download_list)
@@ -442,11 +489,13 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
         Testing whether the API returns 200 if we change the amount of hops of a download
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
         infohash = video_tdef.get_infohash().encode('hex')
 
-        return self.do_request('downloads/%s' % infohash, post_data={'anon_hops': 1},
-                               expected_code=200, expected_json={'modified': True}, request_type='PATCH')
+        return download.get_handle().addCallback(
+            lambda _: self.do_request('downloads/%s' % infohash, post_data={'anon_hops': 1},
+                                      expected_code=200, expected_json={'modified': True}, request_type='PATCH')
+        )
 
     @deferred(timeout=10)
     def test_change_hops_fail(self):

@@ -1,7 +1,6 @@
 import logging
 
 from binascii import hexlify, unhexlify
-from twisted.internet import reactor
 
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.exception import CommunityNotFoundException
@@ -85,11 +84,8 @@ class ChannelSource(BaseSource):
         torrents = self.channelcast_db.getTorrentsFromChannelId(channel_id, True,
                                                                 ['infohash', 'ChannelTorrents.name'])
 
-        for index, (infohash_bin, name) in enumerate(torrents):
-            infohash = hexlify(infohash_bin)
-            self.register_task('insert_torrent_' + infohash, reactor.callLater(0.05 * index,
-                                                                               self.torrent_insert_callback,
-                                                                               self.source, infohash, name))
+        for infohash_bin, name in torrents:
+            self.torrent_insert_callback(self.source, hexlify(infohash_bin), name)
 
         self.session.add_observer(self.on_torrent_discovered, NTFY_TORRENT, [NTFY_DISCOVERED])
 

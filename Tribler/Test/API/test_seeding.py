@@ -82,5 +82,5 @@ class TestSeeding(TestAsServer):
 
             self.assertEqual(realdata, expdata)
             self.test_deferred.callback(None)
-            return 0.0, False
-        return 1.0, False
+            return 0.0
+        return 1.0

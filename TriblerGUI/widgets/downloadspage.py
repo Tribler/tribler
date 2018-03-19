@@ -98,7 +98,9 @@ class DownloadsPage(QWidget):
     def load_downloads(self):
         url = "downloads?get_pieces=1"
         if self.window().download_details_widget.currentIndex() == 3:
-            url = "downloads?get_peers=1&get_pieces=1"
+            url += "&get_peers=1"
+        elif self.window().download_details_widget.currentIndex() == 1:
+            url += "&get_files=1"
 
         if not self.isHidden() or (time.time() - self.downloads_last_update > 30):
             # Update if the downloads page is visible or if we haven't updated for longer than 30 seconds
@@ -118,12 +120,15 @@ class DownloadsPage(QWidget):
         self.downloads = downloads
 
         download_infohashes = set()
+
+        items = []
         for download in downloads["downloads"]:
             if download["infohash"] in self.download_widgets:
                 item = self.download_widgets[download["infohash"]]
             else:
-                item = DownloadWidgetItem(self.window().downloads_list)
+                item = DownloadWidgetItem()
                 self.download_widgets[download["infohash"]] = item
+                items.append(item)
 
             item.update_with_download(download)
 
@@ -141,6 +146,10 @@ class DownloadsPage(QWidget):
                     self.window().download_details_widget.current_download["infohash"] == download["infohash"]:
                 self.window().download_details_widget.current_download = download
                 self.window().download_details_widget.update_pages()
+
+        self.window().downloads_list.addTopLevelItems(items)
+        for item in items:
+            self.window().downloads_list.setItemWidget(item, 2, item.bar_container)
 
         # Check whether there are download that should be removed
         for infohash, item in self.download_widgets.items():

@@ -10,7 +10,8 @@ from twisted.internet.defer import Deferred, DeferredList, succeed
 from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
 from Tribler.Core.CreditMining.CreditMiningPolicy import UploadPolicy, RandomPolicy
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig, DownloadStartupConfig
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, DLSTATUS_SEEDING, \
+                                    DLSTATUS_STOPPED_ON_ERROR, UPLOAD
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 from Tribler.dispersy.taskmanager import TaskManager
 
@@ -208,9 +209,10 @@ class CreditMiningManager(TaskManager):
             # on the size of the directory and the number of files in it, this could use too many resources.
             bytes_left = self.settings.max_disk_space
             for download in self.session.get_downloads():
-                if download.get_status() in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING,
-                                             DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]:
-                    bytes_left -= download.get_progress() * download.get_length()
+                ds = download.get_state()
+                if ds.get_status() in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING,
+                                       DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]:
+                    bytes_left -= ds.get_progress() * download.get_def().get_length()
 
             # Determine which torrent to start and which to stop.
             loaded_torrents = [torrent for torrent in self.torrents.itervalues() if torrent.download]
@@ -229,7 +231,9 @@ class CreditMiningManager(TaskManager):
                 for torrent in policy_result:
                     if torrent not in to_start:
                         # We add torrents such that the total bytes of all running torrents is < max_disk_space.
-                        bytes_todo = torrent.download.get_length() * (1.0 - torrent.download.get_progress())
+                        length = torrent.download.get_def().get_length()
+                        progress = torrent.download.get_state().get_progress()
+                        bytes_todo = length * (1.0 - progress)
                         if bytes_left >= bytes_scheduled + bytes_todo:
                             to_start.append(torrent)
                             bytes_scheduled += bytes_todo
@@ -238,12 +242,12 @@ class CreditMiningManager(TaskManager):
 
             started = stopped = 0
             for infohash, torrent in self.torrents.items():
-                if torrent in to_start and torrent.download.get_status() == DLSTATUS_STOPPED:
+                status = torrent.download.get_state().get_status()
+                if torrent in to_start and status == DLSTATUS_STOPPED:
                     self._logger.info('Starting torrent %s', torrent.infohash)
                     torrent.download.restart()
                     started += 1
-                elif torrent not in to_start and \
-                     torrent.download.get_status() not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]:
+                elif torrent not in to_start and status not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]:
                     # If the swarm appears to be dead, remove it altogether
                     if torrent.state and torrent.state.get_availability() < 1:
                         self._logger.info('Removing torrent %s', torrent.infohash)
@@ -277,7 +281,7 @@ class CreditMiningManager(TaskManager):
                     active += 1
                 if ds.get_status() in [DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]:
                     stopped += 1
-                uploaded += ds.seeding_uploaded
+                uploaded += ds.get_total_transferred(UPLOAD)
 
                 if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
                     self._logger.error('Got an error for credit mining download %s', infohash)

@@ -811,3 +811,6 @@ class TorrentDefNoMetainfo(object):
 
     def is_private(self):
         return False
+
+    def get_nr_pieces(self):
+        return 0

@@ -102,8 +102,8 @@ class TestVideoOnDemand(TestAsServer):
 
             self.test_deferred.callback(None)
 
-            return (0, False)
-        return (1.0, False)
+            return 0
+        return 1.0
 
     def stream_read(self, stream, off, size, blocksize):
         stream.seek(off)

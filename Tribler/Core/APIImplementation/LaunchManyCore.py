@@ -632,7 +632,7 @@ class TriblerLaunchMany(TaskManager):
         for d in self.downloads.values():
             d.set_moreinfo_stats(True in self.get_peer_list or d.get_def().get_infohash() in
                                  self.get_peer_list)
-            ds = d.network_get_state(None, False)
+            ds = d.network_get_state(None)
             dslist.append(ds)
 
         def on_cb_done(new_get_peer_list):

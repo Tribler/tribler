@@ -81,6 +81,9 @@ class DownloadsDetailsTabWidget(QTabWidget):
         if self.current_download is None:
             return
 
+        if "files" not in self.current_download:
+            self.current_download["files"] = []
+
         self.window().download_progress_bar.update_with_download(self.current_download)
         self.window().download_detail_name_label.setText(self.current_download['name'])
 
