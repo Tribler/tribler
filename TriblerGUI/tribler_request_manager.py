@@ -340,12 +340,15 @@ class TriblerRequestWorker(QNetworkAccessManager):
     def perform_request(self, endpoint, reply_callback, data, method):
         """
         Perform a HTTP request.
-        :param endpoint: the endpoint to call (i.e. "statistics")
+        :param endpoint: the endpoint to call (i.e. "statistics"), could also be a full URL
         :param reply_callback: the callback to be called with result info when we have the data
         :param data: optional POST data to be sent with the request
         :param method: the HTTP verb (GET/POST/PUT/PATCH)
         """
-        url = self.base_url + endpoint
+        if endpoint.startswith("http:") or endpoint.startswith("https:"):
+            url = endpoint
+        else:
+            url = self.base_url + endpoint
         self.status_code = -1
         network_reply = self.dispatch_map.get(method, lambda x, y, z: None)(endpoint, data, url)
         network_reply.finished.connect(lambda: reply_callback(network_reply))
