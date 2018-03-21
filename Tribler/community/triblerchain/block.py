@@ -21,13 +21,13 @@ class TriblerChainBlock(TrustChainBlock):
         blk = database.get_latest(public_key)
         ret = cls()
         if link:
-            ret.transaction["up"] = link.transaction["down"]
-            ret.transaction["down"] = link.transaction["up"]
+            ret.transaction["up"] = link.transaction["down"] if "down" in link.transaction else 0
+            ret.transaction["down"] = link.transaction["up"] if "up" in link.transaction else 0
             ret.link_public_key = link.public_key
             ret.link_sequence_number = link.sequence_number
         else:
-            ret.transaction["up"] = transaction["up"]
-            ret.transaction["down"] = transaction["down"]
+            ret.transaction["up"] = transaction["up"] if "up" in transaction else 0
+            ret.transaction["down"] = transaction["down"] if "down" in transaction else 0
             ret.link_public_key = link_pk
 
         if blk:

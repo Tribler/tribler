@@ -253,7 +253,7 @@ class WalletTransferEndpoint(resource.Resource):
         """
         parameters = http.parse_qs(request.content.read(), 1)
 
-        if self.identifier != "BTC":
+        if self.identifier != "BTC" and self.identifier != "TBTC":
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "currently, currency transfers using the API is only supported for Bitcoin"})
 

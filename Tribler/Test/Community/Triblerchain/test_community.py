@@ -31,4 +31,5 @@ class TestTriblerChainCrawlerCommunity(TestBase):
 
         # The block should be available in the databases of both involved parties.
         for node_nr in [0, 1]:
-            self.assertIsNotNone(self.nodes[node_nr].overlay.persistence.get(his_pk, 1))
+            self.assertIsNotNone(self.nodes[node_nr].overlay.persistence.get(
+                self.nodes[0].overlay.my_peer.public_key.key_to_bin(), 1))

@@ -10,24 +10,6 @@ from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 MIN_TRANSACTION_SIZE = 1024 * 1024
 
 
-class PendingBytes(object):
-    def __init__(self, up, down, clean=None):
-        super(PendingBytes, self).__init__()
-        self.up = up
-        self.down = down
-        self.clean = clean
-
-    def add(self, up, down):
-        if self.up + up >= 0 and self.down + down >= 0:
-            self.up = max(0, self.up + up)
-            self.down = max(0, self.down + down)
-            if self.clean is not None:
-                self.clean.reset(2 * 60)
-            return True
-        else:
-            return False
-
-
 class TriblerChainCommunity(TrustChainCommunity):
     """
     Community for reputation based on TrustChain tamper proof interaction history.
@@ -43,10 +25,13 @@ class TriblerChainCommunity(TrustChainCommunity):
         self.tribler_session = kwargs.pop('tribler_session', None)
         super(TriblerChainCommunity, self).__init__(*args, **kwargs)
 
-        # We store the bytes send and received in the tunnel community in a dictionary.
-        # The key is the public key of the peer being interacted with, the value a tuple of the up and down bytes
-        # This data is not used to create outgoing requests, but _only_ to verify incoming requests
-        self.pending_bytes = dict()
+    def should_sign(self, block):
+        """
+        Return whether we should sign a given block. For the TriblerChain, we only sign a block when we receive bytes.
+        In our current design, only the person that should pay bytes to others initiates a signing request.
+        This is true when considering payouts in the tunnels and when buying bytes on the market.
+        """
+        return block.transaction["down"] >= MIN_TRANSACTION_SIZE
 
     @blocking_call_on_reactor_thread
     def get_statistics(self, public_key=None):
@@ -76,15 +61,6 @@ class TriblerChainCommunity(TrustChainCommunity):
             statistics["total_up"] = 0
             statistics["total_down"] = 0
         return statistics
-
-    def cleanup_pending(self, public_key):
-        self.pending_bytes.pop(public_key, None)
-
-    def unload(self):
-        for pk in self.pending_bytes:
-            if self.pending_bytes[pk].clean is not None:
-                self.pending_bytes[pk].clean.reset(0)
-        super(TriblerChainCommunity, self).unload()
 
     def get_bandwidth_tokens(self, peer=None):
         """

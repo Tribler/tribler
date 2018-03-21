@@ -563,7 +563,11 @@ class LibtorrentMgr(TaskManager):
     def _request_torrent_updates(self):
         for ltsession in self.ltsessions.itervalues():
             if ltsession:
-                ltsession.post_torrent_updates()
+                # Newer version of libtorrent require the flags argument in the post_torrent_updates call.
+                if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
+                    ltsession.post_torrent_updates(0xffffffff)
+                else:
+                    ltsession.post_torrent_updates()
 
     def _task_process_alerts(self):
         for ltsession in self.ltsessions.itervalues():

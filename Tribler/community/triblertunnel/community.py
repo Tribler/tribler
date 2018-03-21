@@ -166,7 +166,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 # We remove an e2e circuit as downloader. We pay the subsequent nodes in the downloader part of the e2e
                 # circuit. In addition, we pay for one hop seeder anonymity since we don't know the circuit length at
                 # the seeder side.
-                self.do_payout(circuit_peer, circuit_id, circuit.bytes_down * (circuit.goal_hops * 2) + 1,
+                self.do_payout(circuit_peer, circuit_id, circuit.bytes_down * ((circuit.goal_hops * 2) + 1),
                                circuit.bytes_down)
 
             if circuit.ctype == CIRCUIT_TYPE_DATA:

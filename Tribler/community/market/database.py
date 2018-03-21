@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS orders(
   timeout              DOUBLE NOT NULL,
   timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   is_ask               INTEGER NOT NULL,
+  block_hash           TEXT NOT NULL,
 
   PRIMARY KEY (trader_id, order_number)
  );
@@ -151,6 +152,12 @@ class MarketDB(TrustChainDB):
         Return all blocks in the database.
         """
         return self._getall(u"", ())
+
+    def get_block_with_hash(self, hash):
+        """
+        Return the block with a specific hash or None if it's not available in the database.
+        """
+        return self._get(u"WHERE block_hash = ?", (buffer(hash),))
 
     def get_all_orders(self):
         """
@@ -319,8 +326,8 @@ class MarketDB(TrustChainDB):
         """
         self.execute(
             u"INSERT INTO ticks (trader_id, order_number, price, price_type, quantity,"
-            u"quantity_type, timeout, timestamp, is_ask) "
-            u"VALUES(?,?,?,?,?,?,?,?,?)", tick.to_database())
+            u"quantity_type, timeout, timestamp, is_ask, block_hash) "
+            u"VALUES(?,?,?,?,?,?,?,?,?,?)", tick.to_database())
         self.commit()
 
     def delete_all_ticks(self):
@@ -348,7 +355,8 @@ class MarketDB(TrustChainDB):
     def get_upgrade_script(self, current_version):
         if current_version == 1:
             return u"ALTER TABLE orders ADD COLUMN verified INTEGER DEFAULT 1 NOT NULL;" \
-                   u"UPDATE option SET value=\"2\" WHERE key = \"database_version\""
+                   u"UPDATE option SET value=\"2\" WHERE key = \"database_version\";" \
+                   u"ALTER TABLE ticks ADD COLUMN block_hash TEXT DEFAULT %s NOT NULL;" % ('0' * 32)
 
     def check_database(self, database_version):
         """

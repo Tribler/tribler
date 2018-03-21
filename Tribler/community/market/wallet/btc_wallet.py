@@ -28,16 +28,17 @@ class BitcoinWallet(Wallet):
     """
     This class is responsible for handling your wallet of bitcoins.
     """
+    TESTNET = False
 
-    def __init__(self, wallet_dir, testnet=False):
+    def __init__(self, wallet_dir):
         super(BitcoinWallet, self).__init__()
 
-        if testnet:
+        if self.TESTNET:
             bitcoin.set_testnet()
             network.set_testnet()
 
         self.wallet_dir = wallet_dir
-        self.wallet_file = 'tbtc_wallet' if testnet else 'btc_wallet'
+        self.wallet_file = 'tbtc_wallet' if self.TESTNET else 'btc_wallet'
         self.min_confirmations = 0
         self.created = False
         self.daemon = None
@@ -45,7 +46,6 @@ class BitcoinWallet(Wallet):
         self.wallet_password = keychain_pw if keychain_pw else None  # Convert empty passwords to None
         self.storage = None
         self.wallet = None
-        self.testnet = testnet
         self.load_wallet(self.wallet_dir, self.wallet_file)
 
     def load_wallet(self, wallet_dir, wallet_file):
@@ -78,10 +78,10 @@ class BitcoinWallet(Wallet):
         return daemon
 
     def start_daemon(self):
-        options = {'verbose': False, 'cmd': 'daemon', 'testnet': self.testnet, 'oneserver': False, 'segwit': False,
+        options = {'verbose': False, 'cmd': 'daemon', 'testnet': self.TESTNET, 'oneserver': False, 'segwit': False,
                    'cwd': self.wallet_dir, 'portable': False, 'password': '',
                    'wallet_path': os.path.join('wallet', self.wallet_file)}
-        if self.testnet:
+        if self.TESTNET:
             options['server'] = 'electrum.akinbo.org:51002:s'
         config = SimpleConfig(options)
         fd, _ = self.get_daemon().get_fd_or_server(config)
@@ -94,7 +94,7 @@ class BitcoinWallet(Wallet):
 
     def open_wallet(self):
         options = {'password': self.wallet_password, 'subcommand': 'load_wallet', 'verbose': False,
-                   'cmd': 'daemon', 'testnet': self.testnet, 'oneserver': False, 'segwit': False,
+                   'cmd': 'daemon', 'testnet': self.TESTNET, 'oneserver': False, 'segwit': False,
                    'cwd': self.wallet_dir, 'portable': False, 'wallet_path': self.wallet_file}
         config = SimpleConfig(options)
 
@@ -104,7 +104,7 @@ class BitcoinWallet(Wallet):
             server.daemon(options)
 
     def get_name(self):
-        return 'Bitcoin' if not self.testnet else 'Testnet BTC'
+        return 'Bitcoin'
 
     def get_identifier(self):
         return 'BTC'
@@ -153,7 +153,7 @@ class BitcoinWallet(Wallet):
         """
         if self.created:
             options = {'nolnet': False, 'password': None, 'verbose': False, 'cmd': 'getbalance',
-                       'wallet_path': self.wallet_file, 'testnet': self.testnet, 'segwit': False,
+                       'wallet_path': self.wallet_file, 'testnet': self.TESTNET, 'segwit': False,
                        'cwd': self.wallet_dir,
                        'portable': False}
             config = SimpleConfig(options)
@@ -177,9 +177,9 @@ class BitcoinWallet(Wallet):
         def on_balance(balance):
             self._logger.info("Creating Bitcoin payment with amount %f to address %s", amount, address)
             if balance['available'] >= amount:
-                options = {'tx_fee': '0.0005', 'password': self.wallet_password, 'verbose': False, 'nocheck': False,
+                options = {'password': self.wallet_password, 'verbose': False, 'nocheck': False,
                            'cmd': 'payto', 'wallet_path': self.wallet_file, 'destination': address,
-                           'cwd': self.wallet_dir, 'testnet': self.testnet, 'rbf': False, 'amount': amount,
+                           'cwd': self.wallet_dir, 'testnet': self.TESTNET, 'rbf': False, 'amount': amount,
                            'segwit': False, 'unsigned': False, 'portable': False}
                 config = SimpleConfig(options)
 
@@ -189,7 +189,7 @@ class BitcoinWallet(Wallet):
 
                 # Broadcast this transaction
                 options = {'password': None, 'verbose': False, 'tx': transaction_hex, 'cmd': 'broadcast',
-                           'testnet': self.testnet, 'timeout': 30, 'segwit': False, 'cwd': self.wallet_dir,
+                           'testnet': self.TESTNET, 'timeout': 30, 'segwit': False, 'cwd': self.wallet_dir,
                            'portable': False}
                 config = SimpleConfig(options)
 
@@ -233,7 +233,7 @@ class BitcoinWallet(Wallet):
 
     def get_transactions(self):
         options = {'nolnet': False, 'password': None, 'verbose': False, 'cmd': 'history',
-                   'wallet_path': self.wallet_file, 'testnet': self.testnet, 'segwit': False, 'cwd': self.wallet_dir,
+                   'wallet_path': self.wallet_file, 'testnet': self.TESTNET, 'segwit': False, 'cwd': self.wallet_dir,
                    'portable': False}
         config = SimpleConfig(options)
 
@@ -266,3 +266,16 @@ class BitcoinWallet(Wallet):
 
     def min_unit(self):
         return 0.0001  # This is the minimum amount of BTC we can transfer in this market
+
+
+class BitcoinTestnetWallet(BitcoinWallet):
+    """
+    This wallet represents testnet Bitcoin.
+    """
+    TESTNET = True
+
+    def get_name(self):
+        return 'Testnet BTC'
+
+    def get_identifier(self):
+        return 'TBTC'
