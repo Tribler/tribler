@@ -23,12 +23,15 @@ class DownloadWidgetItem(QTreeWidgetItem):
         bar_container.setStyleSheet("background-color: transparent;")
 
         self.progress_slider = QProgressBar()
+
+        # We have to set a zero pixel border to get the background working on Mac.
         self.progress_slider.setStyleSheet("""
         QProgressBar {
             background-color: white;
             color: black;
             font-size: 12px;
             text-align: center;
+            border: 0px solid transparent;
         }
 
         QProgressBar::chunk {

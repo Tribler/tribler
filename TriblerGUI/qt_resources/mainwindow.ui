@@ -1050,7 +1050,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>15</number>
+         <number>4</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -6322,14 +6322,14 @@ High anonymity</string>
 color: white;</string>
                 </property>
                 <property name="text">
-                 <string>Trustchain mining</string>
+                 <string>Token mining</string>
                 </property>
                </widget>
               </item>
               <item>
                <widget class="QCheckBox" name="credit_mining_enabled_checkbox">
                 <property name="text">
-                 <string>Enable Trustchain mining</string>
+                 <string>Enable token mining</string>
                 </property>
                </widget>
               </item>
@@ -6342,8 +6342,8 @@ color: white;</string>
                  </sizepolicy>
                 </property>
                 <property name="text">
-                 <string>Trustchain is a blockchain-based way to keep track of sharing ratio, and eventually prevent freeriding. It is currently still in an early phase of development.
-Trustchain mining is the automated process of uploading to swarms in order increase your reputation. Go to channels and choose a channel from which to select swarms.</string>
+                 <string>Tribler uses a blockchain to keep track of your sharing ratio, which eventually prevents freeriding. It is currently still in an early phase of development.
+Token mining is the automated process of uploading to swarms in order increase your sharing ratio and your reputation. Go to your discovered channels and pick a channel to mine from.</string>
                 </property>
                 <property name="wordWrap">
                  <bool>true</bool>
