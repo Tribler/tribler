@@ -578,7 +578,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             else:
                 metadata["announce"] = trackers[0]
 
-        self.tdef = TorrentDef.load_from_dict(metadata)
+        try:
+            self.tdef = TorrentDef.load_from_dict(metadata)
+        except ValueError as ve:
+            self._logger.exception(ve)
+            return
 
         try:
             torrent_files = lt.torrent_info(metadata).files()

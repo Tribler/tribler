@@ -3,7 +3,7 @@ import logging
 from threading import RLock
 from time import time
 
-from PyQt5.QtCore import QUrl, pyqtSignal, QIODevice, QBuffer
+from PyQt5.QtCore import QUrl, pyqtSignal, QIODevice, QBuffer, QObject
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 import Tribler.Core.Utilities.json_util as json
@@ -37,104 +37,133 @@ class RequestQueue(object):
         :param max_outstanding: the maximum number of requests which can be unanswered at any given time.
         :param timeout: the time after which a request is assumed to never receive a response.
         """
-        self.queue = [] # [(TriblerRequestManager, callable, QueuePriorityEnum, time, [performed])]
         self.max_outstanding = max_outstanding
-        self.max_low_outstanding = max(int(max_outstanding*0.4), 1)
         self.timeout = timeout
-        self.old_medium_index = 0.0 # The previous queue quotient where QueuePriorityEnum.MEDIUM items started
-        self.old_low_index = 0.0 # The previous queue quotient where QueuePriorityEnum.LOW items started
+
+        self.critical_queue = []
+        self.high_queue = []
+        self.medium_queue = []
+        self.low_queue = []
+
         self.lock = RLock() # Don't allow asynchronous access to the queue
 
     def parse_queue(self):
         """
-        Update the current queue and check if requests are completed and/or need to be sent.
+        Parse the queues and dispatch the request.
         """
         self.lock.acquire()
-        # 1. Filter out completed and timed-out requests
+
         current_time = time()
-        self.queue = [(request_manager, callback, priority, insertion_time, performed)
-                      for request_manager, callback, priority, insertion_time, performed in self.queue
-                      if request_manager.status_code == -1 and
-                      (current_time - insertion_time < self.timeout or request_manager.cancel_request())] # or is lazy
-        # 2. Perform new requests, which aren't already pending
-        outstanding = 0
-        for _, callback, priority, _, performed in self.queue:
-            called = performed[0]
-            if not called:
-                callback()
-                performed[0] = True
-            outstanding += 1
-            if outstanding >= self.max_outstanding:
-                break
+        self.critical_queue = [(request_manager, endpoint, read_callback, data, method, capture_errors, insertion_time)
+                               for (request_manager, endpoint, read_callback, data, method, capture_errors,
+                                    insertion_time) in self.critical_queue
+                               if current_time - insertion_time < self.timeout or request_manager.cancel_request()]
+        self.high_queue = [(request_manager, endpoint, read_callback, data, method, capture_errors, insertion_time)
+                           for (request_manager, endpoint, read_callback, data, method, capture_errors,
+                                insertion_time) in self.high_queue
+                           if current_time - insertion_time < self.timeout or request_manager.cancel_request()]
+        self.medium_queue = [(request_manager, endpoint, read_callback, data, method, capture_errors, insertion_time)
+                             for (request_manager, endpoint, read_callback, data, method, capture_errors,
+                                  insertion_time) in self.medium_queue
+                             if current_time - insertion_time < self.timeout or request_manager.cancel_request()]
+        self.low_queue = [(request_manager, endpoint, read_callback, data, method, capture_errors, insertion_time)
+                          for (request_manager, endpoint, read_callback, data, method, capture_errors,
+                               insertion_time) in self.low_queue
+                          if current_time - insertion_time < self.timeout or request_manager.cancel_request()]
+
+        queue_item = None
+        if self.critical_queue:
+            queue_item = self.critical_queue.pop(0)
+        elif self.high_queue:
+            queue_item = self.high_queue.pop(0)
+        elif self.medium_queue:
+            queue_item = self.medium_queue.pop(0)
+        elif self.low_queue:
+            queue_item = self.low_queue.pop(0)
+
+        if queue_item:
+            dispatcher.perform_request(*queue_item[:-2])
+
         self.lock.release()
 
-    def enqueue(self, request_manager, callback, priority=QueuePriorityEnum.CRITICAL):
+    def enqueue(self, request_manager, method, endpoint, data, read_callback, capture_errors,
+                priority=QueuePriorityEnum.HIGH):
         """
-        Add a new request to the queue.
+        Add a new request to the queue based on priority
 
-        If priority equals:
-         - CRITICAL: Send request immediately
-         - HIGH: Send request as soon as possible, respecting the 'max_outstanding' setting
-         - MEDIUM: Send request as soon as no more HIGH priority items exist, drop in case of very high load
-         - LOW: Send request if not MEDIUM or HIGH priority items exist, drop in case of average load
+        Priority order
+         - CRITICAL
+         - HIGH
+         - MEDIUM
+         - LOW
 
         :param request_manager: the TriblerRequestManager wishing to perform a request.
-        :param callback: the callback to call if when this request is allowed to be sent.
+        :param method: request method.
+        :param endpoint: request endpoint.
+        :param data: request data.
+        :param read_callback: callback to call if the request is processed.
+        :param capture_errors: whether to display the errors or not.
         :param priority: the priority for this request.
         """
-        # Send CRITICAL requests immediately
-        if priority == QueuePriorityEnum.CRITICAL:
-            callback()
-            return
         self.lock.acquire()
-        queue_length = len(self.queue)
-        insert_point = -1
-        insert_guess = 0
-        insert_step = 1
-        insert_find = QueuePriorityEnum.CRITICAL
-        # Create an educated guess to find where in the queue to insert a request
-        # If the queue is too full, drop/cancel the request
-        if priority == QueuePriorityEnum.HIGH and queue_length > 0:
-            insert_guess = max(min(int(queue_length * self.old_medium_index), queue_length), 0)
-            insert_step = 1 if self.queue[insert_guess] == QueuePriorityEnum.HIGH else -1
-            insert_find = QueuePriorityEnum.MEDIUM if insert_step == 1 else QueuePriorityEnum.HIGH
-        elif priority == QueuePriorityEnum.MEDIUM and queue_length > 0:
-            if queue_length > self.max_outstanding:
-                logging.error("Too many requests to handle new request with priority %s.", priority)
-                request_manager.cancel_request()
-                return
-            insert_guess = max(min(int(queue_length * self.old_low_index), queue_length), 0)
-            insert_step = 1 if self.queue[insert_guess] == QueuePriorityEnum.MEDIUM else -1
-            insert_find = QueuePriorityEnum.LOW if insert_step == 1 else QueuePriorityEnum.MEDIUM
-        else:
-            if queue_length > self.max_low_outstanding:
-                logging.error("Too many requests to handle new request with priority %s.", priority)
-                request_manager.cancel_request()
-                return
-            insert_point = queue_length
-        # Find the point to insert the request in the queue
-        if insert_point == -1:
-            for i in xrange(insert_guess, queue_length if insert_step == 1 else 0, insert_step):
-                if self.queue[i] == insert_find:
-                    insert_point = i + (0 if insert_step == 1 else 1)
-                    break
-        # Update pointers
+        queue_item = (request_manager, endpoint, read_callback, data, method, capture_errors, time())
+        if priority == QueuePriorityEnum.CRITICAL:
+            self.critical_queue.append(queue_item)
+
         if priority == QueuePriorityEnum.HIGH:
-            self.old_medium_index = (insert_point + 0.0)/(queue_length + 1.0)
-        elif priority == QueuePriorityEnum.MEDIUM:
-            self.old_low_index = (insert_point + 0.0)/(queue_length + 1.0)
-        self.queue.insert(insert_point, QueueItem(request_manager, callback, priority, time(), [False, ]))
-        self.parse_queue()
+            if len(self.high_queue) < self.max_outstanding:
+                self.high_queue.append(queue_item)
+            else:
+                # Get the last item of the queue
+                last_item = self.high_queue.pop(self.max_outstanding -1)
+                # Add the original queue_item to the front of the queue
+                self.high_queue.insert(0, queue_item)
+                # reduce the priority of last_item and try to put in medium queue
+                priority = QueuePriorityEnum.MEDIUM
+                queue_item = last_item
+        if priority == QueuePriorityEnum.MEDIUM:
+            if len(self.medium_queue) < self.max_outstanding:
+                self.medium_queue.append(queue_item)
+            else:
+                # Get the last item of the queue
+                last_item = self.medium_queue.pop(self.max_outstanding - 1)
+                # Add the original queue_item to the front of the queue
+                self.medium_queue.insert(0, queue_item)
+                # reduce the priority of last_item and try to put in low queue
+                priority = QueuePriorityEnum.LOW
+                queue_item = last_item
+        if priority == QueuePriorityEnum.LOW:
+            if len(self.low_queue) < self.max_outstanding:
+                self.low_queue.append(queue_item)
+            else:
+                # Remove the last item of the queue which will be dropped
+                self.low_queue.pop(self.max_outstanding - 1)
+                # Add the original queue_item to the front of the queue
+                self.low_queue.insert(0, queue_item)
+
         self.lock.release()
+        self.parse_queue()
 
     def clear(self):
         """
         Clear the queue.
         """
         self.lock.acquire()
-        for request_manager, _, _, _, _ in self.queue:
+
+        for request_manager, _, _, _, _, _, _ in self.critical_queue:
             request_manager.cancel_request()
-        self.queue = []
+        for request_manager, _, _, _, _, _, _ in self.high_queue:
+            request_manager.cancel_request()
+        for request_manager, _, _, _, _, _, _ in self.medium_queue:
+            request_manager.cancel_request()
+        for request_manager, _, _, _, _, _, _ in self.low_queue:
+            request_manager.cancel_request()
+
+        self.critical_queue = []
+        self.high_queue = []
+        self.medium_queue = []
+        self.low_queue = []
+
         self.lock.release()
 
 
@@ -144,34 +173,49 @@ request_queue = RequestQueue()
 performed_requests = deque(maxlen=200)
 
 
-class TriblerRequestManager(QNetworkAccessManager):
+class TriblerRequestDispatcher(object):
+
+    def __init__(self, pool_size=5):
+        self.pool_size = pool_size
+        self.request_workers = []
+        self.num_requests = 0
+
+    def perform_request(self, request_manager, endpoint, reply_callback, data, method):
+        self.num_requests += 1
+        worker_index = self.num_requests % self.pool_size
+
+        num_worker = len(self.request_workers)
+        if num_worker < self.pool_size:
+            self.request_workers = [TriblerRequestWorker() for _ in xrange(self.pool_size - num_worker)]
+
+        network_reply = self.request_workers[worker_index].perform_request(endpoint, reply_callback, data, method)
+        request_manager.set_reply_handle(network_reply)
+
+    def download_file(self, request_manager, endpoint, reply_callback):
+        self.perform_request(request_manager, endpoint, reply_callback, "", method="GET")
+
+
+# The TriblerRequestDispatcher singleton for dipatching requests to appropriate request worker
+dispatcher = TriblerRequestDispatcher(pool_size=10)
+
+
+class TriblerRequestManager(QObject):
     """
     This class is responsible for all the requests made to the Tribler REST API.
     """
     window = None
-
     received_json = pyqtSignal(object, int)
     received_file = pyqtSignal(object)
 
-    def __init__(self):
-        QNetworkAccessManager.__init__(self)
-        self.base_url = "http://localhost:%d/" % API_PORT
+    def __init__(self, window=None):
+        QObject.__init__(self)
+        self.window = window
         self.reply = None
         self.status_code = -1
-        self.dispatch_map = {
-            'GET': self.perform_get,
-            'PATCH': self.perform_patch,
-            'PUT': self.perform_put,
-            'DELETE': self.perform_delete,
-            'POST': self.perform_post
-        }
         self.on_cancel = lambda: None
 
-    def get_status_code(self):
-        """
-        Get the status code of this request.
-        """
-        return self.status_code
+    def set_reply_handle(self, reply):
+        self.reply = reply
 
     def perform_request(self, endpoint, read_callback, data="", method='GET', capture_errors=True,
                         priority=QueuePriorityEnum.CRITICAL, on_cancel=lambda: None):
@@ -183,92 +227,15 @@ class TriblerRequestManager(QNetworkAccessManager):
         :param method: the HTTP verb (GET/POST/PUT/PATCH)
         :param capture_errors: whether errors should be handled by this class (defaults to True)
         """
-        url = self.base_url + endpoint
-
-        self.status_code = -1
         self.on_cancel = on_cancel
-        request_queue.enqueue(self,
-                              lambda: self.dispatch_map.get(method, lambda x, y, z: None)(endpoint, data, url),
-                              priority)
 
         if read_callback:
             self.received_json.connect(read_callback)
 
-        self.finished.connect(lambda reply: self.on_finished(reply, capture_errors))
+        def reply_callback(reply):
+            self.on_finished(reply, capture_errors)
 
-    def perform_get(self, endpoint, data, url):
-        """
-        Perform an HTTP GET request.
-
-        :param endpoint: the name of the Tribler endpoint.
-        :param data: the data/body to send with the request.
-        :param url: the url to send the request to.
-        """
-        performed_requests.append([endpoint, "GET", data, time(), self.get_status_code])
-        buf = QBuffer()
-        buf.setData(data)
-        buf.open(QIODevice.ReadOnly)
-        get_request = QNetworkRequest(QUrl(url))
-        self.reply = self.sendCustomRequest(get_request, "GET", buf)
-        buf.setParent(self.reply)
-
-    def perform_patch(self, endpoint, data, url):
-        """
-        Perform an HTTP PATCH request.
-
-        :param endpoint: the name of the Tribler endpoint.
-        :param data: the data/body to send with the request.
-        :param url: the url to send the request to.
-        """
-        performed_requests.append([endpoint, "PATCH", data, time(), self.get_status_code])
-        buf = QBuffer()
-        buf.setData(data)
-        buf.open(QIODevice.ReadOnly)
-        patch_request = QNetworkRequest(QUrl(url))
-        self.reply = self.sendCustomRequest(patch_request, "PATCH", buf)
-        buf.setParent(self.reply)
-
-    def perform_put(self, endpoint, data, url):
-        """
-        Perform an HTTP PUT request.
-
-        :param endpoint: the name of the Tribler endpoint.
-        :param data: the data/body to send with the request.
-        :param url: the url to send the request to.
-        """
-        performed_requests.append([endpoint, "PUT", data, time(), self.get_status_code])
-        request = QNetworkRequest(QUrl(url))
-        request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
-        self.reply = self.put(request, data)
-
-    def perform_delete(self, endpoint, data, url):
-        """
-        Perform an HTTP DELETE request.
-
-        :param endpoint: the name of the Tribler endpoint.
-        :param data: the data/body to send with the request.
-        :param url: the url to send the request to.
-        """
-        performed_requests.append([endpoint, "DELETE", data, time(), self.get_status_code])
-        buf = QBuffer()
-        buf.setData(data)
-        buf.open(QIODevice.ReadOnly)
-        delete_request = QNetworkRequest(QUrl(url))
-        self.reply = self.sendCustomRequest(delete_request, "DELETE", buf)
-        buf.setParent(self.reply)
-
-    def perform_post(self, endpoint, data, url):
-        """
-        Perform an HTTP POST request.
-
-        :param endpoint: the name of the Tribler endpoint.
-        :param data: the data/body to send with the request.
-        :param url: the url to send the request to.
-        """
-        performed_requests.append([endpoint, "POST", data, time(), self.get_status_code])
-        request = QNetworkRequest(QUrl(url))
-        request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
-        self.reply = self.post(request, data)
+        request_queue.enqueue(self, method, endpoint, data, reply_callback, priority)
 
     @staticmethod
     def get_message_from_error(error):
@@ -281,6 +248,17 @@ class TriblerRequestManager(QNetworkAccessManager):
         if not return_error:
             return json.dumps(error)  # Just print the json object
         return return_error
+
+    def show_error(self, error_text):
+        main_text = "An error occurred during the request:\n\n%s" % error_text
+        error_dialog = ConfirmationDialog(TriblerRequestManager.window, "Request error",
+                                          main_text, [('CLOSE', BUTTON_TYPE_NORMAL)])
+
+        def on_close():
+            error_dialog.setParent(None)
+
+        error_dialog.button_clicked.connect(on_close)
+        error_dialog.show()
 
     def on_finished(self, reply, capture_errors):
         self.status_code = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
@@ -305,33 +283,153 @@ class TriblerRequestManager(QNetworkAccessManager):
         # We disconnect the slot since we want the finished only to be emitted once. This allows us to reuse the
         # request manager.
         try:
-            self.finished.disconnect()
+            reply.finished.disconnect()
             self.received_json.disconnect()
         except TypeError:
             pass  # We probably didn't have any connected slots.
 
     def download_file(self, endpoint, read_callback):
-        url = self.base_url + endpoint
-        self.reply = self.get(QNetworkRequest(QUrl(url)))
+        def download_callback(reply):
+            self.on_file_download_finished(reply)
+
+        if read_callback:
+            self.received_file.connect(read_callback)
+
         self.received_file.connect(read_callback)
-        self.finished.connect(self.on_file_download_finished)
+        dispatcher.download_file(self, endpoint, download_callback)
 
     def on_file_download_finished(self, reply):
         data = reply.readAll()
         self.received_file.emit(data)
-
-    def show_error(self, error_text):
-        main_text = "An error occurred during the request:\n\n%s" % error_text
-        error_dialog = ConfirmationDialog(TriblerRequestManager.window, "Request error",
-                                          main_text, [('CLOSE', BUTTON_TYPE_NORMAL)])
-
-        def on_close():
-            error_dialog.setParent(None)
-
-        error_dialog.button_clicked.connect(on_close)
-        error_dialog.show()
+        self.received_file.disconnect()
 
     def cancel_request(self):
+        """
+        Cancel the request by aborting the reply handle and calling on_cancel if available.
+        """
         if self.reply:
             self.reply.abort()
         self.on_cancel()
+
+
+class TriblerRequestWorker(QNetworkAccessManager):
+    """
+    This is a worker class responsible for handling the HTTP requests. It spawns a separate thread so better to reuse.
+    All requests are asynchronous so the caller object should keep track of response (QNetworkReply) object. A finished
+    pyqt signal is fired when the response data is ready.
+    """
+
+    def __init__(self):
+        QNetworkAccessManager.__init__(self)
+        self.base_url = "http://localhost:%d/" % API_PORT
+        self.status_code = -1
+        self.dispatch_map = {
+            'GET': self.perform_get,
+            'PATCH': self.perform_patch,
+            'PUT': self.perform_put,
+            'DELETE': self.perform_delete,
+            'POST': self.perform_post
+        }
+
+    def get_status_code(self, reply):
+        """
+        Get the status code of this request.
+        """
+        return reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
+
+    def perform_request(self, endpoint, reply_callback, data, method):
+        """
+        Perform a HTTP request.
+        :param endpoint: the endpoint to call (i.e. "statistics"), could also be a full URL
+        :param reply_callback: the callback to be called with result info when we have the data
+        :param data: optional POST data to be sent with the request
+        :param method: the HTTP verb (GET/POST/PUT/PATCH)
+        """
+        if endpoint.startswith("http:") or endpoint.startswith("https:"):
+            url = endpoint
+        else:
+            url = self.base_url + endpoint
+        self.status_code = -1
+        network_reply = self.dispatch_map.get(method, lambda x, y, z: None)(endpoint, data, url)
+        network_reply.finished.connect(lambda: reply_callback(network_reply))
+        return network_reply
+
+    def perform_get(self, endpoint, data, url):
+        """
+        Perform an HTTP GET request.
+
+        :param endpoint: the name of the Tribler endpoint.
+        :param data: the data/body to send with the request.
+        :param url: the url to send the request to.
+        """
+        buf = QBuffer()
+        buf.setData(data)
+        buf.open(QIODevice.ReadOnly)
+        get_request = QNetworkRequest(QUrl(url))
+        reply = self.sendCustomRequest(get_request, "GET", buf)
+        buf.setParent(reply)
+        performed_requests.append([endpoint, "GET", data, time(), lambda: self.get_status_code(reply)])
+        return reply
+
+    def perform_patch(self, endpoint, data, url):
+        """
+        Perform an HTTP PATCH request.
+
+        :param endpoint: the name of the Tribler endpoint.
+        :param data: the data/body to send with the request.
+        :param url: the url to send the request to.
+        """
+        buf = QBuffer()
+        buf.setData(data)
+        buf.open(QIODevice.ReadOnly)
+        patch_request = QNetworkRequest(QUrl(url))
+        reply = self.sendCustomRequest(patch_request, "PATCH", buf)
+        buf.setParent(reply)
+        performed_requests.append([endpoint, "PATCH", data, time(), lambda: self.get_status_code(reply)])
+        return reply
+
+    def perform_put(self, endpoint, data, url):
+        """
+        Perform an HTTP PUT request.
+
+        :param endpoint: the name of the Tribler endpoint.
+        :param data: the data/body to send with the request.
+        :param url: the url to send the request to.
+        """
+        performed_requests.append([endpoint, "PUT", data, time(), lambda: self.get_status_code(reply)])
+        request = QNetworkRequest(QUrl(url))
+        request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
+        reply = self.put(request, data)
+        return reply
+
+    def perform_delete(self, endpoint, data, url):
+        """
+        Perform an HTTP DELETE request.
+
+        :param endpoint: the name of the Tribler endpoint.
+        :param data: the data/body to send with the request.
+        :param url: the url to send the request to.
+        """
+        buf = QBuffer()
+        buf.setData(data)
+        buf.open(QIODevice.ReadOnly)
+        delete_request = QNetworkRequest(QUrl(url))
+        reply = self.sendCustomRequest(delete_request, "DELETE", buf)
+        buf.setParent(reply)
+        performed_requests.append([endpoint, "DELETE", data, time(), lambda: self.get_status_code(reply)])
+        return reply
+
+    def perform_post(self, endpoint, data, url):
+        """
+        Perform an HTTP POST request.
+
+        :param endpoint: the name of the Tribler endpoint.
+        :param data: the data/body to send with the request.
+        :param url: the url to send the request to.
+        """
+
+        request = QNetworkRequest(QUrl(url))
+        request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
+        reply = self.post(request, data)
+        performed_requests.append([endpoint, "POST", data, time(), lambda: self.get_status_code(reply)])
+        return reply

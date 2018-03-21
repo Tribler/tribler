@@ -243,14 +243,12 @@ class TestCreditMiningManager(TestAsServer):
         self.session.get_downloads = lambda: downloads
 
         # Check that all download have upload_mode=False if we have enough disk space
-        disk_usage = MockObject()
-        disk_usage.free = 2 * 1024 ** 2
-        psutil.disk_usage = lambda _: disk_usage
+        self.credit_mining_manager.get_free_disk_space = lambda: 2 * 1024 ** 2
         self.credit_mining_manager.check_disk_space()
         self.assertFalse(any([d.upload_mode for d in downloads]))
 
         # Check that all download have upload_mode=True if we do not have enough disk space
-        disk_usage.free = 1
+        self.credit_mining_manager.get_free_disk_space = lambda: 1
         self.credit_mining_manager.check_disk_space()
         self.assertTrue(all([d.upload_mode for d in downloads]))
 

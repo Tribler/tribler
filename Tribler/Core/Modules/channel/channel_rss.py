@@ -7,7 +7,7 @@ from binascii import hexlify
 
 import feedparser
 from twisted.internet import reactor
-from twisted.internet.defer import DeferredList
+from twisted.internet.defer import DeferredList, succeed
 from twisted.web.client import getPage
 
 from Tribler.Core.Modules.channel.cache import SimpleCache
@@ -86,6 +86,10 @@ class ChannelRssParser(TaskManager):
         rss_parser = RSSFeedParser()
 
         def on_rss_items(rss_items):
+            if not rss_items:
+                self._logger.warning(u"No RSS items found.")
+                return succeed(None)
+
             def_list = []
             for rss_item in rss_items:
                 if self._to_stop:

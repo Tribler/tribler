@@ -110,7 +110,7 @@ class FeedbackDialog(QDialog):
 
     def on_send_clicked(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.base_url = 'http://reporter.tribler.org/'
+        endpoint = 'http://reporter.tribler.org/report'
 
         sys_info = ""
         for ind in xrange(self.env_variables_list.topLevelItemCount()):
@@ -128,7 +128,7 @@ class FeedbackDialog(QDialog):
                     (self.tribler_version, platform.machine(), platform.platform(),
                      int(time.time()), sys_info, comments, stack)
 
-        self.request_mgr.perform_request("report", self.on_report_sent, data=str(post_data), method='POST')
+        self.request_mgr.perform_request(endpoint, self.on_report_sent, data=str(post_data), method='POST')
 
     def closeEvent(self, close_event):
         QApplication.quit()

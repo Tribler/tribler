@@ -1,3 +1,5 @@
+import sys
+
 from PIL.ImageQt import ImageQt
 
 from PyQt5 import QtGui, QtCore
@@ -191,7 +193,7 @@ class SettingsPage(QWidget):
             return
 
         if not is_dir_writable(log_dir):
-            ConfirmationDialog.show_message(self.dialog_widget, "Insufficient Permissions",
+            ConfirmationDialog.show_message(self.window(), "Insufficient Permissions",
                                             "<i>%s</i> is not writable. " % log_dir, "OK")
         else:
             self.window().log_location_input.setText(log_dir)
@@ -272,7 +274,7 @@ class SettingsPage(QWidget):
         settings_data = {'general': {}, 'Tribler': {}, 'download_defaults': {}, 'libtorrent': {}, 'watch_folder': {},
                          'tunnel_community': {}, 'trustchain': {}, 'credit_mining': {}}
         settings_data['general']['family_filter'] = self.window().family_filter_checkbox.isChecked()
-        settings_data['download_defaults']['saveas'] = self.window().download_location_input.text()
+        settings_data['download_defaults']['saveas'] = self.window().download_location_input.text().encode('utf-8')
         settings_data['general']['log_dir'] = self.window().log_location_input.text()
 
         settings_data['watch_folder']['enabled'] = self.window().watchfolder_enabled_checkbox.isChecked()
@@ -313,15 +315,21 @@ class SettingsPage(QWidget):
 
         try:
             if self.window().upload_rate_limit_input.text():
-                settings_data['libtorrent']['max_upload_rate'] = int(self.window().upload_rate_limit_input.text()) \
-                                                                 * 1024
+                user_upload_rate_limit = int(self.window().upload_rate_limit_input.text()) * 1024
+                if user_upload_rate_limit < sys.maxsize:
+                    settings_data['libtorrent']['max_upload_rate'] = user_upload_rate_limit
+                else:
+                    raise ValueError
             if self.window().download_rate_limit_input.text():
-                settings_data['libtorrent']['max_download_rate'] = int(self.window().download_rate_limit_input.text()) \
-                                                                   * 1024
+                user_download_rate_limit = int(self.window().download_rate_limit_input.text()) * 1024
+                if user_download_rate_limit < sys.maxsize:
+                    settings_data['libtorrent']['max_download_rate'] = user_download_rate_limit
+                else:
+                    raise ValueError
         except ValueError:
-            ConfirmationDialog.show_error(self.window(), "Invalid number for maximum upload/download",
-                                          "You've entered an invalid format for the maximum upload/download rate. "
-                                          "Please enter a whole number.")
+            ConfirmationDialog.show_error(self.window(), "Invalid value for bandwidth limit",
+                                          "You've entered an invalid value for the maximum upload/download rate. "
+                                          "Please enter a whole number (max: %d)" % (sys.maxsize/1000))
             return
 
         seeding_modes = ['forever', 'time', 'never', 'ratio']

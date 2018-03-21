@@ -190,6 +190,12 @@ class Session(object):
                 self._logger.error("Invalid DNS-ID")
                 return
 
+            # We already have a check for invalid infohash when adding a torrent, but if somehow we get this
+            # error then we simply log and ignore it.
+            if 'exceptions.RuntimeError: invalid info-hash' in text:
+                self._logger.error("Invalid info-hash found")
+                return
+
             if self.lm.api_manager and len(text) > 0:
                 self.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception(text)
                 self.lm.api_manager.root_endpoint.state_endpoint.on_tribler_exception(text)

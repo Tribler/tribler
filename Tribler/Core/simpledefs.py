@@ -133,6 +133,8 @@ SIGNAL_RSS_FEED = 'signal_rss_feed'
 SIGNAL_ON_CREATED = 'signal_on_created'
 SIGNAL_ON_UPDATED = 'signal_on_updated'
 
+SIGNAL_RESOURCE_CHECK = 'signal_resource_check'
+SIGNAL_LOW_SPACE = 'signal_low_space'
 
 # Tribler Core states
 STATE_STARTING = "STARTING"

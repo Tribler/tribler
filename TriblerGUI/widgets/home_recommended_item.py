@@ -69,8 +69,8 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.download_button.hide()
 
     def on_download_button_clicked(self):
-        self.download_uri = quote_plus((u"magnet:?xt=urn:btih:%s&dn=%s" %
-                                        (self.torrent_info["infohash"], self.torrent_info['name'])).encode('utf-8'))
+        self.download_uri = (u"magnet:?xt=urn:btih:%s&dn=%s" %
+                             (self.torrent_info["infohash"], self.torrent_info['name'])).encode('utf-8')
         self.window().start_download_from_uri(self.download_uri)
 
     def update_with_torrent(self, torrent):

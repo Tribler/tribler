@@ -459,6 +459,21 @@ class TriblerGUITest(AbstractTriblerGUITest):
         QTimer.singleShot(1000, screenshot_dialog)
         dialog.exec_()
 
+    def test_feedback_dialog_report_sent(self):
+        def screenshot_dialog():
+            self.screenshot(dialog, name="feedback_dialog")
+            dialog.close()
+
+        def on_report_sent(response):
+            self.assertTrue(response[u'sent'])
+
+        dialog = FeedbackDialog(window, "Tribler GUI Test to test sending crash report works", "1.2.3", 23)
+        dialog.closeEvent = lambda _: None  # Otherwise, the application will stop
+        dialog.on_report_sent = on_report_sent
+        QTest.mouseClick(dialog.send_report_button, Qt.LeftButton)
+        QTimer.singleShot(1000, screenshot_dialog)
+        dialog.exec_()
+
     def test_discovered_page(self):
         QTest.mouseClick(window.left_menu_button_discovered, Qt.LeftButton)
         self.wait_for_list_populated(window.discovered_channels_list)

@@ -234,6 +234,7 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.new_version_available.connect(self.on_new_version_available)
         self.core_manager.events_manager.tribler_started.connect(self.on_tribler_started)
         self.core_manager.events_manager.events_started.connect(self.on_events_started)
+        self.core_manager.events_manager.low_storage_signal.connect(self.on_low_storage)
 
         # Install signal handler for ctrl+c events
         def sigint_handler(*_):
@@ -254,6 +255,21 @@ class TriblerWindow(QMainWindow):
         else:
             self.tray_icon.setIcon(QIcon(QPixmap(get_image_path('tribler.png'))))
         self.tray_icon.show()
+
+    def on_low_storage(self):
+        """
+        Dealing with low storage space available. First stop the downloads and the core manager and ask user to user to
+        make free space.
+        :return:
+        """
+        self.downloads_page.stop_loading_downloads()
+        self.core_manager.stop(False)
+        close_dialog = ConfirmationDialog(self.window(), "<b>CRITICAL ERROR</b>",
+                                          "You are running low on disk space (<100MB). Please make sure to have "
+                                          "sufficient free space available and restart Tribler again.",
+                                          [("Close Tribler", BUTTON_TYPE_NORMAL)])
+        close_dialog.button_clicked.connect(lambda _: self.close_tribler())
+        close_dialog.show()
 
     def on_torrent_finished(self, torrent_info):
         if self.tray_icon:
@@ -342,6 +358,8 @@ class TriblerWindow(QMainWindow):
         # Save the download location to the GUI settings
         current_settings = get_gui_setting(self.gui_settings, "recent_download_locations", "")
         recent_locations = current_settings.split(",") if len(current_settings) > 0 else []
+        if isinstance(destination, unicode):
+            destination = destination.encode('utf-8')
         encoded_destination = destination.encode('hex')
         if encoded_destination in recent_locations:
             recent_locations.remove(encoded_destination)
@@ -512,6 +530,14 @@ class TriblerWindow(QMainWindow):
             self.dialog.show()
             self.start_download_dialog_active = True
         else:
+            # In the unlikely scenario that tribler settings are not available yet, try to fetch settings again and
+            # add the download uri back to self.pending_uri_requests to process again.
+            if not self.tribler_settings:
+                self.fetch_settings()
+                if self.download_uri not in self.pending_uri_requests:
+                    self.pending_uri_requests.append(self.download_uri)
+                return
+
             self.window().perform_start_download_request(self.download_uri,
                                                          self.window().tribler_settings['download_defaults'][
                                                              'anonymity_enabled'],
@@ -557,7 +583,7 @@ class TriblerWindow(QMainWindow):
     def on_confirm_add_directory_dialog(self, action):
         if action == 0:
             for torrent_file in self.selected_torrent_files:
-                escaped_uri = quote_plus((u"file:%s" % torrent_file).encode('utf-8'))
+                escaped_uri = u"file:%s" % quote_plus((torrent_file).encode('utf-8'))
                 self.perform_start_download_request(escaped_uri,
                                                     self.window().tribler_settings['download_defaults'][
                                                          'anonymity_enabled'],

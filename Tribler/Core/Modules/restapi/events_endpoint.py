@@ -8,7 +8,8 @@ from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON
                                      NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_DELETE, NTFY_MARKET_ON_ASK,
                                      NTFY_UPDATE, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_TRANSACTION_COMPLETE,
                                      NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID_TIMEOUT,
-                                     NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT)
+                                     NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT,
+                                     SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE)
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.version import version_id
 
@@ -86,6 +87,7 @@ class EventsEndpoint(resource.Resource):
                                   NTFY_MARKET_ON_TRANSACTION_COMPLETE, [NTFY_UPDATE])
         self.session.add_observer(self.on_market_payment_received, NTFY_MARKET_ON_PAYMENT_RECEIVED, [NTFY_UPDATE])
         self.session.add_observer(self.on_market_payment_sent, NTFY_MARKET_ON_PAYMENT_SENT, [NTFY_UPDATE])
+        self.session.add_observer(self.on_resource_event, SIGNAL_RESOURCE_CHECK, [SIGNAL_LOW_SPACE])
 
     def write_data(self, message):
         """
@@ -197,6 +199,9 @@ class EventsEndpoint(resource.Resource):
 
     def on_market_payment_sent(self, subject, changetype, objectID, *args):
         self.write_data({"type": "market_payment_sent", "event": args[0]})
+
+    def on_resource_event(self, subject, changetype, objectID, *args):
+        self.write_data({"type": changetype, "event": args[0]})
 
     def render_GET(self, request):
         """

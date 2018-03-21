@@ -206,6 +206,10 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
             request.write(BaseChannelsEndpoint.return_500(self, request, failure.value))
             request.finish()
 
+        def _on_timeout(_):
+            request.write(BaseChannelsEndpoint.return_500(self, request, RuntimeError("Metainfo timeout")))
+            request.finish()
+
         if self.path.startswith("http:") or self.path.startswith("https:"):
             self.deferred = http_get(self.path)
             self.deferred.addCallback(_on_url_fetched)
@@ -213,7 +217,7 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
         if self.path.startswith("magnet:"):
             try:
                 self.session.lm.ltmgr.get_metainfo(self.path, callback=self.deferred.callback,
-                                                   timeout=30, timeout_callback=self.deferred.errback, notify=True)
+                                                   timeout=30, timeout_callback=_on_timeout, notify=True)
             except Exception as ex:
                 self.deferred.errback(ex)
 
