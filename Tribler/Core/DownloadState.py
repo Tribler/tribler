@@ -151,7 +151,7 @@ class DownloadState(object):
                 files = []
 
             for index, byte_progress in enumerate(self.download.handle.file_progress(flags=1)):
-                current_file = files[index]
+                current_file = files[index] if isinstance(files, list) else files.at(index)
                 completion.append((current_file.path, float(byte_progress) / current_file.size))
 
         return completion
