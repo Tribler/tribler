@@ -15,7 +15,8 @@ class TemporalPagerankReputationManager(ReputationManager):
         G = nx.DiGraph()
 
         for block in self.blocks:
-            if block.link_sequence_number == UNKNOWN_SEQ or block.transaction['type'] != 'tx_done':
+            if block.link_sequence_number == UNKNOWN_SEQ or block.transaction['type'] != 'tx_done' \
+                    or 'tx' not in block.transaction:
                 continue  # Don't consider half interactions
 
             pubkey_requester = block.link_public_key
