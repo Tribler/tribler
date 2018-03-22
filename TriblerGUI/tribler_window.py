@@ -64,7 +64,13 @@ class TriblerWindow(QMainWindow):
         self.exception_handler_called = True
 
         if self.tray_icon:
-            self.tray_icon.deleteLater()
+            try:
+                self.tray_icon.deleteLater()
+            except RuntimeError:
+                # The tray icon might have already been removed when unloading Qt.
+                # This is due to the C code actually being asynchronous.
+                logging.debug("Tray icon already removed, no further deletion necessary.")
+            self.tray_icon = None
 
         # Stop the download loop
         self.downloads_page.stop_loading_downloads()
