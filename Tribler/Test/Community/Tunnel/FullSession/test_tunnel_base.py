@@ -71,7 +71,6 @@ class TestTunnelBase(TestAsServer):
         self.config.set_ipv8_enabled(True)
         self.config.set_libtorrent_enabled(True)
         self.config.set_trustchain_enabled(False)
-        self.config.set_market_community_enabled(False)
         self.config.set_resource_monitor_enabled(False)
         self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
@@ -155,7 +154,6 @@ class TestTunnelBase(TestAsServer):
         config = self.config.copy()
         config.set_libtorrent_enabled(True)
         config.set_dispersy_enabled(False)
-        config.set_market_community_enabled(False)
         config.set_state_dir(self.getStateDir(index))
         config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
