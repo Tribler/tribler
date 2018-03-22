@@ -454,6 +454,9 @@ class MarketCommunity(TrustChainCommunity):
     def received_orderbook_sync(self, source_address, data):
         _, _, payload = self._ez_unpack_auth(OrderbookSyncPayload, data)
 
+        if not self.is_matchmaker:
+            return
+
         for order_id in self.order_book.get_order_ids():
             if str(order_id) not in payload.bloomfilter:
                 is_ask = self.order_book.ask_exists(order_id)
