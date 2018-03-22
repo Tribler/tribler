@@ -76,6 +76,7 @@ class TestMarketEndpoint(AbstractApiTest):
         super(TestMarketEndpoint, self).setUpPreSession()
         self.config.set_dispersy_enabled(False)
         self.config.set_ipv8_enabled(True)
+        self.config.set_market_community_enabled(True)
 
     @deferred(timeout=10)
     def test_get_asks(self):

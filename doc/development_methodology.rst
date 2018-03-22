@@ -1,7 +1,7 @@
 Branching model and development methodology
 ===========================================
 
-In this post we'll explain the branching model and development metodology we use at `TUDelft <http://www.ewi.tudelft.nl/en/>`_ on the `Tribler <https://github.com/Tribler/tribler>`_ project.
+In this post we'll explain the branching model and development methodology we use at `TUDelft <http://www.ewi.tudelft.nl/en/>`_ on the `Tribler <https://github.com/Tribler/tribler>`_ project.
 
 This is mostly targeted at new students joining the team. However, it may give you some useful ideas if you are working on a similar project type.
 

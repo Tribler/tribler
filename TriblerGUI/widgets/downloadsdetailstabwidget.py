@@ -27,8 +27,9 @@ class DownloadsDetailsTabWidget(QTabWidget):
         self.setCurrentIndex(0)
 
     def update_with_download(self, download):
+        did_change = self.current_download != download
         self.current_download = download
-        self.update_pages(new_download=True)
+        self.update_pages(new_download=did_change)
 
     @staticmethod
     def update_file_row(item, file_info):

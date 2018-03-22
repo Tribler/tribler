@@ -1,6 +1,6 @@
 from nose.tools import raises
 
-from Tribler.Core.TFTP.exception import InvalidStringException, InvalidPacketException, InvalidOptionException
+from Tribler.Core.TFTP.exception import InvalidStringException, InvalidPacketException
 from Tribler.Core.TFTP.packet import _get_string, _decode_options, _decode_data, _decode_ack, _decode_error, \
     decode_packet, OPCODE_ERROR, encode_packet
 from Tribler.Test.Core.base_test import TriblerCoreTest
@@ -32,17 +32,17 @@ class TestTFTPPacket(TriblerCoreTest):
         """
         _decode_options({}, "b\0\0", 0)
 
-    @raises(InvalidOptionException)
+    @raises(InvalidPacketException)
     def test_decode_options_unknown(self):
         """
-        Testing whether decoding the options raises InvalidOptionException if an invalid option is found
+        Testing whether decoding the options raises InvalidPacketException if an invalid option is found
         """
         _decode_options({}, "b\0a\0", 0)
 
-    @raises(InvalidOptionException)
+    @raises(InvalidPacketException)
     def test_decode_options_invalid(self):
         """
-        Testing whether decoding the options raises InvalidOptionException if an invalid option is found
+        Testing whether decoding the options raises InvalidPacketException if an invalid option is found
         """
         _decode_options({}, "blksize\0a\0", 0)
 

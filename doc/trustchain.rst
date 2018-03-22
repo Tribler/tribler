@@ -1,7 +1,7 @@
 TrustChain
 ==========
 
-TrustChain is a tamper-resistent data structure that is used in Tribler to record community contributions. This blockchain-based distributed ledger can then be used to build a reputation mechanism that is able to identify free-riders. A basic implementation of TrustChain is available in our code base and available for other developers.
+TrustChain is a tamper-resistant data structure that is used in Tribler to record community contributions. This blockchain-based distributed ledger can then be used to build a reputation mechanism that is able to identify free-riders. A basic implementation of TrustChain is available in our code base and available for other developers.
 
 TrustChain is specifically designed to be transaction-agnostic which means that any transaction can be stored in TrustChain. In Tribler, this consists of the amount of uploaded and downloaded data.
 

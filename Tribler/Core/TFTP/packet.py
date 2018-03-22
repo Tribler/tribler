@@ -1,7 +1,7 @@
 import struct
 from binascii import hexlify
 
-from .exception import InvalidStringException, InvalidPacketException, InvalidOptionException
+from .exception import InvalidStringException, InvalidPacketException
 
 # OPCODE
 OPCODE_RRQ = 1
@@ -72,7 +72,7 @@ def _decode_options(packet, buff, start_idx):
     # validate options and convert them to proper format
     for k, v in packet['options'].items():
         if k not in OPTIONS:
-            raise InvalidOptionException(u"Unknown option[%s]" % repr(k))
+            raise InvalidPacketException(u"Unknown option[%s]" % repr(k))
 
         # blksize, timeout, and tsize are all integers
         try:
@@ -81,7 +81,7 @@ def _decode_options(packet, buff, start_idx):
             else:
                 packet['options'][k] = v
         except ValueError:
-            raise InvalidOptionException(u"Invalid value for option %s: %s" % (repr(k), repr(v)))
+            raise InvalidPacketException(u"Invalid value for option %s: %s" % (repr(k), repr(v)))
 
 
 def _decode_rrq_wrq(packet, packet_buff, offset):
