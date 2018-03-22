@@ -4,7 +4,7 @@ from the  `Development instructions <../development/development_on_osx.rst>`_.
 Required packages
 -------------------
 * vlc: PyInstaller automatically searches for the vlc library in the system and bundles it. 
-* eulagise: In order to attach the EULA to the ``.dmg`` file, we make use of the ``eulagise`` script. This script is written in PERL and is based on a more fully-featured script. The script can be dowloaded from `GitHub <https://github.com/CompoFX/compo/blob/master/tool/eulagise.pl>`_. The builder expects the script to be executable and added to the ``PATH`` environment variable. This can be done with the following commands:
+* eulagise: In order to attach the EULA to the ``.dmg`` file, we make use of the ``eulagise`` script. This script is written in PERL and is based on a more fully-featured script. The script can be downloaded from `GitHub <https://github.com/CompoFX/compo/blob/master/tool/eulagise.pl>`_. The builder expects the script to be executable and added to the ``PATH`` environment variable. This can be done with the following commands:
 
 .. code-block:: none
 
