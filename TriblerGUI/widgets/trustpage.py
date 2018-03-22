@@ -128,8 +128,9 @@ class TrustPage(QWidget):
         self.request_mgr.perform_request("trustchain/blocks/%s" % self.public_key, self.received_trustchain_blocks)
 
     def received_trustchain_blocks(self, blocks):
-        self.blocks = blocks["blocks"]
-        self.plot_absolute_values()
+        if blocks:
+            self.blocks = blocks["blocks"]
+            self.plot_absolute_values()
 
     def plot_absolute_values(self):
         """
