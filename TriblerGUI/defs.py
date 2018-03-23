@@ -2,7 +2,7 @@
 This file contains various definitions used by the Tribler GUI.
 """
 
-API_PORT = 8085
+DEFAULT_API_PORT = 8085
 
 # Define stacked widget page indices
 PAGE_HOME = 0

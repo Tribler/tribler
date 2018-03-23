@@ -7,7 +7,6 @@ from twisted.internet.error import ReactorAlreadyInstalledError
 # We always use a selectreactor
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Utilities.install_dir import get_lib_path
-from TriblerGUI.defs import API_PORT
 
 try:
     from twisted.internet import selectreactor
@@ -31,7 +30,7 @@ from TriblerGUI.utilities import get_base_path, is_frozen
 START_FAKE_API = False
 
 
-def start_tribler_core(base_path, child_pipe):
+def start_tribler_core(base_path, child_pipe, api_port):
     """
     This method is invoked by multiprocessing when the Tribler core is started and will start a Tribler session.
     Note that there is no direct communication between the GUI process and the core: all communication is performed
@@ -94,7 +93,7 @@ def start_tribler_core(base_path, child_pipe):
         patch_wallet_methods()
         patch_iom_methods()
 
-        config.set_http_api_port(API_PORT)
+        config.set_http_api_port(api_port)
         config.set_http_api_enabled(True)
 
         # Check if we are already running a Tribler instance
@@ -121,7 +120,7 @@ class CoreManager(QObject):
     tribler_stopped = pyqtSignal()
     core_state_update = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, api_port):
         QObject.__init__(self, None)
 
         self.base_path = get_base_path()
@@ -130,7 +129,8 @@ class CoreManager(QObject):
 
         self.request_mgr = None
         self.core_process = None
-        self.events_manager = EventRequestManager()
+        self.api_port = api_port
+        self.events_manager = EventRequestManager(self.api_port)
 
         self.shutting_down = False
         self.recorded_stderr = ""
@@ -174,10 +174,11 @@ class CoreManager(QObject):
     def start_tribler_core(self):
         if START_FAKE_API:
             from TriblerGUI.scripts.start_fake_core import start_fake_core
-            self.core_process = multiprocessing.Process(target=start_fake_core, args=(API_PORT,))
+            self.core_process = multiprocessing.Process(target=start_fake_core, args=(self.api_port,))
         else:
             parent_conn, child_conn = multiprocessing.Pipe()
-            self.core_process = multiprocessing.Process(target=start_tribler_core, args=(self.base_path, child_conn))
+            self.core_process = multiprocessing.Process(target=start_tribler_core, args=(self.base_path, child_conn,
+                                                                                         self.api_port))
 
             pipe_thread = Thread(target=lambda: self.pipe_wait(parent_conn), name="tribler-pipe-read")
             pipe_thread.setDaemon(True)

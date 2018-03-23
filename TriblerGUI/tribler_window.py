@@ -8,6 +8,7 @@ import signal
 
 import time
 from PyQt5 import uic
+from PyQt5.QtCore import QDir
 from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication, pyqtSlot, QUrl, \
     QObject, QTimer
 from PyQt5.QtGui import QIcon, QDesktopServices
@@ -15,6 +16,7 @@ from PyQt5.QtGui import QKeySequence
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
     QCompleter, QApplication, QStyledItemDelegate, QListWidget
+from PyQt5.QtWidgets import QMenu
 from PyQt5.QtWidgets import QShortcut
 from PyQt5.QtWidgets import QSplitter
 
@@ -26,11 +28,11 @@ from TriblerGUI.debug_window import DebugWindow
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
     PAGE_HOME, PAGE_EDIT_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
     PAGE_CHANNEL_DETAILS, PAGE_PLAYLIST_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, PAGE_LOADING, \
-    PAGE_DISCOVERING, PAGE_DISCOVERED, PAGE_TRUST, SHUTDOWN_WAITING_PERIOD
+    PAGE_DISCOVERING, PAGE_DISCOVERED, PAGE_TRUST, SHUTDOWN_WAITING_PERIOD, DEFAULT_API_PORT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
-from TriblerGUI.tribler_request_manager import request_queue, TriblerRequestManager
+from TriblerGUI.tribler_request_manager import request_queue, TriblerRequestManager, TriblerRequestWorker
 from TriblerGUI.utilities import get_ui_file_path, get_image_path, get_gui_setting, is_dir_writable
 
 # Pre-load form UI classes
@@ -98,12 +100,21 @@ class TriblerWindow(QMainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
 
+        QCoreApplication.setOrganizationDomain("nl")
+        QCoreApplication.setOrganizationName("TUDelft")
+        QCoreApplication.setApplicationName("Tribler")
+        QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+
+        self.gui_settings = QSettings()
+        api_port = get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT)
+        TriblerRequestWorker.BASE_URL = "http://localhost:%d/" % api_port
+
         self.navigation_stack = []
         self.feedback_dialog_is_open = False
         self.tribler_started = False
         self.tribler_settings = None
         self.debug_window = None
-        self.core_manager = CoreManager()
+        self.core_manager = CoreManager(api_port)
         self.pending_requests = {}
         self.pending_uri_requests = []
         self.download_uri = None
@@ -151,13 +162,6 @@ class TriblerWindow(QMainWindow):
         self.magnet_handler = MagnetHandler(self.window)
         QDesktopServices.setUrlHandler("magnet", self.magnet_handler, "on_open_magnet_link")
 
-        QCoreApplication.setOrganizationDomain("nl")
-        QCoreApplication.setOrganizationName("TUDelft")
-        QCoreApplication.setApplicationName("Tribler")
-        QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
-
-        self.read_settings()
-
         self.debug_pane_shortcut = QShortcut(QKeySequence("Ctrl+d"), self)
         self.debug_pane_shortcut.activated.connect(self.clicked_menu_button_debug)
 
@@ -188,6 +192,21 @@ class TriblerWindow(QMainWindow):
             self.tray_icon = QSystemTrayIcon()
             use_monochrome_icon = get_gui_setting(self.gui_settings, "use_monochrome_icon", False, is_bool=True)
             self.update_tray_icon(use_monochrome_icon)
+
+            # Create the tray icon menu
+            menu = self.create_add_torrent_menu()
+            show_downloads_action = QAction('Show downloads', self)
+            show_downloads_action.triggered.connect(self.clicked_menu_button_downloads)
+            token_balance_action = QAction('Show token balance', self)
+            token_balance_action.triggered.connect(lambda: self.on_token_balance_click(None))
+            quit_action = QAction('Quit Tribler', self)
+            quit_action.triggered.connect(self.close_tribler)
+            menu.addSeparator()
+            menu.addAction(show_downloads_action)
+            menu.addAction(token_balance_action)
+            menu.addSeparator()
+            menu.addAction(quit_action)
+            self.tray_icon.setContextMenu(menu)
         else:
             self.tray_icon = None
 
@@ -230,6 +249,7 @@ class TriblerWindow(QMainWindow):
         self.window().left_menu_button_debug.setHidden(
             not get_gui_setting(self.gui_settings, "debug", False, is_bool=True))
 
+        # Start Tribler
         self.core_manager.start()
 
         self.core_manager.events_manager.received_search_result_channel.connect(
@@ -249,6 +269,14 @@ class TriblerWindow(QMainWindow):
         signal.signal(signal.SIGINT, sigint_handler)
 
         self.installEventFilter(self.video_player_page)
+
+        # Resize the window according to the settings
+        center = QApplication.desktop().availableGeometry(self).center()
+        pos = self.gui_settings.value("pos", QPoint(center.x() - self.width() * 0.5, center.y() - self.height() * 0.5))
+        size = self.gui_settings.value("size", self.size())
+
+        self.move(pos)
+        self.resize(size)
 
         self.show()
 
@@ -398,15 +426,6 @@ class TriblerWindow(QMainWindow):
         self.new_version_dialog.setParent(None)
         self.new_version_dialog = None
 
-    def read_settings(self):
-        self.gui_settings = QSettings()
-        center = QApplication.desktop().availableGeometry(self).center()
-        pos = self.gui_settings.value("pos", QPoint(center.x() - self.width() * 0.5, center.y() - self.height() * 0.5))
-        size = self.gui_settings.value("size", self.size())
-
-        self.move(pos)
-        self.resize(size)
-
     def on_search_text_change(self, text):
         self.search_suggestion_mgr = TriblerRequestManager()
         self.search_suggestion_mgr.perform_request(
@@ -478,6 +497,7 @@ class TriblerWindow(QMainWindow):
         self.hide_left_menu_playlist()
 
     def on_token_balance_click(self, _):
+        self.raise_window()
         self.deselect_all_menu_buttons()
         self.stackedWidget.setCurrentIndex(PAGE_TRUST)
         self.trust_page.load_trust_statistics()
@@ -497,11 +517,19 @@ class TriblerWindow(QMainWindow):
         else:
             self.token_balance_label.setText("0")
 
-    def on_add_torrent_button_click(self, pos):
+    def raise_window(self):
+        self.setWindowState(self.windowState() & ~Qt.WindowMinimized | Qt.WindowActive)
+        self.raise_()
+        self.activateWindow()
+
+    def create_add_torrent_menu(self):
+        """
+        Create a menu to add new torrents. Shows when users click on the tray icon or the big plus button.
+        """
         menu = TriblerActionMenu(self)
 
         browse_files_action = QAction('Import torrent from file', self)
-        browse_directory_action = QAction('Import torrents from directory', self)
+        browse_directory_action = QAction('Import torrent(s) from directory', self)
         add_url_action = QAction('Import torrent from magnet/URL', self)
 
         browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
@@ -512,11 +540,16 @@ class TriblerWindow(QMainWindow):
         menu.addAction(browse_directory_action)
         menu.addAction(add_url_action)
 
-        menu.exec_(self.mapToGlobal(self.add_torrent_button.pos()))
+        return menu
+
+    def on_add_torrent_button_click(self, pos):
+        self.create_add_torrent_menu().exec_(self.mapToGlobal(self.add_torrent_button.pos()))
 
     def on_add_torrent_browse_file(self):
         filenames = QFileDialog.getOpenFileNames(self,
-                                                 "Please select the .torrent file", "", "Torrent files (*.torrent)")
+                                                 "Please select the .torrent file",
+                                                 QDir.homePath(),
+                                                 "Torrent files (*.torrent)")
         if len(filenames[0]) > 0:
             [self.pending_uri_requests.append(u"file:%s" % filename) for filename in filenames[0]]
             self.process_uri_request()
@@ -574,8 +607,10 @@ class TriblerWindow(QMainWindow):
             self.process_uri_request()
 
     def on_add_torrent_browse_dir(self):
-        chosen_dir = QFileDialog.getExistingDirectory(self, "Please select the directory containing the .torrent files",
-                                                      "", QFileDialog.ShowDirsOnly)
+        chosen_dir = QFileDialog.getExistingDirectory(self,
+                                                      "Please select the directory containing the .torrent files",
+                                                      QDir.homePath(),
+                                                      QFileDialog.ShowDirsOnly)
 
         if len(chosen_dir) != 0:
             self.selected_torrent_files = [torrent_file for torrent_file in glob.glob(chosen_dir + "/*.torrent")]
@@ -601,6 +636,9 @@ class TriblerWindow(QMainWindow):
         self.dialog = None
 
     def on_add_torrent_from_url(self):
+        # Make sure that the window is visible (this action might be triggered from the tray icon)
+        self.raise_window()
+
         self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link",
                                          "Please enter the URL/magnet link in the field below:",
                                          [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
@@ -678,6 +716,8 @@ class TriblerWindow(QMainWindow):
         self.show_left_menu_playlist()
 
     def clicked_menu_button_downloads(self):
+        self.raise_window()
+        self.left_menu_button_downloads.setChecked(True)
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
         self.navigation_stack = []

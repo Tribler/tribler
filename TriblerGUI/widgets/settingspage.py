@@ -3,6 +3,7 @@ import sys
 from PIL.ImageQt import ImageQt
 
 from PyQt5 import QtGui, QtCore
+from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QWidget, QLabel, QFileDialog
 
 try:
@@ -14,7 +15,7 @@ except ImportError:
 
 import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_BANDWIDTH, \
-    PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
+    PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, DEFAULT_API_PORT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import string_to_seconds, get_gui_setting, seconds_to_hhmm_string, is_dir_writable
@@ -53,6 +54,8 @@ class SettingsPage(QWidget):
         self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
         self.window().fully_empty_tokens_button.clicked.connect(self.confirm_fully_empty_tokens)
         self.window().partially_empty_tokens_button.clicked.connect(self.partially_empty_tokens)
+
+        self.update_stacked_widget_height()
 
     def confirm_fully_empty_tokens(self):
         self.confirm_empty_tokens_dialog = ConfirmationDialog(self, "Empty tokens into another account",
@@ -236,6 +239,8 @@ class SettingsPage(QWidget):
             max_conn_download = 0
         self.window().max_connections_download_input.setText(str(max_conn_download))
 
+        self.window().api_port_input.setText("%d" % get_gui_setting(gui_settings, "api_port", DEFAULT_API_PORT))
+
         # Bandwidth settings
         self.window().upload_rate_limit_input.setText(str(settings['libtorrent']['max_upload_rate'] / 1024))
         self.window().download_rate_limit_input.setText(str(settings['libtorrent']['max_download_rate'] / 1024))
@@ -268,6 +273,21 @@ class SettingsPage(QWidget):
             self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_SEEDING)
         elif tab_button_name == "settings_anonymity_button":
             self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_ANONYMITY)
+
+        self.update_stacked_widget_height()
+
+    def update_stacked_widget_height(self):
+        """
+        Update the height of the settings tab. This is required since the height of a QStackedWidget is by default
+        the height of the largest page. This messes up the scroll bar.
+        """
+        for index in range(self.window().settings_stacked_widget.count()):
+            if index == self.window().settings_stacked_widget.currentIndex():
+                self.window().settings_stacked_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+            else:
+                self.window().settings_stacked_widget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+
+        self.window().settings_stacked_widget.adjustSize()
 
     def save_settings(self):
         # Create a dictionary with all available settings
@@ -330,6 +350,17 @@ class SettingsPage(QWidget):
             ConfirmationDialog.show_error(self.window(), "Invalid value for bandwidth limit",
                                           "You've entered an invalid value for the maximum upload/download rate. "
                                           "Please enter a whole number (max: %d)" % (sys.maxsize/1000))
+            return
+
+        try:
+            if self.window().api_port_input.text():
+                api_port = int(self.window().api_port_input.text())
+                if api_port <= 0 or api_port >= 65536:
+                    raise ValueError()
+                self.window().gui_settings.setValue("api_port", api_port)
+        except ValueError:
+            ConfirmationDialog.show_error(self.window(), "Invalid value for api port",
+                                          "Please enter a valid port for the api (between 0 and 65536)")
             return
 
         seeding_modes = ['forever', 'time', 'never', 'ratio']
