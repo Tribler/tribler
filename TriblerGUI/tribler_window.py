@@ -15,6 +15,7 @@ from PyQt5.QtGui import QKeySequence
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
     QCompleter, QApplication, QStyledItemDelegate, QListWidget
+from PyQt5.QtWidgets import QMenu
 from PyQt5.QtWidgets import QShortcut
 from PyQt5.QtWidgets import QSplitter
 
@@ -188,6 +189,21 @@ class TriblerWindow(QMainWindow):
             self.tray_icon = QSystemTrayIcon()
             use_monochrome_icon = get_gui_setting(self.gui_settings, "use_monochrome_icon", False, is_bool=True)
             self.update_tray_icon(use_monochrome_icon)
+
+            # Create the tray icon menu
+            menu = self.create_add_torrent_menu()
+            show_downloads_action = QAction('Show downloads', self)
+            show_downloads_action.triggered.connect(self.clicked_menu_button_downloads)
+            token_balance_action = QAction('Show token balance', self)
+            token_balance_action.triggered.connect(lambda: self.on_token_balance_click(None))
+            quit_action = QAction('Quit Tribler', self)
+            quit_action.triggered.connect(self.close_tribler)
+            menu.addSeparator()
+            menu.addAction(show_downloads_action)
+            menu.addAction(token_balance_action)
+            menu.addSeparator()
+            menu.addAction(quit_action)
+            self.tray_icon.setContextMenu(menu)
         else:
             self.tray_icon = None
 
@@ -478,6 +494,7 @@ class TriblerWindow(QMainWindow):
         self.hide_left_menu_playlist()
 
     def on_token_balance_click(self, _):
+        self.raise_window()
         self.deselect_all_menu_buttons()
         self.stackedWidget.setCurrentIndex(PAGE_TRUST)
         self.trust_page.load_trust_statistics()
@@ -497,11 +514,19 @@ class TriblerWindow(QMainWindow):
         else:
             self.token_balance_label.setText("0")
 
-    def on_add_torrent_button_click(self, pos):
+    def raise_window(self):
+        self.setWindowState(self.windowState() & ~Qt.WindowMinimized | Qt.WindowActive)
+        self.raise_()
+        self.activateWindow()
+
+    def create_add_torrent_menu(self):
+        """
+        Create a menu to add new torrents. Shows when users click on the tray icon or the big plus button.
+        """
         menu = TriblerActionMenu(self)
 
         browse_files_action = QAction('Import torrent from file', self)
-        browse_directory_action = QAction('Import torrents from directory', self)
+        browse_directory_action = QAction('Import torrent(s) from directory', self)
         add_url_action = QAction('Import torrent from magnet/URL', self)
 
         browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
@@ -512,7 +537,10 @@ class TriblerWindow(QMainWindow):
         menu.addAction(browse_directory_action)
         menu.addAction(add_url_action)
 
-        menu.exec_(self.mapToGlobal(self.add_torrent_button.pos()))
+        return menu
+
+    def on_add_torrent_button_click(self, pos):
+        self.create_add_torrent_menu().exec_(self.mapToGlobal(self.add_torrent_button.pos()))
 
     def on_add_torrent_browse_file(self):
         filenames = QFileDialog.getOpenFileNames(self,
@@ -601,6 +629,9 @@ class TriblerWindow(QMainWindow):
         self.dialog = None
 
     def on_add_torrent_from_url(self):
+        # Make sure that the window is visible (this action might be triggered from the tray icon)
+        self.raise_window()
+
         self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link",
                                          "Please enter the URL/magnet link in the field below:",
                                          [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
@@ -678,6 +709,8 @@ class TriblerWindow(QMainWindow):
         self.show_left_menu_playlist()
 
     def clicked_menu_button_downloads(self):
+        self.raise_window()
+        self.left_menu_button_downloads.setChecked(True)
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
         self.navigation_stack = []
