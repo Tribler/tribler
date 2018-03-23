@@ -3,6 +3,7 @@ import sys
 from PIL.ImageQt import ImageQt
 
 from PyQt5 import QtGui, QtCore
+from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QWidget, QLabel, QFileDialog
 
 try:
@@ -53,6 +54,8 @@ class SettingsPage(QWidget):
         self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
         self.window().fully_empty_tokens_button.clicked.connect(self.confirm_fully_empty_tokens)
         self.window().partially_empty_tokens_button.clicked.connect(self.partially_empty_tokens)
+
+        self.update_stacked_widget_height()
 
     def confirm_fully_empty_tokens(self):
         self.confirm_empty_tokens_dialog = ConfirmationDialog(self, "Empty tokens into another account",
@@ -268,6 +271,21 @@ class SettingsPage(QWidget):
             self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_SEEDING)
         elif tab_button_name == "settings_anonymity_button":
             self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_ANONYMITY)
+
+        self.update_stacked_widget_height()
+
+    def update_stacked_widget_height(self):
+        """
+        Update the height of the settings tab. This is required since the height of a QStackedWidget is by default
+        the height of the largest page. This messes up the scroll bar.
+        """
+        for index in range(self.window().settings_stacked_widget.count()):
+            if index == self.window().settings_stacked_widget.currentIndex():
+                self.window().settings_stacked_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+            else:
+                self.window().settings_stacked_widget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+
+        self.window().settings_stacked_widget.adjustSize()
 
     def save_settings(self):
         # Create a dictionary with all available settings
