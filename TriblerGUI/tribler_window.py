@@ -8,6 +8,7 @@ import signal
 
 import time
 from PyQt5 import uic
+from PyQt5.QtCore import QDir
 from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication, pyqtSlot, QUrl, \
     QObject, QTimer
 from PyQt5.QtGui import QIcon, QDesktopServices
@@ -544,7 +545,9 @@ class TriblerWindow(QMainWindow):
 
     def on_add_torrent_browse_file(self):
         filenames = QFileDialog.getOpenFileNames(self,
-                                                 "Please select the .torrent file", "", "Torrent files (*.torrent)")
+                                                 "Please select the .torrent file",
+                                                 QDir.homePath(),
+                                                 "Torrent files (*.torrent)")
         if len(filenames[0]) > 0:
             [self.pending_uri_requests.append(u"file:%s" % filename) for filename in filenames[0]]
             self.process_uri_request()
@@ -602,8 +605,10 @@ class TriblerWindow(QMainWindow):
             self.process_uri_request()
 
     def on_add_torrent_browse_dir(self):
-        chosen_dir = QFileDialog.getExistingDirectory(self, "Please select the directory containing the .torrent files",
-                                                      "", QFileDialog.ShowDirsOnly)
+        chosen_dir = QFileDialog.getExistingDirectory(self,
+                                                      "Please select the directory containing the .torrent files",
+                                                      QDir.homePath(),
+                                                      QFileDialog.ShowDirsOnly)
 
         if len(chosen_dir) != 0:
             self.selected_torrent_files = [torrent_file for torrent_file in glob.glob(chosen_dir + "/*.torrent")]

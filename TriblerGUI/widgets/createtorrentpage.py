@@ -1,6 +1,7 @@
 import os
 import urllib
 
+from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QIcon
 
 from PyQt5.QtWidgets import QWidget, QFileDialog, QAction
@@ -49,7 +50,7 @@ class CreateTorrentPage(QWidget):
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_TORRENTS)
 
     def on_choose_files_clicked(self):
-        filenames, _ = QFileDialog.getOpenFileNames(self.window(), "Please select the files", "")
+        filenames, _ = QFileDialog.getOpenFileNames(self.window(), "Please select the files", QDir.homePath())
 
         for filename in filenames:
             self.window().create_torrent_files_list.addItem(filename)
