@@ -4,7 +4,6 @@ from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkRepl
 import time
 
 import Tribler.Core.Utilities.json_util as json
-from TriblerGUI.defs import API_PORT
 
 received_events = []
 
@@ -35,9 +34,9 @@ class EventRequestManager(QNetworkAccessManager):
     events_started = pyqtSignal(object)
     low_storage_signal = pyqtSignal(object)
 
-    def __init__(self):
+    def __init__(self, api_port):
         QNetworkAccessManager.__init__(self)
-        url = QUrl("http://localhost:%d/events" % API_PORT)
+        url = QUrl("http://localhost:%d/events" % api_port)
         self.request = QNetworkRequest(url)
         self.failed_attempts = 0
         self.connect_timer = QTimer()

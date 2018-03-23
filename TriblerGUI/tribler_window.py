@@ -28,11 +28,11 @@ from TriblerGUI.debug_window import DebugWindow
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
     PAGE_HOME, PAGE_EDIT_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
     PAGE_CHANNEL_DETAILS, PAGE_PLAYLIST_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, PAGE_LOADING, \
-    PAGE_DISCOVERING, PAGE_DISCOVERED, PAGE_TRUST, SHUTDOWN_WAITING_PERIOD
+    PAGE_DISCOVERING, PAGE_DISCOVERED, PAGE_TRUST, SHUTDOWN_WAITING_PERIOD, DEFAULT_API_PORT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
-from TriblerGUI.tribler_request_manager import request_queue, TriblerRequestManager
+from TriblerGUI.tribler_request_manager import request_queue, TriblerRequestManager, TriblerRequestWorker
 from TriblerGUI.utilities import get_ui_file_path, get_image_path, get_gui_setting, is_dir_writable
 
 # Pre-load form UI classes
@@ -100,12 +100,21 @@ class TriblerWindow(QMainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
 
+        QCoreApplication.setOrganizationDomain("nl")
+        QCoreApplication.setOrganizationName("TUDelft")
+        QCoreApplication.setApplicationName("Tribler")
+        QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+
+        self.gui_settings = QSettings()
+        api_port = get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT)
+        TriblerRequestWorker.BASE_URL = "http://localhost:%d/" % api_port
+
         self.navigation_stack = []
         self.feedback_dialog_is_open = False
         self.tribler_started = False
         self.tribler_settings = None
         self.debug_window = None
-        self.core_manager = CoreManager()
+        self.core_manager = CoreManager(api_port)
         self.pending_requests = {}
         self.pending_uri_requests = []
         self.download_uri = None
@@ -152,13 +161,6 @@ class TriblerWindow(QMainWindow):
 
         self.magnet_handler = MagnetHandler(self.window)
         QDesktopServices.setUrlHandler("magnet", self.magnet_handler, "on_open_magnet_link")
-
-        QCoreApplication.setOrganizationDomain("nl")
-        QCoreApplication.setOrganizationName("TUDelft")
-        QCoreApplication.setApplicationName("Tribler")
-        QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
-
-        self.read_settings()
 
         self.debug_pane_shortcut = QShortcut(QKeySequence("Ctrl+d"), self)
         self.debug_pane_shortcut.activated.connect(self.clicked_menu_button_debug)
@@ -247,6 +249,7 @@ class TriblerWindow(QMainWindow):
         self.window().left_menu_button_debug.setHidden(
             not get_gui_setting(self.gui_settings, "debug", False, is_bool=True))
 
+        # Start Tribler
         self.core_manager.start()
 
         self.core_manager.events_manager.received_search_result_channel.connect(
@@ -266,6 +269,14 @@ class TriblerWindow(QMainWindow):
         signal.signal(signal.SIGINT, sigint_handler)
 
         self.installEventFilter(self.video_player_page)
+
+        # Resize the window according to the settings
+        center = QApplication.desktop().availableGeometry(self).center()
+        pos = self.gui_settings.value("pos", QPoint(center.x() - self.width() * 0.5, center.y() - self.height() * 0.5))
+        size = self.gui_settings.value("size", self.size())
+
+        self.move(pos)
+        self.resize(size)
 
         self.show()
 
@@ -414,15 +425,6 @@ class TriblerWindow(QMainWindow):
 
         self.new_version_dialog.setParent(None)
         self.new_version_dialog = None
-
-    def read_settings(self):
-        self.gui_settings = QSettings()
-        center = QApplication.desktop().availableGeometry(self).center()
-        pos = self.gui_settings.value("pos", QPoint(center.x() - self.width() * 0.5, center.y() - self.height() * 0.5))
-        size = self.gui_settings.value("size", self.size())
-
-        self.move(pos)
-        self.resize(size)
 
     def on_search_text_change(self, text):
         self.search_suggestion_mgr = TriblerRequestManager()

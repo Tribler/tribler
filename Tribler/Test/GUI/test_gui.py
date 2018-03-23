@@ -18,7 +18,7 @@ from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
 
 rand_port = get_random_port()
 core_manager.START_FAKE_API = True
-gui_defs.API_PORT = rand_port
+gui_defs.DEFAULT_API_PORT = rand_port
 
 import TriblerGUI
 

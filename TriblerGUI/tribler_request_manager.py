@@ -7,7 +7,7 @@ from PyQt5.QtCore import QUrl, pyqtSignal, QIODevice, QBuffer, QObject
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 import Tribler.Core.Utilities.json_util as json
-from TriblerGUI.defs import BUTTON_TYPE_NORMAL, API_PORT
+from TriblerGUI.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_PORT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 
 
@@ -318,10 +318,10 @@ class TriblerRequestWorker(QNetworkAccessManager):
     All requests are asynchronous so the caller object should keep track of response (QNetworkReply) object. A finished
     pyqt signal is fired when the response data is ready.
     """
+    BASE_URL = "http://localhost:%d/" % DEFAULT_API_PORT
 
     def __init__(self):
         QNetworkAccessManager.__init__(self)
-        self.base_url = "http://localhost:%d/" % API_PORT
         self.status_code = -1
         self.dispatch_map = {
             'GET': self.perform_get,
@@ -348,7 +348,7 @@ class TriblerRequestWorker(QNetworkAccessManager):
         if endpoint.startswith("http:") or endpoint.startswith("https:"):
             url = endpoint
         else:
-            url = self.base_url + endpoint
+            url = TriblerRequestWorker.BASE_URL + endpoint
         self.status_code = -1
         network_reply = self.dispatch_map.get(method, lambda x, y, z: None)(endpoint, data, url)
         network_reply.finished.connect(lambda: reply_callback(network_reply))
