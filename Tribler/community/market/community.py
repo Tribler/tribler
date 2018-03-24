@@ -322,7 +322,7 @@ class MarketCommunity(TrustChainCommunity):
             return
 
         order_tick_entry = self.order_book.get_tick(tick.order_id)
-        if tick.quantity - order_tick_entry.reserved_for_matching == Quantity(0, tick.quantity.wallet_id):
+        if tick.quantity - order_tick_entry.reserved_for_matching <= Quantity(0, tick.quantity.wallet_id):
             self.logger.debug("Tick %s does not have any quantity to match!", tick.order_id)
             return
 

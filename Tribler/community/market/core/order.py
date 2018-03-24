@@ -351,7 +351,7 @@ class Order(object):
             self._reserved_ticks[order_id] -= quantity
             assert self.available_quantity >= Quantity(0, self._quantity.wallet_id), str(self.available_quantity)
 
-            if self._reserved_ticks[order_id] == Quantity(0, quantity.wallet_id):  # Remove the quantity if it's zero
+            if self._reserved_ticks[order_id] <= Quantity(0, quantity.wallet_id):  # Remove the quantity if it's zero
                 del self._reserved_ticks[order_id]
         else:
             raise ValueError("Not enough reserved quantity for order id %s" % order_id)

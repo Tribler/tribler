@@ -124,7 +124,7 @@ class OrderBook(TaskManager):
             tick.quantity = new_ask_quantity
             if unreserve:
                 tick.release_for_matching(traded_quantity)
-            if tick.quantity == Quantity(0, ask_order_dict["quantity_type"]):
+            if tick.quantity <= Quantity(0, ask_order_dict["quantity_type"]):
                 self.remove_tick(tick.order_id)
                 self.completed_orders.append(tick.order_id)
         elif not self.tick_exists(ask_order_id) and new_ask_quantity > Quantity(0, ask_order_dict["quantity_type"]):
@@ -140,7 +140,7 @@ class OrderBook(TaskManager):
             tick.quantity = new_bid_quantity
             if unreserve:
                 tick.release_for_matching(traded_quantity)
-            if tick.quantity == Quantity(0, bid_order_dict["quantity_type"]):
+            if tick.quantity <= Quantity(0, bid_order_dict["quantity_type"]):
                 self.remove_tick(tick.order_id)
                 self.completed_orders.append(tick.order_id)
         elif not self.tick_exists(bid_order_id) and new_bid_quantity > Quantity(0, bid_order_dict["quantity_type"]):
