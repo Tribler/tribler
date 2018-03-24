@@ -78,6 +78,10 @@ class OrderStatusRequestCache(RandomNumberCache):
         super(OrderStatusRequestCache, self).__init__(community.request_cache, u"order-status-request")
         self.request_deferred = request_deferred
 
+    @property
+    def timeout_delay(self):
+        return 20.0
+
     def on_timeout(self):
         self._logger.warning("No response in time from remote peer when requesting order status")
 
