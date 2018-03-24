@@ -282,6 +282,27 @@ class MatchingEngineTestSuite(AbstractServer):
         self.order_book = OrderBook()
         self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book))
 
+        self.ask_count = 2
+        self.bid_count = 2
+
+    def create_ask(self, price, quantity):
+        """
+        Create an ask with a specific price and quantity
+        """
+        new_ask = Ask(OrderId(TraderId('2'), OrderNumber(self.ask_count)), Price(price, 'BTC'),
+                      Quantity(quantity, 'MC'), Timeout(30), Timestamp.now())
+        self.ask_count += 1
+        return new_ask
+
+    def create_bid(self, price, quantity):
+        """
+        Create a bid with a specific price and quantity
+        """
+        new_bid = Bid(OrderId(TraderId('2'), OrderNumber(self.bid_count)), Price(price, 'BTC'),
+                      Quantity(quantity, 'MC'), Timeout(30), Timestamp.now())
+        self.bid_count += 1
+        return new_bid
+
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self, annotate=True):
@@ -323,3 +344,33 @@ class MatchingEngineTestSuite(AbstractServer):
         self.order_book.insert_ask(self.ask)
         matching_ticks = self.matching_engine.match(self.order_book.get_ask(self.ask.order_id))
         self.assertEquals([], matching_ticks)
+
+    def test_multiple_price_levels_asks(self):
+        """
+        Test matching when there are asks in multiple price levels
+        """
+        self.order_book.insert_ask(self.create_ask(7, 50))
+        self.order_book.insert_ask(self.create_ask(4, 18))
+        self.order_book.insert_ask(self.create_ask(7, 100))
+        my_bid = self.create_bid(10, 100)
+        self.order_book.insert_bid(my_bid)
+        matching_ticks = self.matching_engine.match(self.order_book.get_bid(my_bid.order_id))
+
+        self.assertEqual(len(matching_ticks), 3)
+        total_matched = sum([float(quantity) for _, _, quantity in matching_ticks])
+        self.assertEqual(Quantity(total_matched, 'MC'), Quantity(100, 'MC'))
+
+    def test_multiple_price_levels_bids(self):
+        """
+        Test matching when there are bids in multiple price levels
+        """
+        self.order_book.insert_bid(self.create_bid(4, 50))
+        self.order_book.insert_bid(self.create_bid(7, 18))
+        self.order_book.insert_bid(self.create_bid(4, 100))
+        my_ask = self.create_ask(1, 100)
+        self.order_book.insert_ask(my_ask)
+        matching_ticks = self.matching_engine.match(self.order_book.get_ask(my_ask.order_id))
+
+        self.assertEqual(len(matching_ticks), 3)
+        total_matched = sum([float(quantity) for _, _, quantity in matching_ticks])
+        self.assertEqual(Quantity(total_matched, 'MC'), Quantity(100, 'MC'))

@@ -158,6 +158,12 @@ class PriceTimeStrategy(MatchingStrategy):
         # Not all the quantity can be matched in this price level
         matching_ticks = self._search_for_quantity_in_price_level(order_id, price_level.first_tick, quantity_to_trade,
                                                                   tick_price, is_ask)
+
+        matched_quantity = Quantity(0, quantity_to_trade.wallet_id)
+        for _, _, quantity in matching_ticks:
+            matched_quantity += quantity
+        quantity_to_trade -= matched_quantity
+
         if is_ask:
             return self._search_for_quantity_in_order_book_partial_ask(order_id, price, quantity_to_trade,
                                                                        matching_ticks, tick_price, is_ask)
