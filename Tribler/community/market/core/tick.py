@@ -207,6 +207,13 @@ class Tick(object):
             "block_hash": self.block_hash.encode('hex')
         }
 
+    def __str__(self):
+        """
+        Return the string representation of this tick.
+        """
+        return "<%s P: %s, Q: %s, O: %s>" % \
+               (self.__class__.__name__, str(self.price), str(self.quantity), str(self.order_id))
+
 
 class Ask(Tick):
     """Represents an ask from a order located on another node."""
