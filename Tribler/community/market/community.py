@@ -956,10 +956,6 @@ class MarketCommunity(TrustChainCommunity):
         self.update_ip(payload.trader_id, (payload.address.ip, payload.address.port))
         self.add_matchmaker(peer)
 
-        # Immediately send an introduction request to this matchmaker so it's verified
-        packet = self.create_introduction_request(source_address)
-        self.endpoint.send(peer.address, packet)
-
         order_id = OrderId(TraderId(self.mid), payload.recipient_order_number)
         other_order_id = OrderId(payload.trader_id, payload.order_number)
         order = self.order_manager.order_repository.find_by_id(order_id)
