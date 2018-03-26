@@ -49,7 +49,12 @@ class WalletsEndpoint(resource.Resource):
         balance_deferreds = []
         for wallet_id in self.session.lm.market_community.get_wallet_ids():
             wallet = self.session.lm.market_community.wallets[wallet_id]
-            wallets[wallet_id] = {'created': wallet.created, 'address': wallet.get_address(), 'name': wallet.get_name()}
+            wallets[wallet_id] = {
+                'created': wallet.created,
+                'unlocked': wallet.unlocked,
+                'address': wallet.get_address(),
+                'name': wallet.get_name(),
+            }
             balance_deferreds.append(wallet.get_balance().addCallback(
                 lambda balance, wid=wallet_id: (wid, balance)))
 
@@ -113,11 +118,11 @@ class WalletEndpoint(resource.Resource):
 
         parameters = http.parse_qs(request.content.read(), 1)
 
-        if self.identifier == "BTC" and 'password' not in parameters:
+        if (self.identifier == "BTC" or self.identifier == "TBTC") and 'password' not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "a password is required when creating a Bitcoin wallet"})
 
-        if self.identifier == "BTC":  # get the password
+        if self.identifier == "BTC" or self.identifier == "TBTC":  # get the password
             if parameters['password'] and len(parameters['password']) > 0:
                 password = parameters['password'][0]
                 self.session.lm.market_community.wallets[self.identifier].create_wallet(password=password)\

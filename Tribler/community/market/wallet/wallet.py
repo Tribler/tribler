@@ -25,6 +25,8 @@ class Wallet(TaskManager):
     def __init__(self):
         super(Wallet, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
+        self.created = False
+        self.unlocked = False
 
         # When there is no available keyring backend, we use an unencrypted keyring on Linux since an encrypted keyring
         # requires input from stdin.

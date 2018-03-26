@@ -105,7 +105,7 @@ class MarketPage(QWidget):
             self.update_button_texts()
 
         for wallet_id, wallet in wallets.iteritems():
-            if not wallet['created']:
+            if not wallet['created'] or not wallet['unlocked']:
                 continue
 
             if wallet_id not in self.wallet_widgets:
