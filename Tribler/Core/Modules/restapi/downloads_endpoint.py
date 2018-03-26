@@ -1,5 +1,5 @@
 import logging
-from urllib import unquote_plus
+from urllib import unquote_plus, url2pathname
 
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
@@ -294,8 +294,12 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             request.write(json.dumps({"error": error.getErrorMessage()}))
             request.finish()
 
-        download_deferred = self.session.start_download_from_uri(
-            unquote_plus(unicode(parameters['uri'][0], 'utf-8')), download_config)
+        uri = parameters['uri'][0]
+        if uri.startswith("file:"):
+            download_uri = u"file:%s" % url2pathname(unicode(uri[5:], 'utf-8'))
+        else:
+            download_uri = unquote_plus(unicode(uri, 'utf-8'))
+        download_deferred = self.session.start_download_from_uri(download_uri, download_config)
         download_deferred.addCallback(download_added)
         download_deferred.addErrback(on_error)
 

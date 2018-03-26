@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 import traceback
-from urllib import quote_plus
+from urllib import quote_plus, pathname2url
 import signal
 
 import time
@@ -624,7 +624,7 @@ class TriblerWindow(QMainWindow):
     def on_confirm_add_directory_dialog(self, action):
         if action == 0:
             for torrent_file in self.selected_torrent_files:
-                escaped_uri = u"file:%s" % quote_plus((torrent_file).encode('utf-8'))
+                escaped_uri = u"file:%s" % pathname2url(torrent_file)
                 self.perform_start_download_request(escaped_uri,
                                                     self.window().tribler_settings['download_defaults'][
                                                          'anonymity_enabled'],
