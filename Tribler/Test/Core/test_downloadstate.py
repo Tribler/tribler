@@ -133,3 +133,5 @@ class TestDownloadState(TriblerCoreTest):
         self.assertEqual(download_state.get_availability(), 1.0)
         download_state.get_peerlist = lambda: [{'completed': 0.6}]
         self.assertEqual(download_state.get_availability(), 0.0)
+        download_state.get_peerlist = lambda: [{'completed': 0}, {'have': [1, 1, 1, 1, 0]}]
+        self.assertEqual(download_state.get_availability(), 0.8)
