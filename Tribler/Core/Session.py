@@ -290,6 +290,7 @@ class Session(object):
         :param hidden: whether this torrent is added to the mypreference table and this entry should be removed
         """
         # locking by lm
+        print "hi"
         return self.lm.remove(download, removecontent=remove_content, removestate=remove_state, hidden=hidden)
 
     def remove_download_by_id(self, infohash, remove_content=False, remove_state=True):
