@@ -59,5 +59,5 @@ class PriceLevelTestSuite(unittest.TestCase):
         # Test for price level string representation
         self.price_level.append_tick(self.tick_entry1)
         self.price_level.append_tick(self.tick_entry2)
-        self.assertEquals('30.000000 MC\t@\t63400.000000 BTC\n'
-                          '30.000000 MC\t@\t63400.000000 BTC\n', str(self.price_level))
+        self.assertEquals('30.000000 MC\t@\t63400.000000 BTC (R: 0.000000 MC)\n'
+                          '30.000000 MC\t@\t63400.000000 BTC (R: 0.000000 MC)\n', str(self.price_level))

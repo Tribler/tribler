@@ -30,7 +30,6 @@ class SideTestSuite(unittest.TestCase):
         self.side.insert_tick(self.tick)
         self.side.insert_tick(self.tick2)
 
-        self.assertEquals('30.000000 MC\t@\t800.000000 BTC\n', str(self.side.get_max_price_list('BTC', 'MC')))
         self.assertEquals(Price(800, 'BTC'), self.side.get_max_price('BTC', 'MC'))
 
     def test_min_price(self):
@@ -41,7 +40,6 @@ class SideTestSuite(unittest.TestCase):
         self.side.insert_tick(self.tick)
         self.side.insert_tick(self.tick2)
 
-        self.assertEquals('30.000000 MC\t@\t400.000000 BTC\n', str(self.side.get_min_price_list('BTC', 'MC')))
         self.assertEquals(Price(400, 'BTC'), self.side.get_min_price('BTC', 'MC'))
 
     def test_insert_tick(self):

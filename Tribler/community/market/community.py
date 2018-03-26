@@ -78,6 +78,10 @@ class OrderStatusRequestCache(RandomNumberCache):
         super(OrderStatusRequestCache, self).__init__(community.request_cache, u"order-status-request")
         self.request_deferred = request_deferred
 
+    @property
+    def timeout_delay(self):
+        return 20.0
+
     def on_timeout(self):
         self._logger.warning("No response in time from remote peer when requesting order status")
 
@@ -322,7 +326,7 @@ class MarketCommunity(TrustChainCommunity):
             return
 
         order_tick_entry = self.order_book.get_tick(tick.order_id)
-        if tick.quantity - order_tick_entry.reserved_for_matching == Quantity(0, tick.quantity.wallet_id):
+        if tick.quantity - order_tick_entry.reserved_for_matching <= Quantity(0, tick.quantity.wallet_id):
             self.logger.debug("Tick %s does not have any quantity to match!", tick.order_id)
             return
 
@@ -951,10 +955,6 @@ class MarketCommunity(TrustChainCommunity):
         self.update_ip(payload.matchmaker_trader_id, source_address)
         self.update_ip(payload.trader_id, (payload.address.ip, payload.address.port))
         self.add_matchmaker(peer)
-
-        # Immediately send an introduction request to this matchmaker so it's verified
-        packet = self.create_introduction_request(source_address)
-        self.endpoint.send(peer.address, packet)
 
         order_id = OrderId(TraderId(self.mid), payload.recipient_order_number)
         other_order_id = OrderId(payload.trader_id, payload.order_number)

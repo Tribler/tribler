@@ -40,8 +40,6 @@ class QuantityTestSuite(unittest.TestCase):
         self.assertFalse(self.quantity2 is (self.quantity1 - self.quantity1))
         self.assertEqual(NotImplemented, self.quantity1.__sub__(10))
         self.assertEqual(NotImplemented, self.quantity1.__sub__(self.quantity3))
-        with self.assertRaises(ValueError):
-            self.quantity1 - self.quantity2
 
     def test_comparison(self):
         # Test for comparison

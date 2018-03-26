@@ -14,9 +14,6 @@ class Quantity(object):
         if not isinstance(quantity, (int, float)):
             raise ValueError("Quantity must be an int or a float")
 
-        if quantity < 0:
-            raise ValueError("Quantity must be positive or zero, not %f" % quantity)
-
         if not isinstance(wallet_id, str):
             raise ValueError("Wallet id must be a string")
 

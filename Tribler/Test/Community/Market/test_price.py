@@ -69,3 +69,9 @@ class PriceTestSuite(unittest.TestCase):
         # Test for hashes
         self.assertEqual(self.price1.__hash__(), Price(2.3, 'BTC').__hash__())
         self.assertNotEqual(self.price1.__hash__(), self.price2.__hash__())
+
+    def test_str(self):
+        """
+        Test the string representation of a Price object
+        """
+        self.assertEqual(str(self.price1), "2.300000 BTC")
