@@ -33,6 +33,7 @@ class TestBtcWallet(AbstractServer):
             _ = BitcoinTestnetWallet(self.session_base_dir)
             wallet.set_wallet_password('abc')
             self.assertRaises(Exception, BitcoinTestnetWallet, self.session_base_dir, testnet=True)
+            self.assertFalse(wallet.unlock_wallet())
 
             return wallet.get_balance().addCallback(on_wallet_balance)
 

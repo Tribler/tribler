@@ -164,8 +164,6 @@ Section "!Main EXE" SecMain
 
     ; Now writing to KHEY_LOCAL_MACHINE only -- remove references to uninstall from current user
     DeleteRegKey HKEY_CURRENT_USER "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
-    ; Remove old error log if present
-    Delete "$INSTDIR\tribler.exe.log"
 
     WriteUninstaller "$INSTDIR\Uninstall.exe"
 

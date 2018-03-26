@@ -3,13 +3,14 @@ import sys
 from threading import Thread
 
 import imp
-import keyring
-from Tribler.Core.Utilities.install_dir import get_base_path
 from jsonrpclib import ProtocolError
+import keyring
+from keyring.errors import InitError
 from twisted.internet.defer import Deferred, succeed, fail, inlineCallbacks
 from twisted.internet.task import LoopingCall
 
 from Tribler.community.market.wallet.wallet import InsufficientFunds, Wallet
+from Tribler.Core.Utilities.install_dir import get_base_path
 
 # Make sure we can find the electrum wallet
 sys.path.append(os.path.join(get_base_path(), 'electrum'))
@@ -20,6 +21,7 @@ from electrum import bitcoin, network
 from electrum import SimpleConfig
 from electrum import WalletStorage
 from electrum.mnemonic import Mnemonic
+from electrum.util import InvalidPassword
 from electrum import keystore
 from electrum import Wallet as ElectrumWallet
 
@@ -40,28 +42,60 @@ class BitcoinWallet(Wallet):
         self.wallet_dir = wallet_dir
         self.wallet_file = 'tbtc_wallet' if self.TESTNET else 'btc_wallet'
         self.min_confirmations = 0
-        self.created = False
         self.daemon = None
-        keychain_pw = self.get_wallet_password()
-        self.wallet_password = keychain_pw if keychain_pw else None  # Convert empty passwords to None
+        self.wallet_password = None
         self.storage = None
         self.wallet = None
-        self.load_wallet(self.wallet_dir, self.wallet_file)
 
-    def load_wallet(self, wallet_dir, wallet_file):
+        self.initialize_storage(self.wallet_dir, self.wallet_file)
+        if self.created:
+            # If the wallet has been created already, we try to unlock it.
+            self.unlock_wallet()
+
+    def initialize_storage(self, wallet_dir, wallet_file):
+        """
+        This will initialize the storage for the BTC wallet.
+        """
         self.wallet_dir = wallet_dir
         self.wallet_file = wallet_file
 
         config = SimpleConfig(options={'cwd': self.wallet_dir, 'wallet_path': self.wallet_file})
         self.storage = WalletStorage(config.get_wallet_path())
-        if self.storage.is_encrypted():
-            self.storage.decrypt(self.wallet_password)
-
         if os.path.exists(config.get_wallet_path()):
-            self.wallet = ElectrumWallet(self.storage)
             self.created = True
+
+    def unlock_wallet(self):
+        """
+        Attempt to unlock the BTC wallet with the password in the keychain.
+        """
+        if not self.created or self.unlocked:
+            # Wallet has not been created or unlocked already, do nothing.
+            return False
+
+        if self.storage.is_encrypted():
+            try:
+                keychain_pw = self.get_wallet_password()
+                self.wallet_password = keychain_pw if keychain_pw else None  # Convert empty passwords to None
+                self.storage.decrypt(self.wallet_password)
+                self.unlocked = True
+            except InvalidPassword:
+                self._logger.error("Invalid BTC wallet password, unable to unlock the wallet!")
+            except InitError:
+                self._logger.error("Cannot initialize the keychain, unable to unlock the wallet!")
+        else:
+            # No need to unlock the wallet
+            self.unlocked = True
+
+        if self.unlocked:
+            config = SimpleConfig(options={'cwd': self.wallet_dir, 'wallet_path': self.wallet_file})
+            if os.path.exists(config.get_wallet_path()):
+                self.wallet = ElectrumWallet(self.storage)
+
             self.start_daemon()
             self.open_wallet()
+            return True
+
+        return False
 
     def get_wallet_password(self):
         return keyring.get_password('tribler', 'btc_wallet_password')
@@ -115,9 +149,16 @@ class BitcoinWallet(Wallet):
         """
         self._logger.info("Creating wallet in %s", self.wallet_dir)
 
+        if password is not None:
+            try:
+                self.set_wallet_password(password)
+            except InitError:
+                return fail(RuntimeError("Cannot initialize the keychain, unable to unlock the wallet!"))
+        self.wallet_password = password
+
         def run_on_thread(thread_method):
             # We are running code that writes to the wallet on a separate thread.
-            # This is done because ethereum does not allow writing to a wallet from a daemon thread.
+            # This is done because Electrum does not allow writing to a wallet from a daemon thread.
             wallet_thread = Thread(target=thread_method, name="ethereum-create-wallet")
             wallet_thread.setDaemon(False)
             wallet_thread.start()
@@ -135,10 +176,7 @@ class BitcoinWallet(Wallet):
         self.wallet.synchronize()
         run_on_thread(self.wallet.storage.write)
         self.created = True
-
-        if password is not None:
-            self.set_wallet_password(password)
-        self.wallet_password = password
+        self.unlocked = True
 
         self.start_daemon()
         self.open_wallet()
@@ -151,7 +189,7 @@ class BitcoinWallet(Wallet):
         """
         Return the balance of the wallet.
         """
-        if self.created:
+        if self.created and self.unlocked:
             options = {'nolnet': False, 'password': None, 'verbose': False, 'cmd': 'getbalance',
                        'wallet_path': self.wallet_file, 'testnet': self.TESTNET, 'segwit': False,
                        'cwd': self.wallet_dir,
@@ -170,8 +208,8 @@ class BitcoinWallet(Wallet):
                 "pending": unconfirmed,
                 "currency": 'BTC'
             })
-        else:
-            return succeed({"available": 0, "pending": 0, "currency": 'BTC'})
+
+        return succeed({"available": 0, "pending": 0, "currency": 'BTC'})
 
     def transfer(self, amount, address):
         def on_balance(balance):
@@ -227,11 +265,14 @@ class BitcoinWallet(Wallet):
         return monitor_deferred
 
     def get_address(self):
-        if not self.created:
+        if not self.created or not self.unlocked:
             return ''
         return str(self.wallet.get_receiving_address())
 
     def get_transactions(self):
+        if not self.created or not self.unlocked:
+            return succeed([])
+
         options = {'nolnet': False, 'password': None, 'verbose': False, 'cmd': 'history',
                    'wallet_path': self.wallet_file, 'testnet': self.TESTNET, 'segwit': False, 'cwd': self.wallet_dir,
                    'portable': False}

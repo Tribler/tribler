@@ -2,6 +2,7 @@ import logging
 from threading import Thread
 
 import keyring
+import time
 from twisted.internet.error import ReactorAlreadyInstalledError
 
 # We always use a selectreactor
@@ -90,8 +91,11 @@ def start_tribler_core(base_path, child_pipe, api_port):
 
     def start_tribler():
         config = TriblerConfig()
-        patch_wallet_methods()
-        patch_iom_methods()
+
+        if sys.platform == "darwin":
+            # Due to a bug when using the keyring from a forked subprocess on MacOS, we have to patch these methods.
+            patch_wallet_methods()
+            patch_iom_methods()
 
         config.set_http_api_port(api_port)
         config.set_http_api_enabled(True)
@@ -164,12 +168,15 @@ class CoreManager(QObject):
         macOS in a subprocess (due to libdispatch.dylib).
         """
         while True:
-            cmd, arg = child_conn.recv()
-            if cmd == "get_keyring_password":
-                child_conn.send(keyring.get_password('tribler', arg['username']))
-            elif cmd == "set_keyring_password":
-                keyring.set_password('tribler', arg['username'], arg['password'])
-                child_conn.send('done')
+            try:
+                cmd, arg = child_conn.recv()
+                if cmd == "get_keyring_password":
+                    child_conn.send(keyring.get_password('tribler', arg['username']))
+                elif cmd == "set_keyring_password":
+                    keyring.set_password('tribler', arg['username'], arg['password'])
+                    child_conn.send('done')
+            except EOFError:
+                time.sleep(2)  # We can safely do this since we're on a separate thread
 
     def start_tribler_core(self):
         if START_FAKE_API:
