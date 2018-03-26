@@ -57,7 +57,7 @@ class TickEntryTestSuite(AbstractServer):
 
     def test_str(self):
         # Test for tick string representation
-        self.assertEquals('30.000000 MC\t@\t63400.000000 BTC', str(self.tick_entry))
+        self.assertEquals('30.000000 MC\t@\t63400.000000 BTC (R: 0.000000 MC)', str(self.tick_entry))
 
     def test_is_valid(self):
         # Test for is valid

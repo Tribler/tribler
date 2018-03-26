@@ -133,14 +133,16 @@ class TestOrderBook(AbstractTestOrderBook):
         self.assertEquals(Price(300, 'BTC'), self.order_book.relative_tick_price(self.ask))
         self.assertEquals(Price(100, 'BTC'), self.order_book.relative_tick_price(self.bid))
 
-    def test_bid_ask_price_level(self):
+    def test_ask_price_level(self):
         self.order_book.insert_ask(self.ask)
-        self.assertEquals('30.000000 MC\t@\t100.000000 BTC\n', str(self.order_book.get_ask_price_level('BTC', 'MC')))
+        price_level = self.order_book.get_ask_price_level('BTC', 'MC')
+        self.assertEqual(price_level.depth, Quantity(30, 'MC'))
 
     def test_bid_price_level(self):
         # Test for tick price
         self.order_book.insert_bid(self.bid2)
-        self.assertEquals('30.000000 MC\t@\t300.000000 BTC\n', str(self.order_book.get_bid_price_level('BTC', 'MC')))
+        price_level = self.order_book.get_bid_price_level('BTC', 'MC')
+        self.assertEqual(price_level.depth, Quantity(30, 'MC'))
 
     def test_ask_side_depth(self):
         # Test for ask side depth
@@ -211,9 +213,9 @@ class TestOrderBook(AbstractTestOrderBook):
         self.order_book.insert_bid(self.bid)
 
         self.assertEquals('------ Bids -------\n'
-                          '30.000000 MC\t@\t200.000000 BTC\n\n'
+                          '30.000000 MC\t@\t200.000000 BTC (R: 0.000000 MC)\n\n'
                           '------ Asks -------\n'
-                          '30.000000 MC\t@\t100.000000 BTC\n\n', str(self.order_book))
+                          '30.000000 MC\t@\t100.000000 BTC (R: 0.000000 MC)\n\n', str(self.order_book))
 
 
 class TestDatabaseOrderBook(AbstractTestOrderBook):
