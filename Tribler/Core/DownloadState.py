@@ -178,7 +178,7 @@ class DownloadState(object):
 
             if completed == 1 or have and all(have):
                 nr_seeders_complete += 1
-            else:
+            elif have:
                 if merged_bitfields is None:
                     merged_bitfields = [0] * len(have)
 
