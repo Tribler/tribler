@@ -93,7 +93,7 @@ class TorrentInfoEndpoint(resource.Resource):
         uri = unicode(request.args['uri'][0], 'utf-8')
         if uri.startswith('file:'):
             try:
-                filename = url2pathname(uri[5:].replace("+", " "))
+                filename = url2pathname(uri[5:].encode('utf-8') if isinstance(uri, unicode) else uri[5:])
                 metainfo_deferred.callback(bdecode(fix_torrent(filename)))
             except TypeError:
                 request.setResponseCode(http.INTERNAL_SERVER_ERROR)

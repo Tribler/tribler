@@ -13,6 +13,7 @@ from validate import Validator
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.exceptions import InvalidConfigException
 from Tribler.Core.osutils import get_appstate_dir, is_android
+from Tribler.Core.DownloadConfig import get_default_dest_dir
 
 FILENAME = 'triblerd.conf'
 SPEC_FILENAME = 'config.spec'
@@ -45,6 +46,9 @@ class TriblerConfig(object):
         self.config = config
         self.validate()
 
+        # set defaults downloads path
+        if not self.config['download_defaults']['saveas']:
+            self.config['download_defaults']['saveas'] = get_default_dest_dir()
         self.selected_ports = {}
         self._set_video_analyser_path()
 
