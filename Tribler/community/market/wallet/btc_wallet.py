@@ -3,13 +3,14 @@ import sys
 from threading import Thread
 
 import imp
-import keyring
-from Tribler.Core.Utilities.install_dir import get_base_path
 from jsonrpclib import ProtocolError
+import keyring
+from keyring.errors import InitError
 from twisted.internet.defer import Deferred, succeed, fail, inlineCallbacks
 from twisted.internet.task import LoopingCall
 
 from Tribler.community.market.wallet.wallet import InsufficientFunds, Wallet
+from Tribler.Core.Utilities.install_dir import get_base_path
 
 # Make sure we can find the electrum wallet
 sys.path.append(os.path.join(get_base_path(), 'electrum'))
@@ -79,6 +80,8 @@ class BitcoinWallet(Wallet):
                 self.unlocked = True
             except InvalidPassword:
                 self._logger.error("Invalid BTC wallet password, unable to unlock the wallet!")
+            except InitError:
+                self._logger.error("Cannot initialize the keychain, unable to unlock the wallet!")
         else:
             # No need to unlock the wallet
             self.unlocked = True
@@ -146,6 +149,13 @@ class BitcoinWallet(Wallet):
         """
         self._logger.info("Creating wallet in %s", self.wallet_dir)
 
+        if password is not None:
+            try:
+                self.set_wallet_password(password)
+            except InitError:
+                return fail(RuntimeError("Cannot initialize the keychain, unable to unlock the wallet!"))
+        self.wallet_password = password
+
         def run_on_thread(thread_method):
             # We are running code that writes to the wallet on a separate thread.
             # This is done because Electrum does not allow writing to a wallet from a daemon thread.
@@ -167,10 +177,6 @@ class BitcoinWallet(Wallet):
         run_on_thread(self.wallet.storage.write)
         self.created = True
         self.unlocked = True
-
-        if password is not None:
-            self.set_wallet_password(password)
-        self.wallet_password = password
 
         self.start_daemon()
         self.open_wallet()
@@ -202,8 +208,8 @@ class BitcoinWallet(Wallet):
                 "pending": unconfirmed,
                 "currency": 'BTC'
             })
-        else:
-            return succeed({"available": 0, "pending": 0, "currency": 'BTC'})
+
+        return succeed({"available": 0, "pending": 0, "currency": 'BTC'})
 
     def transfer(self, amount, address):
         def on_balance(balance):
