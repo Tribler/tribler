@@ -44,6 +44,7 @@ class CoreManager(QObject):
         self.shutting_down = False
         self.recorded_stderr = ""
         self.use_existing_core = True
+        self.is_core_running = False
 
         self.stop_timer = QTimer()
         self.stop_timer.timeout.connect(self.check_stopped)
@@ -51,30 +52,32 @@ class CoreManager(QObject):
         self.check_state_timer = QTimer()
 
     def check_stopped(self):
-        if self.core_process.poll():
+        if self.core_process and self.core_process.poll():
             self.stop_timer.stop()
             self.on_finished()
 
-    def start(self):
+    def start(self, core_args=None, core_env=None):
         """
         First test whether we already have a Tribler process listening on port 8085. If so, use that one and don't
         start a new, fresh session.
         """
         def on_request_error(_):
             self.use_existing_core = False
-            self.start_tribler_core()
+            self.start_tribler_core(core_args=core_args, core_env=core_env)
 
         self.events_manager.connect(reschedule_on_err=False)
         self.events_manager.reply.error.connect(on_request_error)
 
-    def start_tribler_core(self):
+    def start_tribler_core(self, core_args=None, core_env=None):
         if not START_FAKE_API:
-            custom_env = os.environ.copy()
-            custom_env["CORE_PROCESS"] = "1"
-            custom_env["CORE_BASE_PATH"] = self.base_path
-            custom_env["CORE_API_PORT"] = "%s" % self.api_port
-            self.core_process = subprocess.Popen([sys.executable] + sys.argv, env=custom_env)
-
+            if not core_env:
+                core_env = os.environ.copy()
+                core_env["CORE_PROCESS"] = "1"
+                core_env["CORE_BASE_PATH"] = self.base_path
+                core_env["CORE_API_PORT"] = "%s" % self.api_port
+            if not core_args:
+                core_args = sys.argv
+            self.core_process = subprocess.Popen([sys.executable] + core_args, env=core_env)
         self.check_core_ready()
 
     def check_core_ready(self):
@@ -94,11 +97,12 @@ class CoreManager(QObject):
 
         if state['state'] == 'STARTED':
             self.events_manager.connect(reschedule_on_err=False)
+            self.is_core_running = True
         elif state['state'] == 'EXCEPTION':
             raise RuntimeError(state['last_exception'])
 
     def stop(self, stop_app_on_shutdown=True):
-        if self.core_process:
+        if self.core_process or self.is_core_running:
             self.events_manager.shutting_down = True
             self.request_mgr = TriblerRequestManager()
             self.request_mgr.perform_request("shutdown", lambda _: None, method="PUT",
