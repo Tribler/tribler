@@ -7807,124 +7807,155 @@ padding-left: 2px;</string>
                <property name="handleWidth">
                 <number>5</number>
                </property>
-               <widget class="QTreeWidget" name="downloads_list">
-                <property name="contextMenuPolicy">
-                 <enum>Qt::CustomContextMenu</enum>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">QTreeWidget {
-border: none;
-font-size: 13px;
-}
-QTreeWidget::item {
-color: white;
-height: 40px;
-border-bottom: 1px solid #303030;
-}
-QTreeWidget::item:hover {
-background-color: #303030;
-}
-QTreeWidget::item::selected {
-background-color: #444;
-}
-QHeaderView {
-background-color: transparent;
-}
-QHeaderView::section {
-background-color: transparent;
-border: none;
-color: #B5B5B5;
-padding: 10px;
-font-size: 14px;
-border-bottom: 1px solid #303030;
-}
-QHeaderView::section:hover {
-color: white;
-}
-QTableCornerButton::section {
-background-color: transparent;
-}</string>
-                </property>
-                <property name="alternatingRowColors">
-                 <bool>false</bool>
-                </property>
-                <property name="verticalScrollMode">
-                 <enum>QAbstractItemView::ScrollPerPixel</enum>
-                </property>
-                <property name="indentation">
-                 <number>0</number>
-                </property>
-                <property name="uniformRowHeights">
-                 <bool>true</bool>
-                </property>
-                <property name="sortingEnabled">
-                 <bool>true</bool>
-                </property>
-                <column>
-                 <property name="text">
-                  <string>NAME</string>
+               <widget class="QWidget" name="download_list_container" native="true">
+                <layout class="QVBoxLayout" name="veritcalLayout">
+                 <property name="spacing">
+                  <number>0</number>
                  </property>
-                </column>
-                <column>
-                 <property name="text">
-                  <string>SIZE</string>
+                 <property name="leftMargin">
+                  <number>0</number>
                  </property>
-                </column>
-                <column>
-                 <property name="text">
-                  <string>PROGRESS</string>
+                 <property name="topMargin">
+                  <number>0</number>
                  </property>
-                </column>
-                <column>
-                 <property name="text">
-                  <string>STATUS</string>
+                 <property name="rightMargin">
+                  <number>0</number>
                  </property>
-                </column>
-                <column>
-                 <property name="text">
-                  <string>SEEDS</string>
+                 <property name="bottomMargin">
+                  <number>0</number>
                  </property>
-                </column>
-                <column>
-                 <property name="text">
-                  <string>PEERS</string>
-                 </property>
-                </column>
-                <column>
-                 <property name="text">
-                  <string>↓ SPEED</string>
-                 </property>
-                </column>
-                <column>
-                 <property name="text">
-                  <string>↑ SPEED</string>
-                 </property>
-                </column>
-                <column>
-                 <property name="text">
-                  <string>RATIO</string>
-                 </property>
-                </column>
-                <column>
-                 <property name="text">
-                  <string>ANONYMOUS?</string>
-                 </property>
-                </column>
-                <column>
-                 <property name="text">
-                  <string>HOPS</string>
-                 </property>
-                </column>
-                <column>
-                 <property name="text">
-                  <string>ETA</string>
-                 </property>
-                </column>
-                <column>
-                 <property name="text">
-                  <string>ADDED ON</string>
-                 </property>
-                </column>
+                 <item>
+                   <widget class="QLabel" name="diskspace_usage">
+                    <property name="styleSheet">
+                     <string notr="true">color: #B5B5B5; margin-left: 6px;</string>
+                    </property>
+                    <property name="text">
+                     <string></string>
+                    </property>
+                   </widget>
+                 </item>
+                 <item>
+                   <widget class="QTreeWidget" name="downloads_list">
+                    <property name="contextMenuPolicy">
+                     <enum>Qt::CustomContextMenu</enum>
+                    </property>
+                    <property name="styleSheet">
+                     <string notr="true">QTreeWidget {
+    border: none;
+    font-size: 13px;
+    }
+    QTreeWidget::item {
+    color: white;
+    height: 40px;
+    border-bottom: 1px solid #303030;
+    }
+    QTreeWidget::item:hover {
+    background-color: #303030;
+    }
+    QTreeWidget::item::selected {
+    background-color: #444;
+    }
+    QHeaderView {
+    background-color: transparent;
+    }
+    QHeaderView::section {
+    background-color: transparent;
+    border: none;
+    color: #B5B5B5;
+    padding: 10px;
+    font-size: 14px;
+    border-bottom: 1px solid #303030;
+    }
+    QHeaderView::section:hover {
+    color: white;
+    }
+    QTableCornerButton::section {
+    background-color: transparent;
+    }</string>
+                    </property>
+                    <property name="alternatingRowColors">
+                     <bool>false</bool>
+                    </property>
+                    <property name="verticalScrollMode">
+                     <enum>QAbstractItemView::ScrollPerPixel</enum>
+                    </property>
+                    <property name="indentation">
+                     <number>0</number>
+                    </property>
+                    <property name="uniformRowHeights">
+                     <bool>true</bool>
+                    </property>
+                    <property name="sortingEnabled">
+                     <bool>true</bool>
+                    </property>
+                    <column>
+                     <property name="text">
+                      <string>NAME</string>
+                     </property>
+                    </column>
+                    <column>
+                     <property name="text">
+                      <string>SIZE</string>
+                     </property>
+                    </column>
+                    <column>
+                     <property name="text">
+                      <string>PROGRESS</string>
+                     </property>
+                    </column>
+                    <column>
+                     <property name="text">
+                      <string>STATUS</string>
+                     </property>
+                    </column>
+                    <column>
+                     <property name="text">
+                      <string>SEEDS</string>
+                     </property>
+                    </column>
+                    <column>
+                     <property name="text">
+                      <string>PEERS</string>
+                     </property>
+                    </column>
+                    <column>
+                     <property name="text">
+                      <string>↓ SPEED</string>
+                     </property>
+                    </column>
+                    <column>
+                     <property name="text">
+                      <string>↑ SPEED</string>
+                     </property>
+                    </column>
+                    <column>
+                     <property name="text">
+                      <string>RATIO</string>
+                     </property>
+                    </column>
+                    <column>
+                     <property name="text">
+                      <string>ANONYMOUS?</string>
+                     </property>
+                    </column>
+                    <column>
+                     <property name="text">
+                      <string>HOPS</string>
+                     </property>
+                    </column>
+                    <column>
+                     <property name="text">
+                      <string>ETA</string>
+                     </property>
+                    </column>
+                    <column>
+                     <property name="text">
+                      <string>ADDED ON</string>
+                     </property>
+                    </column>
+                   </widget>
+                 </item>
+                </layout>
                </widget>
                <widget class="DownloadsDetailsTabWidget" name="download_details_widget">
                 <property name="styleSheet">
