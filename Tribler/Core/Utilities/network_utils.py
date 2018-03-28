@@ -9,6 +9,8 @@ import sys
 
 logger = logging.getLogger(__name__)
 
+CLAIMED_PORTS = []
+
 
 def get_random_port(socket_type="all", min_port=5000, max_port=60000):
     """Gets a random port number that works.
@@ -29,6 +31,9 @@ def get_random_port(socket_type="all", min_port=5000, max_port=60000):
             working_port = try_port
             break
         try_port += 1
+
+    if working_port:
+        CLAIMED_PORTS.append(working_port)
 
     logger.debug("Got a working random port %s", working_port)
     return working_port
@@ -54,6 +59,8 @@ def check_random_port(port, socket_type="all"):
         _sock_type = socket.SOCK_STREAM
 
     is_port_working = False
+    if port in CLAIMED_PORTS:
+        return False
     if socket_type == "all":
         # try both UDP and TCP
         if _test_port(_family, socket.SOCK_DGRAM, port):
