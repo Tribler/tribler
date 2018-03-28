@@ -6,7 +6,7 @@ from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import fix_torrent
 from Tribler.Core.simpledefs import NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT
-from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 WATCH_FOLDER_CHECK_INTERVAL = 10
 
@@ -24,7 +24,7 @@ class WatchFolder(TaskManager):
             .start(WATCH_FOLDER_CHECK_INTERVAL, now=False)
 
     def stop(self):
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
 
     def cleanup_torrent_file(self, root, name):
         if not os.path.exists(os.path.join(root, name)):

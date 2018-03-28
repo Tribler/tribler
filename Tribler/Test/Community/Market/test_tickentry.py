@@ -34,8 +34,8 @@ class TickEntryTestSuite(AbstractServer):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self, annotate=True):
-        self.tick_entry.cancel_all_pending_tasks()
-        self.tick_entry2.cancel_all_pending_tasks()
+        self.tick_entry.shutdown_task_manager()
+        self.tick_entry2.shutdown_task_manager()
         yield super(TickEntryTestSuite, self).tearDown(annotate=annotate)
 
     def test_price_level(self):

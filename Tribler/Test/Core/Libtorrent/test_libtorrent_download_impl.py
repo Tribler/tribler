@@ -252,7 +252,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.tdef.is_multifile_torrent = lambda: False
 
     def tearDown(self, annotate=True):
-        self.libtorrent_download_impl.cancel_all_pending_tasks()
+        self.libtorrent_download_impl.shutdown_task_manager()
         super(TestLibtorrentDownloadImplNoSession, self).tearDown(annotate=annotate)
 
     def test_selected_files(self):

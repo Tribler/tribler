@@ -3,15 +3,17 @@ LevelDBStore.
 
 Author(s): Elric Milon
 """
+import logging
 import os
+from shutil import rmtree
+import sys
 from collections import MutableMapping
 from itertools import chain
 
-from shutil import rmtree
+from twisted.internet import reactor
+from twisted.internet.task import LoopingCall
 
-import logging
-
-import sys
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 def get_write_batch_leveldb(self, _):
@@ -34,11 +36,6 @@ except ImportError:
 
     use_leveldb = False
     get_write_batch = get_write_batch_plyvel
-
-from twisted.internet import reactor
-from twisted.internet.task import LoopingCall
-
-from Tribler.dispersy.taskmanager import TaskManager
 
 
 WRITEBACK_PERIOD = 120
@@ -144,6 +141,6 @@ class LevelDbStore(MutableMapping, TaskManager):
             return self._db.Write(write_batch)
 
     def close(self):
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
         self.flush()
         self._db = None

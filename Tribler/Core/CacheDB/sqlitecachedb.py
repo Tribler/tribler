@@ -6,19 +6,16 @@ Author(s): Jie Yang
 import logging
 import os
 
-from Tribler.Core.Utilities.install_dir import get_lib_path
+import apsw
 from apsw import CantOpenError, SQLError
 from base64 import encodestring, decodestring
 from threading import currentThread, RLock
 from twisted.python.threadable import isInIOThread
 
-import apsw
-
-from Tribler.dispersy.taskmanager import TaskManager
-from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
-
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
-
+from Tribler.Core.Utilities.install_dir import get_lib_path
+from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 DB_SCRIPT_NAME = "schema_sdb_v%s.sql" % str(LATEST_DB_VERSION)
 
@@ -92,7 +89,7 @@ class SQLiteCacheDB(TaskManager):
         """
         Cancels all pending tasks and closes all cursors. Then, it closes the connection.
         """
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
         with self._cursor_lock:
             for cursor in self._cursor_table.itervalues():
                 cursor.close()

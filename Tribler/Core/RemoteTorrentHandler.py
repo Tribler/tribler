@@ -17,8 +17,8 @@ from twisted.internet.task import LoopingCall
 from Tribler.Core.TFTP.handler import METADATA_PREFIX
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_TORRENTS
-from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 TORRENT_OVERFLOW_CHECKING_INTERVAL = 30 * 60
 LOW_PRIO_COLLECTING = 0
@@ -79,7 +79,7 @@ class RemoteTorrentHandler(TaskManager):
         self.running = False
         for requester in self.torrent_requesters.itervalues():
             requester.stop()
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
 
     @call_on_reactor_thread
     def set_max_num_torrents(self, max_num_torrents):

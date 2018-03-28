@@ -5,7 +5,7 @@ import psutil
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
-from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 class ResourceMonitor(TaskManager):
@@ -33,7 +33,7 @@ class ResourceMonitor(TaskManager):
             self.session.config.get_resource_monitor_poll_interval(), now=False)
 
     def stop(self):
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
 
     def get_free_disk_space(self):
         return psutil.disk_usage(self.session.config.get_state_dir())

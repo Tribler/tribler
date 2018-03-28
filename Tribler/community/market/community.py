@@ -277,7 +277,7 @@ class MarketCommunity(TrustChainCommunity):
         # Save the ticks to the database
         if self.is_matchmaker:
             self.order_book.save_to_database()
-            self.order_book.cancel_all_pending_tasks()
+            self.order_book.shutdown_task_manager()
         yield super(MarketCommunity, self).unload()
 
     def get_ipv8_address(self):

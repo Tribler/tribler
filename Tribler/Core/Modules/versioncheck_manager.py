@@ -9,7 +9,7 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.exceptions import HttpError
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_NEW_VERSION
 from Tribler.Core.version import version_id
-from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 VERSION_CHECK_URL = 'https://api.github.com/repos/tribler/tribler/releases/latest'
 
@@ -26,7 +26,7 @@ class VersionCheckManager(TaskManager):
         self.register_task("tribler version check", LoopingCall(self.check_new_version)).start(interval)
 
     def stop(self):
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
 
     def check_new_version(self):
 

@@ -5,7 +5,8 @@ import sys
 from abc import ABCMeta, abstractmethod
 
 import keyring
-from Tribler.dispersy.taskmanager import TaskManager
+
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 class InsufficientFunds(Exception):

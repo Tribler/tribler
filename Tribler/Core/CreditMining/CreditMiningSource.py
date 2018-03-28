@@ -2,12 +2,12 @@ import logging
 
 from binascii import hexlify, unhexlify
 
-from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Core.simpledefs import NTFY_DISCOVERED, NTFY_TORRENT, NTFY_CHANNELCAST
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 class BaseSource(TaskManager):
@@ -36,7 +36,7 @@ class BaseSource(TaskManager):
         Kill tasks on this source
         """
         self.ready = False
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
         self._logger.debug('Stop mining %s', str(self))
 
     def _on_err(self, err_msg):

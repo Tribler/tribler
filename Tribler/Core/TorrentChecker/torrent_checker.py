@@ -11,8 +11,8 @@ from twisted.python.failure import Failure
 from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession, UdpSocketManager
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 from Tribler.Core.simpledefs import NTFY_TORRENTS
-from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 # some settings
 DEFAULT_TORRENT_SELECTION_INTERVAL = 20  # every 20 seconds, the thread will select torrents to check
@@ -79,7 +79,7 @@ class TorrentChecker(TaskManager):
             self.session_stop_defer_list.append(maybeDeferred(self.udp_port.stopListening))
             self.udp_port = None
 
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
 
         # kill all the tracker sessions.
         # Wait for the defers to all have triggered by using a DeferredList

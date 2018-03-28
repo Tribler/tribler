@@ -4,8 +4,8 @@ from binascii import hexlify
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.community.channel.community import ChannelCommunity
-from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 class ChannelManager(TaskManager):
@@ -43,7 +43,7 @@ class ChannelManager(TaskManager):
 
     @call_on_reactor_thread
     def shutdown(self):
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
         self._channel_mode_map = None
 
         for channel_object in self._channel_list:

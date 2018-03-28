@@ -7,7 +7,7 @@ from twisted.web import server, http
 
 from Tribler.Core.Modules.restapi.root_endpoint import RootEndpoint
 import Tribler.Core.Utilities.json_util as json
-from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 class RESTManager(TaskManager):

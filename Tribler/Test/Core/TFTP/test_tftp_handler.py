@@ -22,7 +22,7 @@ class TestTFTPHandler(TriblerCoreTest):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self, annotate=True):
-        self.handler.cancel_all_pending_tasks()
+        self.handler.shutdown_task_manager()
         yield TriblerCoreTest.tearDown(self, annotate=annotate)
 
     @blocking_call_on_reactor_thread

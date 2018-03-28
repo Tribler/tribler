@@ -12,8 +12,8 @@ from twisted.web.client import Agent, readBody, RedirectAgent, HTTPConnectionPoo
 
 from Tribler.Core.Utilities.encoding import add_url_params
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
-from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.
@@ -93,7 +93,7 @@ class TrackerSession(TaskManager):
         """
         yield self.wait_for_deferred_tasks()
 
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
         self._infohash_list = None
 
     def can_add_request(self):

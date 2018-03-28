@@ -47,7 +47,7 @@ class AbstractTestOrderBook(AbstractServer):
         self.order_book = OrderBook()
 
     def tearDown(self, annotate=True):
-        self.order_book.cancel_all_pending_tasks()
+        self.order_book.shutdown_task_manager()
         super(AbstractTestOrderBook, self).tearDown(annotate=annotate)
 
 

@@ -12,20 +12,16 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
-from Tribler.Core.DecentralizedTracking.dht_provider import MainlineDHTProvider
-from Tribler.pyipv8.ipv8.keyvault.private.m2crypto import M2CryptoSK
-from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.peerdiscovery.churn import RandomChurn
-from Tribler.pyipv8.ipv8.peerdiscovery.deprecated.discovery import DiscoveryCommunity
-from Tribler.pyipv8.ipv8.peerdiscovery.discovery import EdgeWalk, RandomWalk
-from Tribler.pyipv8.ipv8_service import IPv8
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, succeed
 from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
 
+from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
+from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+from Tribler.Core.DecentralizedTracking.dht_provider import MainlineDHTProvider
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
 from Tribler.Core.Modules.resource_monitor import ResourceMonitor
 from Tribler.Core.Modules.search_manager import SearchManager
@@ -43,10 +39,14 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
                                      STATE_INITIALIZE_CHANNEL_MGR, STATE_START_MAINLINE_DHT, STATE_START_LIBTORRENT,
                                      STATE_START_TORRENT_CHECKER, STATE_START_REMOTE_TORRENT_HANDLER,
                                      STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING)
-from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
-from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
-from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.keyvault.private.m2crypto import M2CryptoSK
+from Tribler.pyipv8.ipv8.peer import Peer
+from Tribler.pyipv8.ipv8.peerdiscovery.churn import RandomChurn
+from Tribler.pyipv8.ipv8.peerdiscovery.deprecated.discovery import DiscoveryCommunity
+from Tribler.pyipv8.ipv8.peerdiscovery.discovery import EdgeWalk, RandomWalk
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8_service import IPv8
 
 
 class TriblerLaunchMany(TaskManager):
@@ -825,7 +825,7 @@ class TriblerLaunchMany(TaskManager):
         """
         self._logger.info("tlm: early_shutdown")
 
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
 
         # Note: session_lock not held
         self.shutdownstarttime = timemod.time()

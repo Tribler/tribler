@@ -19,6 +19,7 @@ from urllib import url2pathname
 import libtorrent as lt
 from twisted.internet import reactor, threads
 from twisted.internet.defer import succeed, fail
+from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
 
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
@@ -29,8 +30,8 @@ from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileExcep
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
                                      NTFY_REACHABLE, NTFY_TORRENTS)
 from Tribler.Core.version import version_id
-from Tribler.dispersy.taskmanager import LoopingCall, TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 LTSTATE_FILENAME = "lt.state"
 METAINFO_CACHE_PERIOD = 5 * 60
@@ -104,7 +105,7 @@ class LibtorrentMgr(TaskManager):
 
     @blocking_call_on_reactor_thread
     def shutdown(self):
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
 
         # remove all upnp mapping
         for upnp_handle in self.upnp_mapping_dict.itervalues():
