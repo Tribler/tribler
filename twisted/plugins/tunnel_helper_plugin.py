@@ -20,6 +20,7 @@ from zope.interface import implements
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
+from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
 from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
 
 
@@ -86,6 +87,20 @@ class Tunnel(object):
     def clean_messages(self):
         clean_twisted_observers()
 
+    def tribler_started(self):
+        new_strategies = []
+        with self.session.lm.ipv8.overlay_lock:
+            for strategy, target_peers in self.session.lm.ipv8.strategies:
+                if strategy.overlay == self.session.lm.tunnel_community:
+                    new_strategies.append((strategy, -1))
+                else:
+                    new_strategies.append((strategy, target_peers))
+            self.session.lm.ipv8.strategies = new_strategies
+
+    def circuit_removed(self, _, __, ___, address):
+        self.session.lm.ipv8.network.remove_by_address(address)
+        self.session.lm.tunnel_community.bootstrap()
+
     def start(self):
         # Determine socks5 ports
         socks5_port = self.options['socks5']
@@ -119,7 +134,10 @@ class Tunnel(object):
 
         self.session = Session(config)
         logger.info("Using IPv8 port %d" % self.session.config.get_dispersy_port())
-        return self.session.start()
+
+        self.session.notifier.add_observer(self.circuit_removed, NTFY_TUNNEL, [NTFY_REMOVE])
+
+        return self.session.start().addCallback(self.tribler_started)
 
     def stop(self):
         if self.clean_messages_lc:

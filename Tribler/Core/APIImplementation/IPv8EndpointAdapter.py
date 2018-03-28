@@ -14,6 +14,12 @@ class IPv8EndpointAdapter(Endpoint):
         mimep.mim = self
         self.endpoint = mimep
         self._is_open = False
+        self._prefixes = []
+
+    def add_listener(self, listener):
+        super(IPv8EndpointAdapter, self).add_listener(listener)
+        if hasattr(listener, "_prefix") and listener.__class_.__name__ != "DiscoveryCommunity":
+            self._prefixes.append(listener._prefix)
 
     def close(self, timeout=0.0):
         """
@@ -54,3 +60,6 @@ class IPv8EndpointAdapter(Endpoint):
     def data_came_in(self, packets):
         for packet in packets:
             self.notify_listeners(packet)
+        if packets:
+            _, data = packets[0]
+            return any([data.startswith(prefix) for prefix in self._prefixes])

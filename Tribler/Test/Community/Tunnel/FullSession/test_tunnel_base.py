@@ -1,15 +1,12 @@
 import os
-import types
 
 from twisted.internet import reactor
 from twisted.internet.task import deferLater
 
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import DataChecker
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.deprecated.discovery import DiscoveryCommunity
-from Tribler.pyipv8.ipv8.peerdiscovery.discovery import RandomWalk
 from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from twisted.internet.defer import returnValue, inlineCallbacks
@@ -117,29 +114,34 @@ class TestTunnelBase(TestAsServer):
 
         yield self.deliver_messages()
 
+    def sanitize_network(self, session):
+        # We disable the discovery communities in this session since we don't want to walk to the live network
+        for overlay in session.lm.ipv8.overlays:
+            if isinstance(overlay, DiscoveryCommunity):
+                overlay.unload()
+        session.lm.ipv8.overlays = []
+        session.lm.ipv8.strategies = []
+
+        # Also reset the IPv8 network
+        session.lm.ipv8.network = Network()
+
     @blocking_call_on_reactor_thread
     def load_tunnel_community_in_session(self, session, exitnode=False):
         """
         Load the tunnel community in a given session. We are using our own tunnel community here instead of the one
         used in Tribler.
         """
+        self.sanitize_network(session)
+
         keypair = ECCrypto().generate_key(u"curve25519")
         tunnel_peer = Peer(keypair)
         session.config.set_tunnel_community_exitnode_enabled(exitnode)
         overlay = self.test_class(tunnel_peer, session.lm.ipv8.endpoint, session.lm.ipv8.network,
                                   tribler_session=session,
-                                  dht_provider=MockDHTProvider(session.lm.ipv8.endpoint.get_address()))
+                                  dht_provider=MockDHTProvider(session.lm.ipv8.endpoint.get_address()),
+                                  settings={"become_exitnode": exitnode, "max_circuits": 1})
         overlay._use_main_thread = False
         session.lm.ipv8.overlays.append(overlay)
-        session.lm.ipv8.strategies.append((RandomWalk(overlay), 20))
-
-        # We disable the discovery communities in this session since we don't want to walk to the live network
-        for overlay in session.lm.ipv8.overlays:
-            if isinstance(overlay, DiscoveryCommunity):
-                overlay.unload()
-
-        # Also reset the IPv8 network
-        session.lm.ipv8.network = Network()
 
         return overlay
 
@@ -188,6 +190,8 @@ class TestTunnelBase(TestAsServer):
         if hops > 0:  # Safe seeding enabled
             self.tunnel_community_seeder = self.load_tunnel_community_in_session(self.session2)
             self.tunnel_community_seeder.build_tunnels(hops)
+        else:
+            self.sanitize_network(self.session2)
 
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
