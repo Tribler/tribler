@@ -60,6 +60,16 @@ class TrackerManager(object):
                        tracker_info[u'is_alive'], sanitized_tracker_url)
         self._session.sqlite_db.execute(sql_stmt, value_tuple).next()
 
+    def remove_tracker(self, tracker_url):
+        """
+        Remove a given tracker from the database.
+        :param tracker_url: The URL of the tracker to be deleted.
+        """
+        sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)
+        if sanitized_tracker_url:
+            sql_stmt = u"DELETE FROM TrackerInfo WHERE tracker = ?;"
+            self._session.sqlite_db.execute(sql_stmt, (sanitized_tracker_url,))
+
     def update_tracker_info(self, tracker_url, is_successful):
         """
         Updates a tracker information.

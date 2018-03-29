@@ -35,6 +35,16 @@ class TestTrackerManager(TriblerCoreTest):
         self.assertTrue(self.tracker_manager.get_tracker_info("http://test1.com:80/announce"))
 
     @blocking_call_on_reactor_thread
+    def test_remove_tracker(self):
+        """
+        Test whether removing a tracker works correctly
+        """
+        self.tracker_manager.add_tracker("http://test1.com:80/announce")
+        self.assertTrue(self.tracker_manager.get_tracker_info("http://test1.com:80/announce"))
+        self.tracker_manager.remove_tracker("http://test1.com:80/announce")
+        self.assertFalse(self.tracker_manager.get_tracker_info("http://test1.com:80/announce"))
+
+    @blocking_call_on_reactor_thread
     def test_get_tracker_info(self):
         """
         Test whether the correct tracker info is returned when requesting it in the tracker manager

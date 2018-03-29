@@ -132,6 +132,8 @@ class TorrentChecker(TaskManager):
             try:
                 session = self._create_session_for_request(tracker_url, timeout=30)
             except MalformedTrackerURLException as e:
+                # Remove the tracker from the database
+                self.tribler_session.lm.tracker_manager.remove_tracker(tracker_url)
                 self._logger.error(e)
                 return succeed(None)
 
