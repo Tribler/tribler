@@ -15,7 +15,8 @@ except ImportError:
 
 import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_BANDWIDTH, \
-    PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, DEFAULT_API_PORT
+    PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, DEFAULT_API_PORT, \
+    PAGE_SETTINGS_DEBUG
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import string_to_seconds, get_gui_setting, seconds_to_hhmm_string, is_dir_writable
@@ -54,6 +55,7 @@ class SettingsPage(QWidget):
         self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
         self.window().fully_empty_tokens_button.clicked.connect(self.confirm_fully_empty_tokens)
         self.window().partially_empty_tokens_button.clicked.connect(self.partially_empty_tokens)
+        self.window().log_location_chooser_button.clicked.connect(self.on_choose_log_dir_clicked)
 
         self.update_stacked_widget_height()
 
@@ -207,8 +209,6 @@ class SettingsPage(QWidget):
         gui_settings = self.window().gui_settings
 
         # General settings
-        self.window().developer_mode_enabled_checkbox.setChecked(get_gui_setting(gui_settings, "debug",
-                                                                                 False, is_bool=True))
         self.window().family_filter_checkbox.setChecked(settings['general']['family_filter'])
         self.window().use_monochrome_icon_checkbox.setChecked(get_gui_setting(gui_settings, "use_monochrome_icon",
                                                                               False, is_bool=True))
@@ -239,7 +239,7 @@ class SettingsPage(QWidget):
             max_conn_download = 0
         self.window().max_connections_download_input.setText(str(max_conn_download))
 
-        self.window().api_port_input.setText("%d" % get_gui_setting(gui_settings, "api_port", DEFAULT_API_PORT))
+        self.window().api_port_input.setText("%s" % get_gui_setting(gui_settings, "api_port", DEFAULT_API_PORT))
 
         # Bandwidth settings
         self.window().upload_rate_limit_input.setText(str(settings['libtorrent']['max_upload_rate'] / 1024))
@@ -258,6 +258,20 @@ class SettingsPage(QWidget):
         self.window().credit_mining_enabled_checkbox.setChecked(settings['credit_mining']['enabled'])
         self.window().max_disk_space_input.setText(str(settings['credit_mining']['max_disk_space']))
 
+        # Debug
+        self.window().developer_mode_enabled_checkbox.setChecked(get_gui_setting(gui_settings, "debug",
+                                                                                 False, is_bool=True))
+        self.window().checkbox_enable_resource_log.setChecked(settings['resource_monitor']['enabled'])
+        cpu_priority = 1
+        if 'cpu_priority' in settings['resource_monitor']:
+            cpu_priority = int(settings['resource_monitor']['cpu_priority'])
+        self.window().slider_cpu_level.setValue(cpu_priority)
+        self.window().cpu_priority_value.setText("Current Priority = %s" % cpu_priority)
+        self.window().slider_cpu_level.valueChanged.connect(self.show_updated_cpu_priority)
+
+    def show_updated_cpu_priority(self, value):
+        self.window().cpu_priority_value.setText("Current Priority = %s" % value)
+
     def load_settings(self):
         self.settings_request_mgr = TriblerRequestManager()
         self.settings_request_mgr.perform_request("settings", self.initialize_with_settings)
@@ -273,6 +287,8 @@ class SettingsPage(QWidget):
             self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_SEEDING)
         elif tab_button_name == "settings_anonymity_button":
             self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_ANONYMITY)
+        elif tab_button_name == "settings_debug_button":
+            self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_DEBUG)
 
         self.update_stacked_widget_height()
 
@@ -292,7 +308,7 @@ class SettingsPage(QWidget):
     def save_settings(self):
         # Create a dictionary with all available settings
         settings_data = {'general': {}, 'Tribler': {}, 'download_defaults': {}, 'libtorrent': {}, 'watch_folder': {},
-                         'tunnel_community': {}, 'trustchain': {}, 'credit_mining': {}}
+                         'tunnel_community': {}, 'trustchain': {}, 'credit_mining': {}, 'resource_monitor': {}}
         settings_data['general']['family_filter'] = self.window().family_filter_checkbox.isChecked()
         settings_data['download_defaults']['saveas'] = self.window().download_location_input.text().encode('utf-8')
         settings_data['general']['log_dir'] = self.window().log_location_input.text()
@@ -388,6 +404,9 @@ class SettingsPage(QWidget):
             self.window().download_settings_anon_checkbox.isChecked()
         settings_data['download_defaults']['safeseeding_enabled'] = \
             self.window().download_settings_anon_seeding_checkbox.isChecked()
+
+        settings_data['resource_monitor']['enabled'] = self.window().checkbox_enable_resource_log.isChecked()
+        settings_data['resource_monitor']['cpu_priority'] = int(self.window().slider_cpu_level.value())
 
         self.window().settings_save_button.setEnabled(False)
 

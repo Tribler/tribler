@@ -1,4 +1,4 @@
-import logging
+import logging.config
 import os
 import psutil
 import subprocess
@@ -207,6 +207,32 @@ def restart_tribler_properly():
 
     python = sys.executable
     os.execl(python, python, *sys.argv)
+
+
+def set_process_priority(pid=None, priority_order=1):
+    """
+    Sets process priority based on order provided. Note order range is 0-5 and higher value indicates higher priority.
+    :param pid: Process ID or None. If None, uses current process.
+    :param priority_order: Priority order (0-5). Higher value means higher priority.
+    """
+    if priority_order < 0 or priority_order > 5:
+        return
+
+    process = psutil.Process(pid if pid else os.getpid())
+
+    if sys.platform == 'win32':
+        priority_classes = [psutil.IDLE_PRIORITY_CLASS,
+                            psutil.BELOW_NORMAL_PRIORITY_CLASS,
+                            psutil.NORMAL_PRIORITY_CLASS,
+                            psutil.ABOVE_NORMAL_PRIORITY_CLASS,
+                            psutil.HIGH_PRIORITY_CLASS,
+                            psutil.REALTIME_PRIORITY_CLASS]
+        process.nice(priority_classes[priority_order])
+    elif sys.platform == 'darwin' or sys.platform == 'linux2':
+        # On Unix, priority can be -20 to 20, but usually not allowed to set below 0, we set our classes somewhat in
+        # that range.
+        priority_classes = [15, 12, 10, 4, 1, 0]
+        process.nice(priority_classes[priority_order])
 
 
 def enable_fault_handler():

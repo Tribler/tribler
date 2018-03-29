@@ -15,6 +15,7 @@ try:
 except ImportError:
     HAS_YAPPI = False
 
+DEFAULT_RESOURCE_FILENAME = "resources.log"
 
 class ResourceMonitor(TaskManager):
     """
@@ -32,6 +33,9 @@ class ResourceMonitor(TaskManager):
         self.disk_usage_data = []
         self.process = psutil.Process()
         self.history_size = session.config.get_resource_monitor_history_size()
+        self.resource_log_file = os.path.join(session.config.get_log_dir(), DEFAULT_RESOURCE_FILENAME)
+        self.resource_log_enabled = session.config.get_resource_monitor_enabled()
+        self.reset_resource_logs()
 
         self.profiler_start_time = None
         self.profiler_running = False
@@ -138,6 +142,29 @@ class ResourceMonitor(TaskManager):
         if disk_usage.free < 100 * (1024 * 1024):
             self._logger.warn("Warning! Less than 100MB of disk space available")
             self.session.notifier.notify(SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE, None, self.disk_usage_data[-1])
+
+        # Write resource logs
+        if self.resource_log_enabled:
+            self.write_resource_logs(time_seconds)
+
+    def set_resource_log_enabled(self, enabled):
+        self.resource_log_enabled = enabled
+
+    def is_resource_log_enabled(self):
+        return self.resource_log_enabled
+
+    def write_resource_logs(self, time_seconds):
+        with open(self.resource_log_file, "a+") as output_file:
+            output_file.write("%s, %s, %s\n" % (time_seconds,
+                                                self.memory_data[len(self.memory_data)-1][1],
+                                                self.cpu_data[len(self.cpu_data)-1][1]))
+
+    def reset_resource_logs(self):
+        resource_dir = os.path.dirname(self.resource_log_file)
+        if not os.path.exists(resource_dir) and resource_dir:
+            os.makedirs(resource_dir)
+        if os.path.exists(self.resource_log_file):
+            os.unlink(self.resource_log_file)
 
     def get_cpu_history_dict(self):
         """

@@ -205,6 +205,8 @@ class DebugWindow(QMainWindow):
         self.request_mgr.perform_request("statistics/tribler", self.on_tribler_statistics)
 
     def on_tribler_statistics(self, data):
+        if not data:
+            return
         data = data["tribler_statistics"]
         self.window().general_tree_widget.clear()
         self.create_and_add_widget_item("Tribler version", self.tribler_version, self.window().general_tree_widget)
@@ -242,6 +244,8 @@ class DebugWindow(QMainWindow):
         self.request_mgr.perform_request("trustchain/statistics", self.on_trustchain_statistics)
 
     def on_trustchain_statistics(self, data):
+        if not data:
+            return
         self.window().trustchain_tree_widget.clear()
         for key, value in data["statistics"].iteritems():
             self.create_and_add_widget_item(key, value, self.window().trustchain_tree_widget)
@@ -251,6 +255,8 @@ class DebugWindow(QMainWindow):
         self.request_mgr.perform_request("statistics/dispersy", self.on_dispersy_general_stats)
 
     def on_dispersy_general_stats(self, data):
+        if not data:
+            return
         self.window().dispersy_general_tree_widget.clear()
         for key, value in data["dispersy_statistics"].iteritems():
             self.create_and_add_widget_item(key, value, self.window().dispersy_general_tree_widget)
@@ -260,6 +266,8 @@ class DebugWindow(QMainWindow):
         self.request_mgr.perform_request("statistics/communities", self.on_dispersy_community_stats)
 
     def on_dispersy_community_stats(self, data):
+        if not data:
+            return
         self.window().communities_tree_widget.clear()
         for community in data["community_statistics"]:
             item = QTreeWidgetItem(self.window().communities_tree_widget)
@@ -305,6 +313,8 @@ class DebugWindow(QMainWindow):
         self.request_mgr.perform_request("debug/open_files", self.on_core_open_files)
 
     def on_core_open_files(self, data):
+        if not data:
+            return
         core_item = QTreeWidgetItem(self.window().open_files_tree_widget)
         core_item.setText(0, "Core (%d)" % len(data["open_files"]))
         self.window().open_files_tree_widget.addTopLevelItem(core_item)
@@ -320,6 +330,8 @@ class DebugWindow(QMainWindow):
         self.request_mgr.perform_request("debug/open_sockets", self.on_core_open_sockets)
 
     def on_core_open_sockets(self, data):
+        if not data:
+            return
         self.window().open_sockets_tree_widget.clear()
         self.window().open_sockets_label.setText("Sockets opened by core (%d):" % len(data["open_sockets"]))
         for open_socket in data["open_sockets"]:
@@ -345,6 +357,8 @@ class DebugWindow(QMainWindow):
         self.request_mgr.perform_request("debug/threads", self.on_core_threads)
 
     def on_core_threads(self, data):
+        if not data:
+            return
         self.window().threads_tree_widget.clear()
         for thread_info in data["threads"]:
             thread_item = QTreeWidgetItem(self.window().threads_tree_widget)
@@ -376,6 +390,8 @@ class DebugWindow(QMainWindow):
         self.request_mgr.perform_request("debug/cpu/history", self.on_core_cpu_history)
 
     def on_core_cpu_history(self, data):
+        if not data:
+            return
         plot_data = [[], []]
         for cpu_info in data["cpu_history"]:
             if cpu_info["cpu"] == 0.0:
@@ -439,6 +455,8 @@ class DebugWindow(QMainWindow):
         self.request_mgr.perform_request("debug/memory/history", self.on_core_memory_history)
 
     def on_core_memory_history(self, data):
+        if not data:
+            return
         plot_data = [[], []]
         for mem_info in data["memory_history"]:
             plot_data[0].append(datetime.datetime.fromtimestamp(mem_info["time"]))
@@ -465,6 +483,8 @@ class DebugWindow(QMainWindow):
                 scanner.dump_all_objects(os.path.join(self.export_dir, filename))
 
     def on_memory_dump_data_available(self, filename, data):
+        if not data:
+            return
         dest_path = os.path.join(self.export_dir, filename)
         try:
             memory_dump_file = open(dest_path, "wb")

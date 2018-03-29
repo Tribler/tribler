@@ -4,7 +4,7 @@ import logging.config
 
 import signal
 from check_os import check_environment, check_free_space, error_and_exit, setup_gui_logging, \
-    should_kill_other_tribler_instances, enable_fault_handler
+    should_kill_other_tribler_instances, enable_fault_handler, set_process_priority
 
 
 def start_tribler_core(base_path, api_port):
@@ -32,6 +32,10 @@ def start_tribler_core(base_path, api_port):
 
     def start_tribler():
         config = TriblerConfig()
+
+        priority_order = config.get_cpu_priority_order()
+        set_process_priority(pid=os.getpid(), priority_order=priority_order)
+
         config.set_http_api_port(int(api_port))
         config.set_http_api_enabled(True)
 
