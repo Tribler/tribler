@@ -83,9 +83,14 @@ class Tunnel(object):
         self.community = None
         self.clean_messages_lc = LoopingCall(self.clean_messages)
         self.clean_messages_lc.start(1800)
+        self.clean_messages_lc = LoopingCall(self.periodic_bootstrap)
+        self.clean_messages_lc.start(30, now=False)
 
     def clean_messages(self):
         clean_twisted_observers()
+
+    def periodic_bootstrap(self):
+        self.session.lm.tunnel_community.bootstrap()
 
     def tribler_started(self):
         new_strategies = []
