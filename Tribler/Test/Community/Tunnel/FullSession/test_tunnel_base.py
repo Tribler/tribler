@@ -141,6 +141,7 @@ class TestTunnelBase(TestAsServer):
                                   dht_provider=MockDHTProvider(session.lm.ipv8.endpoint.get_address()),
                                   settings={"become_exitnode": exitnode, "max_circuits": 1})
         overlay._use_main_thread = False
+        overlay.settings.remove_tunnel_delay = 0
         session.lm.ipv8.overlays.append(overlay)
 
         return overlay
