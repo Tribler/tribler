@@ -59,7 +59,7 @@ class PriceTimeStrategyTestSuite(AbstractServer):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self, annotate=True):
-        self.order_book.cancel_all_pending_tasks()
+        self.order_book.shutdown_task_manager()
         yield super(PriceTimeStrategyTestSuite, self).tearDown(annotate=annotate)
 
     def test_generate_match_id(self):
@@ -306,7 +306,7 @@ class MatchingEngineTestSuite(AbstractServer):
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self, annotate=True):
-        self.order_book.cancel_all_pending_tasks()
+        self.order_book.shutdown_task_manager()
         yield super(MatchingEngineTestSuite, self).tearDown(annotate=annotate)
 
     def test_empty_match_order_empty(self):

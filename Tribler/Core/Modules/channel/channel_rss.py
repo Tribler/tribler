@@ -16,8 +16,8 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.utilities import http_get
 from Tribler.Core.simpledefs import (SIGNAL_CHANNEL_COMMUNITY, SIGNAL_ON_TORRENT_UPDATED, SIGNAL_RSS_FEED,
                                      SIGNAL_ON_UPDATED)
-from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 DEFAULT_CHECK_INTERVAL = 1800  # half an hour
 
@@ -73,7 +73,7 @@ class ChannelRssParser(TaskManager):
     @blocking_call_on_reactor_thread
     def shutdown(self):
         self._to_stop = True
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
 
         self._url_cache.save()
         self._url_cache = None

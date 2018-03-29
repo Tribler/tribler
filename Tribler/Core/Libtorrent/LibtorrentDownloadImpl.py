@@ -29,7 +29,7 @@ from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLMODE_VOD, DLMODE_NORMAL, \
                                     PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
-from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 if sys.platform == "win32":
@@ -945,7 +945,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     def network_stop(self, removestate, removecontent):
         """ Called by network thread, but safe for any """
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
 
         out = None
         with self.dllock:

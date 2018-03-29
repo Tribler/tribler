@@ -13,7 +13,7 @@ from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig, DownloadSt
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, DLSTATUS_SEEDING, \
                                     DLSTATUS_STOPPED_ON_ERROR, UPLOAD
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
-from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 class CreditMiningTorrent(object):
@@ -85,7 +85,7 @@ class CreditMiningManager(TaskManager):
 
         deferreds = [self.remove_source(source) for source in self.sources.keys()] if remove_downloads else []
 
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
 
         return DeferredList(deferreds)
 

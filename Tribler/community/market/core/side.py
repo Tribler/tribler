@@ -118,7 +118,7 @@ class Side(object):
 
         tick = self.get_tick(order_id)
         if tick:
-            tick.cancel_all_pending_tasks()
+            tick.shutdown_task_manager()
             tick.price_level().remove_tick(tick)
             if len(tick.price_level()) == 0:  # Last tick for that price
                 self._remove_price_level(tick.price, tick.quantity.wallet_id)

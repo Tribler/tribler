@@ -28,7 +28,7 @@ from Tribler.Core.simpledefs import (INFOHASH_LENGTH, NTFY_UPDATE, NTFY_INSERT, 
                                      NTFY_CHANNELCAST, NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_MODIFICATIONS,
                                      NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_STATE,
                                      SIGNAL_CHANNEL_COMMUNITY, SIGNAL_ON_TORRENT_UPDATED)
-from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 VOTECAST_FLUSH_DB_INTERVAL = 15
 
@@ -65,7 +65,7 @@ class BasicDBHandler(TaskManager):
         pass
 
     def close(self):
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
 
     def size(self):
         return self._db.size(self.table_name)

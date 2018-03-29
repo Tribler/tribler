@@ -6,8 +6,8 @@ from Tribler.Core.simpledefs import (SIGNAL_SEARCH_COMMUNITY, SIGNAL_ALLCHANNEL_
                                      NTFY_CHANNELCAST, SIGNAL_TORRENT, SIGNAL_CHANNEL)
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.search.community import SearchCommunity
-from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 class SearchManager(TaskManager):
@@ -32,7 +32,7 @@ class SearchManager(TaskManager):
 
     @blocking_call_on_reactor_thread
     def shutdown(self):
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
         self.channelcast_db = None
         self.dispersy = None
         self.session = None

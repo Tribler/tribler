@@ -4,7 +4,7 @@ from twisted.internet import reactor
 
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.tick import Tick
-from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 class TickEntry(TaskManager):

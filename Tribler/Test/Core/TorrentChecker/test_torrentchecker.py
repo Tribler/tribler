@@ -12,7 +12,7 @@ from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.twisted_thread import deferred
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTorrentChecker(TriblerCoreTest):
@@ -36,6 +36,7 @@ class TestTorrentChecker(TriblerCoreTest):
         self.torrent_checker = self.session.lm.torrent_checker
         self.torrent_checker._torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.torrent_checker._torrent_db.category = Category()
+        self.torrent_checker.listen_on_udp = lambda: None
 
     @blocking_call_on_reactor_thread
     def test_initialize(self):
@@ -108,9 +109,9 @@ class TestTorrentChecker(TriblerCoreTest):
         self.torrent_checker.add_gui_request('a' * 20).addErrback(lambda _: test_deferred.callback(None))
         return test_deferred
 
-    @blocking_call_on_reactor_thread
+    @deferred(timeout=10)
     def test_task_select_no_tracker(self):
-        self.torrent_checker._task_select_tracker()
+        return self.torrent_checker._task_select_tracker()
 
     @blocking_call_on_reactor_thread
     def test_task_select_tracker(self):
@@ -154,6 +155,7 @@ class TestTorrentChecker(TriblerCoreTest):
         self.session.sqlite_db.execute(sql_stmt, (bad_tracker_url, tracker_url))
 
         def verify_response(resp):
+            self.assertFalse(self.session.lm.tracker_manager.get_tracker_info(bad_tracker_url))
             self.assertIsNone(resp)
 
         return self.torrent_checker._task_select_tracker().addCallback(verify_response)

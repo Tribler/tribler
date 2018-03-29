@@ -6,12 +6,15 @@ from random import randint
 from socket import inet_aton
 from struct import unpack
 from time import time
+
 from twisted.internet import reactor
+from twisted.internet.task import LoopingCall
 
 from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
 from Tribler.dispersy.util import (call_on_reactor_thread, blocking_call_on_reactor_thread, attach_runtime_statistics,
                                    is_valid_address)
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+
 from .exception import InvalidPacketException, FileNotFound
 from .packet import (encode_packet, decode_packet, OPCODE_RRQ, OPCODE_WRQ, OPCODE_ACK, OPCODE_DATA, OPCODE_OACK,
                      OPCODE_ERROR, ERROR_DICT)
@@ -76,7 +79,7 @@ class TftpHandler(TaskManager):
     def shutdown(self):
         """ Shuts down the TFTP service.
         """
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
         if self._endpoint:
             self._endpoint.stop_listen_to(self._prefix)
             self._endpoint = None

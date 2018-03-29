@@ -9,8 +9,8 @@ from twisted.internet.defer import DeferredList
 from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_CREATED, SIGNAL_RSS_FEED, SIGNAL_ON_UPDATED
-from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
+from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 class ChannelObject(TaskManager):
@@ -73,7 +73,7 @@ class ChannelObject(TaskManager):
 
     @call_on_reactor_thread
     def shutdown(self):
-        self.cancel_all_pending_tasks()
+        self.shutdown_task_manager()
         for key, rss_parser in self._rss_feed_dict.iteritems():
             if rss_parser is not None:
                 rss_parser.shutdown()
