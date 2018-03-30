@@ -482,10 +482,10 @@ class TriblerConfig(object):
         return self.config['download_defaults']['safeseeding_enabled']
 
     def set_default_destination_dir(self, value):
-        self.config['download_defaults']['destination_dir'] = value
+        self.config['download_defaults']['saveas'] = value
 
     def get_default_destination_dir(self):
-        return self.config['download_defaults']['destination_dir']
+        return self.config['download_defaults']['saveas']
 
     # Market Community
 
