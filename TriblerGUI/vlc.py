@@ -152,8 +152,8 @@ def find_lib():
             pass
         if vlc_dir is None:
             # try some standard locations.
-            for p in ('Program Files\\VideoLAN\\', 'VideoLAN\\',
-                      'Program Files\\', 'Program Files (x86)\\VideoLAN\\', ''):
+            for p in ('Program Files\\Tribler\\', 'Program Files (x86)\\Tribler\\', 'Program Files\\VideoLAN\\',
+                      'VideoLAN\\', 'Program Files\\', 'Program Files (x86)\\VideoLAN\\', ''):
                 p = 'C:\\' + p + 'VLC\\libvlc.dll'
                 if os.path.exists(p):
                     vlc_dir = os.path.dirname(p)

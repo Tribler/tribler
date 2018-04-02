@@ -55,8 +55,6 @@ REM copy Tribler\Main\Build\Win\tribler.exe.manifest dist\tribler
 type Tribler\LICENSE Tribler\binary-LICENSE-postfix.txt > Tribler\binary-LICENSE.txt
 copy Tribler\binary-LICENSE.txt dist\tribler
 
-REM copy C:\Build\ffmpeg\bin\ffmpeg.exe dist\tribler
-
 mkdir dist\tribler\tools
 copy win\tools\reset*.bat dist\tribler\tools
 
@@ -73,8 +71,8 @@ REM Copy missing dll files
 copy C:\build\missing_dlls\*.dll dist\tribler
 
 REM Copy VLC, different files based on 32-bit or 64-bit
-if %1==32 copy C:\build\vlc-2.2.4-win32.exe dist\tribler
-if %1==64 copy C:\build\vlc-2.2.4-win64.exe dist\tribler
+mkdir dist\tribler\VLC
+xcopy C:\build\vlc dist\tribler\VLC /s /e
 
 @echo Running NSIS
 cd dist\tribler
