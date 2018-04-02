@@ -32,7 +32,10 @@ if os.environ.get("TEST_GUI") == "yes":
 else:
     window = None
 
-sys.excepthook = sys.__excepthook__
+
+def no_abort(*args, **kwargs):
+    sys.__excepthook__(*args, **kwargs)
+sys.excepthook = no_abort
 
 
 class TimeoutException(Exception):
