@@ -93,7 +93,7 @@ class CreateTorrentEndpoint(resource.Resource):
             if 'download' in request.args and len(request.args['download']) > 0 \
                     and request.args['download'][0] == "1":
                 download_config = DownloadStartupConfig()
-                download_config.set_dest_dir(result['base_path'])
+                download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
                 try:
                     self.session.start_download_from_uri('file:' + result['torrent_file_path'], download_config)
                 except DuplicateDownloadException:
