@@ -80,8 +80,7 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         if not self:
             return
         self.window().left_menu_button_video_player.click()
-        self.window().video_player_page.set_torrent_infohash(self.torrent_info["infohash"])
-        self.window().left_menu_playlist.set_loading()
+        self.window().video_player_page.play_media_item(self.torrent_info["infohash"], -1)
 
     def show_buttons(self):
         if not self.show_controls:
