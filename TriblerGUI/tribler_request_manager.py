@@ -7,7 +7,7 @@ from PyQt5.QtCore import QUrl, pyqtSignal, QIODevice, QBuffer, QObject
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 import Tribler.Core.Utilities.json_util as json
-from TriblerGUI.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_PORT
+from TriblerGUI.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL, DEFAULT_API_HOST
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 
 
@@ -180,6 +180,16 @@ class TriblerRequestDispatcher(object):
         self.request_workers = []
         self.num_requests = 0
 
+    def update_worker_settings(self, protocol=None, host=None, port=None):
+        if protocol or host or port:
+            for worker in self.request_workers:
+                if protocol:
+                    worker.update_protocol(protocol)
+                if host:
+                    worker.update_host(host)
+                if port:
+                    worker.update_port(port)
+
     def perform_request(self, request_manager, endpoint, reply_callback, data, method):
         self.num_requests += 1
         worker_index = self.num_requests % self.pool_size
@@ -318,7 +328,6 @@ class TriblerRequestWorker(QNetworkAccessManager):
     All requests are asynchronous so the caller object should keep track of response (QNetworkReply) object. A finished
     pyqt signal is fired when the response data is ready.
     """
-    BASE_URL = "http://localhost:%d/" % DEFAULT_API_PORT
 
     def __init__(self):
         QNetworkAccessManager.__init__(self)
@@ -330,6 +339,21 @@ class TriblerRequestWorker(QNetworkAccessManager):
             'DELETE': self.perform_delete,
             'POST': self.perform_post
         }
+        self.protocol = DEFAULT_API_PROTOCOL
+        self.host = DEFAULT_API_HOST
+        self.port = DEFAULT_API_PORT
+
+    def update_host(self, host):
+        self.host = host
+
+    def update_port(self, port):
+        self.port = port
+
+    def update_protocol(self, protocol):
+        self.protocol = protocol
+
+    def get_base_url(self):
+        return "%s://%s:%d/" % (self.protocol, self.host, self.port)
 
     def get_status_code(self, reply):
         """
@@ -348,7 +372,7 @@ class TriblerRequestWorker(QNetworkAccessManager):
         if endpoint.startswith("http:") or endpoint.startswith("https:"):
             url = endpoint
         else:
-            url = TriblerRequestWorker.BASE_URL + endpoint
+            url = self.get_base_url() + endpoint
         self.status_code = -1
         network_reply = self.dispatch_map.get(method, lambda x, y, z: None)(endpoint, data, url)
         network_reply.finished.connect(lambda: reply_callback(network_reply))
