@@ -32,7 +32,7 @@ from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
-from TriblerGUI.tribler_request_manager import request_queue, TriblerRequestManager, TriblerRequestWorker
+from TriblerGUI.tribler_request_manager import request_queue, TriblerRequestManager, dispatcher
 from TriblerGUI.utilities import get_ui_file_path, get_image_path, get_gui_setting, is_dir_writable
 
 # Pre-load form UI classes
@@ -106,8 +106,8 @@ class TriblerWindow(QMainWindow):
         QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
         self.gui_settings = QSettings()
-        api_port = get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT)
-        TriblerRequestWorker.BASE_URL = "http://localhost:%d/" % api_port
+        api_port = int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
+        dispatcher.update_worker_settings(port=api_port)
 
         self.navigation_stack = []
         self.feedback_dialog_is_open = False
