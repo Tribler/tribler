@@ -89,6 +89,7 @@ class VideoPlayerPage(QWidget):
 
         self.window().left_menu_playlist.playing_item_change.connect(self.change_playing_index)
         self.window().left_menu_playlist.item_should_play.connect(self.on_play_pause_button_click)
+        self.window().left_menu_playlist.list_loaded.connect(self.on_files_list_loaded)
         self.window().video_player_play_pause_button.setEnabled(False)
 
     def hide_video_widgets(self):
@@ -118,26 +119,6 @@ class VideoPlayerPage(QWidget):
                                                           (seconds_to_string(video_time / 1000), total_duration_str))
 
     def update_with_download_info(self, download):
-        if len(download["files"]) > 0 and not self.window().left_menu_playlist.loaded_list:
-            self.window().left_menu_playlist.set_files(download["files"])
-
-            # Play the video with the largest file index
-            largest_file = None
-
-            for file_info in download["files"]:
-                if is_video_file(file_info["name"]) and (largest_file is None or
-                                                         file_info["size"] > largest_file["size"]):
-                    largest_file = file_info
-
-            if not largest_file:
-                # We don't have a media file in this torrent. Reset everything and show an error
-                ConfirmationDialog.show_error(self.window(), "No media files", "This download contains no media files.")
-                self.window().hide_left_menu_playlist()
-                return
-
-            self.window().left_menu_playlist.set_active_index(largest_file["index"])
-            self.change_playing_index(largest_file["index"], largest_file["name"])
-
         self.window().video_player_info_button.popup.update(download)
 
     def on_vlc_player_buffering(self, event):
@@ -160,6 +141,19 @@ class VideoPlayerPage(QWidget):
             self.window().video_player_play_pause_button.setIcon(self.play_icon)
             self.mediaplayer.pause()
 
+    def on_files_list_loaded(self):
+        if self.active_index == -1:
+            largest_index, largest_file = self.window().left_menu_playlist.get_largest_file()
+
+            if not largest_file:
+                # We don't have a media file in this torrent. Reset everything and show an error
+                ConfirmationDialog.show_error(self.window(), "No media files", "This download contains no media files.")
+                self.window().hide_left_menu_playlist()
+                return
+
+            self.active_index = largest_index
+        self.play_active_item()
+
     def on_volume_button_click(self):
         if not self.mediaplayer.audio_get_mute():
             self.window().video_player_volume_button.setIcon(self.volume_off_icon)
@@ -178,12 +172,12 @@ class VideoPlayerPage(QWidget):
         else:
             self.window().exit_full_screen()
 
-    def set_torrent_infohash(self, infohash):
-        self.active_infohash = infohash
+    def play_active_item(self):
+        self.window().left_menu_playlist.set_active_index(self.active_index)
+        file_info = self.window().left_menu_playlist.get_file_info(self.active_index)
+        file_index = file_info["index"]
 
-    def change_playing_index(self, index, filename):
-        self.active_index = index
-        self.window().video_player_header_label.setText(filename)
+        self.window().video_player_header_label.setText(file_info["name"] if file_info else 'Unknown')
 
         # reset video player controls
         self.mediaplayer.stop()
@@ -191,7 +185,7 @@ class VideoPlayerPage(QWidget):
         self.window().video_player_position_slider.setValue(0)
 
         media_filename = u"http://127.0.0.1:" + unicode(self.video_player_port) + "/" + \
-                         self.active_infohash + "/" + unicode(index)
+                         self.active_infohash + "/" + unicode(file_index)
         self.media = self.instance.media_new(media_filename)
         self.mediaplayer.set_media(self.media)
         self.media.parse()
@@ -201,6 +195,28 @@ class VideoPlayerPage(QWidget):
 
         self.window().video_player_play_pause_button.setEnabled(True)
         self.window().video_player_info_button.show()
+
+    def play_media_item(self, infohash, menu_index):
+        """
+        Play a specific media item in a torrent. If the index is -1, we play the item with the largest size.
+        """
+        if infohash == self.active_infohash and menu_index == self.active_index:
+            return  # We're already playing this item
+
+        self.active_index = menu_index
+
+        if infohash == self.active_infohash:
+            # We changed the index of a torrent that is already playing
+            if self.window().left_menu_playlist.loaded_list:
+                self.play_active_item()
+        else:
+            # The download changed, reload the list
+            self.window().left_menu_playlist.load_list(infohash)
+
+        self.active_infohash = infohash
+
+    def change_playing_index(self, index):
+        self.play_media_item(self.active_infohash, index)
 
     def reset_player(self):
         """

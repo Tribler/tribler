@@ -85,6 +85,25 @@ class DownloadBaseEndpoint(resource.Resource):
 
         return download_config, None
 
+    def get_files_info_json(self, download):
+        """
+        Return file information as JSON from a specified download.
+        """
+        files_json = []
+        files_completion = dict((name, progress) for name, progress in download.get_state().get_files_completion())
+        selected_files = download.get_selected_files()
+        file_index = 0
+        for fn, size in download.get_def().get_files_with_length():
+            files_json.append({
+                "index": file_index,
+                "name": fn,
+                "size": size,
+                "included": (fn in selected_files or not selected_files),
+                "progress": files_completion.get(fn, 0.0)
+            })
+            file_index += 1
+        return files_json
+
 
 class DownloadsEndpoint(DownloadBaseEndpoint):
     """
@@ -233,18 +252,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
             # Add files if requested
             if get_files:
-                files_completion = dict((name, progress) for name, progress in state.get_files_completion())
-                selected_files = download.get_selected_files()
-                files_array = []
-                file_index = 0
-                for fn, size in tdef.get_files_with_length():
-                    files_array.append({"index": file_index, "name": fn, "size": size,
-                                        "included": (fn in selected_files or not selected_files),
-                                        "progress": files_completion.get(fn, 0.0)})
-                    file_index += 1
-
-                download_json["files"] = files_array
-
+                download_json["files"] = self.get_files_info_json(download)
 
             downloads_json.append(download_json)
         return json.dumps({"downloads": downloads_json})
@@ -315,6 +323,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
         DownloadBaseEndpoint.__init__(self, session)
         self.infohash = bytes(infohash.decode('hex'))
         self.putChild("torrent", DownloadExportTorrentEndpoint(session, self.infohash))
+        self.putChild("files", DownloadFilesEndpoint(session, self.infohash))
 
     def render_DELETE(self, request):
         """
@@ -495,3 +504,45 @@ class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):
         request.setHeader(b'content-type', 'application/x-bittorrent')
         request.setHeader(b'Content-Disposition', 'attachment; filename=%s.torrent' % self.infohash.encode('hex'))
         return self.session.get_collected_torrent(self.infohash)
+
+
+class DownloadFilesEndpoint(DownloadBaseEndpoint):
+    """
+    This class is responsible for requests that request the files of a specific torrent.
+    """
+
+    def __init__(self, session, infohash):
+        DownloadBaseEndpoint.__init__(self, session)
+        self.infohash = infohash
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /download/(string: infohash)/files
+
+        A GET request to this endpoint returns the file information of a specific download.
+
+            **Example request**:
+
+                .. sourcecode:: none
+
+                    curl -X GET http://localhost:8085/downloads/4344503b7e797ebf31582327a5baae35b11bda01/files
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "files": [{
+                        "index": 1,
+                        "name": "test.txt",
+                        "size": 12345,
+                        "included": True,
+                        "progress": 0.5448
+                    }, ...]
+                }
+        """
+        download = self.session.get_download(self.infohash)
+        if not download:
+            return DownloadExportTorrentEndpoint.return_404(request)
+
+        return json.dumps({"files": self.get_files_info_json(download)})

@@ -475,6 +475,31 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads/%s/torrent' % video_tdef.get_infohash().encode('hex'),
                                expected_code=200, request_type='GET').addCallback(verify_exported_data)
 
+    @deferred(timeout=10)
+    def test_get_files_unknown_download(self):
+        """
+        Testing whether the API returns error 404 if the files of a non-existent download are requested
+        """
+        self.should_check_equality = False
+        return self.do_request('downloads/abcd/files', expected_code=404, request_type='GET')
+
+    @deferred(timeout=10)
+    def test_get_download_files(self):
+        """
+        Testing whether the API returns file information of a specific download when requested
+        """
+        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+
+        def verify_files_data(response):
+            json_response = json.loads(response)
+            self.assertIn('files', json_response)
+            self.assertTrue(json_response['files'])
+
+        self.should_check_equality = False
+        return self.do_request('downloads/%s/files' % video_tdef.get_infohash().encode('hex'),
+                               expected_code=200, request_type='GET').addCallback(verify_files_data)
+
 
 class TestDownloadsDispersyEndpoint(AbstractApiTest):
 

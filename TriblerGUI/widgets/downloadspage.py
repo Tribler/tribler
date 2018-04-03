@@ -273,8 +273,8 @@ class DownloadsPage(QWidget):
 
     def on_play_download_clicked(self):
         self.window().left_menu_button_video_player.click()
-        self.window().video_player_page.set_torrent_infohash(self.selected_item.download_info["infohash"])
-        self.window().left_menu_playlist.set_loading()
+        if self.window().video_player_page.active_infohash != self.selected_item.download_info["infohash"]:
+            self.window().video_player_page.play_media_item(self.selected_item.download_info["infohash"], -1)
 
     def on_download_stopped(self, json_result):
         if json_result and "modified" in json_result:

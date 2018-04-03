@@ -509,6 +509,9 @@ class TriblerWindow(QMainWindow):
         self.request_mgr.perform_request("trustchain/statistics", self.received_token_balance, capture_errors=False)
 
     def received_token_balance(self, statistics):
+        if not statistics:
+            return
+
         statistics = statistics["statistics"]
         if 'latest_block' in statistics:
             balance = (statistics["latest_block"]["transaction"]["total_up"] - \

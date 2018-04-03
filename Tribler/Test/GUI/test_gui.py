@@ -32,7 +32,10 @@ if os.environ.get("TEST_GUI") == "yes":
 else:
     window = None
 
-sys.excepthook = sys.__excepthook__
+
+def no_abort(*args, **kwargs):
+    sys.__excepthook__(*args, **kwargs)
+sys.excepthook = no_abort
 
 
 class TimeoutException(Exception):
@@ -174,6 +177,7 @@ class AbstractTriblerGUITest(unittest.TestCase):
 
         # QTextEdit was not populated in time, fail the test
         raise TimeoutException("QTextEdit was not populated within 10 seconds")
+
 
 @skipUnless(os.environ.get("TEST_GUI") == "yes", "Not testing the GUI by default")
 class TriblerGUITest(AbstractTriblerGUITest):
@@ -437,17 +441,13 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.assertEqual(window.downloads_list.topLevelItemCount(), old_count + 1)
 
     def test_video_player_page(self):
-        QTest.mouseClick(window.left_menu_button_video_player, Qt.LeftButton)
+        self.go_to_and_wait_for_downloads()
+        QTest.mouseClick(window.downloads_list.topLevelItem(0).progress_slider, Qt.LeftButton)
+        QTest.mouseClick(window.play_download_button, Qt.LeftButton)
         self.screenshot(window, name="video_player_page")
 
-        # Some actions for the left menu playlist
-        window.left_menu_playlist.set_loading()
-        self.screenshot(window, name="video_player_page_playlist_loading")
-        window.left_menu_playlist.set_files([{'name': 'video.avi', 'index': 0},
-                                             {'name': 'test.txt', 'index': 1}])
-        self.screenshot(window, name="video_player_page_playlist_items")
-        window.left_menu_playlist.set_active_index(0)
-        self.screenshot(window, name="video_player_page_playlist_focus")
+        self.wait_for_signal(window.left_menu_playlist.list_loaded, no_args=True)
+        self.screenshot(window, name="video_player_left_menu_loaded")
 
     def test_feedback_dialog(self):
         def screenshot_dialog():
