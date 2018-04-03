@@ -4,7 +4,6 @@
 !define VERSION "__GIT__"
 ; Laurens, 2016-03-14: The _x86 will be replaced by _x64 if needed in update_version_from_git.py
 !define BITVERSION "x86"
-!define VLCBITVERSION "32"
 
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
@@ -134,10 +133,6 @@ Section "!Main EXE" SecMain
     ; Libraries dependant on 2015 are: Python, Qt5
     File vc_redist_140.exe
     ExecWait "$INSTDIR\vc_redist_140.exe /q /norestart"
-
-    ; Install VLC
-    File "vlc-2.2.4-win${VLCBITVERSION}.exe"
-    ExecWait "$INSTDIR\vlc-2.2.4-win${VLCBITVERSION}.exe /language=en_GB /S"
 
     FileOpen $9 "$INSTDIR\tribler.exe.log" w
     FileWrite $9 ""
