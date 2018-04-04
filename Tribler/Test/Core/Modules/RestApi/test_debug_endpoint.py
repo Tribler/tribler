@@ -203,3 +203,44 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('debug/log?process=gui&max_lines=', expected_code=200)\
             .addCallback(verify_max_logs_returned)
+
+    @deferred(timeout=10)
+    def test_get_profiler_state(self):
+        """
+        Test getting the state of the profiler
+        """
+        def verify_response(response):
+            json_response = json.loads(response)
+            self.assertIn('state', json_response)
+
+        self.should_check_equality = False
+        return self.do_request('debug/profiler', expected_code=200).addCallback(verify_response)
+
+    @deferred(timeout=10)
+    def test_start_stop_profiler(self):
+        """
+        Test starting and stopping the profiler using the API
+
+        Note that we mock the start/stop profiler methods since actually starting the profiler could influence the
+        tests.
+        """
+        def mocked_start_profiler():
+            self.session.lm.resource_monitor.profiler_running = True
+
+        def mocked_stop_profiler():
+            self.session.lm.resource_monitor.profiler_running = False
+            return 'a'
+
+        self.session.lm.resource_monitor.start_profiler = mocked_start_profiler
+        self.session.lm.resource_monitor.stop_profiler = mocked_stop_profiler
+
+        def on_stopped_profiler(_):
+            self.assertFalse(self.session.lm.resource_monitor.profiler_running)
+
+        def on_started_profiler(_):
+            self.assertTrue(self.session.lm.resource_monitor.profiler_running)
+            return self.do_request('debug/profiler', expected_code=200, request_type='DELETE')\
+                .addCallback(on_stopped_profiler)
+
+        self.should_check_equality = False
+        return self.do_request('debug/profiler', expected_code=200, request_type='PUT').addCallback(on_started_profiler)
