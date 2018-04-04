@@ -68,3 +68,6 @@ twistd.pid
 # PyInstaller
 build/
 dist/
+
+# Annotation files
+annotations.txt
