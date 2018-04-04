@@ -143,16 +143,10 @@ class DownloadState(object):
         completion = []
 
         if self.lt_status:
-            try:
-                files = self.download.handle.get_torrent_info().files()
-            except RuntimeError:
-                # If we don't have the torrent file yet, we'll get a runtime error
-                # stating that we used an invalid handle
-                files = []
-
-            for index, byte_progress in enumerate(self.download.handle.file_progress(flags=1)):
-                current_file = files[index] if isinstance(files, list) else files.at(index)
-                completion.append((current_file.path, float(byte_progress) / current_file.size))
+            files = self.download.get_def().get_files_with_length()
+            progress = self.download.handle.file_progress(flags=1)
+            for index, (path, size) in enumerate(files):
+                completion.append((path, float(progress[index]) / size))
 
         return completion
 
