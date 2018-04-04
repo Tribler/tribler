@@ -12,10 +12,10 @@ class TestDownloadState(TriblerCoreTest):
     def setUp(self, annotate=True):
         TriblerCoreTest.setUp(self, annotate=annotate)
         self.mock_download = MockObject()
-        mocked_tdef = MockObject()
-        mocked_tdef.get_name = lambda: "test"
-        mocked_tdef.get_length = lambda: 43
-        self.mock_download.get_def = lambda: mocked_tdef
+        self.mocked_tdef = MockObject()
+        self.mocked_tdef.get_name = lambda: "test"
+        self.mocked_tdef.get_length = lambda: 43
+        self.mock_download.get_def = lambda: self.mocked_tdef
 
         self.mock_transferred = MockObject()
         self.mock_transferred.upTotal = 5
@@ -99,17 +99,10 @@ class TestDownloadState(TriblerCoreTest):
         """
         Testing whether the right completion of files is returned
         """
-        file_entry = MockObject()
-        file_entry.path = 'test.txt'
-        file_entry.size = 100
-
-        torrent_info = MockObject()
-        torrent_info.files = lambda: [file_entry]
+        self.mocked_tdef.get_files_with_length = lambda: [("test.txt", 100)]
 
         handle = MockObject()
-        handle.get_torrent_info = lambda: torrent_info
         handle.file_progress = lambda **_: [60]
-
         self.mock_download.handle = handle
 
         download_state = DownloadState(self.mock_download, MockObject(), None)
@@ -118,7 +111,7 @@ class TestDownloadState(TriblerCoreTest):
         self.assertEqual(download_state.get_files_completion(), [('test.txt', 0.0)])
         handle.file_progress = lambda **_: [100]
         self.assertEqual(download_state.get_files_completion(), [('test.txt', 1.0)])
-        torrent_info.files = lambda: []
+        self.mocked_tdef.get_files_with_length = lambda: []
         handle.file_progress = lambda **_: []
         self.assertEqual(download_state.get_files_completion(), [])
 
