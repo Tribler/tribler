@@ -33,7 +33,7 @@ class DebugEndpoint(resource.Resource):
         child_handler_dict = {"circuits": DebugCircuitsEndpoint, "open_files": DebugOpenFilesEndpoint,
                               "open_sockets": DebugOpenSocketsEndpoint, "threads": DebugThreadsEndpoint,
                               "cpu": DebugCPUEndpoint, "memory": DebugMemoryEndpoint,
-                              "log": DebugLogEndpoint}
+                              "log": DebugLogEndpoint, "profiler": DebugProfilerEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
@@ -453,3 +453,82 @@ class DebugLogEndpoint(resource.Resource):
             block_counter -= 1
 
         return ''.join(lines_found[-lines:])
+
+
+class DebugProfilerEndpoint(resource.Resource):
+    """
+    This class handles requests for the profiler.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /debug/profiler
+
+        A GET request to this endpoint returns information about the state of the profiler.
+        This state is either STARTED or STOPPED.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/profiler
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "state": "STARTED"
+                }
+        """
+        return json.dumps({"state": "STARTED" if self.session.lm.resource_monitor.profiler_running else "STOPPED"})
+
+    def render_PUT(self, request):
+        """
+        .. http:put:: /debug/profiler
+
+        A PUT request to this endpoint starts the profiler.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X PUT http://localhost:8085/debug/profiler
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "success": "true"
+                }
+        """
+        self.session.lm.resource_monitor.start_profiler()
+        return json.dumps({"success": True})
+
+    def render_DELETE(self, request):
+        """
+        .. http:delete:: /debug/profiler
+
+        A PUT request to this endpoint stops the profiler.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X DELETE http://localhost:8085/debug/profiler
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "success": "true"
+                }
+        """
+        file_path = self.session.lm.resource_monitor.stop_profiler()
+        return json.dumps({"success": True, "profiler_file": file_path})

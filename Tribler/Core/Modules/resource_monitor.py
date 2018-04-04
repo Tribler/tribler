@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 
 import psutil
@@ -6,6 +7,13 @@ from twisted.internet.task import LoopingCall
 
 from Tribler.Core.simpledefs import SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+
+# Attempt to import yappi
+try:
+    import yappi
+    HAS_YAPPI = True
+except ImportError:
+    HAS_YAPPI = False
 
 
 class ResourceMonitor(TaskManager):
@@ -25,6 +33,9 @@ class ResourceMonitor(TaskManager):
         self.process = psutil.Process()
         self.history_size = session.config.get_resource_monitor_history_size()
 
+        self.profiler_start_time = None
+        self.profiler_running = False
+
     def start(self):
         """
         Start the resource monitor by scheduling a LoopingCall.
@@ -33,7 +44,49 @@ class ResourceMonitor(TaskManager):
             self.session.config.get_resource_monitor_poll_interval(), now=False)
 
     def stop(self):
+        if HAS_YAPPI and self.profiler_running:
+            self.stop_profiler()
+
         self.shutdown_task_manager()
+
+    def start_profiler(self):
+        """
+        Start the Yappi profiler if the library is available and if it's not already running.
+        """
+        if self.profiler_running:
+            raise RuntimeError("Profiler is already running")
+
+        if not HAS_YAPPI:
+            raise RuntimeError("Yappi cannot be found. Plase install the yappi library using your preferred package "
+                               "manager and restart Tribler afterwards.")
+
+        yappi.start(builtins=True)
+        self.profiler_start_time = int(time.time())
+        self.profiler_running = True
+
+    def stop_profiler(self):
+        """
+        Stop yappi and write the stats to the output directory.
+        Return the path of the yappi statistics file.
+        """
+        if not self.profiler_running:
+            raise RuntimeError("Profiler is not running")
+
+        if not HAS_YAPPI:
+            raise RuntimeError("Yappi cannot be found. Plase install the yappi library using your preferred package "
+                               "manager and restart Tribler afterwards.")
+
+        yappi.stop()
+
+        yappi_stats = yappi.get_func_stats()
+        yappi_stats.sort("tsub")
+
+        file_path = os.path.join(self.session.config.get_state_dir(), 'logs',
+                                 'yappi_%s.stats' % self.profiler_start_time)
+        yappi_stats.save(file_path, type='callgrind')
+        yappi.clear_stats()
+        self.profiler_running = False
+        return file_path
 
     def get_free_disk_space(self):
         return psutil.disk_usage(self.session.config.get_state_dir())
