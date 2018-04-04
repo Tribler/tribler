@@ -7,6 +7,7 @@ import matplotlib
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QTextCursor
 from PyQt5.QtWidgets import QFileDialog, QTextEdit, QDesktopWidget
+from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QSizePolicy
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from meliae import scanner
@@ -119,12 +120,15 @@ class DebugWindow(QMainWindow):
         self.cpu_plot_timer = None
         self.memory_plot_timer = None
         self.tribler_version = tribler_version
+        self.profiler_enabled = False
+        self.toggling_profiler = False
 
         uic.loadUi(get_ui_file_path('debugwindow.ui'), self)
         self.setWindowTitle("Tribler debug pane")
 
         self.window().dump_memory_core_button.clicked.connect(lambda: self.on_memory_dump_button_clicked(True))
         self.window().dump_memory_gui_button.clicked.connect(lambda: self.on_memory_dump_button_clicked(False))
+        self.window().toggle_profiler_button.clicked.connect(self.on_toggle_profiler_button_clicked)
 
         self.window().debug_tab_widget.setCurrentIndex(0)
         self.window().dispersy_tab_widget.setCurrentIndex(0)
@@ -187,6 +191,8 @@ class DebugWindow(QMainWindow):
             self.load_cpu_tab()
         elif index == 4:
             self.load_memory_tab()
+        elif index == 5:
+            self.load_profiler_tab()
 
     def create_and_add_widget_item(self, key, value, widget):
         item = QTreeWidgetItem(widget)
@@ -396,6 +402,37 @@ class DebugWindow(QMainWindow):
         self.memory_plot_timer = QTimer()
         self.memory_plot_timer.timeout.connect(self.load_memory_tab)
         self.memory_plot_timer.start(5000)
+
+    def load_profiler_tab(self):
+        self.window().toggle_profiler_button.setEnabled(False)
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("debug/profiler", self.on_profiler_info)
+
+    def on_profiler_info(self, data):
+        self.profiler_enabled = (data["state"] == "STARTED")
+        self.window().toggle_profiler_button.setEnabled(True)
+        self.window().toggle_profiler_button.setText("%s profiler" %
+                                                     ("Stop" if self.profiler_enabled else "Start"))
+
+    def on_toggle_profiler_button_clicked(self):
+        if self.toggling_profiler:
+            return
+
+        self.toggling_profiler = True
+        self.window().toggle_profiler_button.setEnabled(False)
+        self.request_mgr = TriblerRequestManager()
+        method = "DELETE" if self.profiler_enabled else "PUT"
+        self.request_mgr.perform_request("debug/profiler", self.on_profiler_state_changed, method=method)
+
+    def on_profiler_state_changed(self, data):
+        self.toggling_profiler = False
+        self.window().toggle_profiler_button.setEnabled(True)
+        self.load_profiler_tab()
+
+        if 'profiler_file' in data:
+            QMessageBox.about(self,
+                              "Profiler statistics saved",
+                              "The profiler data has been saved to %s." % data['profiler_file'])
 
     def refresh_memory_plot(self):
         self.request_mgr = TriblerRequestManager()

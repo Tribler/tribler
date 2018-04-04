@@ -81,8 +81,12 @@ class ResourceMonitor(TaskManager):
         yappi_stats = yappi.get_func_stats()
         yappi_stats.sort("tsub")
 
-        file_path = os.path.join(self.session.config.get_state_dir(), 'logs',
-                                 'yappi_%s.stats' % self.profiler_start_time)
+        log_dir = os.path.join(self.session.config.get_state_dir(), 'logs')
+        file_path = os.path.join(log_dir, 'yappi_%s.stats' % self.profiler_start_time)
+        # Make the log directory if it does not exist
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
         yappi_stats.save(file_path, type='callgrind')
         yappi.clear_stats()
         self.profiler_running = False
