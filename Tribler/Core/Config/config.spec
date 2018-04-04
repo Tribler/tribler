@@ -76,7 +76,7 @@ anon_proxy_auth = string(default='')
 
 [download_defaults]
 anonymity_enabled = boolean(default=True)
-number_hops = integer(min=0, max=3, default=1)
+number_hops = integer(min=0, max=3, default=2)
 safeseeding_enabled = boolean(default=True)
 saveas = string(default=None)
 seeding_mode = string(default='ratio')
