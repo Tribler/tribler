@@ -85,17 +85,20 @@ class SubscriptionsWidget(QWidget):
             self.update_subscribe_button()
 
     def on_credit_mining_button_click(self):
-        settings = {"credit_mining": {"sources": [self.channel_info["dispersy_cid"]]}}
+        old_sources = self.window().tribler_settings["credit_mining"]["sources"]
+        new_sources = [] if self.channel_info["dispersy_cid"] in old_sources else [self.channel_info["dispersy_cid"]]
+        settings = {"credit_mining": {"sources": new_sources}}
 
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("settings", self.on_credit_mining_sources,
-                                                  method='POST', data=json.dumps(settings))
+                                         method='POST', data=json.dumps(settings))
 
     def on_credit_mining_sources(self, json_result):
         if json_result["modified"]:
             old_source = next(iter(self.window().tribler_settings["credit_mining"]["sources"]), None)
-            new_source = self.channel_info["dispersy_cid"]
-            self.window().tribler_settings["credit_mining"]["sources"] = [new_source]
+
+            new_sources = [self.channel_info["dispersy_cid"]] if self.channel_info["dispersy_cid"] != old_source else []
+            self.window().tribler_settings["credit_mining"]["sources"] = new_sources
 
             self.update_subscribe_button()
 

@@ -14,7 +14,7 @@ from TriblerGUI.defs import DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_DOWNLOADING, 
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.widgets.downloadwidgetitem import DownloadWidgetItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import format_speed
+from TriblerGUI.utilities import format_speed, format_size
 
 
 class DownloadsPage(QWidget):
@@ -193,6 +193,8 @@ class DownloadsPage(QWidget):
         if len(self.window().downloads_list.selectedItems()) > 0:
             self.on_download_item_clicked()
 
+        self.update_credit_mining_disk_usage()
+
     def update_download_visibility(self):
         for i in range(self.window().downloads_list.topLevelItemCount()):
             item = self.window().downloads_list.topLevelItem(i)
@@ -221,6 +223,24 @@ class DownloadsPage(QWidget):
         self.window().downloads_list.clearSelection()
         self.window().download_details_widget.hide()
         self.update_download_visibility()
+        self.update_credit_mining_disk_usage()
+
+    def update_credit_mining_disk_usage(self):
+        on_credit_mining_tab = self.filter == DOWNLOADS_FILTER_CREDITMINING
+        self.window().diskspace_usage.setVisible(on_credit_mining_tab)
+
+        if not on_credit_mining_tab:
+            return
+
+        bytes_max = self.window().tribler_settings["credit_mining"]["max_disk_space"]
+        bytes_used = 0
+        for download in self.downloads["downloads"]:
+            if download["credit_mining"] and \
+               download["status"] in ("DLSTATUS_DOWNLOADING", "DLSTATUS_SEEDING",
+                                      "DLSTATUS_STOPPED", "DLSTATUS_STOPPED_ON_ERROR"):
+                bytes_used += download["progress"] * download["size"]
+        self.window().diskspace_usage.setText("Current disk space usage %s / %s" % (format_size(float(bytes_used)),
+                                                                                    format_size(float(bytes_max))))
 
     @staticmethod
     def start_download_enabled(download_widget):
