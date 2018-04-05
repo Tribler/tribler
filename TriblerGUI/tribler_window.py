@@ -91,11 +91,9 @@ class TriblerWindow(QMainWindow):
         exception_text = "".join(traceback.format_exception(*exc_info))
         logging.error(exception_text)
 
-        if not self.feedback_dialog_is_open:
-            dialog = FeedbackDialog(self, exception_text, self.core_manager.events_manager.tribler_version,
-                                    self.start_time)
-            self.feedback_dialog_is_open = True
-            _ = dialog.exec_()
+        dialog = FeedbackDialog(self, exception_text, self.core_manager.events_manager.tribler_version,
+                                self.start_time)
+        dialog.show()
 
     def __init__(self):
         QMainWindow.__init__(self)
@@ -110,7 +108,6 @@ class TriblerWindow(QMainWindow):
         dispatcher.update_worker_settings(port=api_port)
 
         self.navigation_stack = []
-        self.feedback_dialog_is_open = False
         self.tribler_started = False
         self.tribler_settings = None
         self.debug_window = None
