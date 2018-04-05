@@ -16,12 +16,9 @@ from PyQt5.QtGui import QKeySequence
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
     QCompleter, QApplication, QStyledItemDelegate, QListWidget
-from PyQt5.QtWidgets import QMenu
 from PyQt5.QtWidgets import QShortcut
-from PyQt5.QtWidgets import QSplitter
 
 from Tribler.Core.Modules.process_checker import ProcessChecker
-from Tribler.Core.Utilities.utilities import quote_plus_unicode
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.core_manager import CoreManager
 from TriblerGUI.debug_window import DebugWindow
@@ -33,7 +30,7 @@ from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_request_manager import request_queue, TriblerRequestManager, dispatcher
-from TriblerGUI.utilities import get_ui_file_path, get_image_path, get_gui_setting, is_dir_writable
+from TriblerGUI.utilities import get_ui_file_path, get_image_path, get_gui_setting, is_dir_writable, quote_plus_unicode
 
 # Pre-load form UI classes
 fc_channel_torrent_list_item, _ = uic.loadUiType(get_ui_file_path('channel_torrent_list_item.ui'))
