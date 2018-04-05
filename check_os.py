@@ -207,3 +207,19 @@ def restart_tribler_properly():
 
     python = sys.executable
     os.execl(python, python, *sys.argv)
+
+
+def enable_fault_handler():
+    """
+    Enables fault handler if the module is available.
+    """
+    try:
+        import faulthandler
+
+        log_dir = TriblerConfig().get_log_dir()
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        crash_file = os.path.join(log_dir, "crash-report.log")
+        faulthandler.enable(file=open(crash_file, "w"), all_threads=True)
+    except ImportError:
+        logging.error("Fault Handler module not found.")

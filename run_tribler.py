@@ -4,7 +4,7 @@ import logging.config
 
 import signal
 from check_os import check_environment, check_free_space, error_and_exit, setup_gui_logging, \
-    should_kill_other_tribler_instances
+    should_kill_other_tribler_instances, enable_fault_handler
 
 
 def start_tribler_core(base_path, api_port):
@@ -58,6 +58,8 @@ if __name__ == "__main__":
         api_port = os.environ['CORE_API_PORT']
         start_tribler_core(base_path, api_port)
     else:
+        enable_fault_handler()
+
         # Exit if we cant read/write files, etc.
         check_environment()
 

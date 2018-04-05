@@ -51,6 +51,7 @@ Depends: ${misc:Depends},
          python-twisted,
          vlc (>= 1.1.0),
 Recommends: python-treq,
+            python-faulthandler,
 Description: Python based Bittorrent/Internet TV application
  It allows you to watch videos and download content. Tribler aims to combine
  the ease of Youtube.com with the performance of peer-to-peer.
