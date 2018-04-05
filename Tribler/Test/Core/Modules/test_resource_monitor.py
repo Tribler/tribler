@@ -76,9 +76,17 @@ class TestResourceMonitor(TriblerCoreTest):
             self.assertEquals(changeType, SIGNAL_LOW_SPACE)
 
         self.resource_monitor.get_free_disk_space = fake_get_free_disk_space
-        self.resource_monitor.session = MockObject()
-        self.resource_monitor.session.config = MockObject()
-        self.resource_monitor.session.config.get_state_dir = lambda: "."
-        self.resource_monitor.session.notifier = MockObject()
         self.resource_monitor.session.notifier.notify = on_notify
         self.resource_monitor.check_resources()
+
+    def test_profiler(self):
+        """
+        Test the profiler functionality
+        """
+        self.resource_monitor.start_profiler()
+        self.assertTrue(self.resource_monitor.profiler_running)
+        self.assertRaises(RuntimeError, self.resource_monitor.start_profiler)
+
+        self.resource_monitor.stop_profiler()
+        self.assertFalse(self.resource_monitor.profiler_running)
+        self.assertRaises(RuntimeError, self.resource_monitor.stop_profiler)
