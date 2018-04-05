@@ -96,17 +96,11 @@ class TriblerCoreTestUtilities(TriblerCoreTest):
     def test_valid_torrent_file_initial_peers_wrong_type(self):
         validate_init_peers({"initial peers": {}})
 
-    @raises(ValueError)
-    def test_valid_torrent_file_initial_peers_address_wrong_type(self):
-        validate_init_peers({"initial peers": [{}]})
-
-    @raises(ValueError)
     def test_valid_torrent_file_initial_peers_host_wrong_type(self):
-        validate_init_peers({"initial peers": [(8081, "127.0.0.1")]})
+        self.assertEquals(validate_init_peers({"initial peers": [(8081, "127.0.0.1")]}), [])
 
-    @raises(ValueError)
     def test_valid_torrent_file_initial_peers_port_wrong_type(self):
-        validate_init_peers({"initial peers": [("127.0.0.1", "8081")]})
+        self.assertEquals(validate_init_peers({"initial peers": [("127.0.0.1", "8081")]}), [])
 
     @raises(ValueError)
     def test_valid_torrent_file_root_hash(self):
