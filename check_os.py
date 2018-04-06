@@ -124,39 +124,12 @@ def setup_logging(gui=False):
     logging.config.fileConfig(log_config, disable_existing_loggers=False)
 
 
-def get_existing_tribler_pids():
-    """ Get PID of all existing instances excluding the current one """
-    pids = []
-    if sys.platform == 'linux2':
-        for proc in subprocess.check_output(['ps', '-ef']).splitlines():
-            if 'python' in proc and 'run_tribler.py' in proc:
-                pids += [int(proc.split()[1])]
-    elif sys.platform == 'win32':
-        pids = [int(item.split()[1]) for item in os.popen('tasklist').read().splitlines()[4:] if
-                'tribler.exe' in item.split()]
-    elif sys.platform == 'darwin':
-        tribler_executable_partial_path = "Tribler.app/Contents/MacOS/tribler".lower()
-        for proc in subprocess.check_output(['ps', '-ef']).splitlines():
-            if tribler_executable_partial_path in proc.lower() or ('python' in proc and 'run_tribler.py' in proc):
-                pids += [int(proc.split()[1])]
-
-    # Remove the current instance PID from this list
-    current_pid = os.getpid()
-    # In Mac, there are two processes spawned somehow with consecutive pids, if so remove it from the list
-    current_pid_list = [current_pid, current_pid - 1, current_pid + 1]
-    for new_pid in current_pid_list:
-        if new_pid in pids:
-            pids.remove(new_pid)
-
-    # Get core process PID from the lock file (if any) and add it to the PID list
+def get_existing_tribler_pid():
+    """ Get PID of existing instance if present from the lock file (if any)"""
     process_checker = ProcessChecker()
     if process_checker.already_running:
-        core_pid = process_checker.get_pid_from_lock_file()
-        if core_pid not in pids:
-            pids.append(int(core_pid))
-
-    return pids
-
+        return process_checker.get_pid_from_lock_file()
+    return -1
 
 def should_kill_other_tribler_instances():
     """ Asks user whether to force restart Tribler if there is more than one instance running.
@@ -169,19 +142,18 @@ def should_kill_other_tribler_instances():
         return
 
     # Get PIDs of existing tribler instance
-    pids = get_existing_tribler_pids()
+    pid = get_existing_tribler_pid()
 
     # If the PID list is not empty, then there is another Tribler instance running
     # Ask user whether to force restart
-    if pids:
+    if pid > 0:
         import Tkinter
         import tkMessageBox
         window = Tkinter.Tk()
         window.withdraw()
         result = tkMessageBox.askquestion("Warning", FORCE_RESTART_MESSAGE, icon='warning')
         if result == 'yes':
-            for pid in pids:
-                os.kill(pid, 9)
+            os.kill(pid, 9)
             window.update()
             window.quit()
 
