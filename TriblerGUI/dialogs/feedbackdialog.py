@@ -8,6 +8,7 @@ import sys
 import platform
 import time
 
+from PyQt5.QtWidgets import QMessageBox
 from TriblerGUI.event_request_manager import received_events
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import performed_requests as tribler_performed_requests, TriblerRequestManager
@@ -100,15 +101,22 @@ class FeedbackDialog(QDialog):
 
     def on_report_sent(self, response):
         sent = response[u'sent']
+
+        success_text = "Successfully sent the report! Thanks for your contribution."
+        error_text = "Could not send the report! Please post this issue on GitHub."
+
+        box = QMessageBox(self.window())
+        box.setWindowTitle("Report Sent" if sent else "ERROR: Report Sending Failed")
+        box.setText(success_text if sent else error_text)
+        box.setStyleSheet("QPushButton { color: white; }")
+        box.exec_()
+
         QApplication.quit()
-        from check_os import error_and_exit
-        if sent:
-            error_and_exit("Report Sent", "Successfully sent the report! Thanks for your contribution.")
-        else:
-            error_and_exit("ERROR: Report Sending Failed",
-                           "Could not send the report! Please post this issue on GitHub.")
 
     def on_send_clicked(self):
+        self.send_report_button.setEnabled(False)
+        self.send_report_button.setText("SENDING...")
+
         self.request_mgr = TriblerRequestManager()
         endpoint = 'http://reporter.tribler.org/report'
 

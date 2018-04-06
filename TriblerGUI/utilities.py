@@ -3,6 +3,7 @@ import hashlib
 import os
 import re
 import sys
+from urllib import quote_plus
 
 import TriblerGUI
 from TriblerGUI.defs import VIDEO_EXTS
@@ -223,3 +224,26 @@ def is_dir_writable(path):
     else:
         os.remove(os.path.join(path, 'temp'))
         return True
+
+
+def unicode_quoter(c):
+    """
+    Quote a single unicode character for URI form.
+
+    :param c: the character to quote
+    :return: the safe URI string
+    """
+    try:
+        return quote_plus(c)
+    except KeyError:
+        return c
+
+
+def quote_plus_unicode(s):
+    """
+    Quote a unicode string for URI form.
+
+    :param s: the string to quote
+    :return: the safe URI string
+    """
+    return ''.join([unicode_quoter(c) for c in s])

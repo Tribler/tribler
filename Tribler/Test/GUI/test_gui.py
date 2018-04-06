@@ -1,5 +1,7 @@
+import logging
 import os
 import sys
+import threading
 import unittest
 from random import randint
 from unittest import skipUnless
@@ -33,6 +35,37 @@ else:
     window = None
 
 
+def start_fake_core(port):
+    from twisted.internet import reactor
+    from twisted.web.server import Site
+
+    from FakeTriblerAPI.endpoints.root_endpoint import RootEndpoint
+    from FakeTriblerAPI.tribler_data import TriblerData
+    import FakeTriblerAPI.tribler_utils as tribler_utils
+
+    def generate_tribler_data():
+        tribler_utils.tribler_data = TriblerData()
+        tribler_utils.tribler_data.generate()
+
+    logging.basicConfig()
+    logger = logging.getLogger(__file__)
+    logger.setLevel(logging.INFO)
+
+    logger.info("Generating random Tribler data")
+    generate_tribler_data()
+
+    site = Site(RootEndpoint())
+    logger.info("Starting fake Tribler API on port %d", port)
+    reactor.listenTCP(port, site)
+    reactor.run(installSignalHandlers=False)
+
+
+# Start the fake API
+t = threading.Thread(target=start_fake_core, args=(8085,))
+t.setDaemon(True)
+t.start()
+
+
 def no_abort(*args, **kwargs):
     sys.__excepthook__(*args, **kwargs)
 sys.excepthook = no_abort
@@ -51,15 +84,6 @@ class AbstractTriblerGUITest(unittest.TestCase):
     def setUp(self):
         self.signal_received = None
 
-        # To fix the Windows forking system it's necessary to point __main__ to
-        # the module we want to execute in the forked process
-        self.old_main = sys.modules["__main__"]
-        self.old_main_file = sys.modules["__main__"].__file__
-
-        from TriblerGUI.scripts import start_fake_core  # So the module is loaded
-        sys.modules["__main__"] = sys.modules["TriblerGUI.scripts.start_fake_core"]
-        sys.modules["__main__"].__file__ = sys.modules["TriblerGUI.scripts.start_fake_core"].__file__
-
         QTest.qWait(100)
         self.screenshots_taken = 0
         window.downloads_page.can_update_items = True
@@ -69,9 +93,6 @@ class AbstractTriblerGUITest(unittest.TestCase):
             self.wait_for_signal(window.core_manager.events_manager.tribler_started, no_args=True)
 
     def tearDown(self):
-        sys.modules["__main__"] = self.old_main
-        sys.modules["__main__"].__file__ = self.old_main_file
-
         window.downloads_page.can_update_items = False
 
     @classmethod

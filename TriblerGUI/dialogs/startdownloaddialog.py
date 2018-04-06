@@ -4,11 +4,11 @@ from PyQt5 import uic
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QSizePolicy, QFileDialog, QTreeWidgetItem
 
-from Tribler.Core.Utilities.utilities import quote_plus_unicode
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_ui_file_path, format_size, get_gui_setting, get_image_path, is_dir_writable
+from TriblerGUI.utilities import get_ui_file_path, format_size, get_gui_setting, get_image_path, is_dir_writable,\
+    quote_plus_unicode
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
