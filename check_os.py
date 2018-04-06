@@ -203,7 +203,7 @@ def set_process_priority(pid=None, priority_order=1):
     elif sys.platform == 'darwin' or sys.platform == 'linux2':
         # On Unix, priority can be -20 to 20, but usually not allowed to set below 0, we set our classes somewhat in
         # that range.
-        priority_classes = [15, 12, 10, 4, 1, 0]
+        priority_classes = [5, 4, 3, 2, 1, 0]
         process.nice(priority_classes[priority_order])
 
 
