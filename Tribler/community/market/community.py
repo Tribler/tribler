@@ -108,10 +108,10 @@ class MarketCommunity(Community, BlockListener):
     """
     Community for general asset trading.
     """
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000405825d086899ad4c48fcb24cf5fc3df44f909dde8"
-                       "fc76486337c072c09f5e19753af9132e0a1ad13e90c70babf81eea9891fb73ca9bb3a52637a188358fe75769ccc7a"
-                       "100e2f3ca602de3ce8ed4a8607c495eb90125cbcbc1c85c0a3868ea5faaca135083eadf0b757d99d4a22efbb44656"
-                       "c105a5f8cf5c1339ccb238f62e715369630ad3a50301efe4c11f97f5d89fe".decode('hex'))
+    master_peer = Peer("3081a7301006072a8648ce3d020106052b8104002703819200040596ad1951cc5e4a8d589508cc2b8823a73a35471"
+                       "4cfc8acd163acb84e13cbfcec67d00d41eca49bd2fb861cc89d63005fd192369547fa571a2514bad86eb438ba68ca"
+                       "fea5ea935e03babe16bb2cf8390487b3a50666f048632f0a38c722dd3b37e4d115b625dedd22426fc4bf48d80275a"
+                       "98a3ee32470e766473c0a10ef6781b7f544bf0683a96b2eda78e4f1e13437".decode('hex'))
 
     def __init__(self, *args, **kwargs):
         self.is_matchmaker = kwargs.pop('is_matchmaker', True)
