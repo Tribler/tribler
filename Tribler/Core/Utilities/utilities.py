@@ -83,14 +83,12 @@ def validate_init_peers(metainfo):
         if not isinstance(metainfo["initial peers"], list):
             raise ValueError("initial peers not list, but %s" % type(metainfo["initial peers"]))
         for address in metainfo["initial peers"]:
-            if not (isinstance(address, tuple) and len(address) == 2):
-                raise ValueError("address not 2-item tuple, but %s", type(address))
-            elif not isinstance(address[0], str):
-                raise ValueError("address host not string, but %s", type(address[0]))
-            elif not isinstance(address[1], int):
-                raise ValueError("address port not int, but %s", type(address[1]))
-            else:
-                valid_initial_peers.append(address)
+            is_valid_tuple = (isinstance(address, tuple) and len(address) == 2)
+            if is_valid_tuple:
+                is_valid_host = isinstance(address[0], str)
+                is_valid_port = isinstance(address[1], int)
+                if is_valid_host and is_valid_port:
+                    valid_initial_peers.append(address)
         return valid_initial_peers
     return None
 
