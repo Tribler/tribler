@@ -1,7 +1,40 @@
-from Tribler.Test.Community.Triblerchain.test_triblerchain_utilities import TriblerTestBlock
+from hashlib import sha256
+import random
+
+from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
+from Tribler.Core.Utilities.encoding import encode
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.community.triblerchain.block import TriblerChainBlock
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import GENESIS_SEQ, GENESIS_HASH, ValidationResult
+from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
+
+
+class TriblerBandwidthTestBlock(TriblerBandwidthBlock):
+    """
+    Test Block that simulates a block used in TrustChain.
+    """
+
+    def __init__(self, previous=None):
+        super(TriblerBandwidthTestBlock, self).__init__()
+        crypto = ECCrypto()
+        other = crypto.generate_key(u"curve25519").pub().key_to_bin()
+
+        transaction = {'up': random.randint(201, 220), 'down': random.randint(221, 240), 'total_up': 0,
+                       'total_down': 0, 'type': 'tribler_bandwidth'}
+
+        if previous:
+            self.key = previous.key
+            transaction['total_up'] = previous.transaction['total_up'] + transaction['up']
+            transaction['total_down'] = previous.transaction['total_down'] + transaction['down']
+            TriblerBandwidthBlock.__init__(self, ('tribler_bandwidth', encode(transaction), previous.public_key,
+                                                  previous.sequence_number + 1, other, 0, previous.hash, 0, 0, 0))
+        else:
+            transaction['total_up'] = random.randint(241, 260)
+            transaction['total_down'] = random.randint(261, 280)
+            self.key = crypto.generate_key(u"curve25519")
+            TriblerBandwidthBlock.__init__(self, (
+                'tribler_bandwidth', encode(transaction), self.key.pub().key_to_bin(), random.randint(50, 100), other,
+                0, sha256(str(random.randint(0, 100000))).digest(), 0, 0, 0))
+        self.sign(self.key)
 
 
 class MockDatabase(object):
@@ -32,16 +65,16 @@ class MockDatabase(object):
                 i.sequence_number == blk.link_sequence_number or i.link_sequence_number == blk.sequence_number]
         return item[0] if item else None
 
-    def get_latest(self, pk):
+    def get_latest(self, pk, block_type=None):
         return self.data[pk][-1] if self.data.get(pk) else None
 
-    def get_block_after(self, blk):
+    def get_block_after(self, blk, block_type=None):
         if self.data.get(blk.public_key) is None:
             return None
         item = [i for i in self.data[blk.public_key] if i.sequence_number > blk.sequence_number]
         return item[0] if item else None
 
-    def get_block_before(self, blk):
+    def get_block_before(self, blk, block_type=None):
         if self.data.get(blk.public_key) is None:
             return None
         item = [i for i in self.data[blk.public_key] if i.sequence_number < blk.sequence_number]
@@ -50,19 +83,19 @@ class MockDatabase(object):
 
 class TestBlocks(AbstractServer):
     """
-    This class contains tests for a TriblerChain block.
+    This class contains tests for a TrustChain block that captures a bandwidth transaction.
     """
 
     @classmethod
     def setup_validate(cls):
         # Assert
-        block1 = TriblerTestBlock()
+        block1 = TriblerBandwidthTestBlock()
         block1.sequence_number = GENESIS_SEQ
         block1.previous_hash = GENESIS_HASH
         block1.sign(block1.key)
-        block2 = TriblerTestBlock(previous=block1)
-        block3 = TriblerTestBlock(previous=block2)
-        block4 = TriblerTestBlock()
+        block2 = TriblerBandwidthTestBlock(previous=block1)
+        block3 = TriblerBandwidthTestBlock(previous=block2)
+        block4 = TriblerBandwidthTestBlock()
         return block1, block2, block3, block4
 
     def test_validate_up(self):
@@ -103,7 +136,7 @@ class TestBlocks(AbstractServer):
         db.add_block(block2)
         db.add_block(block3)
         # Act
-        block2 = TriblerChainBlock(block2.pack_db_insert())
+        block2 = TriblerBandwidthBlock(block2.pack_db_insert())
         block2.transaction["up"] += 10
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
@@ -119,7 +152,7 @@ class TestBlocks(AbstractServer):
         db.add_block(block2)
         db.add_block(block3)
         # Act
-        block2 = TriblerChainBlock(block2.pack_db_insert())
+        block2 = TriblerBandwidthBlock(block2.pack_db_insert())
         block2.transaction["down"] += 10
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
@@ -135,7 +168,7 @@ class TestBlocks(AbstractServer):
         db.add_block(block2)
         db.add_block(block3)
         # Act
-        block2 = TriblerChainBlock(block2.pack_db_insert())
+        block2 = TriblerBandwidthBlock(block2.pack_db_insert())
         block2.transaction["total_up"] += 10
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
@@ -151,7 +184,7 @@ class TestBlocks(AbstractServer):
         db.add_block(block2)
         db.add_block(block3)
         # Act
-        block2 = TriblerChainBlock(block2.pack_db_insert())
+        block2 = TriblerBandwidthBlock(block2.pack_db_insert())
         block2.transaction["total_down"] += 10
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
@@ -208,7 +241,8 @@ class TestBlocks(AbstractServer):
         (block1, block2, _, _) = TestBlocks.setup_validate()
         db.add_block(block2)
         # Act
-        db.add_block(TriblerChainBlock.create(block1.transaction, db, block1.link_public_key, block1))
+        db.add_block(TriblerBandwidthBlock.create('tribler_bandwidth', block1.transaction, db,
+                                                  block1.link_public_key, block1))
         block1.transaction["up"] += 5
         result = block1.validate(db)
         self.assertEqual(result[0], ValidationResult.invalid)
@@ -219,7 +253,8 @@ class TestBlocks(AbstractServer):
         (block1, block2, _, _) = TestBlocks.setup_validate()
         db.add_block(block2)
         # Act
-        db.add_block(TriblerChainBlock.create(block1.transaction, db, block1.link_public_key, block1))
+        db.add_block(TriblerBandwidthBlock.create('tribler_bandwidth', block1.transaction, db,
+                                                  block1.link_public_key, block1))
         block1.transaction["down"] -= 5
         result = block1.validate(db)
         self.assertEqual(result[0], ValidationResult.invalid)
@@ -227,7 +262,7 @@ class TestBlocks(AbstractServer):
 
     def test_validate_not_sane_negatives(self):
         db = MockDatabase()
-        block1 = TriblerChainBlock()
+        block1 = TriblerBandwidthBlock()
         # Act
         block1.transaction = {'up': -10, 'down': -10, 'total_up': -20, 'total_down': -10}
         result = block1.validate(db)
@@ -239,7 +274,7 @@ class TestBlocks(AbstractServer):
 
     def test_validate_not_sane_zeroes(self):
         db = MockDatabase()
-        block1 = TriblerChainBlock()
+        block1 = TriblerBandwidthBlock()
         # Act
         block1.transaction = {'up': 0, 'down': 0, 'total_up': 30, 'total_down': 40}
         result = block1.validate(db)

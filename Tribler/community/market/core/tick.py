@@ -177,7 +177,7 @@ class Tick(object):
 
     def to_block_dict(self):
         """
-        Return a block dictionary representation of the tick, will be stored on the TradeChain
+        Return a block dictionary representation of the tick, will be stored on the TrustChain
         """
         return {
             "trader_id": str(self.order_id.trader_id),
@@ -238,9 +238,9 @@ class Ask(Tick):
     @classmethod
     def from_block(cls, block):
         """
-        Restore an ask from a TradeChain block
+        Restore an ask from a TrustChain block
 
-        :param data: TradeChainBlock
+        :param data: TrustChainBlock
         :return: Restored ask
         :rtype: Ask
         """
@@ -278,9 +278,9 @@ class Bid(Tick):
     @classmethod
     def from_block(cls, block):
         """
-        Restore a bid from a TradeChain block
+        Restore a bid from a TrustChain block
 
-        :param data: TradeChainBlock
+        :param data: TrustChainBlock
         :return: Restored bid
         :rtype: Bid
         """

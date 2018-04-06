@@ -146,18 +146,6 @@ class Session(object):
             permid_module.save_keypair_trustchain(self.trustchain_keypair, trustchain_pairfilename)
             permid_module.save_pub_key_trustchain(self.trustchain_keypair, trustchain_pubfilename)
 
-        tradechain_pairfilename = self.config.get_tradechain_permid_keypair_filename()
-
-        if os.path.exists(tradechain_pairfilename):
-            self.tradechain_keypair = permid_module.read_keypair_trustchain(tradechain_pairfilename)
-        else:
-            self.tradechain_keypair = permid_module.generate_keypair_trustchain()
-
-            # Save keypair
-            tradechain_pubfilename = os.path.join(self.config.get_state_dir(), 'ecpub_tradechain.pem')
-            permid_module.save_keypair_trustchain(self.tradechain_keypair, tradechain_pairfilename)
-            permid_module.save_pub_key_trustchain(self.tradechain_keypair, tradechain_pubfilename)
-
     def unhandled_error_observer(self, event):
         """
         This method is called when an unhandled error in Tribler is observed.

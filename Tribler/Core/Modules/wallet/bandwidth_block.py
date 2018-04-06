@@ -2,42 +2,48 @@ from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock, EM
     GENESIS_SEQ, GENESIS_HASH
 
 
-class TriblerChainBlock(TrustChainBlock):
+class TriblerBandwidthBlock(TrustChainBlock):
     """
-    Container for TriblerChain block information
+    Container for bandwidth block information
     """
 
     @classmethod
-    def create(cls, transaction, database, public_key, link=None, link_pk=None):
+    def create(cls, block_type, transaction, database, public_key, link=None, link_pk=None):
         """
         Create an empty next block.
-        :param database: the database to use as information source
+        :param block_type: the type of the block to be created
         :param transaction: the transaction to use in this block
+        :param database: the database to use as information source
         :param public_key: the public key to use for this block
         :param link: optionally create the block as a linked block to this block
         :param link_pk: the public key of the counterparty in this transaction
         :return: A newly created block
         """
-        blk = database.get_latest(public_key)
+        latest_bw_block = database.get_latest(public_key, block_type='tribler_bandwidth')
+        latest_block = database.get_latest(public_key)
         ret = cls()
         if link:
+            ret.type = link.type
             ret.transaction["up"] = link.transaction["down"] if "down" in link.transaction else 0
             ret.transaction["down"] = link.transaction["up"] if "up" in link.transaction else 0
             ret.link_public_key = link.public_key
             ret.link_sequence_number = link.sequence_number
         else:
+            ret.type = block_type
             ret.transaction["up"] = transaction["up"] if "up" in transaction else 0
             ret.transaction["down"] = transaction["down"] if "down" in transaction else 0
             ret.link_public_key = link_pk
 
-        if blk:
-            ret.transaction["total_up"] = blk.transaction["total_up"] + ret.transaction["up"]
-            ret.transaction["total_down"] = blk.transaction["total_down"] + ret.transaction["down"]
-            ret.sequence_number = blk.sequence_number + 1
-            ret.previous_hash = blk.hash
+        if latest_bw_block:
+            ret.transaction["total_up"] = latest_bw_block.transaction["total_up"] + ret.transaction["up"]
+            ret.transaction["total_down"] = latest_bw_block.transaction["total_down"] + ret.transaction["down"]
         else:
             ret.transaction["total_up"] = ret.transaction["up"]
             ret.transaction["total_down"] = ret.transaction["down"]
+
+        if latest_block:
+            ret.sequence_number = latest_block.sequence_number + 1
+            ret.previous_hash = latest_block.hash
 
         ret.public_key = public_key
         ret.signature = EMPTY_SIG
@@ -72,8 +78,8 @@ class TriblerChainBlock(TrustChainBlock):
 
         blk = database.get(self.public_key, self.sequence_number)
         link = database.get_linked(self)
-        prev_blk = database.get_block_before(self)
-        next_blk = database.get_block_after(self)
+        prev_blk = database.get_block_before(self, block_type='tribler_bandwidth')
+        next_blk = database.get_block_after(self, block_type='tribler_bandwidth')
 
         is_genesis = self.sequence_number == GENESIS_SEQ or self.previous_hash == GENESIS_HASH
         if is_genesis:

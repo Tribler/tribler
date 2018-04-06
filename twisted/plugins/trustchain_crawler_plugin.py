@@ -1,11 +1,11 @@
 """
-This twistd plugin starts a TriblerChain crawler that crawls the network for blocks.
+This twistd plugin starts a TrustChain crawler that crawls the network for blocks.
 """
 import os
 import signal
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
-from Tribler.community.triblerchain.community import TriblerChainCrawlerCommunity
+from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.discovery import RandomWalk
 from twisted.application.service import MultiService, IServiceMaker
@@ -32,10 +32,10 @@ class Options(usage.Options):
     ]
 
 
-class TriblerChainCrawlerServiceMaker(object):
+class TrustChainCrawlerServiceMaker(object):
     implements(IServiceMaker, IPlugin)
-    tapname = "triblerchain_crawler"
-    description = "A TriblerChainCommunity crawler"
+    tapname = "trustchain_crawler"
+    description = "A TrustChain crawler"
     options = Options
 
     def __init__(self):
@@ -79,7 +79,8 @@ class TriblerChainCrawlerServiceMaker(object):
         config.set_torrent_search_enabled(False)
         config.set_channel_search_enabled(False)
         config.set_market_community_enabled(False)
-        config.set_trustchain_enabled(False)  # We load the TriblerChain community ourselves
+        config.set_trustchain_enabled(False)  # We load the TrustChain community ourselves
+        config.set_tunnel_community_enabled(False)
 
         # Check if we are already running a Tribler instance
         self.process_checker = ProcessChecker()
@@ -87,7 +88,7 @@ class TriblerChainCrawlerServiceMaker(object):
             self.shutdown_process("Another Tribler instance is already using statedir %s" % config.get_state_dir())
             return
 
-        msg("Starting TriblerChain crawler")
+        msg("Starting TrustChain crawler")
 
         if options["statedir"]:
             config.set_state_dir(options["statedir"])
@@ -100,28 +101,27 @@ class TriblerChainCrawlerServiceMaker(object):
             config.set_dispersy_port(options["ipv8"])
 
         def on_tribler_started(_):
-            # We load the TriblerChain community.
-            triblerchain_peer = Peer(self.session.trustchain_keypair)
-            self.triblerchain_community = TriblerChainCrawlerCommunity(triblerchain_peer,
-                                                                       self.session.lm.ipv8.endpoint,
-                                                                       self.session.lm.ipv8.network,
-                                                                       tribler_session=self.session,
-                                                                       working_directory=self.session.config.
-                                                                       get_state_dir())
-            self.session.lm.ipv8.overlays.append(self.triblerchain_community)
-            self.session.lm.ipv8.strategies.append((RandomWalk(self.triblerchain_community), -1))
+            # We load the TrustChain community.
+            trustchain_peer = Peer(self.session.trustchain_keypair)
+            self.trustchain_community = TrustChainCommunity(trustchain_peer,
+                                                            self.session.lm.ipv8.endpoint,
+                                                            self.session.lm.ipv8.network,
+                                                            working_directory=self.session.config.
+                                                            get_state_dir())
+            self.session.lm.ipv8.overlays.append(self.trustchain_community)
+            self.session.lm.ipv8.strategies.append((RandomWalk(self.trustchain_community), -1))
 
         self.session = Session(config)
         self.session.start().addCallback(on_tribler_started).addErrback(
             lambda failure: self.shutdown_process(failure.getErrorMessage()))
-        msg("TriblerChain crawler started")
+        msg("TrustChain crawler started")
 
     def makeService(self, options):
         """
-        Construct a TriblerChain Crawler service.
+        Construct a TrustChain Crawler service.
         """
         crawler_service = MultiService()
-        crawler_service.setName("Market")
+        crawler_service.setName("TrustChainCrawler")
 
         manhole_namespace = {}
         if options["manhole"] > 0:
@@ -138,4 +138,4 @@ class TriblerChainCrawlerServiceMaker(object):
 
         return crawler_service
 
-service_maker = TriblerChainCrawlerServiceMaker()
+service_maker = TrustChainCrawlerServiceMaker()

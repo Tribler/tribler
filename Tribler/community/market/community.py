@@ -1,16 +1,12 @@
 import random
 from base64 import b64decode
 
-from Tribler.pyipv8.ipv8.deprecated.bloomfilter import BloomFilter
-from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, succeed, Deferred, returnValue
-from twisted.internet.task import LoopingCall
-
+from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Core.simpledefs import NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_TRANSACTION_COMPLETE, \
     NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID_TIMEOUT, NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT
 from Tribler.Core.simpledefs import NTFY_UPDATE
-from Tribler.community.market.core.matching_engine import MatchingEngine, PriceTimeStrategy
 from Tribler.community.market.core import DeclineMatchReason, DeclinedTradeReason
+from Tribler.community.market.core.matching_engine import MatchingEngine, PriceTimeStrategy
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.message_repository import MemoryMessageRepository
 from Tribler.community.market.core.order import OrderId, OrderNumber
@@ -36,17 +32,20 @@ from Tribler.community.market.payload import InfoPayload, MatchPayload, TradePay
     AcceptMatchPayload, OrderStatusRequestPayload, OrderStatusResponsePayload, WalletInfoPayload, PaymentPayload, \
     DeclineMatchPayload, DeclineTradePayload, OrderbookSyncPayload, PingPongPayload
 from Tribler.community.market.reputation.temporal_pagerank_manager import TemporalPagerankReputationManager
-from Tribler.community.market.tradechain.block import TradeChainBlock
-from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock
-from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity, synchronized
-from Tribler.pyipv8.ipv8.attestation.trustchain.payload import HalfBlockPayload, HalfBlockBroadcastPayload, \
-    HalfBlockPairPayload, HalfBlockPairBroadcastPayload
+from Tribler.pyipv8.ipv8.attestation.trustchain.community import synchronized
+from Tribler.pyipv8.ipv8.attestation.trustchain.listener import BlockListener
+from Tribler.pyipv8.ipv8.attestation.trustchain.payload import HalfBlockPairPayload
+from Tribler.pyipv8.ipv8.deprecated.bloomfilter import BloomFilter
+from Tribler.pyipv8.ipv8.deprecated.community import Community
 from Tribler.pyipv8.ipv8.deprecated.payload import IntroductionRequestPayload, IntroductionResponsePayload
 from Tribler.pyipv8.ipv8.deprecated.payload_headers import BinMemberAuthenticationPayload
 from Tribler.pyipv8.ipv8.deprecated.payload_headers import GlobalTimeDistributionPayload
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, succeed, Deferred, returnValue
+from twisted.internet.task import LoopingCall
 
 
 class ProposedTradeRequestCache(NumberCache):
@@ -105,13 +104,10 @@ class PingRequestCache(RandomNumberCache):
         self.request_deferred.callback(False)
 
 
-class MarketCommunity(TrustChainCommunity):
+class MarketCommunity(Community, BlockListener):
     """
     Community for general asset trading.
     """
-    BLOCK_CLASS = TradeChainBlock
-    DB_CLASS = MarketDB
-    DB_NAME = 'market'
     master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000405825d086899ad4c48fcb24cf5fc3df44f909dde8"
                        "fc76486337c072c09f5e19753af9132e0a1ad13e90c70babf81eea9891fb73ca9bb3a52637a188358fe75769ccc7a"
                        "100e2f3ca602de3ce8ed4a8607c495eb90125cbcbc1c85c0a3868ea5faaca135083eadf0b757d99d4a22efbb44656"
@@ -121,9 +117,12 @@ class MarketCommunity(TrustChainCommunity):
         self.is_matchmaker = kwargs.pop('is_matchmaker', True)
         self.tribler_session = kwargs.pop('tribler_session', None)
         self.wallets = kwargs.pop('wallets', {})
-        use_database = kwargs.pop('use_database', True)
+        self.trustchain = kwargs.pop('trustchain')
+        self.trustchain.broadcast_block = False
+        self.trustchain.add_listener(self, ['tick', 'cancel_order', 'tx_init', 'tx_payment', 'tx_done'])
 
-        kwargs['db_name'] = self.DB_NAME
+        use_database = kwargs.pop('use_database', True)
+        db_working_dir = kwargs.pop('working_directory', '')
 
         super(MarketCommunity, self).__init__(*args, **kwargs)
         self._use_main_thread = True  # Market community is unable to deal with thread pool message processing yet
@@ -131,7 +130,7 @@ class MarketCommunity(TrustChainCommunity):
         self.mid = self.my_peer.mid.encode('hex')
         self.mid_register = {}
         self.order_book = None
-        self.market_database = self.persistence
+        self.market_database = MarketDB(db_working_dir, 'market')
         self.matching_engine = None
         self.incoming_match_messages = {}  # Map of TraderId -> Message (we save all incoming matches)
         self.transaction_manager = None
@@ -181,7 +180,8 @@ class MarketCommunity(TrustChainCommunity):
             chr(18): self.received_info,
             chr(19): self.received_orderbook_sync,
             chr(20): self.received_ping,
-            chr(21): self.received_pong
+            chr(21): self.received_pong,
+            chr(22): self.received_matched_tx_complete
         })
 
         self.logger.info("Market community initialized with mid %s", self.mid)
@@ -191,15 +191,15 @@ class MarketCommunity(TrustChainCommunity):
         Check whether we should sign the incoming block.
         """
         tx = block.transaction
-        if tx["type"] == "tick" or tx["type"] == "cancel_order":
-            self.logger.info("Signing %s block as matchmaker!", tx["type"])
+        if block.type == "tick" or block.type == "cancel_order":
+            self.logger.info("Signing %s block as matchmaker!", block.type)
             return True  # Just sign it
-        elif tx["type"] == "tx_payment":
+        elif block.type == "tx_payment":
             txid = TransactionId(TraderId(tx["payment"]["trader_id"]),
                                  TransactionNumber(tx["payment"]["transaction_number"]))
             transaction = self.transaction_manager.find_by_id(txid)
             return bool(transaction)
-        elif tx["type"] == "tx_init" or tx["type"] == "tx_done":
+        elif block.type == "tx_init" or block.type == "tx_done":
             txid = TransactionId(TraderId(tx["tx"]["trader_id"]), TransactionNumber(tx["tx"]["transaction_number"]))
             transaction = self.transaction_manager.find_by_id(txid)
             return bool(transaction)
@@ -398,7 +398,7 @@ class MarketCommunity(TrustChainCommunity):
         """
         tick = Ask.from_block(block) if block.transaction["tick"]["is_ask"] else Bid.from_block(block)
 
-        if self.persistence.get_linked(block):
+        if self.trustchain.persistence.get_linked(block):
             self.on_tick(tick, (block.transaction["tick"]["address"], block.transaction["tick"]["port"]))
 
     def process_tx_init_block(self, block):
@@ -421,7 +421,16 @@ class MarketCommunity(TrustChainCommunity):
         :param block: The TradeChain block containing the transaction completion
         """
         self.update_ips_from_block(block)
-        if self.is_matchmaker:
+
+        if block.link_public_key == self.my_peer.public_key.key_to_bin():
+            # If we have signed an incoming tx_done block, notify the matchmaker about this
+            transaction_id = TransactionId(TraderId(block.transaction["tx"]["trader_id"]),
+                                           TransactionNumber(block.transaction["tx"]["transaction_number"]))
+            transaction = self.transaction_manager.find_by_id(transaction_id)
+            if transaction and self.trustchain.persistence.get_linked(block):
+                self.notify_transaction_complete(transaction.to_dictionary(), mine=True)
+                self.send_matched_transaction_completed(transaction, block)
+        elif self.is_matchmaker and self.trustchain.persistence.get_linked(block):
             tx_dict = block.transaction
             transferred_quantity = Quantity(tx_dict["tx"]["quantity"], tx_dict["tx"]["quantity_type"])
             self.order_book.update_ticks(tx_dict["ask"], tx_dict["bid"], transferred_quantity, unreserve=False)
@@ -470,11 +479,11 @@ class MarketCommunity(TrustChainCommunity):
                 entry = self.order_book.get_ask(order_id) if is_ask else self.order_book.get_bid(order_id)
 
                 # Send the block pair associated with this tick
-                tick_block = self.persistence.get_block_with_hash(entry.tick.block_hash)
+                tick_block = self.trustchain.persistence.get_block_with_hash(entry.tick.block_hash)
                 if tick_block:
-                    other_tick_block = self.persistence.get_linked(tick_block)
+                    other_tick_block = self.trustchain.persistence.get_linked(tick_block)
                     if other_tick_block:
-                        self.send_block_pair(tick_block, other_tick_block, source_address)
+                        self.trustchain.send_block_pair(tick_block, other_tick_block, source_address)
 
     def ping_peer(self, peer):
         """
@@ -585,7 +594,8 @@ class MarketCommunity(TrustChainCommunity):
             self.logger.info("Ask verified with price %s and quantity %s", price, quantity)
             order.set_verified()
             self.order_manager.order_repository.update(order)
-            self.send_block_pair(*blocks)
+            self.check_outstanding_matches(order)
+            self.trustchain.send_block_pair(*blocks)
 
             if self.is_matchmaker:
                 tick.block_hash = blocks[0].hash
@@ -634,7 +644,8 @@ class MarketCommunity(TrustChainCommunity):
             self.logger.info("Bid verified with price %s and quantity %s", price, quantity)
             order.set_verified()
             self.order_manager.order_repository.update(order)
-            self.send_block_pair(*blocks)
+            self.check_outstanding_matches(order)
+            self.trustchain.send_block_pair(*blocks)
 
             if self.is_matchmaker:
                 tick.block_hash = blocks[0].hash
@@ -648,68 +659,26 @@ class MarketCommunity(TrustChainCommunity):
 
         return self.create_new_tick_block(tick).addCallback(on_verified_bid)
 
-    def received_half_block(self, source_address, data):
-        super(MarketCommunity, self).received_half_block(source_address, data)
+    def check_outstanding_matches(self, order):
+        """
+        Since it could be that we received match messages while an order was still unverified, we check our cache
+        of incoming match messages.
+        """
+        for match_payload in self.incoming_match_messages.values():
+            order_id = OrderId(TraderId(self.mid), match_payload.recipient_order_number)
+            match_order = self.order_manager.order_repository.find_by_id(order_id)
+            if match_order.order_id == order.order_id:
+                self.process_match_payload(match_payload)
 
-        _, payload = self._ez_unpack_noauth(HalfBlockPayload, data)
-        block = TrustChainBlock.from_payload(payload, self.serializer)
-
-        if "type" not in block.transaction:  # Every market block needs a type
-            return
-
-        if block.transaction["type"] == "tx_done":
-            # If we have signed an incoming tx_done block, notify the matchmaker about this
-            transaction_id = TransactionId(TraderId(block.transaction["tx"]["trader_id"]),
-                                           TransactionNumber(block.transaction["tx"]["transaction_number"]))
-            transaction = self.transaction_manager.find_by_id(transaction_id)
-            if transaction and self.market_database.get_linked(block):
-                self.notify_transaction_complete(transaction.to_dictionary(), mine=True)
-                self.send_transaction_completed(transaction, block)
-
-        if block.transaction["type"] != "tick" or \
-                (block.transaction["type"] == "tick" and block.link_public_key != self.my_peer.public_key.key_to_bin()):
-            self.process_market_block(block)
-
-    def received_half_block_broadcast(self, source_address, data):
-        super(MarketCommunity, self).received_half_block_broadcast(source_address, data)
-
-        _, payload = self._ez_unpack_noauth(HalfBlockBroadcastPayload, data)
-        block = TrustChainBlock.from_payload(payload, self.serializer)
-
-        self.process_market_block(block)
-
-    def process_market_block(self, block):
-        if block.transaction["type"] == "tick":
+    def received_block(self, block):
+        if block.type == "tick":
             self.process_tick_block(block)
-        elif block.transaction["type"] == "tx_init":
+        elif block.type == "tx_init":
             self.process_tx_init_block(block)
-        elif block.transaction["type"] == "tx_done":
+        elif block.type == "tx_done":
             self.process_tx_done_block(block)
-        elif block.transaction["type"] == "cancel_order":
+        elif block.type == "cancel_order":
             self.process_cancel_order_block(block)
-
-    def received_half_block_pair(self, source_address, data):
-        super(MarketCommunity, self).received_half_block_pair(source_address, data)
-
-        _, payload = self._ez_unpack_noauth(HalfBlockPairPayload, data)
-        block1, block2 = TrustChainBlock.from_pair_payload(payload, self.serializer)
-
-        if block1.transaction["type"] == "tx_done" and block2.transaction["type"] == "tx_done":
-            self.on_transaction_completed_message(block1, block2)
-        elif block1.transaction["type"] == "tick" and block2.transaction["type"] == "tick":
-            self.process_tick_block(block1)
-            self.process_tick_block(block2)
-
-    def received_half_block_pair_broadcast(self, source_address, data):
-        super(MarketCommunity, self).received_half_block_pair_broadcast(source_address, data)
-
-        _, payload = self._ez_unpack_noauth(HalfBlockPairBroadcastPayload, data)
-        block1, block2 = TrustChainBlock.from_pair_payload(payload, self.serializer)
-        if block1.transaction["type"] == "tx_done" and block2.transaction["type"] == "tx_done":
-            self.on_transaction_completed_bc_message(block1, block2)
-        elif block1.transaction["type"] == "tick" and block2.transaction["type"] == "tick":
-            self.process_tick_block(block1)
-            self.process_tick_block(block2)
 
     def add_matchmaker(self, matchmaker):
         """
@@ -760,11 +729,11 @@ class MarketCommunity(TrustChainCommunity):
         """
         def create_send_block(matchmaker):
             tx_dict = {
-                "type": "tick",
                 "tick": tick.to_block_dict()
             }
             tx_dict["tick"]['address'], tx_dict["tick"]['port'] = self.get_ipv8_address()
-            return self.sign_block(matchmaker, matchmaker.public_key.key_to_bin(), tx_dict)
+            return self.trustchain.sign_block(matchmaker, matchmaker.public_key.key_to_bin(),
+                                              block_type='tick', transaction=tx_dict)
 
         return self.get_online_matchmaker().addCallback(create_send_block)
 
@@ -780,11 +749,11 @@ class MarketCommunity(TrustChainCommunity):
         """
         def create_send_block(matchmaker):
             tx_dict = {
-                "type": "cancel_order",
                 "trader_id": str(order.order_id.trader_id),
                 "order_number": int(order.order_id.order_number)
             }
-            return self.sign_block(matchmaker, matchmaker.public_key.key_to_bin(), tx_dict)\
+            return self.trustchain.sign_block(matchmaker, matchmaker.public_key.key_to_bin(),
+                                              block_type='cancel_order', transaction=tx_dict)\
                 .addCallback(lambda (blk1, blk2): blk1)
 
         return self.get_online_matchmaker().addCallback(create_send_block)
@@ -806,12 +775,12 @@ class MarketCommunity(TrustChainCommunity):
         :rtype: Deferred
         """
         tx_dict = {
-            "type": "tx_init",
             "ask": ask_order_dict,
             "bid": bid_order_dict,
             "tx": transaction.to_dictionary()
         }
-        return self.sign_block(peer, peer.public_key.key_to_bin(), tx_dict)\
+        return self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
+                                          block_type='tx_init', transaction=tx_dict)\
             .addCallback(lambda (blk1, blk2): blk1)
 
     @synchronized
@@ -827,10 +796,10 @@ class MarketCommunity(TrustChainCommunity):
         :rtype: Deferred
         """
         tx_dict = {
-            "type": "tx_payment",
             "payment": payment.to_dictionary()
         }
-        return self.sign_block(peer, peer.public_key.key_to_bin(), tx_dict)\
+        return self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
+                                          block_type='tx_payment', transaction=tx_dict)\
             .addCallback(lambda (blk1, blk2): blk1)
 
     @synchronized
@@ -850,12 +819,12 @@ class MarketCommunity(TrustChainCommunity):
         :rtype: Deferred
         """
         tx_dict = {
-            "type": "tx_done",
             "ask": ask_order_dict,
             "bid": bid_order_dict,
             "tx": transaction.to_dictionary()
         }
-        return self.sign_block(peer, peer.public_key.key_to_bin(), tx_dict)\
+        return self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
+                                          block_type='tx_done', transaction=tx_dict)\
             .addCallback(lambda (blk1, blk2): blk1)
 
     def on_tick(self, tick, address):
@@ -932,8 +901,8 @@ class MarketCommunity(TrustChainCommunity):
         else:
             address = self.lookup_ip(recipient_order_id.trader_id)
 
-        self.logger.debug("Sending match message with order id %s and tick order id %s to trader "
-                          "%s (ip: %s, port: %s)", str(recipient_order_id),
+        self.logger.debug("Sending match message with id %s, order id %s and tick order id %s to trader "
+                          "%s (ip: %s, port: %s)", match_id, str(recipient_order_id),
                           str(tick.order_id), recipient_order_id.trader_id, *address)
 
         global_time = self.claim_global_time()
@@ -959,6 +928,12 @@ class MarketCommunity(TrustChainCommunity):
         self.update_ip(payload.trader_id, (payload.address.ip, payload.address.port))
         self.add_matchmaker(peer)
 
+        self.process_match_payload(payload)
+
+    def process_match_payload(self, payload):
+        """
+        Process a match payload.
+        """
         order_id = OrderId(TraderId(self.mid), payload.recipient_order_number)
         other_order_id = OrderId(payload.trader_id, payload.order_number)
         order = self.order_manager.order_repository.find_by_id(order_id)
@@ -969,7 +944,10 @@ class MarketCommunity(TrustChainCommunity):
         # Store the message for later
         self.incoming_match_messages[payload.match_id] = payload
 
-        if order.status != "open" or order.available_quantity == Quantity(0, order.available_quantity.wallet_id):
+        if order.status == "unverified":
+            # The order is not verified yet but it might be very soon. We simply save it and process it later.
+            return
+        elif order.status != "open" or order.available_quantity == Quantity(0, order.available_quantity.wallet_id):
             # Send a declined trade back
             decline_reason = DeclineMatchReason.ORDER_COMPLETED if order.status != "open" \
                 else DeclineMatchReason.OTHER
@@ -1090,7 +1068,7 @@ class MarketCommunity(TrustChainCommunity):
                 self.order_book.remove_tick(order_id)
 
             if order.verified:
-                return self.create_new_cancel_order_block(order).addCallback(self.send_block)
+                return self.create_new_cancel_order_block(order).addCallback(self.trustchain.send_block)
 
         return succeed(None)
 
@@ -1505,8 +1483,8 @@ class MarketCommunity(TrustChainCommunity):
             When a payment fails, log the error and still send a payment message to inform the other party that the
             payment has failed.
             """
-            self.logger.error("Payment of %s to %s failed: %s", transfer_amount,
-                              str(transaction.partner_incoming_address), failure.value)
+            self.logger.error("Payment of %s to %s failed: (%s) %s", transfer_amount,
+                              str(transaction.partner_incoming_address), type(failure.value), failure.value)
             self.send_payment_message(PaymentId(''), transaction, payment_tup, False)
 
         success_cb = lambda txid: self.send_payment_message(PaymentId(txid), transaction, payment_tup, True)
@@ -1575,9 +1553,12 @@ class MarketCommunity(TrustChainCommunity):
         else:
             wallet_id = payment.transferee_quantity.wallet_id
 
-        wallet = self.wallets[wallet_id]
-        transaction_deferred = wallet.monitor_transaction(str(payment.payment_id))
-        transaction_deferred.addCallback(lambda _: self.received_payment(peer, payment, transaction))
+        def monitor_for_transaction():
+            wallet = self.wallets[wallet_id]
+            transaction_deferred = wallet.monitor_transaction(str(payment.payment_id))
+            transaction_deferred.addCallback(lambda _: self.received_payment(peer, payment, transaction))
+
+        reactor.callFromThread(monitor_for_transaction)
 
     def received_payment(self, peer, payment, transaction):
         self.logger.debug("Received payment with id %s (price: %s, quantity: %s)",
@@ -1599,7 +1580,7 @@ class MarketCommunity(TrustChainCommunity):
             We received the signed block from the counterparty, wrap everything up
             """
             self.notify_transaction_complete(transaction.to_dictionary(), mine=True)
-            self.send_transaction_completed(transaction, block)
+            self.send_matched_transaction_completed(transaction, block)
 
         def build_tx_done_block(other_order_dict):
             my_order_dict = order.to_status_dictionary()
@@ -1642,7 +1623,7 @@ class MarketCommunity(TrustChainCommunity):
                                                  {"tx": tx_dict, "mine": mine})
 
     @synchronized
-    def send_transaction_completed(self, transaction, block):
+    def send_matched_transaction_completed(self, transaction, block):
         """
         Let the matchmaker know that the transaction has been completed.
         :param transaction: The completed transaction.
@@ -1657,16 +1638,26 @@ class MarketCommunity(TrustChainCommunity):
         match_payload = self.incoming_match_messages[transaction.match_id]
         del self.incoming_match_messages[transaction.match_id]
 
-        linked_block = self.market_database.get_linked(block) or block
-        self.send_block_pair(block, linked_block, address=self.lookup_ip(match_payload.matchmaker_trader_id))
+        linked_block = self.trustchain.persistence.get_linked(block) or block
 
-    def on_transaction_completed_message(self, block1, block2):
-        tx_dict = block1.transaction
+        global_time = self.claim_global_time()
+        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
+        payload = HalfBlockPairPayload.from_half_blocks(block, linked_block).to_pack_list()
+        packet = self._ez_pack(self._prefix, 22, [dist, payload], False)
+        self.endpoint.send(self.lookup_ip(match_payload.matchmaker_trader_id), packet)
+
+    def received_matched_tx_complete(self, _, data):
         self.logger.debug("Received transaction-completed message")
         if not self.is_matchmaker:
             return
 
+        _, payload = self._ez_unpack_noauth(HalfBlockPairPayload, data)
+        block1, block2 = TrustChainBlock.from_pair_payload(payload, self.serializer)
+        self.trustchain.validate_persist_block(block1)
+        self.trustchain.validate_persist_block(block2)
+
         # Update ticks in order book, release the reserved quantity and find a new match
+        tx_dict = block1.transaction
         quantity = Quantity(tx_dict["tx"]["quantity"], tx_dict["tx"]["quantity_type"])
         self.order_book.update_ticks(tx_dict["ask"], tx_dict["bid"], quantity)
         ask_order_id = OrderId(TraderId(tx_dict["ask"]["trader_id"]), OrderNumber(tx_dict["ask"]["order_number"]))
@@ -1674,32 +1665,16 @@ class MarketCommunity(TrustChainCommunity):
         self.match_order_ids([ask_order_id, bid_order_id])
 
         # Broadcast the pair of blocks
-        self.send_block_pair(block1, block2)
+        self.trustchain.send_block_pair(block1, block2)
 
         order_id = OrderId(TraderId(tx_dict["tx"]["trader_id"]), OrderNumber(tx_dict["tx"]["order_number"]))
         tick_entry_sender = self.order_book.get_tick(order_id)
         if tick_entry_sender:
             self.match(tick_entry_sender.tick)
 
-    def on_transaction_completed_bc_message(self, block1, _):
-        self.logger.debug("Received transaction-completed-bc message")
-        if not self.is_matchmaker or not self.persistence.get_linked(block1):
-            return
-
-        tx_dict = block1.transaction
-
-        self.notify_transaction_complete(tx_dict["tx"])
-
-        # Update ticks in order book, release the reserved quantity
-        quantity = Quantity(tx_dict["tx"]["quantity"], tx_dict["tx"]["quantity_type"])
-        self.order_book.update_ticks(tx_dict["ask"], tx_dict["bid"], quantity, unreserve=False)
-        ask_order_id = OrderId(TraderId(tx_dict["ask"]["trader_id"]), OrderNumber(tx_dict["ask"]["order_number"]))
-        bid_order_id = OrderId(TraderId(tx_dict["bid"]["trader_id"]), OrderNumber(tx_dict["bid"]["order_number"]))
-        self.match_order_ids([ask_order_id, bid_order_id])
-
     def compute_reputation(self):
         """
         Compute the reputation of peers in the community
         """
-        rep_manager = TemporalPagerankReputationManager(self.persistence.get_all_blocks())
+        rep_manager = TemporalPagerankReputationManager(self.trustchain.persistence.get_all_blocks())
         self.reputation_dict = rep_manager.compute(self.my_peer.public_key.key_to_bin())

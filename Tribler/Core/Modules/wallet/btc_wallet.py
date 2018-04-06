@@ -1,16 +1,15 @@
+import imp
 import os
 import sys
 from threading import Thread
 
-import imp
-from jsonrpclib import ProtocolError
 import keyring
+from Tribler.Core.Modules.wallet.wallet import InsufficientFunds, Wallet
+from Tribler.Core.Utilities.install_dir import get_base_path
+from jsonrpclib import ProtocolError
 from keyring.errors import InitError
 from twisted.internet.defer import Deferred, succeed, fail, inlineCallbacks
 from twisted.internet.task import LoopingCall
-
-from Tribler.community.market.wallet.wallet import InsufficientFunds, Wallet
-from Tribler.Core.Utilities.install_dir import get_base_path
 
 # Make sure we can find the electrum wallet
 sys.path.append(os.path.join(get_base_path(), 'electrum'))
@@ -259,7 +258,7 @@ class BitcoinWallet(Wallet):
                     monitor_lc.stop()
 
         self._logger.debug("Start polling for transaction %s", txid)
-        monitor_lc = LoopingCall(monitor_loop)
+        monitor_lc = self.register_task("btc_poll_%s" % txid, LoopingCall(monitor_loop))
         monitor_lc.start(1)
 
         return monitor_deferred

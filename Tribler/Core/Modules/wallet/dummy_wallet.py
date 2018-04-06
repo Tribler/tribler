@@ -1,11 +1,10 @@
 import string
 from random import choice
 
+from Tribler.Core.Modules.wallet.wallet import Wallet, InsufficientFunds
 from twisted.internet import reactor
 from twisted.internet.defer import succeed
 from twisted.internet.task import deferLater
-
-from Tribler.community.market.wallet.wallet import Wallet, InsufficientFunds
 
 
 class BaseDummyWallet(Wallet):

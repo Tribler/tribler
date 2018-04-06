@@ -1,9 +1,9 @@
 import time
-
 import sys
-from Tribler.community.triblerchain.block import TriblerChainBlock
+
 from Tribler.community.triblertunnel.caches import BalanceRequestCache
 from Tribler.community.triblertunnel.payload import PayoutPayload, BalanceRequestPayload, BalanceResponsePayload
+from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import EMPTY_PK
 from Tribler.pyipv8.ipv8.deprecated.payload_headers import GlobalTimeDistributionPayload
 from Tribler.pyipv8.ipv8.messaging.anonymization.caches import ExtendRequestCache
@@ -31,9 +31,9 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
     def __init__(self, *args, **kwargs):
         self.tribler_session = kwargs.pop('tribler_session', None)
-        self.triblerchain_community = kwargs.pop('triblerchain_community', None)
         num_competing_slots = kwargs.pop('competing_slots', 15)
         num_random_slots = kwargs.pop('random_slots', 5)
+        self.bandwidth_wallet = kwargs.pop('bandwidth_wallet', None)
         socks_listen_ports = kwargs.pop('socks_listen_ports', None)
         super(TriblerTunnelCommunity, self).__init__(*args, **kwargs)
         self._use_main_thread = True
@@ -153,14 +153,14 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         return balance_deferred
 
     def on_payout_block(self, source_address, data):
-        if not self.triblerchain_community:
-            self.logger.warning("Got payout while not having a TriblerChain community running!")
+        if not self.bandwidth_wallet:
+            self.logger.warning("Got payout while not having a TrustChain community running!")
             return
 
         _, payload = self._ez_unpack_noauth(PayoutPayload, data)
         peer = Peer(payload.public_key, source_address)
-        block = self.triblerchain_community.BLOCK_CLASS.from_payload(payload, self.serializer)
-        self.triblerchain_community.process_half_block(block, peer)
+        block = TriblerBandwidthBlock.from_payload(payload, self.serializer)
+        self.bandwidth_wallet.trustchain.process_half_block(block, peer)
 
         # Send the next payout
         if payload.circuit_id in self.relay_from_to and block.transaction['down'] > payload.base_amount:
@@ -195,13 +195,15 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         """
         We received a balance request from a relay or exit node. Respond with the latest block in our chain.
         """
-        if not self.triblerchain_community:
+        if not self.bandwidth_wallet:
+            self.logger.warn("Bandwidth wallet is not available, not sending balance response!")
             return
 
         # Get the latest block
-        latest_block = self.triblerchain_community.persistence.get_latest(self.my_peer.public_key.key_to_bin())
+        latest_block = self.bandwidth_wallet.trustchain.persistence.get_latest(self.my_peer.public_key.key_to_bin(),
+                                                                               block_type='tribler_bandwidth')
         if not latest_block:
-            latest_block = TriblerChainBlock()
+            latest_block = TriblerBandwidthBlock()
         latest_block.public_key = EMPTY_PK  # We hide the public key
 
         # We either send the response directly or relay the response to the last verified hop
@@ -219,7 +221,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
     def on_balance_response_cell(self, source_address, data, _):
         _, payload = self._ez_unpack_noauth(BalanceResponsePayload, data)
-        block = TriblerChainBlock.from_payload(payload, self.serializer)
+        block = TriblerBandwidthBlock.from_payload(payload, self.serializer)
         if not block.transaction:
             self.on_token_balance(payload.circuit_id, 0)
         else:
@@ -228,7 +230,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
     def on_relay_balance_response_cell(self, source_address, data, _):
         _, payload = self._ez_unpack_noauth(BalanceResponsePayload, data)
-        block = TriblerChainBlock.from_payload(payload, self.serializer)
+        block = TriblerBandwidthBlock.from_payload(payload, self.serializer)
 
         # At this point, we don't have the circuit ID of the follow-up hop. We have to iterate over the items in the
         # request cache and find the link to the next hop.
@@ -287,13 +289,14 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         """
         self.logger.info("Sending payout of %d (base: %d) to %s (cid: %s)", amount, base_amount, peer, circuit_id)
 
-        block = self.triblerchain_community.BLOCK_CLASS.create(
+        block = TriblerBandwidthBlock.create(
+            'tribler_bandwidth',
             {'up': 0, 'down': amount},
-            self.triblerchain_community.persistence,
+            self.bandwidth_wallet.trustchain.persistence,
             self.my_peer.public_key.key_to_bin(),
             link_pk=peer.public_key.key_to_bin())
         block.sign(self.my_peer.key)
-        self.triblerchain_community.persistence.add_block(block)
+        self.bandwidth_wallet.trustchain.persistence.add_block(block)
 
         global_time = self.claim_global_time()
         dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
@@ -325,7 +328,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, circuit.sock_addr)
 
         circuit_peer = self.get_peer_from_address(circuit.sock_addr)
-        if circuit.bytes_down >= 1024 * 1024 and self.triblerchain_community and circuit_peer:
+        if circuit.bytes_down >= 1024 * 1024 and self.bandwidth_wallet and circuit_peer:
             # We should perform a payout of the removed circuit.
             if circuit.ctype == CIRCUIT_TYPE_RENDEZVOUS:
                 # We remove an e2e circuit as downloader. We pay the subsequent nodes in the downloader part of the e2e

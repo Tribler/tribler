@@ -1,14 +1,14 @@
 [Unit]
-Description = TriblerChain Crawler
+Description = TrustChain Crawler
 After = network-online.target
 
 [Service]
 Type = simple
 Environment="PYTHONPATH=/opt/tribler"
-User=triblerchain_crawler
-Group=triblerchain_crawler
+User=trustchain_crawler
+Group=trustchain_crawler
 WorkingDirectory=/opt/tribler
-ExecStart = /usr/bin/twistd -n --logfile=- --pidfile= triblerchain_crawler
+ExecStart = /usr/bin/twistd -n --logfile=- --pidfile= trustchain_crawler
 Restart = always
 
 [Install]
