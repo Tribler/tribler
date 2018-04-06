@@ -109,6 +109,8 @@ class TrustPage(QWidget):
         self.request_mgr.perform_request("trustchain/statistics", self.received_trustchain_statistics)
 
     def received_trustchain_statistics(self, statistics):
+        if not statistics:
+            return
         statistics = statistics["statistics"]
         total_up = 0
         total_down = 0
