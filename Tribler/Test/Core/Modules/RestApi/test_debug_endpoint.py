@@ -9,18 +9,11 @@ from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_DATA
 
 class TestCircuitDebugEndpoint(AbstractApiTest):
 
-    def setUpPreSession(self):
-        super(TestCircuitDebugEndpoint, self).setUpPreSession()
-        self.config.set_ipv8_enabled(True)
-        self.config.set_tunnel_community_enabled(True)
-        self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
-
     @deferred(timeout=10)
     def test_get_circuit_no_community(self):
         """
         Testing whether the API returns error 404 if no tunnel community is loaded
         """
-        self.session.lm.tunnel_community = None
         return self.do_request('debug/circuits', expected_code=404)
 
     @deferred(timeout=10)
@@ -44,6 +37,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         mock_circuit.ctype = CIRCUIT_TYPE_DATA
         mock_circuit.destroy = lambda: None
 
+        self.session.lm.tunnel_community = MockObject()
         self.session.lm.tunnel_community.circuits = {1234: mock_circuit}
 
         def verify_response(response):
