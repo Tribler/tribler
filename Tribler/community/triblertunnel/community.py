@@ -1,19 +1,25 @@
 import time
 
-from Tribler.community.triblertunnel.payload import PayoutPayload
+import sys
+from Tribler.community.triblerchain.block import TriblerChainBlock
+from Tribler.community.triblertunnel.caches import BalanceRequestCache
+from Tribler.community.triblertunnel.payload import PayoutPayload, BalanceRequestPayload, BalanceResponsePayload
+from Tribler.pyipv8.ipv8.attestation.trustchain.block import EMPTY_PK
 from Tribler.pyipv8.ipv8.deprecated.payload_headers import GlobalTimeDistributionPayload
-from twisted.internet.defer import inlineCallbacks
+from Tribler.pyipv8.ipv8.messaging.anonymization.caches import ExtendRequestCache
+from twisted.internet.defer import inlineCallbacks, succeed, Deferred
 
 from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_IP_RECREATE, NTFY_REMOVE, NTFY_EXTENDED, NTFY_CREATED,\
     NTFY_JOINED, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED
 from Tribler.Core.Socks5.server import Socks5Server
 from Tribler.dispersy.util import call_on_reactor_thread
-from Tribler.pyipv8.ipv8.messaging.anonymization.community import CreatePayload
+from Tribler.pyipv8.ipv8.messaging.anonymization.community import CreatePayload, message_to_payload, \
+    SINGLE_HOP_ENC_PACKETS
 from Tribler.pyipv8.ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
 from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_RP, \
-    CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_RENDEZVOUS
+    CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_RENDEZVOUS, EXIT_NODE, RelayRoute
 from Tribler.pyipv8.ipv8.peer import Peer
 
 
@@ -26,6 +32,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     def __init__(self, *args, **kwargs):
         self.tribler_session = kwargs.pop('tribler_session', None)
         self.triblerchain_community = kwargs.pop('triblerchain_community', None)
+        num_competing_slots = kwargs.pop('competing_slots', 15)
+        num_random_slots = kwargs.pop('random_slots', 5)
         socks_listen_ports = kwargs.pop('socks_listen_ports', None)
         super(TriblerTunnelCommunity, self).__init__(*args, **kwargs)
         self._use_main_thread = True
@@ -42,6 +50,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.bittorrent_peers = {}
         self.dispatcher = TunnelDispatcher(self)
         self.download_states = {}
+        self.competing_slots = [(0, None)] * num_competing_slots  # 1st tuple item = token balance, 2nd = circuit id
+        self.random_slots = [None] * num_random_slots
 
         # Start the SOCKS5 servers
         self.socks_servers = []
@@ -53,8 +63,94 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.dispatcher.set_socks_servers(self.socks_servers)
 
         self.decode_map.update({
-            chr(23): self.on_payout_block
+            chr(23): self.on_payout_block,
         })
+
+        self.decode_map_private.update({
+            chr(24): self.on_balance_request_cell,
+            chr(25): self.on_relay_balance_request_cell,
+            chr(26): self.on_balance_response_cell,
+            chr(27): self.on_relay_balance_response_cell,
+        })
+
+        message_to_payload[u"balance-request"] = (24, BalanceRequestPayload)
+        message_to_payload[u"relay-balance-request"] = (25, BalanceRequestPayload)
+        message_to_payload[u"balance-response"] = (26, BalanceResponsePayload)
+        message_to_payload[u"relay-balance-response"] = (27, BalanceResponsePayload)
+
+        SINGLE_HOP_ENC_PACKETS.append(u"balance-request")
+        SINGLE_HOP_ENC_PACKETS.append(u"balance-response")
+
+    def on_token_balance(self, circuit_id, balance):
+        """
+        We received the token balance of a circuit initiator. Check whether we can allocate a slot to this user.
+        """
+        if not self.request_cache.has(u"balance-request", circuit_id):
+            self.logger.warning("Received token balance without associated request cache!")
+            return
+
+        cache = self.request_cache.pop(u"balance-request", circuit_id)
+
+        lowest_balance = sys.maxint
+        lowest_index = -1
+        for ind, tup in enumerate(self.competing_slots):
+            if not tup[1]:
+                # The slot is empty, take it
+                self.competing_slots[ind] = (balance, circuit_id)
+                cache.balance_deferred.callback(True)
+                return
+
+            if tup[0] < lowest_balance:
+                lowest_balance = tup[0]
+                lowest_index = ind
+
+        if balance > lowest_balance:
+            # We kick this user out
+            old_circuit_id = self.competing_slots[lowest_index][1]
+            self.logger.info("Kicked out circuit %s (balance: %s) in favor of %s (balance: %s)",
+                             old_circuit_id, lowest_balance, circuit_id, balance)
+            self.competing_slots[lowest_index] = (balance, circuit_id)
+
+            self.remove_relay(old_circuit_id, destroy=True)
+            self.remove_exit_socket(old_circuit_id, destroy=True)
+
+            cache.balance_deferred.callback(True)
+        else:
+            # We can't compete with the balances in the existing slots
+            cache.balance_deferred.callback(False)
+
+    def should_join_circuit(self, create_payload, previous_node_address):
+        """
+        Check whether we should join a circuit. Returns a deferred that fires with a boolean.
+        """
+        if self.settings.max_joined_circuits <= len(self.relay_from_to) + len(self.exit_sockets):
+            self.logger.warning("too many relays (%d)", (len(self.relay_from_to) + len(self.exit_sockets)))
+            return succeed(False)
+
+        # Check whether we have a random open slot, if so, allocate this to this request.
+        circuit_id = create_payload.circuit_id
+        for index, slot in enumerate(self.random_slots):
+            if not slot:
+                self.random_slots[index] = circuit_id
+                return succeed(True)
+
+        # No random slots but this user might be allocated a competing slot.
+        # Next, we request the token balance of the circuit initiator.
+        balance_deferred = Deferred()
+        self.request_cache.add(BalanceRequestCache(self, circuit_id, balance_deferred))
+
+        # Temporarily add these values, otherwise we are unable to communicate with the previous hop.
+        self.directions[circuit_id] = EXIT_NODE
+        shared_secret, _, _ = self.crypto.generate_diffie_shared_secret(create_payload.key)
+        self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(shared_secret)
+
+        self.send_cell([Peer(create_payload.node_public_key, previous_node_address)], u"balance-request",
+                       BalanceRequestPayload(circuit_id))
+
+        self.directions.pop(circuit_id, None)
+        self.relay_session_keys.pop(circuit_id, None)
+
+        return balance_deferred
 
     def on_payout_block(self, source_address, data):
         if not self.triblerchain_community:
@@ -76,6 +172,71 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
             self.do_payout(circuit_peer, relay.circuit_id, block.transaction['down'] - payload.base_amount * 2,
                            payload.base_amount)
+
+    def on_balance_request_cell(self, source_address, data, _):
+        _, payload = self._ez_unpack_noauth(BalanceRequestPayload, data)
+
+        circuit_id = payload.circuit_id
+        request = self.request_cache.get(u"anon-circuit", circuit_id)
+        if request.should_forward:
+            forwarding_relay = RelayRoute(request.from_circuit_id,
+                                          request.candidate_sock_addr,
+                                          mid=request.candidate_mid)
+            self.send_cell([forwarding_relay.sock_addr], u"relay-balance-request",
+                           BalanceRequestPayload(forwarding_relay.circuit_id))
+        else:
+            self.on_balance_request(payload)
+
+    def on_relay_balance_request_cell(self, source_address, data, _):
+        _, payload = self._ez_unpack_noauth(BalanceRequestPayload, data)
+        self.on_balance_request(payload)
+
+    def on_balance_request(self, payload):
+        """
+        We received a balance request from a relay or exit node. Respond with the latest block in our chain.
+        """
+        if not self.triblerchain_community:
+            return
+
+        # Get the latest block
+        latest_block = self.triblerchain_community.persistence.get_latest(self.my_peer.public_key.key_to_bin())
+        if not latest_block:
+            latest_block = TriblerChainBlock()
+        latest_block.public_key = EMPTY_PK  # We hide the public key
+
+        # We either send the response directly or relay the response to the last verified hop
+        circuit = self.circuits[payload.circuit_id]
+        if not circuit.hops:
+            self.increase_bytes_sent(circuit, self.send_cell([circuit.sock_addr],
+                                                             u"balance-response",
+                                                             BalanceResponsePayload.from_half_block(
+                                                                 latest_block, circuit.circuit_id)))
+        else:
+            self.increase_bytes_sent(circuit, self.send_cell([circuit.sock_addr],
+                                                             u"relay-balance-response",
+                                                             BalanceResponsePayload.from_half_block(
+                                                                 latest_block, circuit.circuit_id)))
+
+    def on_balance_response_cell(self, source_address, data, _):
+        _, payload = self._ez_unpack_noauth(BalanceResponsePayload, data)
+        block = TriblerChainBlock.from_payload(payload, self.serializer)
+        if not block.transaction:
+            self.on_token_balance(payload.circuit_id, 0)
+        else:
+            self.on_token_balance(payload.circuit_id,
+                                  block.transaction["total_up"] - block.transaction["total_down"])
+
+    def on_relay_balance_response_cell(self, source_address, data, _):
+        _, payload = self._ez_unpack_noauth(BalanceResponsePayload, data)
+        block = TriblerChainBlock.from_payload(payload, self.serializer)
+
+        # At this point, we don't have the circuit ID of the follow-up hop. We have to iterate over the items in the
+        # request cache and find the link to the next hop.
+        for cache in self.request_cache._identifiers.values():
+            if isinstance(cache, ExtendRequestCache) and cache.from_circuit_id == payload.circuit_id:
+                self.send_cell([cache.to_candidate_sock_addr],
+                               u"balance-response",
+                               BalanceResponsePayload.from_half_block(block, cache.to_circuit_id))
 
     def on_download_removed(self, download):
         """
@@ -140,6 +301,18 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         packet = self._ez_pack(self._prefix, 23, [dist, payload], False)
         self.send_packet([peer], u"payout", packet)
 
+    def clean_from_slots(self, circuit_id):
+        """
+        Clean a specific circuit from the allocated slots.
+        """
+        for ind, slot in enumerate(self.random_slots):
+            if slot == circuit_id:
+                self.random_slots[ind] = None
+
+        for ind, tup in enumerate(self.competing_slots):
+            if tup[1] == circuit_id:
+                self.competing_slots[ind] = (0, None)
+
     def remove_circuit(self, circuit_id, additional_info='', remove_now=False, destroy=False):
         if circuit_id not in self.circuits:
             self.logger.warning("Circuit %d not found when trying to remove it", circuit_id)
@@ -187,6 +360,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                                                           got_destroy_from=got_destroy_from,
                                                                           both_sides=both_sides)
 
+        self.clean_from_slots(circuit_id)
+
         if self.tribler_session:
             for removed_relay in removed_relays:
                 self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, removed_relay, removed_relay.sock_addr)
@@ -195,6 +370,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if circuit_id in self.exit_sockets and self.tribler_session:
             exit_socket = self.exit_sockets[circuit_id]
             self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket, exit_socket.sock_addr)
+
+        self.clean_from_slots(circuit_id)
 
         super(TriblerTunnelCommunity, self).remove_exit_socket(circuit_id, additional_info=additional_info,
                                                                remove_now=remove_now, destroy=destroy)

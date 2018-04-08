@@ -47,6 +47,7 @@ class TestTriblerTunnelCommunity(TestBase):
     def create_node(self):
         mock_ipv8 = MockIPv8(u"curve25519", TriblerTunnelCommunity, socks_listen_ports=[])
         mock_ipv8.overlay._use_main_thread = False
+        mock_ipv8.overlay.settings.max_circuits = 1
 
         # Load the TriblerChain community
         overlay = TriblerChainCommunity(mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network,
@@ -249,6 +250,20 @@ class TestTriblerTunnelCommunity(TestBase):
         self.assertTrue(self.nodes[2].overlay.triblerchain_community.get_bandwidth_tokens() > 0)
 
     @twisted_wrapper
+    def test_circuit_reject_too_many(self):
+        """
+        Test whether a circuit is rejected by an exit node if it already joined the max number of circuits
+        """
+        self.add_node_to_experiment(self.create_node())
+        self.nodes[1].overlay.settings.become_exitnode = True
+        self.nodes[1].overlay.settings.max_joined_circuits = 0
+        yield self.introduce_nodes()
+        self.nodes[0].overlay.build_tunnels(1)
+        yield self.deliver_messages()
+
+        self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 0.0)
+
+    @twisted_wrapper
     def test_payouts_e2e(self):
         """
         Check if payouts work for an e2e-linked circuit
@@ -280,3 +295,138 @@ class TestTriblerTunnelCommunity(TestBase):
         self.assertTrue(self.nodes[0].overlay.triblerchain_community.get_bandwidth_tokens() < 0)
         self.assertTrue(self.nodes[1].overlay.triblerchain_community.get_bandwidth_tokens() > 0)
         self.assertTrue(self.nodes[2].overlay.triblerchain_community.get_bandwidth_tokens() > 0)
+
+    @twisted_wrapper
+    def test_decline_competing_slot(self):
+        """
+        Test whether a circuit is not created when a node does not have enough balance for a competing slot
+        """
+        self.add_node_to_experiment(self.create_node())
+        self.nodes[1].overlay.settings.become_exitnode = True
+        yield self.introduce_nodes()
+        self.nodes[1].overlay.random_slots = []
+        self.nodes[1].overlay.competing_slots = [(1000, 1234)]
+        self.nodes[0].overlay.build_tunnels(1)
+        yield self.deliver_messages()
+
+        # Assert whether we didn't create the circuit
+        self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 0.0)
+
+    @twisted_wrapper
+    def test_win_competing_slot(self):
+        """
+        Test whether a circuit is created when a node has enough balance for a competing slot
+        """
+        self.add_node_to_experiment(self.create_node())
+        self.nodes[1].overlay.settings.become_exitnode = True
+        yield self.introduce_nodes()
+        self.nodes[1].overlay.random_slots = []
+        self.nodes[1].overlay.competing_slots = [(-1000, 1234)]
+        self.nodes[0].overlay.build_tunnels(1)
+        yield self.deliver_messages()
+
+        # Assert whether we didn't create the circuit
+        self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 1.0)
+
+    @twisted_wrapper
+    def test_empty_competing_slot(self):
+        """
+        Test whether a circuit is created when a node takes an empty competing slot
+        """
+        self.add_node_to_experiment(self.create_node())
+        self.nodes[1].overlay.settings.become_exitnode = True
+        yield self.introduce_nodes()
+        self.nodes[1].overlay.random_slots = []
+        self.nodes[1].overlay.competing_slots = [(0, None)]
+        self.nodes[0].overlay.build_tunnels(1)
+        yield self.deliver_messages()
+
+        # Assert whether we did create the circuit
+        self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 1.0)
+
+    @twisted_wrapper
+    def test_win_competing_slot_exit(self):
+        """
+        Test whether a two-hop circuit is created when a node has enough balance for a competing slot at the exit
+        """
+        self.add_node_to_experiment(self.create_node())
+        self.add_node_to_experiment(self.create_node())
+        self.nodes[2].overlay.settings.become_exitnode = True
+        yield self.introduce_nodes()
+        self.nodes[2].overlay.random_slots = []
+        self.nodes[2].overlay.competing_slots = [(-1000, 1234)]
+        self.nodes[0].overlay.build_tunnels(2)
+        yield self.deliver_messages()
+
+        # Assert whether we did create the circuit
+        self.assertEqual(self.nodes[0].overlay.tunnels_ready(2), 1.0)
+
+    @twisted_wrapper
+    def test_win_competing_slot_relay(self):
+        """
+        Test whether a two-hop circuit is created when a node has enough balance for a competing slot
+        """
+        self.add_node_to_experiment(self.create_node())
+        self.add_node_to_experiment(self.create_node())
+        self.nodes[2].overlay.settings.become_exitnode = True
+        yield self.introduce_nodes()
+        self.nodes[1].overlay.random_slots = []
+        self.nodes[1].overlay.competing_slots = [(-1000, 1234)]
+        self.nodes[0].overlay.build_tunnels(2)
+        yield self.deliver_messages()
+
+        # Assert whether we did create the circuit
+        self.assertEqual(self.nodes[0].overlay.tunnels_ready(2), 1.0)
+
+    @twisted_wrapper
+    def test_payout_on_competition_kick(self):
+        """
+        Test whether a payout is initiated when an existing node is kicked out from a competing slot
+        """
+        self.add_node_to_experiment(self.create_node())
+        self.add_node_to_experiment(self.create_node())
+        self.nodes[2].overlay.settings.become_exitnode = True
+        yield self.introduce_nodes()
+
+        # Make sure that there's a token disbalance between node 0 and 1
+        his_pubkey = self.nodes[1].overlay.my_peer.public_key.key_to_bin()
+        yield self.nodes[0].overlay.triblerchain_community.sign_block(
+            self.nodes[1].overlay.my_peer, public_key=his_pubkey, transaction={'up': 0, 'down': 1024 * 1024})
+
+        self.nodes[2].overlay.random_slots = []
+        self.nodes[2].overlay.competing_slots = [(0, None)]
+        self.nodes[0].overlay.build_tunnels(1)
+        yield self.deliver_messages()
+
+        # Let some artificial data flow over the circuit
+        self.nodes[0].overlay.circuits.values()[0].bytes_down = 250 * 1024 * 1024
+
+        self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 1.0)
+        self.assertTrue(self.nodes[2].overlay.exit_sockets)
+
+        self.nodes[1].overlay.build_tunnels(1)
+        yield self.deliver_messages()
+        self.assertTrue(self.nodes[2].overlay.exit_sockets)
+        self.assertEqual(self.nodes[1].overlay.tunnels_ready(1), 1.0)
+
+        # Check whether the exit node has been paid
+        self.assertGreaterEqual(self.nodes[2].overlay.triblerchain_community.get_bandwidth_tokens(), 250 * 1024 * 1024)
+
+    @twisted_wrapper
+    def test_create_circuit_without_trustchain(self):
+        """
+        Test whether creating a circuit without trustchain active, fails
+        """
+        self.add_node_to_experiment(self.create_node())
+        self.nodes[0].overlay.triblerchain_community = None
+        self.nodes[1].overlay.settings.become_exitnode = True
+        yield self.introduce_nodes()
+
+        # Initialize the slots
+        self.nodes[1].overlay.random_slots = []
+        self.nodes[1].overlay.competing_slots = [(0, None)]
+
+        self.nodes[0].overlay.build_tunnels(1)
+        yield self.deliver_messages()
+
+        self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 0.0)
