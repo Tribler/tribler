@@ -68,6 +68,7 @@ class TestDownloadState(TriblerCoreTest):
         lt_status.state = 3
         lt_status.num_pieces = 0
         lt_status.pieces = []
+        lt_status.finished_time = 10
 
         download_state = DownloadState(self.mock_download, lt_status, None, {'vod_prebuf_frac_consec': 43,
                                                                              'vod_prebuf_frac': 44})
@@ -85,6 +86,7 @@ class TestDownloadState(TriblerCoreTest):
         self.assertEqual(download_state.get_num_seeds_peers(), (5, 5))
         self.assertEqual(download_state.get_pieces_complete(), [])
         self.assertEqual(download_state.get_pieces_total_complete(), (0, 0))
+        self.assertEqual(download_state.get_seeding_time(), 10)
 
         lt_status.num_pieces = 6
         lt_status.pieces = [1, 1, 1, 0, 0, 0]
