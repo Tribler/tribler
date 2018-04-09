@@ -142,6 +142,7 @@ class MarketCommunity(TrustChainCommunity):
         self.pending_matchmaker_deferreds = []
         self.request_cache = RequestCache()
         self.cancelled_orders = set()  # Keep track of cancelled orders so we don't add them again to the orderbook.
+        self.broadcast_block = False
 
         if use_database:
             order_repository = DatabaseOrderRepository(self.mid, self.market_database)
