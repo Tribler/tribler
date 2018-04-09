@@ -186,7 +186,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
         yield self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
 
-        yield self.deliver_messages()
+        yield self.deliver_messages(timeout=.4)
 
         self.assertEqual(self.nodes[0].overlay.transaction_manager.find_all()[0].status, "error")
         self.assertEqual(self.nodes[1].overlay.transaction_manager.find_all()[0].status, "error")
