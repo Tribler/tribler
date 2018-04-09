@@ -99,6 +99,9 @@ class DownloadState(object):
             return self.lt_status.all_time_upload / float(self.lt_status.all_time_download)
         return 0
 
+    def get_seeding_time(self):
+        return self.lt_status.finished_time if self.lt_status else 0
+
     def get_eta(self):
         """
         Returns the estimated time to finish of download.
