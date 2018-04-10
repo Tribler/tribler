@@ -232,6 +232,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.add_node_to_experiment(self.create_node())
         self.nodes[3].discovery.take_step()
         yield self.deliver_messages(timeout=.5)
+        yield self.sleep(0.2)  # For processing the tick blocks
 
         self.assertTrue(self.nodes[3].overlay.order_book.get_tick(ask_order.order_id))
         self.assertTrue(self.nodes[3].overlay.order_book.get_tick(bid_order.order_id))
@@ -240,6 +241,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.add_node_to_experiment(self.create_node())
         self.nodes[4].overlay.send_orderbook_sync(self.nodes[3].overlay.my_peer)
         yield self.deliver_messages(timeout=.5)
+        yield self.sleep(0.2)  # For processing the tick blocks
 
         self.assertTrue(self.nodes[4].overlay.order_book.get_tick(ask_order.order_id))
         self.assertTrue(self.nodes[4].overlay.order_book.get_tick(bid_order.order_id))
