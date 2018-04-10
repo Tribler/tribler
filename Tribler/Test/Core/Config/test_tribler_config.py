@@ -314,12 +314,17 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         Check whether resource monitor get and set methods are working as expected.
         """
+        self.assertTrue(self.tribler_config.get_resource_monitor_enabled())
         self.tribler_config.set_resource_monitor_enabled(False)
         self.assertFalse(self.tribler_config.get_resource_monitor_enabled())
         self.tribler_config.set_resource_monitor_poll_interval(21)
         self.assertEqual(self.tribler_config.get_resource_monitor_poll_interval(), 21)
         self.tribler_config.set_resource_monitor_history_size(1234)
         self.assertEqual(self.tribler_config.get_resource_monitor_history_size(), 1234)
+
+        self.assertEqual(self.tribler_config.get_cpu_priority_order(), 1)
+        self.tribler_config.set_cpu_priority_order(3)
+        self.assertEqual(self.tribler_config.get_cpu_priority_order(), 3)
 
     def test_get_set_methods_credit_mining(self):
         """

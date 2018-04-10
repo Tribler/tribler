@@ -625,7 +625,17 @@ class TriblerConfig(object):
         self.config['resource_monitor']['enabled'] = value
 
     def get_resource_monitor_enabled(self):
-        return self.config['resource_monitor']['enabled']
+        if "enabled" in self.config['resource_monitor']:
+            return self.config['resource_monitor']['enabled']
+        return True
+
+    def set_cpu_priority_order(self, priority):
+        self.config['resource_monitor']['cpu_priority'] = priority
+
+    def get_cpu_priority_order(self):
+        if "cpu_priority" in self.config['resource_monitor']:
+            return self.config['resource_monitor']['cpu_priority']
+        return 1
 
     def set_resource_monitor_poll_interval(self, value):
         self.config['resource_monitor']['poll_interval'] = value

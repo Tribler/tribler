@@ -1,5 +1,7 @@
 from collections import namedtuple
 
+import os
+
 from Tribler.Core.Modules.resource_monitor import ResourceMonitor
 from Tribler.Core.simpledefs import SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
@@ -15,6 +17,8 @@ class TestResourceMonitor(TriblerCoreTest):
         mock_session.config.get_resource_monitor_history_size = lambda: 1
         mock_session.config.get_resource_monitor_poll_interval = lambda: 20
         mock_session.config.get_state_dir = lambda: "."
+        mock_session.config.get_log_dir = lambda: "logs"
+        mock_session.config.get_resource_monitor_enabled = lambda: False
         self.resource_monitor = ResourceMonitor(mock_session)
         self.resource_monitor.session.notifier = MockObject()
         self.resource_monitor.session.notifier.notify = lambda subject, changeType, obj_id, *args: None
@@ -23,6 +27,7 @@ class TestResourceMonitor(TriblerCoreTest):
         """
         Test the resource monitor check
         """
+        self.resource_monitor.write_resource_logs = lambda _: None
         self.resource_monitor.check_resources()
         self.assertEqual(len(self.resource_monitor.cpu_data), 1)
         self.assertEqual(len(self.resource_monitor.memory_data), 1)
@@ -90,3 +95,19 @@ class TestResourceMonitor(TriblerCoreTest):
         self.resource_monitor.stop_profiler()
         self.assertFalse(self.resource_monitor.profiler_running)
         self.assertRaises(RuntimeError, self.resource_monitor.stop_profiler)
+
+    def test_resource_log(self):
+        """
+        Test resource log file is created when enabled.
+        """
+        self.resource_monitor.set_resource_log_enabled(True)
+        self.resource_monitor.check_resources()
+        os.path.exists(self.resource_monitor.resource_log_file)
+
+    def test_enable_resource_log(self):
+        self.resource_monitor.set_resource_log_enabled(True)
+        self.assertTrue(self.resource_monitor.is_resource_log_enabled())
+
+    def test_reset_resource_log(self):
+        self.resource_monitor.reset_resource_logs()
+        self.assertFalse(os.path.exists(self.resource_monitor.resource_log_file))

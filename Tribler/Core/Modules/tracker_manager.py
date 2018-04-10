@@ -63,12 +63,16 @@ class TrackerManager(object):
     def remove_tracker(self, tracker_url):
         """
         Remove a given tracker from the database.
+        URL is sanitized first and removed from the database. If the URL is ill formed then try removing the non-
+        sanitized version.
         :param tracker_url: The URL of the tracker to be deleted.
         """
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)
+        sql_stmt = u"DELETE FROM TrackerInfo WHERE tracker = ?;"
         if sanitized_tracker_url:
-            sql_stmt = u"DELETE FROM TrackerInfo WHERE tracker = ?;"
             self._session.sqlite_db.execute(sql_stmt, (sanitized_tracker_url,))
+        else:
+            self._session.sqlite_db.execute(sql_stmt, (tracker_url,))
 
     def update_tracker_info(self, tracker_url, is_successful):
         """

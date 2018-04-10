@@ -105,6 +105,7 @@ port = integer(min=-1, max=65536, default=-1)
 
 [resource_monitor]
 enabled = boolean(default=True)
+cpu_priority = integer(min=0, max=5, default=1)
 poll_interval = integer(min=1, default=5)
 history_size = integer(min=1, default=20)
 

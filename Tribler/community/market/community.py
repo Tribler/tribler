@@ -127,6 +127,7 @@ class MarketCommunity(TrustChainCommunity):
 
         super(MarketCommunity, self).__init__(*args, **kwargs)
         self._use_main_thread = True  # Market community is unable to deal with thread pool message processing yet
+        self.broadcast_block = False
         self.mid = self.my_peer.mid.encode('hex')
         self.mid_register = {}
         self.order_book = None
