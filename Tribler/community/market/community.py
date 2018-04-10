@@ -2,6 +2,7 @@ import random
 from base64 import b64decode
 
 from Tribler.pyipv8.ipv8.deprecated.bloomfilter import BloomFilter
+from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, succeed, Deferred, returnValue
 from twisted.internet.task import LoopingCall
 
@@ -526,7 +527,7 @@ class MarketCommunity(TrustChainCommunity):
             return
 
         cache = self.request_cache.pop(u"ping", payload.identifier)
-        cache.request_deferred.callback(True)
+        reactor.callFromThread(cache.request_deferred.callback, True)
 
     def verify_offer_creation(self, price, price_wallet_id, quantity, quantity_wallet_id):
         if price_wallet_id == quantity_wallet_id:
@@ -1426,7 +1427,7 @@ class MarketCommunity(TrustChainCommunity):
             "port": payload.address.port
         }
 
-        request.request_deferred.callback(order_dict)
+        reactor.callFromThread(request.request_deferred.callback, order_dict)
 
     def send_wallet_info(self, transaction, incoming_address, outgoing_address):
         assert isinstance(transaction, Transaction), type(transaction)
