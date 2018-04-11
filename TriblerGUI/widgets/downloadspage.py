@@ -141,10 +141,11 @@ class DownloadsPage(QWidget):
         if not downloads:
             return  # This might happen when closing Tribler
 
-        total_download = 0
-        total_upload = 0
         self.received_downloads.emit(downloads)
         self.downloads = downloads
+
+        self.total_download = 0
+        self.total_upload = 0
 
         download_infohashes = set()
 
@@ -164,8 +165,8 @@ class DownloadsPage(QWidget):
             if video_infohash != "" and download["infohash"] == video_infohash:
                 self.window().video_player_page.update_with_download_info(download)
 
-            total_download += download["speed_down"]
-            total_upload += download["speed_up"]
+            self.total_download += download["speed_down"]
+            self.total_upload += download["speed_up"]
 
             download_infohashes.add(download["infohash"])
 
@@ -185,7 +186,7 @@ class DownloadsPage(QWidget):
                 self.window().downloads_list.takeTopLevelItem(index)
                 del self.download_widgets[infohash]
 
-        self.tray_set_tooltip("Down: %s, Up: %s" % (format_speed(total_download), format_speed(total_upload)))
+        self.tray_set_tooltip("Down: %s, Up: %s" % (format_speed(self.total_download), format_speed(self.total_upload)))
         self.update_download_visibility()
         self.schedule_downloads_timer()
 

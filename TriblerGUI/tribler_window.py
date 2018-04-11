@@ -92,7 +92,7 @@ class TriblerWindow(QMainWindow):
                                 self.start_time)
         dialog.show()
 
-    def __init__(self):
+    def __init__(self, core_args=None, core_env=None):
         QMainWindow.__init__(self)
 
         QCoreApplication.setOrganizationDomain("nl")
@@ -244,7 +244,7 @@ class TriblerWindow(QMainWindow):
             not get_gui_setting(self.gui_settings, "debug", False, is_bool=True))
 
         # Start Tribler
-        self.core_manager.start()
+        self.core_manager.start(core_args=core_args, core_env=core_env)
 
         self.core_manager.events_manager.received_search_result_channel.connect(
             self.search_results_page.received_search_result_channel)
@@ -629,8 +629,9 @@ class TriblerWindow(QMainWindow):
                                                          'safeseeding_enabled'],
                                                     self.tribler_settings['download_defaults']['saveas'], [], 0)
 
-        self.dialog.setParent(None)
-        self.dialog = None
+        if self.dialog:
+            self.dialog.setParent(None)
+            self.dialog = None
 
     def on_add_torrent_from_url(self):
         # Make sure that the window is visible (this action might be triggered from the tray icon)
