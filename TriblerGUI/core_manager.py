@@ -52,7 +52,16 @@ class CoreManager(QObject):
         self.check_state_timer = QTimer()
 
     def check_stopped(self):
-        if self.core_process and self.core_process.poll():
+        """
+        Checks if the core has stopped. Note that this method is called by stop timer which is called when trying to
+        stop the core manager.
+        There could be two cases when we stop the timer.
+        1. Core process is None. This means some external core process was used (could be run through twistd plugin)
+        which we don't kill so we stop the timer here.
+        2. Core process poll method returns non None value. The return value of poll method is None if the process
+        has not terminated so for any non None value we stop the timer.
+        """
+        if not self.core_process or self.core_process.poll() is not None:
             self.stop_timer.stop()
             self.on_finished()
 
