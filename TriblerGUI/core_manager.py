@@ -80,7 +80,10 @@ class CoreManager(QObject):
     def start_tribler_core(self, core_args=None, core_env=None):
         if not START_FAKE_API:
             if not core_env:
-                core_env = os.environ.copy()
+                system_encoding = sys.getfilesystemencoding()
+                core_env = {(k.encode(system_encoding) if isinstance(k, unicode) else str(k))
+                            : (v.encode(system_encoding) if isinstance(v, unicode) else str(v))
+                            for k, v in os.environ.copy().iteritems()}
                 core_env["CORE_PROCESS"] = "1"
                 core_env["CORE_BASE_PATH"] = self.base_path
                 core_env["CORE_API_PORT"] = "%s" % self.api_port
