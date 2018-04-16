@@ -286,7 +286,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
             atp["paused"] = True
             atp["auto_managed"] = False
-            atp["duplicate_is_error"] = True
+            atp["duplicate_is_error"] = False
             atp["hops"] = self.get_hops()
 
             if share_mode:

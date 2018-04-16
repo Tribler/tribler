@@ -47,18 +47,6 @@ class TestLaunchManyCore(TriblerCoreTest):
         """
         self.lm.add(TorrentDef(), None)
 
-    @raises(DuplicateDownloadException)
-    def test_add_duplicate_download(self):
-        """
-        Testing whether a DuplicateDownloadException is raised when a download is added twice
-        """
-        self.lm.downloads = {"abcd": None}
-        tdef = TorrentDef()
-        tdef.metainfo_valid = True
-        tdef.infohash = "abcd"
-
-        self.lm.add(tdef, DefaultDownloadStartupConfig.getInstance())
-
     def test_load_download_pstate(self):
         """
         Testing whether a pstate is successfully loaded

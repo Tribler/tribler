@@ -129,6 +129,12 @@ class StartDownloadDialog(DialogContainer):
         else:
             files = [{'path': [metainfo['info']['name']], 'length': metainfo['info']['length']}]
 
+        # Show if the torrent already exists in the downloads
+        if 'download_exists' in metainfo and metainfo['download_exists']:
+            self.dialog_widget.existing_download_info_label.setText("Note: this torrent already exists in the Downloads")
+        else:
+            self.dialog_widget.existing_download_info_label.setText("")
+
         for filename in files:
             item = DownloadFileTreeWidgetItem(self.dialog_widget.files_list_view)
             item.setText(0, '/'.join(filename['path']))

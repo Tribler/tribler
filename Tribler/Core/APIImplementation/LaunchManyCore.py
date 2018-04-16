@@ -457,7 +457,7 @@ class TriblerLaunchMany(TaskManager):
 
             # Check if running or saved on disk
             if infohash in self.downloads:
-                raise DuplicateDownloadException("This download already exists.")
+                self._logger.info("Torrent already exists in the downloads. Infohash:%s", infohash.encode('hex'))
 
             from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
             d = LibtorrentDownloadImpl(self.session, tdef)

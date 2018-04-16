@@ -62,6 +62,10 @@ class TorrentInfoEndpoint(resource.Resource):
                 return
 
             infohash = hashlib.sha1(bencode(metainfo['info'])).digest()
+
+            # Check if the torrent is already in the downloads
+            metainfo['download_exists'] = infohash in self.session.lm.downloads
+
             # Save the torrent to our store
             try:
                 self.session.save_collected_torrent(infohash, bencode(metainfo))
