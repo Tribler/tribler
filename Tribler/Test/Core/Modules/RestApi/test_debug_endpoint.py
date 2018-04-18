@@ -5,6 +5,7 @@ from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.twisted_thread import deferred
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_DATA
+from Tribler.Core.Utilities.benchmark import timed_context
 
 
 class TestCircuitDebugEndpoint(AbstractApiTest):
@@ -244,3 +245,23 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
 
         self.should_check_equality = False
         return self.do_request('debug/profiler', expected_code=200, request_type='PUT').addCallback(on_started_profiler)
+
+    @deferred(timeout=10)
+    def test_get_benchmarked_data(self):
+        """
+        Test whether the API returns the benchmark data
+        """
+        def verify_response(response):
+            response_json = json.loads(response)
+            self.assertTrue("benchmark" in response_json)
+            benchmark_data = response_json['benchmark']
+            self.assertTrue('Benchmark Test' in benchmark_data)
+
+        with timed_context('Benchmark Test'):
+            # some dummy code to benchmark
+            dummy_sum = 0
+            for i in range(100):
+                dummy_sum += i
+
+        self.should_check_equality = False
+        return self.do_request('debug/benchmark', expected_code=200).addCallback(verify_response)

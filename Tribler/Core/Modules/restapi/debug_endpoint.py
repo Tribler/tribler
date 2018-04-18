@@ -10,6 +10,7 @@ from twisted.web import http, resource
 
 from Tribler.Core.Utilities.instrumentation import WatchDog
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Utilities.benchmark import benchmarked
 
 
 class MemoryDumpBuffer(StringIO):
@@ -33,7 +34,8 @@ class DebugEndpoint(resource.Resource):
         child_handler_dict = {"circuits": DebugCircuitsEndpoint, "open_files": DebugOpenFilesEndpoint,
                               "open_sockets": DebugOpenSocketsEndpoint, "threads": DebugThreadsEndpoint,
                               "cpu": DebugCPUEndpoint, "memory": DebugMemoryEndpoint,
-                              "log": DebugLogEndpoint, "profiler": DebugProfilerEndpoint}
+                              "log": DebugLogEndpoint, "profiler": DebugProfilerEndpoint,
+                              "benchmark": DebugBenchmarkEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
@@ -532,3 +534,39 @@ class DebugProfilerEndpoint(resource.Resource):
         """
         file_path = self.session.lm.resource_monitor.stop_profiler()
         return json.dumps({"success": True, "profiler_file": file_path})
+
+
+class DebugBenchmarkEndpoint(resource.Resource):
+    """
+    This class handles request for information about timed benchmark data.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, _):
+        """
+        .. http:get:: /debug/benchmark
+
+        A GET request to this endpoint returns information about benchmark data about time taken by various functions
+        and contexts.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/benchmark
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "benchmarked": {
+                        "startup": (1504015291214,15.04015291214),
+                        ...
+                    }
+                }
+        """
+        return json.dumps({"benchmark": benchmarked})
