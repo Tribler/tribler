@@ -322,7 +322,7 @@ class LibtorrentMgr(TaskManager):
                 return succeed(ltsession.find_torrent(lt.big_number(infohash_bin)))
 
             if infohash in self.torrents:
-                raise DuplicateDownloadException("This download already exists.")
+                self._logger.info("Torrent already exists in the downloads. Infohash:%s", infohash.encode('hex'))
 
             # Otherwise, add it anew
             ltsession.async_add_torrent(encode_atp(atp))
@@ -686,12 +686,8 @@ class LibtorrentMgr(TaskManager):
 
             new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(
                 d.get_def().get_trackers_as_single_tuple()))
-            if not new_trackers:
-                raise DuplicateDownloadException("This download already exists.")
-
-            else:
+            if new_trackers:
                 self.tribler_session.update_trackers(tdef.get_infohash(), new_trackers)
-            return
 
         default_dl_config = DefaultDownloadStartupConfig.getInstance()
         dscfg = default_dl_config.copy()

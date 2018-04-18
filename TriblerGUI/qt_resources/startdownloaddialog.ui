@@ -273,6 +273,22 @@ selection-background-color: #707070;
           <number>0</number>
          </property>
          <item>
+          <widget class="QToolButton" name="existing_download_info_label">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">border: None; color: #e67300;</string>
+           </property>
+           <property name="text">
+            <string>Download already exists.</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <spacer name="horizontalSpacer_3">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>

@@ -77,7 +77,8 @@ class TorrentsRandomEndpoint(resource.Resource):
             torrent_json = convert_db_torrent_to_json(popular_torrent)
             if (self.session.config.get_family_filter_enabled() and
                     self.session.lm.category.xxx_filter.isXXX(torrent_json['category'])) \
-                    or torrent_json['name'] is None:
+                    or torrent_json['name'] is None \
+                    or torrent_json['infohash'] in self.session.lm.downloads:
                 continue
 
             results_json.append(torrent_json)

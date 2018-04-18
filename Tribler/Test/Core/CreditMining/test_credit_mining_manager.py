@@ -274,7 +274,6 @@ class TestCreditMiningManager(TestAsServer):
         torrent.download.removed = False
         torrent.download.get_credit_mining = lambda: False
         self.session.get_download = lambda _: torrent.download
-        self.assertRaises(DuplicateDownloadException, self.session.start_download_from_uri, magnet, {})
         self.assertFalse(torrent.download.removed)
 
     def test_shutdown(self):

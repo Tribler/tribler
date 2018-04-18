@@ -262,7 +262,6 @@ class TestLibtorrentMgr(AbstractServer):
 
         def cb_torrent_added(handle):
             self.assertEqual(handle, mock_handle)
-            self.assertRaises(DuplicateDownloadException, self.ltmgr.add_torrent, None, {'ti': infohash})
             test_deferred.callback(None)
 
         self.ltmgr.add_torrent(mock_download, {'ti': infohash}).addCallback(cb_torrent_added)
@@ -351,10 +350,11 @@ class TestLibtorrentMgr(AbstractServer):
         mock_download.get_def = lambda: mock_tdef
         mock_download.get_credit_mining = lambda: False
         self.tribler_session.get_download = lambda _: mock_download
+        self.tribler_session.start_download_from_tdef = lambda tdef, _: MockObject()
 
         self.ltmgr.tribler_session = self.tribler_session
         self.ltmgr.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
-        self.assertRaises(DuplicateDownloadException, self.ltmgr.start_download, infohash='a' * 20, tdef=mock_tdef)
+        self.ltmgr.start_download(infohash='a' * 20, tdef=mock_tdef)
 
     def test_set_proxy_settings(self):
         """
