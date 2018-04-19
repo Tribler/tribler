@@ -23,6 +23,6 @@ def timed(func):
         func(*args, **kwargs)
         end_time = time.time()
         diff_time = (end_time - start_time) * 1000
-        benchmarked[func.__name__] = (start_time, diff_time)
+        benchmarked["<%s>" %func.__name__] = (start_time, diff_time)
         logging.info('function [%s] finished in %.3f ms', func.__name__, diff_time)
     return newfunc

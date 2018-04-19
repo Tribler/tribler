@@ -139,6 +139,9 @@ class DebugWindow(QMainWindow):
         self.window().system_tab_widget.currentChanged.connect(self.system_tab_changed)
         self.load_general_tab()
 
+        self.window().benchmark_tree_widget.setSortingEnabled(True)
+        self.window().benchmark_tree_widget.itemClicked.connect(self.on_click_benchmark_item)
+
         self.window().open_files_tree_widget.header().setSectionResizeMode(0, QHeaderView.Stretch)
 
         # Enable/disable tabs, based on settings
@@ -173,6 +176,8 @@ class DebugWindow(QMainWindow):
             self.system_tab_changed(self.window().system_tab_widget.currentIndex())
         elif index == 6:
             self.load_logs_tab()
+        elif index == 7:
+            self.load_benchmarks()
 
     def dispersy_tab_changed(self, index):
         if index == 0:
@@ -535,6 +540,30 @@ class DebugWindow(QMainWindow):
 
         sb = log_display_widget.verticalScrollBar()
         sb.setValue(sb.maximum())
+
+    def load_benchmarks(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("debug/benchmark", self.show_benchmarks)
+
+    def show_benchmarks(self, data):
+        if 'benchmark' not in data:
+            return
+        benchmark_data = data['benchmark']
+        self.window().benchmark_tree_widget.clear()
+        for marker_name in benchmark_data:
+            print benchmark_data[marker_name][0], "type:", type(benchmark_data[marker_name][0])
+            formatted_text = "[%s] \nStarted at   :  %s \nTime taken :  %f ms" % \
+                             (marker_name, strftime("%Y-%m-%d %H:%M:%S", localtime(benchmark_data[marker_name][0])),
+                              benchmark_data[marker_name][1])
+            item = QTreeWidgetItem(self.window().benchmark_tree_widget)
+            item.setData(0, Qt.UserRole, formatted_text)
+            item.setText(0, "%s" % marker_name)
+            item.setText(1, "%0.3f ms" % benchmark_data[marker_name][1])
+            self.window().benchmark_tree_widget.addTopLevelItem(item)
+
+    def on_click_benchmark_item(self, item):
+        benchmark_data = item.data(0, Qt.UserRole)
+        self.window().benchmark_text_box.setPlainText(benchmark_data)
 
     def show(self):
         super(DebugWindow, self).show()
