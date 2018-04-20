@@ -269,7 +269,7 @@ class DebugWindow(QMainWindow):
         if not data:
             return
         self.window().communities_tree_widget.clear()
-        for community in data["community_statistics"]:
+        for community in data["dispersy_community_statistics"]:
             item = QTreeWidgetItem(self.window().communities_tree_widget)
             item.setText(0, community["classification"])
             item.setText(1, community["identifier"][:6])
