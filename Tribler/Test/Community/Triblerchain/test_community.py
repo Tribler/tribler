@@ -1,6 +1,6 @@
-from Tribler.Test.ipv8_base import TestBase
-from Tribler.Test.mocking.ipv8 import MockIPv8
-from Tribler.Test.util.ipv8_util import twisted_wrapper
+from Tribler.pyipv8.ipv8.test.base import TestBase
+from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
+from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
 from Tribler.community.triblerchain.block import TriblerChainBlock
 from Tribler.community.triblerchain.community import TriblerChainCrawlerCommunity
 

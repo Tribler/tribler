@@ -1,6 +1,6 @@
-from Tribler.Test.ipv8_base import TestBase
-from Tribler.Test.mocking.ipv8 import MockIPv8
-from Tribler.Test.util.ipv8_util import twisted_wrapper
+from Tribler.pyipv8.ipv8.test.base import TestBase
+from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
+from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
 from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.community.market.community import MarketCommunity, PingRequestCache
 from twisted.internet.defer import fail
@@ -107,7 +107,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         # The ask should be removed since this node thinks the order is already completed
         self.assertEqual(len(self.nodes[2].overlay.order_book.asks), 0)
 
-    @twisted_wrapper
+    @twisted_wrapper(2)
     def test_counter_trade(self):
         """
         Test making a counter trade
@@ -128,7 +128,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.assertTrue(self.nodes[0].overlay.transaction_manager.find_all())
         self.assertTrue(self.nodes[1].overlay.transaction_manager.find_all())
 
-    @twisted_wrapper
+    @twisted_wrapper(2)
     def test_e2e_trade(self):
         """
         Test trading between two persons, with a matchmaker
@@ -172,7 +172,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
 
         self.assertTrue(self.nodes[0].overlay.order_manager.order_repository.find_by_id(ask_order.order_id).cancelled)
 
-    @twisted_wrapper
+    @twisted_wrapper(2)
     def test_failing_payment(self):
         """
         Test trading between two persons when a payment fails
@@ -191,7 +191,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.assertEqual(self.nodes[0].overlay.transaction_manager.find_all()[0].status, "error")
         self.assertEqual(self.nodes[1].overlay.transaction_manager.find_all()[0].status, "error")
 
-    @twisted_wrapper
+    @twisted_wrapper(3)
     def test_proposed_trade_timeout(self):
         """
         Test whether we unreserve the quantity if a proposed trade timeouts
@@ -216,7 +216,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.assertEqual(float(bid_tick_entry.reserved_for_matching), 0)
         self.assertEqual(float(ask_tick_entry.reserved_for_matching), 0)
 
-    @twisted_wrapper
+    @twisted_wrapper(4)
     def test_orderbook_sync(self):
         """
         Test whether orderbooks are synchronized with a new node
@@ -250,7 +250,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
 class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
     __testing__ = True
 
-    @twisted_wrapper
+    @twisted_wrapper(2)
     def test_e2e_trade(self):
         """
         Test a direct trade between two nodes
@@ -276,7 +276,7 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         self.assertEqual(balance1['available'], 999)
         self.assertEqual(balance2['available'], 1001)
 
-    @twisted_wrapper
+    @twisted_wrapper(4)
     def test_partial_trade(self):
         """
         Test a partial trade
@@ -318,7 +318,7 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         yield self.introduce_nodes()
         yield deferred
 
-    @twisted_wrapper
+    @twisted_wrapper(2)
     def test_offline_matchmaker(self):
         """
         Test whether offline matchmakers are successfully removed
