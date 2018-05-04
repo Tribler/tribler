@@ -5,6 +5,8 @@ Author(s): Egbert Bouman
 """
 import ast
 import codecs
+import StringIO
+
 from ConfigParser import DEFAULTSECT, RawConfigParser
 from threading import RLock
 
@@ -25,8 +27,11 @@ class CallbackConfigParser(RawConfigParser):
 
     def read_file(self, filename, encoding='utf-8'):
         self.filename = filename
+        # We load the file in-memory, which significantly helps performance in case we have big files
+        # (e.g. when loading resumedata). Please do not remove.
         with codecs.open(filename, 'rb', encoding) as fp:
-            self.readfp(fp)
+            buff = fp.read()
+        self.readfp(StringIO.StringIO(buff))
 
     def set(self, section, option, new_value):
         with self.lock:
