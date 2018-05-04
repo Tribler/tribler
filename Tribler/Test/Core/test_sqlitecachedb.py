@@ -127,6 +127,28 @@ class TestSqliteCacheDB(TriblerCoreTest):
         sqlite_test_2.execute = execute
         sqlite_test_2.initialize()
 
+    @blocking_call_on_reactor_thread
+    def test_integrity_check_triggered(self):
+        """ Tests if integrity check is triggered if temporary rollback files are present."""
+        def do_integrity_check():
+            do_integrity_check.called = True
+
+        db_path = os.path.join(self.session_base_dir, "test_db.db")
+        sqlite_test = SQLiteCacheDB(db_path)
+        sqlite_test.do_quick_integrity_check = do_integrity_check
+        do_integrity_check.called = False
+        sqlite_test.initialize()
+        self.assertFalse(do_integrity_check.called)
+
+        db_path2 = os.path.join(self.session_base_dir, "test_db2.db")
+        wal_file = open(os.path.join(self.session_base_dir, "test_db2.db-shm"), 'w')
+        wal_file.close()
+
+        sqlite_test_2 = SQLiteCacheDB(db_path2)
+        sqlite_test_2.do_quick_integrity_check = do_integrity_check
+        do_integrity_check.called = False
+        sqlite_test_2.initialize()
+        self.assertTrue(do_integrity_check.called)
 
     @blocking_call_on_reactor_thread
     def test_clean_db(self):

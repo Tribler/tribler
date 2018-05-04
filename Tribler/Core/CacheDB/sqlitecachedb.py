@@ -125,12 +125,11 @@ class SQLiteCacheDB(TaskManager):
 
         cursor = self.get_cursor()
 
-        # Check integrity of the database
-        check_response, = self.execute(u"PRAGMA quick_check").next()
-        if check_response != 'ok':
-            msg = u"Quick integrity check of database failed"
-            self._logger.error(msg)
-            raise CorruptedDatabaseError(msg)
+        # Check integrity of the database only if there is Walk-Ahead Log (WAL) or Shared-Memory (shm) files present
+        shm_file = "%s-shm" % self.sqlite_db_path
+        wal_file = "%s-wal" % self.sqlite_db_path
+        if os.path.exists(shm_file) or os.path.exists(wal_file):
+            self.do_quick_integrity_check()
 
         # apply pragma
         page_size, = next(cursor.execute(u"PRAGMA page_size"))
@@ -192,6 +191,13 @@ class SQLiteCacheDB(TaskManager):
                 raise CorruptedDatabaseError(msg)
         else:
             self._version = 1
+
+    def do_quick_integrity_check(self):
+        check_response, = self.execute(u"PRAGMA quick_check").next()
+        if check_response != 'ok':
+            msg = u"Quick integrity check of database failed"
+            self._logger.error(msg)
+            raise CorruptedDatabaseError(msg)
 
     def get_cursor(self):
         thread_name = currentThread().getName()
