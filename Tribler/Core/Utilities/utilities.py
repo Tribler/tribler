@@ -275,7 +275,7 @@ def create_valid_metainfo(metainfo):
         raise ValueError('metainfo not dict')
 
     # some .torrent files have a dht:// url in the announce field.
-    if ('announce' in metainfo) \
+    if ('announce' in metainfo and metainfo['announce']) \
             and (not (is_valid_url(metainfo['announce']) or metainfo['announce'].startswith('dht:'))):
         raise ValueError('announce URL bad')
 
