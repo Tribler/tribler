@@ -242,7 +242,8 @@ class TriblerRequestManager(QObject):
         if read_callback:
             self.received_json.connect(read_callback)
 
-        def reply_callback(reply):
+        def reply_callback(reply, log):
+            log[-1] = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
             self.on_finished(reply, capture_errors)
 
         request_queue.enqueue(self, method, endpoint, data, reply_callback, priority)
@@ -298,6 +299,13 @@ class TriblerRequestManager(QObject):
         except TypeError:
             pass  # We probably didn't have any connected slots.
 
+        try:
+            reply.deleteLater()
+        except RuntimeError:
+            pass
+
+        self.reply = None
+
     def download_file(self, endpoint, read_callback):
         def download_callback(reply):
             self.on_file_download_finished(reply)
@@ -331,7 +339,6 @@ class TriblerRequestWorker(QNetworkAccessManager):
 
     def __init__(self):
         QNetworkAccessManager.__init__(self)
-        self.status_code = -1
         self.dispatch_map = {
             'GET': self.perform_get,
             'PATCH': self.perform_patch,
@@ -355,12 +362,6 @@ class TriblerRequestWorker(QNetworkAccessManager):
     def get_base_url(self):
         return "%s://%s:%d/" % (self.protocol, self.host, self.port)
 
-    def get_status_code(self, reply):
-        """
-        Get the status code of this request.
-        """
-        return reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
-
     def perform_request(self, endpoint, reply_callback, data, method):
         """
         Perform a HTTP request.
@@ -373,9 +374,12 @@ class TriblerRequestWorker(QNetworkAccessManager):
             url = endpoint
         else:
             url = self.get_base_url() + endpoint
-        self.status_code = -1
+
+        log = [endpoint, method, data, time(), 0]
+        performed_requests.append(log)
         network_reply = self.dispatch_map.get(method, lambda x, y, z: None)(endpoint, data, url)
-        network_reply.finished.connect(lambda: reply_callback(network_reply))
+        network_reply.finished.connect(lambda: reply_callback(network_reply, log))
+
         return network_reply
 
     def perform_get(self, endpoint, data, url):
@@ -392,7 +396,6 @@ class TriblerRequestWorker(QNetworkAccessManager):
         get_request = QNetworkRequest(QUrl(url))
         reply = self.sendCustomRequest(get_request, "GET", buf)
         buf.setParent(reply)
-        performed_requests.append([endpoint, "GET", data, time(), lambda: self.get_status_code(reply)])
         return reply
 
     def perform_patch(self, endpoint, data, url):
@@ -409,7 +412,6 @@ class TriblerRequestWorker(QNetworkAccessManager):
         patch_request = QNetworkRequest(QUrl(url))
         reply = self.sendCustomRequest(patch_request, "PATCH", buf)
         buf.setParent(reply)
-        performed_requests.append([endpoint, "PATCH", data, time(), lambda: self.get_status_code(reply)])
         return reply
 
     def perform_put(self, endpoint, data, url):
@@ -420,7 +422,6 @@ class TriblerRequestWorker(QNetworkAccessManager):
         :param data: the data/body to send with the request.
         :param url: the url to send the request to.
         """
-        performed_requests.append([endpoint, "PUT", data, time(), lambda: self.get_status_code(reply)])
         request = QNetworkRequest(QUrl(url))
         request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
         reply = self.put(request, data)
@@ -440,7 +441,6 @@ class TriblerRequestWorker(QNetworkAccessManager):
         delete_request = QNetworkRequest(QUrl(url))
         reply = self.sendCustomRequest(delete_request, "DELETE", buf)
         buf.setParent(reply)
-        performed_requests.append([endpoint, "DELETE", data, time(), lambda: self.get_status_code(reply)])
         return reply
 
     def perform_post(self, endpoint, data, url):
@@ -455,5 +455,4 @@ class TriblerRequestWorker(QNetworkAccessManager):
         request = QNetworkRequest(QUrl(url))
         request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
         reply = self.post(request, data)
-        performed_requests.append([endpoint, "POST", data, time(), lambda: self.get_status_code(reply)])
         return reply
