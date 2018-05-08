@@ -503,7 +503,7 @@ class TriblerWindow(QMainWindow):
         self.request_mgr.perform_request("trustchain/statistics", self.received_token_balance, capture_errors=False)
 
     def received_token_balance(self, statistics):
-        if not statistics:
+        if not statistics or "statistics" not in statistics:
             return
 
         statistics = statistics["statistics"]
