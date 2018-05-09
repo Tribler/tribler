@@ -1,3 +1,4 @@
+import time
 from collections import namedtuple
 
 import os
@@ -102,7 +103,24 @@ class TestResourceMonitor(TriblerCoreTest):
         """
         self.resource_monitor.set_resource_log_enabled(True)
         self.resource_monitor.check_resources()
-        os.path.exists(self.resource_monitor.resource_log_file)
+        self.assertTrue(os.path.exists(self.resource_monitor.resource_log_file))
+
+    def test_write_resource_log(self):
+        """
+        Test no data is written to file and no exception raised when resource data (cpu & memory) is empty which
+        happens at startup.
+        """
+        # Empty resource log to check later if something was written to the log or not.
+        open(self.resource_monitor.resource_log_file, 'w').close()
+
+        self.resource_monitor.memory_data = []
+        self.resource_monitor.cpu_data = []
+
+        # Try writing the log
+        self.resource_monitor.write_resource_logs(time.time())
+
+        # Nothing should be written since memory and cpu data was not available
+        self.assertTrue(os.stat(self.resource_monitor.resource_log_file).st_size == 0)
 
     def test_enable_resource_log(self):
         self.resource_monitor.set_resource_log_enabled(True)
