@@ -153,7 +153,18 @@ def should_kill_other_tribler_instances():
         window.withdraw()
         result = tkMessageBox.askquestion("Warning", FORCE_RESTART_MESSAGE, icon='warning')
         if result == 'yes':
-            os.kill(pid, 9)
+            try:
+                # Parent of core process (GUI)
+                ppid = psutil.Process(pid).ppid()
+                # Also kill the parent (GUI) if available otherwise the child becomes a defunct zombie
+                if ppid > 1:
+                    os.kill(pid, 9)
+                    os.kill(ppid, 9)
+                else:
+                    os.kill(pid, 9)
+            except OSError:
+                logging.exception("Failed to kill the existing Tribler process")
+
             window.update()
             window.quit()
 
