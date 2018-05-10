@@ -242,6 +242,20 @@ class TriblerLaunchMany(TaskManager):
         if not self.session.config.get_dispersy_enabled():
             self.ipv8.strategies.append((RandomWalk(discovery_community), 20))
 
+        # AllChannel2 Community
+        if self.session.config.get_channel_search_enabled():
+            triblerchain_peer = Peer(self.session.trustchain_keypair)
+            from Tribler.community.allchannel2.community import AllChannel2Community
+
+            channel_directory = os.path.join(self.session.config.get_state_dir(), u"channels")
+            self.allchannel2_community = AllChannel2Community(triblerchain_peer, self.ipv8.endpoint,
+                                                              self.ipv8.network,
+                                                              tribler_session=self.session,
+                                                              working_directory=channel_directory)
+            self.allchannel2_community.load_channels()
+            self.ipv8.overlays.append(self.allchannel2_community)
+            self.ipv8.strategies.append((RandomWalk(self.allchannel2_community), 20))
+
         # TriblerChain Community
         if self.session.config.get_trustchain_enabled():
             triblerchain_peer = Peer(self.session.trustchain_keypair)
