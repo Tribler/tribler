@@ -212,7 +212,7 @@ class AllChannel2Community(Community):
         channel = Peer(auth.public_key_bin).mid.encode('hex')
         # If we don't know about this channel, respond with our own
         if channel not in self.channels:
-            if self.my_channel_info_hash:
+            if self.my_channel_info_hash and source_address not in self.network.blacklist:
                 packet = self.create_channel_message()
                 self.endpoint.send(source_address, packet)
             # And start downloading it, if we are hooked up to a Tribler session
@@ -233,6 +233,6 @@ class AllChannel2Community(Community):
         """
         super(AllChannel2Community, self).on_introduction_response(source_address, data)
 
-        if self.my_channel_info_hash:
+        if self.my_channel_info_hash and source_address not in self.network.blacklist:
             packet = self.create_channel_message()
             self.endpoint.send(source_address, packet)
