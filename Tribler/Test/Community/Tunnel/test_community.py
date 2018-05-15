@@ -10,7 +10,6 @@ from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from twisted.internet.defer import inlineCallbacks
 
-
 # Map of info_hash -> peer list
 global_dht_services = {}
 
@@ -46,12 +45,12 @@ class TestTriblerTunnelCommunity(TestBase):
 
     def create_node(self):
         mock_ipv8 = MockIPv8(u"curve25519", TriblerTunnelCommunity, socks_listen_ports=[])
-        mock_ipv8.overlay._use_main_thread = False
         mock_ipv8.overlay.settings.max_circuits = 1
 
         # Load the TriblerChain community
         overlay = TriblerChainCommunity(mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network,
                                         working_directory=u":memory:")
+        overlay._use_main_thread = False
         mock_ipv8.overlay.triblerchain_community = overlay
         mock_ipv8.overlay.dht_provider = MockDHTProvider(mock_ipv8.endpoint.wan_address)
 

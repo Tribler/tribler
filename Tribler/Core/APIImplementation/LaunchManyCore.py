@@ -171,25 +171,7 @@ class TriblerLaunchMany(TaskManager):
                 self.video_server = VideoServer(self.session.config.get_video_server_port(), self.session)
                 self.video_server.start()
 
-            # Dispersy
-            self.tftp_handler = None
-            dispersy_endpoint = None
-            if self.session.config.get_dispersy_enabled():
-                from Tribler.dispersy.dispersy import Dispersy
-                from Tribler.dispersy.endpoint import MIMEndpoint
-
-                # set communication endpoint
-                dispersy_endpoint = MIMEndpoint(self.session.config.get_dispersy_port())
-
-                working_directory = unicode(self.session.config.get_state_dir())
-                self.dispersy = Dispersy(dispersy_endpoint, working_directory)
-
-                # register TFTP service
-                from Tribler.Core.TFTP.handler import TftpHandler
-                self.tftp_handler = TftpHandler(self.session, dispersy_endpoint, "fffffffd".decode('hex'),
-                                                block_size=1024)
-                self.tftp_handler.initialize()
-
+            # IPv8
             if self.session.config.get_ipv8_enabled():
                 from Tribler.pyipv8.ipv8.configuration import get_default_configuration
                 ipv8_config = get_default_configuration()
@@ -203,16 +185,34 @@ class TriblerLaunchMany(TaskManager):
                     community_file._DEFAULT_ADDRESSES = [("95.211.155.142", 7001)]
                     community_file._DNS_ADDRESSES = []
 
-                if self.session.config.get_dispersy_enabled():
-                    from Tribler.Core.APIImplementation.IPv8EndpointAdapter import IPv8EndpointAdapter
-                    self.ipv8 = IPv8(ipv8_config, IPv8EndpointAdapter(dispersy_endpoint))
-                else:
-                    self.ipv8 = IPv8(ipv8_config)
+                self.ipv8 = IPv8(ipv8_config)
 
                 self.session.config.set_anon_proxy_settings(2, ("127.0.0.1",
                                                                 self.session.
                                                                 config.get_tunnel_community_socks5_listen_ports()))
+            # Dispersy
+            self.tftp_handler = None
+            if self.session.config.get_dispersy_enabled():
+                from Tribler.dispersy.dispersy import Dispersy
+                from Tribler.dispersy.endpoint import MIMEndpoint
+                from Tribler.dispersy.endpoint import IPv8toDispersyAdapter
 
+                # set communication endpoint
+                if self.session.config.get_ipv8_enabled():
+                    dispersy_endpoint = IPv8toDispersyAdapter(self.ipv8.endpoint)
+                else:
+                    dispersy_endpoint = MIMEndpoint(self.session.config.get_dispersy_port())
+
+                working_directory = unicode(self.session.config.get_state_dir())
+                self.dispersy = Dispersy(dispersy_endpoint, working_directory)
+
+                # register TFTP service
+                from Tribler.Core.TFTP.handler import TftpHandler
+                self.tftp_handler = TftpHandler(self.session, dispersy_endpoint, "fffffffd".decode('hex'),
+                                                block_size=1024)
+                self.tftp_handler.initialize()
+
+            # Torrent search
             if self.session.config.get_torrent_search_enabled() or self.session.config.get_channel_search_enabled():
                 self.search_manager = SearchManager(self.session)
                 self.search_manager.initialize()
@@ -868,10 +868,6 @@ class TriblerLaunchMany(TaskManager):
             yield self.ipv8.unload_overlay(self.tunnel_community)
             yield self.ipv8.unload_overlay(self.triblerchain_community)
 
-        if self.ipv8:
-            yield self.ipv8.stop(stop_reactor=False)
-            self.ipv8.endpoint.close()
-
         if self.dispersy:
             self._logger.info("lmc: Shutting down Dispersy...")
             now = timemod.time()
@@ -886,6 +882,9 @@ class TriblerLaunchMany(TaskManager):
                 self._logger.info("lmc: Dispersy successfully shutdown in %.2f seconds", diff)
             else:
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
+
+        if self.ipv8:
+            yield self.ipv8.stop(stop_reactor=False)
 
         if self.metadata_store is not None:
             yield self.metadata_store.close()
