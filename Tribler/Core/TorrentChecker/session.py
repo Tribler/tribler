@@ -36,7 +36,7 @@ DHT_TRACKER_MAX_RETRIES = 8
 MAX_TRACKER_MULTI_SCRAPE = 74
 
 
-def create_tracker_session(tracker_url, timeout, socket_manager):
+def create_tracker_session(tracker_url, timeout, socket_manager, connection_pool=None):
     """
     Creates a tracker session with the given tracker URL.
     :param tracker_url: The given tracker URL.
@@ -47,8 +47,7 @@ def create_tracker_session(tracker_url, timeout, socket_manager):
 
     if tracker_type == u'udp':
         return UdpTrackerSession(tracker_url, tracker_address, announce_page, timeout, socket_manager)
-    else:
-        return HttpTrackerSession(tracker_url, tracker_address, announce_page, timeout)
+    return HttpTrackerSession(tracker_url, tracker_address, announce_page, timeout, connection_pool=connection_pool)
 
 
 class TrackerSession(TaskManager):
@@ -70,6 +69,7 @@ class TrackerSession(TaskManager):
 
         self._retries = 0
         self.timeout = timeout
+        self.timeout_call = None
 
         self._last_contact = None
 
@@ -124,6 +124,22 @@ class TrackerSession(TaskManager):
         """Does some work when a connection has been established."""
         pass
 
+    def start_timeout(self):
+        self.timeout_call = self.register_task("timeout", reactor.callLater(self.timeout, self.on_timeout)) \
+            if self.timeout != 0 else None
+
+    def on_timeout(self):
+        """
+        This method is executed if session fails to return the response within expected time.
+        """
+        self._is_failed = True
+        self._is_timed_out = True
+        if self.result_deferred and not self.result_deferred.called:
+            timeout_msg = "%s tracker timeout for url %s" % (self._tracker_type, self._tracker_url)
+            self.result_deferred.errback(ValueError(timeout_msg))
+            self.result_deferred = None
+        self.timeout_call = None
+
     @abstractproperty
     def max_retries(self):
         """Number of retries before a session is marked as failed."""
@@ -175,7 +191,7 @@ class TrackerSession(TaskManager):
 
 
 class HttpTrackerSession(TrackerSession):
-    def __init__(self, tracker_url, tracker_address, announce_page, timeout):
+    def __init__(self, tracker_url, tracker_address, announce_page, timeout, connection_pool=None):
         super(HttpTrackerSession, self).__init__(u'http', tracker_url, tracker_address, announce_page, timeout)
         self._header_buffer = None
         self._message_buffer = None
@@ -184,7 +200,7 @@ class HttpTrackerSession(TrackerSession):
         self._received_length = None
         self.result_deferred = None
         self.request = None
-        self._connection_pool = HTTPConnectionPool(reactor, False)
+        self._connection_pool = connection_pool if connection_pool else HTTPConnectionPool(reactor, False)
 
     def max_retries(self):
         """
@@ -221,8 +237,9 @@ class HttpTrackerSession(TrackerSession):
             self.request = self.register_task("request", agent.request('GET', bytes(url)))
             self.request.addCallback(self.on_response)
             self.request.addErrback(self.on_error)
-
             self._logger.debug(u"%s HTTP SCRAPE message sent: %s", self, url)
+
+            self.start_timeout()
 
             # Return deferred that will evaluate when the whole chain is done.
             self.result_deferred = self.register_task("result", Deferred(canceller=self._on_cancel))
@@ -251,16 +268,15 @@ class HttpTrackerSession(TrackerSession):
         # All ok, parse the body
         self.register_task("parse_body", readBody(response).addCallbacks(self._process_scrape_response, self.on_error))
 
-    def _on_cancel(self, a):
+    def _on_cancel(self, _):
         """
         :param _: The deferred which we ignore.
         This function handles the scenario of the session prematurely being cleaned up,
         most likely due to a shutdown.
         This function only should be called by the result_deferred.
         """
-        self._logger.info(
-            "The result deferred of this HTTP tracker session is being cancelled due to a session cleanup. HTTP url: %s",
-            self.tracker_url)
+        self._logger.info("The result deferred of this HTTP tracker session is being cancelled "
+                          "due to a session cleanup. HTTP url: %s", self.tracker_url)
 
     def failed(self, msg=None):
         """
@@ -268,7 +284,7 @@ class HttpTrackerSession(TrackerSession):
         in the session has failed and thus no data can be obtained.
         """
         self._is_failed = True
-        if self.result_deferred:
+        if self.result_deferred and not self.result_deferred.called:
             result_msg = "HTTP tracker failed for url %s" % self._tracker_url
             if msg:
                 result_msg += " (error: %s)" % unicode(msg, errors='replace')
@@ -319,7 +335,8 @@ class HttpTrackerSession(TrackerSession):
             response_list.append({'infohash': infohash.encode('hex'), 'seeders': 0, 'leechers': 0})
 
         self._is_finished = True
-        self.result_deferred.callback({self.tracker_url: response_list})
+        if self.result_deferred and not self.result_deferred.called:
+            self.result_deferred.callback({self.tracker_url: response_list})
 
     @inlineCallbacks
     def cleanup(self):
@@ -382,8 +399,6 @@ class UdpTrackerSession(TrackerSession):
         self.action = TRACKER_ACTION_CONNECT
         self.generate_transaction_id()
 
-        self.timeout_call = self.reactor.callLater(self.timeout, self.failed) if self.timeout != 0 else None
-
     def on_error(self, failure):
         """
         Handles the case when resolving an ip address fails.
@@ -419,7 +434,7 @@ class UdpTrackerSession(TrackerSession):
         This method handles everything that needs to be done when one step
         in the session has failed and thus no data can be obtained.
         """
-        if self.result_deferred and not self._is_failed:
+        if self.result_deferred and not self.result_deferred.called and not self._is_failed:
             result_msg = "UDP tracker failed for url %s" % self._tracker_url
             if msg:
                 result_msg += " (error: %s)" % unicode(msg, errors='replace')
@@ -487,6 +502,8 @@ class UdpTrackerSession(TrackerSession):
         """
         # no more requests can be appended to this session
         self._is_initiated = True
+
+        self.start_timeout()
 
         # clean old deferreds if present
         self.cancel_pending_task("result")
@@ -610,7 +627,8 @@ class UdpTrackerSession(TrackerSession):
         UdpTrackerSession.remove_transaction_id(self)
         self._is_finished = True
 
-        self.result_deferred.callback({self.tracker_url: response_list})
+        if self.result_deferred and not self.result_deferred.called:
+            self.result_deferred.callback({self.tracker_url: response_list})
 
 
 class FakeDHTSession(TrackerSession):

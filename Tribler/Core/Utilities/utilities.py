@@ -331,6 +331,8 @@ def is_valid_url(url):
     :param url: an object representing the URL
     :return: Boolean specifying whether the URL is valid
     """
+    if ' ' in url.strip():
+        return
     if url.lower().startswith('udp'):
         url = url.lower().replace('udp', 'http', 1)
     split_url = urlparse.urlsplit(url)

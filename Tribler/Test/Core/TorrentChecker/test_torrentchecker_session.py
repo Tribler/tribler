@@ -12,10 +12,6 @@ from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.twisted_thread import deferred
 
 
-class ClockedUdpTrackerSession(UdpTrackerSession):
-    reactor = Clock()
-
-
 class FakeUdpSocketManager(object):
     transport = 1
 
@@ -83,6 +79,62 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         return test_deferred
 
     @deferred(timeout=5)
+    def test_httpsession_timeout(self):
+        test_deferred = Deferred()
+
+        def on_fake_connect_to_tracker():
+            session.start_timeout()
+            session.result_deferred = Deferred()
+            return session.result_deferred
+
+        def on_fake_timeout():
+            session.timeout_called = True
+            timeout_func()
+
+        def on_error(failure):
+            failure.trap(ValueError)
+            self.assertTrue(session.timeout_called)
+            test_deferred.callback(None)
+
+        session = HttpTrackerSession("localhost", ("localhost", 80), "/announce", 1)
+        timeout_func = session.on_timeout
+        session.timeout_called = False
+
+        session.on_timeout = on_fake_timeout
+        session.connect_to_tracker = on_fake_connect_to_tracker
+
+        session.connect_to_tracker().addErrback(on_error)
+        return test_deferred
+
+    @deferred(timeout=5)
+    def test_udpsession_timeout(self):
+        test_deferred = Deferred()
+
+        def on_fake_connect_to_tracker():
+            session.start_timeout()
+            session.result_deferred = Deferred()
+            return session.result_deferred
+
+        def on_fake_timeout():
+            session.timeout_called = True
+            timeout_func()
+
+        def on_error(failure):
+            failure.trap(ValueError)
+            self.assertTrue(session.timeout_called)
+            test_deferred.callback(None)
+
+        session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 1, self.socket_mgr)
+        timeout_func = session.on_timeout
+        session.timeout_called = False
+
+        session.on_timeout = on_fake_timeout
+        session.connect_to_tracker = on_fake_connect_to_tracker
+
+        session.connect_to_tracker().addErrback(on_error)
+        return test_deferred
+
+    @deferred(timeout=5)
     def test_httpsession_cancel_operation(self):
         test_deferred = Deferred()
         session = HttpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 5)
@@ -96,12 +148,6 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         d = Deferred(session._on_cancel)
         d.addErrback(lambda _: None)
         session.result_deferred = d
-
-    def test_udpsession_udp_tracker_timeout(self):
-        session = ClockedUdpTrackerSession("localhost", ("localhost", 4782), "/announce", 15, self.socket_mgr)
-        # Advance 16 seconds so the timeout triggered
-        session.reactor.advance(session.timeout + 1)
-        self.assertTrue(session.is_failed)
 
     def test_udpsession_handle_response_wrong_len(self):
         session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
