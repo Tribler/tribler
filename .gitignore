@@ -39,6 +39,9 @@ cover/
 htmlcov/
 .coverage
 
+# Ignore nosetest output logs
+Tribler/Test/logs/
+
 # Android
 *.apk
 

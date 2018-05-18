@@ -23,6 +23,8 @@ from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.search.community import SearchCommunity
 from Tribler.dispersy.utils import twistd_yappi
 
+from .tunnel_helper_plugin import check_ipv8_bootstrap_override
+
 
 class Options(usage.Options):
     optParameters = [
@@ -31,11 +33,11 @@ class Options(usage.Options):
         ["restapi", "p", -1, "Use an alternate port for the REST API", int],
         ["dispersy", "d", -1, "Use an alternate port for Dispersy", int],
         ["libtorrent", "l", -1, "Use an alternate port for libtorrent", int],
+        ["ipv8_bootstrap_override", "b", "", "Force the usage of specific IPv8 bootstrap server (ip:port)", check_ipv8_bootstrap_override]
     ]
     optFlags = [
         ["auto-join-channel", "a", "Automatically join a channel when discovered"],
         ["log-incoming-searches", "i", "Write information about incoming remote searches to a file"],
-        ["testnet", "t", "Join the Tribler Testnet"]
     ]
 
 
@@ -106,8 +108,8 @@ class TriblerServiceMaker(object):
         if options["libtorrent"] != -1 and options["libtorrent"] > 0:
             config.set_libtorrent_port(options["libtorrent"])
 
-        if "testnet" in options and options["testnet"]:
-            config.set_ipv8_use_testnet(True)
+        if "ipv8_bootstrap_override" in options:
+            config.set_ipv8_bootstrap_override(options["ipv8_bootstrap_override"])
 
         self.session = Session(config)
         self.session.start().addErrback(lambda failure: self.shutdown_process(failure.getErrorMessage()))
