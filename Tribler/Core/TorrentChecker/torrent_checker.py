@@ -1,12 +1,14 @@
 import logging
 import socket
 import time
+from Tribler.Core.Utilities.utilities import is_valid_url
 from binascii import hexlify
 
 from twisted.internet import reactor
 from twisted.internet.defer import DeferredList, CancelledError, fail, succeed, maybeDeferred
 from twisted.internet.error import ConnectingCancelledError
 from twisted.python.failure import Failure
+from twisted.web.client import HTTPConnectionPool
 
 from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession, UdpSocketManager
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
@@ -44,11 +46,13 @@ class TorrentChecker(TaskManager):
         self.session_stop_defer_list = []
 
         self.socket_mgr = self.udp_port = None
+        self.connection_pool = None
 
     @blocking_call_on_reactor_thread
     def initialize(self):
         self._torrent_db = self.tribler_session.open_dbhandler(NTFY_TORRENTS)
         self._reschedule_tracker_select()
+        self.connection_pool = HTTPConnectionPool(reactor, False)
         self.socket_mgr = UdpSocketManager()
         self.create_socket_or_schedule()
 
@@ -78,6 +82,9 @@ class TorrentChecker(TaskManager):
         if self.udp_port:
             self.session_stop_defer_list.append(maybeDeferred(self.udp_port.stopListening))
             self.udp_port = None
+
+        if self.connection_pool:
+            self.session_stop_defer_list.append(self.connection_pool.closeCachedConnections())
 
         self.shutdown_task_manager()
 
@@ -113,7 +120,7 @@ class TorrentChecker(TaskManager):
         self._reschedule_tracker_select()
 
         # start selecting torrents
-        tracker_url = self.tribler_session.lm.tracker_manager.get_next_tracker_for_auto_check()
+        tracker_url = self.get_valid_next_tracker_for_auto_check()
         if tracker_url is None:
             self._logger.warn(u"No tracker to select from, skip")
             return succeed(None)
@@ -126,14 +133,14 @@ class TorrentChecker(TaskManager):
         if len(infohashes) == 0:
             # We have not torrent to recheck for this tracker. Still update the last_check for this tracker.
             self._logger.info("No torrent to check for tracker %s", tracker_url)
-            self.tribler_session.lm.tracker_manager.update_tracker_info(tracker_url, True)
+            self.update_tracker_info(tracker_url, True)
             return succeed(None)
         elif tracker_url != u'DHT' and tracker_url != u'no-DHT':
             try:
                 session = self._create_session_for_request(tracker_url, timeout=30)
             except MalformedTrackerURLException as e:
                 # Remove the tracker from the database
-                self.tribler_session.lm.tracker_manager.remove_tracker(tracker_url)
+                self.remove_tracker(tracker_url)
                 self._logger.error(e)
                 return succeed(None)
 
@@ -148,6 +155,27 @@ class TorrentChecker(TaskManager):
         success_lambda = lambda info_dict: self._on_result_from_session(session, info_dict)
         error_lambda = lambda failure: self.on_session_error(session, failure)
         return success_lambda, error_lambda
+
+    def get_valid_next_tracker_for_auto_check(self):
+        tracker_url = self.get_next_tracker_for_auto_check()
+        while tracker_url and not is_valid_url(tracker_url):
+            self.remove_tracker(tracker_url)
+            tracker_url = self.get_next_tracker_for_auto_check()
+        return tracker_url
+
+    def get_next_tracker_for_auto_check(self):
+        return self.tribler_session.lm.tracker_manager.get_next_tracker_for_auto_check()
+
+    def remove_tracker(self, tracker_url):
+        self.tribler_session.lm.tracker_manager.remove_tracker(tracker_url)
+
+    def update_tracker_info(self, tracker_url, value):
+        self.tribler_session.lm.tracker_manager.update_tracker_info(tracker_url, value)
+
+    def get_valid_trackers_of_torrent(self, torrent_id):
+        """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
+        db_tracker_list = self._torrent_db.getTrackerListByTorrentID(torrent_id)
+        return set([tracker for tracker in db_tracker_list if is_valid_url(tracker) or tracker == u'DHT'])
 
     def on_gui_request_completed(self, infohash, result):
         final_response = {}
@@ -195,11 +223,7 @@ class TorrentChecker(TaskManager):
                                    "leechers": result[u'num_leechers'], "infohash": infohash.encode('hex')}})
 
         # get torrent's tracker list from DB
-        tracker_set = set()
-        db_tracker_list = self._torrent_db.getTrackerListByTorrentID(torrent_id)
-        for tracker in db_tracker_list:
-            tracker_set.add(tracker)
-
+        tracker_set = self.get_valid_trackers_of_torrent(torrent_id)
         if not tracker_set:
             self._logger.warn(u"no trackers, skip GUI request. infohash: %s", hexlify(infohash))
             # TODO: add code to handle torrents with no tracker
@@ -244,7 +268,7 @@ class TorrentChecker(TaskManager):
         return failure
 
     def _create_session_for_request(self, tracker_url, timeout=20):
-        session = create_tracker_session(tracker_url, timeout, self.socket_mgr)
+        session = create_tracker_session(tracker_url, timeout, self.socket_mgr, connection_pool=self.connection_pool)
 
         if tracker_url not in self._session_list:
             self._session_list[tracker_url] = []
