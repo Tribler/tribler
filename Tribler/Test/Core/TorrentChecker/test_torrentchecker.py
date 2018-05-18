@@ -168,6 +168,24 @@ class TestTorrentChecker(TriblerCoreTest):
         self.session.lm.tracker_manager.add_tracker('http://trackertest.com:80/announce')
         return self.torrent_checker._task_select_tracker()
 
+    def test_get_valid_next_tracker_for_auto_check(self):
+        """ Test if only valid tracker url is used for auto check """
+        test_tracker_list = ["http://anno nce.torrentsmd.com:8080/announce",
+                             "http://announce.torrentsmd.com:8080/announce"]
+
+        def get_next_tracker_for_auto_check():
+            return test_tracker_list[0] if test_tracker_list else None
+
+        def remove_tracker(tracker_url):
+            test_tracker_list.remove(tracker_url)
+
+        self.torrent_checker.get_next_tracker_for_auto_check = get_next_tracker_for_auto_check
+        self.torrent_checker.remove_tracker = remove_tracker
+
+        next_tracker_url = self.torrent_checker.get_valid_next_tracker_for_auto_check()
+        self.assertEqual(len(test_tracker_list), 1)
+        self.assertEqual(next_tracker_url, "http://announce.torrentsmd.com:8080/announce")
+
     @inlineCallbacks
     @blocking_call_on_reactor_thread
     def tearDown(self, annotate=True):
