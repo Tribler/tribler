@@ -17,6 +17,7 @@ class TriblerCategoryTestFamilyFilter(AbstractServer):
         self.assertTrue(self.family_filter.isXXXTorrent(["term1.txt"], "term2", ""))
 
     def test_is_xxx(self):
+        self.assertFalse(self.family_filter.isXXX(None))
         self.assertTrue(self.family_filter.isXXX("term1"))
         self.assertFalse(self.family_filter.isXXX("term0"))
         self.assertTrue(self.family_filter.isXXX("term3"))
