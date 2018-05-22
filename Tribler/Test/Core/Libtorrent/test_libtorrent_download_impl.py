@@ -548,7 +548,6 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         Testing whether an exception in the setup method of LibtorrentDownloadImpl is handled correctly
         """
         self.libtorrent_download_impl.setup()
-        print self.libtorrent_download_impl.get_state().get_error()
         self.assertIsInstance(self.libtorrent_download_impl.error, Exception)
 
     def test_tracker_reply_alert(self):
