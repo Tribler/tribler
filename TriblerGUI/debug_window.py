@@ -5,6 +5,7 @@ from time import localtime, strftime
 import datetime
 import matplotlib
 from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QTextCursor
 from PyQt5.QtWidgets import QFileDialog, QTextEdit, QDesktopWidget
 from PyQt5.QtWidgets import QMessageBox
@@ -108,6 +109,7 @@ class DebugWindow(QMainWindow):
     The debug window shows various statistics about Tribler such as performed requests, Dispersy statistics and
     community information.
     """
+    resize_event = pyqtSignal()
 
     def __init__(self, settings, tribler_version):
         QMainWindow.__init__(self)
