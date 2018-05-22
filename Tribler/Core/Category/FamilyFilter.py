@@ -63,6 +63,9 @@ class XXXFilter(object):
         return is_xxx
 
     def isXXX(self, s, isFilename=True):
+        if not s:
+            return False
+
         s = s.lower()
         if self.isXXXTerm(s):  # We have also put some full titles in the filter file
             return True

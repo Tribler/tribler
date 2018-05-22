@@ -180,15 +180,14 @@ class TriblerRequestDispatcher(object):
         self.request_workers = []
         self.num_requests = 0
 
+        self.default_protocol = None
+        self.default_host = None
+        self.default_port = None
+
     def update_worker_settings(self, protocol=None, host=None, port=None):
-        if protocol or host or port:
-            for worker in self.request_workers:
-                if protocol:
-                    worker.update_protocol(protocol)
-                if host:
-                    worker.update_host(host)
-                if port:
-                    worker.update_port(port)
+        self.default_protocol = protocol
+        self.default_host = host
+        self.default_port = port
 
     def perform_request(self, request_manager, endpoint, reply_callback, data, method):
         self.num_requests += 1
@@ -196,7 +195,15 @@ class TriblerRequestDispatcher(object):
 
         num_worker = len(self.request_workers)
         if num_worker < self.pool_size:
-            self.request_workers = [TriblerRequestWorker() for _ in xrange(self.pool_size - num_worker)]
+            for _ in xrange(self.pool_size - num_worker):
+                worker = TriblerRequestWorker()
+                self.request_workers.append(worker)
+                if self.default_protocol:
+                    worker.update_protocol(self.default_protocol)
+                if self.default_host:
+                    worker.update_host(self.default_host)
+                if self.default_port:
+                    worker.update_port(self.default_port)
 
         network_reply = self.request_workers[worker_index].perform_request(endpoint, reply_callback, data, method)
         request_manager.set_reply_handle(network_reply)
@@ -307,7 +314,7 @@ class TriblerRequestManager(QObject):
         self.reply = None
 
     def download_file(self, endpoint, read_callback):
-        def download_callback(reply):
+        def download_callback(reply, _):
             self.on_file_download_finished(reply)
 
         if read_callback:

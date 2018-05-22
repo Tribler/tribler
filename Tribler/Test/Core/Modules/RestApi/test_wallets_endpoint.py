@@ -14,7 +14,6 @@ class TestWalletsEndpoint(AbstractApiTest):
     def setUpPreSession(self):
         super(TestWalletsEndpoint, self).setUpPreSession()
         self.config.set_ipv8_enabled(True)
-        self.config.set_tunnel_community_enabled(True)
         self.config.set_dummy_wallets_enabled(True)
         self.config.set_market_community_enabled(True)
 

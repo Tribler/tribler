@@ -92,7 +92,7 @@ class TriblerWindow(QMainWindow):
                                 self.start_time)
         dialog.show()
 
-    def __init__(self, core_args=None, core_env=None):
+    def __init__(self, core_args=None, core_env=None, api_port=None):
         QMainWindow.__init__(self)
 
         QCoreApplication.setOrganizationDomain("nl")
@@ -101,7 +101,7 @@ class TriblerWindow(QMainWindow):
         QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
         self.gui_settings = QSettings()
-        api_port = int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
+        api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
         dispatcher.update_worker_settings(port=api_port)
 
         self.navigation_stack = []

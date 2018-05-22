@@ -12,24 +12,24 @@ from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget, QTextEdit
 
 import TriblerGUI.core_manager as core_manager
-import TriblerGUI.defs as gui_defs
+import TriblerGUI.defs
 from Tribler.Core.Utilities.network_utils import get_random_port
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.widgets.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
 
-rand_port = get_random_port()
+api_port = get_random_port()
 core_manager.START_FAKE_API = True
-gui_defs.DEFAULT_API_PORT = rand_port
 
 import TriblerGUI
+TriblerGUI.defs.DEFAULT_API_PORT = api_port
 
 from TriblerGUI.widgets.loading_list_item import LoadingListItem
 from TriblerGUI.tribler_window import TriblerWindow
 
 if os.environ.get("TEST_GUI") == "yes":
     app = QApplication(sys.argv)
-    window = TriblerWindow()
+    window = TriblerWindow(api_port=api_port)
     QTest.qWaitForWindowExposed(window)
 else:
     window = None
@@ -67,7 +67,7 @@ def start_fake_core(port):
 
 
 # Start the fake API
-t = threading.Thread(target=start_fake_core, args=(8085,))
+t = threading.Thread(target=start_fake_core, args=(api_port,))
 t.setDaemon(True)
 t.start()
 
