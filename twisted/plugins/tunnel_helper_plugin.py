@@ -6,6 +6,8 @@ import os
 import random
 import signal
 import threading
+import re
+
 
 from twisted.application.service import MultiService, IServiceMaker
 from twisted.conch import manhole_tap
@@ -17,12 +19,12 @@ from twisted.protocols.basic import LineReceiver
 from twisted.python import usage
 from twisted.python.log import msg
 from zope.interface import implements
+from socket import inet_aton
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
 from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
-
 
 # Register yappi profiler
 from Tribler.dispersy.utils import twistd_yappi
@@ -35,7 +37,6 @@ def check_socks5_port(val):
     return socks5_port
 check_socks5_port.coerceDoc = "Socks5 port must be greater than 0."
 
-
 def check_ipv8_port(val):
     ipv8_port = int(val)
     if ipv8_port < -1 or ipv8_port == 0:
@@ -43,19 +44,42 @@ def check_ipv8_port(val):
     return ipv8_port
 check_ipv8_port.coerceDoc = "IPv8 port must be greater than 0 or -1."
 
+def check_ipv8_address(val):
+    try:
+        inet_aton(val)
+    except:
+        raise ValueError("Invalid IPv4 address")
+    return val
+check_ipv8_address.coerceDoc = "IPv8 listening address must be in proper IPv4 format."
+
+def check_ipv8_bootstrap_override(val):
+    parsed = re.match(r"^([\d\.]+)\:(\d+)$", val) 
+    if not parsed:
+        raise ValueError("Invalid bootstrap address:port")
+
+    ip, port = parsed.group(1), int(parsed.group(2))
+    try:
+        inet_aton(ip)
+    except:
+        raise ValueError("Invalid bootstrap server address")
+
+    if not (0 < port < 65535):
+        raise ValueError("Invalid bootstrap server port")
+    return ip, port
+check_ipv8_bootstrap_override.coerceDoc = "IPv8 bootstrap server address must be in ipv4_addr:port format"
 
 class Options(usage.Options):
     optFlags = [
         ["exit", "x", "Allow being an exit-node"],
-        ["testnet", "t", "Join the Tribler Testnet"]
     ]
 
     optParameters = [
         ["manhole", "m", 0, "Enable manhole telnet service listening at the specified port", int],
         ["socks5", "p", None, "Socks5 port", check_socks5_port],
-        ["ipv8", "d", -1, 'IPv8 port', check_ipv8_port],
+        ["ipv8_port", "d", -1, 'IPv8 port', check_ipv8_port],
+        ["ipv8_address", "i", "0.0.0.0", 'IPv8 listening address', check_ipv8_address],
+        ["ipv8_bootstrap_override", "b", "", "Force the usage of specific IPv8 bootstrap server (ip:port)", check_ipv8_bootstrap_override]
     ]
-
 
 if not os.path.exists("logger.conf"):
     print "Unable to find logger.conf"
@@ -75,10 +99,11 @@ logger = logging.getLogger('TunnelMain')
 
 class Tunnel(object):
 
-    def __init__(self, options, ipv8_port=-1):
+    def __init__(self, options, ipv8_port=-1, ipv8_address="0.0.0.0"):
         self.options = options
         self.should_run = True
         self.ipv8_port = ipv8_port
+        self.ipv8_address = ipv8_address
         self.session = None
         self.community = None
         self.clean_messages_lc = LoopingCall(self.clean_messages)
@@ -126,6 +151,7 @@ class Tunnel(object):
         config.set_libtorrent_enabled(False)
         config.set_video_server_enabled(False)
         config.set_dispersy_port(self.ipv8_port)
+        config.set_ipv8_address(self.ipv8_address)
         config.set_torrent_search_enabled(False)
         config.set_channel_search_enabled(False)
         config.set_trustchain_enabled(True)
@@ -134,8 +160,8 @@ class Tunnel(object):
         config.set_mainline_dht_enabled(False)
         config.set_tunnel_community_exitnode_enabled(bool(self.options["exit"]))
 
-        if "testnet" in self.options and self.options["testnet"]:
-            config.set_ipv8_use_testnet(True)
+        if "ipv8_bootstrap_override" in self.options:
+            config.set_ipv8_bootstrap_override(self.options["ipv8_bootstrap_override"])
 
         self.session = Session(config)
         logger.info("Using IPv8 port %d" % self.session.config.get_dispersy_port())
@@ -204,9 +230,8 @@ class TunnelHelperServiceMaker(object):
         """
         Main method to startup a tunnel helper and add a signal handler.
         """
-        ipv8_port = options["ipv8"]
 
-        tunnel = Tunnel(options, ipv8_port)
+        tunnel = Tunnel(options, options["ipv8_port"], options["ipv8_address"])
         StandardIO(LineHandler(tunnel))
 
         def signal_handler(sig, _):

@@ -145,7 +145,7 @@ class TestLaunchManyCoreFullSession(TestAsServer):
         self.config.set_megacache_enabled(True)
         self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
         self.config.set_mainline_dht_enabled(True)
-        self.config.set_ipv8_use_testnet(True)
+        self.config.set_ipv8_bootstrap_override(("127.0.0.1", 12345))
 
     def get_community(self, community_cls):
         for community in self.session.get_dispersy_instance().get_communities():
