@@ -40,6 +40,7 @@ def start_fake_core(port):
     from twisted.web.server import Site
 
     from FakeTriblerAPI.endpoints.root_endpoint import RootEndpoint
+    from FakeTriblerAPI.endpoints.video_root_endpoint import VideoRootEndpoint
     from FakeTriblerAPI.tribler_data import TriblerData
     import FakeTriblerAPI.tribler_utils as tribler_utils
 
@@ -56,7 +57,12 @@ def start_fake_core(port):
 
     site = Site(RootEndpoint())
     logger.info("Starting fake Tribler API on port %d", port)
+
+    video_site = Site(VideoRootEndpoint())
+    logger.info("Starting video API on port %d", tribler_utils.tribler_data.video_player_port)
+
     reactor.listenTCP(port, site)
+    reactor.listenTCP(tribler_utils.tribler_data.video_player_port, video_site)
     reactor.run(installSignalHandlers=False)
 
 
@@ -469,6 +475,23 @@ class TriblerGUITest(AbstractTriblerGUITest):
 
         self.wait_for_signal(window.left_menu_playlist.list_loaded, no_args=True)
         self.screenshot(window, name="video_player_left_menu_loaded")
+
+    def test_video_playback(self):
+        """
+        Test video playback of a Tribler instance.
+        """
+        self.wait_for_variable("tribler_settings")
+        QTest.mouseClick(window.left_menu_button_video_player, Qt.LeftButton)
+        window.left_menu_playlist.set_files([{"name": "test.wmv", "index": 1}])
+        window.video_player_page.active_infohash = 'a' * 20
+        window.video_player_page.active_index = 0
+        window.video_player_page.play_active_item()
+
+        QTest.qWait(3000)
+        self.assertTrue(window.video_player_page.media)
+        self.assertTrue(window.video_player_page.media.get_duration())
+        self.screenshot(window, name="video_playback")
+        window.video_player_page.reset_player()
 
     def test_feedback_dialog(self):
         def screenshot_dialog():
