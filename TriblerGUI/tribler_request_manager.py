@@ -314,7 +314,7 @@ class TriblerRequestManager(QObject):
         self.reply = None
 
     def download_file(self, endpoint, read_callback):
-        def download_callback(reply):
+        def download_callback(reply, _):
             self.on_file_download_finished(reply)
 
         if read_callback:
