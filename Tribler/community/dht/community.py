@@ -1,8 +1,12 @@
+import os
 import time
+import hashlib
+
+from collections import deque, defaultdict
 
 from twisted.internet.defer import inlineCallbacks, Deferred, fail, DeferredList, returnValue
-from twisted.python.failure import Failure
 from twisted.internet.task import LoopingCall
+from twisted.python.failure import Failure
 
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.requestcache import RandomNumberCache, RequestCache
@@ -10,26 +14,38 @@ from Tribler.pyipv8.ipv8.deprecated.payload import IntroductionRequestPayload, I
 from Tribler.pyipv8.ipv8.deprecated.payload_headers import BinMemberAuthenticationPayload
 from Tribler.pyipv8.ipv8.deprecated.payload_headers import GlobalTimeDistributionPayload
 from Tribler.pyipv8.ipv8.deprecated.community import Community
+from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 
 from Tribler.community.dht.storage import Storage
 from Tribler.community.dht.routing import RoutingTable, Node, distance, calc_node_id
 from Tribler.community.dht.payload import PingRequestPayload, PingResponsePayload, StoreRequestPayload, \
-                                          StoreResponsePayload, FindRequestPayload, FindResponsePayload
+                                          StoreResponsePayload, FindRequestPayload, FindResponsePayload, \
+                                          SignedStrPayload, StrPayload
 
-PING_INTERVAL = 55
+PING_INTERVAL = 25
 
-MAX_ENTRY_SIZE = 128
+DHT_ENTRY_STR = 0
+DHT_ENTRY_STR_SIGNED = 1
+
+MAX_ENTRY_SIZE = 155
 MAX_ENTRY_AGE = 86400
 
 MAX_FIND_WALKS = 8
 MAX_FIND_STEPS = 4
 
-MAX_VALUES_IN_STORE = 10
-MAX_VALUES_IN_FIND = 10
+MAX_VALUES_IN_STORE = 9
+MAX_VALUES_IN_FIND = 9
 MAX_NODES_IN_FIND = 8
 
 # Target number of nodes at which a key-value pair should be stored
 TARGET_NODES = 8
+
+MSG_PING = 7
+MSG_PONG = 8
+MSG_STORE_REQUEST = 9
+MSG_STORE_RESPONSE = 10
+MSG_FIND_REQUEST = 11
+MSG_FIND_RESPONSE = 12
 
 
 def gatherResponses(deferreds):
@@ -42,12 +58,13 @@ class Request(RandomNumberCache):
     """
     This request cache keeps track of all outstanding requests within the DHTCommunity.
     """
-    def __init__(self, community, node, params=None):
+    def __init__(self, community, node, params=None, consume_errors=True):
         super(Request, self).__init__(community.request_cache, u'request')
         self.node = node
         self.params = params
         self.deferred = Deferred()
         self.start_time = time.time()
+        self.consume_errors = consume_errors
 
     @property
     def timeout_delay(self):
@@ -55,9 +72,10 @@ class Request(RandomNumberCache):
 
     def on_timeout(self):
         if not self.deferred.called:
-            self._logger.error('Request to %s timed out', self.node.address)
+            self._logger.warning('Request to %s timed out', self.node)
             self.node.failed += 1
-            self.deferred.errback(Failure(RuntimeError("Node timeout")))
+            if not self.consume_errors:
+                self.deferred.errback(Failure(RuntimeError('Node %s timeout' % self.node)))
 
     def on_complete(self):
         self.node.last_response = time.time()
@@ -79,17 +97,20 @@ class DHTCommunity(Community):
         self.routing_table = RoutingTable(self.my_node_id)
         self.storage = Storage()
         self.request_cache = RequestCache()
-        self.register_task('maintenance', LoopingCall(self.maintenance)).start(3600, now=False)
+        self.tokens = {}
+        self.token_secrets = deque(maxlen=2)
         self.register_task('ping_all', LoopingCall(self.ping_all)).start(10, now=False)
+        self.register_task('value_maintenance', LoopingCall(self.value_maintenance)).start(3600, now=False)
+        self.register_task('token_maintenance', LoopingCall(self.token_maintenance)).start(300, now=True)
 
         # Register messages
         self.decode_map.update({
-            chr(7): self.on_ping_request,
-            chr(8): self.on_ping_response,
-            chr(9): self.on_store_request,
-            chr(10): self.on_store_response,
-            chr(11): self.on_find_request,
-            chr(12): self.on_find_response,
+            chr(MSG_PING): self.on_ping_request,
+            chr(MSG_PONG): self.on_ping_response,
+            chr(MSG_STORE_REQUEST): self.on_store_request,
+            chr(MSG_STORE_RESPONSE): self.on_store_response,
+            chr(MSG_FIND_REQUEST): self.on_find_request,
+            chr(MSG_FIND_RESPONSE): self.on_find_response,
         })
 
         self.logger.info('DHT community initialized (peer mid %s)', self.my_peer.mid.encode('HEX'))
@@ -129,44 +150,43 @@ class DHTCommunity(Community):
 
     @inlineCallbacks
     def on_node_discovered(self, node):
-        if not self.routing_table.has(node):
-            node = self.routing_table.add(node)
+        existed = self.routing_table.has(node)
+        node = self.routing_table.add(node)
 
-            if node:
-                self.logger.info('Added node %s to the routing table', node.address)
-
-                # Ping the node in order to determine RTT
-                yield self.ping(node)
-
-                # Check if we need to move data to the new node
-                for key, values in self.storage.data.iteritems():
-                    if distance(key, self.my_node_id) > distance(key, node.id):
-                        self.store_on_nodes(key, [v for _, _, v in values], [node])
+        if not existed and node:
+            self.logger.info('Added node %s to the routing table', node)
+            # Ping the node in order to determine RTT
+            yield self.ping(node)
 
     def ping_all(self):
-        deferreds = []
+        self.routing_table.remove_bad_nodes()
+
+        pinged = []
         now = time.time()
         for bucket in self.routing_table.trie.values():
             for node in bucket.nodes.values():
                 if node.last_response + PING_INTERVAL <= now:
-                    deferreds.append(self.ping(node).addErrback(lambda _: None))
-        return DeferredList(deferreds)
+                    self.ping(node)
+                    pinged.append(node)
+        return pinged
 
     def ping(self, node):
-        self.logger.info('Pinging node %s', node.address)
+        self.logger.info('Pinging node %s', node)
 
         cache = self.request_cache.add(Request(self, node))
-        self.send_message(node.address, 7, PingRequestPayload, (cache.number,))
+        self.send_message(node.address, MSG_PING, PingRequestPayload, (cache.number,))
         return cache.deferred
 
     def on_ping_request(self, source_address, data):
         self.logger.debug('Got ping-request from %s', source_address)
 
         auth, _, payload = self._ez_unpack_auth(PingRequestPayload, data)
-        node = self.routing_table.add(Node(auth.public_key_bin, source_address))
-        if node:
-            node.last_query = time.time()
-        self.send_message(source_address, 8, PingResponsePayload, (payload.identifier,))
+
+        node = Node(auth.public_key_bin, source_address)
+        node = self.routing_table.add(node) or node
+        node.last_query = time.time()
+
+        self.send_message(source_address, MSG_PONG, PingResponsePayload, (payload.identifier,))
 
     def on_ping_response(self, source_address, data):
         _, _, payload = self._ez_unpack_auth(PingResponsePayload, data)
@@ -180,16 +200,49 @@ class DHTCommunity(Community):
         cache.on_complete()
         cache.deferred.callback(cache.node)
 
-    def store(self, key, value):
+    def serialize_value(self, data, sign=True):
+        if sign:
+            payload = SignedStrPayload(data, int(time.time()), self.my_peer.public_key.key_to_bin())
+            return self._ez_pack('', DHT_ENTRY_STR_SIGNED, [payload.to_pack_list()], sig=True)
+        payload = StrPayload(data)
+        return self._ez_pack('', DHT_ENTRY_STR, [payload.to_pack_list()], sig=False)
+
+    def unserialize_value(self, value):
+        if value[0] == chr(DHT_ENTRY_STR):
+            payload = self.serializer.unpack_to_serializables([StrPayload], value[1:])[0]
+            return payload.data, None, 0
+        elif value[0] == chr(DHT_ENTRY_STR_SIGNED):
+            payload = self.serializer.unpack_to_serializables([SignedStrPayload], value[1:])[0]
+            ec = ECCrypto()
+            public_key = ec.key_from_public_bin(payload.public_key)
+            sig_len = ec.get_signature_length(public_key)
+            sig = value[-sig_len:]
+            if ec.is_valid_signature(public_key, value[:-sig_len], sig):
+                return payload.data, payload.public_key, payload.version
+
+    def add_value(self, key, value, max_age=MAX_ENTRY_AGE):
+        unserialized = self.unserialize_value(value)
+        if unserialized:
+            _, public_key, version = unserialized
+            id_ = hashlib.sha1(public_key).digest() if public_key else None
+            self.storage.put(key, value, id_=id_, version=version, max_age=max_age)
+        else:
+            self.logger.warning('Failed to store value %s', value.encode('hex'))
+
+    def store_value(self, key, data, sign=False):
+        value = self.serialize_value(data, sign=sign)
+        return self._store(key, value)
+
+    def _store(self, key, value):
         if len(value) > MAX_ENTRY_SIZE:
-            return fail(Failure(RuntimeError("Maximum length exceeded")))
+            return fail(Failure(RuntimeError('Maximum length exceeded')))
 
         return self.find_nodes(key).addCallback(lambda nodes, k=key, v=value:
                                                 self.store_on_nodes(k, [v], nodes[:TARGET_NODES]))
 
     def store_on_nodes(self, key, values, nodes):
         if not nodes:
-            return fail(Failure(RuntimeError("No nodes found for storing the key-value pairs")))
+            return fail(Failure(RuntimeError('No nodes found for storing the key-value pairs')))
 
         values = values[:MAX_VALUES_IN_STORE]
 
@@ -197,28 +250,38 @@ class DHTCommunity(Community):
         largest_distance = max([distance(node.id, key) for node in nodes])
         if distance(self.my_node_id, key) < largest_distance:
             for value in values:
-                self.storage.put(key, value, MAX_ENTRY_AGE)
+                self.add_value(key, value)
 
         deferreds = []
         for node in nodes:
-            cache = self.request_cache.add(Request(self, node))
-            deferreds.append(cache.deferred)
-            # TODO: add token?
-            self.send_message(node.address, 9, StoreRequestPayload, (cache.number, key, values))
+            if node in self.tokens:
+                cache = self.request_cache.add(Request(self, node))
+                deferreds.append(cache.deferred)
+                self.send_message(node.address, MSG_STORE_REQUEST, StoreRequestPayload,
+                                  (cache.number, self.tokens[node][1], key, values))
+            else:
+                self.logger.debug('Not sending store-request to %s (no token available)', node)
 
-        return gatherResponses(deferreds)
+        return gatherResponses(deferreds) if deferreds else fail(RuntimeError('Value was not stored'))
 
     def on_store_request(self, source_address, data):
         self.logger.debug('Got store-request from %s', source_address)
 
         auth, _, payload = self._ez_unpack_auth(StoreRequestPayload, data)
-        node = self.routing_table.add(Node(auth.public_key_bin, source_address))
+        node = Node(auth.public_key_bin, source_address)
+        node = self.routing_table.add(node) or node
+        node.last_query = time.time()
 
         if any([len(value) > MAX_ENTRY_SIZE for value in payload.values]):
-            self.logger.error('Maximum length of value exceeded, dropping packet.')
+            self.logger.warning('Maximum length of value exceeded, dropping packet.')
             return
         if len(payload.values) > MAX_VALUES_IN_STORE:
-            self.logger.error('Too many values, dropping packet.')
+            self.logger.warning('Too many values, dropping packet.')
+            return
+        # Note that even though we are preventing spoofing of source_address (by checking the token),
+        # the value that is to be stored isn't checked. This should be done at a higher level.
+        if not self.check_token(node, payload.token):
+            self.logger.warning('Bad token, dropping packet.')
             return
 
         # How many nodes (that we know of) are closer to this value?
@@ -231,12 +294,9 @@ class DHTCommunity(Community):
         # of nodes that are closer than us.
         max_age = MAX_ENTRY_AGE / 2 ** max(0, num_closer - TARGET_NODES + 1)
         for value in payload.values:
-            self.storage.put(payload.target, value, max_age)
+            self.add_value(payload.target, value, max_age)
 
-        if node:
-            node.last_query = time.time()
-
-        self.send_message(source_address, 10, StoreResponsePayload, (payload.identifier,))
+        self.send_message(source_address, MSG_STORE_RESPONSE, StoreResponsePayload, (payload.identifier,))
 
     def on_store_response(self, source_address, data):
         _, _, payload = self._ez_unpack_auth(StoreResponsePayload, data)
@@ -252,15 +312,15 @@ class DHTCommunity(Community):
 
     def _send_find_request(self, node, target, force_nodes):
         cache = self.request_cache.add(Request(self, node, [force_nodes]))
-        self.send_message(node.address, 11, FindRequestPayload,
+        self.send_message(node.address, MSG_FIND_REQUEST, FindRequestPayload,
                           (cache.number, self.my_estimated_lan, target, force_nodes))
         return cache.deferred
 
     @inlineCallbacks
-    def find(self, target, force_nodes=False):
+    def _find(self, target, force_nodes=False):
         nodes_closest = set(self.routing_table.closest_nodes(target, max_nodes=MAX_FIND_WALKS))
         if not nodes_closest:
-            returnValue(Failure(RuntimeError("No nodes found in the routing table")))
+            returnValue(Failure(RuntimeError('No nodes found in the routing table')))
 
         nodes_tried = set()
         values = set()
@@ -311,28 +371,39 @@ class DHTCommunity(Community):
 
         values = list(values)
 
-        if missed:
-            # Cache this value at the closest node
+        if missed and values:
+            # Cache values at the closest node
             self.store_on_nodes(target, values, [missed[-1]])
 
-        returnValue(values)
+        returnValue(self.post_process_values(values))
+
+    def post_process_values(self, values):
+        # Unpack values and filter out duplicates
+        unpacked = defaultdict(list)
+        for value in values:
+            unserialized = self.unserialize_value(value)
+            if unserialized:
+                data, public_key, version = unserialized
+                unpacked[public_key].append((version, data))
+        return [(max(v, key=lambda t: t[0])[1], k) for k, v in unpacked.iteritems() if k is not None] + \
+               [(data[1], None) for data in unpacked[None]]
 
     def find_values(self, target):
-        return self.find(target, force_nodes=False)
+        return self._find(target, force_nodes=False)
 
     def find_nodes(self, target):
-        return self.find(target, force_nodes=True)
+        return self._find(target, force_nodes=True)
 
     def on_find_request(self, source_address, data):
         self.logger.debug('Got find-request from %s', source_address)
 
         auth, _, payload = self._ez_unpack_auth(FindRequestPayload, data)
-        node = self.routing_table.add(Node(auth.public_key_bin, source_address))
-        if node:
-            node.last_query = time.time()
+        node = Node(auth.public_key_bin, source_address)
+        node = self.routing_table.add(node) or node
+        node.last_query = time.time()
 
         nodes = []
-        values = self.storage.get(payload.target)[:MAX_VALUES_IN_FIND] if not payload.force_nodes else []
+        values = self.storage.get(payload.target, limit=MAX_VALUES_IN_FIND) if not payload.force_nodes else []
 
         if payload.force_nodes or not values:
             nodes = self.routing_table.closest_nodes(payload.target, exclude=node, max_nodes=MAX_NODES_IN_FIND)
@@ -341,7 +412,8 @@ class DHTCommunity(Community):
                 packet = self.create_puncture_request(payload.lan_address, source_address, payload.identifier)
                 self.endpoint.send(nodes[0].address, packet)
 
-        self.send_message(source_address, 12, FindResponsePayload, (payload.identifier, values, nodes))
+        self.send_message(source_address, MSG_FIND_RESPONSE, FindResponsePayload,
+                          (payload.identifier, self.generate_token(node), values, nodes))
 
     def on_find_response(self, source_address, data):
         _, _, payload = self._ez_unpack_auth(FindResponsePayload, data)
@@ -353,6 +425,9 @@ class DHTCommunity(Community):
         self.logger.debug('Got find-response from %s', source_address)
         cache = self.request_cache.pop(u'request', payload.identifier)
         cache.on_complete()
+
+        self.tokens[cache.node] = (time.time(), payload.token)
+
         if cache.deferred.called:
             # The errback must already have been called (due to a timeout)
             return
@@ -362,16 +437,31 @@ class DHTCommunity(Community):
             cache.deferred.callback((cache.node, {'values': payload.values} if payload.values else \
                                                  {'nodes': payload.nodes}))
 
-    def maintenance(self):
+    def value_maintenance(self):
         # Refresh buckets
         now = time.time()
         for bucket in self.routing_table.trie.values():
             if now - bucket.last_changed > 15 * 60:
-                self.find_values(bucket.generate_id())
+                self.find_values(bucket.generate_id()).addErrback(lambda _: None)
                 bucket.last_changed = now
 
         # Replicate keys older than one hour
         for key, value in self.storage.items_older_than(3600):
-            self.store(key, value)
+            self._store(key, value).addErrback(lambda _: None)
 
         # Also republish our own key-value pairs every 24h?
+
+    def token_maintenance(self):
+        self.token_secrets.append(os.urandom(16))
+
+        # Cleanup old tokens
+        now = time.time()
+        for node, (ts, _) in self.tokens.items():
+            if now > ts + 600:
+                self.tokens.pop(node, None)
+
+    def generate_token(self, node):
+        return hashlib.sha1(str(node) + self.token_secrets[-1]).digest()
+
+    def check_token(self, node, token):
+        return any([hashlib.sha1(str(node) + secret).digest() == token for secret in self.token_secrets])

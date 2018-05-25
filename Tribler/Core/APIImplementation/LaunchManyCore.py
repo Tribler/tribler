@@ -258,8 +258,10 @@ class TriblerLaunchMany(TaskManager):
 
         # DHT Community
         if self.session.config.get_dht_community_enabled():
-            from Tribler.community.dht.community import DHTCommunity
-            self.dht_community = DHTCommunity(peer, self.ipv8.endpoint, self.ipv8.network)
+            from Tribler.community.dht.discovery import DHTDiscoveryCommunity
+
+            dht_peer = Peer(self.session.trustchain_keypair)
+            self.dht_community = DHTDiscoveryCommunity(dht_peer, self.ipv8.endpoint, self.ipv8.network)
             self.ipv8.overlays.append(self.dht_community)
             self.ipv8.strategies.append((RandomWalk(self.dht_community), 20))
 

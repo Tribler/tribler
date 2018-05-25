@@ -23,11 +23,13 @@ class DHTCommunityProvider(object):
                     addresses.append(address)
                 except (struct.error, socket.error):
                     self.logger.info("Failed to decode value '%s' from DHTCommunity", value)
-            return addresses
-        self.dhtcommunity.find_values(info_hash).addCallback(callback).addCallback(cb)
+            return info_hash, addresses, None
+        self.dhtcommunity.find_values(info_hash).addCallback(callback).addCallbacks(cb, lambda _: None)
 
-    def announce(self, info_hash, cb):
+    def announce(self, info_hash):
         def callback(_):
             self.logger.info("Announced %s to the DHTCommunity", info_hash.encode('hex'))
-        value = socket.inet_aton(self.dhtcommunity.my_estimated_lan) + struct.pack("!H", self.bt_port)
-        self.dhtcommunity.store(info_hash, value).addCallback(callback).addCallback(cb)
+        def errback(_):
+            self.logger.info("Failed to announce %s to the DHTCommunity", info_hash.encode('hex'))
+        value = socket.inet_aton(self.dhtcommunity.my_estimated_lan[0]) + struct.pack("!H", self.bt_port)
+        self.dhtcommunity.store_value(info_hash, value).addCallbacks(callback, errback)
