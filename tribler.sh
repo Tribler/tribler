@@ -1,3 +1,11 @@
+# CODE REVIEW:
+# Selects python interpreter based on Unix OS flavor,
+# looks for proper Tribler code dir.
+# Selects profiler vs regular version of Tribler based on env var
+# OBJECTION:
+# Do we really have to do it this way? How do other similar projects handle startup on different systems?
+
+
 #!/bin/sh
 # Run Tribler from source tree
 

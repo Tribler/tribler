@@ -1,4 +1,14 @@
 """
+CODE REVIEW:
+handles DB upgrades, depending on version. Contains routines to upgrade DB from different versions of Tribler to the
+next one. A lot of SQL code.
+OBJECTION: inline SQL is unindented and looks UGLY. Maybe we should drop older versions of DB and only support
+transition from the latest one.
+"""
+
+
+
+"""
 Upgrades the database from one version to a newer version.
 
 Author(s): Elric Milon

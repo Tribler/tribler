@@ -1,3 +1,18 @@
+"""
+CODE REVIEW:
+This file handles the launch of the Tribler GUI/Core. __main__ is launched twice during the GUI starting process:
+first time it is used to start the GUI, the next time it is called by CoreManager.start_tribler_core as a subprocess,
+with env vars setup for core communication.
+OBJECTION: running the single file twice is misleading. Why not just make it two separate files, one for the core,
+one for the GUI?
+
+The signal handling for the core; the check for another running instance; the session setup is handled here.
+OBJECTION: we have config setup for startup process spread out through many files.
+
+
+"""
+
+
 import os
 import sys
 import logging.config

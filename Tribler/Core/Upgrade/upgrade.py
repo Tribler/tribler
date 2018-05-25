@@ -1,3 +1,13 @@
+"""
+CODE REVIEW:
+it handles upgrades Tribler config and DB during upgrades.
+Small and neat.
+Primary callee: DBUpgrader
+OBJECTION: contains Twisted code, blocking on reactor thread etc. As this only should be run after a one-time check at
+the very start of Tribler, it could instead all be synchronous code.
+"""
+
+
 import logging
 import os
 import shutil

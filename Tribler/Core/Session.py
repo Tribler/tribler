@@ -1,4 +1,19 @@
 """
+CODE REVIEW:
+Defines Session object. It is very well documented!
+Primary callee: TriblerLaunchMany.
+Points of interest: add_observer and friends - implements event notification mechanism; torrent download initiation,
+shutdown handling.
+It seems that Session gradually lost its functionality over time, as most of its methods became simple wrappers
+around TriblerLaunchMany methods.
+OBJECTION: this should probably be broken down into a number of smaller objects, grouped by functionality. Some of its
+functions should be remixed with LaunchManyCore.
+"""
+
+
+
+
+"""
 A Session is a running instance of the Tribler Core and the Core's central class.
 
 Author(s): Arno Bakker

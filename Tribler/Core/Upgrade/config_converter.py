@@ -1,3 +1,11 @@
+"""
+CODE REVIEW:
+Converts configs of older format to a newer one.
+Primary caller: TriblerUpgrader.
+OBJECTION: Contains a lot of copy-pasted if statements. It would be nice to redo this with table or something.
+"""
+
+
 import ast
 import os
 from ConfigParser import RawConfigParser

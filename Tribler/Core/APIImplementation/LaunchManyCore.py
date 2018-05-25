@@ -1,4 +1,31 @@
 """
+CODE REVIEW:
+This is THE Giant Legacy Startup Method.
+Primary caller: Session
+Primary callee: everything
+Primary method: register - it initializes everything.
+OBJECTION: some methods for managing torrent downloads are here. They
+should be moved to a separate object instead. The same is true for the trackers
+management.
+OBJECTION: we keep the list of torrents twice: once here, once in torrent manager obj.
+OBJECTION: it is especially funny, that this object has both the special __init__
+method, and the regular init method. This ambiguity tells us that at
+some point in time this object probably "devoured" some other object, but was
+unable to "digest" its __init__ method.
+OBJECTION: this file has A LOT of imports. This indicates there is
+almost no incapsulation.
+OBJECTION: actual init methods are too long. They should be broken down
+into smaller methods for readability.
+OBJECTION: this is the place where TaskManager comes into play as a
+parent method. The launch process is not A TaskManager, but it uses THE
+TaskManager. Therefore, we should move TaskManager to member object. It
+would help with readability and clarify the code structure.
+
+
+"""
+
+
+"""
 LaunchManyCore
 
 Author(s): Arno Bakker, Niels Zeilemaker
