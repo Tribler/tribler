@@ -19,6 +19,9 @@ class TunnelDispatcher(object):
         # Map to keep track of the circuits associated with each destination.
         self.destinations = {}
 
+        # Map to keep track of the circuit id to UDP connection.
+        self.circuit_id_to_connection = {}
+
     def set_socks_servers(self, socks_servers):
         self.socks_servers = socks_servers
         self.destinations = {(ind + 1): {} for ind, _ in enumerate(self.socks_servers)}
@@ -41,7 +44,10 @@ class TunnelDispatcher(object):
         if circuit in destinations.values() or force:
             destinations[origin] = circuit
 
-            for session in sock_server.sessions:
+            sessions = [self.circuit_id_to_connection[circuit.circuit_id]] \
+                if circuit.circuit_id in self.circuit_id_to_connection else sock_server.sessions
+
+            for session in sessions:
                 if session._udp_socket:
                     socks5_data = conversion.encode_udp_packet(
                         0, 0, conversion.ADDRESS_TYPE_IPV4, origin[0], origin[1], data)
@@ -73,6 +79,7 @@ class TunnelDispatcher(object):
             return False
 
         self._logger.debug("Sending data over circuit destined for %r:%r", *request.destination)
+        self.circuit_id_to_connection[circuit.circuit_id] = udp_connection.socksconnection
         self.tunnel_community.send_data([circuit.sock_addr], circuit.circuit_id, request.destination,
                                         ('0.0.0.0', 0), request.payload)
         return True
@@ -95,5 +102,8 @@ class TunnelDispatcher(object):
 
         if counter > 0:
             self._logger.debug("Deleted %d peers from destination list", counter)
+
+        if broken_circuit.circuit_id in self.circuit_id_to_connection:
+            self.circuit_id_to_connection.pop(broken_circuit.circuit_id, None)
 
         return affected_destinations
