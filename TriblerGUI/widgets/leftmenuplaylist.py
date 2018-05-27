@@ -40,7 +40,7 @@ class LeftMenuPlaylist(QListWidget):
         self.set_loading()
 
         if self.files_request_timer:
-            self.files_request_timer.invalidate()
+            self.files_request_timer.stop()
 
         self.files_request_timer = QTimer()
         self.files_request_timer.timeout.connect(self.perform_get_files_request)
