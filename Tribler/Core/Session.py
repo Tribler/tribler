@@ -8,6 +8,10 @@ It seems that Session gradually lost its functionality over time, as most of its
 around TriblerLaunchMany methods.
 OBJECTION: this should probably be broken down into a number of smaller objects, grouped by functionality. Some of its
 functions should be remixed with LaunchManyCore.
+UNUSED FUNCTIONS:
+download_torrentfile_from_peer
+download_torrentmessage_from_peer
+download_torrentfile
 """
 
 
@@ -537,63 +541,6 @@ class Session(object):
         Session. This function is called by the network thread.
         """
         return os.path.join(self.config.get_state_dir(), STATEDIR_DLPSTATE_DIR)
-
-    def download_torrentfile(self, infohash=None, user_callback=None, priority=0):
-        """
-        Try to download the torrent file without a known source. A possible source could be the DHT.
-        If the torrent is received successfully, the user_callback method is called with the infohash as first
-        and the contents of the torrent file (bencoded dict) as second parameter. If the torrent could not
-        be obtained, the callback is not called. The torrent will have been added to the TorrentDBHandler (if enabled)
-        at the time of the call.
-
-        :param infohash: the infohash of the torrent
-        :param user_callback: a function adhering to the above spec
-        :param priority: the priority of this download
-        """
-        if not self.lm.rtorrent_handler:
-            raise OperationNotEnabledByConfigurationException()
-
-        self.lm.rtorrent_handler.download_torrent(None, infohash, user_callback=user_callback, priority=priority)
-
-    def download_torrentfile_from_peer(self, candidate, infohash=None, user_callback=None, priority=0):
-        """
-        Ask the designated peer to send us the torrent file for the torrent
-        identified by the passed infohash. If the torrent is successfully
-        received, the user_callback method is called with the infohash as first
-        and the contents of the torrent file (bencoded dict) as second parameter.
-        If the torrent could not be obtained, the callback is not called.
-        The torrent will have been added to the TorrentDBHandler (if enabled)
-        at the time of the call.
-
-        :param candidate: the designated peer
-        :param infohash: the infohash of the torrent
-        :param user_callback: a function adhering to the above spec
-        :param priority: priority of this request
-        """
-        if not self.lm.rtorrent_handler:
-            raise OperationNotEnabledByConfigurationException()
-
-        self.lm.rtorrent_handler.download_torrent(candidate, infohash, user_callback=user_callback, priority=priority)
-
-    def download_torrentmessage_from_peer(self, candidate, infohash, user_callback, priority=0):
-        """
-        Ask the designated peer to send us the torrent message for the torrent
-        identified by the passed infohash. If the torrent message is successfully
-        received, the user_callback method is called with the infohash as first
-        and the contents of the torrent file (bencoded dict) as second parameter.
-        If the torrent could not be obtained, the callback is not called.
-        The torrent will have been added to the TorrentDBHandler (if enabled)
-        at the time of the call.
-
-        :param candidate: the designated peer
-        :param infohash: the infohash of the torrent
-        :param user_callback: a function adhering to the above spec
-        :param priority: priority of this request
-        """
-        if not self.lm.rtorrent_handler:
-            raise OperationNotEnabledByConfigurationException()
-
-        self.lm.rtorrent_handler.download_torrentmessage(candidate, infohash, user_callback, priority)
 
     def get_dispersy_instance(self):
         if not self.config.get_dispersy_enabled():

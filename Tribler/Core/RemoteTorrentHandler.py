@@ -1,4 +1,16 @@
 """
+CODE REVIEW:
+This file implements some procedures to request torrent file and metadata from remote clients.
+It saves them in torrent_db, and/or caches them in leveldb.
+OBJECTION:
+Appparently, this code is almost completely dead! It's methods are either not in use, or never called.
+Tribler client functions perfectly without it.
+OBSOLETE
+
+"""
+
+
+"""
 Handles the case where the user did a remote query and now selected one of the
 returned torrents for download.
 
@@ -66,13 +78,12 @@ class RemoteTorrentHandler(TaskManager):
 
         self.running = True
 
-        for priority in (0, 1):
-            self.magnet_requesters[priority] = MagnetRequester(self.session, self, priority)
-            self.torrent_requesters[priority] = TftpRequester(u"tftp_torrent_%s" % priority,
-                                                              self.session, self, priority)
-            self.torrent_message_requesters[priority] = TorrentMessageRequester(self.session, self, priority)
+        #for priority in (0, 1):
+            #self.magnet_requesters[priority] = MagnetRequester(self.session, self, priority)
+            #self.torrent_requesters[priority] = TftpRequester(u"tftp_torrent_%s" % priority, self.session, self, priority)
+            #self.torrent_message_requesters[priority] = TorrentMessageRequester(self.session, self, priority)
 
-        self.metadata_requester = TftpRequester(u"tftp_metadata_%s" % 0, self.session, self, 0)
+        #self.metadata_requester = TftpRequester(u"tftp_metadata_%s" % 0, self.session, self, 0)
 
 
     def shutdown(self):
@@ -81,9 +92,6 @@ class RemoteTorrentHandler(TaskManager):
             requester.stop()
         self.shutdown_task_manager()
 
-    @call_on_reactor_thread
-    def set_max_num_torrents(self, max_num_torrents):
-        self.max_num_torrents = max_num_torrents
 
     @call_on_reactor_thread
     def __check_overflow(self):

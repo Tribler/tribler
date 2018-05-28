@@ -1,3 +1,7 @@
+"""
+CODE REVIEW:
+obsolete file, was used with IPv8 to Dispersy endpoint adapter
+"""
 from os import path
 
 from Tribler.Core.APIImplementation.IPv8EndpointAdapter import IPv8EndpointAdapter

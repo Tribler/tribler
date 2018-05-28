@@ -1,3 +1,9 @@
+"""
+CODE REVIEW:
+obsolete file, was used to adapt IPv8 to Dispersy-based UDP endpoint
+"""
+
+
 import socket
 from time import time
 

@@ -1,4 +1,13 @@
 """
+CODE REVIEW:
+implements Google's leveldb-backed torrent info (and thumbnails) storage.
+Used by Session and LaunchManyCore with torrent_store and metadata_store.
+Overrides some dunder methods, so should be pretty Pythonic to use.
+Inherits from TaskManager to schedule regular flushing of torrent to disk.
+"""
+
+
+"""
 LevelDBStore.
 
 Author(s): Elric Milon

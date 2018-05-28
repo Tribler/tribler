@@ -1,4 +1,28 @@
 """
+CODE REVIEW:
+Contains handlers for managing cache/backup tables in sqlite DB.
+OBJECTION:
+code quality is fairly low here. The stuff is not written in a single style, methods are too long, there is too much
+code for a single file. The objects are grouped by function here (DB handling), while they should be with the modules
+they serve.
+OBJECTION: initialization of database handlers should be in their construstors
+
+PeerDBHandler - used to cache peer keys in Tribler.(all)channel.community.
+OBJECTION:
+only addOrGetPeerID is used from PeerDBHandler, meaning that stuff is only put in the DB, but never read from it.
+Replacing it with simple bin2str() breaks nothing.
+
+VoteCastDBHandler and ChannelCastDBHandler are basically parts of Dispery. They contain vote and channel data,
+respectively.
+OBJECTION:
+this stuff is going to become obsolete as soon as we move to AllChannel2.0.
+
+
+
+"""
+
+
+"""
 SqlitecacheDBHanler.
 
 Author(s): Jie Yang
@@ -116,6 +140,7 @@ class PeerDBHandler(BasicDBHandler):
         if peer_id is None:
             self.addPeer(permid, {})
             peer_id = self.getPeerID(permid)
+            #peer_id = bin2str(permid)
 
         return peer_id
 
