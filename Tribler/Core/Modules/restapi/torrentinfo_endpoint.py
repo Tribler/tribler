@@ -5,7 +5,7 @@ from urllib import url2pathname
 
 from libtorrent import bdecode, bencode
 from twisted.internet.defer import Deferred
-from twisted.internet.error import DNSLookupError, ConnectError
+from twisted.internet.error import DNSLookupError, ConnectError, ConnectionLost
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
@@ -85,7 +85,7 @@ class TorrentInfoEndpoint(resource.Resource):
                 self.finish_request(request)
 
         def on_lookup_error(failure):
-            failure.trap(ConnectError, DNSLookupError, HttpError)
+            failure.trap(ConnectError, DNSLookupError, HttpError, ConnectionLost)
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
             request.write(json.dumps({"error": failure.getErrorMessage()}))
             self.finish_request(request)
