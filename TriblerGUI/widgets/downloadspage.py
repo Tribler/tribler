@@ -328,11 +328,7 @@ class DownloadsPage(QWidget):
 
     def on_download_removed(self, json_result):
         if json_result and "removed" in json_result:
-            infohash = self.selected_item.download_info["infohash"]
-            index = self.window().downloads_list.indexOfTopLevelItem(self.selected_item)
-            self.window().downloads_list.takeTopLevelItem(index)
-            if infohash in self.download_widgets:  # Could have been removed already through API
-                del self.download_widgets[infohash]
+            self.load_downloads()
             self.window().download_details_widget.hide()
 
     def on_force_recheck_download(self):
