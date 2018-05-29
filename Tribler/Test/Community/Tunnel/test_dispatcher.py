@@ -37,6 +37,7 @@ class TestTunnelDispatcher(AbstractServer):
         """
         mock_circuit = MockObject()
         mock_circuit.goal_hops = 300
+        mock_circuit.circuit_id = 'a'
         mock_circuit.ctype = CIRCUIT_TYPE_DATA
         origin = ("0.0.0.0", 1024)
         self.assertFalse(self.dispatcher.on_incoming_from_tunnel(self.mock_tunnel_community, mock_circuit, origin, 'a'))
