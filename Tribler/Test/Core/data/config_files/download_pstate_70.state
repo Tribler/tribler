@@ -1,0 +1,19 @@
+[downloadconfig]
+version = 16
+saveas = /Users/randomuser/downloads
+max_upload_rate = 0
+max_download_rate = 0
+mode = 0
+hops = 0
+selected_files = []
+correctedfilename = None
+safe_seeding = False
+seeding_mode = ratio
+seeding_ratio = 2.0
+seeding_time = 60
+user_stopped = False
+time_added = 1527601394
+
+[state]
+version = 5
+dlstate = {'status': 4, 'progress': 1.0, 'swarmcache': None}

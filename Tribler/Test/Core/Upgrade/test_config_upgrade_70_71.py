@@ -1,10 +1,12 @@
 import os
+import shutil
 from ConfigParser import RawConfigParser
 
+from Tribler.Core.simpledefs import STATEDIR_DLPSTATE_DIR
 from configobj import ConfigObj
 
 from Tribler.Core.Config.tribler_config import TriblerConfig, CONFIG_SPEC_PATH
-from Tribler.Core.Upgrade.config_converter import add_libtribler_config, add_tribler_config
+from Tribler.Core.Upgrade.config_converter import add_libtribler_config, add_tribler_config, convert_config_to_tribler71
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -74,3 +76,25 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         self.assertTrue(result_config.get_metadata_store_dir().endswith("collected_metadata"))
         self.assertEqual(result_config.get_anon_proxy_settings(), (2, ('127.0.0.1', [-1, -1, -1, -1, -1]), ''))
         self.assertEqual(result_config.get_credit_mining_sources(), new_config.get_credit_mining_sources())
+
+    def test_upgrade_pstate_files(self):
+        """
+        Test whether the existing pstate files are correctly updated to 7.1.
+        """
+        os.makedirs(os.path.join(self.state_dir, STATEDIR_DLPSTATE_DIR))
+
+        src_path = os.path.join(self.CONFIG_PATH, "download_pstate_70.state")
+        shutil.copyfile(src_path, os.path.join(self.state_dir, STATEDIR_DLPSTATE_DIR, "download.state"))
+
+        old_config = RawConfigParser()
+        old_config.read(os.path.join(self.CONFIG_PATH, "tribler70.conf"))
+        convert_config_to_tribler71(old_config, state_dir=self.state_dir)
+
+        # Verify whether the section is correctly renamed
+        download_config = RawConfigParser()
+        download_config.read(os.path.join(self.state_dir, STATEDIR_DLPSTATE_DIR, "download.state"))
+        self.assertTrue(download_config.has_section("download_defaults"))
+        self.assertFalse(download_config.has_section("downloadconfig"))
+
+        # Do the upgrade again, it should not fail
+        convert_config_to_tribler71(old_config, state_dir=self.state_dir)

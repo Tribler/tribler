@@ -1,16 +1,17 @@
 import ast
 import os
-from ConfigParser import RawConfigParser
+from ConfigParser import RawConfigParser, DuplicateSectionError, NoSectionError
 import logging
+from glob import iglob
 
-from configobj import ConfigObj
+from Tribler.Core.simpledefs import STATEDIR_DLPSTATE_DIR
 
-from Tribler.Core.Config.tribler_config import TriblerConfig, CONFIG_SPEC_PATH
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.exceptions import InvalidConfigException
 logger = logging.getLogger(__name__)
 
 
-def convert_config_to_tribler71(current_config):
+def convert_config_to_tribler71(current_config, state_dir=None):
     """
     Convert the Config files libtribler.conf and tribler.conf to the newer triblerd.conf and cleanup the files
     when we are done.
@@ -18,19 +19,39 @@ def convert_config_to_tribler71(current_config):
     :param: current_config: the current config in which we merge the old config files.
     :return: the newly edited TriblerConfig object with the old data inserted.
     """
-    libtribler_file_loc = os.path.join(TriblerConfig.get_default_state_dir(), "libtribler.conf")
+    state_dir = state_dir or TriblerConfig.get_default_state_dir()
+    libtribler_file_loc = os.path.join(state_dir, "libtribler.conf")
     if os.path.exists(libtribler_file_loc):
         libtribler_cfg = RawConfigParser()
         libtribler_cfg.read(libtribler_file_loc)
         current_config = add_libtribler_config(current_config, libtribler_cfg)
         os.remove(libtribler_file_loc)
 
-    tribler_file_loc = os.path.join(TriblerConfig.get_default_state_dir(), "tribler.conf")
+    tribler_file_loc = os.path.join(state_dir, "tribler.conf")
     if os.path.exists(tribler_file_loc):
         tribler_cfg = RawConfigParser()
         tribler_cfg.read(tribler_file_loc)
         current_config = add_tribler_config(current_config, tribler_cfg)
         os.remove(tribler_file_loc)
+
+    # We also have to update all existing downloads, in particular, rename the section 'downloadconfig' to
+    # 'download_defaults'.
+    for _, filename in enumerate(iglob(
+            os.path.join(state_dir, STATEDIR_DLPSTATE_DIR, '*.state'))):
+        download_cfg = RawConfigParser()
+        download_cfg.read(filename)
+
+        try:
+            download_items = download_cfg.items("downloadconfig")
+            download_cfg.add_section("download_defaults")
+            for download_item in download_items:
+                download_cfg.set("download_defaults", download_item[0], download_item[1])
+            download_cfg.remove_section("downloadconfig")
+            with open(filename, "w") as output_config_file:
+                download_cfg.write(output_config_file)
+        except (NoSectionError, DuplicateSectionError):
+            # This item has already been converted
+            pass
 
     return current_config
 
