@@ -1,4 +1,20 @@
 """
+CODE REVIEW:
+implements wrapper around libtorrent download object. It has a LOT of stuff, especially regarding various alerts
+and special conditions. It inherits from DownloadConfigInterface, which is in another module. Clearly, this is
+a result of a long experience.
+OBJECTION:
+This file is _H_U_G_E_! And it has it all in a single object! It should be broken down into smaller sub-objects
+and files
+
+OBJECTION:
+some parts of libtorrent handling code are scattered among other Tribler files.
+
+
+
+"""
+
+"""
 A wrapper around a libtorrent download.
 
 Author(s): Arno Bakker, Egbert Bouman

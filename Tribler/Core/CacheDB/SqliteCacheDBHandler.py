@@ -1,11 +1,11 @@
 """
 CODE REVIEW:
-Contains handlers for managing cache/backup tables in sqlite DB.
-OBJECTION:
-code quality is fairly low here. The stuff is not written in a single style, methods are too long, there is too much
-code for a single file. The objects are grouped by function here (DB handling), while they should be with the modules
-they serve.
-OBJECTION: initialization of database handlers should be in their construstors
+Contains handlers for managing cache/backup tables in sqlite DB. In addition, it includes full text search algorithm
+used to search torrents based on metadata.
+OBJECTION: code quality is fairly low here. The stuff is not written in a unified style, methods are too long, there is
+too much code for a single file. The objects are grouped by function here (DB handling), while they should be with
+the modules they serve.
+OBJECTION: initialization of database handlers should be in their constructors.
 
 PeerDBHandler - used to cache peer keys in Tribler.(all)channel.community.
 OBJECTION:

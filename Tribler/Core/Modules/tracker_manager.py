@@ -1,3 +1,21 @@
+"""
+CODE REVIEW:
+Tracker info collector.
+Checks tracker URL, then puts it into SQL database. Mostly called from torrent_checker.py.
+Uses SQL statements directly.
+
+OBJECTION:
+it takes 'session' as an argument, and then extracts database handle. It should go directly for handler instead.
+
+OBJECTION:
+maybe we should use ORM to unify database access?
+
+OBJECTION:
+this file only contains DB-related stuff. It is essentially an ORM itself. Its name, instead, suggests that it should
+contain stuff related to checking/managing tracker info. All that stuff should be moved here.
+"""
+
+
 import logging
 import time
 

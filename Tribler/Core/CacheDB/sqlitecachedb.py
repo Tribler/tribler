@@ -1,4 +1,12 @@
 """
+CODE REVIEW
+Contains generic wrapper around sqlite, that is used by all of Tribler through Session.sqlite_db member.
+OBJECTION:
+the code comments are lacking, and the code itself is not too readable.
+"""
+
+
+"""
 Sqlitecachedb.
 
 Author(s): Jie Yang

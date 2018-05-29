@@ -1,4 +1,12 @@
 """
+CODE REVIEW:
+Most parts of libtorrent managing code reside here.
+
+"""
+
+
+
+"""
 The Libtorrent package contains code to manage the torrent library.
 
 Author(s): Egbert Bouman

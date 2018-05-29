@@ -1,3 +1,10 @@
+"""
+CODE REVIEW:
+Tracker URL checking/parsing utils.
+
+"""
+
+
 from httplib import HTTP_PORT
 from urlparse import urlparse
 

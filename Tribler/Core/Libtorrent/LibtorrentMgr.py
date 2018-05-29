@@ -1,4 +1,14 @@
 """
+CODE REVIEW:
+it holds libtorrent-handling code.
+The file is HUGE and clearly contains a lot of valuable experience.
+
+OBJECTION:
+the object is simply too big. Methods are long, etc. Needs proper refactoring.
+"""
+
+
+"""
 A wrapper around libtorrent
 
 Author(s): Egbert Bouman

@@ -17,9 +17,8 @@ almost no incapsulation.
 OBJECTION: actual init methods are too long. They should be broken down
 into smaller methods for readability.
 OBJECTION: this is the place where TaskManager comes into play as a
-parent method. The launch process is not A TaskManager, but it uses THE
-TaskManager. Therefore, we should move TaskManager to member object. It
-would help with readability and clarify the code structure.
+parent object. The launch process is not A TaskManager, but it uses THE
+TaskManager. Maybe we should make it member object.
 OBJECTION: early_shutdown should be handled implicitly by destructors of corresponding objects.
 """
 

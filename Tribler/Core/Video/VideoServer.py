@@ -1,4 +1,12 @@
 """
+CODE REVIEW:
+it implements HTTP-based localhost videoserver for video streaming from the torrent we download. Seeking works.
+Its pretty minimalistic.
+
+"""
+
+
+"""
 Video server.
 
 Author(s): Jan David Mol, Arno Bakker, Egbert Bouman

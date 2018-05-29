@@ -1,4 +1,13 @@
 """
+CODE REVIEW
+Implements event subscription/notification mechanism used by all Tribler components (mostly REST API).
+OBJECTION:
+subjects list should be formed dynamically, by the Notifier's users. Some good documentation is somehow found in
+Session.py, though, it should be moved here.
+"""
+
+
+"""
 Notifier.
 
 Author(s): Jelle Roozenburg

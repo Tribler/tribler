@@ -1,3 +1,9 @@
+"""
+CODE REVIEW:
+Database versions names-to-ints.
+"""
+
+
 # Database versions:
 # 17 is used by Tribler 5.9.x - 6.0
 # 18 is used by Tribler 6.1.x - 6.2.0
