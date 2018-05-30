@@ -6,7 +6,7 @@ from binascii import hexlify
 
 from twisted.internet import reactor
 from twisted.internet.defer import DeferredList, CancelledError, fail, succeed, maybeDeferred
-from twisted.internet.error import ConnectingCancelledError
+from twisted.internet.error import ConnectingCancelledError, ConnectionLost
 from twisted.python.failure import Failure
 from twisted.web.client import HTTPConnectionPool
 
@@ -254,7 +254,7 @@ class TorrentChecker(TaskManager):
         And trap CancelledErrors that can be thrown when shutting down.
         :param failure: The failure object raised by Twisted.
         """
-        failure.trap(ValueError, CancelledError, ConnectingCancelledError, RuntimeError)
+        failure.trap(ValueError, CancelledError, ConnectingCancelledError, ConnectionLost, RuntimeError)
         self._logger.warning(u"Got session error for URL %s: %s", session.tracker_url, failure)
 
         self.clean_session(session)

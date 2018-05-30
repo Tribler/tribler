@@ -199,6 +199,7 @@ class HttpTrackerSession(TrackerSession):
         self._content_length = None
         self._received_length = None
         self.result_deferred = None
+        self._parse_deferred = None
         self.request = None
         self._connection_pool = connection_pool if connection_pool else HTTPConnectionPool(reactor, False)
 
@@ -266,7 +267,8 @@ class HttpTrackerSession(TrackerSession):
             return
 
         # All ok, parse the body
-        self.register_task("parse_body", readBody(response).addCallbacks(self._process_scrape_response, self.on_error))
+        self._parse_deferred = readBody(response).addCallbacks(self._process_scrape_response, self.on_error)
+        self.register_task("parse_body", self._parse_deferred)
 
     def _on_cancel(self, _):
         """
@@ -346,8 +348,14 @@ class HttpTrackerSession(TrackerSession):
         """
         yield self._connection_pool.closeCachedConnections()
         yield super(HttpTrackerSession, self).cleanup()
-        self.request = None
 
+        # If we are in the process of reading a HTTP response from a remote server (with the readBody) method, it might
+        # be that it is called after the deferred has been cancelled already (by the super.cleanup method). This would
+        # result in an AlreadyCalled error. The following line prevents this behaviour.
+        if self._parse_deferred:
+            self._parse_deferred._suppressAlreadyCalled = True
+
+        self.request = None
         self.result_deferred = None
 
 

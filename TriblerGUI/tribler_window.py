@@ -825,6 +825,9 @@ class TriblerWindow(QMainWindow):
             self.downloads_page.stop_loading_downloads()
             request_queue.clear()
 
+            # Stop the token balance timer
+            self.token_refresh_timer.stop()
+
     def closeEvent(self, close_event):
         self.close_tribler()
         close_event.ignore()
