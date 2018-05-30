@@ -1,4 +1,19 @@
 """
+CODE REVIEW:
+contains OS-dependent implementations of OS-independent utility functions.
+
+OBJECTION:
+we don't use startfile anywhere in our codebase. Maybe some 3rd-party modules depend on its existence?
+
+OBJECTION:
+most code lines here are devoted to Unicode characters handling on Windows. It should mostly be gone when we move
+to Python3.
+
+"""
+
+
+
+"""
 OS-independent utility functions.
 
 The function get_home_dir returns CSIDL_APPDATA i.e. App data directory on win32.
@@ -234,11 +249,3 @@ def last_minute_filename_clean(name):
         s = s[:-2]
     return s
 
-
-def startfile(filepath):
-    if sys.platform == 'darwin':
-        subprocess.call(('open', filepath))
-    elif sys.platform == 'linux2':
-        subprocess.call(('xdg-open', filepath))
-    elif hasattr(os, "startfile"):
-        os.startfile(filepath)

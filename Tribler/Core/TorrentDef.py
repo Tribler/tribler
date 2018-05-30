@@ -1,4 +1,25 @@
 """
+CODE REVIEW:
+this is one of the most used object in the codebase. It defines high-level Torrent object that is used everywhere.
+It includes methods for loading/saving torrent data from different sources (memory/file), create new torrent files from
+scratch, etc.
+
+OBJECTION: TorrentDefNoMetainfo and TorrentDef should be subclasses of a single abstract class (an interface). Or better
+yet, TorrentDef's constructor should be redone in a way supporting NoMetainfo-torrents.
+
+OBJECTION: Tribler uses all check for object type all around to distinguish if a torrent is a TorrentDefNoMetainfo
+or not. This is a really bad practice.
+
+OBJECTION: Unicode-handling code here is from 2010. When we move to Python3, it should probably be gone.
+
+OBJECTION: it should probably be moved to TorrentMgr module
+
+OBJECTION: constructor is a bit of a mess here, as are some other methods.
+"""
+
+
+
+"""
 Definition of a torrent, that is, a collection of files or a live stream
 
 Author(s): Arno Bakker

@@ -1,4 +1,14 @@
 """
+CODE REVIEW:
+contains Tribler-side torrent-state object definition.
+
+OBJECTION:
+should be either moved to LibtorrentMgr module, or be cleansed of all mentions of Libtorrent to force separation
+of concerns.
+"""
+
+
+"""
 Contains a snapshot of the state of the Download at a specific point in time.
 
 Author(s): Arno Bakker

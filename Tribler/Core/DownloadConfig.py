@@ -2,7 +2,7 @@
 CODE REVIEW:
 defines object containing Tribler-level torrent download configuration. Internally uses Tribler-standard config
 file object (CallbackConfigParser). Inherited by LibtorrentDownloadImpl. Mostly used by LibtorrentDownloadImpl,
-but also all indirectly over the place by Session and LaunchManyCore.
+but also is spread indirectly all over the place by Session and LaunchManyCore.
 
 OBJECTION:
 default config inheritance/copying is a bit of a mess.
@@ -12,7 +12,7 @@ this stuff should probably be handled by ORM, and not by config parser.
 
 OBJECTION:
 it should be either split into 'high-level/low-level' stuff, and low-level stuff be moved to LibtorrenMgr, or be
-completely moved to LibtorentMgr and source by everything else from there.
+completely moved to LibtorentMgr and sourced by everything else from there.
 """
 
 

@@ -1,3 +1,12 @@
+"""
+CODE REVIEW:
+this is a wrapper around Plyvel, that is a wrapper around LevelDB.
+
+OBJECTION:
+this code does the access to LevelDB only a little bit nicer. Does this fact justifies its existence?
+"""
+
+
 import plyvel
 
 class LevelDB(object):

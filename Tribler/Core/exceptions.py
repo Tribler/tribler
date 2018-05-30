@@ -1,4 +1,14 @@
 """
+CODE REVIEW:
+contains a brief list of exceptions that could be thrown be Tribler core.
+
+OBJECTION:
+exceptions should probably be defined in the modules that produce them the most.
+
+"""
+
+
+"""
 The Tribler-specifc Exceptions the Core may throw.
 
 Author(s): Arno Bakker

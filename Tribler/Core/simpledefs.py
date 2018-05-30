@@ -1,4 +1,18 @@
 """
+CODE REVIEW:
+this file contains some frequently used text constants ("enums") use all over the codebase, mostly by Notifier
+subsystem.
+
+OBJECTION:
+when one sees a module importing something from this file, one could not tell what was the reason for the import.
+This definitions should reside in modules that produce them, so import statements would reveal the logical
+structure of the code.
+
+
+"""
+
+
+"""
 Simple definitions.
 
 Author(s): Arno Bakker

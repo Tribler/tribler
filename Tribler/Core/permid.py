@@ -1,4 +1,14 @@
 """
+CODE REVIEW:
+simple key generation/loading/saving utils. Used when starting the Session.
+
+OBJECTION:
+one would expect everything related to crypto and keys management to be handled by TrustChain submodule/community.
+"""
+
+
+
+"""
 Permanent Identifier.
 
 Author(s): Arno Bakker

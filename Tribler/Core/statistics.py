@@ -1,3 +1,13 @@
+"""
+CODE REVIEW:
+simple object for producing statistics dicts.
+
+OBJECTION:
+it is sourced by Session, then used with wrapper methods. Instead, Session should directly inherit from it.
+
+"""
+
+
 import os
 
 from Tribler.Core.CacheDB.sqlitecachedb import DB_FILE_RELATIVE_PATH
