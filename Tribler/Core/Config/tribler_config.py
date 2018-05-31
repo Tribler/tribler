@@ -529,6 +529,14 @@ class TriblerConfig(object):
     def get_dummy_wallets_enabled(self):
         return self.config['wallets']['dummy_wallets_enabled']
 
+    # Popular Community
+
+    def get_popular_community_enabled(self):
+        return self.config['popular_community']['enabled']
+
+    def set_popular_community_enabled(self, value):
+        self.config['popular_community']['enabled'] = value
+
     # Torrent store
 
     def get_torrent_store_enabled(self):

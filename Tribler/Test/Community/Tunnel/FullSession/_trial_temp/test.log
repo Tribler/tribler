@@ -1,0 +1,190 @@
+2018-06-04 09:17:00+0200 [-] Log opened.
+2018-06-04 09:17:00+0200 [-] PythonLoggingObserver hooked up
+2018-06-04 09:17:00+0200 [-] UDPEndpoint starting on 37842
+2018-06-04 09:17:00+0200 [-] Starting protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f823c86f9d0>
+2018-06-04 09:17:00+0200 [-] Factory starting on 2834
+2018-06-04 09:17:00+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c188638>
+2018-06-04 09:17:00+0200 [-] Factory starting on 2677
+2018-06-04 09:17:00+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c188878>
+2018-06-04 09:17:00+0200 [-] Factory starting on 2824
+2018-06-04 09:17:00+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c188b00>
+2018-06-04 09:17:00+0200 [-] Factory starting on 1787
+2018-06-04 09:17:00+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c188d88>
+2018-06-04 09:17:00+0200 [-] Factory starting on 2782
+2018-06-04 09:17:00+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c194050>
+2018-06-04 09:17:00+0200 [-] UDPEndpoint starting on 20172
+2018-06-04 09:17:00+0200 [-] Starting protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f823c159c10>
+2018-06-04 09:17:00+0200 [-] Factory starting on 2320
+2018-06-04 09:17:00+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c0fffc8>
+2018-06-04 09:17:00+0200 [-] Factory starting on 2897
+2018-06-04 09:17:00+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c0fff38>
+2018-06-04 09:17:00+0200 [-] Factory starting on 1836
+2018-06-04 09:17:00+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c0ff908>
+2018-06-04 09:17:00+0200 [-] Factory starting on 2314
+2018-06-04 09:17:00+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c0ff560>
+2018-06-04 09:17:00+0200 [-] Factory starting on 2493
+2018-06-04 09:17:00+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c0f9248>
+2018-06-04 09:17:01+0200 [-] UDPEndpoint starting on 54689
+2018-06-04 09:17:01+0200 [-] Starting protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f823c0d77d0>
+2018-06-04 09:17:01+0200 [-] Factory starting on 1905
+2018-06-04 09:17:01+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c068878>
+2018-06-04 09:17:01+0200 [-] Factory starting on 1832
+2018-06-04 09:17:01+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c068c20>
+2018-06-04 09:17:01+0200 [-] Factory starting on 2015
+2018-06-04 09:17:01+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c068ea8>
+2018-06-04 09:17:01+0200 [-] Factory starting on 2998
+2018-06-04 09:17:01+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c0682d8>
+2018-06-04 09:17:01+0200 [-] Factory starting on 2714
+2018-06-04 09:17:01+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c06f3b0>
+2018-06-04 09:17:01+0200 [-] UDPEndpoint starting on 42088
+2018-06-04 09:17:01+0200 [-] Starting protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f822c16d4d0>
+2018-06-04 09:17:06+0200 [Socks5Connection,0,127.0.0.1] SocksUDPConnection starting on 35195
+2018-06-04 09:17:06+0200 [Socks5Connection,0,127.0.0.1] Starting protocol <Tribler.Core.Socks5.udp_connection.SocksUDPConnection instance at 0x7f823c0f9bd8>
+2018-06-04 09:17:06+0200 [-] TunnelExitSocket starting on 51701
+2018-06-04 09:17:06+0200 [-] Starting protocol <Tribler.pyipv8.ipv8.messaging.anonymization.tunnel.TunnelExitSocket object at 0x7f822c105490>
+2018-06-04 09:17:13+0200 [-] (UDP Port 42088 Closed)
+2018-06-04 09:17:13+0200 [-] Stopping protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f822c16d4d0>
+2018-06-04 09:17:15+0200 [-] (TCP Port 2320 Closed)
+2018-06-04 09:17:15+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c0fffc8>
+2018-06-04 09:17:15+0200 [-] (TCP Port 2897 Closed)
+2018-06-04 09:17:15+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c0fff38>
+2018-06-04 09:17:15+0200 [-] (TCP Port 1836 Closed)
+2018-06-04 09:17:15+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c0ff908>
+2018-06-04 09:17:15+0200 [-] (TCP Port 2314 Closed)
+2018-06-04 09:17:15+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c0ff560>
+2018-06-04 09:17:15+0200 [-] (TCP Port 2493 Closed)
+2018-06-04 09:17:15+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c0f9248>
+2018-06-04 09:17:15+0200 [-] (UDP Port 20172 Closed)
+2018-06-04 09:17:15+0200 [-] Stopping protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f823c159c10>
+2018-06-04 09:17:15+0200 [-] (TCP Port 1905 Closed)
+2018-06-04 09:17:15+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c068878>
+2018-06-04 09:17:15+0200 [-] (TCP Port 1832 Closed)
+2018-06-04 09:17:15+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c068c20>
+2018-06-04 09:17:15+0200 [-] (TCP Port 2015 Closed)
+2018-06-04 09:17:15+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c068ea8>
+2018-06-04 09:17:15+0200 [-] (TCP Port 2998 Closed)
+2018-06-04 09:17:15+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c0682d8>
+2018-06-04 09:17:15+0200 [-] (TCP Port 2714 Closed)
+2018-06-04 09:17:15+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c06f3b0>
+2018-06-04 09:17:15+0200 [-] (UDP Port 51701 Closed)
+2018-06-04 09:17:15+0200 [-] Stopping protocol <Tribler.pyipv8.ipv8.messaging.anonymization.tunnel.TunnelExitSocket object at 0x7f822c105490>
+2018-06-04 09:17:15+0200 [-] (UDP Port 54689 Closed)
+2018-06-04 09:17:15+0200 [-] Stopping protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f823c0d77d0>
+2018-06-04 09:17:16+0200 [-] (UDP Port 35195 Closed)
+2018-06-04 09:17:16+0200 [-] Stopping protocol <Tribler.Core.Socks5.udp_connection.SocksUDPConnection instance at 0x7f823c0f9bd8>
+2018-06-04 09:17:16+0200 [-] (TCP Port 2834 Closed)
+2018-06-04 09:17:16+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c188638>
+2018-06-04 09:17:16+0200 [-] (TCP Port 2677 Closed)
+2018-06-04 09:17:16+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c188878>
+2018-06-04 09:17:16+0200 [-] (TCP Port 2824 Closed)
+2018-06-04 09:17:16+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c188b00>
+2018-06-04 09:17:16+0200 [-] (TCP Port 1787 Closed)
+2018-06-04 09:17:16+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c188d88>
+2018-06-04 09:17:16+0200 [-] (TCP Port 2782 Closed)
+2018-06-04 09:17:16+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c194050>
+2018-06-04 09:17:16+0200 [-] (UDP Port 37842 Closed)
+2018-06-04 09:17:16+0200 [-] Stopping protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f823c86f9d0>
+2018-06-04 09:17:18+0200 [-] UDPEndpoint starting on 59425
+2018-06-04 09:17:18+0200 [-] Starting protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f823c0837d0>
+2018-06-04 09:17:18+0200 [-] Factory starting on 2636
+2018-06-04 09:17:18+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c07cab8>
+2018-06-04 09:17:18+0200 [-] Factory starting on 1178
+2018-06-04 09:17:18+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f823c07ca28>
+2018-06-04 09:17:18+0200 [-] Factory starting on 1896
+2018-06-04 09:17:18+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f822c085d88>
+2018-06-04 09:17:18+0200 [-] Factory starting on 2938
+2018-06-04 09:17:18+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f822c085ea8>
+2018-06-04 09:17:18+0200 [-] Factory starting on 2991
+2018-06-04 09:17:18+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f822c085d40>
+2018-06-04 09:17:18+0200 [-] UDPEndpoint starting on 31129
+2018-06-04 09:17:18+0200 [-] Starting protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f82257da710>
+2018-06-04 09:17:18+0200 [-] Factory starting on 2599
+2018-06-04 09:17:18+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f82257e5b00>
+2018-06-04 09:17:18+0200 [-] Factory starting on 1833
+2018-06-04 09:17:18+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f82257e5cb0>
+2018-06-04 09:17:18+0200 [-] Factory starting on 1428
+2018-06-04 09:17:18+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f82257f7200>
+2018-06-04 09:17:18+0200 [-] Factory starting on 2263
+2018-06-04 09:17:18+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f82257f7908>
+2018-06-04 09:17:18+0200 [-] Factory starting on 2212
+2018-06-04 09:17:18+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f82257f7758>
+2018-06-04 09:17:19+0200 [-] UDPEndpoint starting on 5931
+2018-06-04 09:17:19+0200 [-] Starting protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f822474d190>
+2018-06-04 09:17:49+0200 [-] (UDP Port 5931 Closed)
+2018-06-04 09:17:49+0200 [-] Stopping protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f822474d190>
+2018-06-04 09:17:50+0200 [-] (TCP Port 2599 Closed)
+2018-06-04 09:17:50+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f82257e5b00>
+2018-06-04 09:17:50+0200 [-] (TCP Port 1833 Closed)
+2018-06-04 09:17:50+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f82257e5cb0>
+2018-06-04 09:17:50+0200 [-] (TCP Port 1428 Closed)
+2018-06-04 09:17:50+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f82257f7200>
+2018-06-04 09:17:50+0200 [-] (TCP Port 2263 Closed)
+2018-06-04 09:17:50+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f82257f7908>
+2018-06-04 09:17:50+0200 [-] (TCP Port 2212 Closed)
+2018-06-04 09:17:50+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f82257f7758>
+2018-06-04 09:17:50+0200 [-] (UDP Port 31129 Closed)
+2018-06-04 09:17:50+0200 [-] Stopping protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f82257da710>
+2018-06-04 09:17:51+0200 [-] (TCP Port 2636 Closed)
+2018-06-04 09:17:51+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c07cab8>
+2018-06-04 09:17:51+0200 [-] (TCP Port 1178 Closed)
+2018-06-04 09:17:51+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f823c07ca28>
+2018-06-04 09:17:51+0200 [-] (TCP Port 1896 Closed)
+2018-06-04 09:17:51+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f822c085d88>
+2018-06-04 09:17:51+0200 [-] (TCP Port 2938 Closed)
+2018-06-04 09:17:51+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f822c085ea8>
+2018-06-04 09:17:51+0200 [-] (TCP Port 2991 Closed)
+2018-06-04 09:17:51+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f822c085d40>
+2018-06-04 09:17:51+0200 [-] (UDP Port 59425 Closed)
+2018-06-04 09:17:51+0200 [-] Stopping protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f823c0837d0>
+2018-06-04 09:17:52+0200 [-] UDPEndpoint starting on 35928
+2018-06-04 09:17:52+0200 [-] Starting protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f8224718a10>
+2018-06-04 09:17:52+0200 [-] Factory starting on 1141
+2018-06-04 09:17:52+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f822479f1b8>
+2018-06-04 09:17:52+0200 [-] Factory starting on 1179
+2018-06-04 09:17:52+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f822479f128>
+2018-06-04 09:17:52+0200 [-] Factory starting on 2733
+2018-06-04 09:17:52+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f822479f170>
+2018-06-04 09:17:52+0200 [-] Factory starting on 1645
+2018-06-04 09:17:52+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f82247a4638>
+2018-06-04 09:17:52+0200 [-] Factory starting on 1869
+2018-06-04 09:17:52+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f82247a4878>
+2018-06-04 09:17:52+0200 [-] UDPEndpoint starting on 50019
+2018-06-04 09:17:52+0200 [-] Starting protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f82257b0950>
+2018-06-04 09:17:52+0200 [-] Factory starting on 2723
+2018-06-04 09:17:52+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f82257b5248>
+2018-06-04 09:17:52+0200 [-] Factory starting on 2283
+2018-06-04 09:17:52+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f82257b5758>
+2018-06-04 09:17:52+0200 [-] Factory starting on 1437
+2018-06-04 09:17:52+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f82257b5bd8>
+2018-06-04 09:17:52+0200 [-] Factory starting on 2483
+2018-06-04 09:17:52+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f82257b5f38>
+2018-06-04 09:17:52+0200 [-] Factory starting on 1766
+2018-06-04 09:17:52+0200 [-] Starting factory <twisted.internet.protocol.Factory instance at 0x7f82257b5e60>
+2018-06-04 09:17:53+0200 [-] UDPEndpoint starting on 54492
+2018-06-04 09:17:53+0200 [-] Starting protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f8224f242d0>
+2018-06-04 09:18:23+0200 [-] (UDP Port 54492 Closed)
+2018-06-04 09:18:23+0200 [-] Stopping protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f8224f242d0>
+2018-06-04 09:18:24+0200 [-] (TCP Port 2723 Closed)
+2018-06-04 09:18:24+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f82257b5248>
+2018-06-04 09:18:24+0200 [-] (TCP Port 2283 Closed)
+2018-06-04 09:18:24+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f82257b5758>
+2018-06-04 09:18:24+0200 [-] (TCP Port 1437 Closed)
+2018-06-04 09:18:24+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f82257b5bd8>
+2018-06-04 09:18:24+0200 [-] (TCP Port 2483 Closed)
+2018-06-04 09:18:24+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f82257b5f38>
+2018-06-04 09:18:24+0200 [-] (TCP Port 1766 Closed)
+2018-06-04 09:18:24+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f82257b5e60>
+2018-06-04 09:18:24+0200 [-] (UDP Port 50019 Closed)
+2018-06-04 09:18:24+0200 [-] Stopping protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f82257b0950>
+2018-06-04 09:18:25+0200 [-] (TCP Port 1141 Closed)
+2018-06-04 09:18:25+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f822479f1b8>
+2018-06-04 09:18:25+0200 [-] (TCP Port 1179 Closed)
+2018-06-04 09:18:25+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f822479f128>
+2018-06-04 09:18:25+0200 [-] (TCP Port 2733 Closed)
+2018-06-04 09:18:25+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f822479f170>
+2018-06-04 09:18:25+0200 [-] (TCP Port 1645 Closed)
+2018-06-04 09:18:25+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f82247a4638>
+2018-06-04 09:18:25+0200 [-] (TCP Port 1869 Closed)
+2018-06-04 09:18:25+0200 [-] Stopping factory <twisted.internet.protocol.Factory instance at 0x7f82247a4878>
+2018-06-04 09:18:25+0200 [-] (UDP Port 35928 Closed)
+2018-06-04 09:18:25+0200 [-] Stopping protocol <Tribler.pyipv8.ipv8.messaging.interfaces.udp.endpoint.UDPEndpoint object at 0x7f8224718a10>
