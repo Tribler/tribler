@@ -462,14 +462,16 @@ class UdpTrackerSession(TrackerSession):
                 self.transaction_id = transaction_id
                 break
 
-    @staticmethod
-    def remove_transaction_id(session):
+    def remove_transaction_id(self):
         """
-        Removes an session and its corresponding id from the _active_session_dict set.
+        Removes an session and its corresponding id from the _active_session_dict set and the socket manager.
         :param session: The session that needs to be removed from the set.
         """
-        if session in UdpTrackerSession._active_session_dict:
-            del UdpTrackerSession._active_session_dict[session]
+        if self in UdpTrackerSession._active_session_dict:
+            del UdpTrackerSession._active_session_dict[self]
+
+        if self.transaction_id in self.socket_mgr.tracker_sessions:
+            self.socket_mgr.tracker_sessions.pop(self.transaction_id)
 
     @inlineCallbacks
     def cleanup(self):
@@ -478,7 +480,7 @@ class UdpTrackerSession(TrackerSession):
         :return: A deferred that fires once the cleanup is done.
         """
         yield super(UdpTrackerSession, self).cleanup()
-        UdpTrackerSession.remove_transaction_id(self)
+        self.remove_transaction_id()
         # Cleanup deferred that fires when everything has been cleaned
         # Cancel the resolving ip deferred.
         self.ip_resolve_deferred = None
@@ -632,7 +634,7 @@ class UdpTrackerSession(TrackerSession):
             response_list.append({'infohash': infohash.encode('hex'), 'seeders': complete, 'leechers': incomplete})
 
         # close this socket and remove its transaction ID from the list
-        UdpTrackerSession.remove_transaction_id(self)
+        self.remove_transaction_id()
         self._is_finished = True
 
         if self.result_deferred and not self.result_deferred.called:
