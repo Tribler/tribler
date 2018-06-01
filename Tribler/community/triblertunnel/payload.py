@@ -1,3 +1,9 @@
+"""
+CODE REVIEW:
+Payout payload for TrustChain based on IPv8 parent class.
+"""
+
+
 from Tribler.pyipv8.ipv8.attestation.trustchain.payload import HalfBlockPayload
 from Tribler.pyipv8.ipv8.deprecated.payload import Payload
 

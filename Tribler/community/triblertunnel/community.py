@@ -1,3 +1,14 @@
+"""
+CODE REVIEW:
+TriblerTunnelCommunity is an instance of IPv8 HiddenTunnelCommunity with added methods for doing TrustChain-based
+payments and creating hidden downloads rendezvous points.
+Everything is more or less fine here, though some methods already had grown too long.
+
+OBJECTION: payments and download stuff should be grouped into smaller member objects for manageability.
+
+"""
+
+
 import time
 
 import sys

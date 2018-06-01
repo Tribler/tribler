@@ -1,3 +1,13 @@
+"""
+CODE REVIEW:
+dispatches proxy traffic to corresponding tunnels.
+ACHTUNG! This stuff is super important for security! It should be reviewed several times before any change!
+
+OBJECTION: this should probably be based on some unified routing scheme, and be moved to IPv8.
+
+"""
+
+
 import logging
 
 from Tribler.Core.Socks5 import conversion
