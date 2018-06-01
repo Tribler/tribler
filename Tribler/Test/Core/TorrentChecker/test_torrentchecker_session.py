@@ -15,6 +15,9 @@ from Tribler.Test.twisted_thread import deferred
 class FakeUdpSocketManager(object):
     transport = 1
 
+    def __init__(self):
+        self.tracker_sessions = {}
+
     def send_request(self, *args):
         pass
 

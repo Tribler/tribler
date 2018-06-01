@@ -324,14 +324,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if self.tribler_session:
             self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, circuit.sock_addr)
 
-        affected_peers = self.dispatcher.circuit_dead(circuit)
-        ltmgr = self.tribler_session.lm.ltmgr \
-            if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled() else None
-        if ltmgr:
-            for d, s in ltmgr.torrents.values():
-                if s == ltmgr.get_session(d.get_hops()):
-                    d.get_handle().addCallback(lambda handle: self.update_torrent(affected_peers, handle, d))
-
         circuit_peer = self.get_peer_from_address(circuit.sock_addr)
         if circuit.bytes_down >= 1024 * 1024 and self.triblerchain_community and circuit_peer:
             # We should perform a payout of the removed circuit.
@@ -347,9 +339,21 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 self.do_payout(circuit_peer, circuit_id, circuit.bytes_down * (circuit.goal_hops * 2 - 1),
                                circuit.bytes_down)
 
+        def update_torrents(_):
+            affected_peers = self.dispatcher.circuit_dead(circuit)
+            ltmgr = self.tribler_session.lm.ltmgr \
+                if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled() else None
+            if ltmgr:
+                for d, s in ltmgr.torrents.values():
+                    if s == ltmgr.get_session(d.get_hops()):
+                        d.get_handle().addCallback(lambda handle, download=d:
+                                                   self.update_torrent(affected_peers, handle, download))
+
         # Now we actually remove the circuit
-        super(TriblerTunnelCommunity, self).remove_circuit(circuit_id, additional_info=additional_info,
-                                                           remove_now=remove_now, destroy=destroy)
+        remove_deferred = super(TriblerTunnelCommunity, self)\
+            .remove_circuit(circuit_id, additional_info=additional_info, remove_now=remove_now, destroy=destroy)
+        remove_deferred.addCallback(update_torrents)
+        return remove_deferred
 
     def remove_relay(self, circuit_id, additional_info='', remove_now=False, destroy=False, got_destroy_from=None,
                      both_sides=True):
