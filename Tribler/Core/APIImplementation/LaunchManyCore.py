@@ -671,6 +671,10 @@ class TriblerLaunchMany(TaskManager):
                 if safename in self.previous_active_downloads:
                     self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, tdef.get_infohash(), safename)
                     do_checkpoint = True
+                elif download.get_hops() == 0 and download.get_safe_seeding():
+                    # Re-add the download with anonymity enabled
+                    hops = self.session.config.get_default_number_hops()
+                    self.update_download_hops(download, hops)
 
         self.previous_active_downloads = new_active_downloads
         if do_checkpoint:

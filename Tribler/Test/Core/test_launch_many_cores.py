@@ -9,7 +9,7 @@ from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_SEEDING
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
@@ -82,6 +82,34 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.lm.sesscb_states_callback([fake_error_state])
 
         return error_stop_deferred
+
+    def test_readd_download_safe_seeding(self):
+        """
+        Test whether a download is re-added when doing safe seeding
+        """
+        readd_deferred = Deferred()
+
+        def mocked_update_download_hops(*_):
+            readd_deferred.callback(None)
+
+        self.lm.update_download_hops = mocked_update_download_hops
+
+        tdef = TorrentDef()
+        tdef.get_infohash = lambda: 'aaaa'
+        fake_download = MockObject()
+        fake_download.get_def = lambda: tdef
+        fake_download.get_def().get_name_as_unicode = lambda: "test.iso"
+        fake_download.get_hops = lambda: 0
+        fake_download.get_safe_seeding = lambda: True
+        dl_state = MockObject()
+        dl_state.get_infohash = lambda: 'aaaa'
+        dl_state.get_status = lambda: DLSTATUS_SEEDING
+        dl_state.get_download = lambda: fake_download
+
+        self.lm.downloads = {'aaaa': fake_download}
+        self.lm.sesscb_states_callback([dl_state])
+
+        return readd_deferred
 
     def test_load_checkpoint(self):
         """
