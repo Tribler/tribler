@@ -488,8 +488,6 @@ class TriblerGUITest(AbstractTriblerGUITest):
         window.video_player_page.play_active_item()
 
         QTest.qWait(3000)
-        self.assertTrue(window.video_player_page.media)
-        self.assertTrue(window.video_player_page.media.get_duration())
         self.screenshot(window, name="video_playback")
         window.video_player_page.reset_player()
 
