@@ -112,3 +112,6 @@ history_size = integer(min=1, default=20)
 enabled = boolean(default=True)
 sources = string_list(default=list())
 max_disk_space = integer(min=0, default=53687091200)
+
+[dht_community]
+enabled = boolean(default=False)
