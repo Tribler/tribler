@@ -273,7 +273,7 @@ class TriblerRequestManager(QObject):
                                           main_text, [('CLOSE', BUTTON_TYPE_NORMAL)])
 
         def on_close():
-            error_dialog.setParent(None)
+            error_dialog.close_dialog()
 
         error_dialog.button_clicked.connect(on_close)
         error_dialog.show()

@@ -33,7 +33,6 @@ class StartDownloadDialog(DialogContainer):
 
         self.download_uri = download_uri
         self.has_metainfo = False
-        gui_settings = self.window().gui_settings
 
         uic.loadUi(get_ui_file_path('startdownloaddialog.ui'), self.dialog_widget)
 

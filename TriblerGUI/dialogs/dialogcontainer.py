@@ -22,6 +22,10 @@ class DialogContainer(QWidget):
 
     def close_dialog(self):
         self.setParent(None)
+        try:
+            self.deleteLater()
+        except RuntimeError:
+            pass
 
     def on_main_window_resize(self):
         if not self.parentWidget():

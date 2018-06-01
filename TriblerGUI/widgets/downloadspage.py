@@ -323,7 +323,7 @@ class DownloadsPage(QWidget):
             self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_removed,
                                              method='DELETE', data="remove_data=%d" % action)
 
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
 
     def on_download_removed(self, json_result):
@@ -378,7 +378,7 @@ class DownloadsPage(QWidget):
             self.request_mgr.download_file("downloads/%s/torrent" % self.selected_item.download_info['infohash'],
                                            lambda data: self.on_export_download_request_done(filename, data))
 
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
 
     def on_export_download_request_done(self, filename, data):

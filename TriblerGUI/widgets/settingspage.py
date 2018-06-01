@@ -429,5 +429,5 @@ class SettingsPage(QWidget):
 
     def on_dialog_cancel_clicked(self, _):
         self.window().settings_save_button.setEnabled(True)
-        self.saved_dialog.setParent(None)
+        self.saved_dialog.close_dialog()
         self.saved_dialog = None

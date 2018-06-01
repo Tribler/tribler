@@ -178,7 +178,7 @@ class MarketWalletsPage(QWidget):
         password = self.dialog.dialog_widget.dialog_input.text()
 
         if action == 1:  # Remove the dialog right now
-            self.dialog.setParent(None)
+            self.dialog.close_dialog()
             self.dialog = None
         elif action == 0:
             self.dialog.buttons[0].setEnabled(False)
@@ -191,6 +191,6 @@ class MarketWalletsPage(QWidget):
 
     def on_wallet_created(self, response):
         if self.dialog:
-            self.dialog.setParent(None)
+            self.dialog.close_dialog()
             self.dialog = None
         self.load_wallets()
