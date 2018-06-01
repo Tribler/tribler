@@ -1,3 +1,14 @@
+"""
+CODE REVIEW:
+ChannelRssParser is used by ChannelObject to provide RSS feeds of a channel and collect torrents from RSS.
+
+OBJECTION: RSS torrent collection should probably be moved to a separate module.
+OBJECTION: support for Magnet links should be added.
+
+"""
+
+
+
 import hashlib
 import logging
 import os

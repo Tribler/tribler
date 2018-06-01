@@ -1,3 +1,10 @@
+"""
+CODE REVIEW:
+Base class and Dispersy child adapter for getting torrents to mine.
+Neat enough, nothing to look at.
+"""
+
+
 import logging
 
 from binascii import hexlify, unhexlify

@@ -1,3 +1,11 @@
+"""
+CODE REVIEW:
+ProcessChecker util checks if Tribler process is running by searching for the lock file.
+Small and neatly documented.
+
+"""
+
+
 import os
 import psutil
 

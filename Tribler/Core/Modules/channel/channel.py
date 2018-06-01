@@ -1,3 +1,11 @@
+"""
+CODE REVIEW:
+defines ChannelObject that is used by ChannelManager.
+
+OBJECTION: RSS-related features should be moved to a separate object/file, and become optional.
+"""
+
+
 import codecs
 import collections
 import logging

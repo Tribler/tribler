@@ -1,4 +1,13 @@
 """
+CODE REVIEW:
+REST endpoints code is based on high-level Twisted Resource object implementing HTTP servicing.
+Code is neat, clean and properly documented.
+
+"""
+
+
+
+"""
 This package contains code for the Tribler HTTP API.
 """
 

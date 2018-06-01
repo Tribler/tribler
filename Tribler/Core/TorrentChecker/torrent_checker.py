@@ -1,3 +1,16 @@
+"""
+CODE REVIEW:
+TorrentChecker checks torrent health regularly and on demand (by e.g. GUI) trying to connect to corresponding trackers
+and DHT addresses.
+Code quality is OK.
+
+OBJECTION: special treatment of GUI-sent requests is questionable. Maybe request types should be unified instead, and
+all asynchronous stuff be treated by GUI modules?
+
+"""
+
+
+
 import logging
 import socket
 import time

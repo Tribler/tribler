@@ -1,7 +1,6 @@
 """
 CODE REVIEW:
-this file contains some frequently used text constants ("enums") use all over the codebase, mostly by Notifier
-subsystem.
+some frequently used text constants ("enums") used all over the codebase, mostly by Notifier subsystem.
 
 OBJECTION:
 when one sees a module importing something from this file, one could not tell what was the reason for the import.

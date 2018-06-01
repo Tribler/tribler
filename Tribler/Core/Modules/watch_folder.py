@@ -1,3 +1,12 @@
+"""
+CODE REVIEW:
+WatchFolder object periodically scans a folder for new torrent file and starts downloading/seeding them if sees
+something new.
+
+OBJECTION: should use inotify and other platform-dependent mechanisms for efficiency.
+"""
+
+
 import logging
 import os
 from twisted.internet.task import LoopingCall

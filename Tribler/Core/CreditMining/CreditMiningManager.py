@@ -1,3 +1,13 @@
+"""
+CODE REVIEW:
+CreditMiningManager contains routines for automatically selecting and starting downloads for "mining" torrent data.
+
+OBJECTION: of course, this is still WIP, but some methods are already too long.
+
+OBJECTION: if every module have to introduce it's own Torrent and Config object, we're doing something wrong.
+"""
+
+
 import os
 import psutil
 import logging

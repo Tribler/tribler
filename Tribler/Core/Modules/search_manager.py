@@ -1,3 +1,14 @@
+"""
+CODE REVIEW:
+SearchManager creates torrent/channel searches from lists of keywords and defines callbacks for search events.
+Initialized in LaunchMany, used by Session.
+
+OBJECTION: should be either part of Search community package, or be an abstract interface not tied to exact
+implementation.
+"""
+
+
+
 import logging
 import os
 

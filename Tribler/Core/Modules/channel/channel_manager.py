@@ -1,3 +1,13 @@
+"""
+CODE REVIEW:
+ChannelManager is used to create new Channels. Initialized in LaunchMany, used by Session.
+
+OBJECTION:
+depends on Dispersy. Have typical inconsistencies in references usage.
+
+"""
+
+
 import logging
 from binascii import hexlify
 

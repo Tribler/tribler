@@ -1,4 +1,15 @@
 """
+CODE REVIEW:
+Config object holding methods for setting/getting config options for all Tribler subsystems.
+Written neat enough.
+
+OBJECTION: a lot of boilerplate code and copy/paste. Probably should be transparently replaced by using .__dict__ trick.
+
+OBJECTION: each component should probably inherit from this and add its own methods as neccessary.
+"""
+
+
+"""
 Configuration object for the Tribler Core.
 """
 import logging

@@ -1,3 +1,10 @@
+"""
+CODE REVIEW:
+VersionCheckManager object periodically checks for new Tribler versions.
+
+"""
+
+
 import logging
 from distutils.version import LooseVersion
 from twisted.internet.error import ConnectError, DNSLookupError

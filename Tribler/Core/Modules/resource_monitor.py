@@ -1,3 +1,14 @@
+"""
+CODE REVIEW:
+ResourceMonitor uses LoopingCall from TaskManager to periodically check resource usage and write it down in an array.
+Have ability to use Yappi.
+
+OBJECTION: should probably be merged with Statistics.py.
+OBJECTION: should probably use some form of RRD or circular array instead of plain lists with .pop().
+
+"""
+
+
 import logging
 import os
 import time

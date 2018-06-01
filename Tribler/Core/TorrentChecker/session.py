@@ -1,3 +1,10 @@
+"""
+CODE REVIEW:
+TrackerSession manages tracker requests using Twisted networking API.
+Neat enough.
+OBJECTION: maybe we should drop trackers support altogether, and just rely on DHT?
+"""
+
 import logging
 import random
 import struct

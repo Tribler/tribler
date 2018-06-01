@@ -1,4 +1,11 @@
 """
+CODE REVIEW:
+skinratio part is funny stuff! ))
+
+"""
+
+
+"""
 Video utilities.
 
 Author(s): Egbert Bouman
