@@ -74,7 +74,7 @@ class MarketOrdersPage(QWidget):
             self.request_mgr.perform_request("market/orders/%s/cancel" % self.selected_item.order['order_number'],
                                              self.on_order_cancelled, method='POST')
 
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
 
     def on_order_cancelled(self, response):

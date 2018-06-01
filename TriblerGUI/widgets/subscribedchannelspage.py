@@ -57,7 +57,7 @@ class SubscribedChannelsPage(QWidget):
             self.request_mgr.perform_request("channels/subscribed/%s" % self.dialog.dialog_widget.dialog_input.text(),
                                              self.on_channel_subscribed, method='PUT')
 
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
 
     def on_channel_subscribed(self, _):

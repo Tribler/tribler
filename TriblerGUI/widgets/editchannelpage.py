@@ -275,7 +275,7 @@ class EditChannelPage(QWidget):
                                                          (self.channel_overview['identifier'], url),
                                                          self.on_torrent_to_channel_added, method='PUT')
 
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
 
     def on_torrent_to_channel_added(self, result):
@@ -340,7 +340,7 @@ class EditChannelPage(QWidget):
                                                              result, item.torrent_info),
                                                          method='DELETE')
 
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
 
     def on_playlist_torrent_removed(self, result, torrent):
@@ -431,7 +431,7 @@ class EditChannelPage(QWidget):
                                                           item.playlist_info['id']),
                                                          self.on_playlist_removed, method='DELETE')
 
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
 
     def on_playlist_removed(self, json_result):
@@ -458,7 +458,7 @@ class EditChannelPage(QWidget):
                                                           infohash),
                                                          self.on_torrent_removed, method='DELETE')
 
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
 
     def on_torrent_removed(self, json_result):
@@ -477,7 +477,7 @@ class EditChannelPage(QWidget):
 
             self.window().edit_channel_torrents_list.set_data_items([])
 
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
 
     def clicked_tab_button(self, tab_button_name):
@@ -516,7 +516,7 @@ class EditChannelPage(QWidget):
                                                          (self.channel_overview["identifier"], url),
                                                          self.on_rss_feed_added, method='PUT')
 
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
 
     def on_rss_feed_added(self, json_result):
@@ -542,7 +542,7 @@ class EditChannelPage(QWidget):
                                                          (self.channel_overview["identifier"], url),
                                                          self.on_rss_feed_removed, method='DELETE')
 
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
 
     def on_rss_feed_removed(self, json_result):

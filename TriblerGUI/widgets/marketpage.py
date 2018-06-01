@@ -244,7 +244,7 @@ class MarketPage(QWidget):
             self.request_mgr = TriblerRequestManager()
             self.request_mgr.perform_request("iominput", None, data=urlencode(post_data), method='POST')
 
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
 
     def create_order(self, is_ask, price, price_type, quantity, quantity_type):
@@ -333,7 +333,7 @@ class MarketPage(QWidget):
             self.create_order(self.dialog.is_ask, self.dialog.price, self.dialog.price_type,
                               self.dialog.quantity, self.dialog.quantity_type)
 
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
 
     def on_ask_timeout(self, ask):

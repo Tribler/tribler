@@ -116,7 +116,6 @@ class TestTriblerTunnelCommunity(TestBase):
 
         self.assertNotIn(mock_torrent, self.nodes[0].overlay.bittorrent_peers)
 
-    @blocking_call_on_reactor_thread
     def test_remove_circuit(self):
         """
         Test removing a circuit

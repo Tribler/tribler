@@ -94,7 +94,7 @@ class CreateTorrentPage(QWidget):
         self.window().edit_channel_create_torrent_progress_label.show()
 
     def on_dialog_ok_clicked(self, _):
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
 
     def on_torrent_created(self, result):

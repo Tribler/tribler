@@ -205,6 +205,7 @@ class TriblerLaunchMany(TaskManager):
 
                 working_directory = unicode(self.session.config.get_state_dir())
                 self.dispersy = Dispersy(dispersy_endpoint, working_directory)
+                self.dispersy.statistics.enable_debug_statistics(False)
 
                 # register TFTP service
                 from Tribler.Core.TFTP.handler import TftpHandler

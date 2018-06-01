@@ -417,7 +417,7 @@ class TriblerWindow(QMainWindow):
             import webbrowser
             webbrowser.open("https://tribler.org")
 
-        self.new_version_dialog.setParent(None)
+        self.new_version_dialog.close_dialog()
         self.new_version_dialog = None
 
     def on_search_text_change(self, text):
@@ -557,8 +557,7 @@ class TriblerWindow(QMainWindow):
         if get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True):
             # Clear any previous dialog if exists
             if self.dialog:
-                self.dialog.button_clicked.disconnect()
-                self.dialog.setParent(None)
+                self.dialog.close_dialog()
                 self.dialog = None
 
             self.dialog = StartDownloadDialog(self, self.download_uri)
@@ -596,7 +595,7 @@ class TriblerWindow(QMainWindow):
                 logging.exception("Error while trying to download. Either dialog or dialog.dialog_widget is None")
 
         self.dialog.request_mgr.cancel_request()  # To abort the torrent info request
-        self.dialog.setParent(None)
+        self.dialog.close_dialog()
         self.dialog = None
         self.start_download_dialog_active = False
 
@@ -630,7 +629,7 @@ class TriblerWindow(QMainWindow):
                                                     self.tribler_settings['download_defaults']['saveas'], [], 0)
 
         if self.dialog:
-            self.dialog.setParent(None)
+            self.dialog.close_dialog()
             self.dialog = None
 
     def on_add_torrent_from_url(self):
@@ -651,7 +650,7 @@ class TriblerWindow(QMainWindow):
             uri = self.dialog.dialog_widget.dialog_input.text()
 
             # Remove first dialog
-            self.dialog.setParent(None)
+            self.dialog.close_dialog()
             self.dialog = None
 
             if action == 0:
