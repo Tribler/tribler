@@ -893,6 +893,7 @@ class TorrentDBHandler(BasicDBHandler):
             right_side = ((term_freq * (1.2 + 1)) / (term_freq + 1.2))
 
             score += inv_doc_freq * right_side
+        return score
 
     def search_in_local_torrents_db(self, query, keys=None):
         """

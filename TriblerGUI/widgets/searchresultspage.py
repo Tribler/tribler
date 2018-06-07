@@ -77,6 +77,9 @@ class SearchResultsPage(QWidget):
                 all_items.append((ChannelListItem, channel_item))
 
         if self.show_torrents:
+            self.search_results['torrents'] = sorted(self.search_results['torrents'],
+                                                     key=lambda item: item['relevance_score'],
+                                                     reverse=True)
             for torrent_item in self.search_results['torrents']:
                 all_items.append((ChannelTorrentListItem, torrent_item))
 
