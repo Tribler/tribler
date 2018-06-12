@@ -2,9 +2,9 @@ import logging
 import os
 import sys
 import threading
-import unittest
 from random import randint
-from unittest import skipUnless
+import unittest
+from unittest import skipUnless, skipIf
 
 from PyQt5.QtCore import QPoint, Qt, QTimer
 from PyQt5.QtGui import QPixmap, QRegion
@@ -476,6 +476,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.wait_for_signal(window.left_menu_playlist.list_loaded, no_args=True)
         self.screenshot(window, name="video_player_left_menu_loaded")
 
+    @skipIf(sys.platform == "darwin", "VLC playback from nosetests seems to be unreliable on Mac")
     def test_video_playback(self):
         """
         Test video playback of a Tribler instance.
