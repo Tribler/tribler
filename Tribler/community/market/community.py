@@ -1641,6 +1641,7 @@ class MarketCommunity(TrustChainCommunity):
             self.tribler_session.notifier.notify(NTFY_MARKET_ON_TRANSACTION_COMPLETE, NTFY_UPDATE, None,
                                                  {"tx": tx_dict, "mine": mine})
 
+    @synchronized
     def send_transaction_completed(self, transaction, block):
         """
         Let the matchmaker know that the transaction has been completed.
