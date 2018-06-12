@@ -79,6 +79,8 @@ class CreateTorrentPage(QWidget):
             self.dialog.show()
             return
 
+        self.window().edit_channel_create_torrent_button.setEnabled(False)
+
         files_str = u""
         for ind in xrange(self.window().create_torrent_files_list.count()):
             files_str += u"files[]=%s&" % urllib.quote_plus(
@@ -98,6 +100,7 @@ class CreateTorrentPage(QWidget):
         self.dialog = None
 
     def on_torrent_created(self, result):
+        self.window().edit_channel_create_torrent_button.setEnabled(True)
         if 'torrent' in result:
             self.add_torrent_to_channel(result['torrent'])
 
