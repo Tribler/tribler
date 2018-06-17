@@ -44,6 +44,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         mock_circuit.circuit_id = 1234
         mock_circuit.ctype = CIRCUIT_TYPE_DATA
         mock_circuit.destroy = lambda: None
+        mock_circuit.mid = 'a'
 
         self.session.lm.tunnel_community.circuits = {1234: mock_circuit}
 
