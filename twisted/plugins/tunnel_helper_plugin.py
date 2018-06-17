@@ -37,12 +37,22 @@ def check_socks5_port(val):
     return socks5_port
 check_socks5_port.coerceDoc = "Socks5 port must be greater than 0."
 
+
+def check_api_port(val):
+    api_port = int(val)
+    if api_port <= 0:
+        raise ValueError("Invalid port number")
+    return api_port
+check_socks5_port.coerceDoc = "Api port must be greater than 0."
+
+
 def check_ipv8_port(val):
     ipv8_port = int(val)
     if ipv8_port < -1 or ipv8_port == 0:
         raise ValueError("Invalid port number")
     return ipv8_port
 check_ipv8_port.coerceDoc = "IPv8 port must be greater than 0 or -1."
+
 
 def check_ipv8_address(val):
     try:
@@ -51,6 +61,7 @@ def check_ipv8_address(val):
         raise ValueError("Invalid IPv4 address")
     return val
 check_ipv8_address.coerceDoc = "IPv8 listening address must be in proper IPv4 format."
+
 
 def check_ipv8_bootstrap_override(val):
     parsed = re.match(r"^([\d\.]+)\:(\d+)$", val) 
@@ -68,6 +79,7 @@ def check_ipv8_bootstrap_override(val):
     return ip, port
 check_ipv8_bootstrap_override.coerceDoc = "IPv8 bootstrap server address must be in ipv4_addr:port format"
 
+
 class Options(usage.Options):
     optFlags = [
         ["exit", "x", "Allow being an exit-node"],
@@ -78,7 +90,8 @@ class Options(usage.Options):
         ["socks5", "p", None, "Socks5 port", check_socks5_port],
         ["ipv8_port", "d", -1, 'IPv8 port', check_ipv8_port],
         ["ipv8_address", "i", "0.0.0.0", 'IPv8 listening address', check_ipv8_address],
-        ["ipv8_bootstrap_override", "b", "", "Force the usage of specific IPv8 bootstrap server (ip:port)", check_ipv8_bootstrap_override]
+        ["ipv8_bootstrap_override", "b", "", "Force the usage of specific IPv8 bootstrap server (ip:port)", check_ipv8_bootstrap_override],
+        ["restapi", "p", None, "Use an alternate port for the REST API", check_api_port],
     ]
 
 if not os.path.exists("logger.conf"):
@@ -163,6 +176,10 @@ class Tunnel(object):
         config.set_market_community_enabled(False)
         config.set_mainline_dht_enabled(False)
         config.set_tunnel_community_exitnode_enabled(bool(self.options["exit"]))
+
+        if self.options["restapi"] is not None:
+            config.set_http_api_enabled(True)
+            config.set_http_api_port(self.options["restapi"])
 
         if "ipv8_bootstrap_override" in self.options:
             config.set_ipv8_bootstrap_override(self.options["ipv8_bootstrap_override"])
