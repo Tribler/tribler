@@ -32,6 +32,7 @@ ec_keypair_filename = string(default='')
 enabled = boolean(default=True)
 ec_keypair_filename = string(default='')
 live_edges_enabled = boolean(default=True)
+testnet = boolean(default=False)
 
 [wallets]
 btc_testnet = boolean(default=False)

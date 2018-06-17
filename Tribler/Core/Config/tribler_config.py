@@ -209,6 +209,12 @@ class TriblerConfig(object):
     def get_trustchain_live_edges_enabled(self):
         return self.config['trustchain']['live_edges_enabled']
 
+    def set_trustchain_testnet(self, value):
+        self.config['trustchain']['testnet'] = value
+
+    def get_trustchain_testnet(self):
+        return self.config['trustchain']['testnet']
+
     def set_megacache_enabled(self, value):
         self.config['general']['megacache'] = value
 

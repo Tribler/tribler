@@ -250,7 +250,8 @@ class TriblerLaunchMany(TaskManager):
 
             self.trustchain_community = TrustChainCommunity(trustchain_peer, self.ipv8.endpoint,
                                                             self.ipv8.network,
-                                                            working_directory=self.session.config.get_state_dir())
+                                                            working_directory=self.session.config.get_state_dir(),
+                                                            testnet=self.session.config.get_trustchain_testnet())
             self.ipv8.overlays.append(self.trustchain_community)
             self.ipv8.strategies.append((EdgeWalk(self.trustchain_community), 20))
 
