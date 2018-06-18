@@ -1,5 +1,5 @@
 import flatbuffers
-import TorrentMetadata as MD
+import MDPack as MD
 from timeutils import time2float, float2time
 from datetime import datetime
 
@@ -29,6 +29,7 @@ def serialize_ubytes_vector(builder, StartVectorFunction, vec):
 
 class TorrentMetadataObj():
     
+    """
     def __init__(self, infohash=[], size=0, date=datetime.utcnow(), title="", tags=[]):
         if type(infohash) == type([]):
             self.infohash = bytearray(infohash)
@@ -36,6 +37,7 @@ class TorrentMetadataObj():
         self.date = date
         self.title = title
         self.tags = tags
+    """
 
     def flat(self):
         # Serialization proceeds in depth-first, last-to-first order.
@@ -43,36 +45,52 @@ class TorrentMetadataObj():
         # the order of building of non-scalar fields
         b = flatbuffers.Builder(MD_MAX_SIZE)
         
-        # TODO: there should be more efficient methods to copy byte
-        # vectors to FlatBuffer. For example, NumPy interface.
-        tags_offset = serialize_strings_vector(b, 
-                MD.TorrentMetadataStartTagsVector, self.tags)
-
+        # TODO: there should be more efficient methods to insert byte
+        # vectors into FlatBuffer. For example, NumPy interface.
+        if self.tags:
+            tags_offset  = b.CreateString(self.tags)
+        if self.parent:
+            parent_offset   = serialize_ubytes_vector(b,
+                    MD.MDPackStartParentVector, bytearray(self.parent))
         title_offset = b.CreateString(self.title)
         infohash_offset = serialize_ubytes_vector(b,
-                MD.TorrentMetadataStartInfohashVector, self.infohash)
+                MD.MDPackStartInfohashVector, bytearray(self.infohash))
 
-        MD.TorrentMetadataStart(b)
-        MD.TorrentMetadataAddTags(b, tags_offset)
-        MD.TorrentMetadataAddTitle(b, title_offset)
-        MD.TorrentMetadataAddDate(b, time2float(self.date))
-        MD.TorrentMetadataAddSize(b, self.size)
-        MD.TorrentMetadataAddInfohash(b, infohash_offset)
-        size = MD.TorrentMetadataEnd(b)
+        MD.MDPackStart(b)
+        if self.tags:
+            MD.MDPackAddTags(b, tags_offset)
+        if self.parent:
+            MD.MDPackAddParent(b, parent_offset)
+        MD.MDPackAddTitle(b, title_offset)
+        MD.MDPackAddDate(b, time2float(self.date))
+        MD.MDPackAddSize(b, self.size)
+        MD.MDPackAddInfohash(b, infohash_offset)
+        size = MD.MDPackEnd(b)
         b.Finish(size)
 
         return b.Output()
 
+    # This esoteric construction is required to call the child class's
+    # constructor when we run "fromflat" static(class) method
     @classmethod
     def fromflat(cls, buf, offset=0):
-        md = MD.TorrentMetadata.GetRootAsTorrentMetadata(buf, offset)
-        return TorrentMetadataObj(
-                infohash=[md.Infohash(i) for i in range(0, md.InfohashLength())], 
-                size=md.Size(), date=float2time(md.Date()), title=md.Title(), 
-                tags=[md.Tags(i) for i in range(0, md.TagsLength())])
+        md = MD.MDPack.GetRootAsMDPack(buf, offset)
+        # FIXME: this crazy chain of type conversions is the result of 
+        # Python FlatBuffers not supporting the direct loading/unloading
+        # from/to "buffer" type. Someone should add it one day.
+        # Nonetheless, the overhead is almost nonexistent.
+        return cls(
+                infohash=buffer(bytearray([md.Infohash(i) for i in range(0, md.InfohashLength())])), 
+                parent  =buffer(bytearray([md.Parent(i)   for i in range(0, md.ParentLength())])), 
+                size=md.Size(),
+                date=float2time(md.Date()),
+                title=md.Title(), 
+                tags=md.Tags())
 
 
-aaa = TorrentMetadataObj(date=datetime.utcnow())
+        """
+
+#aaa = TorrentMetadataObj(date=datetime.utcnow())
 for i in range(0,20):
     aaa.infohash.append(i)
 i1 = aaa.infohash
@@ -82,3 +100,4 @@ flat = aaa.flat()
 e = (TorrentMetadataObj.fromflat((TorrentMetadataObj.fromflat(flat)).flat())).flat()
 
 print e==flat
+"""

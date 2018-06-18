@@ -1,0 +1,16 @@
+// This file contains FlatBuffers IDL description of torrent metadata entry 
+// used by the Hogwarts community. It must be compiled by flatc before use.
+
+//namespace Tribler.Hogwarts;
+
+
+table MDPack {
+    infohash : [ubyte];
+    size : uint64;
+    date : float64;
+    title : string;
+    parent : [ubyte];
+    tags : string;
+}
+
+root_type MDPack;

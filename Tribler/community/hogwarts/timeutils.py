@@ -1,3 +1,6 @@
+# We have to write our own serialization procedure for timestamps, since
+# there are no standard for this things, except Unix time, and that is
+# deprecated by 2038
 from __future__ import division
 from datetime import datetime, timedelta
 
