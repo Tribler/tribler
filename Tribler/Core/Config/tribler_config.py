@@ -276,7 +276,9 @@ class TriblerConfig(object):
         self.config['ipv8']['bootstrap_override'] = value
 
     def get_ipv8_bootstrap_override(self):
-        return self.config['ipv8']['bootstrap_override']
+        val = self.config['ipv8']['bootstrap_override']
+        ip_port_tuple = (val[0], int(val[1])) if val else None
+        return ip_port_tuple
 
     def set_ipv8_address(self, value):
         self.config['ipv8']['address'] = value
