@@ -43,12 +43,16 @@ class RootEndpoint(resource.Resource):
         This method is only called when Tribler has started. It enables the other endpoints that are dependent
         on a fully started Tribler.
         """
-        child_handler_dict = {"search": SearchEndpoint, "channels": ChannelsEndpoint, "mychannel": MyChannelEndpoint,
-                              "settings": SettingsEndpoint, "downloads": DownloadsEndpoint,
+        child_handler_dict = {"settings": SettingsEndpoint, "downloads": DownloadsEndpoint,
                               "createtorrent": CreateTorrentEndpoint, "torrents": TorrentsEndpoint,
                               "debug": DebugEndpoint, "shutdown": ShutdownEndpoint, "trustchain": TrustchainEndpoint,
                               "statistics": StatisticsEndpoint, "torrentinfo": TorrentInfoEndpoint,
                               "market": MarketEndpoint, "wallets": WalletsEndpoint}
+
+        if self.session.config.get_megacache_enabled():
+            child_handler_dict["search"] = SearchEndpoint
+            child_handler_dict["channels"] = ChannelsEndpoint
+            child_handler_dict["mychannel"] = MyChannelEndpoint
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(self.session))
