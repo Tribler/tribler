@@ -210,7 +210,7 @@ QTabBar::tab:selected {
             <item row="3" column="0">
              <widget class="QLabel" name="label_2">
               <property name="styleSheet">
-               <string notr="true">font-weight: bold;</string>
+               <string notr="true">font-weight: bold; margin-top:5px</string>
               </property>
               <property name="text">
                <string>Health</string>
@@ -218,10 +218,45 @@ QTabBar::tab:selected {
              </widget>
             </item>
             <item row="3" column="1">
-             <widget class="QLabel" name="torrent_detail_health_label">
-              <property name="text">
-               <string/>
-              </property>
+             <widget class="QWidget" name="health_widget">
+              <layout class="QFormLayout" name="health_layout">
+                <property name="labelAlignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+                <property name="formAlignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+                </property>
+                <item row="0" column="0">
+                 <widget class="QLabel" name="torrent_detail_health_label">
+                   <property name="text">
+                    <string/>
+                   </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="EllipseButton" name="check_health_button">
+                   <property name="text">
+                    <string> Re-check </string>
+                   </property>
+                   <property name="styleSheet">
+                     <string notr="true">
+                        EllipseButton{
+                         border: 1px solid #b5b5b5;
+                         border-radius: 4px;
+                         color: white
+                        }
+                        EllipseButton::hover{
+                         color: #333;
+                         background-color:#c5c5c5;
+                        }
+                     </string>
+                   </property>
+                   <property name="cursor">
+                     <cursorShape>PointingHandCursor</cursorShape>
+                   </property>
+                 </widget>
+                </item>
+              </layout>
              </widget>
             </item>
            </layout>
@@ -403,6 +438,11 @@ background-color: transparent;
    <extends>QTabWidget</extends>
    <header>TriblerGUI.widgets.torrentdetailstabwidget.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>EllipseButton</class>
+   <extends>QToolButton</extends>
+   <header>TriblerGUI.widgets.ellipsebutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

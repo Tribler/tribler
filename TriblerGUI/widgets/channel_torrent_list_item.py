@@ -46,13 +46,12 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
             self.channel_torrent_category.setText("unknown")
         self.thumbnail_widget.initialize(torrent["name"], 24)
 
-        if torrent["last_tracker_check"] > 0 or torrent["num_seeders"] and torrent["num_leechers"]:
+        if torrent["last_tracker_check"] > 0:
             self.has_health = True
             self.update_health(int(torrent["num_seeders"]), int(torrent["num_leechers"]))
 
         self.torrent_play_button.clicked.connect(self.on_play_button_clicked)
         self.torrent_download_button.clicked.connect(self.on_download_clicked)
-        self.torrent_check_button.clicked.connect(lambda: self.check_health(force=True))
 
         if not self.window().vlc_available:
             self.torrent_play_button.setHidden(True)
@@ -89,7 +88,6 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
             self.control_buttons_container.setHidden(False)
             self.torrent_play_button.setIcon(QIcon(get_image_path('play.png')))
             self.torrent_download_button.setIcon(QIcon(get_image_path('downloads.png')))
-            self.torrent_check_button.setIcon(QIcon(get_image_path('history.png')))
         else:
             self.control_buttons_container.setHidden(True)
             self.remove_control_button_container.setHidden(False)
@@ -118,20 +116,19 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         except RuntimeError:
             self._logger.error("The underlying GUI widget has already been removed.")
 
-    def check_health(self, force=False):
+    def check_health(self):
         """
         Perform a request to check the health of the torrent that is represented by this widget.
         Don't do this if we are already checking the health or if we have the health info.
         """
-        if (self.is_health_checking or self.has_health) and not force:  # Don't check health again
+        if self.is_health_checking or self.has_health:  # Don't check health again
             return
 
         self.health_text.setText("checking health...")
         self.set_health_indicator(STATUS_UNKNOWN)
         self.is_health_checking = True
         self.health_request_mgr = TriblerRequestManager()
-        self.health_request_mgr.perform_request("torrents/%s/health?timeout=15&refresh=%d" %
-                                                (self.torrent_info["infohash"], 1 if force else 0),
+        self.health_request_mgr.perform_request("torrents/%s/health?timeout=15" % self.torrent_info["infohash"],
                                                 self.on_health_response, capture_errors=False, priority="LOW",
                                                 on_cancel=self.on_cancel_health_check)
 
