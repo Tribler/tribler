@@ -131,12 +131,12 @@ class TriblerStatistics(object):
             return []
 
         for overlay in ipv8.overlays:
-            verified_peers = overlay.network.verified_peers
+            peers = overlay.get_peers()
             communities_stats.append({
                 "master_peer": overlay.master_peer.public_key.key_to_bin().encode('hex'),
                 "my_peer": overlay.my_peer.public_key.key_to_bin().encode('hex'),
                 "global_time": overlay.global_time,
-                "verified_peers": [str(peer) for peer in verified_peers],
+                "peers": [str(peer) for peer in peers],
                 "overlay_name": overlay.__class__.__name__
             })
 
