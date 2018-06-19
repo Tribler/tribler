@@ -134,6 +134,10 @@ class Tunnel(object):
     def start(self):
         # Determine socks5 ports
         socks5_port = self.options['socks5']
+        if "HELPER_INDEX" in os.environ and "HELPER_BASE" in os.environ:
+            base_port = int(os.environ["HELPER_BASE"])
+            socks5_port = base_port + int(os.environ["HELPER_INDEX"]) * 5
+
         if socks5_port is not None:
             socks_listen_ports = range(socks5_port, socks5_port + 5)
         else:

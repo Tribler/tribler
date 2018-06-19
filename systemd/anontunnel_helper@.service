@@ -11,6 +11,8 @@ User=tunnel_helper
 Group=tunnel_helper
 Restart=always
 Environment=HOME=/var/lib/tunnel_helper/%I
+Environment=HELPER_INDEX=%I
+Environment=HELPER_BASE=35000
 Environment=EXTRA_TUNNEL_ARGS=--
 Environment=PYTHONPATH=/opt/tribler
 
