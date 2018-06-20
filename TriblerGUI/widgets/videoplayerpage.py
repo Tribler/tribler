@@ -175,6 +175,8 @@ class VideoPlayerPage(QWidget):
     def play_active_item(self):
         self.window().left_menu_playlist.set_active_index(self.active_index)
         file_info = self.window().left_menu_playlist.get_file_info(self.active_index)
+        if file_info is None:
+            return
         file_index = file_info["index"]
 
         self.window().video_player_header_label.setText(file_info["name"] if file_info else 'Unknown')
