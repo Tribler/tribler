@@ -3,8 +3,9 @@
 # deprecated by 2038
 from __future__ import division
 from datetime import datetime, timedelta
+EPOCH = datetime(1970,1,1)
 
-def time2float(dt, epoch=datetime(1970,1,1)):
+def time2float(dt, epoch=EPOCH):
     # WARNING: TZ-aware timestamps are madhouse...
     # For Python3 we could use a simpler method:
     # timestamp = (dt - datetime(1970,1,1, tzinfo=timezone.utc)) / timedelta(seconds=1)
