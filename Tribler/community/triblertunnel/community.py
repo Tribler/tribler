@@ -270,7 +270,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
     def get_peer_from_address(self, address):
         circuit_peer = None
-        for peer in self.network.verified_peers:
+        for peer in self.get_peers():
             if peer.address == address:
                 circuit_peer = peer
                 break
