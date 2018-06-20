@@ -165,7 +165,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         # Send the next payout
         if payload.circuit_id in self.relay_from_to and block.transaction['down'] > payload.base_amount:
             relay = self.relay_from_to[payload.circuit_id]
-            circuit_peer = self.get_peer_from_mid(relay.mid)
+            circuit_peer = self.get_peer_from_address(relay.sock_addr)
             if not circuit_peer:
                 self.logger.warning("%s Unable to find next peer %s for payout!", self.my_peer, relay.mid.encode('hex'))
                 return
@@ -268,10 +268,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if self.active_data_circuits():
                 self.readd_bittorrent_peers()
 
-    def get_peer_from_mid(self, mid):
+    def get_peer_from_address(self, address):
         circuit_peer = None
         for peer in self.network.verified_peers:
-            if peer.mid == mid:
+            if peer.address == address:
                 circuit_peer = peer
                 break
 
@@ -324,7 +324,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if self.tribler_session:
             self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, circuit.sock_addr)
 
-        circuit_peer = self.get_peer_from_mid(circuit.mid)
+        circuit_peer = self.get_peer_from_address(circuit.sock_addr)
         if circuit.bytes_down >= 1024 * 1024 and self.triblerchain_community and circuit_peer:
             # We should perform a payout of the removed circuit.
             if circuit.ctype == CIRCUIT_TYPE_RENDEZVOUS:
