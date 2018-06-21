@@ -3,11 +3,12 @@ from timeutils import time2float, float2time, EPOCH
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 
 INFOHASH_SIZE = 20 # bytes
+IPV8_PUBLICKEY_SIZE = 74 # bytes
 
 class MetadataTMP():
     def __init__(self):
         self.type = 0
-        self.infohash = str(0x0)*20
+        self.infohash = str(0x0)*INFOHASH_SIZE
         self.size = 0
         self.date = EPOCH
         self.title = ""
@@ -16,7 +17,7 @@ class MetadataTMP():
 class GossipTMP():
     def __init__(self):
         self.type = 0
-        self.public_key = str(0x0)*74
+        self.public_key = str(0x0)*IPV8_PUBLICKEY_SIZE
         self.tc_pointer = 0
         self.date = EPOCH
         self.content = ""
@@ -65,23 +66,24 @@ def serialize_gossip(key, gsp):
 
 def deserialize_gossip(buf):
     u = xdrlib.Unpacker(buf)
+    gsp = GossipTMP()
 
-    gsp_type    = u.unpack_int()
-    public_key  = u.unpack_opaque()
-    date        = float2time(u.unpack_double())
-    tc_pointer  = u.unpack_uhyper()
-    content     = u.unpack_opaque()
-    sig         = u.unpack_opaque()
+    gsp.type    = u.unpack_int()
+    gsp.public_key  = u.unpack_opaque()
+    gsp.date        = float2time(u.unpack_double())
+    gsp.tc_pointer  = u.unpack_uhyper()
+    gsp.content     = u.unpack_opaque()
+    gsp.sig         = u.unpack_opaque()
     u.done()
 
     # Checking signature and PK correctness
     crypto = ECCrypto()
-    crypto.is_valid_public_bin(public_key)
+    crypto.is_valid_public_bin(gsp.public_key)
     crypto.is_valid_signature(
-            crypto.key_from_public_bin(public_key),
-            content, sig)
+            crypto.key_from_public_bin(gsp.public_key),
+            gsp.content, gsp.sig)
 
-    return sig, public_key, tc_pointer, date, content
+    return gsp
 
     
 
