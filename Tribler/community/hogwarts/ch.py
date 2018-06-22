@@ -1,4 +1,9 @@
 
+import os
+from libtorrent import add_files, bdecode, bencode, create_torrent, file_storage, set_piece_hashes
+
+PIECE_SIZE = 1024*1024 # 1 MB
+
 def create_channel(public_key, private_key, title, md_list):
     torrent = create_channel_torrent(public_key, title, md_list)
     torrentDB.add(torrent.infohash, torrent)
@@ -11,13 +16,62 @@ def create_channel(public_key, private_key, title, md_list):
     DB.metadata.add(md)
     
 
+def create_torrent_from_dir(directory, torrent_filename):
+    fs = file_storage()
+    add_files(fs, directory)
+    flags = 19 # ???
+    t = create_torrent(fs, flags=flags)
+    #t = create_torrent(fs, piece_size=PIECE_SIZE, flags=flags)
+    t.set_priv(False)
+    set_piece_hashes(t, os.path.dirname(directory))
+    generated = t.generate()
+    print generated
+    with open(torrent_filename, 'w') as f:
+        f.write(bencode(generated))
 
-def create_channel_torrent(dirname, title, md_list):
-    create_dir(dirname)
-    for i,md in enumerate(md_list):
-        create_file(name=dirname+str(i), contents=md.serialized())
-    torrent = create_torrent(dirname)
+    return generated
+
+
+def create_channel_torrent(channels_store_dir, title, entries_list):
+    # Create dir for metadata files
+    channel_dir = os.path.abspath(os.path.join(channels_store_dir, title))
+    if not os.path.isdir(channel_dir):
+        os.makedirs(channel_dir)
+
+    # Write serialized and signed metadata into files
+    for i,entry in enumerate(entries_list):
+        with open(os.path.join(channel_dir, str(i)), 'w') as f:
+            f.write(entry)
+
+    # Make torrent out of dir with metadata files
+    torrent_filename = os.path.join(channels_store_dir, title + ".torrent")
+    torrent = create_torrent_from_dir(channel_dir, torrent_filename) 
+
     return torrent
+
+
+def create_channel(key, title, md_list, tags = ""):
+    channels_dir = "/tmp"
+    md_ser_list = [md_list.serialized() for md in md_list]
+    torrent = create_channel_torrent(channels_dir, title, md_ser_list)
+    now = datetime.datetime.utcnow()
+    md_dict = {
+            "type" : CHANNEL_TORRENT,
+            "infohash" : torrent['root hash'],
+            "title" : title,
+            "tags" : tags,
+            "size" : len(md_list),
+            "timestamp" : now,
+            "torrent_date" : now,
+            "tc_pointer" : 0,
+            "public_key" : key.pub().key_to_bin()}
+
+    md = create_metadata_gossip(key, md_dict)
+
+
+def create_metadata_gossip(key, md_dict):
+    md_ser = serialize_metadata_gossip(md_dict, key)
+    md = MetadataGossip.fromdict(md_dict)
 
 
 def join_channel(PK):
@@ -39,8 +93,7 @@ def consume_contents(dirname):
 
 def unpack_gossip(gsp_ser):
     try:
-        sig, PK, tc_pointer, timestamp, md_ser =
-        deserialize_gossip(gsp_ser)
+        gsp = deserialize_gossip(gsp_ser)
     except:
         process_deserialize_error(err)
         return
@@ -85,7 +138,7 @@ def process_metadata_package(gsp_ser, allow_delete = False):
     else:
         DB.metadata.add(md)
 
-def DB.metadata.add(md):
+def DB_metadata_add(md):
     # We don't do deduplication of infohashes
     # because different packagers could make different
     # uses of the same torrent.
