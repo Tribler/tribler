@@ -90,7 +90,7 @@ port = integer(min=-1, max=65536, default=-1)
 [ipv8]
 enabled = boolean(default=True)
 address = string(default='0.0.0.0')
-bootstrap_override = string(default='')
+bootstrap_override = tuple(default=None)
 
 [video_server]
 enabled = boolean(default=True)
