@@ -1,20 +1,66 @@
 
 import os
 from libtorrent import add_files, bdecode, bencode, create_torrent, file_storage, set_piece_hashes
+from MDPackXDR import serialize_metadata_gossip, CHANNEL_TORRENT
+from builtins import bytes
 
 PIECE_SIZE = 1024*1024 # 1 MB
 
-def create_channel(public_key, private_key, title, md_list):
-    torrent = create_channel_torrent(public_key, title, md_list)
-    torrentDB.add(torrent.infohash, torrent)
-    md = create_channel_md(
-            publisher = public_key,
-            sign      = private_key,
-            infohash  = torrent.infohash, 
-            date      = datetime.now(),
-            title     = title)
-    DB.metadata.add(md)
+
+
+from pony import orm
+from datetime import datetime
+db = orm.Database()
+
+class MetadataGossip(db.Entity):
+    num          = orm.PrimaryKey(int, auto=True)
+    sig          = orm.Required(buffer)
+    type         = orm.Optional(int)
+    infohash     = orm.Optional(buffer)
+    title        = orm.Optional(str)
+    size         = orm.Optional(int)
+    timestamp    = orm.Optional(datetime)
+    torrent_date = orm.Optional(datetime)
+    tc_pointer   = orm.Optional(int)
+    public_key   = orm.Optional(buffer)
+    tags         = orm.Optional(str)
     
+    @classmethod
+    def fromdict(cls, md_dict):
+        md = cls(
+            sig          = md_dict["sig"],
+            type         = md_dict["type"],
+            public_key   = md_dict["public_key"],
+            timestamp    = md_dict["timestamp"],
+            tc_pointer   = md_dict["tc_pointer"],
+            infohash     = md_dict["infohash"],
+            size         = md_dict["size"],
+            torrent_date = md_dict["torrent_date"],
+            title        = md_dict["title"],
+            tags         = md_dict["tags"])
+        return md
+
+    def todict(self):
+        md_dict = {
+            "sig":          self.sig,
+            "type":         self.type,
+            "public_key":   self.public_key,
+            "timestamp":    self.timestamp,
+            "tc_pointer":   self.tc_pointer,
+            "infohash":     self.infohash,
+            "size":         self.size,
+            "torrent_date": self.torrent_date,
+            "title":        self.title,
+            "tags":         self.tags}
+        return md_dict
+
+    def serialized(self):
+        md_dict = self.todict()
+        return serialize_metadata_gossip(md_dict)
+
+
+db.bind(provider='sqlite', filename=':memory:')
+db.generate_mapping(create_tables=True)
 
 def create_torrent_from_dir(directory, torrent_filename):
     fs = file_storage()
@@ -25,7 +71,6 @@ def create_torrent_from_dir(directory, torrent_filename):
     t.set_priv(False)
     set_piece_hashes(t, os.path.dirname(directory))
     generated = t.generate()
-    print generated
     with open(torrent_filename, 'w') as f:
         f.write(bencode(generated))
 
@@ -51,28 +96,29 @@ def create_channel_torrent(channels_store_dir, title, entries_list):
 
 
 def create_channel(key, title, md_list, tags = ""):
+    md_ser_list = [md.serialized() for md in md_list]
     channels_dir = "/tmp"
-    md_ser_list = [md_list.serialized() for md in md_list]
     torrent = create_channel_torrent(channels_dir, title, md_ser_list)
-    now = datetime.datetime.utcnow()
+    now = datetime.utcnow()
     md_dict = {
-            "type" : CHANNEL_TORRENT,
-            "infohash" : torrent['root hash'],
-            "title" : title,
-            "tags" : tags,
-            "size" : len(md_list),
-            "timestamp" : now,
-            "torrent_date" : now,
-            "tc_pointer" : 0,
-            "public_key" : key.pub().key_to_bin()}
+            "type":         CHANNEL_TORRENT,
+            "infohash":     torrent['info']['root hash'],
+            "title":        title,
+            "tags":         tags,
+            "size":         len(md_list),
+            "timestamp":    now,
+            "torrent_date": now,
+            "tc_pointer":   0,
+            "public_key":   key.pub().key_to_bin()}
 
     md = create_metadata_gossip(key, md_dict)
-
+    return md
 
 def create_metadata_gossip(key, md_dict):
     md_ser = serialize_metadata_gossip(md_dict, key)
-    md = MetadataGossip.fromdict(md_dict)
-
+    with orm.db_session:
+        md = MetadataGossip.fromdict(md_dict)
+    return md
 
 def join_channel(PK):
     channel_dir = fetch_channel(ChannelORM)
