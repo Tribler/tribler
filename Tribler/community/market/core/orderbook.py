@@ -98,7 +98,7 @@ class OrderBook(TaskManager):
 
     def update_ticks(self, ask_order_dict, bid_order_dict, traded_quantity, unreserve=True):
         """
-        Update ticks according to a TradeChain block containing the status of the ask/bid orders.
+        Update ticks according to a TrustChain block containing the status of the ask/bid orders.
 
         :type ask_order_dict: dict
         :type bid_order_dict: dict

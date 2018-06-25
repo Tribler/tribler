@@ -79,12 +79,11 @@ class TrustchainStatsEndpoint(TrustchainBaseEndpoint):
                     }
                 }
         """
-        triblerchain_community = self.session.lm.triblerchain_community
-        if not triblerchain_community:
+        if 'MB' not in self.session.lm.wallets:
             request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "triblerchain community not found"})
+            return json.dumps({"error": "TrustChain community not found"})
 
-        return json.dumps({'statistics': triblerchain_community.get_statistics()})
+        return json.dumps({'statistics': self.session.lm.wallets['MB'].get_statistics()})
 
 
 class TrustchainBlocksEndpoint(TrustchainBaseEndpoint):
@@ -139,10 +138,10 @@ class TrustchainBlocksIdentityEndpoint(TrustchainBaseEndpoint):
                     }, ...]
                 }
         """
-        triblerchain_community = self.session.lm.triblerchain_community
-        if not triblerchain_community:
+        trustchain_community = self.session.lm.trustchain_community
+        if not trustchain_community:
             request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "triblerchain community not found"})
+            return json.dumps({"error": "trustchain community not found"})
 
         limit_blocks = 100
 
@@ -156,7 +155,7 @@ class TrustchainBlocksIdentityEndpoint(TrustchainBaseEndpoint):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "limit parameter out of range"})
 
-        blocks = triblerchain_community.persistence.get_latest_blocks(self.identity.decode("HEX"), limit_blocks)
+        blocks = trustchain_community.persistence.get_latest_blocks(self.identity.decode("HEX"), limit_blocks)
         return json.dumps({"blocks": [dict(block) for block in blocks]})
 
 
@@ -196,12 +195,12 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
                 }
         """
 
-        triblerchain_community = self.session.lm.triblerchain_community
-        if not triblerchain_community:
+        if 'MB' not in self.session.lm.wallets:
             request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "triblerchain community not found"})
+            return json.dumps({"error": "bandwidth wallet not found"})
+        bandwidth_wallet = self.session.lm.wallets['MB']
 
-        available_tokens = triblerchain_community.get_bandwidth_tokens()
+        available_tokens = bandwidth_wallet.get_bandwidth_tokens()
 
         if 'amount' in request.args:
             try:
@@ -220,5 +219,5 @@ class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "Not enough bandwidth tokens available"})
 
-        result = triblerchain_community.bootstrap_new_identity(amount)
+        result = bandwidth_wallet.bootstrap_new_identity(amount)
         return json.dumps(result)

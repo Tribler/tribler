@@ -9,6 +9,6 @@ class ReputationManager(object):
 
     def compute(self, own_public_key):
         """
-        Compute the reputation based on the data in the TradeChain database.
+        Compute the reputation based on the data in the TrustChain database.
         """
         raise NotImplementedError()

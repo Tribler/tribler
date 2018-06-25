@@ -7,9 +7,9 @@ class PayoutPayload(HalfBlockPayload):
     format_list = HalfBlockPayload.format_list + ["I", "I"]
 
     def __init__(self, public_key, sequence_number, link_public_key, link_sequence_number, previous_hash,
-                 signature, transaction, circuit_id, base_amount):
+                 signature, block_type, transaction, timestamp, circuit_id, base_amount):
         super(PayoutPayload, self).__init__(public_key, sequence_number, link_public_key, link_sequence_number,
-                                            previous_hash, signature, transaction)
+                                            previous_hash, signature, block_type, transaction, timestamp)
         self.circuit_id = circuit_id
         self.base_amount = base_amount
 
@@ -22,7 +22,9 @@ class PayoutPayload(HalfBlockPayload):
             block.link_sequence_number,
             block.previous_hash,
             block.signature,
+            block.type,
             block.transaction,
+            block.timestamp,
             circuit_id,
             base_amount
         )
@@ -43,9 +45,10 @@ class BalanceResponsePayload(HalfBlockPayload):
     format_list = ["I"] + HalfBlockPayload.format_list
 
     def __init__(self, circuit_id, public_key, sequence_number, link_public_key, link_sequence_number, previous_hash,
-                 signature, transaction):
+                 signature, block_type, transaction, timestamp):
         super(BalanceResponsePayload, self).__init__(public_key, sequence_number, link_public_key,
-                                                     link_sequence_number, previous_hash, signature, transaction)
+                                                     link_sequence_number, previous_hash, signature, block_type,
+                                                     transaction, timestamp)
         self.circuit_id = circuit_id
 
     @classmethod
@@ -58,7 +61,9 @@ class BalanceResponsePayload(HalfBlockPayload):
             block.link_sequence_number,
             block.previous_hash,
             block.signature,
+            block.type,
             block.transaction,
+            block.timestamp
         )
 
     def to_pack_list(self):

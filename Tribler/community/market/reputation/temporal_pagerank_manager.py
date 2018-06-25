@@ -8,14 +8,14 @@ class TemporalPagerankReputationManager(ReputationManager):
 
     def compute(self, own_public_key):
         """
-        Compute the reputation based on the data in the TradeChain database using the Temporal PageRank algorithm.
+        Compute the reputation based on the data in the TrustChain database using the Temporal PageRank algorithm.
         """
 
         nodes = set()
         G = nx.DiGraph()
 
         for block in self.blocks:
-            if block.link_sequence_number == UNKNOWN_SEQ or block.transaction['type'] != 'tx_done' \
+            if block.link_sequence_number == UNKNOWN_SEQ or block.type != 'tx_done' \
                     or 'tx' not in block.transaction:
                 continue  # Don't consider half interactions
 

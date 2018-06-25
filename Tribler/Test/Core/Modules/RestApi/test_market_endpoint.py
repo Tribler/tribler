@@ -1,7 +1,5 @@
 import json
 
-from twisted.internet.defer import inlineCallbacks, succeed
-
 from Tribler.community.market.community import MarketCommunity
 from Tribler.community.market.core.message import MessageId, MessageNumber
 from Tribler.community.market.core.message import TraderId
@@ -14,13 +12,14 @@ from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import Trade
 from Tribler.community.market.core.wallet_address import WalletAddress
-from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
-from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
-from Tribler.Test.twisted_thread import deferred
+from Tribler.Core.Modules.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.twisted_thread import deferred
+from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
+from twisted.internet.defer import inlineCallbacks, succeed
 
 
 class TestMarketEndpoint(AbstractApiTest):
@@ -35,6 +34,7 @@ class TestMarketEndpoint(AbstractApiTest):
         wallets_dict = {dummy1_wallet.get_identifier(): dummy1_wallet, dummy2_wallet.get_identifier(): dummy2_wallet}
         self.mock_ipv8 = MockIPv8(u"low",
                                   MarketCommunity,
+                                  create_trustchain=True,
                                   wallets=wallets_dict,
                                   working_directory=self.session.config.get_state_dir())
         self.session.lm.market_community = self.mock_ipv8.overlay
@@ -99,8 +99,9 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertIn('ticks', json_response['asks'][0])
             self.assertEqual(len(json_response['asks'][0]['ticks']), 1)
 
-        self.session.lm.market_community.send_block_pair = lambda *_: None
-        self.session.lm.market_community.create_new_tick_block = lambda _: succeed(self.create_fake_block_pair())
+        self.session.lm.market_community.trustchain.send_block_pair = lambda *_: None
+        self.session.lm.market_community.create_new_tick_block = \
+            lambda _: succeed(self.create_fake_block_pair())
         self.session.lm.market_community.create_ask(10, 'DUM1', 10, 'DUM2', 3600)
         self.should_check_equality = False
         return self.do_request('market/asks', expected_code=200).addCallback(on_response)
@@ -114,7 +115,7 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertEqual(len(self.session.lm.market_community.order_book.asks), 1)
 
         self.should_check_equality = False
-        self.session.lm.market_community.send_block_pair = lambda *_: None
+        self.session.lm.market_community.trustchain.send_block_pair = lambda *_: None
         self.session.lm.market_community.create_new_tick_block = lambda _: succeed(self.create_fake_block_pair())
         post_data = {'price': 10, 'quantity': 10, 'price_type': 'DUM1', 'quantity_type': 'DUM2', 'timeout': 3400}
         return self.do_request('market/asks', expected_code=200, request_type='PUT', post_data=post_data)\
@@ -150,7 +151,7 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertIn('ticks', json_response['bids'][0])
             self.assertEqual(len(json_response['bids'][0]['ticks']), 1)
 
-        self.session.lm.market_community.send_block_pair = lambda *_: None
+        self.session.lm.market_community.trustchain.send_block_pair = lambda *_: None
         self.session.lm.market_community.create_new_tick_block = lambda _: succeed(self.create_fake_block_pair())
         self.session.lm.market_community.create_bid(10, 'DUM1', 10, 'DUM2', 3600)
         self.should_check_equality = False
@@ -165,7 +166,7 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertEqual(len(self.session.lm.market_community.order_book.bids), 1)
 
         self.should_check_equality = False
-        self.session.lm.market_community.send_block_pair = lambda *_: None
+        self.session.lm.market_community.trustchain.send_block_pair = lambda *_: None
         self.session.lm.market_community.create_new_tick_block = lambda _: succeed(self.create_fake_block_pair())
         post_data = {'price': 10, 'quantity': 10, 'price_type': 'DUM1', 'quantity_type': 'DUM2'}
         return self.do_request('market/bids', expected_code=200, request_type='PUT', post_data=post_data) \

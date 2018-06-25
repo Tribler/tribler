@@ -1,8 +1,9 @@
+from Tribler.Core.Modules.wallet.dummy_wallet import DummyWallet1, DummyWallet2
+from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
+from Tribler.community.market.community import MarketCommunity, PingRequestCache
 from Tribler.pyipv8.ipv8.test.base import TestBase
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
-from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
-from Tribler.community.market.community import MarketCommunity, PingRequestCache
 from twisted.internet.defer import fail
 
 
@@ -24,8 +25,12 @@ class TestMarketCommunityBase(TestBase):
 
         wallets = {'DUM1': dum1_wallet, 'DUM2': dum2_wallet}
 
-        return MockIPv8(u"curve25519", MarketCommunity,
-                        is_matchmaker=True, wallets=wallets, use_database=False, working_directory=u":memory:")
+        mock_ipv8 = MockIPv8(u"curve25519", MarketCommunity, create_trustchain=True,
+                             is_matchmaker=True, wallets=wallets, use_database=False, working_directory=u":memory:")
+        tc_wallet = TrustchainWallet(mock_ipv8.trustchain)
+        mock_ipv8.overlay.wallets['MB'] = tc_wallet
+
+        return mock_ipv8
 
 
 class TestMarketCommunity(TestMarketCommunityBase):
@@ -52,7 +57,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.assertTrue(self.nodes[0].overlay.matchmakers)
         self.assertTrue(self.nodes[1].overlay.matchmakers)
 
-    @twisted_wrapper
+    @twisted_wrapper(2)
     def test_create_ask(self):
         """
         Test creating an ask and sending it to others
@@ -61,7 +66,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
 
         yield self.nodes[0].overlay.create_ask(1, 'DUM1', 2, 'DUM2', 3600)
 
-        yield self.deliver_messages()
+        yield self.sleep(0.5)
 
         orders = self.nodes[0].overlay.order_manager.order_repository.find_all()
         self.assertTrue(orders)
@@ -69,7 +74,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.assertTrue(orders[0].is_ask())
         self.assertEqual(len(self.nodes[2].overlay.order_book.asks), 1)
 
-    @twisted_wrapper
+    @twisted_wrapper(2)
     def test_create_bid(self):
         """
         Test creating a bid and sending it to others
@@ -78,7 +83,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
 
         yield self.nodes[0].overlay.create_bid(1, 'DUM1', 2, 'DUM2', 3600)
 
-        yield self.deliver_messages()
+        yield self.sleep(0.5)
 
         orders = self.nodes[0].overlay.order_manager.order_repository.find_all()
         self.assertTrue(orders)
@@ -86,7 +91,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.assertFalse(orders[0].is_ask())
         self.assertEqual(len(self.nodes[2].overlay.order_book.bids), 1)
 
-    @twisted_wrapper
+    @twisted_wrapper(2)
     def test_decline_trade(self):
         """
         Test declining a trade
@@ -97,12 +102,12 @@ class TestMarketCommunity(TestMarketCommunityBase):
         order = yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
         order._traded_quantity._quantity = 1  # So it looks like this order has already been fulfilled
 
-        yield self.deliver_messages()
+        yield self.sleep(0.5)
 
         self.assertEqual(len(self.nodes[2].overlay.order_book.asks), 1)
         self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
 
-        yield self.deliver_messages()
+        yield self.sleep(0.5)
 
         # The ask should be removed since this node thinks the order is already completed
         self.assertEqual(len(self.nodes[2].overlay.order_book.asks), 0)
@@ -118,12 +123,12 @@ class TestMarketCommunity(TestMarketCommunityBase):
         order = yield self.nodes[0].overlay.create_ask(2, 'DUM1', 2, 'DUM2', 3600)
         order._traded_quantity._quantity = 1  # Partially fulfill this order
 
-        yield self.deliver_messages(timeout=.4)
+        yield self.sleep(0.5)  # Give it some time to complete the trade
 
         self.assertEqual(len(self.nodes[2].overlay.order_book.asks), 1)
         self.nodes[1].overlay.create_bid(2, 'DUM1', 2, 'DUM2', 3600)
 
-        yield self.deliver_messages(timeout=.4)
+        yield self.sleep(0.5)
 
         self.assertTrue(self.nodes[0].overlay.transaction_manager.find_all())
         self.assertTrue(self.nodes[1].overlay.transaction_manager.find_all())
@@ -131,14 +136,14 @@ class TestMarketCommunity(TestMarketCommunityBase):
     @twisted_wrapper(2)
     def test_e2e_trade(self):
         """
-        Test trading between two persons, with a matchmaker
+        Test trading dummy tokens against bandwidth tokens between two persons, with a matchmaker
         """
         yield self.introduce_nodes()
 
-        yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
-        yield self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
+        yield self.nodes[0].overlay.create_ask(1, 'DUM1', 100, 'MB', 3600)
+        yield self.nodes[1].overlay.create_bid(1, 'DUM1', 100, 'MB', 3600)
 
-        yield self.deliver_messages(timeout=.5)
+        yield self.sleep(0.5)  # Give it some time to complete the trade
 
         # Compute reputation
         self.nodes[0].overlay.compute_reputation()
@@ -148,14 +153,14 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.assertTrue(self.nodes[1].overlay.transaction_manager.find_all())
 
         balance1 = yield self.nodes[0].overlay.wallets['DUM1'].get_balance()
-        balance2 = yield self.nodes[0].overlay.wallets['DUM2'].get_balance()
-        self.assertEqual(balance1['available'], 1001)
-        self.assertEqual(balance2['available'], 999)
+        balance2 = yield self.nodes[0].overlay.wallets['MB'].get_balance()
+        self.assertEqual(balance1['available'], 1100)
+        self.assertEqual(balance2['available'], -100)
 
         balance1 = yield self.nodes[1].overlay.wallets['DUM1'].get_balance()
-        balance2 = yield self.nodes[1].overlay.wallets['DUM2'].get_balance()
-        self.assertEqual(balance1['available'], 999)
-        self.assertEqual(balance2['available'], 1001)
+        balance2 = yield self.nodes[1].overlay.wallets['MB'].get_balance()
+        self.assertEqual(balance1['available'], 900)
+        self.assertEqual(balance2['available'], 100)
 
     @twisted_wrapper
     def test_cancel(self):
@@ -186,7 +191,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
         yield self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
 
-        yield self.deliver_messages(timeout=.4)
+        yield self.sleep(0.5)
 
         self.assertEqual(self.nodes[0].overlay.transaction_manager.find_all()[0].status, "error")
         self.assertEqual(self.nodes[1].overlay.transaction_manager.find_all()[0].status, "error")
@@ -260,7 +265,7 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
         yield self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
 
-        yield self.deliver_messages(timeout=.5)
+        yield self.sleep(0.5)
 
         # Verify that the trade has been made
         self.assertTrue(self.nodes[0].overlay.transaction_manager.find_all())
@@ -279,18 +284,20 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
     @twisted_wrapper(4)
     def test_partial_trade(self):
         """
-        Test a partial trade
+        Test a partial trade between two nodes
         """
         yield self.introduce_nodes()
 
         yield self.nodes[0].overlay.create_ask(1, 'DUM1', 2, 'DUM2', 3600)
         bid_order = yield self.nodes[1].overlay.create_bid(1, 'DUM1', 10, 'DUM2', 3600)
 
-        yield self.deliver_messages(timeout=.5)
+        yield self.sleep(0.5)
 
         # Verify that the trade has been made
-        self.assertEqual(len(self.nodes[0].overlay.transaction_manager.find_all()), 1)
-        self.assertEqual(len(self.nodes[1].overlay.transaction_manager.find_all()), 1)
+        transactions1 = self.nodes[0].overlay.transaction_manager.find_all()
+        transactions2 = self.nodes[1].overlay.transaction_manager.find_all()
+        self.assertEqual(len(transactions1), 1)
+        self.assertEqual(len(transactions2), 1)
 
         # There should be no reserved quantity for the bid tick
         for node_nr in [0, 1]:
@@ -299,7 +306,7 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
 
         yield self.nodes[0].overlay.create_ask(1, 'DUM1', 8, 'DUM2', 3600)
 
-        yield self.deliver_messages(timeout=.5)
+        yield self.sleep(0.5)
 
         # Verify that the trade has been made
         self.assertEqual(len(self.nodes[0].overlay.transaction_manager.find_all()), 2)
