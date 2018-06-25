@@ -57,7 +57,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.assertTrue(self.nodes[0].overlay.matchmakers)
         self.assertTrue(self.nodes[1].overlay.matchmakers)
 
-    @twisted_wrapper
+    @twisted_wrapper(2)
     def test_create_ask(self):
         """
         Test creating an ask and sending it to others
@@ -66,7 +66,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
 
         yield self.nodes[0].overlay.create_ask(1, 'DUM1', 2, 'DUM2', 3600)
 
-        yield self.deliver_messages()
+        yield self.sleep(0.5)
 
         orders = self.nodes[0].overlay.order_manager.order_repository.find_all()
         self.assertTrue(orders)
@@ -74,7 +74,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.assertTrue(orders[0].is_ask())
         self.assertEqual(len(self.nodes[2].overlay.order_book.asks), 1)
 
-    @twisted_wrapper
+    @twisted_wrapper(2)
     def test_create_bid(self):
         """
         Test creating a bid and sending it to others
@@ -83,7 +83,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
 
         yield self.nodes[0].overlay.create_bid(1, 'DUM1', 2, 'DUM2', 3600)
 
-        yield self.deliver_messages()
+        yield self.sleep(0.5)
 
         orders = self.nodes[0].overlay.order_manager.order_repository.find_all()
         self.assertTrue(orders)
@@ -91,7 +91,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.assertFalse(orders[0].is_ask())
         self.assertEqual(len(self.nodes[2].overlay.order_book.bids), 1)
 
-    @twisted_wrapper
+    @twisted_wrapper(2)
     def test_decline_trade(self):
         """
         Test declining a trade
@@ -102,12 +102,12 @@ class TestMarketCommunity(TestMarketCommunityBase):
         order = yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
         order._traded_quantity._quantity = 1  # So it looks like this order has already been fulfilled
 
-        yield self.deliver_messages()
+        yield self.sleep(0.5)
 
         self.assertEqual(len(self.nodes[2].overlay.order_book.asks), 1)
         self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
 
-        yield self.deliver_messages()
+        yield self.sleep(0.5)
 
         # The ask should be removed since this node thinks the order is already completed
         self.assertEqual(len(self.nodes[2].overlay.order_book.asks), 0)
@@ -123,12 +123,12 @@ class TestMarketCommunity(TestMarketCommunityBase):
         order = yield self.nodes[0].overlay.create_ask(2, 'DUM1', 2, 'DUM2', 3600)
         order._traded_quantity._quantity = 1  # Partially fulfill this order
 
-        yield self.deliver_messages(timeout=.4)
+        yield self.sleep(0.5)  # Give it some time to complete the trade
 
         self.assertEqual(len(self.nodes[2].overlay.order_book.asks), 1)
         self.nodes[1].overlay.create_bid(2, 'DUM1', 2, 'DUM2', 3600)
 
-        yield self.deliver_messages(timeout=.4)
+        yield self.sleep(0.5)
 
         self.assertTrue(self.nodes[0].overlay.transaction_manager.find_all())
         self.assertTrue(self.nodes[1].overlay.transaction_manager.find_all())
