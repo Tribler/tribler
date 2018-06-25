@@ -8,7 +8,7 @@ from twisted.internet.defer import succeed, Deferred
 
 class TestBtcWallet(AbstractServer):
 
-    @deferred(timeout=20)
+    @deferred(timeout=25)
     def test_btc_wallet(self):
         """
         Test the creating, opening, transactions and balance query of a Bitcoin wallet
