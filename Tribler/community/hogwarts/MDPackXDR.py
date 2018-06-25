@@ -1,10 +1,13 @@
 import xdrlib
-from timeutils import time2float, float2time, EPOCH
+from timeutils import time2float, float2time
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 
 INFOHASH_SIZE = 20 # bytes
-CHANNEL_TORRENT = 1 # version
+REGULAR_TORRENT = 1
+CHANNEL_TORRENT = 2 # version
+MD_DELETE = 3
 
+crypto = ECCrypto()
 
 def serialize_metadata_gossip(md, key=None):
     p = xdrlib.Packer()
@@ -22,7 +25,6 @@ def serialize_metadata_gossip(md, key=None):
     if key:
         assert("sig" not in md)
         # Now we sign it
-        crypto = ECCrypto()
         sig = crypto.create_signature(key, p.get_buf())
         p.pack_opaque(sig)
         md["sig"] = sig
@@ -34,8 +36,8 @@ def serialize_metadata_gossip(md, key=None):
 
 def deserialize_metadata_gossip(buf, check_sig = True):
     u = xdrlib.Unpacker(buf)
-    md = {}
 
+    md = {}
     md["type"]                    = u.unpack_int()
     md["public_key"]              = u.unpack_opaque()
     md["timestamp"]    = float2time(u.unpack_double())
@@ -51,7 +53,6 @@ def deserialize_metadata_gossip(buf, check_sig = True):
 
     if check_sig:
         # Checking signature and PK correctness
-        crypto = ECCrypto()
         crypto.is_valid_public_bin(md["public_key"])
         crypto.is_valid_signature(
                 crypto.key_from_public_bin(md["public_key"]),
