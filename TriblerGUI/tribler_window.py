@@ -647,6 +647,11 @@ class TriblerWindow(QMainWindow):
         # Make sure that the window is visible (this action might be triggered from the tray icon)
         self.raise_window()
 
+        if self.video_player_page.isVisible():
+            # If we're adding a torrent from the video player page, go to the home page.
+            # This is necessary since VLC takes the screen and the popup becomes invisible.
+            self.clicked_menu_button_home()
+
         self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link",
                                          "Please enter the URL/magnet link in the field below:",
                                          [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
