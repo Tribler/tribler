@@ -191,7 +191,7 @@ class TestPopularCommunity(TestPopularCommunityBase):
         health_info = ('a' * 20, random.randint(1, 100), random.randint(1, 10), random.randint(1, 111111))
         self.nodes[1].overlay._queue_content(TYPE_TORRENT_HEALTH, health_info)
 
-        self.nodes[1].overlay._publish_next_content()
+        self.nodes[1].overlay.publish_next_content()
 
         yield self.deliver_messages()
 
@@ -212,7 +212,7 @@ class TestPopularCommunity(TestPopularCommunityBase):
 
         # Try publishing the next available content
         self.nodes[0].no_content = False
-        self.nodes[0].overlay._publish_next_content()
+        self.nodes[0].overlay.publish_next_content()
         yield self.deliver_messages()
 
         # Expect no content found to be logged
@@ -416,7 +416,7 @@ class TestPopularCommunity(TestPopularCommunityBase):
             return peer
 
         self.nodes[0].overlay._ez_unpack_auth = lambda payload_class, data: fake_unpack_auth()
-        self.nodes[0].overlay._get_peer_from_auth = lambda auth, address: fake_get_peer_from_auth(self.nodes[1])
+        self.nodes[0].overlay.get_peer_from_auth = lambda auth, address: fake_get_peer_from_auth(self.nodes[1])
 
         source_address = MockObject()
         data = MockObject()
@@ -452,7 +452,7 @@ class TestPopularCommunity(TestPopularCommunityBase):
 
         self.nodes[0].overlay._publish_latest_torrents = lambda peer: fake_publish_latest_torrents(self.nodes[1], peer)
         self.nodes[0].overlay._ez_unpack_auth = lambda payload_class, data: fake_unpack_auth()
-        self.nodes[0].overlay._get_peer_from_auth = lambda auth, address: fake_get_peer_from_auth(self.nodes[1])
+        self.nodes[0].overlay.get_peer_from_auth = lambda auth, address: fake_get_peer_from_auth(self.nodes[1])
 
         source_address = MockObject()
         data = MockObject()
@@ -491,7 +491,7 @@ class TestPopularCommunity(TestPopularCommunityBase):
 
         self.nodes[0].overlay._publish_latest_torrents = lambda peer: fake_publish_latest_torrents(self.nodes[0], peer)
         self.nodes[0].overlay._ez_unpack_auth = lambda payload_class, data: fake_unpack_auth()
-        self.nodes[0].overlay._get_peer_from_auth = lambda auth, address: fake_get_peer_from_auth(self.nodes[1])
+        self.nodes[0].overlay.get_peer_from_auth = lambda auth, address: fake_get_peer_from_auth(self.nodes[1])
         self.nodes[0].overlay.send_popular_content_subscription = lambda peer, subscribed: \
             fake_send_popular_content_subscription(self.nodes[1])
 
