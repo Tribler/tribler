@@ -306,7 +306,7 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
 
         yield self.nodes[0].overlay.create_ask(1, 'DUM1', 8, 'DUM2', 3600)
 
-        yield self.sleep(0.5)
+        yield self.sleep(1)
 
         # Verify that the trade has been made
         self.assertEqual(len(self.nodes[0].overlay.transaction_manager.find_all()), 2)
