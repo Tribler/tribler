@@ -508,11 +508,22 @@ class TriblerWindow(QMainWindow):
 
         statistics = statistics["statistics"]
         if 'latest_block' in statistics:
-            balance = (statistics["latest_block"]["transaction"]["total_up"] - \
-                      statistics["latest_block"]["transaction"]["total_down"]) / 1024 / 1024
-            self.token_balance_label.setText("%d" % balance)
+            balance = (statistics["latest_block"]["transaction"]["total_up"] -
+                       statistics["latest_block"]["transaction"]["total_down"])
+            self.set_token_balance(balance)
         else:
-            self.token_balance_label.setText("0")
+            self.token_balance_label.setText("0 MB")
+
+    def set_token_balance(self, balance):
+        if abs(balance) > 1024 ** 4:    # Balance is over a TB
+            balance /= 1024.0 ** 4
+            self.token_balance_label.setText("%.1f TB" % balance)
+        elif abs(balance) > 1024 ** 3:  # Balance is over a GB
+            balance /= 1024.0 ** 3
+            self.token_balance_label.setText("%.1f GB" % balance)
+        else:
+            balance /= 1024.0 ** 2
+            self.token_balance_label.setText("%d MB" % balance)
 
     def raise_window(self):
         self.setWindowState(self.windowState() & ~Qt.WindowMinimized | Qt.WindowActive)
@@ -635,6 +646,11 @@ class TriblerWindow(QMainWindow):
     def on_add_torrent_from_url(self):
         # Make sure that the window is visible (this action might be triggered from the tray icon)
         self.raise_window()
+
+        if self.video_player_page.isVisible():
+            # If we're adding a torrent from the video player page, go to the home page.
+            # This is necessary since VLC takes the screen and the popup becomes invisible.
+            self.clicked_menu_button_home()
 
         self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link",
                                          "Please enter the URL/magnet link in the field below:",
