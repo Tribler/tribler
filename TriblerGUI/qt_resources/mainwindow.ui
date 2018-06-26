@@ -315,13 +315,13 @@ color: black;
          </property>
          <property name="minimumSize">
           <size>
-           <width>88</width>
+           <width>92</width>
            <height>34</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>88</width>
+           <width>92</width>
            <height>34</height>
           </size>
          </property>
@@ -353,7 +353,7 @@ color: black;
              <string notr="true">color: #ddd; font-weight: bold; font-size: 14px; border: none;</string>
             </property>
             <property name="text">
-             <string>0</string>
+             <string>0 MB</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -366,7 +366,7 @@ color: black;
              <string notr="true">color: #ddd; font-size: 12px; border: none;</string>
             </property>
             <property name="text">
-             <string>Tokens (MB)</string>
+             <string>Token balance</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -5076,8 +5076,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>661</width>
-               <height>611</height>
+               <width>671</width>
+               <height>607</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -6564,8 +6564,8 @@ color: white;</string>
                   <item row="1" column="0">
                    <widget class="QCheckBox" name="developer_mode_enabled_checkbox">
                     <property name="text">
-                    <string>Enable developer mode </string>
-                   </property>
+                     <string>Enable developer mode </string>
+                    </property>
                    </widget>
                   </item>
                   <item row="2" column="0">
@@ -6724,7 +6724,7 @@ color: white;</string>
                    </widget>
                   </item>
                  </layout>
-                 </widget>
+                </widget>
                </widget>
               </item>
              </layout>
@@ -8045,22 +8045,22 @@ padding-left: 2px;</string>
                   <number>0</number>
                  </property>
                  <item>
-                   <widget class="QLabel" name="diskspace_usage">
-                    <property name="styleSheet">
-                     <string notr="true">color: #B5B5B5; margin-left: 6px;</string>
-                    </property>
-                    <property name="text">
-                     <string></string>
-                    </property>
-                   </widget>
+                  <widget class="QLabel" name="diskspace_usage">
+                   <property name="styleSheet">
+                    <string notr="true">color: #B5B5B5; margin-left: 6px;</string>
+                   </property>
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </widget>
                  </item>
                  <item>
-                   <widget class="QTreeWidget" name="downloads_list">
-                    <property name="contextMenuPolicy">
-                     <enum>Qt::CustomContextMenu</enum>
-                    </property>
-                    <property name="styleSheet">
-                     <string notr="true">QTreeWidget {
+                  <widget class="QTreeWidget" name="downloads_list">
+                   <property name="contextMenuPolicy">
+                    <enum>Qt::CustomContextMenu</enum>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QTreeWidget {
     border: none;
     font-size: 13px;
     }
@@ -8092,88 +8092,88 @@ padding-left: 2px;</string>
     QTableCornerButton::section {
     background-color: transparent;
     }</string>
+                   </property>
+                   <property name="alternatingRowColors">
+                    <bool>false</bool>
+                   </property>
+                   <property name="verticalScrollMode">
+                    <enum>QAbstractItemView::ScrollPerPixel</enum>
+                   </property>
+                   <property name="indentation">
+                    <number>0</number>
+                   </property>
+                   <property name="uniformRowHeights">
+                    <bool>true</bool>
+                   </property>
+                   <property name="sortingEnabled">
+                    <bool>true</bool>
+                   </property>
+                   <column>
+                    <property name="text">
+                     <string>NAME</string>
                     </property>
-                    <property name="alternatingRowColors">
-                     <bool>false</bool>
+                   </column>
+                   <column>
+                    <property name="text">
+                     <string>SIZE</string>
                     </property>
-                    <property name="verticalScrollMode">
-                     <enum>QAbstractItemView::ScrollPerPixel</enum>
+                   </column>
+                   <column>
+                    <property name="text">
+                     <string>PROGRESS</string>
                     </property>
-                    <property name="indentation">
-                     <number>0</number>
+                   </column>
+                   <column>
+                    <property name="text">
+                     <string>STATUS</string>
                     </property>
-                    <property name="uniformRowHeights">
-                     <bool>true</bool>
+                   </column>
+                   <column>
+                    <property name="text">
+                     <string>SEEDS</string>
                     </property>
-                    <property name="sortingEnabled">
-                     <bool>true</bool>
+                   </column>
+                   <column>
+                    <property name="text">
+                     <string>PEERS</string>
                     </property>
-                    <column>
-                     <property name="text">
-                      <string>NAME</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>SIZE</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>PROGRESS</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>STATUS</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>SEEDS</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>PEERS</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>↓ SPEED</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>↑ SPEED</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>RATIO</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>ANONYMOUS?</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>HOPS</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>ETA</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>ADDED ON</string>
-                     </property>
-                    </column>
-                   </widget>
+                   </column>
+                   <column>
+                    <property name="text">
+                     <string>↓ SPEED</string>
+                    </property>
+                   </column>
+                   <column>
+                    <property name="text">
+                     <string>↑ SPEED</string>
+                    </property>
+                   </column>
+                   <column>
+                    <property name="text">
+                     <string>RATIO</string>
+                    </property>
+                   </column>
+                   <column>
+                    <property name="text">
+                     <string>ANONYMOUS?</string>
+                    </property>
+                   </column>
+                   <column>
+                    <property name="text">
+                     <string>HOPS</string>
+                    </property>
+                   </column>
+                   <column>
+                    <property name="text">
+                     <string>ETA</string>
+                    </property>
+                   </column>
+                   <column>
+                    <property name="text">
+                     <string>ADDED ON</string>
+                    </property>
+                   </column>
+                  </widget>
                  </item>
                 </layout>
                </widget>
