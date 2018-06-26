@@ -126,8 +126,9 @@ class ContentRepository(object):
 
     def update_from_torrent_search_results(self, search_results):
         for result in search_results:
-            torrent_item = SearchResponseItemPayload.from_unpack_list(*tuple(result))
-            infohash = torrent_item.infohash
+            (infohash, name, length, num_files, category_list, creation_date, seeders, leechers, cid) = result
+            torrent_item = SearchResponseItemPayload(infohash, name, length, num_files, category_list,
+                                                     creation_date, seeders, leechers, cid)
             if self.has_torrent(infohash):
                 db_torrent = self.get_torrent(infohash)
                 if db_torrent['name'] and db_torrent['name'] == torrent_item.name:

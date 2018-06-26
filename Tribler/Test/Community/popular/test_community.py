@@ -2,8 +2,8 @@ import random
 import string
 
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.community.popular.community import PopularCommunity, MSG_TORRENT_HEALTH_RESPONSE, MAX_SUBSCRIBERS, \
-    MSG_CHANNEL_HEALTH_RESPONSE, ERROR_UNKNOWN_PEER, MSG_POPULAR_CONTENT_SUBSCRIPTION, ERROR_NO_CONTENT, \
+from Tribler.community.popular.community import PopularCommunity, MSG_TORRENT_HEALTH_RESPONSE, \
+    MSG_CHANNEL_HEALTH_RESPONSE, ERROR_UNKNOWN_PEER, MSG_SUBSCRIPTION, ERROR_NO_CONTENT, \
     ERROR_UNKNOWN_RESPONSE
 from Tribler.community.popular.constants import SEARCH_TORRENT_REQUEST
 from Tribler.community.popular.payload import SearchResponseItemPayload
@@ -100,11 +100,31 @@ class TestPopularCommunity(TestPopularCommunityBase):
         yield self.deliver_messages()
 
         # Node 0 should have a publisher added
-        self.assertEqual(len(self.nodes[0].overlay.publishers), 1, "Expected one publisher")
+        self.assertGreater(len(self.nodes[0].overlay.publishers), 0, "Publisher expected")
         # Node 1 should have a subscriber added
+        self.assertGreater(len(self.nodes[1].overlay.subscribers), 0, "Subscriber expected")
+
+    @twisted_wrapper
+    def test_subscribe_unsubscribe_individual_peers(self):
+        """
+        Tests subscribing/subscribing an individual peer.
+        """
+        self.nodes[1].overlay.publish_latest_torrents = lambda *args, **kwargs: None
+
+        yield self.introduce_nodes()
+        self.nodes[0].overlay.subscribe(self.nodes[1].my_peer, subscribe=True)
+        yield self.deliver_messages()
+
+        self.assertEqual(len(self.nodes[0].overlay.publishers), 1, "Expected one publisher")
         self.assertEqual(len(self.nodes[1].overlay.subscribers), 1, "Expected one subscriber")
 
-    def test_unsubscribe_peers(self):
+        self.nodes[0].overlay.subscribe(self.nodes[1].my_peer, subscribe=False)
+        yield self.deliver_messages()
+
+        self.assertEqual(len(self.nodes[0].overlay.publishers), 0, "Expected no publisher")
+        self.assertEqual(len(self.nodes[1].overlay.subscribers), 0, "Expected no subscriber")
+
+    def test_unsubscribe_peers_unit(self):
         """
         Tests unsubscribing peer works as expected.
         """
@@ -112,7 +132,7 @@ class TestPopularCommunity(TestPopularCommunityBase):
             if not subscribe:
                 my_peer.unsubsribe_called += 1
 
-        self.nodes[0].overlay.send_popular_content_subscribe = lambda peer, subscribe: \
+        self.nodes[0].overlay.subscribe = lambda peer, subscribe: \
             send_popular_content_subscribe(self.nodes[0], peer, subscribe)
 
         # Add some peers
@@ -189,7 +209,7 @@ class TestPopularCommunity(TestPopularCommunityBase):
 
         # Add something to queue
         health_info = ('a' * 20, random.randint(1, 100), random.randint(1, 10), random.randint(1, 111111))
-        self.nodes[1].overlay._queue_content(TYPE_TORRENT_HEALTH, health_info)
+        self.nodes[1].overlay.queue_content(TYPE_TORRENT_HEALTH, health_info)
 
         self.nodes[1].overlay.publish_next_content()
 
@@ -222,7 +242,7 @@ class TestPopularCommunity(TestPopularCommunityBase):
         self.nodes[0].overlay.logger = original_logger
 
     @twisted_wrapper
-    def test_send_popular_content_subscribe(self):
+    def test_subscribe_unsubscribe(self):
         """
         Tests sending popular content subscribe request.
         """
@@ -237,20 +257,10 @@ class TestPopularCommunity(TestPopularCommunityBase):
         # Assuming only one is connected
         self.nodes[0].overlay.get_peers = lambda: default_peers[:1]
 
-        # Case1: Try to send subscribe request to non-connected peer
-        self.nodes[0].unknown_peer_found = False
-        self.nodes[0].logger_error_called = False
-        self.nodes[0].overlay.send_popular_content_subscribe(default_peers[1], subscribe=True)
-        yield self.deliver_messages()
-
-        # Expected unknown peer error log
-        self.assertTrue(self.nodes[0].logger_error_called)
-        self.assertTrue(self.nodes[0].unknown_peer_found)
-
-        # Case2: Try to send subscribe request to connected peer
+        # Case1: Try to send subscribe request to connected peer
         self.nodes[0].broadcast_called = False
         self.nodes[0].broadcast_packet_type = None
-        self.nodes[0].overlay.send_popular_content_subscribe(default_peers[0], subscribe=True)
+        self.nodes[0].overlay.subscribe(default_peers[0], subscribe=True)
         yield self.deliver_messages()
 
         # Expect peer to be listed in publisher list and message to be sent
@@ -259,7 +269,7 @@ class TestPopularCommunity(TestPopularCommunityBase):
         self.assertEqual(self.nodes[0].receiver, default_peers[0], "Intended publisher is different")
 
         # Try unsubscribing now
-        self.nodes[0].overlay.send_popular_content_subscribe(default_peers[0], subscribe=False)
+        self.nodes[0].overlay.subscribe(default_peers[0], subscribe=False)
         yield self.deliver_messages()
 
         # peer should no longer be in publisher list
@@ -289,7 +299,7 @@ class TestPopularCommunity(TestPopularCommunityBase):
         # Case1: Try to send subscribe response to non-connected peer
         self.nodes[0].unknown_peer_found = False
         self.nodes[0].logger_error_called = False
-        self.nodes[0].overlay.send_popular_content_subscription(default_peers[1], subscribed=True)
+        self.nodes[0].overlay.send_subscription_status(default_peers[1], subscribed=True)
         yield self.deliver_messages()
 
         # Expected unknown peer error log
@@ -299,12 +309,12 @@ class TestPopularCommunity(TestPopularCommunityBase):
         # Case2: Try to send response to the connected peer
         self.nodes[0].broadcast_called = False
         self.nodes[0].broadcast_packet_type = None
-        self.nodes[0].overlay.send_popular_content_subscription(default_peers[0], subscribed=True)
+        self.nodes[0].overlay.send_subscription_status(default_peers[0], subscribed=True)
         yield self.deliver_messages()
 
         # Expect message to be sent
         self.assertTrue(self.nodes[0].packet_created, "Create packet failed")
-        self.assertEqual(self.nodes[0].packet_type, MSG_POPULAR_CONTENT_SUBSCRIPTION, "Unexpected payload type found")
+        self.assertEqual(self.nodes[0].packet_type, MSG_SUBSCRIPTION, "Unexpected payload type found")
         self.assertTrue(self.nodes[0].broadcast_called, "Should send a message to the peer")
         self.assertEqual(self.nodes[0].receiver, default_peers[0], "Intended receiver is different")
 
@@ -450,7 +460,7 @@ class TestPopularCommunity(TestPopularCommunityBase):
         def fake_publish_latest_torrents(my_peer, _peer):
             my_peer.publish_latest_torrents_called = True
 
-        self.nodes[0].overlay._publish_latest_torrents = lambda peer: fake_publish_latest_torrents(self.nodes[1], peer)
+        self.nodes[0].overlay.publish_latest_torrents = lambda peer: fake_publish_latest_torrents(self.nodes[1], peer)
         self.nodes[0].overlay._ez_unpack_auth = lambda payload_class, data: fake_unpack_auth()
         self.nodes[0].overlay.get_peer_from_auth = lambda auth, address: fake_get_peer_from_auth(self.nodes[1])
 
@@ -458,7 +468,7 @@ class TestPopularCommunity(TestPopularCommunityBase):
         data = MockObject()
 
         self.nodes[0].unknown_peer_found = False
-        self.nodes[0].overlay.on_popular_content_subscribe(source_address, data)
+        self.nodes[0].overlay.on_subscribe(source_address, data)
         yield self.deliver_messages()
 
         self.assertTrue(self.nodes[0].unknown_peer_found)
@@ -489,16 +499,16 @@ class TestPopularCommunity(TestPopularCommunityBase):
         def fake_send_popular_content_subscription(my_peer):
             my_peer.send_content_subscription_called = True
 
-        self.nodes[0].overlay._publish_latest_torrents = lambda peer: fake_publish_latest_torrents(self.nodes[0], peer)
+        self.nodes[0].overlay.publish_latest_torrents = lambda peer: fake_publish_latest_torrents(self.nodes[0], peer)
         self.nodes[0].overlay._ez_unpack_auth = lambda payload_class, data: fake_unpack_auth()
         self.nodes[0].overlay.get_peer_from_auth = lambda auth, address: fake_get_peer_from_auth(self.nodes[1])
-        self.nodes[0].overlay.send_popular_content_subscription = lambda peer, subscribed: \
+        self.nodes[0].overlay.send_subscription_status = lambda peer, subscribed: \
             fake_send_popular_content_subscription(self.nodes[1])
 
         source_address = MockObject()
         data = MockObject()
         self.nodes[0].unknown_peer_found = False
-        self.nodes[0].overlay.on_popular_content_subscribe(source_address, data)
+        self.nodes[0].overlay.on_subscribe(source_address, data)
         yield self.deliver_messages()
 
         self.assertFalse(self.nodes[0].unknown_peer_found)
@@ -553,10 +563,3 @@ class TestPopularCommunity(TestPopularCommunityBase):
     def fake_broadcast_message(self, my_peer, _, peer):
         my_peer.broadcast_called = True
         my_peer.receiver = peer
-
-    def test_add_or_ignore_subscriber(self):
-        # Add successfully until max subscriber
-        for _ in range(MAX_SUBSCRIBERS):
-            self.assertTrue(self.nodes[0].overlay.add_or_ignore_subscriber(self.create_node()))
-        # Adding anymore subscriber should return false
-        self.assertFalse(self.nodes[0].overlay.add_or_ignore_subscriber(self.create_node()))

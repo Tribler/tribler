@@ -55,6 +55,11 @@ class SearchManager(TaskManager):
                     self._logger.warn("Could not send search in SearchCommunity, no verified candidates found")
                 break
 
+        self._current_keywords = keywords
+        # If popular community is enabled, send the search request there as well
+        if self.session.lm.popular_community:
+            self.session.lm.popular_community.send_torrent_search_request(keywords)
+
         return nr_requests_made
 
     @call_on_reactor_thread

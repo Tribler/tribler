@@ -21,20 +21,18 @@ def decode_values(values_str):
 
 class ContentSubscription(Payload):
 
-    format_list = ['I']
+    format_list = ['?']
 
     def __init__(self, subscribe):
         super(ContentSubscription, self).__init__()
         self.subscribe = subscribe
 
     def to_pack_list(self):
-        data = [('I', self.subscribe)]
-
+        data = [('?', self.subscribe)]
         return data
 
     @classmethod
-    def from_unpack_list(cls, *args):
-        (subscribe) = args
+    def from_unpack_list(cls, subscribe):
         return ContentSubscription(subscribe)
 
 
@@ -117,20 +115,16 @@ class TorrentInfoRequestPayload(Payload):
 
     def __init__(self, infohash):
         super(TorrentInfoRequestPayload, self).__init__()
-        self._infohash = infohash
+        self.infohash = infohash
 
     def to_pack_list(self):
-        data = [('20s', self.infohash)]
+        data = [('20s', str(self.infohash))]
         return data
 
     @classmethod
     def from_unpack_list(cls, *args):
-        (infohash) = args
+        infohash = args
         return TorrentInfoRequestPayload(infohash)
-
-    @property
-    def infohash(self):
-        return self._infohash
 
 
 class TorrentInfoResponsePayload(Payload):

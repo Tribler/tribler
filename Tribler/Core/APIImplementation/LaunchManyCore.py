@@ -295,7 +295,7 @@ class TriblerLaunchMany(TaskManager):
             local_peer = Peer(self.session.trustchain_keypair)
 
             self.popular_community = PopularCommunity(local_peer, self.ipv8.endpoint, self.ipv8.network,
-                                                      torrent_db=self.session.lm.torrent_db)
+                                                      torrent_db=self.session.lm.torrent_db, session=self.session)
 
             self.ipv8.overlays.append(self.popular_community)
 
