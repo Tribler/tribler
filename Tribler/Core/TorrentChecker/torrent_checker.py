@@ -13,7 +13,7 @@ from twisted.web.client import HTTPConnectionPool
 from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession, UdpSocketManager
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 from Tribler.Core.simpledefs import NTFY_TORRENTS
-from Tribler.community.popular.repository import TYPE_TORRENT_HEALTH
+from Tribler.community.popularity.repository import TYPE_TORRENT_HEALTH
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
@@ -199,7 +199,7 @@ class TorrentChecker(TaskManager):
 
         self._update_torrent_result(torrent_update_dict)
 
-        # Add this result to popular community to publish to subscribers
+        # Add this result to popularity community to publish to subscribers
         self.publish_torrent_result(torrent_update_dict)
 
         return final_response
@@ -336,7 +336,7 @@ class TorrentChecker(TaskManager):
             self._logger.info("Not publishing zero seeded torrents")
             return
         content = (response['infohash'], response['seeders'], response['leechers'], response['last_check'])
-        if self.tribler_session.lm.popular_community:
-            self.tribler_session.lm.popular_community.queue_content(TYPE_TORRENT_HEALTH, content)
+        if self.tribler_session.lm.popularity_community:
+            self.tribler_session.lm.popularity_community.queue_content(TYPE_TORRENT_HEALTH, content)
         else:
             self._logger.info("Popular community not available to publish torrent checker result")

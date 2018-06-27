@@ -1,9 +1,3 @@
-# Master peer
-MASTER_PUBLIC_KEY = "3081a7301006072a8648ce3d020106052b810400270381920004073beff7002b6a9fc2824a3b1bbb1c4fc32546261" \
-                    "e3ef7537874560346c5fdc0c17fe654f67d23b08cbb44141879f79a7a4c8deddf9beb4fbc7a0f02ee1586ccebedb6" \
-                    "23eeef51710108d702f9250361c071482e83c0a4a86c8f45a0b13a19ef83eacb6267b4bfccf220ae5f6d1db7125ea1" \
-                    "d10da3744b65679828f23376e28b76ab33132b7fa984a77f159dba7351a7"
-
 # Message types for different requests & response
 MSG_SUBSCRIBE = 1
 MSG_SUBSCRIPTION = 2

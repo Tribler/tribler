@@ -2,7 +2,7 @@ import random
 import string
 from unittest import TestCase
 
-from Tribler.community.popular.payload import SearchResponsePayload, SearchResponseItemPayload, ContentInfoRequest, \
+from Tribler.community.popularity.payload import SearchResponsePayload, SearchResponseItemPayload, ContentInfoRequest, \
     Pagination, ContentInfoResponse, ContentSubscription, TorrentHealthPayload, ChannelHealthPayload
 from Tribler.pyipv8.ipv8.messaging.serialization import Serializer
 
@@ -21,13 +21,15 @@ class TestSerializer(TestCase):
     def test_content_subscription(self):
         """ Test serialization/deserialization of Content subscription """
         subscribe = True
-        subscription = ContentSubscription(subscribe)
+        identifier = 123123
+        subscription = ContentSubscription(identifier, subscribe)
         serialized = self.serializer.pack_multiple(subscription.to_pack_list())
 
         # Deserialize and test it
         (deserialized, _) = self.serializer.unpack_multiple(ContentSubscription.format_list, serialized)
         deserialized_subscription = ContentSubscription.from_unpack_list(*deserialized)
 
+        self.assertEqual(deserialized_subscription.identifier, identifier)
         self.assertTrue(deserialized_subscription.subscribe)
 
     def test_torrent_health_payload(self):
@@ -169,9 +171,9 @@ class TestSerializer(TestCase):
         serialized_response = self.serializer.pack_multiple(in_response.to_pack_list())
 
         # Deserialize request and test it
-        (deserialized_ressponse, _) = self.serializer.unpack_multiple(ContentInfoResponse.format_list,
-                                                                      serialized_response)
-        out_request = ContentInfoResponse.from_unpack_list(*deserialized_ressponse)
+        (deserialized_response, _) = self.serializer.unpack_multiple(ContentInfoResponse.format_list,
+                                                                     serialized_response)
+        out_request = ContentInfoResponse.from_unpack_list(*deserialized_response)
         self.assertEqual(in_response.identifier, out_request.identifier)
         self.assertEqual(in_response.response, out_request.response)
         self.assertEqual(in_response.content_type, out_request.content_type)

@@ -116,6 +116,6 @@ enabled = boolean(default=True)
 sources = string_list(default=list())
 max_disk_space = integer(min=0, default=53687091200)
 
-[popular_community]
+[popularity_community]
 enabled = boolean(default=True)
 cache_dir = string(default=health_cache)

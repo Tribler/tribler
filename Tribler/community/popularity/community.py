@@ -1,238 +1,28 @@
-import logging
-from abc import abstractmethod
-from copy import copy
 from twisted.internet.defer import inlineCallbacks
-from twisted.internet.task import LoopingCall
 
 from Tribler.Core.simpledefs import SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS
-from Tribler.community.popular.constants import MSG_SUBSCRIBE, MSG_SUBSCRIPTION, \
-    MSG_TORRENT_HEALTH_RESPONSE, MSG_CHANNEL_HEALTH_RESPONSE, MSG_TORRENT_INFO_REQUEST, MSG_TORRENT_INFO_RESPONSE, \
-    MAX_PUBLISHERS, PUBLISH_INTERVAL, MAX_SUBSCRIBERS, \
-    ERROR_UNKNOWN_RESPONSE, MAX_PACKET_PAYLOAD_SIZE, ERROR_UNKNOWN_PEER, ERROR_NO_CONTENT, MASTER_PUBLIC_KEY, \
+from Tribler.community.popularity.constants import MSG_TORRENT_HEALTH_RESPONSE, MSG_CHANNEL_HEALTH_RESPONSE, \
+    MSG_TORRENT_INFO_REQUEST, MSG_TORRENT_INFO_RESPONSE, \
+    ERROR_UNKNOWN_RESPONSE, MAX_PACKET_PAYLOAD_SIZE, ERROR_UNKNOWN_PEER, ERROR_NO_CONTENT, \
     MSG_CONTENT_INFO_REQUEST, \
     SEARCH_TORRENT_REQUEST, MSG_CONTENT_INFO_RESPONSE, SEARCH_TORRENT_RESPONSE
-from Tribler.community.popular.payload import TorrentHealthPayload, ContentSubscription, TorrentInfoRequestPayload, \
+from Tribler.community.popularity.payload import TorrentHealthPayload, ContentSubscription, TorrentInfoRequestPayload, \
     TorrentInfoResponsePayload, SearchResponseItemPayload, \
     ContentInfoRequest, Pagination, ContentInfoResponse, decode_values
-from Tribler.community.popular.repository import ContentRepository, TYPE_TORRENT_HEALTH
-from Tribler.community.popular.request import SearchRequest
-from Tribler.pyipv8.ipv8.deprecated.community import Community
-from Tribler.pyipv8.ipv8.deprecated.payload_headers import BinMemberAuthenticationPayload, GlobalTimeDistributionPayload
+from Tribler.community.popularity.pubsub import PubSubCommunity
+from Tribler.community.popularity.repository import ContentRepository, TYPE_TORRENT_HEALTH
+from Tribler.community.popularity.request import ContentRequest
 from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.requestcache import RequestCache
 
 
-class PubSubCommunity(Community):
-
-    def __init__(self, *args, **kwargs):
-        super(PubSubCommunity, self).__init__(*args, **kwargs)
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.request_cache = RequestCache()
-
-        # Register messages
-        self.decode_map.update({
-            chr(MSG_SUBSCRIBE): self.on_subscribe,
-            chr(MSG_SUBSCRIPTION): self.on_subscription_status
-        })
-
-        # A set of publisher and subscriber.
-        # Sends data updates to subscribers, and receives updates from subscribers.
-        self.subscribers = set()
-        self.publishers = set()
-
-    def start(self):
-        """
-        Starts the community by subscribing to peers, and periodically publishing the content updates to
-        the subscribers.
-        """
-        # Subscribe peers
-        self.subscribe_peers()
-
-        def start_publishing():
-            # Update the publisher and subscriber list
-            self.refresh_peer_list()
-
-            # publish the new cotent from the content repository
-            self.publish_next_content()
-
-        self.register_task("start_publishing", LoopingCall(start_publishing)).start(PUBLISH_INTERVAL, False)
-
-    @inlineCallbacks
-    def unload(self):
-        self.request_cache.clear()
-        yield super(PubSubCommunity, self).unload()
-
-    def subscribe_peers(self):
-        """
-        Subscribes to the connected peers. First, the peers are sorted based on the trust score on descending order and
-        content subscribe request is sent to the top peers.
-        This method is called periodically so it can fill up for the disconnected peers by connecting to new peers.
-        Note that, existing publisher peers are not disconnected even if we find new peers with higher trust score but
-        only fill up the remaining publisher slots with new top peers.
-        """
-        num_publishers = len(self.publishers)
-        num_peers = len(self.get_peers())
-        # If we have some free publisher slots and there are peers available
-        if num_publishers < MAX_PUBLISHERS and num_publishers < num_peers:
-            available_publishers = [peer for peer in self.get_peers() if peer not in self.publishers]
-            sorted_peers = sorted(available_publishers,
-                                  key=lambda _peer: self.trustchain.get_trust(_peer) if self.trustchain else 1,
-                                  reverse=True)
-            for peer in sorted_peers[: MAX_PUBLISHERS - num_publishers]:
-                self.subscribe(peer, subscribe=True)
-
-    def refresh_peer_list(self):
-        """
-        Updates the publishers and subscribers list by filtering out the disconnected peers. It also calls subscribe
-        peers to replenish the available publisher slots if necessary.
-        """
-        peers = self.get_peers()
-        self.logger.info("Num peers: %d", len(peers))
-        self.publishers = set([peer for peer in self.publishers if peer in peers])
-        self.subscribers = set([peer for peer in self.subscribers if peer in peers])
-
-        # Log the number of subscribers and publishers
-        self.logger.info("Publishers: %d, Subscribers: %d", len(self.publishers), len(self.subscribers))
-
-        # subscribe peers if necessary
-        self.subscribe_peers()
-
-    def unsubscribe_peers(self):
-        """
-        Unsubscribes from the existing publishers by sending content subscribe request with subscribe=False. It then
-        clears up its publishers list.
-        - Called at community unload.
-        """
-        for peer in copy(self.publishers):
-            self.subscribe(peer, subscribe=False)
-        self.publishers.clear()
-
-    def subscribe(self, peer, subscribe=True):
-        """
-        Method to send content subscribe/unsubscribe message. This message is sent to each individual publisher peer we
-        want to subscribe/unsubscribe.
-        """
-        # Add or remove the publisher peer
-        if subscribe:
-            self.publishers.add(peer)
-        else:
-            self.publishers.remove(peer)
-
-        # Create subscription packet and send it
-        subscription = ContentSubscription(subscribe)
-        packet = self.create_message_packet(MSG_SUBSCRIBE, subscription)
-        self.broadcast_message(packet, peer=peer)
-
-    def on_subscribe(self, source_address, data):
-        """
-        Message handler for content subscribe message. It handles both subscribe and unsubscribe requests.
-        Upon successful subscription or unsubscription, it send the confirmation subscription message with status.
-        In case of subscription, it also publishes a list of recently checked torrents to the subscriber.
-        """
-        auth, _, payload = self._ez_unpack_auth(ContentSubscription, data)
-        peer = self.get_peer_from_auth(auth, source_address)
-
-        # Subscribe or unsubscribe peer
-        subscribed = peer in self.subscribers
-
-        if payload.subscribe and not subscribed:
-            if len(self.subscribers) < MAX_SUBSCRIBERS:
-                self.subscribers.add(peer)
-                subscribed = True
-
-        elif not payload.subscribe and subscribed:
-            self.subscribers.remove(peer)
-            subscribed = False
-
-        # Send subscription response
-        self.send_subscription_status(peer, subscribed=subscribed)
-
-        return subscribed
-
-    def send_subscription_status(self, peer, subscribed=True):
-        """
-        Method to send content subscription message. Content subscription message is send in response to content
-        subscribe or unsubscribe message.
-        """
-        if peer not in self.get_peers():
-            self.logger.error(ERROR_UNKNOWN_PEER)
-            return
-
-        subscription = ContentSubscription(subscribed)
-        packet = self.create_message_packet(MSG_SUBSCRIPTION, subscription)
-        self.broadcast_message(packet, peer=peer)
-
-    def on_subscription_status(self, source_address, data):
-        """
-        Message handler for content subscription message. Content subscription message is sent by the publisher stating
-        the status of the subscription in response to subscribe or unsubscribe request.
-
-        If the subscription message has subscribe=True, it means the subscription was successful, so the peer is added
-        to the subscriber. In other case, publisher is removed if it is still present in the publishers list.
-        """
-        auth, _, payload = self._ez_unpack_auth(ContentSubscription, data)
-        peer = self.get_peer_from_auth(auth, source_address)
-
-        if payload.subscribe:
-            self.publishers.add(peer)
-        elif peer in self.publishers:
-            self.publishers.remove(peer)
-
-    def create_message_packet(self, message_type, payload):
-        """
-        Helper method to creates a message packet of given type with provided payload.
-        """
-        auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
-        dist = GlobalTimeDistributionPayload(self.claim_global_time()).to_pack_list()
-        payload = payload if isinstance(payload, list) else payload.to_pack_list()
-        return self._ez_pack(self._prefix, message_type, [auth, dist, payload])
-
-    def broadcast_message(self, packet, peer=None):
-        """
-        Helper method to broadcast the message packet to a single peer or all the subscribers.
-        """
-        if peer is not None:
-            self.endpoint.send(peer.address, packet)
-            return
-
-        for _peer in self.subscribers:
-            self.endpoint.send(_peer.address, packet)
-
-    def get_peer_from_auth(self, auth, source_address):
-        """
-        Get Peer object from the message and auth and source_address.
-        It is used for mocking the peer in test.
-        """
-        return Peer(auth.public_key_bin, source_address)
-
-    def pack_sized(self, payload_list, fit_size, start_index=0):
-        assert isinstance(payload_list, list)
-        serialized_results = ''
-        size = 0
-        current_index = start_index
-        num_payloads = len(payload_list)
-        while current_index < num_payloads:
-            item = payload_list[current_index]
-            packed_item = self.serializer.pack_multiple(item.to_pack_list())
-            packed_item_length = len(packed_item)
-            if size + packed_item_length > fit_size:
-                break
-            else:
-                size += packed_item_length
-                serialized_results += packed_item
-            current_index += 1
-        return serialized_results, current_index, current_index - start_index
-
-    @abstractmethod
-    def publish_next_content(self):
-        """ Method responsible for publishing content during periodic push """
-        pass
-
-
-class PopularCommunity(PubSubCommunity):
+class PopularityCommunity(PubSubCommunity):
     """
     Community for disseminating the content across the network. Follows publish-subscribe model.
     """
+    MASTER_PUBLIC_KEY = "3081a7301006072a8648ce3d020106052b810400270381920004073beff7002b6a9fc2824a3b1bbb1c4fc32546" \
+                        "261e3ef7537874560346c5fdc0c17fe654f67d23b08cbb44141879f79a7a4c8deddf9beb4fbc7a0f02ee1586cc" \
+                        "ebedb623eeef51710108d702f9250361c071482e83c0a4a86c8f45a0b13a19ef83eacb6267b4bfccf220ae5f6d" \
+                        "1db7125ea1d10da3744b65679828f23376e28b76ab33132b7fa984a77f159dba7351a7"
 
     master_peer = Peer(MASTER_PUBLIC_KEY.decode('hex'))
 
@@ -242,12 +32,10 @@ class PopularCommunity(PubSubCommunity):
         self.trustchain = kwargs.pop('trustchain_community', None)
         self.tribler_session = kwargs.pop('session', None)
 
-        super(PopularCommunity, self).__init__(*args, **kwargs)
+        super(PopularityCommunity, self).__init__(*args, **kwargs)
 
-        # Handles database stuffs
         self.content_repository = ContentRepository(self.torrent_db, self.channel_db)
 
-        # Register messages
         self.decode_map.update({
             chr(MSG_TORRENT_HEALTH_RESPONSE): self.on_torrent_health_response,
             chr(MSG_CHANNEL_HEALTH_RESPONSE): self.on_channel_health_response,
@@ -263,13 +51,13 @@ class PopularCommunity(PubSubCommunity):
     def unload(self):
         self.content_repository.cleanup()
         self.content_repository = None
-        yield super(PopularCommunity, self).unload()
+        yield super(PopularityCommunity, self).unload()
 
     def on_subscribe(self, source_address, data):
         auth, _, _ = self._ez_unpack_auth(ContentSubscription, data)
         peer = self.get_peer_from_auth(auth, source_address)
 
-        subscribed = super(PopularCommunity, self).on_subscribe(source_address, data)
+        subscribed = super(PopularityCommunity, self).on_subscribe(source_address, data)
         # Publish the latest torrents to the subscriber
         if subscribed:
             self.publish_latest_torrents(peer=peer)
@@ -309,7 +97,7 @@ class PopularCommunity(PubSubCommunity):
         auth, _, payload = self._ez_unpack_auth(TorrentInfoRequestPayload, data)
         peer = self.get_peer_from_auth(auth, source_address)
 
-        if peer not in self.publishers:
+        if peer not in self.subscribers:
             self.logger.error(ERROR_UNKNOWN_RESPONSE)
             return
 
@@ -320,7 +108,7 @@ class PopularCommunity(PubSubCommunity):
         Message handler for torrent info response.
         """
         self.logger.info("Got torrent info response from %s", source_address)
-        auth, _, payload = self._ez_unpack_auth(TorrentHealthPayload, data)
+        auth, _, payload = self._ez_unpack_auth(TorrentInfoResponsePayload, data)
         peer = self.get_peer_from_auth(auth, source_address)
 
         if peer not in self.publishers:
@@ -354,7 +142,7 @@ class PopularCommunity(PubSubCommunity):
 
     def process_torrent_search_response(self, query, payload):
         item_format = SearchResponseItemPayload.format_list
-        (response, _) = self.serializer.unpack_multiple_as_list(item_format, payload.response)
+        response, _ = self.serializer.unpack_multiple_as_list(item_format, payload.response)
         # Decode the category string to list
         for response_item in response:
             response_item[4] = decode_values(response_item[4])
@@ -424,7 +212,14 @@ class PopularCommunity(PubSubCommunity):
         self.broadcast_message(packet, peer=peer)
 
     def send_content_info_request(self, content_type, request_list, limit=25, peer=None):
-        cache = self.request_cache.add(SearchRequest(self.request_cache, content_type, request_list))
+        """
+        Sends the generic content request of givent content_type.
+        :param content_type: request content type
+        :param request_list: List<string>  request queries
+        :param limit: Number of expected responses
+        :param peer: Peer to send this request to
+        """
+        cache = self.request_cache.add(ContentRequest(self.request_cache, content_type, request_list))
         self.logger.info("Sending search request query:%s, identifier:%s", request_list, cache.number)
 
         content_request = ContentInfoRequest(cache.number, content_type, request_list, limit)
@@ -437,6 +232,13 @@ class PopularCommunity(PubSubCommunity):
                 self.broadcast_message(packet, peer=connected_peer)
 
     def send_content_info_response(self, peer, identifier, content_type, response_list):
+        """
+        Sends the generic content info response with payload response list.
+        :param peer: Receiving peer
+        :param identifier: Request identifier
+        :param content_type: Message content type
+        :param response_list: Content response
+        """
         num_results = len(response_list)
         current_index = 0
         page_num = 1
@@ -453,10 +255,16 @@ class PopularCommunity(PubSubCommunity):
                 self.broadcast_message(packet, peer=peer)
 
     def send_torrent_search_request(self, query):
+        """
+        Sends torrent search query as a content info request with content_type as SEARCH_TORRENT_REQUEST.
+        """
         self.send_content_info_request(SEARCH_TORRENT_REQUEST, query)
 
     def send_channel_search_request(self, query):
-        raise NotImplementedError("Not implemented yet. Waiting for all channel 2.0")
+        """
+        Sends channel search query to All Channel 2.0 to get a list of channels.
+        """
+        # TODO: Not implemented yet. Waiting for All Channel 2.0
 
     # CONTENT REPOSITORY STUFFS
 
@@ -466,7 +274,7 @@ class PopularCommunity(PubSubCommunity):
         Does nothing if there are none subscribers.
         Only Torrent health response is published at the moment.
         """
-        self.logger.info("Content to publish: %d", self.content_repository.num_content())
+        self.logger.info("Content to publish: %d", self.content_repository.count_content())
         if not self.subscribers:
             self.logger.info("No subscribers found. Not publishing anything")
             return
@@ -495,6 +303,6 @@ class PopularCommunity(PubSubCommunity):
 
     def queue_content(self, content_type, content):
         """
-        Basically addS a given content to the queue of content repository.
+        Basically adds a given content to the queue of content repository.
         """
         self.content_repository.add_content(content_type, content)

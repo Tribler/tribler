@@ -2,7 +2,7 @@ import logging
 import time
 from collections import deque
 
-from Tribler.community.popular.payload import TorrentHealthPayload, SearchResponseItemPayload, ChannelItemPayload
+from Tribler.community.popularity.payload import SearchResponseItemPayload, ChannelItemPayload
 
 MAX_CACHE = 200
 
@@ -14,6 +14,12 @@ TYPE_CHANNEL_HEALTH = 2
 
 
 class ContentRepository(object):
+    """
+    This class handles all the stuffs related to the content for PopularityCommunity. Currently, it handles all the
+    interactions with torrent and channel database.
+
+    It also maintains a content queue which stores the content for publishing in the next publishing cycle.
+    """
 
     def __init__(self, torrent_db, channel_db):
         super(ContentRepository, self).__init__()
@@ -30,7 +36,7 @@ class ContentRepository(object):
         if self.queue is not None:
             self.queue.append((content_type, content))
 
-    def num_content(self):
+    def count_content(self):
         return len(self.queue) if self.queue else 0
 
     def pop_content(self):
@@ -40,7 +46,6 @@ class ContentRepository(object):
         return self.torrent_db.getRecentlyCheckedTorrents(limit)
 
     def update_torrent_health(self, torrent_health_payload, peer_trust=0):
-        assert torrent_health_payload and isinstance(torrent_health_payload, TorrentHealthPayload)
 
         def update_torrent(db_handler, health_payload):
             db_handler.updateTorrent(infohash, notify=False, num_seeders=health_payload.num_seeders,
@@ -49,7 +54,7 @@ class ContentRepository(object):
                                      status=u"good" if health_payload.num_seeders > 1 else u"unknown")
 
         if not self.torrent_db:
-            self.logger.error("Torrent DB is None")
+            self.logger.error("Torrent DB is not available. Skipping torrent health update.")
             return
 
         infohash = torrent_health_payload.infohash
@@ -88,43 +93,62 @@ class ContentRepository(object):
         return self.get_torrent(infohash) is not None
 
     def search_torrent(self, query):
-        results = []
+        """
+        Searches for best torrents for the given query and packs them into a list of SearchResponseItemPayload.
+        :param query: Search query
+        :return: List<SearchResponseItemPayload>
+        """
+
         db_results = self.torrent_db.searchNames(query, local=True,
                                                  keys=['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category',
                                                        'T.creation_date', 'T.num_seeders', 'T.num_leechers'])
-        if db_results:
-            for dbresult in db_results:
-                channel_details = dbresult[-10:]
+        if not db_results:
+            return []
 
-                dbresult = list(dbresult[:8])
-                dbresult[2] = long(dbresult[2])  # length
-                dbresult[3] = int(dbresult[3])  # num_files
-                dbresult[4] = [dbresult[4]]  # category
-                dbresult[5] = long(dbresult[5])  # creation_date
-                dbresult[6] = int(dbresult[6] or 0)  # num_seeders
-                dbresult[7] = int(dbresult[7] or 0)  # num_leechers
+        results = []
+        for dbresult in db_results:
+            channel_details = dbresult[-10:]
 
-                # cid
-                if channel_details[1]:
-                    channel_details[1] = str(channel_details[1])
-                dbresult.append(channel_details[1])
+            dbresult = list(dbresult[:8])
+            dbresult[2] = long(dbresult[2])  # length
+            dbresult[3] = int(dbresult[3])  # num_files
+            dbresult[4] = [dbresult[4]]  # category
+            dbresult[5] = long(dbresult[5])  # creation_date
+            dbresult[6] = int(dbresult[6] or 0)  # num_seeders
+            dbresult[7] = int(dbresult[7] or 0)  # num_leechers
 
-                results.append(SearchResponseItemPayload(*tuple(dbresult)))
+            # cid
+            if channel_details[1]:
+                channel_details[1] = str(channel_details[1])
+            dbresult.append(channel_details[1])
+
+            results.append(SearchResponseItemPayload(*tuple(dbresult)))
 
         return results
 
     def search_channels(self, query):
-        results = []
+        """
+        Search best channels for the given query.
+        :param query: Search query
+        :return: List<ChannelItemPayload>
+        """
         db_channels = self.channel_db.search_in_local_channels_db(query)
+        if not db_channels:
+            return []
 
+        results = []
         if db_channels:
             for channel in db_channels:
-                channel_payload = channel[:7]
+                channel_payload = channel[:8]
                 channel_payload[7] = channel[8] # modified
                 results.append(ChannelItemPayload(*channel_payload))
         return results
 
     def update_from_torrent_search_results(self, search_results):
+        """
+        Updates the torrent database with the provided search results. It also checks for conflicting torrents, meaning
+        if torrent already exists in the database, we simply ignore the search result.
+        """
         for result in search_results:
             (infohash, name, length, num_files, category_list, creation_date, seeders, leechers, cid) = result
             torrent_item = SearchResponseItemPayload(infohash, name, length, num_files, category_list,
@@ -143,4 +167,8 @@ class ContentRepository(object):
                                           comment='')
 
     def update_from_channel_search_results(self, all_items):
+        """
+        TODO: updates the channel database with the search results.
+        Waiting for all channel 2.0
+        """
         pass

@@ -21,19 +21,22 @@ def decode_values(values_str):
 
 class ContentSubscription(Payload):
 
-    format_list = ['?']
+    format_list = ['I', '?']
 
-    def __init__(self, subscribe):
+    def __init__(self, identifier, subscribe):
         super(ContentSubscription, self).__init__()
+        self.identifier = identifier
         self.subscribe = subscribe
 
     def to_pack_list(self):
-        data = [('?', self.subscribe)]
+        data = [('I', self.identifier),
+                ('?', self.subscribe)]
         return data
 
     @classmethod
-    def from_unpack_list(cls, subscribe):
-        return ContentSubscription(subscribe)
+    def from_unpack_list(cls, *args):
+        (identifier, subscribe) = args
+        return ContentSubscription(identifier, subscribe)
 
 
 class TorrentHealthPayload(Payload):
@@ -79,7 +82,7 @@ class TorrentHealthPayload(Payload):
 
 class ChannelHealthPayload(Payload):
     """
-    Payload for a channel popularity message in the popular community.
+    Payload for a channel popularity message in the popularity community.
     """
 
     format_list = ['varlenI', 'I', 'I', 'I', 'I']
@@ -123,7 +126,7 @@ class TorrentInfoRequestPayload(Payload):
 
     @classmethod
     def from_unpack_list(cls, *args):
-        infohash = args
+        (infohash, ) = args
         return TorrentInfoRequestPayload(infohash)
 
 
@@ -159,30 +162,6 @@ class TorrentInfoResponsePayload(Payload):
     @property
     def infohash(self):
         return self._infohash
-
-
-class SearchRequestPayload(Payload):
-    """
-    Payload for search request
-    """
-    format_list = ['I', 'I', 'varlenH']
-
-    def __init__(self, identifier, search_type, query):
-        super(SearchRequestPayload, self).__init__()
-        self.identifier = identifier
-        self.search_type = search_type
-        self.query = query
-
-    def to_pack_list(self):
-        data = [('I', self.identifier),
-                ('I', self.search_type),
-                ('varlenH', str(self.query))]
-        return data
-
-    @classmethod
-    def from_unpack_list(cls, *args):
-        (timestamp, search_type, query) = args
-        return SearchRequestPayload(timestamp, search_type, query)
 
 
 class SearchResponseItemPayload(Payload):
@@ -253,8 +232,7 @@ class ChannelItemPayload(Payload):
         return data
 
     @classmethod
-    def from_unpack_list(cls, *args):
-        (dbid, dispersy_cid, name, description, nr_torrents, nr_favorite, nr_spam, modified) = args[:8]
+    def from_unpack_list(cls, dbid, dispersy_cid, name, description, nr_torrents, nr_favorite, nr_spam, modified):
         return ChannelItemPayload(dbid, dispersy_cid, name, description, nr_torrents, nr_favorite, nr_spam, modified)
 
 

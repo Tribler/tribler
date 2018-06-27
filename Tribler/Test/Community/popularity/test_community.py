@@ -2,23 +2,25 @@ import random
 import string
 
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.community.popular.community import PopularCommunity, MSG_TORRENT_HEALTH_RESPONSE, \
-    MSG_CHANNEL_HEALTH_RESPONSE, ERROR_UNKNOWN_PEER, MSG_SUBSCRIPTION, ERROR_NO_CONTENT, \
+from Tribler.community.popularity import constants
+from Tribler.community.popularity.community import PopularityCommunity, MSG_TORRENT_HEALTH_RESPONSE, \
+    MSG_CHANNEL_HEALTH_RESPONSE, ERROR_UNKNOWN_PEER, ERROR_NO_CONTENT, \
     ERROR_UNKNOWN_RESPONSE
-from Tribler.community.popular.constants import SEARCH_TORRENT_REQUEST
-from Tribler.community.popular.payload import SearchResponseItemPayload
-from Tribler.community.popular.repository import TYPE_TORRENT_HEALTH
+from Tribler.community.popularity.constants import SEARCH_TORRENT_REQUEST, MSG_TORRENT_INFO_RESPONSE, MSG_SUBSCRIPTION
+from Tribler.community.popularity.payload import SearchResponseItemPayload, TorrentInfoResponsePayload, \
+    TorrentHealthPayload, ContentSubscription
+from Tribler.community.popularity.repository import TYPE_TORRENT_HEALTH
 from Tribler.pyipv8.ipv8.test.base import TestBase
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
 
 
-class TestPopularCommunityBase(TestBase):
+class TestPopularityCommunityBase(TestBase):
     NUM_NODES = 2
 
     def setUp(self):
-        super(TestPopularCommunityBase, self).setUp()
-        self.initialize(PopularCommunity, self.NUM_NODES)
+        super(TestPopularityCommunityBase, self).setUp()
+        self.initialize(PopularityCommunity, self.NUM_NODES)
 
     def create_node(self, *args, **kwargs):
         def load_random_torrents(limit):
@@ -34,24 +36,20 @@ class TestPopularCommunityBase(TestBase):
 
         channel_db = MockObject()
 
-        return MockIPv8(u"curve25519", PopularCommunity, torrent_db=torrent_db, channel_db=channel_db)
+        return MockIPv8(u"curve25519", PopularityCommunity, torrent_db=torrent_db, channel_db=channel_db)
 
 
 class MockRepository(object):
 
-    def _random_string(self, size=6, chars=string.ascii_uppercase + string.digits):
-        return ''.join(random.choice(chars) for _ in range(size))
+    def __init__(self):
+        super(MockRepository, self).__init__()
+        self.sample_torrents = []
+        self.setup_torrents()
 
-    def _random_infohash(self):
-        return ''.join(random.choice('0123456789abcdef') for _ in range(20))
-
-    def search_torrent(self, query):
-        # sample search response items
-        query_str = ' '.join(query)
-        sample_items = []
+    def setup_torrents(self):
         for _ in range(10):
             infohash = self._random_infohash()
-            name = query_str + " " + self._random_string()
+            name = self._random_string()
             length = random.randint(1000, 9999)
             num_files = random.randint(1, 10)
             category_list = ['video', 'audio']
@@ -60,8 +58,19 @@ class MockRepository(object):
             leechers = random.randint(5, 1000)
             cid = self._random_string(size=20)
 
-            sample_items.append(SearchResponseItemPayload(infohash, name, length, num_files, category_list,
-                                                          creation_date, seeders, leechers, cid))
+            self.sample_torrents.append([infohash, name, length, num_files, category_list, creation_date,
+                                         seeders, leechers, cid])
+
+    def _random_string(self, size=6, chars=string.ascii_uppercase + string.digits):
+        return ''.join(random.choice(chars) for _ in range(size))
+
+    def _random_infohash(self):
+        return ''.join(random.choice('0123456789abcdef') for _ in range(20))
+
+    def search_torrent(self, _):
+        sample_items = []
+        for torrent in self.sample_torrents:
+            sample_items.append(SearchResponseItemPayload(*torrent))
         return sample_items
 
     def search_channels(self, _):
@@ -77,16 +86,22 @@ class MockRepository(object):
         pass
 
     def get_torrent(self, _):
-        return None
+        torrent = self.sample_torrents[0]
+        db_torrent = {'name': torrent[1],
+                      'length': torrent[2],
+                      'creation_date': torrent[5],
+                      'num_files': torrent[3],
+                      'comment': ''}
+        return db_torrent
 
     def get_top_torrents(self):
-        return []
+        return self.sample_torrents
 
     def update_from_torrent_search_results(self, search_results):
         pass
 
 
-class TestPopularCommunity(TestPopularCommunityBase):
+class TestPopularityCommunity(TestPopularityCommunityBase):
     __testing__ = False
     NUM_NODES = 2
 
@@ -95,6 +110,7 @@ class TestPopularCommunity(TestPopularCommunityBase):
         """
         Tests subscribing to peers populate publishers and subscribers list.
         """
+        self.nodes[1].overlay.send_torrent_info_response = lambda infohash, peer: None
         yield self.introduce_nodes()
         self.nodes[0].overlay.subscribe_peers()
         yield self.deliver_messages()
@@ -109,6 +125,7 @@ class TestPopularCommunity(TestPopularCommunityBase):
         """
         Tests subscribing/subscribing an individual peer.
         """
+        self.nodes[1].overlay.send_torrent_info_response = lambda infohash, peer: None
         self.nodes[1].overlay.publish_latest_torrents = lambda *args, **kwargs: None
 
         yield self.introduce_nodes()
@@ -124,9 +141,9 @@ class TestPopularCommunity(TestPopularCommunityBase):
         self.assertEqual(len(self.nodes[0].overlay.publishers), 0, "Expected no publisher")
         self.assertEqual(len(self.nodes[1].overlay.subscribers), 0, "Expected no subscriber")
 
-    def test_unsubscribe_peers_unit(self):
+    def test_unsubscribe_multiple_peers(self):
         """
-        Tests unsubscribing peer works as expected.
+        Tests unsubscribing multiple peers works as expected.
         """
         def send_popular_content_subscribe(my_peer, _, subscribe):
             if not subscribe:
@@ -176,19 +193,35 @@ class TestPopularCommunity(TestPopularCommunityBase):
         self.assertEqual(len(self.nodes[0].overlay.subscribers), 5)
         self.assertEqual(len(self.nodes[0].overlay.publishers), 5)
 
-    @twisted_wrapper
+    @twisted_wrapper(6)
     def test_start(self):
         """
         Tests starting of the community. Peer should start subscribing to other connected peers.
         """
+        self.nodes[1].overlay.send_torrent_info_response = lambda infohash, peer: None
+
+        def fake_refresh_peer_list(peer):
+            peer.called_refresh_peer_list = True
+
+        def fake_publish_next_content(peer):
+            peer.called_publish_next_content = True
+
+        self.nodes[0].called_refresh_peer_list = False
+        self.nodes[0].called_publish_next_content = False
+        self.nodes[0].overlay.refresh_peer_list = lambda: fake_refresh_peer_list(self.nodes[0])
+        self.nodes[0].overlay.publish_next_content = lambda: fake_publish_next_content(self.nodes[0])
+
         yield self.introduce_nodes()
         self.nodes[0].overlay.start()
-        yield self.deliver_messages()
+        yield self.sleep(constants.PUBLISH_INTERVAL)
 
         # Node 0 should have a publisher added
         self.assertEqual(len(self.nodes[0].overlay.publishers), 1, "Expected one publisher")
         # Node 1 should have a subscriber added
         self.assertEqual(len(self.nodes[1].overlay.subscribers), 1, "Expected one subscriber")
+
+        self.assertTrue(self.nodes[0].called_refresh_peer_list)
+        self.assertTrue(self.nodes[0].called_publish_next_content)
 
     @twisted_wrapper
     def test_content_publishing(self):
@@ -237,86 +270,6 @@ class TestPopularCommunity(TestPopularCommunityBase):
 
         # Expect no content found to be logged
         self.assertTrue(self.nodes[0].no_content)
-
-        # Restore logger
-        self.nodes[0].overlay.logger = original_logger
-
-    @twisted_wrapper
-    def test_subscribe_unsubscribe(self):
-        """
-        Tests sending popular content subscribe request.
-        """
-        original_logger = self.nodes[0].overlay.logger
-        self.nodes[0].overlay.logger.error = lambda *args, **kw: self.fake_logger_error(self.nodes[0], *args)
-
-        self.nodes[0].overlay.broadcast_message = lambda packet, peer: \
-            self.fake_broadcast_message(self.nodes[0], packet, peer)
-
-        # Two default peers
-        default_peers = [self.create_node() for _ in range(2)]
-        # Assuming only one is connected
-        self.nodes[0].overlay.get_peers = lambda: default_peers[:1]
-
-        # Case1: Try to send subscribe request to connected peer
-        self.nodes[0].broadcast_called = False
-        self.nodes[0].broadcast_packet_type = None
-        self.nodes[0].overlay.subscribe(default_peers[0], subscribe=True)
-        yield self.deliver_messages()
-
-        # Expect peer to be listed in publisher list and message to be sent
-        self.assertTrue(default_peers[0] in self.nodes[0].overlay.publishers)
-        self.assertTrue(self.nodes[0].broadcast_called, "Should send a subscribe message to the peer")
-        self.assertEqual(self.nodes[0].receiver, default_peers[0], "Intended publisher is different")
-
-        # Try unsubscribing now
-        self.nodes[0].overlay.subscribe(default_peers[0], subscribe=False)
-        yield self.deliver_messages()
-
-        # peer should no longer be in publisher list
-        self.assertTrue(default_peers[0] not in self.nodes[0].overlay.publishers)
-
-        # Restore logger
-        self.nodes[0].overlay.logger = original_logger
-
-    @twisted_wrapper
-    def test_send_popular_content_subscription(self):
-        """
-        Tests sending popular content subscription response.
-        """
-        original_logger = self.nodes[0].overlay.logger
-        self.nodes[0].overlay.logger.error = lambda *args, **kw: self.fake_logger_error(self.nodes[0], *args)
-
-        self.nodes[0].overlay.create_message_packet = lambda _type, _payload: \
-            self.fake_create_message_packet(self.nodes[0], _type, _payload)
-        self.nodes[0].overlay.broadcast_message = lambda packet, peer: \
-            self.fake_broadcast_message(self.nodes[0], packet, peer)
-
-        # Two default peers
-        default_peers = [self.create_node() for _ in range(2)]
-        # Assuming only one is connected
-        self.nodes[0].overlay.get_peers = lambda: default_peers[:1]
-
-        # Case1: Try to send subscribe response to non-connected peer
-        self.nodes[0].unknown_peer_found = False
-        self.nodes[0].logger_error_called = False
-        self.nodes[0].overlay.send_subscription_status(default_peers[1], subscribed=True)
-        yield self.deliver_messages()
-
-        # Expected unknown peer error log
-        self.assertTrue(self.nodes[0].logger_error_called)
-        self.assertTrue(self.nodes[0].unknown_peer_found)
-
-        # Case2: Try to send response to the connected peer
-        self.nodes[0].broadcast_called = False
-        self.nodes[0].broadcast_packet_type = None
-        self.nodes[0].overlay.send_subscription_status(default_peers[0], subscribed=True)
-        yield self.deliver_messages()
-
-        # Expect message to be sent
-        self.assertTrue(self.nodes[0].packet_created, "Create packet failed")
-        self.assertEqual(self.nodes[0].packet_type, MSG_SUBSCRIPTION, "Unexpected payload type found")
-        self.assertTrue(self.nodes[0].broadcast_called, "Should send a message to the peer")
-        self.assertEqual(self.nodes[0].receiver, default_peers[0], "Intended receiver is different")
 
         # Restore logger
         self.nodes[0].overlay.logger = original_logger
@@ -410,6 +363,60 @@ class TestPopularCommunity(TestPopularCommunityBase):
         self.nodes[0].overlay.logger = original_logger
 
     @twisted_wrapper
+    def test_send_torrent_info_request_response(self):
+        """ Test if torrent info request response works as expected. """
+        self.nodes[1].called_send_torrent_info_response = False
+        original_send_torrent_info_response = self.nodes[1].overlay.send_torrent_info_response
+
+        def send_torrent_info_response(node, infohash, peer):
+            node.called_infohash = infohash
+            node.called_peer = peer
+            node.called_send_torrent_info_response = True
+
+        self.nodes[1].overlay.send_torrent_info_response = lambda infohash, peer: \
+            send_torrent_info_response(self.nodes[1], infohash, peer)
+
+        yield self.introduce_nodes()
+        self.nodes[0].overlay.subscribe_peers()
+        yield self.deliver_messages()
+
+        infohash = 'a'*20
+        self.nodes[0].overlay.send_torrent_info_request(infohash, self.nodes[1].my_peer)
+        yield self.deliver_messages()
+
+        self.assertTrue(self.nodes[1].called_send_torrent_info_response)
+        self.nodes[1].overlay.send_torrent_info_response = original_send_torrent_info_response
+
+    @twisted_wrapper
+    def test_send_content_info_request_response(self):
+        """ Test if content info request response works as expected """
+
+        self.nodes[0].overlay.content_repository = MockRepository()
+        self.nodes[1].overlay.content_repository = MockRepository()
+        self.nodes[1].overlay.publish_latest_torrents = lambda *args, **kwargs: None
+
+        self.nodes[1].called_send_content_info_response = False
+
+        def send_content_info_response(node, peer, content_type):
+            node.called_send_content_info_response = True
+            node.called_peer = peer
+            node.called_content_type = content_type
+
+        self.nodes[1].overlay.send_content_info_response = lambda peer, identifier, content_type, _: \
+            send_content_info_response(self.nodes[1], peer, content_type)
+
+        yield self.introduce_nodes()
+        self.nodes[0].overlay.subscribe_peers()
+        yield self.deliver_messages()
+
+        content_type = SEARCH_TORRENT_REQUEST
+        request_list = ['ubuntu']
+        self.nodes[0].overlay.send_content_info_request(content_type, request_list, peer=self.nodes[1].my_peer)
+        yield self.deliver_messages()
+
+        self.assertTrue(self.nodes[1].called_send_content_info_response)
+
+    @twisted_wrapper
     def test_on_torrent_health_response_from_unknown_peer(self):
         """
         Tests receiving torrent health response from unknown peer
@@ -417,21 +424,16 @@ class TestPopularCommunity(TestPopularCommunityBase):
         original_logger = self.nodes[0].overlay.logger
         self.nodes[0].overlay.logger.error = lambda *args, **kw: self.fake_logger_error(self.nodes[0], *args)
 
-        def fake_unpack_auth():
-            mock_auth = MockObject()
-            mock_payload = MockObject()
-            return mock_auth, None, mock_payload
+        infohash = 'a' * 20
+        num_seeders = 10
+        num_leechers = 5
+        timestamp = 123123123
 
-        def fake_get_peer_from_auth(peer):
-            return peer
+        payload = TorrentHealthPayload(infohash, num_seeders, num_leechers, timestamp)
+        source_address = ('1.1.1.1', 1024)
+        data = self.nodes[0].overlay.create_message_packet(MSG_TORRENT_HEALTH_RESPONSE, payload)
 
-        self.nodes[0].overlay._ez_unpack_auth = lambda payload_class, data: fake_unpack_auth()
-        self.nodes[0].overlay.get_peer_from_auth = lambda auth, address: fake_get_peer_from_auth(self.nodes[1])
-
-        source_address = MockObject()
-        data = MockObject()
-
-        self.nodes[0].unknown_response = True
+        self.nodes[0].unknown_response = False
         self.nodes[0].overlay.on_torrent_health_response(source_address, data)
         yield self.deliver_messages()
 
@@ -441,87 +443,148 @@ class TestPopularCommunity(TestPopularCommunityBase):
         self.nodes[0].overlay.logger = original_logger
 
     @twisted_wrapper
-    def test_on_popular_content_subscribe_unknown_peer(self):
+    def test_on_torrent_health_response(self):
         """
         Tests receiving torrent health response from unknown peer
         """
-        original_logger = self.nodes[0].overlay.logger
-        self.nodes[0].overlay.logger.error = lambda *args, **kw: self.fake_logger_error(self.nodes[0], *args)
-
-        def fake_unpack_auth():
-            mock_auth = MockObject()
-            mock_payload = MockObject()
-            mock_payload.subscribe = True
-            return mock_auth, None, mock_payload
-
-        def fake_get_peer_from_auth(peer):
-            return peer
-
-        def fake_publish_latest_torrents(my_peer, _peer):
-            my_peer.publish_latest_torrents_called = True
-
-        self.nodes[0].overlay.publish_latest_torrents = lambda peer: fake_publish_latest_torrents(self.nodes[1], peer)
-        self.nodes[0].overlay._ez_unpack_auth = lambda payload_class, data: fake_unpack_auth()
-        self.nodes[0].overlay.get_peer_from_auth = lambda auth, address: fake_get_peer_from_auth(self.nodes[1])
-
-        source_address = MockObject()
-        data = MockObject()
-
-        self.nodes[0].unknown_peer_found = False
-        self.nodes[0].overlay.on_subscribe(source_address, data)
-        yield self.deliver_messages()
-
-        self.assertTrue(self.nodes[0].unknown_peer_found)
-
-        # Restore logger
-        self.nodes[0].overlay.logger = original_logger
-
-    @twisted_wrapper(5)
-    def test_on_popular_content_subscribe_ok(self):
-        """
-        Tests receiving torrent health response from unknown peer
-        """
-        original_logger = self.nodes[0].overlay.logger
-        self.nodes[0].overlay.logger.error = lambda *args, **kw: self.fake_logger_error(self.nodes[0], *args)
-
-        def fake_unpack_auth():
-            mock_auth = MockObject()
-            mock_payload = MockObject()
-            mock_payload.subscribe = True
-            return mock_auth, None, mock_payload
-
-        def fake_get_peer_from_auth(peer):
-            return peer
-
-        def fake_publish_latest_torrents(my_peer, _peer):
-            my_peer.publish_latest_torrents_called = True
-
-        def fake_send_popular_content_subscription(my_peer):
-            my_peer.send_content_subscription_called = True
-
-        self.nodes[0].overlay.publish_latest_torrents = lambda peer: fake_publish_latest_torrents(self.nodes[0], peer)
-        self.nodes[0].overlay._ez_unpack_auth = lambda payload_class, data: fake_unpack_auth()
-        self.nodes[0].overlay.get_peer_from_auth = lambda auth, address: fake_get_peer_from_auth(self.nodes[1])
-        self.nodes[0].overlay.send_subscription_status = lambda peer, subscribed: \
-            fake_send_popular_content_subscription(self.nodes[1])
-
-        source_address = MockObject()
-        data = MockObject()
-        self.nodes[0].unknown_peer_found = False
-        self.nodes[0].overlay.on_subscribe(source_address, data)
-        yield self.deliver_messages()
-
-        self.assertFalse(self.nodes[0].unknown_peer_found)
-        self.assertTrue(self.nodes[0].publish_latest_torrents_called)
-
-        # Restore logger
-        self.nodes[0].overlay.logger = original_logger
-
-    @twisted_wrapper(5)
-    def test_search_request_response(self):
+        def fake_update_torrent(peer):
+            peer.called_update_torrent = True
 
         self.nodes[0].overlay.content_repository = MockRepository()
+        self.nodes[0].overlay.content_repository.update_torrent_health = lambda payload, peer_trust: \
+            fake_update_torrent(self.nodes[0])
+
+        infohash = 'a' * 20
+        num_seeders = 10
+        num_leechers = 5
+        timestamp = 123123123
+
+        payload = TorrentHealthPayload(infohash, num_seeders, num_leechers, timestamp)
+        data = self.nodes[1].overlay.create_message_packet(MSG_TORRENT_HEALTH_RESPONSE, payload)
+
+        yield self.introduce_nodes()
+
+        # Add node 1 in publisher list of node 0
+        self.nodes[0].overlay.publishers.add(self.nodes[1].my_peer)
+        self.nodes[0].overlay.on_torrent_health_response(self.nodes[1].my_peer.address, data)
+        yield self.deliver_messages()
+
+        self.assertTrue(self.nodes[0].called_update_torrent)
+
+    @twisted_wrapper
+    def test_on_torrent_info_response(self):
+        """
+        Tests receiving torrent health response.
+        """
+        def fake_update_torrent_info(peer):
+            peer.called_update_torrent = True
+
+        self.nodes[0].overlay.content_repository = MockRepository()
+        self.nodes[0].overlay.content_repository.update_torrent_info = lambda payload: \
+            fake_update_torrent_info(self.nodes[0])
+
+        infohash = 'a' * 20
+        name = "ubuntu"
+        length = 100
+        creation_date = 123123123
+        num_files = 33
+        comment = ''
+
+        payload = TorrentInfoResponsePayload(infohash, name, length, creation_date, num_files, comment)
+        data = self.nodes[1].overlay.create_message_packet(MSG_TORRENT_INFO_RESPONSE, payload)
+
+        yield self.introduce_nodes()
+
+        # Add node 1 in publisher list of node 0
+        self.nodes[0].overlay.publishers.add(self.nodes[1].my_peer)
+        self.nodes[0].overlay.on_torrent_info_response(self.nodes[1].my_peer.address, data)
+        yield self.deliver_messages()
+
+        self.assertTrue(self.nodes[0].called_update_torrent)
+
+    @twisted_wrapper
+    def test_on_torrent_info_response_from_unknown_peer(self):
+        """
+        Tests receiving torrent health response from unknown peer.
+        """
+
+        def fake_update_torrent_info(peer):
+            peer.called_update_torrent = True
+
+        self.nodes[0].overlay.content_repository = MockRepository()
+        self.nodes[0].overlay.content_repository.update_torrent_info = lambda payload: \
+            fake_update_torrent_info(self.nodes[0])
+
+        infohash = 'a' * 20
+        name = "ubuntu"
+        length = 100
+        creation_date = 123123123
+        num_files = 33
+        comment = ''
+
+        payload = TorrentInfoResponsePayload(infohash, name, length, creation_date, num_files, comment)
+        data = self.nodes[1].overlay.create_message_packet(MSG_TORRENT_INFO_RESPONSE, payload)
+
+        yield self.introduce_nodes()
+
+        self.nodes[0].called_update_torrent = False
+        self.nodes[0].overlay.on_torrent_info_response(self.nodes[1].my_peer.address, data)
+        yield self.deliver_messages()
+
+        self.assertFalse(self.nodes[0].called_update_torrent)
+
+    @twisted_wrapper
+    def test_on_subscription_status1(self):
+        """
+        Tests receiving subscription status.
+        """
+        subscribe = True
+        identifier = 123123123
+        payload = ContentSubscription(identifier, subscribe)
+        data = self.nodes[1].overlay.create_message_packet(MSG_SUBSCRIPTION, payload)
+        # Set the cache request
+        self.nodes[0].overlay.request_cache.pop = lambda prefix, identifer: MockObject()
+
+        yield self.introduce_nodes()
+        self.assertEqual(len(self.nodes[0].overlay.publishers), 0)
+
+        self.nodes[0].overlay.on_subscription_status(self.nodes[1].my_peer.address, data)
+        yield self.deliver_messages()
+
+        self.assertEqual(len(self.nodes[0].overlay.publishers), 1)
+
+    @twisted_wrapper
+    def test_on_subscription_status_with_unsubscribe(self):
+        """
+        Tests receiving subscription status with unsubscribe status.
+        """
+        yield self.introduce_nodes()
+        self.nodes[0].overlay.publishers.add(self.nodes[1].my_peer)
+        self.assertEqual(len(self.nodes[0].overlay.publishers), 1)
+        # Set the cache request
+        self.nodes[0].overlay.request_cache.pop = lambda prefix, identifer: MockObject()
+
+        subscribe = False
+        identifier = 123123123
+        payload = ContentSubscription(identifier, subscribe)
+        data = self.nodes[1].overlay.create_message_packet(MSG_SUBSCRIPTION, payload)
+
+        self.nodes[0].overlay.on_subscription_status(self.nodes[1].my_peer.address, data)
+        yield self.deliver_messages()
+
+        self.assertEqual(len(self.nodes[0].overlay.publishers), 0)
+
+    @twisted_wrapper
+    def test_search_request_response(self):
+        self.nodes[0].overlay.content_repository = MockRepository()
         self.nodes[1].overlay.content_repository = MockRepository()
+        self.nodes[1].overlay.publish_latest_torrents = lambda *args, **kwargs: None
+
+        def fake_process_torrent_search_response(peer):
+            peer.called_process_torrent_search_response = True
+
+        self.nodes[0].overlay.process_torrent_search_response = lambda query, payload: \
+            fake_process_torrent_search_response(self.nodes[0])
 
         yield self.introduce_nodes()
         self.nodes[0].overlay.subscribe_peers()
@@ -533,10 +596,52 @@ class TestPopularCommunity(TestPopularCommunityBase):
 
         yield self.deliver_messages()
 
-    @twisted_wrapper(5)
+        self.assertTrue(self.nodes[0].called_process_torrent_search_response)
+
+    @twisted_wrapper
+    def test_process_search_response(self):
+        self.nodes[0].overlay.content_repository = MockRepository()
+        self.nodes[1].overlay.content_repository = MockRepository()
+        self.nodes[1].overlay.publish_latest_torrents = lambda *args, **kwargs: None
+
+        def fake_notify(peer, result_dict):
+            peer.called_search_result_notify = True
+            self.assertEqual(result_dict['keywords'], 'ubuntu')
+            self.assertGreater(len(result_dict['results']), 1)
+
+        self.nodes[0].overlay.tribler_session = MockObject()
+        self.nodes[0].overlay.tribler_session.notifier = MockObject()
+        self.nodes[0].overlay.tribler_session.notifier.notify = lambda signal1, signal2, _, result_dict: \
+            fake_notify(self.nodes[0], result_dict)
+
+        yield self.introduce_nodes()
+        self.nodes[0].overlay.subscribe_peers()
+        yield self.deliver_messages()
+
+        # Create a search request
+        query = "ubuntu"
+        self.nodes[0].called_search_result_notify = False
+
+        self.nodes[0].overlay.send_torrent_search_request(query)
+        yield self.deliver_messages()
+
+        self.assertTrue(self.nodes[0].called_search_result_notify)
+
+    @twisted_wrapper
     def test_send_content_info_request(self):
         self.nodes[0].overlay.content_repository = MockRepository()
         self.nodes[1].overlay.content_repository = MockRepository()
+        self.nodes[1].overlay.publish_latest_torrents = lambda *args, **kwargs: None
+
+        self.nodes[0].received_response = False
+        self.nodes[0].received_query = None
+
+        def process_torrent_search_response(node, query):
+            node.received_response = True
+            node.received_query = query
+
+        self.nodes[0].overlay.process_torrent_search_response = lambda query, data: \
+            process_torrent_search_response(self.nodes[0], query)
 
         yield self.introduce_nodes()
         self.nodes[0].overlay.subscribe_peers()
@@ -546,6 +651,32 @@ class TestPopularCommunity(TestPopularCommunityBase):
         request_list = ["ubuntu"]
         self.nodes[0].overlay.send_content_info_request(content_type, request_list, limit=5, peer=None)
         yield self.deliver_messages()
+
+        self.assertTrue(self.nodes[0].received_response)
+        self.assertEqual(self.nodes[0].received_query, request_list)
+
+    @twisted_wrapper
+    def test_send_torrent_info_response(self):
+        self.nodes[1].overlay.publish_latest_torrents = lambda *args, **kwargs: None
+        self.nodes[0].overlay.content_repository = MockRepository()
+        self.nodes[1].overlay.content_repository = MockRepository()
+
+        self.nodes[0].called_on_torrent_info_response = False
+
+        def on_torrent_info_response(node):
+            node.called_on_torrent_info_response = True
+
+        self.nodes[0].overlay.decode_map[chr(MSG_TORRENT_INFO_RESPONSE)] = lambda _source_address, _data: \
+            on_torrent_info_response(self.nodes[0])
+
+        yield self.introduce_nodes()
+        self.nodes[0].overlay.subscribe_peers()
+        yield self.deliver_messages()
+
+        infohash = 'a'*20
+        self.nodes[1].overlay.send_torrent_info_response(infohash, self.nodes[0].my_peer)
+        yield self.deliver_messages()
+        self.assertTrue(self.nodes[0].called_on_torrent_info_response)
 
     def fake_logger_error(self, my_peer, *args):
         if ERROR_UNKNOWN_PEER in args[0]:

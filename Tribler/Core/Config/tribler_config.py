@@ -531,11 +531,11 @@ class TriblerConfig(object):
 
     # Popular Community
 
-    def get_popular_community_enabled(self):
-        return self.config['popular_community']['enabled']
+    def get_popularity_community_enabled(self):
+        return self.config['popularity_community']['enabled']
 
-    def set_popular_community_enabled(self, value):
-        self.config['popular_community']['enabled'] = value
+    def set_popularity_community_enabled(self, value):
+        self.config['popularity_community']['enabled'] = value
 
     # Torrent store
 

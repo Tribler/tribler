@@ -298,7 +298,7 @@ class TestAsServer(AbstractServer):
         self.config.set_tunnel_community_enabled(False)
         self.config.set_credit_mining_enabled(False)
         self.config.set_market_community_enabled(False)
-        self.config.set_popular_community_enabled(False)
+        self.config.set_popularity_community_enabled(False)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
