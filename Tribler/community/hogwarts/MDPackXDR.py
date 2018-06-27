@@ -26,7 +26,7 @@ def serialize_metadata_gossip(md, key=None):
         p.pack_string(                md["tags"])
 
     if key:
-        assert("sig" not in md)
+        #assert("sig" not in md)
         # Now we sign it
         sig = crypto.create_signature(key, p.get_buf())
         p.pack_opaque(sig)
