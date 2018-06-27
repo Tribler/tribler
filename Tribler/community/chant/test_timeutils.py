@@ -1,6 +1,8 @@
-import unittest
 import datetime
-from timeutils import time2float, float2time, EPOCH
+import unittest
+
+from Tribler.community.chant.timeutils import time2float, float2time, EPOCH
+
 
 class TestTimeutils(unittest.TestCase):
 
@@ -16,9 +18,7 @@ class TestTimeutils(unittest.TestCase):
 
     def test_zero_time(self):
         self.assertTrue(float2time(0.0) == EPOCH)
-    
+
     def test_negative_time(self):
         negtm = EPOCH - datetime.timedelta(1)
         self.assertTrue(negtm == float2time(time2float(negtm)))
-        
-

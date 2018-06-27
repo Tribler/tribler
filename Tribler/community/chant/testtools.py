@@ -1,5 +1,5 @@
 import datetime
-from MDPackXDR import MD_DELETE, CHANNEL_TORRENT, REGULAR_TORRENT
+from Tribler.community.chant.MDPackXDR import REGULAR_TORRENT
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 
 crypto = ECCrypto()
@@ -16,6 +16,4 @@ def get_regular_md_dict(n=1):
                 "torrent_date" : datetime.datetime(2005, 7, 14, 12, 30),
                 "tc_pointer"   : long(0),
                 "public_key"   : key.pub().key_to_bin()}
-    return template 
-
-
+    return template

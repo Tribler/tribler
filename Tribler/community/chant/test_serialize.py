@@ -1,10 +1,9 @@
-import unittest
-from MDPackXDR import serialize_metadata_gossip, deserialize_metadata_gossip, MD_DELETE, CHANNEL_TORRENT
 import datetime
-from timeutils import time2float, float2time
-from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
-import copy
-import testtools as tt
+import unittest
+
+import Tribler.community.chant.testtools as tt
+from Tribler.community.chant.MDPackXDR import serialize_metadata_gossip, deserialize_metadata_gossip, MD_DELETE
+
 
 class TestSerialize(unittest.TestCase):
 
@@ -16,7 +15,7 @@ class TestSerialize(unittest.TestCase):
         md_del = {"type"       : MD_DELETE,
                   "timestamp"  : datetime.datetime(2005, 7, 14, 12, 30),
                   "tc_pointer" : long(0),
-                  "delete_sig" : str(0x1)*70,
+                  "delete_sig" : str(0x1) * 70,
                   "public_key" : tt.public_key}
         self.md_list = [tt.get_regular_md_dict(), md_del]
 
@@ -34,8 +33,3 @@ class TestSerialize(unittest.TestCase):
             md_ser = serialize_metadata_gossip(md)
             md_deser = deserialize_metadata_gossip(md_ser)
             self.assertDictEqual(md, md_deser)
-
-
-
-
-

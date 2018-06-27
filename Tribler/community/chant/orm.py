@@ -1,7 +1,7 @@
 
-from pony import orm
 from datetime import datetime
-from MDPackXDR import serialize_metadata_gossip, MD_DELETE
+from pony import orm
+from Tribler.community.chant.MDPackXDR import serialize_metadata_gossip
 
 db = orm.Database()
 
@@ -30,7 +30,7 @@ class MetadataGossip(db.Entity):
     #delete_sig         = orm.Optional(buffer)
     # tags_parsed ????
     # terms ???
-    
+
     def serialized(self):
         md = self.to_dict()
         return serialize_metadata_gossip(md)

@@ -1,5 +1,5 @@
 import xdrlib
-from timeutils import time2float, float2time
+from Tribler.community.chant.timeutils import time2float, float2time
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 
 INFOHASH_SIZE = 20 # bytes
@@ -37,7 +37,7 @@ def serialize_metadata_gossip(md, key=None):
 
     return p.get_buf()
 
-def deserialize_metadata_gossip(buf, check_sig = True):
+def deserialize_metadata_gossip(buf, check_sig=True):
     u = xdrlib.Unpacker(buf)
 
     md = {}
@@ -66,14 +66,3 @@ def deserialize_metadata_gossip(buf, check_sig = True):
                 md["sig"])
 
     return md
-
-    
-
-    
-
-
-
-
-
-
-
