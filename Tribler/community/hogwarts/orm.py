@@ -1,7 +1,7 @@
 
 from pony import orm
 from datetime import datetime
-from MDPackXDR import serialize_metadata_gossip
+from MDPackXDR import serialize_metadata_gossip, MD_DELETE
 
 db = orm.Database()
 
@@ -14,8 +14,8 @@ class Peer(db.Entity):
 
 class MetadataGossip(db.Entity):
     id                 = orm.PrimaryKey(int, auto=True)
-    sig                = orm.Required(buffer)
-    type               = orm.Optional(int)
+    type               = orm.Required(int)
+    sig                = orm.Optional(buffer)
     infohash           = orm.Optional(buffer)
     title              = orm.Optional(str)
     size               = orm.Optional(int)
@@ -25,11 +25,20 @@ class MetadataGossip(db.Entity):
     public_key         = orm.Optional(buffer)
     tags               = orm.Optional(str)
     addition_timestamp = orm.Optional(datetime)
+    version            = orm.Optional(int)
+    #visible            = orm.Optional(bool, default_sql=True)
+    #delete_sig         = orm.Optional(buffer)
     # tags_parsed ????
     # terms ???
     
     def serialized(self):
-        return serialize_metadata_gossip(self.to_dict())
+        md = self.to_dict()
+        return serialize_metadata_gossip(md)
+
+    def sign(self, key):
+        md = self.to_dict()
+        serialize_metadata_gossip(md, key)
+        self.sig = md["sig"]
 
 def known_pk(pk):
     return Peer.get(public_key=pk)
@@ -40,5 +49,5 @@ def trusted_pk(pk):
 def known_sig(sig):
     return MetadataGossip.get(sig=sig)
 
-db.bind(provider='sqlite', filename=':memory:')
+db.bind(provider='sqlite', filename='/tmp/test.db', create_db=True)
 db.generate_mapping(create_tables=True)
