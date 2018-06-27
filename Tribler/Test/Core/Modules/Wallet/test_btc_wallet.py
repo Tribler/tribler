@@ -1,3 +1,6 @@
+from unittest import skipIf
+
+import sys
 from Tribler.Core.Modules.wallet.btc_wallet import BitcoinTestnetWallet, BitcoinWallet
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
@@ -8,6 +11,7 @@ from twisted.internet.defer import succeed, Deferred
 
 class TestBtcWallet(AbstractServer):
 
+    @skipIf(sys.platform == "darwin", "This test seems to take a lot of time on Mac")
     @deferred(timeout=25)
     def test_btc_wallet(self):
         """
