@@ -5,15 +5,14 @@ from libtorrent import add_files, bdecode, bencode, create_torrent, file_storage
 from Tribler.community.chant.MDPackXDR import serialize_metadata_gossip, \
     deserialize_metadata_gossip, CHANNEL_TORRENT, MD_DELETE
 
-from Tribler.community.chant.orm import MetadataGossip, Peer, known_sig, known_pk, trusted_pk
-
-channels_dir = "/tmp"
+from Tribler.community.chant.orm import MetadataGossip, PeerORM, known_signature, known_pk, trusted_pk
 
 
 def create_torrent_from_dir(directory, torrent_filename):
     fs = file_storage()
     add_files(fs, directory)
-    t = create_torrent(fs, flags=19)  # ??? 19 ???
+    # optimize_alignment + merke + mutable_torrent_support = 19
+    t = create_torrent(fs, flags=19)
     t.set_priv(False)
     set_piece_hashes(t, os.path.dirname(directory))
     generated = t.generate()
@@ -42,43 +41,42 @@ def create_channel_torrent(channels_store_dir, title, buf_list, version):
     return torrent, version
 
 
-def update_channel(key, channel, add_list=[], remove_list=[], buf_list=[]):
-    buf_list = []
+def update_channel(key, old_channel, channels_dir, add_list=[], remove_list=[], buf_list=[]):
     for e in remove_list:
-        del_entry = {"type"       : MD_DELETE,
-                     "public_key" : e.public_key,
-                     "timestamp"  : datetime.utcnow(),
-                     "tc_pointer" : 0,
-                     "delete_sig" : e.sig}
+        del_entry = {"type": MD_DELETE,
+                     "public_key": e.public_key,
+                     "timestamp": datetime.utcnow(),
+                     "tc_pointer": 0,
+                     "delete_signature": e.signature}
         buf = serialize_metadata_gossip(del_entry, key)
         buf_list.append(buf)
 
-    new_channel = create_channel(key, channel.title, buf_list, add_list,
-                                 version=channel.version, tags=channel.tags)
-    channel.delete()
+    new_channel = create_channel(key, old_channel.title, channels_dir, buf_list, add_list,
+                                 version=old_channel.version, tags=old_channel.tags)
+    old_channel.delete()
 
     # Re-read the renewed channel torrent dir to delete obsolete entries
-    process_channel_dir(os.path.join(channels_dir, channel.title))
+    process_channel_dir(os.path.join(channels_dir, old_channel.title))
     return new_channel
 
 
-def create_channel(key, title, buf_list=[], add_list=[], version=0, tags=""):
+def create_channel(key, title, channels_dir, buf_list=[], add_list=[], version=0, tags=""):
     buf_list.extend([e.serialized() for e in add_list])
     (torrent, version) = create_channel_torrent(channels_dir, title,
                                                 buf_list, version)
 
     now = datetime.utcnow()
     md = create_metadata_gossip(key,
-                                {"type"         : CHANNEL_TORRENT,
-                                 "infohash"     : torrent['info']['root hash'],
-                                 "title"        : title,
-                                 "tags"         : tags,
-                                 "size"         : len(buf_list),  # FIXME
-                                 "timestamp"    : now,
-                                 "version"      : version,
-                                 "torrent_date" : now,
-                                 "tc_pointer"   : 0,
-                                 "public_key"   : key.pub().key_to_bin()})
+                                {"type": CHANNEL_TORRENT,
+                                 "infohash": torrent['info']['root hash'],
+                                 "title": title,
+                                 "tags": tags,
+                                 "size": len(buf_list),  # FIXME
+                                 "timestamp": now,
+                                 "version": version,
+                                 "torrent_date": now,
+                                 "tc_pointer": 0,
+                                 "public_key": key.pub().key_to_bin()})
     return md
 
 
@@ -97,7 +95,7 @@ def process_channel_dir(dirname):
             if check_gossip(gsp):
                 if gsp["type"] == MD_DELETE:
                     # We check for public key to prevent abuse
-                    obsolete_entry = MetadataGossip.get(sig=gsp["delete_sig"],
+                    obsolete_entry = MetadataGossip.get(signature=gsp["delete_signature"],
                                                         public_key=gsp["public_key"])
                     if obsolete_entry:
                         obsolete_entry.delete()
@@ -107,7 +105,7 @@ def process_channel_dir(dirname):
 
 def process_new_PK(pk):
     # Stub
-    Peer(public_key=pk, trusted=True, update_timestamp=datetime.utcnow())
+    PeerORM(public_key=pk, trusted=True, update_timestamp=datetime.utcnow())
 
 
 def check_gossip(gsp):
@@ -122,7 +120,7 @@ def check_gossip(gsp):
         return False
 
     # parent_channel = MetadataGossip.get(type=CHANNEL_TORRENT, public_key=PK)
-    if known_sig(gsp["sig"]):
+    if known_signature(gsp["signature"]):
         # We already have this gossip.
         return False
 

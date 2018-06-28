@@ -12,11 +12,11 @@ class TestSerialize(unittest.TestCase):
         self.crypto = tt.crypto
         self.key = tt.key
 
-        md_del = {"type"       : MD_DELETE,
-                  "timestamp"  : datetime.datetime(2005, 7, 14, 12, 30),
-                  "tc_pointer" : long(0),
-                  "delete_sig" : str(0x1) * 70,
-                  "public_key" : tt.public_key}
+        md_del = {"type": MD_DELETE,
+                  "timestamp": datetime.datetime(2005, 7, 14, 12, 30),
+                  "tc_pointer": long(0),
+                  "delete_signature": str(0x1) * 70,
+                  "public_key": tt.public_key}
         self.md_list = [tt.get_regular_md_dict(), md_del]
 
     def TestSerializeMetadataGossip(self):

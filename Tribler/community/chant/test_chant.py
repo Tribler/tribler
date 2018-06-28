@@ -7,21 +7,32 @@ import os
 import Tribler.community.chant.testtools as tt
 from Tribler.community.chant.MDPackXDR import REGULAR_TORRENT
 from Tribler.community.chant.chant import *
+from Tribler.Test.test_as_server import TestAsServer
+from Tribler.community.chant.orm import start_orm
 
-testdir = "/tmp"
 
 
-class TestChant(unittest.TestCase):
+class TestChant(TestAsServer):
 
-    def setUp(self):
+    def setUpPreSession(self):
+        super(TestChant, self).setUpPreSession()
+        self.config.set_libtorrent_enabled(True)
+
+
+    def TestCreateChannel(self):
+        self.testdir = self.session.config.get_state_dir()
+        db_filename = os.path.abspath(os.path.join(self.testdir, "chant.db"))
+        start_orm(db_filename)
+        self.run_db_session()
+
+    @db_session
+    def run_db_session(self):
+        channels_dir = os.path.abspath(os.path.join(self.testdir, "channels"))
         self.maxDiff = None
         self.md_dict_list = [tt.get_regular_md_dict(n) for n in range(0, 5)]
         self.crypto = tt.crypto
         self.key = tt.key
         self.public_key = tt.public_key
-
-    @db_session
-    def TestCreateChannel(self):
         # Test create_metadata_gossip
         for md_dict in self.md_dict_list:
             create_metadata_gossip(key=self.key, md_dict=md_dict)
@@ -38,7 +49,7 @@ class TestChant(unittest.TestCase):
         title = "Channel 1"
         md_list = orm.select(g for g in MetadataGossip)[:]
 
-        chan = create_channel(self.key, title, add_list=md_list, tags="some.tags")
+        chan = create_channel(self.key, title, channels_dir, add_list=md_list, tags="some.tags")
         self.assertEqual(chan.type, CHANNEL_TORRENT)
         self.assertEqual(chan.public_key, buffer(self.public_key))
 
@@ -79,7 +90,7 @@ class TestChant(unittest.TestCase):
                              g.type == REGULAR_TORRENT and g.id != remove_list[0].id)[:]
         md_preupdate_list = [md.to_dict() for md in md_list]
 
-        chan_updated = update_channel(self.key, chan, add_list=[new_md], remove_list=remove_list)
+        chan_updated = update_channel(self.key, chan, channels_dir, add_list=[new_md], remove_list=remove_list)
 
         md_list = orm.select(g for g in MetadataGossip if
                              g.public_key == chan_updated.public_key and
