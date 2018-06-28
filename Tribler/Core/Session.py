@@ -174,6 +174,10 @@ class Session(object):
                 self._logger.error("Could not send data: network is unreachable.")
                 return
 
+            if 'socket.error: [Errno 16]' in text:
+                self._logger.error("Could not send data: socket is busy.")
+                return
+
             if 'exceptions.ValueError: Invalid DNS-ID' in text:
                 self._logger.error("Invalid DNS-ID")
                 return
