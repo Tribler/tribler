@@ -103,6 +103,7 @@ class TriblerLaunchMany(TaskManager):
         self.tunnel_community = None
         self.trustchain_community = None
         self.wallets = {}
+        self.popularity_community = None
 
         self.startup_deferred = Deferred()
 
@@ -286,6 +287,21 @@ class TriblerLaunchMany(TaskManager):
             self.ipv8.overlays.append(self.market_community)
 
             self.ipv8.strategies.append((RandomWalk(self.market_community), 20))
+
+        # Popular Community
+        if self.session.config.get_popularity_community_enabled():
+            from Tribler.community.popularity.community import PopularityCommunity
+
+            local_peer = Peer(self.session.trustchain_keypair)
+
+            self.popularity_community = PopularityCommunity(local_peer, self.ipv8.endpoint, self.ipv8.network,
+                                                            torrent_db=self.session.lm.torrent_db, session=self.session)
+
+            self.ipv8.overlays.append(self.popularity_community)
+
+            self.ipv8.strategies.append((RandomWalk(self.popularity_community), 20))
+
+            self.popularity_community.start()
 
     @blocking_call_on_reactor_thread
     def load_dispersy_communities(self):

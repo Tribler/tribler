@@ -211,14 +211,14 @@ class TestTorrentDBHandler(AbstractDB):
         self.assertEqual(self.tdb.addOrGetTorrentID(infohash), 1)
 
         new_infohash = unhexlify('50865489ac16e2f34ea0cd3043cfd970cc24ec09')
-        self.assertEqual(self.tdb.addOrGetTorrentID(new_infohash), 4849)
+        self.assertEqual(self.tdb.addOrGetTorrentID(new_infohash), 4859)
 
     @blocking_call_on_reactor_thread
     def test_add_get_torrent_ids_return(self):
         infohash = str2bin('AA8cTG7ZuPsyblbRE7CyxsrKUCg=')
         new_infohash = unhexlify('50865489ac16e2f34ea0cd3043cfd970cc24ec09')
         tids, inserted = self.tdb.addOrGetTorrentIDSReturn([infohash, new_infohash])
-        self.assertEqual(tids, [1, 4849])
+        self.assertEqual(tids, [1, 4859])
         self.assertEqual(len(inserted), 1)
 
     @blocking_call_on_reactor_thread
@@ -254,6 +254,10 @@ class TestTorrentDBHandler(AbstractDB):
         self.assertEqual(len(self.tdb.getRandomlyCollectedTorrents(100000000, limit=10)), 3)
 
     @blocking_call_on_reactor_thread
+    def test_get_recently_checked_torrents(self):
+        self.assertEqual(len(self.tdb.getRecentlyCheckedTorrents(limit=5)), 5)
+
+    @blocking_call_on_reactor_thread
     def test_select_torrents_to_collect(self):
         infohash = str2bin('AA8cTG7ZuPsyblbRE7CyxsrKUCg=')
         self.assertEqual(len(self.tdb.select_torrents_to_collect(infohash)), 0)
@@ -273,7 +277,7 @@ class TestTorrentDBHandler(AbstractDB):
         """
         columns = ['T.torrent_id', 'infohash', 'status', 'num_seeders']
         self.tdb.channelcast_db = ChannelCastDBHandler(self.session)
-        self.assertEqual(len(self.tdb.searchNames(['content'], keys=columns, doSort=False)), 4848)
+        self.assertEqual(len(self.tdb.searchNames(['content'], keys=columns, doSort=False)), 4849)
         self.assertEqual(len(self.tdb.searchNames(['content', '1'], keys=columns, doSort=False)), 1)
 
     @blocking_call_on_reactor_thread
@@ -284,7 +288,7 @@ class TestTorrentDBHandler(AbstractDB):
         columns = ['T.torrent_id', 'infohash', 'status', 'num_seeders']
         self.tdb.channelcast_db = ChannelCastDBHandler(self.session)
         results = self.tdb.searchNames(['content'], keys=columns)
-        self.assertEqual(len(results), 4848)
+        self.assertEqual(len(results), 4849)
         self.assertEqual(results[0][3], 493785)
 
     @blocking_call_on_reactor_thread
@@ -293,7 +297,7 @@ class TestTorrentDBHandler(AbstractDB):
         Test the search procedure in the local database when searching for torrents
         """
         results = self.tdb.search_in_local_torrents_db('content', ['infohash', 'num_seeders'])
-        self.assertEqual(len(results), 4848)
+        self.assertEqual(len(results), 4849)
         self.assertNotEqual(results[0][-1], 0.0)  # Relevance score of result should not be zero
         results = self.tdb.search_in_local_torrents_db('fdsafasfds', ['infohash'])
         self.assertEqual(len(results), 0)

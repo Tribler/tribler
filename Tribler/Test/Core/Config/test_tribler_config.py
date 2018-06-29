@@ -301,6 +301,13 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_preview_channel_community_enabled(True)
         self.assertEqual(self.tribler_config.get_preview_channel_community_enabled(), True)
 
+    def test_get_set_methods_popularity_community(self):
+        """
+        Check whether popularity community get and set methods are working as expected.
+        """
+        self.tribler_config.set_popularity_community_enabled(True)
+        self.assertEqual(self.tribler_config.get_popularity_community_enabled(), True)
+
     def test_get_set_methods_watch_folder(self):
         """
         Check whether watch folder get and set methods are working as expected.
