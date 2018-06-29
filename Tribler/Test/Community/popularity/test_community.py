@@ -10,6 +10,7 @@ from Tribler.community.popularity.constants import SEARCH_TORRENT_REQUEST, MSG_T
 from Tribler.community.popularity.payload import SearchResponseItemPayload, TorrentInfoResponsePayload, \
     TorrentHealthPayload, ContentSubscription
 from Tribler.community.popularity.repository import TYPE_TORRENT_HEALTH
+from Tribler.community.popularity.request import ContentRequest
 from Tribler.pyipv8.ipv8.test.base import TestBase
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
@@ -677,6 +678,32 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         self.nodes[1].overlay.send_torrent_info_response(infohash, self.nodes[0].my_peer)
         yield self.deliver_messages()
         self.assertTrue(self.nodes[0].called_on_torrent_info_response)
+
+    @twisted_wrapper
+    def test_search_request_timeout(self):
+        """
+        Test whether the callback is called with an empty list when the search request times out
+        """
+        ContentRequest.CONTENT_TIMEOUT = 0.1
+
+        self.nodes[0].overlay.content_repository = MockRepository()
+        self.nodes[1].overlay.content_repository = MockRepository()
+        self.nodes[1].overlay.publish_latest_torrents = lambda *args, **kwargs: None
+
+        yield self.introduce_nodes()
+        self.nodes[0].overlay.subscribe_peers()
+        yield self.deliver_messages()
+
+        # Make sure that the other node does not respond to our search query
+        self.nodes[1].overlay.send_content_info_response = lambda *_, **__: None
+
+        def on_results(results):
+            self.assertIsInstance(results, list)
+            self.assertFalse(results)
+
+        content_type = SEARCH_TORRENT_REQUEST
+        deferred = self.nodes[0].overlay.send_content_info_request(content_type, ["ubuntu"], limit=5, peer=None)
+        yield deferred.addCallback(on_results)
 
     def fake_logger_error(self, my_peer, *args):
         if ERROR_UNKNOWN_PEER in args[0]:

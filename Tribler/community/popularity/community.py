@@ -213,11 +213,13 @@ class PopularityCommunity(PubSubCommunity):
 
     def send_content_info_request(self, content_type, request_list, limit=25, peer=None):
         """
-        Sends the generic content request of givent content_type.
+        Sends the generic content request of given content_type.
         :param content_type: request content type
         :param request_list: List<string>  request queries
         :param limit: Number of expected responses
         :param peer: Peer to send this request to
+        :return a Deferred that fires when we receive the content
+        :rtype Deferred
         """
         cache = self.request_cache.add(ContentRequest(self.request_cache, content_type, request_list))
         self.logger.info("Sending search request query:%s, identifier:%s", request_list, cache.number)
@@ -230,6 +232,8 @@ class PopularityCommunity(PubSubCommunity):
         else:
             for connected_peer in self.get_peers():
                 self.broadcast_message(packet, peer=connected_peer)
+
+        return cache.deferred
 
     def send_content_info_response(self, peer, identifier, content_type, response_list):
         """
