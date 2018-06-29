@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Startup script for Ubuntu Linux
 
 echo "Starting Tribler..."
