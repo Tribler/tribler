@@ -21,7 +21,7 @@ class PriceLevelTestSuite(unittest.TestCase):
         tick2 = Tick(OrderId(TraderId('0'), OrderNumber(2)), Price(30, 'MC'), Quantity(30, 'BTC'),
                      Timeout(float("inf")), Timestamp(float("inf")), True)
 
-        self.price_level = PriceLevel('MC')
+        self.price_level = PriceLevel('MC', Price(10, 'BTC'))
         self.tick_entry1 = TickEntry(tick, self.price_level)
         self.tick_entry2 = TickEntry(tick, self.price_level)
         self.tick_entry3 = TickEntry(tick, self.price_level)

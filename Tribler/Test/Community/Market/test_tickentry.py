@@ -27,7 +27,7 @@ class TickEntryTestSuite(AbstractServer):
         tick2 = Tick(OrderId(TraderId('0'), OrderNumber(2)), Price(63400, 'BTC'), Quantity(30, 'MC'),
                      Timeout(100), Timestamp.now(), True)
 
-        self.price_level = PriceLevel('MC')
+        self.price_level = PriceLevel('MC', Price(100, 'BTC'))
         self.tick_entry = TickEntry(tick, self.price_level)
         self.tick_entry2 = TickEntry(tick2, self.price_level)
 

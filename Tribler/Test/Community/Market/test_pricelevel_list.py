@@ -16,10 +16,10 @@ class PriceLevelListTestSuite(unittest.TestCase):
         self.price2 = Price(2, 'BTC')
         self.price3 = Price(3, 'BTC')
         self.price4 = Price(4, 'BTC')
-        self.price_level = PriceLevel('MC')
-        self.price_level2 = PriceLevel('MC')
-        self.price_level3 = PriceLevel('MC')
-        self.price_level4 = PriceLevel('MC')
+        self.price_level = PriceLevel('MC', Price(100, 'BTC'))
+        self.price_level2 = PriceLevel('MC', Price(100, 'BTC'))
+        self.price_level3 = PriceLevel('MC', Price(100, 'BTC'))
+        self.price_level4 = PriceLevel('MC', Price(100, 'BTC'))
 
         # Fill price level list
         self.price_level_list.insert(self.price, self.price_level)

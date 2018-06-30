@@ -5,7 +5,7 @@ from Tribler.community.market.core.tickentry import TickEntry
 class PriceLevel(object):
     """Class to represents a list of ticks at a specific price level"""
 
-    def __init__(self, quantity_wallet_id):
+    def __init__(self, quantity_wallet_id, price):
         self._head_tick = None  # First tick of the double linked list
         self._tail_tick = None  # Last tick of the double linked list
         self._length = 0  # The number of ticks in the price level
@@ -13,6 +13,14 @@ class PriceLevel(object):
         self._reserved = Quantity(0, quantity_wallet_id)  # Total amount of reserved quantity in this price level
         self._last = None  # The current tick of the iterator
         self._quantity_wallet_id = quantity_wallet_id  # The quantity wallet ID of the price level
+        self._price = price  # The price of this price level
+
+    @property
+    def price(self):
+        """
+        :rtype: Price
+        """
+        return self._price
 
     @property
     def first_tick(self):

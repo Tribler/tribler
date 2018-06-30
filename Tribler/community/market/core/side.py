@@ -54,7 +54,7 @@ class Side(object):
 
         self._depth[(price.wallet_id, quantity_wallet_id)] += 1
 
-        price_level = PriceLevel(quantity_wallet_id)
+        price_level = PriceLevel(quantity_wallet_id, price)
         self._price_level_list_map[(price.wallet_id, quantity_wallet_id)].insert(price, price_level)
         self._price_map[price] = price_level
 
