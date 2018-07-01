@@ -1,10 +1,9 @@
-from __future__ import absolute_import
 import logging
 import os
 import shutil
 from tempfile import mkdtemp
 
-from .libtorrent import bdecode
+from libtorrent import bdecode
 from nose.tools import raises
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
