@@ -89,8 +89,6 @@ def get_parameter(parameters, name):
         return None
     return parameters[name][0]
 
-    return score
-
 
 def fix_unicode_dict(d):
     """
