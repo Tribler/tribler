@@ -96,12 +96,12 @@ class AbstractTestLevelDBStore(BaseTestCase):
     @raises(StopIteration)
     def test_iter_empty(self):
         iteritems = self.store.iteritems()
-        self.assertTrue(iteritems.next())
+        self.assertTrue(next(iteritems))
 
     def test_iter_one_element(self):
         self.store[K] = V
         iteritems = self.store.iteritems()
-        self.assertEqual(iteritems.next(), K)
+        self.assertEqual(next(iteritems), K)
 
     def test_iter(self):
         self.store[K] = V

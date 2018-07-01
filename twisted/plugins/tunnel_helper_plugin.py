@@ -1,6 +1,7 @@
 """
 This twistd plugin enables to start a tunnel helper headless using the twistd command.
 """
+from __future__ import print_function
 import logging.config
 import os
 import random
@@ -96,7 +97,7 @@ class Options(usage.Options):
     ]
 
 if not os.path.exists("logger.conf"):
-    print "Unable to find logger.conf"
+    print("Unable to find logger.conf")
 else:
     log_directory = os.path.abspath(os.environ.get('APPDATA', os.path.expanduser('~')))
     log_directory = os.path.join(log_directory, '.Tribler', 'logs')

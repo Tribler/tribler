@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 from Tribler.Core.exceptions import TriblerException
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.twisted_thread import deferred
-from base_api_test import AbstractApiTest
+from .base_api_test import AbstractApiTest
 
 
 class RestRequestTest(AbstractApiTest):

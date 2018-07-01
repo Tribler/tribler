@@ -24,7 +24,7 @@ class TrackerManager(object):
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url) if tracker_url != u"DHT" else tracker_url
         try:
             sql_stmt = u"SELECT tracker_id, tracker, last_check, failures, is_alive FROM TrackerInfo WHERE tracker = ?"
-            result = self._session.sqlite_db.execute(sql_stmt, (sanitized_tracker_url,)).next()
+            result = next(self._session.sqlite_db.execute(sql_stmt, (sanitized_tracker_url,)))
         except StopIteration:
             return None
 
@@ -58,7 +58,7 @@ class TrackerManager(object):
                     """
         value_tuple = (sanitized_tracker_url, tracker_info[u'last_check'], tracker_info[u'failures'],
                        tracker_info[u'is_alive'], sanitized_tracker_url)
-        self._session.sqlite_db.execute(sql_stmt, value_tuple).next()
+        next(self._session.sqlite_db.execute(sql_stmt, value_tuple))
 
     def remove_tracker(self, tracker_url):
         """
@@ -109,7 +109,7 @@ class TrackerManager(object):
         try:
             sql_stmt = u"SELECT tracker FROM TrackerInfo WHERE tracker != 'no-DHT' AND tracker != 'DHT' AND " \
                        u"last_check + ? <= strftime('%s','now') AND is_alive = 1 ORDER BY last_check LIMIT 1;"
-            result = self._session.sqlite_db.execute(sql_stmt, (TRACKER_RETRY_INTERVAL,)).next()
+            result = next(self._session.sqlite_db.execute(sql_stmt, (TRACKER_RETRY_INTERVAL,)))
         except StopIteration:
             return None
 

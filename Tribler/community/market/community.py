@@ -754,7 +754,7 @@ class MarketCommunity(Community, BlockListener):
             }
             return self.trustchain.sign_block(matchmaker, matchmaker.public_key.key_to_bin(),
                                               block_type='cancel_order', transaction=tx_dict)\
-                .addCallback(lambda (blk1, blk2): blk1)
+                .addCallback(lambda blk1_blk2: blk1_blk2[0])
 
         return self.get_online_matchmaker().addCallback(create_send_block)
 
@@ -781,7 +781,7 @@ class MarketCommunity(Community, BlockListener):
         }
         return self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
                                           block_type='tx_init', transaction=tx_dict)\
-            .addCallback(lambda (blk1, blk2): blk1)
+            .addCallback(lambda blk1_blk21: blk1_blk21[0])
 
     @synchronized
     def create_new_tx_payment_block(self, peer, payment):
@@ -800,7 +800,7 @@ class MarketCommunity(Community, BlockListener):
         }
         return self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
                                           block_type='tx_payment', transaction=tx_dict)\
-            .addCallback(lambda (blk1, blk2): blk1)
+            .addCallback(lambda blk1_blk22: blk1_blk22[0])
 
     @synchronized
     def create_new_tx_done_block(self, peer, ask_order_dict, bid_order_dict, transaction):
@@ -825,7 +825,7 @@ class MarketCommunity(Community, BlockListener):
         }
         return self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
                                           block_type='tx_done', transaction=tx_dict)\
-            .addCallback(lambda (blk1, blk2): blk1)
+            .addCallback(lambda blk1_blk23: blk1_blk23[0])
 
     def on_tick(self, tick, address):
         """

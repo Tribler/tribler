@@ -407,9 +407,9 @@ class AllChannelCommunity(Community):
                     # at this point we should NOT have the channel message for this community
                     if __debug__:
                         try:
-                            self._dispersy.database.execute(
+                            next(self._dispersy.database.execute(
                                 u"SELECT * FROM sync WHERE community = ? AND meta_message = ? AND undone = 0",
-                                (community.database_id, community.get_meta_message(u"channel").database_id)).next()
+                                (community.database_id, community.get_meta_message(u"channel").database_id)))
                             self._logger.error("We already have the channel message... no need to wait for it %s",
                                                community.cid.encode("HEX"))
                         except StopIteration:
@@ -557,8 +557,8 @@ class AllChannelCommunity(Community):
 
     def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
         try:
-            packet, = self._dispersy.database.execute(
-                u"SELECT sync.packet FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
+            packet, = next(self._dispersy.database.execute(
+                u"SELECT sync.packet FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)))
         except StopIteration:
             raise RuntimeError("Unknown dispersy_id")
         return str(packet)
@@ -673,7 +673,7 @@ class VoteCastDBStub():
 
         sql = u"SELECT sync.id FROM sync JOIN member ON sync.member = member.id JOIN community ON community.id = sync.community JOIN meta_message ON sync.meta_message = meta_message.id WHERE community.classification = 'AllChannelCommunity' AND meta_message.name = 'votecast' AND member.public_key = ? ORDER BY global_time DESC LIMIT 1"
         try:
-            id, = self._dispersy.database.execute(sql, (buffer(public_key),)).next()
+            id, = next(self._dispersy.database.execute(sql, (buffer(public_key),)))
             self._votecache[public_key] = int(id)
             return self._votecache[public_key]
         except StopIteration:

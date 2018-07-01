@@ -183,7 +183,7 @@ class SQLiteCacheDB(TaskManager):
             # read database version
             self._logger.info(u"Reading database version...")
             try:
-                version_str, = cursor.execute(u"SELECT value FROM MyInfo WHERE entry == 'version'").next()
+                version_str, = next(cursor.execute(u"SELECT value FROM MyInfo WHERE entry == 'version'"))
                 self._version = int(version_str)
                 self._logger.info(u"Current database version is %s", self._version)
             except (StopIteration, SQLError) as e:
@@ -193,7 +193,7 @@ class SQLiteCacheDB(TaskManager):
             self._version = 1
 
     def do_quick_integrity_check(self):
-        check_response, = self.execute(u"PRAGMA quick_check").next()
+        check_response, = next(self.execute(u"PRAGMA quick_check"))
         if check_response != 'ok':
             msg = u"Quick integrity check of database failed"
             self._logger.error(msg)
