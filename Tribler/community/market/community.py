@@ -37,7 +37,7 @@ from Tribler.pyipv8.ipv8.attestation.trustchain.community import synchronized
 from Tribler.pyipv8.ipv8.attestation.trustchain.listener import BlockListener
 from Tribler.pyipv8.ipv8.attestation.trustchain.payload import HalfBlockPairPayload
 from Tribler.pyipv8.ipv8.deprecated.bloomfilter import BloomFilter
-from Tribler.pyipv8.ipv8.deprecated.community import Community
+from Tribler.pyipv8.ipv8.deprecated.community import Community, lazy_wrapper
 from Tribler.pyipv8.ipv8.deprecated.payload import IntroductionRequestPayload, IntroductionResponsePayload
 from Tribler.pyipv8.ipv8.deprecated.payload_headers import BinMemberAuthenticationPayload
 from Tribler.pyipv8.ipv8.deprecated.payload_headers import GlobalTimeDistributionPayload
@@ -253,13 +253,10 @@ class MarketCommunity(Community, BlockListener):
         """
         bloomfilter = self.get_orders_bloomfilter()
         message_id = self.message_repository.next_identity()
-
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = OrderbookSyncPayload(message_id, Timestamp.now(), bloomfilter).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 19, [auth, dist, payload])
+        packet = self._ez_pack(self._prefix, 19, [auth, payload])
         self.endpoint.send(peer.address, packet)
 
     def get_orders_bloomfilter(self):
@@ -454,22 +451,19 @@ class MarketCommunity(Community, BlockListener):
         """
         message_id = self.message_repository.next_identity()
 
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = InfoPayload(message_id, Timestamp.now(), self.is_matchmaker).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 18, [auth, dist, payload])
+        packet = self._ez_pack(self._prefix, 18, [auth, payload])
         self.endpoint.send(peer.address, packet)
 
-    def received_info(self, source_address, data):
-        auth, _, payload = self._ez_unpack_auth(InfoPayload, data)
+    @lazy_wrapper(InfoPayload)
+    def received_info(self, peer, payload):
         if payload.is_matchmaker:
-            self.add_matchmaker(Peer(auth.public_key_bin, source_address))
+            self.add_matchmaker(peer)
 
-    def received_orderbook_sync(self, source_address, data):
-        _, _, payload = self._ez_unpack_auth(OrderbookSyncPayload, data)
-
+    @lazy_wrapper(OrderbookSyncPayload)
+    def received_orderbook_sync(self, peer, payload):
         if not self.is_matchmaker:
             return
 
@@ -483,7 +477,7 @@ class MarketCommunity(Community, BlockListener):
                 if tick_block:
                     other_tick_block = self.trustchain.persistence.get_linked(tick_block)
                     if other_tick_block:
-                        self.trustchain.send_block_pair(tick_block, other_tick_block, source_address)
+                        self.trustchain.send_block_pair(tick_block, other_tick_block, address=peer.address)
 
     def ping_peer(self, peer):
         """
@@ -500,19 +494,14 @@ class MarketCommunity(Community, BlockListener):
         Send a ping message with an identifier to a specific peer.
         """
         message_id = self.message_repository.next_identity()
-
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = PingPongPayload(message_id, Timestamp.now(), identifier).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 20, [auth, dist, payload])
+        packet = self._ez_pack(self._prefix, 20, [auth, payload])
         self.endpoint.send(peer.address, packet)
 
-    def received_ping(self, source_address, data):
-        auth, _, payload = self._ez_unpack_auth(PingPongPayload, data)
-        peer = Peer(auth.public_key_bin, source_address)
-
+    @lazy_wrapper(PingPongPayload)
+    def received_ping(self, peer, payload):
         self.send_pong(peer, payload.identifier)
 
     def send_pong(self, peer, identifier):
@@ -520,18 +509,14 @@ class MarketCommunity(Community, BlockListener):
         Send a pong message with an identifier to a specific peer.
         """
         message_id = self.message_repository.next_identity()
-
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = PingPongPayload(message_id, Timestamp.now(), identifier).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 21, [auth, dist, payload])
+        packet = self._ez_pack(self._prefix, 21, [auth, payload])
         self.endpoint.send(peer.address, packet)
 
-    def received_pong(self, _, data):
-        _, _, payload = self._ez_unpack_auth(PingPongPayload, data)
-
+    @lazy_wrapper(PingPongPayload)
+    def received_pong(self, _, payload):
         if not self.request_cache.has(u"ping", payload.identifier):
             self.logger.warning("ping cache with id %s not found", payload.identifier)
             return
@@ -905,26 +890,22 @@ class MarketCommunity(Community, BlockListener):
                           "%s (ip: %s, port: %s)", match_id, str(recipient_order_id),
                           str(tick.order_id), recipient_order_id.trader_id, *address)
 
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = MatchPayload(*payload).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 7, [auth, dist, payload])
+        packet = self._ez_pack(self._prefix, 7, [auth, payload])
         self.endpoint.send(address, packet)
 
-    def received_match(self, source_address, data):
+    @lazy_wrapper(MatchPayload)
+    def received_match(self, peer, payload):
         """
         We received a match message from a matchmaker.
         """
-        auth, _, payload = self._ez_unpack_auth(MatchPayload, data)
-        peer = Peer(auth.public_key_bin, source_address)
-
         self.logger.debug("We received a match message for order %s.%s (matched quantity: %s)",
                           TraderId(self.mid), payload.recipient_order_number, payload.match_quantity)
 
         # We got a match, check whether we can respond to this match
-        self.update_ip(payload.matchmaker_trader_id, source_address)
+        self.update_ip(payload.matchmaker_trader_id, peer.address)
         self.update_ip(payload.trader_id, (payload.address.ip, payload.address.port))
         self.add_matchmaker(peer)
 
@@ -981,17 +962,14 @@ class MarketCommunity(Community, BlockListener):
 
         payload = (self.message_repository.next_identity(), Timestamp.now(), match_id, quantity)
 
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = AcceptMatchPayload(*payload).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 8, [auth, dist, payload])
+        packet = self._ez_pack(self._prefix, 8, [auth, payload])
         self.endpoint.send(address, packet)
 
-    def received_accept_match(self, _, data):
-        _, _, payload = self._ez_unpack_auth(AcceptMatchPayload, data)
-
+    @lazy_wrapper(AcceptMatchPayload)
+    def received_accept_match(self, _, payload):
         order_id, matched_order_id, reserved_quantity = self.matching_engine.matches[payload.match_id]
         self.logger.debug("Received accept-match message (%s vs %s), modifying quantities if necessary",
                           order_id, matched_order_id)
@@ -1017,17 +995,15 @@ class MarketCommunity(Community, BlockListener):
         self.logger.debug("Sending decline match message with match id %s to trader "
                           "%s (ip: %s, port: %s)", str(match_id), str(matchmaker_trader_id), *address)
 
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = (self.message_repository.next_identity(), Timestamp.now(), match_id, decline_reason)
         payload = DeclineMatchPayload(*payload).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 9, [auth, dist, payload])
+        packet = self._ez_pack(self._prefix, 9, [auth, payload])
         self.endpoint.send(address, packet)
 
-    def received_decline_match(self, _, data):
-        _, _, payload = self._ez_unpack_auth(DeclineMatchPayload, data)
+    @lazy_wrapper(DeclineMatchPayload)
+    def received_decline_match(self, _, payload):
         order_id, matched_order_id, quantity = self.matching_engine.matches[payload.match_id]
         self.logger.debug("Received decline-match message for tick %s matched with %s", order_id, matched_order_id)
 
@@ -1083,12 +1059,10 @@ class MarketCommunity(Community, BlockListener):
         # Add the local address to the payload
         payload += (SocketAddress(self.get_ipv8_address()[0], self.get_ipv8_address()[1]),)
 
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = TradePayload(*payload).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 10, [auth, dist, payload])
+        packet = self._ez_pack(self._prefix, 10, [auth, payload])
         self.endpoint.send(self.lookup_ip(proposed_trade.recipient_order_id.trader_id), packet)
 
         self.logger.debug("Sending proposed trade with own order id %s and other order id %s to trader "
@@ -1111,9 +1085,8 @@ class MarketCommunity(Community, BlockListener):
                 and cache.proposed_trade.order_id == order_id
                 and cache.proposed_trade.recipient_order_id == partner_order_id]
 
-    def received_proposed_trade(self, _, data):
-        _, _, payload = self._ez_unpack_auth(TradePayload, data)
-
+    @lazy_wrapper(TradePayload)
+    def received_proposed_trade(self, _, payload):
         validation = self.check_trade_payload_validity(payload)
         if not validation[0]:
             self.logger.warning("Validation of proposed trade payload failed: %s", validation[1])
@@ -1187,17 +1160,14 @@ class MarketCommunity(Community, BlockListener):
         assert isinstance(declined_trade, DeclinedTrade), type(declined_trade)
         payload = declined_trade.to_network()
 
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = DeclineTradePayload(*payload).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 11, [auth, dist, payload])
+        packet = self._ez_pack(self._prefix, 11, [auth, payload])
         self.endpoint.send(self.lookup_ip(declined_trade.recipient_order_id.trader_id), packet)
 
-    def received_decline_trade(self, _, data):
-        _, _, payload = self._ez_unpack_auth(DeclineTradePayload, data)
-
+    @lazy_wrapper(DeclineTradePayload)
+    def received_decline_trade(self, _, payload):
         validation = self.check_trade_payload_validity(payload)
         if not validation[0]:
             self.logger.warning("Validation of decline trade payload failed: %s", validation[1])
@@ -1236,17 +1206,14 @@ class MarketCommunity(Community, BlockListener):
         # Add the local address to the payload
         payload += (SocketAddress(self.get_ipv8_address()[0], self.get_ipv8_address()[1]),)
 
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = TradePayload(*payload).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 12, [auth, dist, payload])
+        packet = self._ez_pack(self._prefix, 12, [auth, payload])
         self.endpoint.send(self.lookup_ip(counter_trade.recipient_order_id.trader_id), packet)
 
-    def received_counter_trade(self, _, data):
-        _, _, payload = self._ez_unpack_auth(TradePayload, data)
-
+    @lazy_wrapper(TradePayload)
+    def received_counter_trade(self, _, payload):
         validation = self.check_trade_payload_validity(payload)
         if not validation[0]:
             self.logger.warning("Validation of counter trade payload failed: %s", validation[1])
@@ -1301,18 +1268,14 @@ class MarketCommunity(Community, BlockListener):
     def send_start_transaction(self, transaction, start_transaction):
         payload = start_transaction.to_network()
 
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = StartTransactionPayload(*payload).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 13, [auth, dist, payload])
+        packet = self._ez_pack(self._prefix, 13, [auth, payload])
         self.endpoint.send(self.lookup_ip(transaction.partner_order_id.trader_id), packet)
 
-    def received_start_transaction(self, source_address, data):
-        auth, _, payload = self._ez_unpack_auth(StartTransactionPayload, data)
-        peer = Peer(auth.public_key_bin, source_address)
-
+    @lazy_wrapper(StartTransactionPayload)
+    def received_start_transaction(self, peer, payload):
         start_transaction = StartTransaction.from_network(payload)
 
         if not self.request_cache.has(u"proposed-trade", start_transaction.proposal_id):
@@ -1359,22 +1322,19 @@ class MarketCommunity(Community, BlockListener):
         request_deferred = Deferred()
         cache = self.request_cache.add(OrderStatusRequestCache(self, request_deferred))
 
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         message_id = self.message_repository.next_identity()
         payload = OrderStatusRequestPayload(message_id, Timestamp.now(), order_id, cache.number).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 16, [auth, dist, payload])
+        packet = self._ez_pack(self._prefix, 16, [auth, payload])
         self.endpoint.send(self.lookup_ip(order_id.trader_id), packet)
 
         return request_deferred
 
-    def received_order_status_request(self, source_address, data):
-        auth, dist, payload = self._ez_unpack_auth(OrderStatusRequestPayload, data)
+    @lazy_wrapper(OrderStatusRequestPayload)
+    def received_order_status_request(self, peer, payload):
         order = self.order_manager.order_repository.find_by_id(payload.order_id)
 
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
 
         address = SocketAddress(self.get_ipv8_address()[0], self.get_ipv8_address()[1])
@@ -1382,13 +1342,12 @@ class MarketCommunity(Community, BlockListener):
         order_payload.insert(len(order_payload) - 1, address)
         order_payload.append(payload.identifier)
         new_payload = OrderStatusResponsePayload(*order_payload).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 17, [auth, dist, new_payload])
-        self.endpoint.send(source_address, packet)
+        packet = self._ez_pack(self._prefix, 17, [auth, new_payload])
+        self.endpoint.send(peer.address, packet)
 
-    def received_order_status(self, _, data):
-        _, _, payload = self._ez_unpack_auth(OrderStatusResponsePayload, data)
+    @lazy_wrapper(OrderStatusResponsePayload)
+    def received_order_status(self, _, payload):
         request = self.request_cache.pop(u"order-status-request", payload.identifier)
 
         # Convert the order status to a dictionary that is saved on TradeChain
@@ -1420,20 +1379,18 @@ class MarketCommunity(Community, BlockListener):
 
         message_id = self.message_repository.next_identity()
         payload = (message_id, Timestamp.now(), transaction.transaction_id, incoming_address, outgoing_address)
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
 
         new_payload = WalletInfoPayload(*payload).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 14, [auth, dist, new_payload])
+        packet = self._ez_pack(self._prefix, 14, [auth, new_payload])
         self.endpoint.send(self.lookup_ip(transaction.partner_order_id.trader_id), packet)
 
         transaction.sent_wallet_info = True
         self.transaction_manager.transaction_repository.update(transaction)
 
-    def received_wallet_info(self, _, data):
-        _, _, payload = self._ez_unpack_auth(WalletInfoPayload, data)
+    @lazy_wrapper(WalletInfoPayload)
+    def received_wallet_info(self, _, payload):
         self.logger.info("Received wallet info from trader %s", payload.message_id.trader_id)
 
         transaction = self.transaction_manager.find_by_id(payload.transaction_id)
@@ -1509,19 +1466,15 @@ class MarketCommunity(Community, BlockListener):
             self.tribler_session.notifier.notify(NTFY_MARKET_ON_PAYMENT_SENT, NTFY_UPDATE, None,
                                                  payment_message.to_dictionary())
 
-        global_time = self.claim_global_time()
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
 
         new_payload = PaymentPayload(*payment_message.to_network()).to_pack_list()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 15, [auth, dist, new_payload])
+        packet = self._ez_pack(self._prefix, 15, [auth, new_payload])
         self.endpoint.send(self.lookup_ip(transaction.partner_order_id.trader_id), packet)
 
-    def received_payment_message(self, source_address, data):
-        auth, _, payload = self._ez_unpack_auth(PaymentPayload, data)
-        peer = Peer(auth.public_key_bin, source_address)
-
+    @lazy_wrapper(PaymentPayload)
+    def received_payment_message(self, peer, payload):
         payment = Payment.from_network(payload)
         self.logger.debug("Received payment message with price %s and quantity %s",
                           payment.transferee_price, payment.transferee_quantity)

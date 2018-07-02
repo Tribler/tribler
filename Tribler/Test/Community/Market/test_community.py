@@ -338,3 +338,10 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         self.nodes[0].overlay.get_online_matchmaker()
         yield self.sleep(0.2)
         self.assertFalse(self.nodes[0].overlay.matchmakers)
+
+    @twisted_wrapper
+    def test_ping_pong(self):
+        """
+        Test the ping/pong mechanism of the market
+        """
+        yield self.nodes[0].overlay.ping_peer(self.nodes[1].overlay.my_peer)
