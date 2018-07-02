@@ -163,6 +163,26 @@ class TorrentInfoResponsePayload(Payload):
     def infohash(self):
         return self._infohash
 
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def length(self):
+        return self._length
+
+    @property
+    def creation_date(self):
+        return self._creation_date
+
+    @property
+    def num_files(self):
+        return self._num_files
+
+    @property
+    def comment(self):
+        return self._comment
+
 
 class SearchResponseItemPayload(Payload):
     """
