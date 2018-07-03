@@ -111,6 +111,7 @@ class MarketCommunity(Community, BlockListener):
                        "4cfc8acd163acb84e13cbfcec67d00d41eca49bd2fb861cc89d63005fd192369547fa571a2514bad86eb438ba68ca"
                        "fea5ea935e03babe16bb2cf8390487b3a50666f048632f0a38c722dd3b37e4d115b625dedd22426fc4bf48d80275a"
                        "98a3ee32470e766473c0a10ef6781b7f544bf0683a96b2eda78e4f1e13437".decode('hex'))
+    PROTOCOL_VERSION = 1
 
     def __init__(self, *args, **kwargs):
         self.is_matchmaker = kwargs.pop('is_matchmaker', True)
@@ -640,6 +641,13 @@ class MarketCommunity(Community, BlockListener):
                 self.process_match_payload(match_payload)
 
     def received_block(self, block):
+        """
+        We received a block for the market community.
+        Process it accordingly, after checking the version number first.
+        """
+        if "version" not in block.transaction or block.transaction["version"] != self.PROTOCOL_VERSION:
+            return
+
         if block.type == "tick":
             self.process_tick_block(block)
         elif block.type == "tx_init":
@@ -698,7 +706,8 @@ class MarketCommunity(Community, BlockListener):
         """
         def create_send_block(matchmaker):
             tx_dict = {
-                "tick": tick.to_block_dict()
+                "tick": tick.to_block_dict(),
+                "version": self.PROTOCOL_VERSION
             }
             tx_dict["tick"]['address'], tx_dict["tick"]['port'] = self.get_ipv8_address()
             return self.trustchain.sign_block(matchmaker, matchmaker.public_key.key_to_bin(),
@@ -719,7 +728,8 @@ class MarketCommunity(Community, BlockListener):
         def create_send_block(matchmaker):
             tx_dict = {
                 "trader_id": str(order.order_id.trader_id),
-                "order_number": int(order.order_id.order_number)
+                "order_number": int(order.order_id.order_number),
+                "version": self.PROTOCOL_VERSION
             }
             return self.trustchain.sign_block(matchmaker, matchmaker.public_key.key_to_bin(),
                                               block_type='cancel_order', transaction=tx_dict)\
@@ -746,7 +756,8 @@ class MarketCommunity(Community, BlockListener):
         tx_dict = {
             "ask": ask_order_dict,
             "bid": bid_order_dict,
-            "tx": transaction.to_dictionary()
+            "tx": transaction.to_dictionary(),
+            "version": self.PROTOCOL_VERSION
         }
         return self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
                                           block_type='tx_init', transaction=tx_dict)\
@@ -765,7 +776,8 @@ class MarketCommunity(Community, BlockListener):
         :rtype: Deferred
         """
         tx_dict = {
-            "payment": payment.to_dictionary()
+            "payment": payment.to_dictionary(),
+            "version": self.PROTOCOL_VERSION
         }
         return self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
                                           block_type='tx_payment', transaction=tx_dict)\
@@ -790,7 +802,8 @@ class MarketCommunity(Community, BlockListener):
         tx_dict = {
             "ask": ask_order_dict,
             "bid": bid_order_dict,
-            "tx": transaction.to_dictionary()
+            "tx": transaction.to_dictionary(),
+            "version": self.PROTOCOL_VERSION
         }
         return self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
                                           block_type='tx_done', transaction=tx_dict)\
