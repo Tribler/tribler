@@ -160,25 +160,25 @@ class Session(object):
 
             # There are some errors that we are ignoring.
             # No route to host: this issue is non-critical since Tribler can still function when a request fails.
-            if 'socket.error: [Errno 113]' in text:
+            if 'socket.error' in text and '[Errno 113]' in text:
                 self._logger.error("Observed no route to host error (but ignoring)."
                                    "This might indicate a problem with your firewall.")
                 return
 
             # Socket block: this sometimes occurres on Windows and is non-critical.
-            if 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE in text:
+            if 'socket.error' in text and '[Errno %s]' % SOCKET_BLOCK_ERRORCODE in text:
                 self._logger.error("Unable to send data due to socket.error %s", SOCKET_BLOCK_ERRORCODE)
                 return
 
-            if 'socket.error: [Errno 51]' in text:
+            if 'socket.error' in text and '[Errno 51]' in text:
                 self._logger.error("Could not send data: network is unreachable.")
                 return
 
-            if 'socket.error: [Errno 16]' in text:
+            if 'socket.error' in text and '[Errno 16]' in text:
                 self._logger.error("Could not send data: socket is busy.")
                 return
 
-            if 'socket.error: [Errno 10054]' in text:
+            if 'socket.error' in text and '[Errno 10054]' in text:
                 self._logger.error("Connection forcibly closed by the remote host.")
                 return
 

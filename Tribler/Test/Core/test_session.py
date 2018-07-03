@@ -144,7 +144,6 @@ class TestSessionAsServer(TestAsServer):
         self.session.unhandled_error_observer({'isError': True,
                                                'log_failure': 'exceptions.RuntimeError: invalid info-hash'})
 
-
     @deferred(timeout=10)
     def test_add_torrent_def_to_channel(self):
         """
