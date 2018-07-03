@@ -161,9 +161,6 @@ class MarketCommunity(Community, BlockListener):
         for trader in self.market_database.get_traders():
             self.update_ip(TraderId(str(trader[0])), (str(trader[1]), trader[2]))
 
-        # Determine the reputation of peers every five minutes
-        self.register_task("calculate_reputation", LoopingCall(self.compute_reputation)).start(300.0, now=False)
-
         # Register messages
         self.decode_map.update({
             chr(7): self.received_match,
