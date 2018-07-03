@@ -137,12 +137,12 @@ class TestSessionAsServer(TestAsServer):
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 113]'})
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 51]'})
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 16]'})
+        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 10054]'})
         self.session.unhandled_error_observer({'isError': True,
                                                'log_failure': 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'exceptions.ValueError: Invalid DNS-ID'})
         self.session.unhandled_error_observer({'isError': True,
                                                'log_failure': 'exceptions.RuntimeError: invalid info-hash'})
-
 
     @deferred(timeout=10)
     def test_add_torrent_def_to_channel(self):

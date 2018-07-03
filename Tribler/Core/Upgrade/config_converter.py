@@ -1,6 +1,6 @@
 import ast
 import os
-from ConfigParser import RawConfigParser, DuplicateSectionError, NoSectionError
+from ConfigParser import RawConfigParser, DuplicateSectionError, NoSectionError, MissingSectionHeaderError
 import logging
 from glob import iglob
 
@@ -39,7 +39,12 @@ def convert_config_to_tribler71(current_config, state_dir=None):
     for _, filename in enumerate(iglob(
             os.path.join(state_dir, STATEDIR_DLPSTATE_DIR, '*.state'))):
         download_cfg = RawConfigParser()
-        download_cfg.read(filename)
+        try:
+            with open(filename) as cfg_file:
+                download_cfg.readfp(cfg_file, filename=filename)
+        except MissingSectionHeaderError:
+            logger.error("Removing download state file %s since it appears to be corrupt", filename)
+            os.remove(filename)
 
         try:
             download_items = download_cfg.items("downloadconfig")
