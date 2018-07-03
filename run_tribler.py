@@ -7,6 +7,27 @@ from check_os import check_environment, check_free_space, error_and_exit, setup_
     should_kill_other_tribler_instances, enable_fault_handler, set_process_priority
 
 
+# https://github.com/Tribler/tribler/issues/3702
+# We need to make sure that anyone running cp65001 can print to the stdout before we print anything.
+# Annoyingly cp65001 is not shipped by default, so we add support for it through mapping it to mbcs.
+if getattr(sys.stdout, 'encoding', None) == 'cp65001':
+    import codecs
+
+    def remapped_mbcs(_):
+        mbcs_codec = codecs.lookup('mbcs')
+        return codecs.CodecInfo(
+            name='cp65001',
+            encode=mbcs_codec.encode,
+            decode=mbcs_codec.decode,
+            incrementalencoder=mbcs_codec.incrementalencoder,
+            incrementaldecoder=mbcs_codec.incrementaldecoder,
+            streamreader=mbcs_codec.streamreader,
+            streamwriter=mbcs_codec.streamwriter,
+        )
+
+    codecs.register(remapped_mbcs)
+
+
 def start_tribler_core(base_path, api_port):
     """
     This method will start a new Tribler session.
