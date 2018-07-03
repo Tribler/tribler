@@ -7,8 +7,8 @@ from Tribler.Test.twisted_thread import deferred
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.orderbook import OrderBook, DatabaseOrderBook
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Price
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.tick import Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
@@ -188,20 +188,20 @@ class TestOrderBook(AbstractTestOrderBook):
             "trader_id": str(self.ask.order_id.trader_id),
             "order_number": int(self.ask.order_id.order_number),
             "quantity": 3,
-            "quantity_type": self.ask.quantity.wallet_id,
+            "quantity_type": self.ask.quantity.asset_id,
             "traded_quantity": 3
         }
         bid_dict = {
             "trader_id": str(self.bid.order_id.trader_id),
             "order_number": int(self.bid.order_id.order_number),
             "quantity": 3,
-            "quantity_type": self.bid.quantity.wallet_id,
+            "quantity_type": self.bid.quantity.asset_id,
             "traded_quantity": 3
         }
 
-        self.order_book.get_tick(self.ask.order_id).reserve_for_matching(Quantity(3, self.ask.quantity.wallet_id))
-        self.order_book.get_tick(self.bid.order_id).reserve_for_matching(Quantity(3, self.bid.quantity.wallet_id))
-        self.order_book.update_ticks(ask_dict, bid_dict, Quantity(3, self.ask.quantity.wallet_id), unreserve=True)
+        self.order_book.get_tick(self.ask.order_id).reserve_for_matching(Quantity(3, self.ask.quantity.asset_id))
+        self.order_book.get_tick(self.bid.order_id).reserve_for_matching(Quantity(3, self.bid.quantity.asset_id))
+        self.order_book.update_ticks(ask_dict, bid_dict, Quantity(3, self.ask.quantity.asset_id), unreserve=True)
 
         self.assertEqual(len(self.order_book.asks), 0)
         self.assertEqual(len(self.order_book.bids), 0)
@@ -212,9 +212,9 @@ class TestOrderBook(AbstractTestOrderBook):
         self.order_book.insert_bid(self.bid)
 
         self.assertEquals('------ Bids -------\n'
-                          '30.000000 MC\t@\t200.000000 BTC (R: 0.000000 MC)\n\n'
+                          '30 MC\t@\t200 BTC (R: 0 MC)\n\n'
                           '------ Asks -------\n'
-                          '30.000000 MC\t@\t100.000000 BTC (R: 0.000000 MC)\n\n', str(self.order_book))
+                          '30 MC\t@\t100 BTC (R: 0 MC)\n\n', str(self.order_book))
 
 
 class TestDatabaseOrderBook(AbstractTestOrderBook):

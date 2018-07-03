@@ -8,13 +8,12 @@ from twisted.python.failure import Failure
 
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Price
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.side import Side
 from Tribler.community.market.core.tick import Tick, Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.database import MarketDB
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
@@ -242,8 +241,8 @@ class OrderBook(TaskManager):
         Return the price in between the bid and the ask price
         :rtype: Price
         """
-        ask_price = int(self.get_ask_price(price_wallet_id, quantity_wallet_id))
-        bid_price = int(self.get_bid_price(price_wallet_id, quantity_wallet_id))
+        ask_price = self.get_ask_price(price_wallet_id, quantity_wallet_id).amount
+        bid_price = self.get_bid_price(price_wallet_id, quantity_wallet_id).amount
         return Price((ask_price + bid_price) / 2, price_wallet_id)
 
     def bid_side_depth(self, price):

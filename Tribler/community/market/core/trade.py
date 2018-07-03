@@ -2,8 +2,6 @@ import random
 
 from Tribler.community.market.core.message import Message
 from Tribler.community.market.core.order import OrderId
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.timestamp import Timestamp
 
 
@@ -209,13 +207,7 @@ class ProposedTrade(Trade):
         Return whether this trade proposal has an acceptable price.
         :rtype: bool
         """
-        def isclose(price_a, price_b):
-            price_a = float(price_a)
-            price_b = float(price_b)
-            return abs(price_a - price_b) <= 1e-06
-
-        return (is_ask and (self.price >= order_price or isclose(self.price, order_price))) or \
-               (not is_ask and (self.price <= order_price or isclose(self.price, order_price)))
+        return (is_ask and self.price >= order_price) or (not is_ask and self.price <= order_price)
 
     def to_network(self):
         """

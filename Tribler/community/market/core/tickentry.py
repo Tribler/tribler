@@ -2,7 +2,7 @@ import logging
 
 from twisted.internet import reactor
 
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.tick import Tick
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
@@ -25,7 +25,7 @@ class TickEntry(TaskManager):
         self._price_level = price_level
         self._prev_tick = None
         self._next_tick = None
-        self._reserved_for_matching = Quantity(0, tick.quantity.wallet_id)
+        self._reserved_for_matching = Quantity(0, tick.quantity.asset_id)
         self._blocked_for_matching = []
 
     @property

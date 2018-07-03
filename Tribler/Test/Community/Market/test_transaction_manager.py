@@ -2,8 +2,8 @@ import unittest
 
 from Tribler.community.market.core.payment import Payment
 from Tribler.community.market.core.payment_id import PaymentId
-from Tribler.community.market.core.quantity import Quantity
-from Tribler.community.market.core.price import Price
+from Tribler.community.market.core.assetamount import Quantity
+from Tribler.community.market.core.assetamount import Price
 from Tribler.community.market.core.timeout import Timestamp
 from Tribler.community.market.core.transaction import TransactionNumber, TransactionId, Transaction, StartTransaction
 from Tribler.community.market.core.transaction_repository import MemoryTransactionRepository

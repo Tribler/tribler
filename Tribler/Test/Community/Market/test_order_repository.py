@@ -7,8 +7,8 @@ from Tribler.Test.test_as_server import AbstractServer
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.order_repository import MemoryOrderRepository, DatabaseOrderRepository
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Price
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.database import MarketDB

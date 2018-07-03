@@ -74,7 +74,8 @@ class TrustchainWallet(Wallet, BlockListener):
         return succeed({
             'available': self.get_bandwidth_tokens() / MEGA_DIV,
             'pending': 0,
-            'currency': self.get_identifier()
+            'currency': self.get_identifier(),
+            'precision': self.precision()
         })
 
     def transfer(self, quantity, peer):
@@ -152,7 +153,8 @@ class TrustchainWallet(Wallet, BlockListener):
         """
         peers_you_helped = set()
         peers_helped_you = set()
-        for block in self.trustchain.persistence.get_latest_blocks(public_key, limit=-1):
+        for block in self.trustchain.persistence.get_latest_blocks(public_key, limit=-1,
+                                                                   block_type='tribler_bandwidth'):
             if int(block.transaction["up"]) > 0:
                 peers_you_helped.add(block.link_public_key)
             if int(block.transaction["down"]) > 0:
@@ -227,3 +229,6 @@ class TrustchainWallet(Wallet, BlockListener):
         result = {'private_key': tmp_peer.key.key_to_bin().encode('base64'),
                   'transaction': {'up': amount, 'down': 0}, 'block': block}
         return result
+
+    def precision(self):
+        return 0

@@ -7,8 +7,8 @@ from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.payment import Payment
 from Tribler.community.market.core.payment_id import PaymentId
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Price
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
@@ -191,4 +191,4 @@ class TestDatabase(AbstractServer):
         self.database.execute(u"DROP TABLE ticks;")
         self.database.execute(u"CREATE TABLE orders(x INTEGER PRIMARY KEY ASC);")
         self.database.execute(u"CREATE TABLE ticks(x INTEGER PRIMARY KEY ASC);")
-        self.assertEqual(self.database.check_database(u"1"), 2)
+        self.assertEqual(self.database.check_database(u"1"), 3)

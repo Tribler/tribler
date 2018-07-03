@@ -1,5 +1,4 @@
 from Tribler.community.market.core.order import OrderId
-from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.pricelevel import PriceLevel
 from Tribler.community.market.core.pricelevel_list import PriceLevelList
 from Tribler.community.market.core.tick import Tick
@@ -48,10 +47,10 @@ class Side(object):
         :type price: Price
         :type quantity_wallet_id: str
         """
-        self._depth[(price.wallet_id, quantity_wallet_id)] += 1
+        self._depth[(price.asset_id, quantity_wallet_id)] += 1
 
         price_level = PriceLevel(quantity_wallet_id, price)
-        self._price_level_list_map[(price.wallet_id, quantity_wallet_id)].insert(price, price_level)
+        self._price_level_list_map[(price.asset_id, quantity_wallet_id)].insert(price, price_level)
         self._price_map[price] = price_level
 
     def _remove_price_level(self, price, quantity_wallet_id):
@@ -61,9 +60,9 @@ class Side(object):
         :type price: Price
         :type quantity_wallet_id: str
         """
-        self._depth[(price.wallet_id, quantity_wallet_id)] -= 1
+        self._depth[(price.asset_id, quantity_wallet_id)] -= 1
 
-        self._price_level_list_map[(price.wallet_id, quantity_wallet_id)].remove(price)
+        self._price_level_list_map[(price.asset_id, quantity_wallet_id)].remove(price)
         del self._price_map[price]
 
     def _price_level_exists(self, price):
@@ -89,12 +88,12 @@ class Side(object):
         :param tick: The tick to insert
         :type tick: Tick
         """
-        if (tick.price.wallet_id, tick.quantity.wallet_id) not in self._price_level_list_map:
-            self._price_level_list_map[(tick.price.wallet_id, tick.quantity.wallet_id)] = PriceLevelList()
-            self._depth[(tick.price.wallet_id, tick.quantity.wallet_id)] = 0
+        if (tick.price.asset_id, tick.quantity.asset_id) not in self._price_level_list_map:
+            self._price_level_list_map[(tick.price.asset_id, tick.quantity.asset_id)] = PriceLevelList()
+            self._depth[(tick.price.asset_id, tick.quantity.asset_id)] = 0
 
         if not self._price_level_exists(tick.price):  # First tick for that price
-            self._create_price_level(tick.price, tick.quantity.wallet_id)
+            self._create_price_level(tick.price, tick.quantity.asset_id)
         tick_entry = TickEntry(tick, self._price_map[tick.price])
         self.get_price_level(tick.price).append_tick(tick_entry)
         self._tick_map[tick.order_id] = tick_entry
@@ -109,7 +108,7 @@ class Side(object):
             tick.shutdown_task_manager()
             tick.price_level().remove_tick(tick)
             if len(tick.price_level()) == 0:  # Last tick for that price
-                self._remove_price_level(tick.price, tick.quantity.wallet_id)
+                self._remove_price_level(tick.price, tick.quantity.asset_id)
             del self._tick_map[order_id]
 
     def get_price_level_list(self, price_wallet_id, quantity_wallet_id):

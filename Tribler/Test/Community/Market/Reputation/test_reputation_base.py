@@ -20,10 +20,10 @@ class TestReputationBase(AbstractServer):
     def insert_transaction(self, pubkey1, pubkey2, quantity, price):
         transaction = {
             "tx": {
-                "quantity_type": quantity.wallet_id,
-                "quantity": float(quantity),
-                "price_type": price.wallet_id,
-                "price": float(price)
+                "quantity_type": quantity.asset_id,
+                "quantity": quantity.amount,
+                "price_type": price.asset_id,
+                "price": price.amount
             },
         }
         block = TrustChainBlock.create('tx_done', transaction, self.market_db, pubkey1,

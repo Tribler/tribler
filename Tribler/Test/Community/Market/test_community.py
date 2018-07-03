@@ -100,7 +100,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         yield self.introduce_nodes()
 
         order = yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
-        order._traded_quantity._quantity = 1  # So it looks like this order has already been fulfilled
+        order._traded_quantity._amount = 1  # So it looks like this order has already been fulfilled
 
         yield self.sleep(0.5)
 
@@ -121,7 +121,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         yield self.introduce_nodes()
 
         order = yield self.nodes[0].overlay.create_ask(2, 'DUM1', 2, 'DUM2', 3600)
-        order._traded_quantity._quantity = 1  # Partially fulfill this order
+        order._traded_quantity._amount = 1  # Partially fulfill this order
 
         yield self.sleep(0.5)  # Give it some time to complete the trade
 
@@ -218,8 +218,8 @@ class TestMarketCommunity(TestMarketCommunityBase):
 
         ask_tick_entry = self.nodes[2].overlay.order_book.get_tick(ask_order.order_id)
         bid_tick_entry = self.nodes[2].overlay.order_book.get_tick(bid_order.order_id)
-        self.assertEqual(float(bid_tick_entry.reserved_for_matching), 0)
-        self.assertEqual(float(ask_tick_entry.reserved_for_matching), 0)
+        self.assertEqual(bid_tick_entry.reserved_for_matching.amount, 0)
+        self.assertEqual(ask_tick_entry.reserved_for_matching.amount, 0)
 
     @twisted_wrapper(4)
     def test_orderbook_sync(self):
@@ -262,8 +262,8 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         """
         yield self.introduce_nodes()
 
-        yield self.nodes[0].overlay.create_ask(1, 'DUM1', 1, 'DUM2', 3600)
-        yield self.nodes[1].overlay.create_bid(1, 'DUM1', 1, 'DUM2', 3600)
+        yield self.nodes[0].overlay.create_ask(10, 'DUM1', 13, 'DUM2', 3600)
+        yield self.nodes[1].overlay.create_bid(10, 'DUM1', 13, 'DUM2', 3600)
 
         yield self.sleep(0.5)
 
@@ -273,13 +273,13 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
 
         balance1 = yield self.nodes[0].overlay.wallets['DUM1'].get_balance()
         balance2 = yield self.nodes[0].overlay.wallets['DUM2'].get_balance()
-        self.assertEqual(balance1['available'], 1001)
-        self.assertEqual(balance2['available'], 999)
+        self.assertEqual(balance1['available'], 1130)
+        self.assertEqual(balance2['available'], 9987)
 
         balance1 = yield self.nodes[1].overlay.wallets['DUM1'].get_balance()
         balance2 = yield self.nodes[1].overlay.wallets['DUM2'].get_balance()
-        self.assertEqual(balance1['available'], 999)
-        self.assertEqual(balance2['available'], 1001)
+        self.assertEqual(balance1['available'], 870)
+        self.assertEqual(balance2['available'], 10013)
 
     @twisted_wrapper(4)
     def test_partial_trade(self):
@@ -302,7 +302,7 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         # There should be no reserved quantity for the bid tick
         for node_nr in [0, 1]:
             bid_tick_entry = self.nodes[node_nr].overlay.order_book.get_tick(bid_order.order_id)
-            self.assertEqual(float(bid_tick_entry.reserved_for_matching), 0)
+            self.assertEqual(bid_tick_entry.reserved_for_matching.amount, 0)
 
         yield self.nodes[0].overlay.create_ask(1, 'DUM1', 8, 'DUM2', 3600)
 

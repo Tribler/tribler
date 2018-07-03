@@ -4,8 +4,8 @@ import time
 
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber, TickWasNotReserved
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Price
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
@@ -79,7 +79,7 @@ class OrderTestSuite(unittest.TestCase):
         self.assertEquals(Quantity(0, 'MC'), self.order.reserved_quantity)
 
         self.order.reserve_quantity_for_tick(self.tick.order_id, self.tick.quantity)
-        quantity = self.tick.quantity + Quantity(1, self.tick.quantity.wallet_id)
+        quantity = self.tick.quantity + Quantity(1, self.tick.quantity.asset_id)
         self.assertRaises(ValueError, self.order.release_quantity_for_tick, self.tick.order_id, quantity)
 
     def test_release_unreserved_quantity(self):

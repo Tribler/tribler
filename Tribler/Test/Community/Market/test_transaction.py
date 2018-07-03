@@ -3,8 +3,8 @@ import unittest
 from Tribler.community.market.core.payment import Payment
 from Tribler.community.market.core.payment_id import PaymentId
 from Tribler.community.market.core.transaction import TransactionNumber, TransactionId, Transaction, StartTransaction
-from Tribler.community.market.core.quantity import Quantity
-from Tribler.community.market.core.price import Price
+from Tribler.community.market.core.assetamount import Quantity
+from Tribler.community.market.core.assetamount import Price
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.message import TraderId
@@ -149,7 +149,7 @@ class TransactionTestSuite(unittest.TestCase):
         self.assertEqual(self.transaction.next_payment(False, 2, incremental=True), Price(2, 'BTC'))
 
         set_transaction_data(Price(1, 'BTC'), Quantity(1, 'MC'), Price(1, 'BTC'), Quantity(1, 'MC'))
-        self.assertEqual(self.transaction.next_payment(True, 0.1, incremental=True), Quantity(0.2, 'MC'))
+        self.assertEqual(self.transaction.next_payment(True, 1, incremental=True), Quantity(2, 'MC'))
 
         # Test completion of trade
         set_transaction_data(Price(3000, 'BTC'), Quantity(29, 'MC'), Price(1, 'BTC'), Quantity(1, 'MC'))

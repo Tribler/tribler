@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QTreeWidgetItem
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_image_path
+from TriblerGUI.utilities import get_image_path, prec_div
 from TriblerGUI.widgets.transactionwidgetitem import TransactionWidgetItem
 
 
@@ -20,8 +20,9 @@ class MarketTransactionsPage(QWidget):
         self.request_mgr = None
         self.initialized = False
         self.selected_transaction_item = None
+        self.wallets = {}
 
-    def initialize_transactions_page(self):
+    def initialize_transactions_page(self, wallets):
         if not self.initialized:
             self.window().core_manager.events_manager.market_payment_received.connect(self.on_payment)
             self.window().core_manager.events_manager.market_payment_sent.connect(self.on_payment)
@@ -32,6 +33,7 @@ class MarketTransactionsPage(QWidget):
             self.initialized = True
 
         self.window().market_payments_container.hide()
+        self.wallets = wallets
         self.load_transactions()
 
     def load_transactions(self):
@@ -59,6 +61,16 @@ class MarketTransactionsPage(QWidget):
 
     def on_received_transactions(self, transactions):
         for transaction in transactions["transactions"]:
+            if self.wallets:
+                transaction["quantity"] = prec_div(transaction["quantity"],
+                                                   self.wallets[transaction["quantity_type"]]["precision"])
+                transaction["transferred_quantity"] = prec_div(transaction["transferred_quantity"],
+                                                               self.wallets[transaction["quantity_type"]]["precision"])
+                transaction["price"] = prec_div(transaction["price"],
+                                                self.wallets[transaction["price_type"]]["precision"])
+                transaction["transferred_price"] = prec_div(transaction["transferred_price"],
+                                                            self.wallets[transaction["price_type"]]["precision"])
+
             item = TransactionWidgetItem(self.window().market_transactions_list, transaction)
             item.update_item()
             self.window().market_transactions_list.addTopLevelItem(item)
@@ -83,6 +95,10 @@ class MarketTransactionsPage(QWidget):
             self.add_payment_to_list(payment)
 
     def add_payment_to_list(self, payment):
+        if self.wallets:
+            payment["price"] = prec_div(payment["price"], self.wallets[payment["price_type"]]["precision"])
+            payment["quantity"] = prec_div(payment["quantity"], self.wallets[payment["quantity_type"]]["precision"])
+
         payment_time = datetime.datetime.fromtimestamp(int(payment["timestamp"])).strftime('%Y-%m-%d %H:%M:%S')
         item = QTreeWidgetItem(self.window().market_payments_list)
         item.setText(0, "%g %s" % (payment['price'], payment['price_type']))

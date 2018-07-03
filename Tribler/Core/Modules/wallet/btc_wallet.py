@@ -205,10 +205,11 @@ class BitcoinWallet(Wallet):
             return succeed({
                 "available": confirmed,
                 "pending": unconfirmed,
-                "currency": 'BTC'
+                "currency": 'BTC',
+                "precision": self.precision()
             })
 
-        return succeed({"available": 0, "pending": 0, "currency": 'BTC'})
+        return succeed({"available": 0, "pending": 0, "currency": 'BTC', "precision": self.precision()})
 
     def transfer(self, amount, address):
         def on_balance(balance):
@@ -305,7 +306,10 @@ class BitcoinWallet(Wallet):
         return succeed(transactions)
 
     def min_unit(self):
-        return 0.0001  # This is the minimum amount of BTC we can transfer in this market
+        return 100000  # The minimum amount of BTC we can transfer in this market is mBTC (100000 Satoshi)
+
+    def precision(self):
+        return 8
 
 
 class BitcoinTestnetWallet(BitcoinWallet):

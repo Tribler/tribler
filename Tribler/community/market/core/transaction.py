@@ -3,8 +3,8 @@ from decimal import Decimal
 
 from Tribler.community.market.core.message import TraderId, Message
 from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Price
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import ProposedTrade
 from Tribler.community.market.core.wallet_address import WalletAddress
@@ -121,10 +121,10 @@ class Transaction(object):
 
         self._transaction_id = transaction_id
         self._price = price
-        self._transferred_price = Price(0, price.wallet_id)
-        self._total_price = Price(float(price) * float(quantity), price.wallet_id)
+        self._transferred_price = Price(0, price.asset_id)
+        self._total_price = Price(price.amount * quantity.amount, price.asset_id)
         self._quantity = quantity
-        self._transferred_quantity = Quantity(0, quantity.wallet_id)
+        self._transferred_quantity = Quantity(0, quantity.asset_id)
         self._order_id = order_id
         self._partner_order_id = partner_order_id
         self._timestamp = timestamp
@@ -177,9 +177,9 @@ class Transaction(object):
         """
         return (unicode(self.transaction_id.trader_id), int(self.transaction_id.transaction_number),
                 unicode(self.order_id.trader_id), int(self.order_id.order_number),
-                unicode(self.partner_order_id.trader_id), int(self.partner_order_id.order_number), float(self.price),
-                unicode(self.price.wallet_id), float(self.transferred_price), float(self.total_quantity),
-                unicode(self.total_quantity.wallet_id), float(self.transferred_quantity), float(self.timestamp),
+                unicode(self.partner_order_id.trader_id), int(self.partner_order_id.order_number), self.price.amount,
+                unicode(self.price.asset_id), self.transferred_price.amount, self.total_quantity.amount,
+                unicode(self.total_quantity.asset_id), self.transferred_quantity.amount, float(self.timestamp),
                 self.sent_wallet_info, self.received_wallet_info, unicode(self.incoming_address),
                 unicode(self.outgoing_address), unicode(self.partner_incoming_address),
                 unicode(self.partner_outgoing_address), unicode(self.match_id))
@@ -299,9 +299,9 @@ class Transaction(object):
 
     def last_payment(self, is_ask):
         for payment in reversed(self._payments):
-            if is_ask and float(payment.transferee_quantity) > 0:
+            if is_ask and payment.transferee_quantity.amount > 0:
                 return payment
-            elif not is_ask and float(payment.transferee_price) > 0:
+            elif not is_ask and payment.transferee_price.amount > 0:
                 return payment
         return None
 
@@ -315,28 +315,28 @@ class Transaction(object):
         last_payment = self.last_payment(not order_is_ask)
         if not last_payment:
             # Just return the lowest unit possible
-            return Quantity(min_unit, self.total_quantity.wallet_id) if order_is_ask else \
-                Price(min_unit, self.total_price.wallet_id)
+            return Quantity(min_unit, self.total_quantity.asset_id) if order_is_ask else \
+                Price(min_unit, self.total_price.asset_id)
 
         # We determine the percentage of the last payment of the total amount
         if order_is_ask:
             if self.transferred_price >= self.total_price:  # Complete the trade
                 return self.total_quantity - self.transferred_quantity
 
-            percentage = float(last_payment.transferee_price) / float(self.total_price)
-            transfer_amount = Transaction.unitize(float(percentage * float(self.total_quantity)), min_unit) * 2
-            if transfer_amount > float(self.total_quantity - self.transferred_quantity):
-                transfer_amount = float(self.total_quantity - self.transferred_quantity)
-            return Quantity(transfer_amount, self.total_quantity.wallet_id)
+            percentage = float(last_payment.transferee_price.amount) / float(self.total_price.amount)
+            transfer_amount = Transaction.unitize(float(percentage * float(self.total_quantity.amount)), min_unit) * 2
+            if transfer_amount > (self.total_quantity - self.transferred_quantity).amount:
+                transfer_amount = (self.total_quantity - self.transferred_quantity).amount
+            return Quantity(transfer_amount, self.total_quantity.asset_id)
         else:
             if self.transferred_quantity >= self.total_quantity:  # Complete the trade
                 return self.total_price - self.transferred_price
 
-            percentage = float(last_payment.transferee_quantity) / float(self.total_quantity)
-            transfer_amount = Transaction.unitize(float(percentage * float(self.total_price)), min_unit) * 2
-            if transfer_amount > float(self.total_price - self.transferred_price):
-                transfer_amount = float(self.total_price - self.transferred_price)
-            return Price(transfer_amount, self.total_price.wallet_id)
+            percentage = float(last_payment.transferee_quantity.amount) / float(self.total_quantity.amount)
+            transfer_amount = Transaction.unitize(float(percentage * float(self.total_price.amount)), min_unit) * 2
+            if transfer_amount > (self.total_price - self.transferred_price).amount:
+                transfer_amount = (self.total_price - self.transferred_price).amount
+            return Price(transfer_amount, self.total_price.asset_id)
 
     def is_payment_complete(self):
         return self.transferred_price >= self.total_price and self.transferred_quantity >= self.total_quantity
@@ -351,12 +351,12 @@ class Transaction(object):
             "partner_trader_id": str(self.partner_order_id.trader_id),
             "partner_order_number": int(self.partner_order_id.order_number),
             "transaction_number": int(self.transaction_id.transaction_number),
-            "price": float(self.price),
-            "price_type": self.price.wallet_id,
-            "transferred_price": float(self.transferred_price),
-            "quantity": float(self.total_quantity),
-            "quantity_type": self.total_quantity.wallet_id,
-            "transferred_quantity": float(self.transferred_quantity),
+            "price": self.price.amount,
+            "price_type": self.price.asset_id,
+            "transferred_price": self.transferred_price.amount,
+            "quantity": self.total_quantity.amount,
+            "quantity_type": self.total_quantity.asset_id,
+            "transferred_quantity": self.transferred_quantity.amount,
             "timestamp": float(self.timestamp),
             "payment_complete": self.is_payment_complete(),
             "status": self.status

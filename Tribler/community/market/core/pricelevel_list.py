@@ -1,4 +1,3 @@
-from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.pricelevel import PriceLevel
 
 

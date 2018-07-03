@@ -5,8 +5,8 @@ from Tribler.community.market.core.matching_engine import MatchingEngine, PriceT
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.orderbook import OrderBook
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Price
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.tick import Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
@@ -295,7 +295,7 @@ class MatchingEngineTestSuite(AbstractServer):
         matching_ticks = self.matching_engine.match(self.order_book.get_bid(my_bid.order_id))
 
         self.assertEqual(len(matching_ticks), 3)
-        total_matched = sum([float(quantity) for _, _, quantity in matching_ticks])
+        total_matched = sum([quantity.amount for _, _, quantity in matching_ticks])
         self.assertEqual(Quantity(total_matched, 'MC'), Quantity(100, 'MC'))
 
     def test_multiple_price_levels_bids(self):
@@ -310,7 +310,7 @@ class MatchingEngineTestSuite(AbstractServer):
         matching_ticks = self.matching_engine.match(self.order_book.get_ask(my_ask.order_id))
 
         self.assertEqual(len(matching_ticks), 3)
-        total_matched = sum([float(quantity) for _, _, quantity in matching_ticks])
+        total_matched = sum([quantity.amount for _, _, quantity in matching_ticks])
         self.assertEqual(Quantity(total_matched, 'MC'), Quantity(100, 'MC'))
 
     def test_price_time_priority_asks(self):

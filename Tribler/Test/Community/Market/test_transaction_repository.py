@@ -4,8 +4,8 @@ from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.transaction_repository import MemoryTransactionRepository
 from Tribler.community.market.core.transaction import TransactionNumber, TransactionId, Transaction
 from Tribler.community.market.core.message import TraderId
-from Tribler.community.market.core.quantity import Quantity
-from Tribler.community.market.core.price import Price
+from Tribler.community.market.core.assetamount import Quantity
+from Tribler.community.market.core.assetamount import Price
 from Tribler.community.market.core.timestamp import Timestamp
 
 

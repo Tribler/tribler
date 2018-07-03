@@ -16,7 +16,7 @@ from TriblerGUI.dialogs.iom_input_dialog import IomInputDialog
 from TriblerGUI.dialogs.newmarketorderdialog import NewMarketOrderDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_image_path
+from TriblerGUI.utilities import get_image_path, prec_div
 from TriblerGUI.widgets.marketcurrencybox import MarketCurrencyBox
 from TriblerGUI.widgets.tickwidgetitem import TickWidgetItem
 
@@ -33,7 +33,7 @@ class MarketPage(QWidget):
         self.bids_request_mgr = None
         self.dialog = None
         self.initialized = False
-        self.wallets = []
+        self.wallets = {}
         self.chosen_wallets = None
         self.wallet_widgets = {}
 
@@ -96,12 +96,9 @@ class MarketPage(QWidget):
             self.window().create_ask_button.hide()
             self.window().create_bid_button.hide()
 
-        self.wallets = []
-        for wallet_id in wallets.keys():
-            self.wallets.append(wallet_id)
-
-        if self.chosen_wallets is None and len(self.wallets) >= 2:
-            self.chosen_wallets = (self.wallets[0], self.wallets[1])
+        self.wallets = wallets
+        if self.chosen_wallets is None and len(self.wallets.keys()) >= 2:
+            self.chosen_wallets = (self.wallets.keys()[0], self.wallets.keys()[1])
             self.update_button_texts()
 
         for wallet_id, wallet in wallets.iteritems():
@@ -119,12 +116,8 @@ class MarketPage(QWidget):
                 spacer = QSpacerItem(10, 20, QSizePolicy.Fixed, QSizePolicy.Fixed)
                 self.window().market_header_widget.layout().insertSpacerItem(5, spacer)
 
-            # The total balance keys might be different between wallet
-            balance_amount = wallet['balance']['available']
+            balance_amount = prec_div(wallet['balance']['available'], wallet['precision'])
             balance_currency = None
-
-            if wallet_id == 'PP' or wallet_id == 'ABNA' or wallet_id == 'RABO':
-                balance_currency = wallet['balance']['currency']
 
             self.wallet_widgets[wallet_id].update_with_amount(balance_amount, balance_currency)
 
@@ -133,14 +126,18 @@ class MarketPage(QWidget):
 
     def update_button_texts(self):
         self.window().market_currency_type_button.setText("%s / %s" % (self.chosen_wallets[0], self.chosen_wallets[1]))
-        self.window().create_ask_button.setText("Sell %s for %s" % (self.chosen_wallets[0], self.chosen_wallets[1]))
-        self.window().create_bid_button.setText("Buy %s for %s" % (self.chosen_wallets[0], self.chosen_wallets[1]))
+        self.window().create_ask_button.setText("Sell %s for %s" % (self.chosen_wallets[1], self.chosen_wallets[0]))
+        self.window().create_bid_button.setText("Buy %s for %s" % (self.chosen_wallets[1], self.chosen_wallets[0]))
 
     def create_widget_item_from_tick(self, tick_list, tick, is_ask=True):
         tick["type"] = "ask" if is_ask else "bid"
         item = TickWidgetItem(tick_list, tick)
-        item.setText(0, "%s %s" % (tick["quantity"], tick["quantity_type"]))
-        item.setText(1, "%s %s" % (tick["price"], tick["price_type"]))
+
+        quantity = prec_div(tick["quantity"], self.wallets[tick["quantity_type"]]["precision"])
+        price = prec_div(tick["price"], self.wallets[tick["price_type"]]["precision"])
+
+        item.setText(0, "%g %s" % (quantity, tick["quantity_type"]))
+        item.setText(1, "%g %s" % (price, tick["price_type"]))
         return item
 
     def load_asks(self):
@@ -156,7 +153,7 @@ class MarketPage(QWidget):
 
         ticks = None
         for price_level_info in self.asks:
-            if (price_level_info['quantity_type'], price_level_info['price_type']) == self.chosen_wallets:
+            if (price_level_info['price_type'], price_level_info['quantity_type']) == self.chosen_wallets:
                 ticks = price_level_info["ticks"]
                 break
 
@@ -178,7 +175,7 @@ class MarketPage(QWidget):
 
         ticks = None
         for price_level_info in self.bids:
-            if (price_level_info['quantity_type'], price_level_info['price_type']) == self.chosen_wallets:
+            if (price_level_info['price_type'], price_level_info['quantity_type']) == self.chosen_wallets:
                 ticks = price_level_info["ticks"]
                 break
 
@@ -248,7 +245,19 @@ class MarketPage(QWidget):
         self.dialog = None
 
     def create_order(self, is_ask, price, price_type, quantity, quantity_type):
-        post_data = str("price=%f&price_type=%s&quantity=%f&quantity_type=%s" %
+        """
+        Create a new ask or bid order.
+        First we normalize the price_type/quantity_type pairs and multiply the price/quantity by the precision.
+        Next, we perform the request to the core.
+        """
+        if price_type > quantity_type:
+            is_ask = not is_ask
+            price_type, quantity_type = quantity_type, price_type
+
+        price = int(price * (10 ** self.wallets[price_type]["precision"]))
+        quantity = int(quantity * (10 ** self.wallets[quantity_type]["precision"]))
+
+        post_data = str("price=%d&price_type=%s&quantity=%d&quantity_type=%s" %
                         (price, price_type, quantity, quantity_type))
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("market/%s" % ('asks' if is_ask else 'bids'),
@@ -256,7 +265,7 @@ class MarketPage(QWidget):
                                          data=post_data, method='PUT')
 
     def on_transactions_button_clicked(self):
-        self.window().market_transactions_page.initialize_transactions_page()
+        self.window().market_transactions_page.initialize_transactions_page(self.wallets)
         self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
         self.window().stackedWidget.setCurrentIndex(PAGE_MARKET_TRANSACTIONS)
 
@@ -266,7 +275,7 @@ class MarketPage(QWidget):
         self.window().stackedWidget.setCurrentIndex(PAGE_MARKET_WALLETS)
 
     def on_orders_button_clicked(self):
-        self.window().market_orders_page.initialize_orders_page()
+        self.window().market_orders_page.initialize_orders_page(self.wallets)
         self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
         self.window().stackedWidget.setCurrentIndex(PAGE_MARKET_ORDERS)
 
@@ -304,10 +313,10 @@ class MarketPage(QWidget):
     def on_currency_type_clicked(self):
         menu = TriblerActionMenu(self)
 
-        for first_wallet_id in self.wallets:
+        for first_wallet_id in self.wallets.keys():
             sub_menu = menu.addMenu(first_wallet_id)
 
-            for second_wallet_id in self.wallets:
+            for second_wallet_id in self.wallets.keys():
                 if first_wallet_id == second_wallet_id:
                     continue
 
@@ -324,7 +333,7 @@ class MarketPage(QWidget):
         self.update_filter_bids_list()
 
     def show_new_order_dialog(self, is_ask):
-        self.dialog = NewMarketOrderDialog(self.window().stackedWidget, is_ask, self.chosen_wallets[1], self.chosen_wallets[0])
+        self.dialog = NewMarketOrderDialog(self.window().stackedWidget, is_ask, self.chosen_wallets[0], self.chosen_wallets[1])
         self.dialog.button_clicked.connect(self.on_new_order_action)
         self.dialog.show()
 

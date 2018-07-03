@@ -1,16 +1,13 @@
-import datetime
-
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction
-from PyQt5.QtWidgets import QTreeWidgetItem
 from PyQt5.QtWidgets import QWidget
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_image_path
+from TriblerGUI.utilities import get_image_path, prec_div
 from TriblerGUI.widgets.orderwidgetitem import OrderWidgetItem
 
 
@@ -25,13 +22,16 @@ class MarketOrdersPage(QWidget):
         self.initialized = False
         self.selected_item = None
         self.dialog = None
+        self.wallets = {}
 
-    def initialize_orders_page(self):
+    def initialize_orders_page(self, wallets):
         if not self.initialized:
             self.window().orders_back_button.setIcon(QIcon(get_image_path('page_back.png')))
             self.window().market_orders_list.sortItems(0, Qt.AscendingOrder)
             self.window().market_orders_list.customContextMenuRequested.connect(self.on_right_click_order)
             self.initialized = True
+
+        self.wallets = wallets
 
         self.load_orders()
 
@@ -43,6 +43,12 @@ class MarketOrdersPage(QWidget):
 
     def on_received_orders(self, orders):
         for order in orders["orders"]:
+            if self.wallets:
+                order["quantity"] = prec_div(order["quantity"], self.wallets[order["quantity_type"]]["precision"])
+                order["traded_quantity"] = prec_div(order["traded_quantity"],
+                                                    self.wallets[order["quantity_type"]]["precision"])
+                order["price"] = prec_div(order["price"], self.wallets[order["price_type"]]["precision"])
+
             item = OrderWidgetItem(self.window().market_orders_list, order)
             self.window().market_orders_list.addTopLevelItem(item)
 

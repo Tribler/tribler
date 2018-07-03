@@ -40,16 +40,16 @@ class NewMarketOrderDialog(DialogContainer):
     def on_create_clicked(self):
         # Validate user input
         try:
-            self.quantity = float(self.dialog_widget.order_quantity_input.text())
+            self.quantity = int(self.dialog_widget.order_quantity_input.text())
         except ValueError:
-            self.dialog_widget.error_text_label.setText("The volume must be a valid number.")
+            self.dialog_widget.error_text_label.setText("The volume must be a valid whole number.")
             self.dialog_widget.error_text_label.show()
             return
 
         try:
-            self.price = float(self.dialog_widget.order_price_input.text())
+            self.price = int(self.dialog_widget.order_price_input.text())
         except ValueError:
-            self.dialog_widget.error_text_label.setText("The price must be a valid number.")
+            self.dialog_widget.error_text_label.setText("The price must be a valid whole number.")
             self.dialog_widget.error_text_label.show()
             return
 

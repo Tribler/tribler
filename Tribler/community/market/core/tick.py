@@ -2,8 +2,8 @@ import time
 
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber, Order
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Price
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import GENESIS_HASH
@@ -54,8 +54,8 @@ class Tick(object):
                         Timeout(timeout), Timestamp(timestamp), block_hash=str(block_hash))
 
     def to_database(self):
-        return (unicode(self.order_id.trader_id), int(self.order_id.order_number), float(self.price),
-                unicode(self.price.wallet_id), float(self.quantity), unicode(self.quantity.wallet_id),
+        return (unicode(self.order_id.trader_id), int(self.order_id.order_number), self.price.amount,
+                unicode(self.price.asset_id), self.quantity.amount, unicode(self.quantity.asset_id),
                 float(self.timeout), float(self.timestamp), self.is_ask(), buffer(self.block_hash))
 
     @classmethod
@@ -170,10 +170,10 @@ class Tick(object):
         return {
             "trader_id": str(self.order_id.trader_id),
             "order_number": int(self.order_id.order_number),
-            "price": float(self.price),
-            "price_type": self.price.wallet_id,
-            "quantity": float(self.quantity),
-            "quantity_type": self.quantity.wallet_id,
+            "price": self.price.amount,
+            "price_type": self.price.asset_id,
+            "quantity": self.quantity.amount,
+            "quantity_type": self.quantity.asset_id,
             "timeout": float(self.timeout),
             "timestamp": float(self.timestamp),
             "is_ask": self.is_ask()
@@ -186,10 +186,10 @@ class Tick(object):
         return {
             "trader_id": str(self.order_id.trader_id),
             "order_number": int(self.order_id.order_number),
-            "price": float(self.price),
-            "price_type": self.price.wallet_id,
-            "quantity": float(self.quantity),
-            "quantity_type": self.quantity.wallet_id,
+            "price": self.price.amount,
+            "price_type": self.price.asset_id,
+            "quantity": self.quantity.amount,
+            "quantity_type": self.quantity.asset_id,
             "timeout": float(self.timeout),
             "timestamp": float(self.timestamp),
             "block_hash": self.block_hash.encode('hex')

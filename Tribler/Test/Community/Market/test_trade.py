@@ -3,8 +3,8 @@ import unittest
 from Tribler.community.market.core import DeclinedTradeReason
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Price
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import Trade, ProposedTrade, DeclinedTrade, CounterTrade
 
@@ -67,10 +67,6 @@ class ProposedTradeTestSuite(unittest.TestCase):
         self.assertFalse(self.proposed_trade.has_acceptable_price(False, Price(63000, 'BTC')))
         self.assertTrue(self.proposed_trade.has_acceptable_price(False, Price(64000, 'BTC')))
         self.assertFalse(self.proposed_trade.has_acceptable_price(True, Price(64000, 'BTC')))
-
-        # Test a price close to the proposed price
-        self.assertTrue(self.proposed_trade.has_acceptable_price(False, Price(63400.0 - 1e-07, 'BTC')))
-        self.assertTrue(self.proposed_trade.has_acceptable_price(True, Price(63400.0 - 1e-07, 'BTC')))
 
 
 class DeclinedTradeTestSuite(unittest.TestCase):

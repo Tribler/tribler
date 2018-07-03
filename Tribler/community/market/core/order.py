@@ -1,8 +1,8 @@
 import logging
 
 from Tribler.community.market.core.message import TraderId
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Price
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 
@@ -125,8 +125,8 @@ class Order(object):
         self._order_id = order_id
         self._price = price
         self._quantity = quantity
-        self._reserved_quantity = Quantity(0, quantity.wallet_id)
-        self._traded_quantity = Quantity(0, quantity.wallet_id)
+        self._reserved_quantity = Quantity(0, quantity.asset_id)
+        self._traded_quantity = Quantity(0, quantity.asset_id)
         self._timeout = timeout
         self._timestamp = timestamp
         self._completed_timestamp = None
@@ -164,9 +164,9 @@ class Order(object):
         :rtype: tuple
         """
         completed_timestamp = float(self.completed_timestamp) if self.completed_timestamp else None
-        return (unicode(self.order_id.trader_id), unicode(self.order_id.order_number), float(self.price),
-                unicode(self.price.wallet_id), float(self.total_quantity), unicode(self.total_quantity.wallet_id),
-                float(self.traded_quantity), float(self.timeout), float(self.timestamp), completed_timestamp,
+        return (unicode(self.order_id.trader_id), unicode(self.order_id.order_number), self.price.amount,
+                unicode(self.price.asset_id), self.total_quantity.amount, unicode(self.total_quantity.asset_id),
+                self.traded_quantity.amount, float(self.timeout), float(self.timestamp), completed_timestamp,
                 self.is_ask(), self._cancelled, self._verified)
 
     @property
@@ -336,9 +336,9 @@ class Order(object):
         if self._reserved_quantity >= quantity:
             self._reserved_quantity -= quantity
             self._reserved_ticks[order_id] -= quantity
-            assert self.available_quantity >= Quantity(0, self._quantity.wallet_id), str(self.available_quantity)
+            assert self.available_quantity >= Quantity(0, self._quantity.asset_id), str(self.available_quantity)
 
-            if self._reserved_ticks[order_id] <= Quantity(0, quantity.wallet_id):  # Remove the quantity if it's zero
+            if self._reserved_ticks[order_id] <= Quantity(0, quantity.asset_id):  # Remove the quantity if it's zero
                 del self._reserved_ticks[order_id]
         else:
             raise ValueError("Not enough reserved quantity for order id %s" % order_id)
@@ -363,7 +363,7 @@ class Order(object):
                            str(self.order_id), quantity, str(other_order_id))
         self._traded_quantity += quantity
         self.release_quantity_for_tick(other_order_id, quantity)
-        assert self.available_quantity >= Quantity(0, quantity.wallet_id), str(self.available_quantity)
+        assert self.available_quantity >= Quantity(0, quantity.asset_id), str(self.available_quantity)
 
         if self.is_complete():
             self._completed_timestamp = Timestamp.now()
@@ -390,12 +390,12 @@ class Order(object):
         return {
             "trader_id": str(self.order_id.trader_id),
             "order_number": int(self.order_id.order_number),
-            "price": float(self.price),
-            "price_type": self.price.wallet_id,
-            "quantity": float(self.total_quantity),
-            "quantity_type": self.total_quantity.wallet_id,
-            "reserved_quantity": float(self.reserved_quantity),
-            "traded_quantity": float(self.traded_quantity),
+            "price": self.price.amount,
+            "price_type": self.price.asset_id,
+            "quantity": self.total_quantity.amount,
+            "quantity_type": self.total_quantity.asset_id,
+            "reserved_quantity": self.reserved_quantity.amount,
+            "traded_quantity": self.traded_quantity.amount,
             "timeout": float(self.timeout),
             "timestamp": float(self.timestamp),
             "completed_timestamp": completed_timestamp,
@@ -411,11 +411,11 @@ class Order(object):
         return {
             "trader_id": str(self.order_id.trader_id),
             "order_number": int(self.order_id.order_number),
-            "price": float(self.price),
-            "price_type": self.price.wallet_id,
-            "quantity": float(self.total_quantity),
-            "quantity_type": self.total_quantity.wallet_id,
-            "traded_quantity": float(self.traded_quantity),
+            "price": self.price.amount,
+            "price_type": self.price.asset_id,
+            "quantity": self.total_quantity.amount,
+            "quantity_type": self.total_quantity.asset_id,
+            "traded_quantity": self.traded_quantity.amount,
             "timeout": float(self.timeout),
             "timestamp": float(self.timestamp)
         }

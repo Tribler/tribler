@@ -1050,7 +1050,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>4</number>
+         <number>13</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -10109,7 +10109,7 @@ font-size: 12px;
 </string>
             </property>
             <property name="text">
-             <string>Before trading, please create a currency wallet first. Click here to open wallet management.</string>
+             <string>Before trading, please create an asset wallet first. Click here to open wallet management.</string>
             </property>
            </widget>
           </item>
@@ -10119,7 +10119,7 @@ font-size: 12px;
              <item>
               <widget class="QLabel" name="label_63">
                <property name="text">
-                <string>Currency:</string>
+                <string>Asset pair:</string>
                </property>
               </widget>
              </item>

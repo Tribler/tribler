@@ -2,9 +2,9 @@ import unittest
 
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.price import Price
+from Tribler.community.market.core.assetamount import Price
 from Tribler.community.market.core.pricelevel import PriceLevel
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.tickentry import TickEntry
 from Tribler.community.market.core.timeout import Timeout
@@ -58,5 +58,5 @@ class PriceLevelTestSuite(unittest.TestCase):
         # Test for price level string representation
         self.price_level.append_tick(self.tick_entry1)
         self.price_level.append_tick(self.tick_entry2)
-        self.assertEquals('30.000000 MC\t@\t63400.000000 BTC (R: 0.000000 MC)\n'
-                          '30.000000 MC\t@\t63400.000000 BTC (R: 0.000000 MC)\n', str(self.price_level))
+        self.assertEquals('30 MC\t@\t63400 BTC (R: 0 MC)\n'
+                          '30 MC\t@\t63400 BTC (R: 0 MC)\n', str(self.price_level))

@@ -1,6 +1,6 @@
 import unittest
 
-from Tribler.community.market.core.price import Price
+from Tribler.community.market.core.assetamount import Price
 from Tribler.community.market.core.pricelevel import PriceLevel
 from Tribler.community.market.core.pricelevel_list import PriceLevelList
 

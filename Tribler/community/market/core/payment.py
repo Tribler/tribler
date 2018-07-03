@@ -1,7 +1,7 @@
 from Tribler.community.market.core.message import Message, TraderId
 from Tribler.community.market.core.payment_id import PaymentId
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Price
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.transaction import TransactionNumber, TransactionId
 from Tribler.community.market.core.wallet_address import WalletAddress
@@ -41,9 +41,9 @@ class Payment(Message):
         :rtype: tuple
         """
         return (unicode(self.trader_id), unicode(self.transaction_id.trader_id),
-                int(self.transaction_id.transaction_number), unicode(self.payment_id), float(self.transferee_quantity),
-                unicode(self.transferee_quantity.wallet_id), float(self.transferee_price),
-                unicode(self.transferee_price.wallet_id), unicode(self.address_from),
+                int(self.transaction_id.transaction_number), unicode(self.payment_id), self.transferee_quantity.amount,
+                unicode(self.transferee_quantity.asset_id), self.transferee_price.amount,
+                unicode(self.transferee_price.asset_id), unicode(self.address_from),
                 unicode(self.address_to), float(self.timestamp), self.success)
 
     @property
@@ -115,10 +115,10 @@ class Payment(Message):
         return {
             "trader_id": str(self.transaction_id.trader_id),
             "transaction_number": int(self.transaction_id.transaction_number),
-            "price": float(self.transferee_price),
-            "price_type": self.transferee_price.wallet_id,
-            "quantity": float(self.transferee_quantity),
-            "quantity_type": self.transferee_quantity.wallet_id,
+            "price": self.transferee_price.amount,
+            "price_type": self.transferee_price.asset_id,
+            "quantity": self.transferee_quantity.amount,
+            "quantity_type": self.transferee_quantity.asset_id,
             "payment_id": str(self.payment_id),
             "address_from": str(self.address_from),
             "address_to": str(self.address_to),

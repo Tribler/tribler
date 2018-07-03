@@ -5,9 +5,7 @@ from time import time
 
 from Tribler.community.market.core.order import OrderId
 from Tribler.community.market.core.orderbook import OrderBook
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.pricelevel import PriceLevel
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.tickentry import TickEntry
 
 
@@ -80,19 +78,19 @@ class PriceTimeStrategy(MatchingStrategy):
         :rtype: [(str, TickEntry, Quantity)]
         """
         matched_ticks = []
-        quantity_to_match = Quantity(float(quantity), quantity.wallet_id)
+        quantity_to_match = Quantity(quantity.amount, quantity.asset_id)
 
         # First check whether we can match our order at all in the order book
-        if is_ask and price > self.order_book.get_bid_price(price.wallet_id, quantity.wallet_id):
+        if is_ask and price > self.order_book.get_bid_price(price.asset_id, quantity.asset_id):
             return []
-        if not is_ask and price < self.order_book.get_ask_price(price.wallet_id, quantity.wallet_id):
+        if not is_ask and price < self.order_book.get_ask_price(price.asset_id, quantity.asset_id):
             return []
 
         # Next, check whether we have a price level we can start our match search from
         if is_ask:
-            price_level = self.order_book.get_bid_price_level(price.wallet_id, quantity.wallet_id)
+            price_level = self.order_book.get_bid_price_level(price.asset_id, quantity.asset_id)
         else:
-            price_level = self.order_book.get_ask_price_level(price.wallet_id, quantity.wallet_id)
+            price_level = self.order_book.get_ask_price_level(price.asset_id, quantity.asset_id)
 
         if not price_level:
             return []
@@ -101,15 +99,16 @@ class PriceTimeStrategy(MatchingStrategy):
         cur_price_level_price = price_level.price
 
         # We now start to iterate through price levels and tick entries and match on the fly
-        while cur_tick_entry and float(quantity_to_match) > 0:
+        while cur_tick_entry and quantity_to_match.amount > 0:
             if cur_tick_entry.is_blocked_for_matching(order_id):
                 cur_tick_entry = cur_tick_entry.next_tick
                 continue
 
-            quantity_matched = Quantity(min(float(quantity_to_match),
-                                            float(cur_tick_entry.quantity - cur_tick_entry.reserved_for_matching)),
-                                        quantity.wallet_id)
-            if quantity_matched > Quantity(0, quantity_matched.wallet_id):
+            quantity_matched = Quantity(min(quantity_to_match.amount,
+                                            cur_tick_entry.quantity.amount -
+                                            cur_tick_entry.reserved_for_matching.amount),
+                                        quantity.asset_id)
+            if quantity_matched.amount > 0:
                 matched_ticks.append((self.get_unique_match_id(), cur_tick_entry, quantity_matched))
                 quantity_to_match -= quantity_matched
 
@@ -120,11 +119,11 @@ class PriceTimeStrategy(MatchingStrategy):
                     # Get the next price level
                     if is_ask:
                         next_price, next_price_level = self.order_book.bids. \
-                            get_price_level_list(price.wallet_id, quantity.wallet_id).prev_item(cur_price_level_price)
+                            get_price_level_list(price.asset_id, quantity.asset_id).prev_item(cur_price_level_price)
                         cur_price_level_price = next_price
                     else:
                         next_price, next_price_level = self.order_book.asks. \
-                            get_price_level_list(price.wallet_id, quantity.wallet_id).succ_item(cur_price_level_price)
+                            get_price_level_list(price.asset_id, quantity.asset_id).succ_item(cur_price_level_price)
                         cur_price_level_price = next_price
                 except IndexError:
                     break

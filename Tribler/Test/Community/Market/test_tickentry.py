@@ -3,9 +3,9 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.price import Price
+from Tribler.community.market.core.assetamount import Price
 from Tribler.community.market.core.pricelevel import PriceLevel
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.tickentry import TickEntry
 from Tribler.community.market.core.timeout import Timeout
@@ -57,7 +57,7 @@ class TickEntryTestSuite(AbstractServer):
 
     def test_str(self):
         # Test for tick string representation
-        self.assertEquals('30.000000 MC\t@\t63400.000000 BTC (R: 0.000000 MC)', str(self.tick_entry))
+        self.assertEquals('30 MC\t@\t63400 BTC (R: 0 MC)', str(self.tick_entry))
 
     def test_is_valid(self):
         # Test for is valid

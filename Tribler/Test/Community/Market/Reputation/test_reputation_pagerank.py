@@ -1,6 +1,6 @@
 from Tribler.Test.Community.Market.Reputation.test_reputation_base import TestReputationBase
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Price
+from Tribler.community.market.core.assetamount import Quantity
 
 
 class TestReputationPagerank(TestReputationBase):

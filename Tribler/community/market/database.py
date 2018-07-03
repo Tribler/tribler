@@ -7,7 +7,7 @@ from os import path
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.payment import Payment
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.transaction import Transaction, TransactionId, TransactionNumber
 from Tribler.pyipv8.ipv8.attestation.trustchain.database import TrustChainDB
@@ -22,11 +22,11 @@ schema = u"""
 CREATE TABLE IF NOT EXISTS orders(
  trader_id            TEXT NOT NULL,
  order_number         INTEGER NOT NULL,
- price                DOUBLE NOT NULL,
+ price                BIGINT NOT NULL,
  price_type           TEXT NOT NULL,
- quantity             DOUBLE NOT NULL,
+ quantity             BIGINT NOT NULL,
  quantity_type        TEXT NOT NULL,
- traded_quantity      DOUBLE NOT NULL,
+ traded_quantity      BIGINT NOT NULL,
  timeout              DOUBLE NOT NULL,
  order_timestamp      TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
  completed_timestamp  TIMESTAMP,
@@ -44,12 +44,12 @@ CREATE TABLE IF NOT EXISTS orders(
   order_number             INTEGER NOT NULL,
   partner_trader_id        TEXT NOT NULL,
   partner_order_number     INTEGER NOT NULL,
-  price                    DOUBLE NOT NULL,
+  price                    BIGINT NOT NULL,
   price_type               TEXT NOT NULL,
-  transferred_price        DOUBLE NOT NULL,
-  quantity                 DOUBLE NOT NULL,
+  transferred_price        BIGINT NOT NULL,
+  quantity                 BIGINT NOT NULL,
   quantity_type            TEXT NOT NULL,
-  transferred_quantity     DOUBLE NOT NULL,
+  transferred_quantity     BIGINT NOT NULL,
   transaction_timestamp    TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   sent_wallet_info         INTEGER NOT NULL,
   received_wallet_info     INTEGER NOT NULL,
@@ -67,9 +67,9 @@ CREATE TABLE IF NOT EXISTS orders(
   transaction_trader_id    TEXT NOT NULL,
   transaction_number       INTEGER NOT NULL,
   payment_id               TEXT NOT NULL,
-  transferee_quantity      DOUBLE NOT NULL,
+  transferee_quantity      BIGINT NOT NULL,
   quantity_type            TEXT NOT NULL,
-  transferee_price         DOUBLE NOT NULL,
+  transferee_price         BIGINT NOT NULL,
   price_type               TEXT NOT NULL,
   address_from             TEXT NOT NULL,
   address_to               TEXT NOT NULL,
@@ -82,9 +82,9 @@ CREATE TABLE IF NOT EXISTS orders(
  CREATE TABLE IF NOT EXISTS ticks(
   trader_id            TEXT NOT NULL,
   order_number         INTEGER NOT NULL,
-  price                DOUBLE NOT NULL,
+  price                BIGINT NOT NULL,
   price_type           TEXT NOT NULL,
-  quantity             DOUBLE NOT NULL,
+  quantity             BIGINT NOT NULL,
   quantity_type        TEXT NOT NULL,
   timeout              DOUBLE NOT NULL,
   timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS orders(
   order_number           INTEGER NOT NULL,
   reserved_trader_id     TEXT NOT NULL,
   reserved_order_number  INTEGER NOT NULL,
-  quantity               DOUBLE NOT NULL,
+  quantity               BIGINT NOT NULL,
   quantity_type          TEXT NOT NULL,
 
   PRIMARY KEY (trader_id, order_number, reserved_trader_id, reserved_order_number)
@@ -198,7 +198,7 @@ class MarketDB(TrustChainDB):
             u"quantity, quantity_type) VALUES(?,?,?,?,?,?)",
             (unicode(order_id.trader_id), unicode(order_id.order_number),
              unicode(reserved_order_id.trader_id), unicode(reserved_order_id.order_number),
-             float(quantity), unicode(quantity.wallet_id)))
+             quantity.amount, unicode(quantity.asset_id)))
         self.commit()
 
     def get_reserved_ticks(self, order_id):

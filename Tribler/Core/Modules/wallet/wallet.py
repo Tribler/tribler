@@ -75,3 +75,11 @@ class Wallet(TaskManager):
     @abstractmethod
     def min_unit(self):
         return
+
+    @abstractmethod
+    def precision(self):
+        """
+        The precision of an asset inside a wallet represents the number of digits after the decimal.
+        For fiat currency, the precision would be 2 since the minimum unit is often 0.01.
+        """
+        return

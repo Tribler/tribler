@@ -1,9 +1,7 @@
 import logging
 
-from Tribler.community.market.core.order import OrderId, Order
+from Tribler.community.market.core.order import Order
 from Tribler.community.market.core.order_repository import OrderRepository
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 
