@@ -337,16 +337,16 @@ class MarketPage(QWidget):
         self.dialog = None
 
     def on_ask_timeout(self, ask):
-        self.remove_tick_with_msg_id(self.window().asks_list, ask["message_id"])
+        self.remove_tick_with_order_id(self.window().asks_list, ask["trader_id"], ask["order_number"])
 
     def on_bid_timeout(self, bid):
-        self.remove_tick_with_msg_id(self.window().bids_list, bid["message_id"])
+        self.remove_tick_with_order_id(self.window().bids_list, bid["trader_id"], bid["order_number"])
 
-    def remove_tick_with_msg_id(self, tick_list, msg_id):
+    def remove_tick_with_order_id(self, tick_list, trader_id, order_number):
         index_to_remove = -1
         for ind in xrange(tick_list.topLevelItemCount()):
             item = tick_list.topLevelItem(ind)
-            if item.tick["message_id"] == msg_id:
+            if item.tick["trader_id"] == trader_id and item.tick["order_number"] == order_number:
                 index_to_remove = ind
                 break
 

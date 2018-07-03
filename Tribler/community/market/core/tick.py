@@ -1,6 +1,6 @@
 import time
 
-from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId, Message
+from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber, Order
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
@@ -35,14 +35,6 @@ class Tick(object):
         :type is_ask: bool
         :type block_hash: str
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-        assert isinstance(price, Price), type(price)
-        assert isinstance(quantity, Quantity), type(quantity)
-        assert isinstance(timeout, Timeout), type(timeout)
-        assert isinstance(timestamp, Timestamp), type(timestamp)
-        assert isinstance(is_ask, bool), type(is_ask)
-        assert isinstance(block_hash, str), type(block_hash)
-
         self._order_id = order_id
         self._price = price
         self._quantity = quantity
@@ -75,8 +67,6 @@ class Tick(object):
         :return: The created tick
         :rtype: Tick
         """
-        assert isinstance(order, Order), type(order)
-
         if order.is_ask():
             return Ask(order.order_id, order.price, order.total_quantity - order.traded_quantity,
                        order.timeout, order.timestamp)
@@ -111,7 +101,6 @@ class Tick(object):
         :param quantity: The new quantity
         :type quantity: Quantity
         """
-        assert isinstance(quantity, Quantity), type(quantity)
         self._quantity = quantity
 
     @property
@@ -151,7 +140,6 @@ class Tick(object):
         :param new_hash: The new block hash
         :type new_hash: str
         """
-        assert isinstance(new_hash, str), type(new_hash)
         self._block_hash = new_hash
 
     def is_valid(self):
@@ -162,12 +150,12 @@ class Tick(object):
         return not self._timeout.is_timed_out(self._timestamp) and \
             time.time() >= float(self.timestamp) - self.TIME_TOLERANCE
 
-    def to_network(self, message_id):
+    def to_network(self):
         """
         Return network representation of the tick
         """
         return (
-            MessageId(self._order_id.trader_id, message_id.message_number),
+            self._order_id.trader_id,
             self._timestamp,
             self._order_id.order_number,
             self._price,

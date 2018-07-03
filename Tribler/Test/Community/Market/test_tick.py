@@ -1,8 +1,6 @@
-import hashlib
 import unittest
 
-from Tribler.Test.Core.base_test import MockObject
-from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
@@ -35,9 +33,9 @@ class TickTestSuite(unittest.TestCase):
 
     def test_to_network(self):
         # Test for to network
-        self.assertEquals((MessageId(TraderId('0'), MessageNumber(1)), self.tick.timestamp, OrderNumber(1),
+        self.assertEquals((TraderId('0'), self.tick.timestamp, OrderNumber(1),
                            Price(63400, 'BTC'), Quantity(30, 'MC'), self.tick.timeout),
-                          self.tick.to_network(MessageId(TraderId('0'), MessageNumber(1))))
+                          self.tick.to_network())
 
     def test_quantity_setter(self):
         # Test for quantity setter

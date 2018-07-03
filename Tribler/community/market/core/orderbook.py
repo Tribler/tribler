@@ -52,8 +52,6 @@ class OrderBook(TaskManager):
         """
         :type ask: Ask
         """
-        assert isinstance(ask, Ask), type(ask)
-
         if not self._asks.tick_exists(ask.order_id) and ask.order_id not in self.completed_orders and ask.is_valid():
             self._asks.insert_tick(ask)
             timeout_delay = float(ask.timestamp) + float(ask.timeout) - time.time()
@@ -66,8 +64,6 @@ class OrderBook(TaskManager):
         """
         :type order_id: OrderId
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-
         if self._asks.tick_exists(order_id):
             self.cancel_pending_task("ask_%s_timeout" % order_id)
             self._asks.remove_tick(order_id)
@@ -76,8 +72,6 @@ class OrderBook(TaskManager):
         """
         :type bid: Bid
         """
-        assert isinstance(bid, Bid), type(bid)
-
         if not self._bids.tick_exists(bid.order_id) and bid.order_id not in self.completed_orders and bid.is_valid():
             self._bids.insert_tick(bid)
             timeout_delay = float(bid.timestamp) + float(bid.timeout) - time.time()
@@ -90,8 +84,6 @@ class OrderBook(TaskManager):
         """
         :type order_id: OrderId
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-
         if self._bids.tick_exists(order_id):
             self.cancel_pending_task("bid_%s_timeout" % order_id)
             self._bids.remove_tick(order_id)
@@ -105,11 +97,6 @@ class OrderBook(TaskManager):
         :type traded_quantity: Quantity
         :type unreserve: bool
         """
-        assert isinstance(ask_order_dict, dict), type(ask_order_dict)
-        assert isinstance(bid_order_dict, dict), type(bid_order_dict)
-        assert isinstance(traded_quantity, Quantity), type(traded_quantity)
-        assert isinstance(unreserve, bool), type(unreserve)
-
         ask_order_id = OrderId(TraderId(ask_order_dict["trader_id"]), OrderNumber(ask_order_dict["order_number"]))
         bid_order_id = OrderId(TraderId(bid_order_dict["trader_id"]), OrderNumber(bid_order_dict["order_number"]))
 
@@ -155,8 +142,6 @@ class OrderBook(TaskManager):
         :return: True if the tick exists, False otherwise
         :rtype: bool
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-
         is_ask = self._asks.tick_exists(order_id)
         is_bid = self._bids.tick_exists(order_id)
 
@@ -168,8 +153,6 @@ class OrderBook(TaskManager):
         :type order_id: OrderId
         :rtype: TickEntry
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-
         return self._asks.get_tick(order_id)
 
     def get_bid(self, order_id):
@@ -178,8 +161,6 @@ class OrderBook(TaskManager):
         :type order_id: OrderId
         :rtype: TickEntry
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-
         return self._bids.get_tick(order_id)
 
     def get_tick(self, order_id):
@@ -189,8 +170,6 @@ class OrderBook(TaskManager):
         :type order_id: OrderId
         :rtype: TickEntry
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-
         return self._bids.get_tick(order_id) or self._asks.get_tick(order_id)
 
     def ask_exists(self, order_id):
@@ -200,8 +179,6 @@ class OrderBook(TaskManager):
         :return: True if the ask exists, False otherwise
         :rtype: bool
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-
         return self._asks.tick_exists(order_id)
 
     def bid_exists(self, order_id):
@@ -211,16 +188,12 @@ class OrderBook(TaskManager):
         :return: True if the bid exists, False otherwise
         :rtype: bool
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-
         return self._bids.tick_exists(order_id)
 
     def remove_tick(self, order_id):
         """
         :type order_id: OrderId
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-
         self._logger.debug("Removing tick %s from order book", order_id)
 
         self.remove_ask(order_id)
@@ -282,7 +255,6 @@ class OrderBook(TaskManager):
         :return: The depth at that price level
         :rtype: Quantity
         """
-        assert isinstance(price, Price), type(price)
         return self._bids.get_price_level(price).depth
 
     def ask_side_depth(self, price):
@@ -294,7 +266,6 @@ class OrderBook(TaskManager):
         :return: The depth at that price level
         :rtype: Quantity
         """
-        assert isinstance(price, Price), type(price)
         return self._asks.get_price_level(price).depth
 
     def get_bid_side_depth_profile(self, price_wallet_id, quantity_wallet_id):
@@ -328,7 +299,6 @@ class OrderBook(TaskManager):
         :return: The relative price
         :rtype: Price
         """
-        assert isinstance(price, Price), type(price)
         return self.get_bid_price('BTC', 'MC') - price
 
     def ask_relative_price(self, price):
@@ -338,7 +308,6 @@ class OrderBook(TaskManager):
         :return: The relative price
         :rtype: Price
         """
-        assert isinstance(price, Price), type(price)
         return self.get_ask_price('BTC', 'MC') - price
 
     def relative_tick_price(self, tick):
@@ -348,8 +317,6 @@ class OrderBook(TaskManager):
         :return: The relative price
         :rtype: Price
         """
-        assert isinstance(tick, Tick), type(tick)
-
         if tick.is_ask():
             return self.ask_relative_price(tick.price)
         else:
@@ -423,9 +390,6 @@ class DatabaseOrderBook(OrderBook):
     """
     def __init__(self, database):
         super(DatabaseOrderBook, self).__init__()
-
-        assert isinstance(database, MarketDB)
-
         self.database = database
 
     def save_to_database(self):

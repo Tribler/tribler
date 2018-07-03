@@ -73,8 +73,6 @@ class MemoryTransactionRepository(TransactionRepository):
         :return: The transaction or null if it cannot be found
         :rtype: Transaction
         """
-        assert isinstance(transaction_id, TransactionId), type(transaction_id)
-
         self._logger.debug(
             "Transaction with the id: " + str(transaction_id) + " was searched for in the transaction repository")
 
@@ -84,8 +82,6 @@ class MemoryTransactionRepository(TransactionRepository):
         """
         :type transaction: Transaction
         """
-        assert isinstance(transaction, Transaction), type(transaction)
-
         self._logger.debug(
             "Transaction with the id: " + str(transaction.transaction_id) + " was added to the transaction repository")
 
@@ -95,8 +91,6 @@ class MemoryTransactionRepository(TransactionRepository):
         """
         :type transaction: Transaction
         """
-        assert isinstance(transaction, Transaction), type(transaction)
-
         self._logger.debug("Transaction with the id: " + str(
             transaction.transaction_id) + " was updated to the transaction repository")
 
@@ -106,8 +100,6 @@ class MemoryTransactionRepository(TransactionRepository):
         """
         :type transaction_id: TransactionId
         """
-        assert isinstance(transaction_id, TransactionId), type(transaction_id)
-
         self._logger.debug(
             "Transaction with the id: " + str(transaction_id) + " was deleted from the transaction repository")
 
@@ -149,8 +141,6 @@ class DatabaseTransactionRepository(TransactionRepository):
         :return: The transaction or null if it cannot be found
         :rtype: Transaction
         """
-        assert isinstance(transaction_id, TransactionId), type(transaction_id)
-
         self._logger.debug("Transaction with the id: %s was searched for in the transaction repository",
                            str(transaction_id))
 

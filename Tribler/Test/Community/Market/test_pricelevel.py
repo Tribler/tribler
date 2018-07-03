@@ -1,6 +1,6 @@
 import unittest
 
-from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.pricelevel import PriceLevel
@@ -40,7 +40,6 @@ class PriceLevelTestSuite(unittest.TestCase):
 
         self.assertEquals(4, self.price_level.length)
         self.assertEquals(4, len(self.price_level))
-        self.assertRaises(AssertionError, self.price_level.append_tick, self.tick_entry5)
 
     def test_tick_removal(self):
         # Test for tick removal

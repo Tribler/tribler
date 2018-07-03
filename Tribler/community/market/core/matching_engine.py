@@ -23,8 +23,6 @@ class MatchingStrategy(object):
         super(MatchingStrategy, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        assert isinstance(order_book, OrderBook), type(order_book)
-
         self.order_book = order_book
         self.used_match_ids = set()
 
@@ -151,7 +149,6 @@ class MatchingEngine(object):
         super(MatchingEngine, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        assert isinstance(matching_strategy, MatchingStrategy), type(matching_strategy)
         self.matching_strategy = matching_strategy
         self.matches = {}  # Keep track of all matches
 
@@ -162,7 +159,6 @@ class MatchingEngine(object):
         :return: A list of tuples containing a random match id, ticks and the matched quantity
         :rtype: [(str, TickEntry, Quantity)]
         """
-        assert isinstance(tick_entry, TickEntry), type(tick_entry)
         now = time()
 
         matched_ticks = self.matching_strategy.match(tick_entry.order_id,

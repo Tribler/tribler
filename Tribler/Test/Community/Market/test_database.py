@@ -3,7 +3,7 @@ import os
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.community.market.core.message import TraderId, MessageId, MessageNumber
+from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.payment import Payment
 from Tribler.community.market.core.payment_id import PaymentId
@@ -43,9 +43,8 @@ class TestDatabase(AbstractServer):
                                         OrderId(TraderId("0"), OrderNumber(1)), OrderId(TraderId("1"), OrderNumber(2)),
                                         Timestamp(20.0))
 
-        self.payment1 = Payment(MessageId(TraderId("0"), MessageNumber(4)), self.transaction_id1, Quantity(5, 'MC'),
-                                Price(6, 'BTC'), WalletAddress('abc'), WalletAddress('def'), PaymentId("abc"),
-                                Timestamp(20.0), False)
+        self.payment1 = Payment(TraderId("0"), self.transaction_id1, Quantity(5, 'MC'), Price(6, 'BTC'),
+                                WalletAddress('abc'), WalletAddress('def'), PaymentId("abc"), Timestamp(20.0), False)
 
         self.transaction1.add_payment(self.payment1)
 

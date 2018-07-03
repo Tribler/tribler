@@ -7,7 +7,7 @@ from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.trade import Trade
 from Tribler.community.market.core.wallet_address import WalletAddress
 
@@ -84,11 +84,11 @@ class TransactionTestSuite(unittest.TestCase):
         self.transaction = Transaction(self.transaction_id, Price(100, 'BTC'), Quantity(30, 'MC'),
                                        OrderId(TraderId('3'), OrderNumber(2)),
                                        OrderId(TraderId('2'), OrderNumber(1)), Timestamp(0.0))
-        self.proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber(1)),
+        self.proposed_trade = Trade.propose(TraderId('0'),
                                             OrderId(TraderId('0'), OrderNumber(2)),
                                             OrderId(TraderId('1'), OrderNumber(3)),
                                             Price(100, 'BTC'), Quantity(30, 'MC'), Timestamp(0.0))
-        self.payment = Payment(MessageId(TraderId("0"), MessageNumber(1)),
+        self.payment = Payment(TraderId("0"),
                                TransactionId(TraderId('2'), TransactionNumber(2)),
                                Quantity(3, 'MC'), Price(2, 'BTC'),
                                WalletAddress('a'), WalletAddress('b'),
@@ -200,7 +200,7 @@ class StartTransactionTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.start_transaction = StartTransaction(MessageId(TraderId('0'), MessageNumber(1)),
+        self.start_transaction = StartTransaction(TraderId('0'),
                                                   TransactionId(TraderId("0"), TransactionNumber(1)),
                                                   OrderId(TraderId('0'), OrderNumber(1)),
                                                   OrderId(TraderId('1'), OrderNumber(1)), 1234,
@@ -210,7 +210,6 @@ class StartTransactionTestSuite(unittest.TestCase):
         # Test for from network
         data = StartTransaction.from_network(
             type('Data', (object,), {"trader_id": TraderId('0'),
-                                     "message_id": MessageId(TraderId('0'), MessageNumber(1)),
                                      "transaction_id": TransactionId(TraderId('0'), TransactionNumber(1)),
                                      "order_id": OrderId(TraderId('0'), OrderNumber(1)),
                                      "recipient_order_id": OrderId(TraderId('1'), OrderNumber(2)),
@@ -219,7 +218,7 @@ class StartTransactionTestSuite(unittest.TestCase):
                                      "quantity": Quantity(20, 'MC'),
                                      "timestamp": Timestamp(0.0)}))
 
-        self.assertEquals(MessageId(TraderId("0"), MessageNumber(1)), data.message_id)
+        self.assertEquals(TraderId("0"), data.trader_id)
         self.assertEquals(TransactionId(TraderId("0"), TransactionNumber(1)), data.transaction_id)
         self.assertEquals(OrderId(TraderId('0'), OrderNumber(1)), data.order_id)
         self.assertEquals(OrderId(TraderId('1'), OrderNumber(2)), data.recipient_order_id)
@@ -231,4 +230,4 @@ class StartTransactionTestSuite(unittest.TestCase):
         Test the conversion of a StartTransaction object to the network
         """
         data = self.start_transaction.to_network()
-        self.assertEqual(data[0], self.start_transaction.message_id)
+        self.assertEqual(data[0], self.start_transaction.trader_id)

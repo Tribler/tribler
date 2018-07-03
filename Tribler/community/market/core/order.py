@@ -1,6 +1,6 @@
 import logging
 
-from Tribler.community.market.core.message import TraderId, MessageId
+from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.timeout import Timeout
@@ -62,9 +62,6 @@ class OrderId(object):
         """
         super(OrderId, self).__init__()
 
-        assert isinstance(trader_id, TraderId), type(trader_id)
-        assert isinstance(order_number, OrderNumber), type(order_number)
-
         self._trader_id = trader_id
         self._order_number = order_number
 
@@ -124,13 +121,6 @@ class Order(object):
         """
         super(Order, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
-
-        assert isinstance(order_id, OrderId), type(order_id)
-        assert isinstance(price, Price), type(price)
-        assert isinstance(quantity, Quantity), type(quantity)
-        assert isinstance(timeout, Timeout), type(timeout)
-        assert isinstance(timestamp, Timestamp), type(timestamp)
-        assert isinstance(is_ask, bool), type(is_ask)
 
         self._order_id = order_id
         self._price = price
@@ -319,9 +309,6 @@ class Order(object):
         :return: True if the quantity was reserved, False otherwise
         :rtype: bool
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-        assert isinstance(quantity, Quantity), type(quantity)
-
         if self.available_quantity >= quantity:
             self._reserved_quantity += quantity
             if order_id not in self._reserved_ticks:
@@ -372,8 +359,6 @@ class Order(object):
         self._cancelled = True
 
     def add_trade(self, other_order_id, quantity):
-        assert isinstance(other_order_id, OrderId), type(other_order_id)
-
         self._logger.debug("Adding trade for order %s with quantity %s (other id: %s)",
                            str(self.order_id), quantity, str(other_order_id))
         self._traded_quantity += quantity
@@ -383,12 +368,12 @@ class Order(object):
         if self.is_complete():
             self._completed_timestamp = Timestamp.now()
 
-    def to_network(self, message_id):
+    def to_network(self):
         """
         Return network representation of the order
         """
         return (
-            MessageId(self._order_id.trader_id, message_id.message_number),
+            self._order_id.trader_id,
             self._timestamp,
             self._order_id.order_number,
             self._price,

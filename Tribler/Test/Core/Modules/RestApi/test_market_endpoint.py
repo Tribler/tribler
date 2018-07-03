@@ -1,7 +1,6 @@
 import json
 
 from Tribler.community.market.community import MarketCommunity
-from Tribler.community.market.core.message import MessageId, MessageNumber
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.payment import Payment
@@ -57,14 +56,14 @@ class TestMarketEndpoint(AbstractApiTest):
         """
         Add a transaction and a payment to the market
         """
-        proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber(1)),
+        proposed_trade = Trade.propose(TraderId('0'),
                                        OrderId(TraderId('0'), OrderNumber(1)),
                                        OrderId(TraderId('1'), OrderNumber(2)),
                                        Price(63400, 'BTC'), Quantity(30, 'MC'), Timestamp(1462224447.117))
         transaction = self.session.lm.market_community.transaction_manager.create_from_proposed_trade(
             proposed_trade, 'abcd')
 
-        payment = Payment(MessageId(TraderId("0"), MessageNumber(1)), transaction.transaction_id,
+        payment = Payment(TraderId("0"), transaction.transaction_id,
                           Quantity(0, 'MC'), Price(20, 'BTC'), WalletAddress('a'), WalletAddress('b'),
                           PaymentId('aaa'), Timestamp(4.0), True)
         transaction.add_payment(payment)

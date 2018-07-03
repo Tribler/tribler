@@ -18,7 +18,6 @@ class TickEntry(TaskManager):
         :type price_level: PriceLevel
         """
         super(TickEntry, self).__init__()
-        assert isinstance(tick, Tick), type(tick)
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -63,8 +62,6 @@ class TickEntry(TaskManager):
         :param new_quantity: The new quantity
         :type new_quantity: Quantity
         """
-        assert isinstance(new_quantity, Quantity), type(new_quantity)
-
         self._price_level.depth -= (self._tick.quantity - new_quantity)
         self._tick.quantity = new_quantity
 

@@ -30,7 +30,6 @@ class Side(object):
         :return: The price level
         :rtype: PriceLevel
         """
-        assert isinstance(price, Price), type(price)
         return self._price_map[price]
 
     def get_tick(self, order_id):
@@ -40,7 +39,6 @@ class Side(object):
         :return: The tick
         :rtype: TickEntry
         """
-        assert isinstance(order_id, OrderId), type(order_id)
         return self._tick_map[order_id] if order_id in self._tick_map else None
 
     def _create_price_level(self, price, quantity_wallet_id):
@@ -50,8 +48,6 @@ class Side(object):
         :type price: Price
         :type quantity_wallet_id: str
         """
-        assert isinstance(price, Price), type(price)
-
         self._depth[(price.wallet_id, quantity_wallet_id)] += 1
 
         price_level = PriceLevel(quantity_wallet_id, price)
@@ -65,8 +61,6 @@ class Side(object):
         :type price: Price
         :type quantity_wallet_id: str
         """
-        assert isinstance(price, Price), type(price)
-
         self._depth[(price.wallet_id, quantity_wallet_id)] -= 1
 
         self._price_level_list_map[(price.wallet_id, quantity_wallet_id)].remove(price)
@@ -79,7 +73,6 @@ class Side(object):
         :return: True if the price level exists, False otherwise
         :rtype: bool
         """
-        assert isinstance(price, Price), type(price)
         return price in self._price_map
 
     def tick_exists(self, order_id):
@@ -89,7 +82,6 @@ class Side(object):
         :return: True if the tick exists, False otherwise
         :rtype: bool
         """
-        assert isinstance(order_id, OrderId), type(order_id)
         return order_id in self._tick_map
 
     def insert_tick(self, tick):
@@ -97,8 +89,6 @@ class Side(object):
         :param tick: The tick to insert
         :type tick: Tick
         """
-        assert isinstance(tick, Tick), type(tick)
-
         if (tick.price.wallet_id, tick.quantity.wallet_id) not in self._price_level_list_map:
             self._price_level_list_map[(tick.price.wallet_id, tick.quantity.wallet_id)] = PriceLevelList()
             self._depth[(tick.price.wallet_id, tick.quantity.wallet_id)] = 0
@@ -114,8 +104,6 @@ class Side(object):
         :param order_id: The order id of the tick that needs to be removed
         :type order_id: OrderId
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-
         tick = self.get_tick(order_id)
         if tick:
             tick.shutdown_task_manager()

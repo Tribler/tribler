@@ -14,9 +14,6 @@ class SocketAddress(object):
         """
         super(SocketAddress, self).__init__()
 
-        assert isinstance(ip, str), type(ip)
-        assert isinstance(port, int), type(port)
-
         if not is_valid_address((ip, port)):
             raise ValueError("Address is not valid")
 

@@ -17,9 +17,6 @@ class PriceLevelList(object):
         :type price: Price
         :type price_level: PriceLevel
         """
-        assert isinstance(price, Price), type(price)
-        assert isinstance(price_level, PriceLevel), type(price_level)
-
         self._price_list.append(price)
         self._price_list.sort()
         self._price_level_dictionary[price] = price_level
@@ -28,8 +25,6 @@ class PriceLevelList(object):
         """
         :type price: Price
         """
-        assert isinstance(price, Price), type(price)
-
         self._price_list.remove(price)
         del self._price_level_dictionary[price]
 
@@ -40,8 +35,6 @@ class PriceLevelList(object):
         :type price: Price
         :rtype: (Price, PriceLevel)
         """
-        assert isinstance(price, Price), type(price)
-
         index = self._price_list.index(price) + 1
         if index >= len(self._price_list):
             raise IndexError
@@ -55,8 +48,6 @@ class PriceLevelList(object):
         :type price: Price
         :rtype: (Price, PriceLevel)
         """
-        assert isinstance(price, Price), type(price)
-
         index = self._price_list.index(price) - 1
         if index < 0:
             raise IndexError

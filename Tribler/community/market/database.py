@@ -16,7 +16,7 @@ DATABASE_DIRECTORY = path.join(u"sqlite")
 # Path to the database location + dispersy._workingdirectory
 DATABASE_PATH = path.join(DATABASE_DIRECTORY, u"market.db")
 # Version to keep track if the db schema needs to be updated.
-LATEST_DB_VERSION = 2
+LATEST_DB_VERSION = 3
 # Schema for the Market DB.
 schema = u"""
 CREATE TABLE IF NOT EXISTS orders(
@@ -64,7 +64,6 @@ CREATE TABLE IF NOT EXISTS orders(
 
  CREATE TABLE IF NOT EXISTS payments(
   trader_id                TEXT NOT NULL,
-  message_number           TEXT NOT NULL,
   transaction_trader_id    TEXT NOT NULL,
   transaction_number       INTEGER NOT NULL,
   payment_id               TEXT NOT NULL,
@@ -77,7 +76,7 @@ CREATE TABLE IF NOT EXISTS orders(
   timestamp                TIMESTAMP NOT NULL,
   success                  INTEGER NOT NULL,
 
-  PRIMARY KEY (trader_id, message_number, transaction_trader_id, transaction_number)
+  PRIMARY KEY (trader_id, payment_id, transaction_trader_id, transaction_number)
  );
 
  CREATE TABLE IF NOT EXISTS ticks(
@@ -271,9 +270,9 @@ class MarketDB(TrustChainDB):
         Add a specific transaction to the database
         """
         self.execute(
-            u"INSERT INTO payments (trader_id, message_number, transaction_trader_id, transaction_number, payment_id,"
+            u"INSERT INTO payments (trader_id, transaction_trader_id, transaction_number, payment_id,"
             u"transferee_quantity, quantity_type, transferee_price, price_type, address_from, address_to, timestamp,"
-            u"success) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", payment.to_database())
+            u"success) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", payment.to_database())
         self.commit()
 
     def get_payments(self, transaction_id):
@@ -330,6 +329,12 @@ class MarketDB(TrustChainDB):
             return u"ALTER TABLE orders ADD COLUMN verified INTEGER DEFAULT 1 NOT NULL;" \
                    u"UPDATE option SET value=\"2\" WHERE key = \"database_version\";" \
                    u"ALTER TABLE ticks ADD COLUMN block_hash TEXT DEFAULT %s NOT NULL;" % ('0' * 32)
+        elif current_version == 2:
+            return u"DROP TABLE orders;" \
+                   u"DROP TABLE transactions;" \
+                   u"DROP TABLE payments;" \
+                   u"DROP TABLE ticks;" \
+                   u"DROP TABLE orders_reserved_ticks;"
 
     def check_database(self, database_version):
         """

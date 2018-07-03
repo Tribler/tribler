@@ -22,8 +22,8 @@ class BaseAsksBidsEndpoint(BaseMarketEndpoint):
         if has_param(parameters, 'timeout'):
             timeout = float(get_param(parameters, 'timeout'))
 
-        price = float(get_param(parameters, 'price'))
-        quantity = float(get_param(parameters, 'quantity'))
+        price = int(get_param(parameters, 'price'))
+        quantity = int(get_param(parameters, 'quantity'))
 
         price_type = get_param(parameters, 'price_type')
         quantity_type = get_param(parameters, 'quantity_type')
@@ -64,7 +64,6 @@ class AsksEndpoint(BaseAsksBidsEndpoint):
                             "timestamp": 1493905920.68573,
                             "price": 10.0,
                             "order_number": 1,
-                            "message_id": "12c406358ba05e5883a75da3f009477e4ca699a9.1",
                             "quantity": 10.0}, ...]
                     }, ...]
                 }
@@ -146,7 +145,6 @@ class BidsEndpoint(BaseAsksBidsEndpoint):
                             "timestamp": 1493905920.68573,
                             "price": 10.0,
                             "order_number": 1,
-                            "message_id": "12c406358ba05e5883a75da3f009477e4ca699a9.1",
                             "quantity": 10.0}, ...]
                     }, ...]
                 }

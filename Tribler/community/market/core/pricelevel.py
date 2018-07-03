@@ -51,8 +51,6 @@ class PriceLevel(object):
         :param new_depth: The new depth
         :type new_depth: Quantity
         """
-        assert isinstance(new_depth, Quantity), type(new_depth)
-
         self._depth = new_depth
 
     @property
@@ -68,8 +66,6 @@ class PriceLevel(object):
         :param new_reserved: The new amount of quantity to reserve
         :type new_reserved: Quantity
         """
-        assert isinstance(new_reserved, Quantity), type(new_reserved)
-
         self._reserved = new_reserved
 
     def __len__(self):
@@ -97,9 +93,6 @@ class PriceLevel(object):
         """
         :type tick: TickEntry
         """
-        assert isinstance(tick, TickEntry), type(tick)
-        assert tick.quantity.wallet_id == self._quantity_wallet_id
-
         if self._length == 0:  # Add the first tick
             tick.prev_tick = None
             tick.next_tick = None
@@ -117,10 +110,11 @@ class PriceLevel(object):
 
     def remove_tick(self, tick):
         """
+        Remove a specific tick from the price level.
+
+        :param tick: The tick to be removed
         :type tick: TickEntry
         """
-        assert isinstance(tick, TickEntry), type(tick)
-
         # Update the counters
         self._depth -= tick.quantity
         self._reserved -= tick.reserved_for_matching

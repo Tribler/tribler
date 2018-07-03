@@ -4,8 +4,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.Test.twisted_thread import deferred
-from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
-from Tribler.community.market.core.message_repository import MemoryMessageRepository
+from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.orderbook import OrderBook, DatabaseOrderBook
 from Tribler.community.market.core.price import Price
@@ -40,7 +39,7 @@ class AbstractTestOrderBook(AbstractServer):
                                Timeout(0), Timestamp(0.0))
         self.bid2 = Bid(OrderId(TraderId('3'), OrderNumber(1)), Price(300, 'BTC'), Quantity(30, 'MC'),
                         Timeout(1462224447.117), Timestamp(1462224447.117))
-        self.trade = Trade.propose(MessageId(TraderId('0'), MessageNumber(1)),
+        self.trade = Trade.propose(TraderId('0'),
                                    OrderId(TraderId('0'), OrderNumber(1)),
                                    OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'),
                                    Quantity(30, 'MC'), Timestamp(1462224447.117))

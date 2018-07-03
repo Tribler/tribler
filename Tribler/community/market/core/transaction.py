@@ -1,7 +1,7 @@
 import logging
 from decimal import Decimal
 
-from Tribler.community.market.core.message import TraderId, Message, MessageId, MessageNumber
+from Tribler.community.market.core.message import TraderId, Message
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
@@ -58,9 +58,6 @@ class TransactionId(object):
         :type transaction_number: TransactionNumber
         """
         super(TransactionId, self).__init__()
-
-        assert isinstance(trader_id, TraderId), type(trader_id)
-        assert isinstance(transaction_number, TransactionNumber), type(transaction_number)
 
         self._trader_id = trader_id
         self._transaction_number = transaction_number
@@ -121,13 +118,6 @@ class Transaction(object):
         """
         super(Transaction, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
-
-        assert isinstance(transaction_id, TransactionId), type(transaction_id)
-        assert isinstance(price, Price), type(price)
-        assert isinstance(quantity, Quantity), type(quantity)
-        assert isinstance(order_id, OrderId), type(order_id)
-        assert isinstance(partner_order_id, OrderId), type(partner_order_id)
-        assert isinstance(timestamp, Timestamp), type(timestamp)
 
         self._transaction_id = transaction_id
         self._price = price
@@ -204,9 +194,6 @@ class Transaction(object):
         :return: The created transaction
         :rtype: Transaction
         """
-        assert isinstance(proposed_trade, ProposedTrade), type(proposed_trade)
-        assert isinstance(transaction_id, TransactionId), type(transaction_id)
-
         return cls(transaction_id, proposed_trade.price, proposed_trade.quantity, proposed_trade.recipient_order_id,
                    proposed_trade.order_id, proposed_trade.timestamp)
 
@@ -379,10 +366,10 @@ class Transaction(object):
 class StartTransaction(Message):
     """Class for representing a message to indicate the start of a payment set"""
 
-    def __init__(self, message_id, transaction_id, order_id, recipient_order_id, proposal_id,
+    def __init__(self, trader_id, transaction_id, order_id, recipient_order_id, proposal_id,
                  price, quantity, timestamp):
         """
-        :param message_id: A message id to identify the message
+        :param trader_id: The trader ID who created the order
         :param transaction_id: A transaction id to identify the transaction
         :param order_id: My order id
         :param recipient_order_id: The order id of the recipient of this message
@@ -390,7 +377,7 @@ class StartTransaction(Message):
         :param price: A price for the trade
         :param quantity: A quantity to be traded
         :param timestamp: A timestamp when the transaction was created
-        :type message_id: MessageId
+        :type trader_id: TraderId
         :type transaction_id: TransactionId
         :type proposal_id: int
         :type order_id: OrderId
@@ -398,14 +385,7 @@ class StartTransaction(Message):
         :type quantity: Quantity
         :type timestamp: Timestamp
         """
-        super(StartTransaction, self).__init__(message_id, timestamp)
-
-        assert isinstance(transaction_id, TransactionId), type(transaction_id)
-        assert isinstance(order_id, OrderId), type(order_id)
-        assert isinstance(recipient_order_id, OrderId), type(order_id)
-        assert isinstance(proposal_id, int), type(proposal_id)
-        assert isinstance(price, Price), type(price)
-        assert isinstance(quantity, Quantity), type(quantity)
+        super(StartTransaction, self).__init__(trader_id, timestamp)
 
         self._transaction_id = transaction_id
         self._order_id = order_id
@@ -469,7 +449,7 @@ class StartTransaction(Message):
         :rtype: StartTransaction
         """
         return cls(
-            data.message_id,
+            data.trader_id,
             data.transaction_id,
             data.order_id,
             data.recipient_order_id,
@@ -484,7 +464,7 @@ class StartTransaction(Message):
         Return network representation of the start transaction message
         """
         return (
-            self._message_id,
+            self._trader_id,
             self._timestamp,
             self._transaction_id,
             self._order_id,

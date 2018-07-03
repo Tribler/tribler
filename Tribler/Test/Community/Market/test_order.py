@@ -2,7 +2,7 @@ import unittest
 
 import time
 
-from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber, TickWasNotReserved
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
@@ -22,7 +22,7 @@ class OrderTestSuite(unittest.TestCase):
         self.transaction = Transaction(self.transaction_id, Price(100, 'BTC'), Quantity(30, 'MC'),
                                        OrderId(TraderId('0'), OrderNumber(2)),
                                        OrderId(TraderId('1'), OrderNumber(1)), Timestamp(0.0))
-        self.proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber(1)),
+        self.proposed_trade = Trade.propose(TraderId('0'),
                                             OrderId(TraderId('0'), OrderNumber(2)),
                                             OrderId(TraderId('1'), OrderNumber(3)),
                                             Price(100, 'BTC'), Quantity(30, 'MC'), Timestamp(0.0))

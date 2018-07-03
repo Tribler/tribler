@@ -19,8 +19,6 @@ class OrderManager(object):
         self._logger = logging.getLogger(self.__class__.__name__)
         self._logger.info("Market OrderManager initialized")
 
-        assert isinstance(order_repository, OrderRepository), type(order_repository)
-
         self.order_repository = order_repository
 
     def create_ask_order(self, price, quantity, timeout):
@@ -36,10 +34,6 @@ class OrderManager(object):
         :return: The order that is created
         :rtype: Order
         """
-        assert isinstance(price, Price), type(price)
-        assert isinstance(quantity, Quantity), type(quantity)
-        assert isinstance(timeout, Timeout), type(timeout)
-
         order = Order(self.order_repository.next_identity(), price, quantity, timeout, Timestamp.now(), True)
         self.order_repository.add(order)
 
@@ -60,10 +54,6 @@ class OrderManager(object):
         :return: The order that is created
         :rtype: Order
         """
-        assert isinstance(price, Price), type(price)
-        assert isinstance(quantity, Quantity), type(quantity)
-        assert isinstance(timeout, Timeout), type(timeout)
-
         order = Order(self.order_repository.next_identity(), price, quantity, timeout, Timestamp.now(), False)
         self.order_repository.add(order)
 
@@ -77,8 +67,6 @@ class OrderManager(object):
         :return: The order that is created
         :rtype: Order
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-
         order = self.order_repository.find_by_id(order_id)
 
         if order:

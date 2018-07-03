@@ -1,7 +1,7 @@
 import unittest
 
 from Tribler.community.market.core.transaction import TransactionNumber, TransactionId
-from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.timestamp import Timestamp
@@ -15,7 +15,7 @@ class PaymentTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.payment = Payment(MessageId(TraderId("0"), MessageNumber(1)),
+        self.payment = Payment(TraderId("0"),
                                TransactionId(TraderId('2'), TransactionNumber(2)),
                                Quantity(3, 'MC'), Price(2, 'BTC'),
                                WalletAddress('a'), WalletAddress('b'),
@@ -24,7 +24,7 @@ class PaymentTestSuite(unittest.TestCase):
     def test_from_network(self):
         # Test for from network
         data = Payment.from_network(
-            type('Data', (object,), {"message_id": MessageId(TraderId("0"), MessageNumber(1)),
+            type('Data', (object,), {"trader_id": TraderId("0"),
                                      "transaction_id": TransactionId(TraderId('2'), TransactionNumber(2)),
                                      "transferee_quantity": Quantity(3, 'MC'),
                                      "transferee_price": Price(2, 'BTC'),
@@ -34,7 +34,7 @@ class PaymentTestSuite(unittest.TestCase):
                                      "timestamp": Timestamp(4.0),
                                      "success": True}))
 
-        self.assertEquals(MessageId(TraderId("0"), MessageNumber(1)), data.message_id)
+        self.assertEquals(TraderId("0"), data.trader_id)
         self.assertEquals(TransactionId(TraderId('2'), TransactionNumber(2)), data.transaction_id)
         self.assertEquals(Quantity(3, 'MC'), data.transferee_quantity)
         self.assertEquals(Price(2, 'BTC'), data.transferee_price)
@@ -45,7 +45,7 @@ class PaymentTestSuite(unittest.TestCase):
         # Test for to network
         data = self.payment.to_network()
 
-        self.assertEquals(data[0], MessageId(TraderId("0"), MessageNumber(1)))
+        self.assertEquals(data[0], TraderId("0"))
         self.assertEquals(data[1], Timestamp(4.0))
         self.assertEquals(data[2], TransactionId(TraderId("2"), TransactionNumber(2)))
         self.assertEquals(data[3], Quantity(3, 'MC'))
