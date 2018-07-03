@@ -33,7 +33,7 @@ def serialize_metadata_gossip(md, key=None):
         p.pack_opaque(signature)
         md["signature"] = signature
     else:
-        assert ("signature" in md)
+        assert "signature" in md
         p.pack_opaque(md["signature"])
 
     return p.get_buf()

@@ -82,12 +82,13 @@ class TestChant(TestAsServer):
         remove_list = md_list[-2:]
         new_md_dict = remove_list[0].to_dict()
         new_md_dict['title'] = new_md_dict['title'] + str(' new version')
-        new_md_dict.pop('id')
+        new_md_dict.pop('rowid')
         new_md = create_metadata_gossip(key=self.key, md_dict=new_md_dict)
 
         md_list = orm.select(g for g in MetadataGossip if
                              g.public_key == chan.public_key and
-                             g.type == REGULAR_TORRENT and g.id != remove_list[0].id)[:]
+                             g.type == REGULAR_TORRENT and g.rowid !=
+                             remove_list[0].rowid)[:]
         md_preupdate_list = [md.to_dict() for md in md_list]
 
         chan_updated = update_channel(self.key, chan, channels_dir, add_list=[new_md], remove_list=remove_list)

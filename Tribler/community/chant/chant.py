@@ -41,7 +41,13 @@ def create_channel_torrent(channels_store_dir, title, buf_list, version):
     return torrent, version
 
 
-def update_channel(key, old_channel, channels_dir, add_list=[], remove_list=[], buf_list=[]):
+def update_channel(key, old_channel, channels_dir, add_list=None, remove_list=None, buf_list=None):
+    if not add_list:
+        add_list = []
+    if not remove_list:
+        remove_list = []
+    if not buf_list:
+        buf_list = []
     for e in remove_list:
         del_entry = {"type": MD_DELETE,
                      "public_key": e.public_key,
@@ -60,7 +66,11 @@ def update_channel(key, old_channel, channels_dir, add_list=[], remove_list=[], 
     return new_channel
 
 
-def create_channel(key, title, channels_dir, buf_list=[], add_list=[], version=0, tags=""):
+def create_channel(key, title, channels_dir, buf_list=None, add_list=None, version=0, tags=""):
+    if not add_list:
+        add_list = []
+    if not buf_list:
+        buf_list = []
     buf_list.extend([e.serialized() for e in add_list])
     (torrent, version) = create_channel_torrent(channels_dir, title,
                                                 buf_list, version)

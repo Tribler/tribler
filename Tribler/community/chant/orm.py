@@ -6,7 +6,7 @@ db = orm.Database()
 
 
 class PeerORM(db.Entity):
-    id = orm.PrimaryKey(int, auto=True)
+    rowid = orm.PrimaryKey(int, auto=True)
     public_key = orm.Required(buffer)
     trusted = orm.Optional(bool)
     votes = orm.Optional(int)
@@ -14,7 +14,7 @@ class PeerORM(db.Entity):
 
 
 class MetadataGossip(db.Entity):
-    id = orm.PrimaryKey(int, auto=True)
+    rowid = orm.PrimaryKey(int, auto=True)
     type = orm.Required(int)
     signature = orm.Optional(buffer)
     infohash = orm.Optional(buffer)
