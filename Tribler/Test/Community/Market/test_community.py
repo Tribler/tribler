@@ -91,6 +91,13 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.assertFalse(orders[0].is_ask())
         self.assertEqual(len(self.nodes[2].overlay.order_book.bids), 1)
 
+    def test_create_invalid_ask_bid(self):
+        """
+        Test creating an invalid ask/bid with invalid asset pairs.
+        """
+        self.assertRaises(RuntimeError, self.nodes[0].overlay.create_ask, 1, 'DUM2', 1, 'DUM1', 3600)
+        self.assertRaises(RuntimeError, self.nodes[0].overlay.create_bid, 1, 'DUM2', 1, 'DUM1', 3600)
+
     @twisted_wrapper(2)
     def test_decline_trade(self):
         """

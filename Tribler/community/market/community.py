@@ -5,6 +5,7 @@ from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Core.simpledefs import NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_TRANSACTION_COMPLETE, \
     NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID_TIMEOUT, NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT
 from Tribler.Core.simpledefs import NTFY_UPDATE
+from Tribler.community.market.block import MarketBlock
 from Tribler.community.market.core import DeclineMatchReason, DeclinedTradeReason
 from Tribler.community.market.core.matching_engine import MatchingEngine, PriceTimeStrategy
 from Tribler.community.market.core.message import TraderId
@@ -31,7 +32,6 @@ from Tribler.community.market.payload import InfoPayload, MatchPayload, TradePay
     AcceptMatchPayload, OrderStatusRequestPayload, OrderStatusResponsePayload, WalletInfoPayload, PaymentPayload, \
     DeclineMatchPayload, DeclineTradePayload, OrderbookSyncPayload, PingPongPayload
 from Tribler.community.market.reputation.temporal_pagerank_manager import TemporalPagerankReputationManager
-from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import synchronized
 from Tribler.pyipv8.ipv8.attestation.trustchain.listener import BlockListener
 from Tribler.pyipv8.ipv8.attestation.trustchain.payload import HalfBlockPairPayload
@@ -44,7 +44,6 @@ from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, succeed, Deferred, returnValue
-from twisted.internet.task import LoopingCall
 
 
 class ProposedTradeRequestCache(NumberCache):
@@ -112,6 +111,7 @@ class MarketCommunity(Community, BlockListener):
                        "fea5ea935e03babe16bb2cf8390487b3a50666f048632f0a38c722dd3b37e4d115b625dedd22426fc4bf48d80275a"
                        "98a3ee32470e766473c0a10ef6781b7f544bf0683a96b2eda78e4f1e13437".decode('hex'))
     PROTOCOL_VERSION = 1
+    BLOCK_CLASS = MarketBlock
 
     def __init__(self, *args, **kwargs):
         self.is_matchmaker = kwargs.pop('is_matchmaker', True)
@@ -368,14 +368,18 @@ class MarketCommunity(Community, BlockListener):
         """
         ask = block.transaction["ask"]
         bid = block.transaction["bid"]
-        self.update_ip(TraderId(ask["trader_id"]), (ask["ip"], ask["port"]))
-        self.update_ip(TraderId(bid["trader_id"]), (bid["ip"], bid["port"]))
+        self.update_ip(TraderId(ask["trader_id"]), (ask["address"], ask["port"]))
+        self.update_ip(TraderId(bid["trader_id"]), (bid["address"], bid["port"]))
 
     def process_tick_block(self, block):
         """
         Process a TradeChain block containing a tick, only if we have a verified order.
         :param block: The TradeChain block containing the tick
         """
+        if not block.is_valid_tick_block():
+            self._logger.warning("Invalid tick block received!")
+            return
+
         tick = Ask.from_block(block) if block.transaction["tick"]["is_ask"] else Bid.from_block(block)
 
         if self.trustchain.persistence.get_linked(block):
@@ -386,6 +390,10 @@ class MarketCommunity(Community, BlockListener):
         Process a TradeChain block containing a transaction initialisation
         :param block: The TradeChain block containing the transaction initialisation
         """
+        if not block.is_valid_tx_init_done_block():
+            self._logger.warning("Invalid tx_init block received!")
+            return
+
         self.update_ips_from_block(block)
         if self.is_matchmaker:
             tx_dict = block.transaction
@@ -400,6 +408,10 @@ class MarketCommunity(Community, BlockListener):
         Process a TradeChain block containing a transaction completion
         :param block: The TradeChain block containing the transaction completion
         """
+        if not block.is_valid_tx_init_done_block():
+            self._logger.warning("Invalid tx_done block received!")
+            return
+
         self.update_ips_from_block(block)
 
         if block.link_public_key == self.my_peer.public_key.key_to_bin():
@@ -423,6 +435,10 @@ class MarketCommunity(Community, BlockListener):
         Process a TradeChain block containing a order cancellation
         :param block: The TradeChain block containing the order cancellation
         """
+        if not block.is_valid_cancel_block():
+            self._logger.warning("Invalid cancel block received!")
+            return
+
         order_id = OrderId(TraderId(block.transaction["trader_id"]), OrderNumber(block.transaction["order_number"]))
         if self.is_matchmaker and self.order_book.tick_exists(order_id):
             self.order_book.remove_tick(order_id)
@@ -1283,7 +1299,7 @@ class MarketCommunity(Community, BlockListener):
 
         def build_tx_init_block(other_order_dict):
             my_order_dict = order.to_status_dictionary()
-            my_order_dict["ip"], my_order_dict["port"] = self.get_ipv8_address()
+            my_order_dict["address"], my_order_dict["port"] = self.get_ipv8_address()
 
             if order.is_ask():
                 ask_order_dict = my_order_dict
@@ -1343,7 +1359,7 @@ class MarketCommunity(Community, BlockListener):
             "traded_quantity": payload.traded_quantity.amount,
             "timeout": float(payload.timeout),
             "timestamp": float(payload.timestamp),
-            "ip": payload.address.ip,
+            "address": payload.address.ip,
             "port": payload.address.port
         }
 
@@ -1515,7 +1531,7 @@ class MarketCommunity(Community, BlockListener):
 
         def build_tx_done_block(other_order_dict):
             my_order_dict = order.to_status_dictionary()
-            my_order_dict["ip"], my_order_dict["port"] = self.get_ipv8_address()
+            my_order_dict["address"], my_order_dict["port"] = self.get_ipv8_address()
 
             if order.is_ask():
                 ask_order_dict = my_order_dict
@@ -1583,7 +1599,7 @@ class MarketCommunity(Community, BlockListener):
             return
 
         _, payload = self._ez_unpack_noauth(HalfBlockPairPayload, data)
-        block1, block2 = TrustChainBlock.from_pair_payload(payload, self.serializer)
+        block1, block2 = self.trustchain.get_block_class(payload.type1).from_pair_payload(payload, self.serializer)
         self.trustchain.validate_persist_block(block1)
         self.trustchain.validate_persist_block(block2)
 
