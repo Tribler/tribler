@@ -106,10 +106,10 @@ class MarketCommunity(Community, BlockListener):
     """
     Community for general asset trading.
     """
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b8104002703819200040596ad1951cc5e4a8d589508cc2b8823a73a35471"
-                       "4cfc8acd163acb84e13cbfcec67d00d41eca49bd2fb861cc89d63005fd192369547fa571a2514bad86eb438ba68ca"
-                       "fea5ea935e03babe16bb2cf8390487b3a50666f048632f0a38c722dd3b37e4d115b625dedd22426fc4bf48d80275a"
-                       "98a3ee32470e766473c0a10ef6781b7f544bf0683a96b2eda78e4f1e13437".decode('hex'))
+    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000402c935859fed58ce550438218ffbb84e0d7c6e38f"
+                       "53b7855f32e1e0cdfce0f1aaa41173d89c16c192260977952e68b53f9da8b162bf1863da4b5985665020f41196ef0"
+                       "efbc7c0adc0464a1e879a614465c775f4dfac5467cbe1536ebed6d4b3010a82bf3956e785ed1d486d9640017e05fd"
+                       "85e3cd472537c49f5744abb74bde47801ca4fb28bf97c4019681497238f34".decode('hex'))
     PROTOCOL_VERSION = 1
     BLOCK_CLASS = MarketBlock
 
