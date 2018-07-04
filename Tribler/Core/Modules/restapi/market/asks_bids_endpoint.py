@@ -18,9 +18,9 @@ class BaseAsksBidsEndpoint(BaseMarketEndpoint):
         Create an ask/bid from the provided parameters in a request. This method returns a tuple with the price,
         quantity and timeout of the ask/bid.
         """
-        timeout = 3600.0
+        timeout = 3600
         if has_param(parameters, 'timeout'):
-            timeout = float(get_param(parameters, 'timeout'))
+            timeout = int(get_param(parameters, 'timeout'))
 
         price = int(get_param(parameters, 'price'))
         quantity = int(get_param(parameters, 'quantity'))

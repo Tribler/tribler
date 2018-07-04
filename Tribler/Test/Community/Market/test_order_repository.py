@@ -22,8 +22,8 @@ class MemoryOrderRepositoryTestSuite(unittest.TestCase):
         # Object creation
         self.memory_order_repository = MemoryOrderRepository("0")
         self.order_id = OrderId(TraderId("0"), OrderNumber(1))
-        self.order = Order(self.order_id, Price(100, 'BTC'), Quantity(30, 'MC'), Timeout(0.0), Timestamp(10.0), False)
-        self.order2 = Order(self.order_id, Price(1000, 'BTC'), Quantity(30, 'MC'), Timeout(0.0), Timestamp(10.0), False)
+        self.order = Order(self.order_id, Price(100, 'BTC'), Quantity(30, 'MC'), Timeout(0), Timestamp(10.0), False)
+        self.order2 = Order(self.order_id, Price(1000, 'BTC'), Quantity(30, 'MC'), Timeout(0), Timestamp(10.0), False)
 
     def test_init(self):
         # Test for init validation

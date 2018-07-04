@@ -28,9 +28,9 @@ class OrderTestSuite(unittest.TestCase):
                                             Price(100, 'BTC'), Quantity(30, 'MC'), Timestamp(0.0))
 
         self.tick = Tick(OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(5, 'MC'),
-                         Timeout(0.0), Timestamp(float("inf")), True)
+                         Timeout(0), Timestamp(float("inf")), True)
         self.tick2 = Tick(OrderId(TraderId('0'), OrderNumber(2)), Price(100, 'BTC'), Quantity(100, 'MC'),
-                          Timeout(0.0), Timestamp(float("inf")), True)
+                          Timeout(0), Timestamp(float("inf")), True)
 
         self.order_timestamp = Timestamp.now()
         self.order = Order(OrderId(TraderId("0"), OrderNumber(3)), Price(100, 'BTC'), Quantity(30, 'MC'),

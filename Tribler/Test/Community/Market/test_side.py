@@ -17,9 +17,9 @@ class SideTestSuite(unittest.TestCase):
         # Object creation
 
         self.tick = Tick(OrderId(TraderId('0'), OrderNumber(1)), Price(400, 'BTC'), Quantity(30, 'MC'),
-                         Timeout(float("inf")), Timestamp(float("inf")), True)
+                         Timeout(100), Timestamp.now(), True)
         self.tick2 = Tick(OrderId(TraderId('1'), OrderNumber(2)), Price(800, 'BTC'), Quantity(30, 'MC'),
-                          Timeout(float("inf")), Timestamp(float("inf")), True)
+                          Timeout(100), Timestamp.now(), True)
         self.side = Side()
 
     def test_max_price(self):

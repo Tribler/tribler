@@ -56,7 +56,7 @@ class Tick(object):
     def to_database(self):
         return (unicode(self.order_id.trader_id), int(self.order_id.order_number), self.price.amount,
                 unicode(self.price.asset_id), self.quantity.amount, unicode(self.quantity.asset_id),
-                float(self.timeout), float(self.timestamp), self.is_ask(), buffer(self.block_hash))
+                int(self.timeout), float(self.timestamp), self.is_ask(), buffer(self.block_hash))
 
     @classmethod
     def from_order(cls, order):
@@ -174,7 +174,7 @@ class Tick(object):
             "price_type": self.price.asset_id,
             "quantity": self.quantity.amount,
             "quantity_type": self.quantity.asset_id,
-            "timeout": float(self.timeout),
+            "timeout": int(self.timeout),
             "timestamp": float(self.timestamp),
             "is_ask": self.is_ask()
         }
@@ -190,7 +190,7 @@ class Tick(object):
             "price_type": self.price.asset_id,
             "quantity": self.quantity.amount,
             "quantity_type": self.quantity.asset_id,
-            "timeout": float(self.timeout),
+            "timeout": int(self.timeout),
             "timestamp": float(self.timestamp),
             "block_hash": self.block_hash.encode('hex')
         }

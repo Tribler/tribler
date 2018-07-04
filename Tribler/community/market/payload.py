@@ -57,7 +57,7 @@ class OfferPayload(MessagePayload):
     Payload for a message with an offer in the market community.
     """
 
-    format_list = MessagePayload.format_list + ['I', 'Q', 'varlenI', 'Q', 'varlenI', 'f', 'varlenI', 'I']
+    format_list = MessagePayload.format_list + ['I', 'Q', 'varlenI', 'Q', 'varlenI', 'I', 'varlenI', 'I']
 
     def __init__(self, trader_id, timestamp, order_number, price, quantity, timeout, address):
         super(OfferPayload, self).__init__(trader_id, timestamp)
@@ -74,7 +74,7 @@ class OfferPayload(MessagePayload):
                  ('varlenI', self.price.asset_id),
                  ('Q', self.quantity.amount),
                  ('varlenI', self.quantity.asset_id),
-                 ('f', float(self.timeout)),
+                 ('I', int(self.timeout)),
                  ('varlenI', self.address.ip),
                  ('I', self.address.port)]
         return data

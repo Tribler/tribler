@@ -166,7 +166,7 @@ class Order(object):
         completed_timestamp = float(self.completed_timestamp) if self.completed_timestamp else None
         return (unicode(self.order_id.trader_id), unicode(self.order_id.order_number), self.price.amount,
                 unicode(self.price.asset_id), self.total_quantity.amount, unicode(self.total_quantity.asset_id),
-                self.traded_quantity.amount, float(self.timeout), float(self.timestamp), completed_timestamp,
+                self.traded_quantity.amount, int(self.timeout), float(self.timestamp), completed_timestamp,
                 self.is_ask(), self._cancelled, self._verified)
 
     @property
@@ -396,7 +396,7 @@ class Order(object):
             "quantity_type": self.total_quantity.asset_id,
             "reserved_quantity": self.reserved_quantity.amount,
             "traded_quantity": self.traded_quantity.amount,
-            "timeout": float(self.timeout),
+            "timeout": int(self.timeout),
             "timestamp": float(self.timestamp),
             "completed_timestamp": completed_timestamp,
             "is_ask": self.is_ask(),
@@ -416,6 +416,6 @@ class Order(object):
             "quantity": self.total_quantity.amount,
             "quantity_type": self.total_quantity.asset_id,
             "traded_quantity": self.traded_quantity.amount,
-            "timeout": float(self.timeout),
+            "timeout": int(self.timeout),
             "timestamp": float(self.timestamp)
         }

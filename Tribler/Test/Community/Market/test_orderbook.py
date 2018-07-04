@@ -28,17 +28,17 @@ class AbstractTestOrderBook(AbstractServer):
         yield super(AbstractTestOrderBook, self).setUp(annotate=annotate)
         # Object creation
         self.ask = Ask(OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
-                       Timeout(1462224447.117), Timestamp(1462224447.117))
+                       Timeout(100), Timestamp.now())
         self.invalid_ask = Ask(OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
                                Timeout(0), Timestamp(0.0))
         self.ask2 = Ask(OrderId(TraderId('1'), OrderNumber(1)), Price(400, 'BTC'), Quantity(30, 'MC'),
-                        Timeout(1462224447.117), Timestamp(1462224447.117))
+                        Timeout(100), Timestamp.now())
         self.bid = Bid(OrderId(TraderId('2'), OrderNumber(1)), Price(200, 'BTC'), Quantity(30, 'MC'),
-                       Timeout(1462224447.117), Timestamp(1462224447.117))
+                       Timeout(100), Timestamp.now())
         self.invalid_bid = Bid(OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
                                Timeout(0), Timestamp(0.0))
         self.bid2 = Bid(OrderId(TraderId('3'), OrderNumber(1)), Price(300, 'BTC'), Quantity(30, 'MC'),
-                        Timeout(1462224447.117), Timestamp(1462224447.117))
+                        Timeout(100), Timestamp.now())
         self.trade = Trade.propose(TraderId('0'),
                                    OrderId(TraderId('0'), OrderNumber(1)),
                                    OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'),

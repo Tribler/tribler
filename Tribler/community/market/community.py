@@ -1357,7 +1357,7 @@ class MarketCommunity(Community, BlockListener):
             "quantity": payload.quantity.amount,
             "quantity_type": payload.quantity.asset_id,
             "traded_quantity": payload.traded_quantity.amount,
-            "timeout": float(payload.timeout),
+            "timeout": int(payload.timeout),
             "timestamp": float(payload.timestamp),
             "address": payload.address.ip,
             "port": payload.address.port
