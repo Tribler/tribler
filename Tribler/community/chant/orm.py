@@ -1,9 +1,41 @@
 from datetime import datetime
 from pony import orm
+from pony.orm import db_session
 from Tribler.community.chant.MDPackXDR import serialize_metadata_gossip
+import sqlite3
 
 db = orm.Database()
 
+sql_create_fts_table = """
+    CREATE VIRTUAL TABLE FtsIndex USING FTS4
+        (title, tags, content='metadatagossip', 
+         tokenize='porter' 'unicode61');"""
+
+sql_add_fts_insert_trigger="""
+    CREATE TRIGGER fts_ai AFTER INSERT ON metadatagossip
+    BEGIN
+        INSERT INTO FtsIndex(rowid, title, tags) VALUES
+            (new.rowid, new.title, new.tags);
+    END;"""
+
+sql_add_fts_delete_trigger="""
+    CREATE TRIGGER fts_ad AFTER DELETE ON metadatagossip 
+    BEGIN
+        DELETE FROM FtsIndex WHERE rowid = old.rowid;
+    END;"""
+
+sql_add_fts_update_trigger="""
+    CREATE TRIGGER fts_au AFTER UPDATE ON metadatagossip BEGIN
+        DELETE FROM FtsIndex WHERE rowid = old.rowid;
+        INSERT INTO FtsIndex(rowid, title, tags) VALUES (nem.rowid, new.title,
+      new.tags);
+    END;"""
+
+
+class FtsIndex(db.Entity):
+    rowid = orm.PrimaryKey(int, auto=True)
+    title = orm.Optional(str)
+    tags = orm.Optional(str)
 
 class PeerORM(db.Entity):
     rowid = orm.PrimaryKey(int, auto=True)
@@ -55,6 +87,16 @@ def known_signature(signature):
     return MetadataGossip.get(signature=signature)
 
 
-def start_orm(db_filename):
-    db.bind(provider='sqlite', filename=db_filename, create_db=True)
-    db.generate_mapping(create_tables=True)
+def start_orm(db_filename, create_db=False):
+    db.bind(provider='sqlite', filename=db_filename, create_db=create_db)
+
+    if create_db:
+        with db_session:
+            db.execute(sql_create_fts_table)
+    db.generate_mapping(create_tables=create_db)
+    if create_db:
+        with db_session:
+            db.execute(sql_add_fts_insert_trigger)
+            db.execute(sql_add_fts_update_trigger)
+            db.execute(sql_add_fts_delete_trigger)
+
