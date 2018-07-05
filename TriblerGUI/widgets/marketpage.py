@@ -151,11 +151,13 @@ class MarketPage(QWidget):
     def update_filter_asks_list(self):
         self.window().asks_list.clear()
 
-        ticks = None
+        ticks = []
         for price_level_info in self.asks:
             if (price_level_info['price_type'], price_level_info['quantity_type']) == self.chosen_wallets:
-                ticks = price_level_info["ticks"]
-                break
+                ticks.extend(price_level_info["ticks"])
+        for price_level_info in self.bids:
+            if (price_level_info['quantity_type'], price_level_info['price_type']) == self.chosen_wallets:
+                ticks.extend(price_level_info["ticks"])
 
         if ticks:
             for ask in ticks:
@@ -173,11 +175,13 @@ class MarketPage(QWidget):
     def update_filter_bids_list(self):
         self.window().bids_list.clear()
 
-        ticks = None
+        ticks = []
         for price_level_info in self.bids:
             if (price_level_info['price_type'], price_level_info['quantity_type']) == self.chosen_wallets:
-                ticks = price_level_info["ticks"]
-                break
+                ticks.extend(price_level_info["ticks"])
+        for price_level_info in self.asks:
+            if (price_level_info['quantity_type'], price_level_info['price_type']) == self.chosen_wallets:
+                ticks.extend(price_level_info["ticks"])
 
         if ticks:
             for bid in ticks:
