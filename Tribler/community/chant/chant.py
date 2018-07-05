@@ -1,9 +1,10 @@
 import os
 from datetime import datetime
 
+from pony import orm
 from libtorrent import add_files, bdecode, bencode, create_torrent, file_storage, set_piece_hashes
 from Tribler.community.chant.MDPackXDR import serialize_metadata_gossip, \
-    deserialize_metadata_gossip, CHANNEL_TORRENT, MD_DELETE
+    deserialize_metadata_gossip, CHANNEL_TORRENT, MD_DELETE, REGULAR_TORRENT
 
 from Tribler.community.chant.orm import MetadataGossip, PeerORM, known_signature, known_pk, trusted_pk
 
@@ -135,3 +136,10 @@ def check_gossip(gsp):
         return False
 
     return True
+
+
+def list_channel(channel):
+    md_list = orm.select(g for g in MetadataGossip if
+                         g.public_key == channel.public_key and
+                         g.type == REGULAR_TORRENT)[:]
+    return md_list

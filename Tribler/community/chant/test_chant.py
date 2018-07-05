@@ -1,5 +1,3 @@
-import unittest
-
 from pony import orm
 from pony.orm import db_session
 import os
@@ -10,9 +8,9 @@ from Tribler.community.chant.chant import *
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.chant.orm import start_orm, db
 
-
 db_filename = ":memory:"
 start_orm(db_filename, create_db=True)
+
 
 class TestChant(TestAsServer):
 
@@ -27,7 +25,7 @@ class TestChant(TestAsServer):
         self.key = tt.key
         self.public_key = tt.public_key
         self.md_dict_list = [tt.get_regular_md_dict(n) for n in range(0, 5)]
-        #db_filename = os.path.abspath(os.path.join(self.testdir, "chant.db"))
+        # db_filename = os.path.abspath(os.path.join(self.testdir, "chant.db"))
         self.testdir = self.session.config.get_state_dir()
         self.channels_dir = os.path.abspath(os.path.join(self.testdir, "channels"))
 
@@ -56,11 +54,7 @@ class TestChant(TestAsServer):
         chan = self.CreateChanSnippet()
         chan_dir = os.path.abspath(os.path.join(self.channels_dir, chan.title))
 
-        md_list = orm.select(g for g in MetadataGossip if
-                             g.public_key == chan.public_key and
-                             g.type == REGULAR_TORRENT)[:]
-
-        remove_list = md_list[-2:]
+        remove_list = list_channel(chan)[-2:]
         new_md_dict = remove_list[0].to_dict()
         new_md_dict['title'] = new_md_dict['title'] + str(' new version')
         new_md_dict.pop('rowid')
@@ -76,7 +70,6 @@ class TestChant(TestAsServer):
 
         return (md_preupdate_list, chan, chan_updated)
 
-
     @db_session
     def TestCreateMetadataGossip(self):
         for md_dict in self.md_dict_list:
@@ -90,7 +83,6 @@ class TestChant(TestAsServer):
             from_db = serialize_metadata_gossip(restored_dict_list[i])
             self.assertEqual(orig, from_db)
 
-
     @db_session
     def TestCreateChannel(self):
         chan = self.CreateChanSnippet()
@@ -100,11 +92,7 @@ class TestChant(TestAsServer):
         md_list = orm.select(g for g in MetadataGossip)[:]
         self.assertEqual(len(md_list), len(self.md_dict_list) + 1)
 
-        md_list = orm.select(g for g in MetadataGossip if
-                             g.public_key == chan.public_key and
-                             g.type == REGULAR_TORRENT)[:]
-        print md_list
-        self.assertEqual(len(md_list), chan.version)
+        self.assertEqual(len(list_channel(chan)), chan.version)
 
         return
 
@@ -115,10 +103,7 @@ class TestChant(TestAsServer):
         chan_dir = os.path.abspath(os.path.join(self.channels_dir, chan.title))
 
         process_channel_dir(chan_dir)
-        md_list = orm.select(g for g in MetadataGossip if
-                             g.public_key == chan.public_key and
-                             g.type == REGULAR_TORRENT)[:]
-        print md_list
+        md_list = list_channel(chan)
         self.assertEqual(len(md_list), chan.version)
 
         for i in range(len(self.md_dict_list)):
@@ -130,31 +115,36 @@ class TestChant(TestAsServer):
     def TestUpdateChannel(self):
         md_preupdate_list, _, chan_updated = self.CreateUpdatedChanSnippet()
 
-        md_list = orm.select(g for g in MetadataGossip if
-                             g.public_key == chan_updated.public_key and
-                             g.type == REGULAR_TORRENT)[:]
-        md_postupdate_list = [md.to_dict() for md in md_list]
+        md_postupdate_list = [md.to_dict() for md in list_channel(chan_updated)]
         self.assertEqual(len(md_preupdate_list) - 1, len(md_postupdate_list))
         for i in range(len(md_postupdate_list) - 1):
             self.assertDictEqual(md_preupdate_list[i], md_postupdate_list[i])
 
     @db_session
     def TestLoadUpdatedChannel(self):
-        md_preupdate_list, chan, chan_updated = self.CreateUpdatedChanSnippet()
-        md_list = orm.select(g for g in MetadataGossip if
-                             g.public_key == chan_updated.public_key and
-                             g.type == REGULAR_TORRENT)[:]
-        md_postupdate_list = [md.to_dict() for md in md_list]
+        _, _, chan_updated = self.CreateUpdatedChanSnippet()
+        md_postupdate_list = [md.to_dict() for md in list_channel(chan_updated)]
         chan_dir = os.path.abspath(os.path.join(self.channels_dir, chan_updated.title))
         self.CleanDB()
-        process_channel_dir(chan_dir)
-        md_list = orm.select(g for g in MetadataGossip if
-                             g.public_key == chan_updated.public_key and
-                             g.type == REGULAR_TORRENT)[:]
 
-        md_postload_list = [md.to_dict() for md in md_list]
+        process_channel_dir(chan_dir)
+        md_postload_list = [md.to_dict() for md in list_channel(chan_updated)]
         self.assertEqual(len(md_postload_list), len(md_postupdate_list))
-        for i in range(len(md_postupdate_list)):
+        for i, _ in enumerate(md_postupdate_list):
             orig = serialize_metadata_gossip(md_postupdate_list[i])
             from_db = serialize_metadata_gossip(md_postload_list[i])
             self.assertEqual(orig, from_db)
+
+    @db_session
+    def TestFts(self):
+        def Search(query):
+            return MetadataGossip.search_keyword(query)[:]
+
+        for md_dict in self.md_dict_list:
+            create_metadata_gossip(key=self.key, md_dict=md_dict)
+        self.assertEqual(1, len(Search("Torrent1")))
+        self.assertEqual(len(self.md_dict_list), len(Search("Regular")))
+        self.assertEqual(len(self.md_dict_list), len(Search("Regularity")))
+        self.assertEqual(5, len(Search("tag1")))
+        self.assertEqual(1, len(Search("Regular AND Torrent1")))
+        self.assertEqual(2, len(Search("Torrent1 OR Torrent2")))

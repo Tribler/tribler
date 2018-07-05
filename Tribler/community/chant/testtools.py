@@ -9,7 +9,7 @@ public_key = key.pub().key_to_bin()
 def get_regular_md_dict(n=1):
     template = {"type": REGULAR_TORRENT,
                 "infohash"     : str(0x1)*20,
-                "title"        : "Regular Torrent " + str(n),
+                "title"        : "Regular Torrent" + str(n),
                 "tags"         : "tag1.tag2. tag3 . tag4:bla.",
                 "size"         : long(n+1),
                 "timestamp"    : datetime.datetime(2005, 7, 14, 12, 30),
