@@ -91,7 +91,7 @@ class Options(usage.Options):
         ["socks5", "p", None, "Socks5 port", check_socks5_port],
         ["ipv8_port", "d", -1, 'IPv8 port', check_ipv8_port],
         ["ipv8_address", "i", "0.0.0.0", 'IPv8 listening address', check_ipv8_address],
-        ["ipv8_bootstrap_override", "b", "", "Force the usage of specific IPv8 bootstrap server (ip:port)", check_ipv8_bootstrap_override],
+        ["ipv8_bootstrap_override", "b", None, "Force the usage of specific IPv8 bootstrap server (ip:port)", check_ipv8_bootstrap_override],
         ["restapi", "p", None, "Use an alternate port for the REST API", check_api_port],
     ]
 
@@ -183,7 +183,7 @@ class Tunnel(object):
             config.set_http_api_enabled(True)
             config.set_http_api_port(self.options["restapi"])
 
-        if "ipv8_bootstrap_override" in self.options:
+        if self.options["ipv8_bootstrap_override"] is not None:
             config.set_ipv8_bootstrap_override(self.options["ipv8_bootstrap_override"])
 
         self.session = Session(config)
