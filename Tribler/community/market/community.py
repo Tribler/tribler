@@ -438,10 +438,10 @@ class MarketCommunity(Community, BlockListener):
             transaction_id = TransactionId(TraderId(block.transaction["tx"]["trader_id"]),
                                            TransactionNumber(block.transaction["tx"]["transaction_number"]))
             transaction = self.transaction_manager.find_by_id(transaction_id)
-            if transaction and self.trustchain.persistence.get_linked(block):
+            if transaction:
                 self.notify_transaction_complete(transaction.to_dictionary(), mine=True)
                 self.send_matched_transaction_completed(transaction, block)
-        elif self.is_matchmaker and self.trustchain.persistence.get_linked(block):
+        elif self.is_matchmaker:
             tx_dict = block.transaction
             transferred_quantity = Quantity(tx_dict["tx"]["quantity"], tx_dict["tx"]["quantity_type"])
             self.order_book.update_ticks(tx_dict["ask"], tx_dict["bid"], transferred_quantity, unreserve=False)
