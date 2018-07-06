@@ -25,6 +25,8 @@ def distance(a, b):
 
 
 def calc_node_id(ip, mid):
+    # Loosely based on the Bittorrent DHT (https://libtorrent.org/dht_sec.html), the node id is calculated as follows:
+    # first 3 bytes of crc32c(ip & 0x030f3fff) + first 17 bytes of sha1(public_key)
     ip_bin = inet_aton(ip)
     ip_mask = '\x03\x0f\x3f\0xff'
     ip_masked = ''.join([chr(ord(ip_bin[i]) & ord(ip_mask[i])) for i in range(4)])
@@ -62,10 +64,10 @@ class Node(Peer):
         # to one of our queries and has sent us a query within the last 15 minutes. This is the same logic as
         # used in BEP-5
         now = time.time()
-        if ((now - self.last_response) < 15 * 60) or (self.last_response > 0 and (now - self.last_query) < 15 * 60):
-            return NODE_STATUS_GOOD
-        elif self.failed >= 2:
+        if self.failed >= 2:
             return NODE_STATUS_BAD
+        elif ((now - self.last_response) < 15 * 60) or (self.last_response > 0 and (now - self.last_query) < 15 * 60):
+            return NODE_STATUS_GOOD
         return NODE_STATUS_UNKNOWN
 
     def distance(self, other_node):
@@ -161,7 +163,6 @@ class RoutingTable(object):
     def add(self, node):
         with self.lock:
             bucket = self.get_bucket(node.id)
-            node = bucket.get(node.id) or node
 
             # Add/update node
             if not bucket.add(node):
@@ -176,7 +177,14 @@ class RoutingTable(object):
                     # Retry
                     return self.add(node)
             else:
-                return node
+                return bucket.get(node.id)
+
+    def remove_bad_nodes(self):
+        with self.lock:
+            for bucket in self.trie.values():
+                for node_id, node in bucket.nodes.items():
+                    if node.status == NODE_STATUS_BAD:
+                        bucket.nodes.pop(node_id, None)
 
     def has(self, node):
         return bool(self.get_bucket(node.id).get(node.id))

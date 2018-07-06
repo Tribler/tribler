@@ -1,6 +1,31 @@
 import time
+import hashlib
 
 from collections import defaultdict
+
+
+class Value(object):
+    """
+    Class for storing DHT values.
+    """
+
+    def __init__(self, id_, data, max_age, version):
+        self.id = id_
+        self.data = data
+        self.last_update = time.time()
+        self.max_age = max_age
+        self.version = version
+
+    @property
+    def age(self):
+        return time.time() - self.last_update
+
+    @property
+    def expired(self):
+        return self.age > self.max_age
+
+    def __eq__(self, other):
+        return self.id == other.id
 
 
 class Storage(object):
@@ -9,31 +34,36 @@ class Storage(object):
     """
 
     def __init__(self):
-        self.data = defaultdict(list)
+        self.items = defaultdict(list)
 
-    def put(self, key, value, max_age):
-        for i, v in enumerate(self.data[key]):
-            if v[-1] == value:
-                del self.data[key][i]
+    def put(self, key, data, id_=None, max_age=86400, version=0):
+        id_ = id_ or hashlib.sha1(data).digest()
+        new_value = Value(id_, data, max_age, version)
 
-        self.data[key].append((time.time(), max_age, value))
+        try:
+            index = self.items[key].index(new_value)
+            old_value = self.items[key][index]
+            if new_value.version >= old_value.version:
+                del self.items[key][index]
+                self.items[key].insert(0, new_value)
+                self.items[key].sort(key=lambda v: 1 if v.id == key else 0)
+        except ValueError:
+            self.items[key].insert(0, new_value)
+            self.items[key].sort(key=lambda v: 1 if v.id == key else 0)
 
-    def get(self, key):
-        return [value for _, _, value in self.data[key]]
+    def get(self, key, limit=None):
+        return [value.data for value in self.items[key][:limit]]
 
     def items_older_than(self, min_age):
-        now = time.time()
-
         items = []
-        for key in self.data:
-            items += [(key, value) for ts, _, value in self.data[key] if now - ts > min_age]
+        for key in self.items:
+            items += [(key, value.data) for value in self.items[key] if value.age > min_age]
         return items
 
     def clean(self):
-        now = time.time()
-        for key in self.data:
-            for index, (ts, max_age, _) in enumerate(self.data[key]):
-                if now - ts > max_age:
-                    del self.data[key][index]
+        for key in self.items:
+            for index, value in reversed(list(enumerate(self.items[key]))):
+                if value.expired:
+                    del self.items[key][index]
                 else:
                     break
