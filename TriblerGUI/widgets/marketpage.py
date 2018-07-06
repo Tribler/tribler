@@ -216,9 +216,11 @@ class MarketPage(QWidget):
     def on_transaction_complete(self, transaction):
         if transaction["mine"]:
             transaction = transaction["tx"]
-            main_text = "Transaction with price %f %s and quantity %f %s completed." \
-                        % (transaction["price"], transaction["price_type"],
-                           transaction["quantity"], transaction["quantity_type"])
+            price = prec_div(transaction["price"], self.wallets[transaction["price_type"]]["precision"])
+            quantity = prec_div(transaction["quantity"], self.wallets[transaction["quantity_type"]]["precision"])
+            main_text = "Transaction with price %g %s and quantity %g %s completed." \
+                        % (price, transaction["price_type"],
+                           quantity, transaction["quantity_type"])
             self.window().tray_icon.showMessage("Transaction completed", main_text)
             self.window().hide_status_bar()
 
