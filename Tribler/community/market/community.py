@@ -1454,8 +1454,8 @@ class MarketCommunity(Community, BlockListener):
 
         payment_message = self.transaction_manager.create_payment_message(
             TraderId(self.mid), payment_id, transaction, payment, success)
-        self.logger.debug("Sending payment message with price %s and quantity %s (success? %s)",
-                          payment_message.transferee_price, payment_message.transferee_quantity, success)
+        self.logger.info("Sending payment message with price %s and quantity %s (success? %s)",
+                         payment_message.transferee_price, payment_message.transferee_quantity, success)
 
         if self.tribler_session:
             self.tribler_session.notifier.notify(NTFY_MARKET_ON_PAYMENT_SENT, NTFY_UPDATE, None,
@@ -1486,7 +1486,7 @@ class MarketCommunity(Community, BlockListener):
             return
 
         if not payment.success:
-            self.logger.debug("Payment with id %s not successful, aborting transaction", payment.payment_id)
+            self.logger.info("Payment with id %s not successful, aborting transaction", payment.payment_id)
             transaction.add_payment(payment)
             self.transaction_manager.transaction_repository.update(transaction)
             self.abort_transaction(transaction)
@@ -1509,8 +1509,8 @@ class MarketCommunity(Community, BlockListener):
         reactor.callFromThread(monitor_for_transaction)
 
     def received_payment(self, peer, payment, transaction):
-        self.logger.debug("Received payment with id %s (price: %s, quantity: %s)",
-                          payment.payment_id, payment.transferee_price, payment.transferee_quantity)
+        self.logger.info("Received payment with id %s (price: %s, quantity: %s)",
+                         payment.payment_id, payment.transferee_price, payment.transferee_quantity)
         transaction.add_payment(payment)
         self.transaction_manager.transaction_repository.update(transaction)
         order = self.order_manager.order_repository.find_by_id(transaction.order_id)
@@ -1580,7 +1580,7 @@ class MarketCommunity(Community, BlockListener):
         if not transaction.match_id or transaction.match_id not in self.incoming_match_messages:
             return
 
-        self.logger.debug("Sending transaction completed (match id: %s)", transaction.match_id)
+        self.logger.info("Sending transaction completed to matchmaker (match id: %s)", transaction.match_id)
 
         # Lookup the remote address of the peer with the pubkey
         match_payload = self.incoming_match_messages[transaction.match_id]
@@ -1595,7 +1595,7 @@ class MarketCommunity(Community, BlockListener):
         self.endpoint.send(self.lookup_ip(match_payload.matchmaker_trader_id), packet)
 
     def received_matched_tx_complete(self, _, data):
-        self.logger.debug("Received transaction-completed message")
+        self.logger.debug("Received transaction-completed message as a matchmaker")
         if not self.is_matchmaker:
             return
 
