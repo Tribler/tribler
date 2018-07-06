@@ -46,6 +46,25 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, succeed, Deferred, returnValue
 
 
+# Message definitions
+MSG_MATCH = 7
+MSG_MATCH_ACCEPT = 8
+MSG_MATCH_DECLINE = 9
+MSG_PROPOSED_TRADE = 10
+MSG_DECLINED_TRADE = 11
+MSG_COUNTER_TRADE = 12
+MSG_START_TX = 13
+MSG_WALLET_INFO = 14
+MSG_PAYMENT = 15
+MSG_ORDER_QUERY = 16
+MSG_ORDER_RESPONSE = 17
+MSG_INFO = 18
+MSG_BOOK_SYNC = 19
+MSG_PING = 20
+MSG_PONG = 21
+MSG_MATCH_DONE = 22
+
+
 class ProposedTradeRequestCache(NumberCache):
     """
     This cache keeps track of outstanding proposed trade messages.
@@ -162,22 +181,22 @@ class MarketCommunity(Community, BlockListener):
 
         # Register messages
         self.decode_map.update({
-            chr(7): self.received_match,
-            chr(8): self.received_accept_match,
-            chr(9): self.received_decline_match,
-            chr(10): self.received_proposed_trade,
-            chr(11): self.received_decline_trade,
-            chr(12): self.received_counter_trade,
-            chr(13): self.received_start_transaction,
-            chr(14): self.received_wallet_info,
-            chr(15): self.received_payment_message,
-            chr(16): self.received_order_status_request,
-            chr(17): self.received_order_status,
-            chr(18): self.received_info,
-            chr(19): self.received_orderbook_sync,
-            chr(20): self.received_ping,
-            chr(21): self.received_pong,
-            chr(22): self.received_matched_tx_complete
+            chr(MSG_MATCH): self.received_match,
+            chr(MSG_MATCH_ACCEPT): self.received_accept_match,
+            chr(MSG_MATCH_DECLINE): self.received_decline_match,
+            chr(MSG_PROPOSED_TRADE): self.received_proposed_trade,
+            chr(MSG_DECLINED_TRADE): self.received_decline_trade,
+            chr(MSG_COUNTER_TRADE): self.received_counter_trade,
+            chr(MSG_START_TX): self.received_start_transaction,
+            chr(MSG_WALLET_INFO): self.received_wallet_info,
+            chr(MSG_PAYMENT): self.received_payment_message,
+            chr(MSG_ORDER_QUERY): self.received_order_status_request,
+            chr(MSG_ORDER_RESPONSE): self.received_order_status,
+            chr(MSG_INFO): self.received_info,
+            chr(MSG_BOOK_SYNC): self.received_orderbook_sync,
+            chr(MSG_PING): self.received_ping,
+            chr(MSG_PONG): self.received_pong,
+            chr(MSG_MATCH_DONE): self.received_matched_tx_complete
         })
 
         self.logger.info("Market community initialized with mid %s", self.mid)
@@ -245,7 +264,7 @@ class MarketCommunity(Community, BlockListener):
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = OrderbookSyncPayload(TraderId(self.mid), Timestamp.now(), bloomfilter).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 19, [auth, payload])
+        packet = self._ez_pack(self._prefix, MSG_BOOK_SYNC, [auth, payload])
         self.endpoint.send(peer.address, packet)
 
     def get_orders_bloomfilter(self):
@@ -451,7 +470,7 @@ class MarketCommunity(Community, BlockListener):
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = InfoPayload(TraderId(self.mid), Timestamp.now(), self.is_matchmaker).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 18, [auth, payload])
+        packet = self._ez_pack(self._prefix, MSG_INFO, [auth, payload])
         self.endpoint.send(peer.address, packet)
 
     @lazy_wrapper(InfoPayload)
@@ -493,7 +512,7 @@ class MarketCommunity(Community, BlockListener):
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = PingPongPayload(TraderId(self.mid), Timestamp.now(), identifier).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 20, [auth, payload])
+        packet = self._ez_pack(self._prefix, MSG_PING, [auth, payload])
         self.endpoint.send(peer.address, packet)
 
     @lazy_wrapper(PingPongPayload)
@@ -507,7 +526,7 @@ class MarketCommunity(Community, BlockListener):
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = PingPongPayload(TraderId(self.mid), Timestamp.now(), identifier).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 21, [auth, payload])
+        packet = self._ez_pack(self._prefix, MSG_PONG, [auth, payload])
         self.endpoint.send(peer.address, packet)
 
     @lazy_wrapper(PingPongPayload)
@@ -902,7 +921,7 @@ class MarketCommunity(Community, BlockListener):
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = MatchPayload(*payload).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 7, [auth, payload])
+        packet = self._ez_pack(self._prefix, MSG_MATCH, [auth, payload])
         self.endpoint.send(address, packet)
 
     @lazy_wrapper(MatchPayload)
@@ -974,7 +993,7 @@ class MarketCommunity(Community, BlockListener):
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = AcceptMatchPayload(*payload).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 8, [auth, payload])
+        packet = self._ez_pack(self._prefix, MSG_MATCH_ACCEPT, [auth, payload])
         self.endpoint.send(address, packet)
 
     @lazy_wrapper(AcceptMatchPayload)
@@ -1008,7 +1027,7 @@ class MarketCommunity(Community, BlockListener):
         payload = (TraderId(self.mid), Timestamp.now(), match_id, decline_reason)
         payload = DeclineMatchPayload(*payload).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 9, [auth, payload])
+        packet = self._ez_pack(self._prefix, MSG_MATCH_DECLINE, [auth, payload])
         self.endpoint.send(address, packet)
 
     @lazy_wrapper(DeclineMatchPayload)
@@ -1069,7 +1088,7 @@ class MarketCommunity(Community, BlockListener):
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = TradePayload(*payload).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 10, [auth, payload])
+        packet = self._ez_pack(self._prefix, MSG_PROPOSED_TRADE, [auth, payload])
         self.endpoint.send(self.lookup_ip(proposed_trade.recipient_order_id.trader_id), packet)
 
         self.logger.debug("Sending proposed trade with own order id %s and other order id %s to trader "
@@ -1165,7 +1184,7 @@ class MarketCommunity(Community, BlockListener):
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = DeclineTradePayload(*payload).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 11, [auth, payload])
+        packet = self._ez_pack(self._prefix, MSG_DECLINED_TRADE, [auth, payload])
         self.endpoint.send(self.lookup_ip(declined_trade.recipient_order_id.trader_id), packet)
 
     @lazy_wrapper(DeclineTradePayload)
@@ -1211,7 +1230,7 @@ class MarketCommunity(Community, BlockListener):
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = TradePayload(*payload).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 12, [auth, payload])
+        packet = self._ez_pack(self._prefix, MSG_COUNTER_TRADE, [auth, payload])
         self.endpoint.send(self.lookup_ip(counter_trade.recipient_order_id.trader_id), packet)
 
     @lazy_wrapper(TradePayload)
@@ -1271,7 +1290,7 @@ class MarketCommunity(Community, BlockListener):
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = StartTransactionPayload(*payload).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 13, [auth, payload])
+        packet = self._ez_pack(self._prefix, MSG_START_TX, [auth, payload])
         self.endpoint.send(self.lookup_ip(transaction.partner_order_id.trader_id), packet)
 
     @lazy_wrapper(StartTransactionPayload)
@@ -1325,7 +1344,7 @@ class MarketCommunity(Community, BlockListener):
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = OrderStatusRequestPayload(TraderId(self.mid), Timestamp.now(), order_id, cache.number).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 16, [auth, payload])
+        packet = self._ez_pack(self._prefix, MSG_ORDER_QUERY, [auth, payload])
         self.endpoint.send(self.lookup_ip(order_id.trader_id), packet)
 
         return request_deferred
@@ -1342,7 +1361,7 @@ class MarketCommunity(Community, BlockListener):
         order_payload.append(payload.identifier)
         new_payload = OrderStatusResponsePayload(*order_payload).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 17, [auth, new_payload])
+        packet = self._ez_pack(self._prefix, MSG_ORDER_RESPONSE, [auth, new_payload])
         self.endpoint.send(peer.address, packet)
 
     @lazy_wrapper(OrderStatusResponsePayload)
@@ -1379,7 +1398,7 @@ class MarketCommunity(Community, BlockListener):
 
         new_payload = WalletInfoPayload(*payload).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 14, [auth, new_payload])
+        packet = self._ez_pack(self._prefix, MSG_WALLET_INFO, [auth, new_payload])
         self.endpoint.send(self.lookup_ip(transaction.partner_order_id.trader_id), packet)
 
         transaction.sent_wallet_info = True
@@ -1465,7 +1484,7 @@ class MarketCommunity(Community, BlockListener):
 
         new_payload = PaymentPayload(*payment_message.to_network()).to_pack_list()
 
-        packet = self._ez_pack(self._prefix, 15, [auth, new_payload])
+        packet = self._ez_pack(self._prefix, MSG_PAYMENT, [auth, new_payload])
         self.endpoint.send(self.lookup_ip(transaction.partner_order_id.trader_id), packet)
 
     @lazy_wrapper(PaymentPayload)
@@ -1591,7 +1610,7 @@ class MarketCommunity(Community, BlockListener):
         global_time = self.claim_global_time()
         dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
         payload = HalfBlockPairPayload.from_half_blocks(block, linked_block).to_pack_list()
-        packet = self._ez_pack(self._prefix, 22, [dist, payload], False)
+        packet = self._ez_pack(self._prefix, MSG_MATCH_DONE, [dist, payload], False)
         self.endpoint.send(self.lookup_ip(match_payload.matchmaker_trader_id), packet)
 
     def received_matched_tx_complete(self, _, data):
