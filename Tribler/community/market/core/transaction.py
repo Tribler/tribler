@@ -195,7 +195,7 @@ class Transaction(object):
         :rtype: Transaction
         """
         return cls(transaction_id, proposed_trade.price, proposed_trade.quantity, proposed_trade.recipient_order_id,
-                   proposed_trade.order_id, proposed_trade.timestamp)
+                   proposed_trade.order_id, Timestamp.now())
 
     @property
     def transaction_id(self):

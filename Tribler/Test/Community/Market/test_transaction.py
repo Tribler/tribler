@@ -99,7 +99,6 @@ class TransactionTestSuite(unittest.TestCase):
         transaction = Transaction.from_proposed_trade(self.proposed_trade, self.transaction_id)
         self.assertEqual(transaction.price, self.transaction.price)
         self.assertEqual(transaction.total_quantity, self.transaction.total_quantity)
-        self.assertEqual(transaction.timestamp, self.transaction.timestamp)
 
     def test_unitize(self):
         """
