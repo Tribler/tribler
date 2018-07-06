@@ -843,14 +843,15 @@ class MarketCommunity(Community, BlockListener):
 
             if not self.order_book.tick_exists(tick.order_id) and tick.quantity > Quantity(0, tick.quantity.asset_id) \
                     and tick.order_id not in self.cancelled_orders:
-                self.logger.debug("Inserting %s from %s (price: %s, quantity: %s)",
-                                  tick, tick.order_id, tick.price, tick.quantity)
+                self.logger.info("Inserting tick %s from %s (price: %s, quantity: %s)",
+                                 tick, tick.order_id, tick.price, tick.quantity)
                 insert_method(tick).addCallback(timeout_method)
-                if self.tribler_session:
-                    subject = NTFY_MARKET_ON_ASK if isinstance(tick, Ask) else NTFY_MARKET_ON_BID
-                    self.tribler_session.notifier.notify(subject, NTFY_UPDATE, None, tick.to_dictionary())
 
                 if self.order_book.tick_exists(tick.order_id):
+                    if self.tribler_session:
+                        subject = NTFY_MARKET_ON_ASK if isinstance(tick, Ask) else NTFY_MARKET_ON_BID
+                        self.tribler_session.notifier.notify(subject, NTFY_UPDATE, None, tick.to_dictionary())
+
                     # Check for new matches against the orders of this node
                     for order in self.order_manager.order_repository.find_all():
                         order_tick_entry = self.order_book.get_tick(order.order_id)
