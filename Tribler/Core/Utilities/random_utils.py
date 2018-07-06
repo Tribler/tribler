@@ -1,6 +1,5 @@
-import string
-
 import random
+import string
 
 
 def random_string(size=6, chars=string.ascii_uppercase + string.digits):
@@ -13,8 +12,8 @@ def random_infohash():
     return ''.join(random.choice('0123456789abcdef') for _ in range(20))
 
 
-def random_unicode(length=6):
-    """ Generates a random unicode string """
+def random_utf8_string(length=6):
+    """ Generates a random utf8 string """
     try:
         get_char = unichr
     except NameError:

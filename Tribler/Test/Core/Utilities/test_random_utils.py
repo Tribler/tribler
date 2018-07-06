@@ -1,4 +1,4 @@
-from Tribler.Core.Utilities.random_utils import random_string, random_unicode, random_infohash
+from Tribler.Core.Utilities.random_utils import random_string, random_infohash, random_utf8_string
 from Tribler.Test.test_as_server import BaseTestCase
 
 
@@ -13,16 +13,16 @@ class TestRandomUtils(BaseTestCase):
         test_string2 = random_string(size=text_length)
         self.assertEqual(len(test_string2), text_length)
 
-    def test_random_unicode(self):
-        test_unicode = random_unicode()
-        self.assertIsNotNone(test_unicode)
-        self.assertTrue(isinstance(test_unicode, unicode))
-        self.assertEqual(len(test_unicode), 6)
+    def test_random_utf8_string(self):
+        test_string = random_utf8_string()
+        self.assertIsNotNone(test_string)
+        self.assertTrue(isinstance(test_string, unicode))
+        self.assertEqual(len(test_string), 6)
 
         text_length = 16
-        test_unicode2 = random_unicode(length=text_length)
-        self.assertTrue(isinstance(test_unicode, unicode))
-        self.assertEqual(len(test_unicode2), text_length)
+        test_string2 = random_utf8_string(length=text_length)
+        self.assertTrue(isinstance(test_string, unicode))
+        self.assertEqual(len(test_string2), text_length)
 
     def test_infohash(self):
         test_infohash = random_infohash()
