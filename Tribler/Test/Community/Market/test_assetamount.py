@@ -34,7 +34,6 @@ class TestAssetAmount(unittest.TestCase):
     def test_subtraction(self):
         # Test for subtraction
         self.assertEqual(AssetAmount(98, 'BTC'), self.assetamount2 - self.assetamount1)
-        self.assertFalse(self.assetamount2 is (self.assetamount2 - self.assetamount2))
         self.assertEqual(NotImplemented, self.assetamount1.__sub__(10))
         self.assertEqual(NotImplemented, self.assetamount1.__sub__(self.assetamount4))
 

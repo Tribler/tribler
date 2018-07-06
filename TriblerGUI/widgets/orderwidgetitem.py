@@ -24,7 +24,7 @@ class OrderWidgetItem(QTreeWidgetItem):
     def __lt__(self, other):
         column = self.treeWidget().sortColumn()
         if column == 0:
-            return int(self.order["order_number"]) > int(self.order["order_number"])
+            return int(self.order["order_number"]) > int(other.order["order_number"])
         if column == 1:
             return int(self.order["timestamp"]) > int(other.order["timestamp"])
         elif column == 2:

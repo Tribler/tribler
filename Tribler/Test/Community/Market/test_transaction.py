@@ -34,7 +34,6 @@ class TransactionNumberTestSuite(unittest.TestCase):
     def test_equality(self):
         # Test for equality
         self.assertTrue(self.transaction_number == self.transaction_number2)
-        self.assertTrue(self.transaction_number == self.transaction_number)
         self.assertTrue(self.transaction_number != self.transaction_number3)
         self.assertFalse(self.transaction_number == 6)
 
