@@ -998,6 +998,10 @@ class MarketCommunity(Community, BlockListener):
 
     @lazy_wrapper(AcceptMatchPayload)
     def received_accept_match(self, _, payload):
+        if payload.match_id not in self.matching_engine.matches:
+            self._logger.warning("Received an accept match message for an unknown match ID")
+            return
+
         order_id, matched_order_id, reserved_quantity = self.matching_engine.matches[payload.match_id]
         self.logger.debug("Received accept-match message (%s vs %s), modifying quantities if necessary",
                           order_id, matched_order_id)
@@ -1032,6 +1036,10 @@ class MarketCommunity(Community, BlockListener):
 
     @lazy_wrapper(DeclineMatchPayload)
     def received_decline_match(self, _, payload):
+        if payload.match_id not in self.matching_engine.matches:
+            self._logger.warning("Received a decline match message for an unknown match ID")
+            return
+
         order_id, matched_order_id, quantity = self.matching_engine.matches[payload.match_id]
         self.logger.debug("Received decline-match message for tick %s matched with %s", order_id, matched_order_id)
 
