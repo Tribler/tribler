@@ -17,13 +17,11 @@ class TestReputationBase(AbstractServer):
         os.mkdir(os.path.join(self.session_base_dir, 'sqlite'))
         self.market_db = TrustChainDB(self.session_base_dir, 'market')
 
-    def insert_transaction(self, pubkey1, pubkey2, quantity, price):
+    def insert_transaction(self, pubkey1, pubkey2, assets_traded):
         transaction = {
             "tx": {
-                "quantity_type": quantity.asset_id,
-                "quantity": quantity.amount,
-                "price_type": price.asset_id,
-                "price": price.amount
+                "assets": assets_traded.to_dictionary(),
+                "transferred": assets_traded.to_dictionary()
             },
         }
         block = TrustChainBlock.create('tx_done', transaction, self.market_db, pubkey1,

@@ -30,15 +30,14 @@ class Trade(Message):
         self._proposal_id = proposal_id
 
     @classmethod
-    def propose(cls, trader_id, order_id, recipient_order_id, price, quantity, timestamp):
+    def propose(cls, trader_id, order_id, recipient_order_id, assets, timestamp):
         """
         Propose a trade to another node
 
         :param trader_id: String representing the trader id
         :param order_id: A order id to identify the order
         :param recipient_order_id: A order id to identify the traded party
-        :param price: A price for the trade
-        :param quantity: A quantity to be traded
+        :param assets: The assets to be traded
         :param timestamp: A timestamp wen this trade was created
         :type trader_id: TraderId
         :type order_id: OrderId
@@ -52,8 +51,7 @@ class Trade(Message):
             order_id,
             recipient_order_id,
             random.randint(0, 100000000),
-            price,
-            quantity,
+            assets,
             timestamp
         )
 
@@ -83,12 +81,12 @@ class Trade(Message):
         )
 
     @classmethod
-    def counter(cls, trader_id, quantity, timestamp, proposed_trade):
+    def counter(cls, trader_id, assets, timestamp, proposed_trade):
         """
         Counter a trade from another node
 
         :param trader_id: A message id to identify the trade
-        :param quantity: The quantity to use for the counter offer
+        :param assets: The assets to be traded in this counter offer
         :param timestamp: A timestamp when the trade was countered
         :param proposed_trade: A proposed trade that needs to be countered
         :type trader_id: TraderId
@@ -103,8 +101,7 @@ class Trade(Message):
             proposed_trade.recipient_order_id,
             proposed_trade.order_id,
             proposed_trade.proposal_id,
-            proposed_trade.price,
-            quantity,
+            assets,
             timestamp
         )
 
@@ -143,7 +140,7 @@ class ProposedTrade(Trade):
     proposed trade is send first.
     """
 
-    def __init__(self, trader_id, order_id, recipient_order_id, proposal_id, price, quantity, timestamp):
+    def __init__(self, trader_id, order_id, recipient_order_id, proposal_id, assets, timestamp):
         """
         Don't use this method directly, use the class methods from Trade or use the from_network
 
@@ -151,21 +148,18 @@ class ProposedTrade(Trade):
         :param order_id: A order id to identify the order
         :param recipient_order_id: A order id to identify the traded party
         :param proposal_id: The ID of the trade proposal
-        :param price: A price for the trade
-        :param quantity: A quantity to be traded
+        :param assets: The assets to be traded in the proposal
         :param timestamp: A timestamp wen this trade was created
         :type trader_id: TraderId
         :type order_id: OrderId
         :type recipient_order_id: OrderId
         :type proposal_id: int
-        :type price: Price
-        :type quantity: Quantity
+        :type assets: AssetPair
         :type timestamp: Timestamp
         """
         super(ProposedTrade, self).__init__(trader_id, order_id, recipient_order_id, proposal_id, timestamp)
 
-        self._price = price
-        self._quantity = quantity
+        self._assets = assets
 
     @classmethod
     def from_network(cls, data):
@@ -181,33 +175,17 @@ class ProposedTrade(Trade):
             OrderId(data.trader_id, data.order_number),
             data.recipient_order_id,
             data.proposal_id,
-            data.price,
-            data.quantity,
+            data.assets,
             data.timestamp
         )
 
     @property
-    def price(self):
+    def assets(self):
         """
-        :return: The price
-        :rtype: Price
+        :return: The assets to be exchanged
+        :rtype: AssetPair
         """
-        return self._price
-
-    @property
-    def quantity(self):
-        """
-        :return: The quantity
-        :rtype: Quantity
-        """
-        return self._quantity
-
-    def has_acceptable_price(self, is_ask, order_price):
-        """
-        Return whether this trade proposal has an acceptable price.
-        :rtype: bool
-        """
-        return (is_ask and self.price >= order_price) or (not is_ask and self.price <= order_price)
+        return self._assets
 
     def to_network(self):
         """
@@ -219,8 +197,7 @@ class ProposedTrade(Trade):
             self._order_id.order_number,
             self._recipient_order_id,
             self._proposal_id,
-            self._price,
-            self._quantity,
+            self._assets
         )
 
 
@@ -231,7 +208,7 @@ class CounterTrade(ProposedTrade):
     done to insure that trades were made quickly and efficiently.
     """
 
-    def __init__(self, trader_id, order_id, recipient_order_id, proposal_id, price, quantity, timestamp):
+    def __init__(self, trader_id, order_id, recipient_order_id, proposal_id, assets, timestamp):
         """
         Don't use this method directly, use one of the class methods of Trade or use from_network
 
@@ -239,19 +216,16 @@ class CounterTrade(ProposedTrade):
         :param order_id: A order id to identify the order
         :param recipient_order_id: A order id to identify the traded party
         :param proposal_id: The ID of the trade proposal
-        :param price: A price for the trade
-        :param quantity: A quantity to be traded
+        :param assets: The assets to be traded in the proposal
         :param timestamp: A timestamp wen this trade was created
         :type trader_id: TraderId
         :type order_id: OrderId
         :type recipient_order_id: OrderId
         :type proposal_id: int
-        :type price: Price
-        :type quantity: Quantity
+        :type assets: AssetPair
         :type timestamp: Timestamp
         """
-        super(CounterTrade, self).__init__(trader_id, order_id, recipient_order_id,
-                                           proposal_id, price, quantity, timestamp)
+        super(CounterTrade, self).__init__(trader_id, order_id, recipient_order_id, proposal_id, assets, timestamp)
 
     @classmethod
     def from_network(cls, data):
@@ -267,8 +241,7 @@ class CounterTrade(ProposedTrade):
             OrderId(data.trader_id, data.order_number),
             data.recipient_order_id,
             data.proposal_id,
-            data.price,
-            data.quantity,
+            data.assets,
             data.timestamp
         )
 
@@ -282,8 +255,7 @@ class CounterTrade(ProposedTrade):
             self._order_id.order_number,
             self._recipient_order_id,
             self._proposal_id,
-            self._price,
-            self._quantity,
+            self._assets
         )
 
 

@@ -1050,7 +1050,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>13</number>
+         <number>14</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -5076,8 +5076,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>671</width>
-               <height>607</height>
+               <width>300</width>
+               <height>584</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -10275,17 +10275,34 @@ font-weight: bold;</string>
                       <property name="sortingEnabled">
                        <bool>true</bool>
                       </property>
+                      <attribute name="headerDefaultSectionSize">
+                       <number>120</number>
+                      </attribute>
                       <attribute name="headerStretchLastSection">
                        <bool>true</bool>
                       </attribute>
                       <column>
                        <property name="text">
-                        <string>Volume</string>
+                        <string>Total (-)</string>
                        </property>
                       </column>
                       <column>
                        <property name="text">
-                        <string>Price per unit</string>
+                        <string>Vol.</string>
+                       </property>
+                      </column>
+                      <column>
+                       <property name="text">
+                        <string>Price</string>
+                       </property>
+                       <property name="foreground">
+                        <brush brushstyle="NoBrush">
+                         <color alpha="255">
+                          <red>107</red>
+                          <green>165</green>
+                          <blue>131</blue>
+                         </color>
+                        </brush>
                        </property>
                       </column>
                      </widget>
@@ -10439,14 +10456,28 @@ font-weight: bold;</string>
                       <property name="sortingEnabled">
                        <bool>true</bool>
                       </property>
+                      <attribute name="headerDefaultSectionSize">
+                       <number>120</number>
+                      </attribute>
+                      <attribute name="headerMinimumSectionSize">
+                       <number>50</number>
+                      </attribute>
+                      <attribute name="headerStretchLastSection">
+                       <bool>true</bool>
+                      </attribute>
                       <column>
                        <property name="text">
-                        <string>Volume</string>
+                        <string>Price</string>
                        </property>
                       </column>
                       <column>
                        <property name="text">
-                        <string>Price per unit</string>
+                        <string>Vol.</string>
+                       </property>
+                      </column>
+                      <column>
+                       <property name="text">
+                        <string>Total (-)</string>
                        </property>
                       </column>
                      </widget>
@@ -10558,107 +10589,121 @@ font-size: 12px;</string>
                     <property name="bottomMargin">
                      <number>0</number>
                     </property>
-                    <item>
-                     <widget class="QWidget" name="widget_29" native="true">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="widget_29" native="true">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <layout class="QFormLayout" name="formLayout_7">
+                    <property name="fieldGrowthPolicy">
+                     <enum>QFormLayout::ExpandingFieldsGrow</enum>
+                    </property>
+                    <property name="formAlignment">
+                     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                    </property>
+                    <property name="verticalSpacing">
+                     <number>4</number>
+                    </property>
+                    <property name="leftMargin">
+                     <number>6</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>6</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>6</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>6</number>
+                    </property>
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="label_53">
+                      <property name="text">
+                       <string>Trader ID</string>
                       </property>
-                      <layout class="QFormLayout" name="formLayout_7">
-                       <property name="fieldGrowthPolicy">
-                        <enum>QFormLayout::ExpandingFieldsGrow</enum>
-                       </property>
-                       <property name="formAlignment">
-                        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-                       </property>
-                       <property name="verticalSpacing">
-                        <number>4</number>
-                       </property>
-                       <property name="leftMargin">
-                        <number>6</number>
-                       </property>
-                       <property name="topMargin">
-                        <number>6</number>
-                       </property>
-                       <property name="rightMargin">
-                        <number>6</number>
-                       </property>
-                       <property name="bottomMargin">
-                        <number>6</number>
-                       </property>
-                       <item row="1" column="0">
-                        <widget class="QLabel" name="label_51">
-                         <property name="text">
-                          <string>Order Number</string>
-                         </property>
-                        </widget>
-                       </item>
-                       <item row="1" column="1">
-                        <widget class="QLabel" name="market_detail_order_number_label">
-                         <property name="text">
-                          <string/>
-                         </property>
-                        </widget>
-                       </item>
-                       <item row="0" column="0">
-                        <widget class="QLabel" name="label_53">
-                         <property name="text">
-                          <string>Trader ID</string>
-                         </property>
-                        </widget>
-                       </item>
-                       <item row="2" column="0">
-                        <widget class="QLabel" name="label_54">
-                         <property name="text">
-                          <string>Price</string>
-                         </property>
-                        </widget>
-                       </item>
-                       <item row="3" column="0">
-                        <widget class="QLabel" name="label_55">
-                         <property name="text">
-                          <string>Volume</string>
-                         </property>
-                        </widget>
-                       </item>
-                       <item row="4" column="0">
-                        <widget class="QLabel" name="label_56">
-                         <property name="text">
-                          <string>Time created</string>
-                         </property>
-                        </widget>
-                       </item>
-                       <item row="0" column="1">
-                        <widget class="QLabel" name="market_detail_trader_id_label">
-                         <property name="text">
-                          <string/>
-                         </property>
-                        </widget>
-                       </item>
-                       <item row="2" column="1">
-                        <widget class="QLabel" name="market_detail_price_label">
-                         <property name="text">
-                          <string/>
-                         </property>
-                        </widget>
-                       </item>
-                       <item row="3" column="1">
-                        <widget class="QLabel" name="market_detail_quantity_label">
-                         <property name="text">
-                          <string/>
-                         </property>
-                        </widget>
-                       </item>
-                       <item row="4" column="1">
-                        <widget class="QLabel" name="market_detail_time_created_label">
-                         <property name="text">
-                          <string/>
-                         </property>
-                        </widget>
-                       </item>
-                      </layout>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QLabel" name="market_detail_trader_id_label">
+                      <property name="text">
+                       <string/>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QLabel" name="label_51">
+                      <property name="text">
+                       <string>Order Number</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="1">
+                     <widget class="QLabel" name="market_detail_order_number_label">
+                      <property name="text">
+                       <string/>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="0">
+                     <widget class="QLabel" name="label_54">
+                      <property name="text">
+                       <string>Price</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="1">
+                     <widget class="QLabel" name="market_detail_price_label">
+                      <property name="text">
+                       <string/>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="3" column="0">
+                     <widget class="QLabel" name="label_55">
+                      <property name="text">
+                       <string>Total volume</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="3" column="1">
+                     <widget class="QLabel" name="market_detail_total_volume_label">
+                      <property name="text">
+                       <string/>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="4" column="0">
+                     <widget class="QLabel" name="label_67">
+                      <property name="text">
+                       <string>Pending volume</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="5" column="0">
+                     <widget class="QLabel" name="label_56">
+                      <property name="text">
+                       <string>Time created</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="5" column="1">
+                     <widget class="QLabel" name="market_detail_time_created_label">
+                      <property name="text">
+                       <string/>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="4" column="1">
+                     <widget class="QLabel" name="market_detail_pending_volume_label">
+                      <property name="text">
+                       <string/>
+                      </property>
                      </widget>
                     </item>
                    </layout>
@@ -10886,22 +10931,22 @@ background-color: #666;
                 </column>
                 <column>
                  <property name="text">
-                  <string>Price</string>
+                  <string>Asset 1</string>
                  </property>
                 </column>
                 <column>
                  <property name="text">
-                  <string>Quantity</string>
+                  <string>Asset 2</string>
                  </property>
                 </column>
                 <column>
                  <property name="text">
-                  <string>Transferred Price</string>
+                  <string>Transferred Asset 1</string>
                  </property>
                 </column>
                 <column>
                  <property name="text">
-                  <string>Transferred Quantity</string>
+                  <string>Transferred Asset 2</string>
                  </property>
                 </column>
                 <column>
@@ -10954,12 +10999,7 @@ font-weight: bold;</string>
                    </property>
                    <column>
                     <property name="text">
-                     <string>Price</string>
-                    </property>
-                   </column>
-                   <column>
-                    <property name="text">
-                     <string>Quantity</string>
+                     <string>Assets</string>
                     </property>
                    </column>
                    <column>
@@ -11780,6 +11820,9 @@ font-weight: bold;</string>
             <property name="sortingEnabled">
              <bool>true</bool>
             </property>
+            <attribute name="headerDefaultSectionSize">
+             <number>120</number>
+            </attribute>
             <column>
              <property name="text">
               <string>Order ID</string>
@@ -11797,12 +11840,12 @@ font-weight: bold;</string>
             </column>
             <column>
              <property name="text">
-              <string>Quantity</string>
+              <string>Volume</string>
              </property>
             </column>
             <column>
              <property name="text">
-              <string>Traded Quantity</string>
+              <string>Traded</string>
              </property>
             </column>
             <column>

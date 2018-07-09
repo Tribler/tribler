@@ -1,5 +1,8 @@
 import os
 
+from Tribler.community.market.core.assetamount import AssetAmount
+from Tribler.community.market.core.assetpair import AssetPair
+from Tribler.community.market.core.price import Price
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import AbstractServer
@@ -7,8 +10,6 @@ from Tribler.Test.twisted_thread import deferred
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.orderbook import OrderBook, DatabaseOrderBook
-from Tribler.community.market.core.assetamount import Price
-from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.tick import Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
@@ -27,22 +28,23 @@ class AbstractTestOrderBook(AbstractServer):
     def setUp(self, annotate=True):
         yield super(AbstractTestOrderBook, self).setUp(annotate=annotate)
         # Object creation
-        self.ask = Ask(OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
-                       Timeout(100), Timestamp.now())
-        self.invalid_ask = Ask(OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
-                               Timeout(0), Timestamp(0.0))
-        self.ask2 = Ask(OrderId(TraderId('1'), OrderNumber(1)), Price(400, 'BTC'), Quantity(30, 'MC'),
-                        Timeout(100), Timestamp.now())
-        self.bid = Bid(OrderId(TraderId('2'), OrderNumber(1)), Price(200, 'BTC'), Quantity(30, 'MC'),
-                       Timeout(100), Timestamp.now())
-        self.invalid_bid = Bid(OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
-                               Timeout(0), Timestamp(0.0))
-        self.bid2 = Bid(OrderId(TraderId('3'), OrderNumber(1)), Price(300, 'BTC'), Quantity(30, 'MC'),
-                        Timeout(100), Timestamp.now())
+        self.ask = Ask(OrderId(TraderId('0'), OrderNumber(1)),
+                       AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
+        self.invalid_ask = Ask(OrderId(TraderId('0'), OrderNumber(1)),
+                               AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')), Timeout(0), Timestamp(0.0))
+        self.ask2 = Ask(OrderId(TraderId('1'), OrderNumber(1)),
+                        AssetPair(AssetAmount(400, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
+        self.bid = Bid(OrderId(TraderId('2'), OrderNumber(1)),
+                       AssetPair(AssetAmount(200, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
+        self.invalid_bid = Bid(OrderId(TraderId('0'), OrderNumber(1)),
+                               AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')), Timeout(0), Timestamp(0.0))
+        self.bid2 = Bid(OrderId(TraderId('3'), OrderNumber(1)),
+                        AssetPair(AssetAmount(300, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
         self.trade = Trade.propose(TraderId('0'),
                                    OrderId(TraderId('0'), OrderNumber(1)),
-                                   OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'),
-                                   Quantity(30, 'MC'), Timestamp(1462224447.117))
+                                   OrderId(TraderId('0'), OrderNumber(1)),
+                                   AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')),
+                                   Timestamp(1462224447.117))
         self.order_book = OrderBook()
 
     def tearDown(self, annotate=True):
@@ -122,42 +124,35 @@ class TestOrderBook(AbstractTestOrderBook):
         # Test for properties
         self.order_book.insert_ask(self.ask2)
         self.order_book.insert_bid(self.bid2)
-        self.assertEquals(Price(350, 'BTC'), self.order_book.get_mid_price('BTC', 'MC'))
-        self.assertEquals(Price(100, 'BTC'), self.order_book.get_bid_ask_spread('BTC', 'MC'))
-
-    def test_tick_price(self):
-        # Test for tick price
-        self.order_book.insert_ask(self.ask2)
-        self.order_book.insert_bid(self.bid2)
-        self.assertEquals(Price(300, 'BTC'), self.order_book.relative_tick_price(self.ask))
-        self.assertEquals(Price(100, 'BTC'), self.order_book.relative_tick_price(self.bid))
+        self.assertEquals(Price(0.0875, 'MB', 'BTC'), self.order_book.get_mid_price('MB', 'BTC'))
+        self.assertEquals(Price(-0.025, 'MB', 'BTC'), self.order_book.get_bid_ask_spread('MB', 'BTC'))
 
     def test_ask_price_level(self):
         self.order_book.insert_ask(self.ask)
-        price_level = self.order_book.get_ask_price_level('BTC', 'MC')
-        self.assertEqual(price_level.depth, Quantity(30, 'MC'))
+        price_level = self.order_book.get_ask_price_level('MB', 'BTC')
+        self.assertEqual(price_level.depth, 100)
 
     def test_bid_price_level(self):
         # Test for tick price
         self.order_book.insert_bid(self.bid2)
-        price_level = self.order_book.get_bid_price_level('BTC', 'MC')
-        self.assertEqual(price_level.depth, Quantity(30, 'MC'))
+        price_level = self.order_book.get_bid_price_level('MB', 'BTC')
+        self.assertEqual(price_level.depth, 300)
 
     def test_ask_side_depth(self):
         # Test for ask side depth
         self.order_book.insert_ask(self.ask)
         self.order_book.insert_ask(self.ask2)
-        self.assertEquals(Quantity(30, 'MC'), self.order_book.ask_side_depth(Price(100, 'BTC')))
-        self.assertEquals([(Price(100, 'BTC'), Quantity(30, 'MC')), (Price(400, 'BTC'), Quantity(30, 'MC'))],
-                          self.order_book.get_ask_side_depth_profile('BTC', 'MC'))
+        self.assertEquals(100, self.order_book.ask_side_depth(Price(0.3, 'MB', 'BTC')))
+        self.assertEquals([(Price(0.075, 'MB', 'BTC'), 400), (Price(0.3, 'MB', 'BTC'), 100)],
+                          self.order_book.get_ask_side_depth_profile('MB', 'BTC'))
 
     def test_bid_side_depth(self):
         # Test for bid side depth
         self.order_book.insert_bid(self.bid)
         self.order_book.insert_bid(self.bid2)
-        self.assertEquals(Quantity(30, 'MC'), self.order_book.bid_side_depth(Price(300, 'BTC')))
-        self.assertEquals([(Price(200, 'BTC'), Quantity(30, 'MC')), (Price(300, 'BTC'), Quantity(30, 'MC'))],
-                          self.order_book.get_bid_side_depth_profile('BTC', 'MC'))
+        self.assertEquals(300, self.order_book.bid_side_depth(Price(0.1, 'MB', 'BTC')))
+        self.assertEquals([(Price(0.1, 'MB', 'BTC'), 300), (Price(0.15, 'MB', 'BTC'), 200)],
+                          self.order_book.get_bid_side_depth_profile('MB', 'BTC'))
 
     def test_remove_tick(self):
         # Test for tick removal
@@ -179,7 +174,7 @@ class TestOrderBook(AbstractTestOrderBook):
 
     def test_update_ticks(self):
         """
-        Test updating ticks in an orderbook
+        Test updating ticks in an order book
         """
         self.order_book.insert_ask(self.ask)
         self.order_book.insert_bid(self.bid)
@@ -187,24 +182,34 @@ class TestOrderBook(AbstractTestOrderBook):
         ask_dict = {
             "trader_id": str(self.ask.order_id.trader_id),
             "order_number": int(self.ask.order_id.order_number),
-            "quantity": 3,
-            "quantity_type": self.ask.quantity.asset_id,
-            "traded_quantity": 3
+            "assets": self.ask.assets.to_dictionary(),
+            "traded": 100,
+            "timeout": 3600,
+            "timestamp": float(Timestamp.now())
         }
         bid_dict = {
             "trader_id": str(self.bid.order_id.trader_id),
             "order_number": int(self.bid.order_id.order_number),
-            "quantity": 3,
-            "quantity_type": self.bid.quantity.asset_id,
-            "traded_quantity": 3
+            "assets": self.bid.assets.to_dictionary(),
+            "traded": 100,
+            "timeout": 3600,
+            "timestamp": float(Timestamp.now())
         }
 
-        self.order_book.get_tick(self.ask.order_id).reserve_for_matching(Quantity(3, self.ask.quantity.asset_id))
-        self.order_book.get_tick(self.bid.order_id).reserve_for_matching(Quantity(3, self.bid.quantity.asset_id))
-        self.order_book.update_ticks(ask_dict, bid_dict, Quantity(3, self.ask.quantity.asset_id), unreserve=True)
+        self.order_book.get_tick(self.ask.order_id).reserve_for_matching(100)
+        self.order_book.get_tick(self.bid.order_id).reserve_for_matching(100)
+        self.order_book.update_ticks(ask_dict, bid_dict, 100, unreserve=True)
 
         self.assertEqual(len(self.order_book.asks), 0)
-        self.assertEqual(len(self.order_book.bids), 0)
+        self.assertEqual(len(self.order_book.bids), 1)
+        self.order_book.remove_bid(self.bid.order_id)
+
+        ask_dict["traded"] = 50
+        bid_dict["traded"] = 50
+        self.order_book.completed_orders = []
+        self.order_book.update_ticks(ask_dict, bid_dict, 100)
+        self.assertEqual(len(self.order_book.asks), 1)
+        self.assertEqual(len(self.order_book.bids), 1)
 
     def test_str(self):
         # Test for order book string representation
@@ -212,47 +217,6 @@ class TestOrderBook(AbstractTestOrderBook):
         self.order_book.insert_bid(self.bid)
 
         self.assertEquals('------ Bids -------\n'
-                          '30 MC\t@\t200 BTC (R: 0 MC)\n\n'
+                          '200 BTC\t@\t0.15 MB (R: 0)\n\n'
                           '------ Asks -------\n'
-                          '30 MC\t@\t100 BTC (R: 0 MC)\n\n', str(self.order_book))
-
-
-class TestDatabaseOrderBook(AbstractTestOrderBook):
-    """
-    This class contains tests for the database order book.
-    """
-
-    @blocking_call_on_reactor_thread
-    @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestDatabaseOrderBook, self).setUp(annotate=annotate)
-
-        path = os.path.join(self.getStateDir(), 'sqlite')
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-        self.database = MarketDB(self.getStateDir(), 'market')
-        self.order_book = DatabaseOrderBook(self.database)
-
-    @blocking_call_on_reactor_thread
-    def test_save_to_db(self):
-        """
-        Test whether ticks from the order book are correctly saved to the database
-        """
-        self.order_book.insert_ask(self.ask)
-        self.order_book.insert_bid(self.bid)
-        self.order_book.save_to_database()
-
-        self.assertEqual(len(self.database.get_ticks()), 2)
-
-    @blocking_call_on_reactor_thread
-    def test_restore_from_db(self):
-        """
-        Test whether ticks from the database are correctly restored to the order book
-        """
-        self.database.add_tick(self.ask)
-        self.database.add_tick(self.bid)
-        self.order_book.restore_from_database()
-
-        self.assertEqual(len(self.order_book.asks), 1)
-        self.assertEqual(len(self.order_book.bids), 1)
+                          '100 BTC\t@\t0.3 MB (R: 0)\n\n', str(self.order_book))

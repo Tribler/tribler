@@ -1,5 +1,7 @@
 import os
 
+from Tribler.community.market.core.assetamount import AssetAmount
+from Tribler.community.market.core.assetpair import AssetPair
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import AbstractServer
@@ -7,8 +9,6 @@ from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.payment import Payment
 from Tribler.community.market.core.payment_id import PaymentId
-from Tribler.community.market.core.assetamount import Price
-from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
@@ -34,16 +34,18 @@ class TestDatabase(AbstractServer):
 
         self.order_id1 = OrderId(TraderId('3'), OrderNumber(4))
         self.order_id2 = OrderId(TraderId('4'), OrderNumber(5))
-        self.order1 = Order(self.order_id1, Price(5, 'EUR'), Quantity(6, 'BTC'), Timeout(3600), Timestamp.now(), True)
-        self.order2 = Order(self.order_id2, Price(5, 'EUR'), Quantity(6, 'BTC'), Timeout(3600), Timestamp.now(), False)
-        self.order2.reserve_quantity_for_tick(OrderId(TraderId('3'), OrderNumber(4)), Quantity(3, 'BTC'))
+        self.order1 = Order(self.order_id1, AssetPair(AssetAmount(5, 'BTC'), AssetAmount(6, 'EUR')),
+                            Timeout(3600), Timestamp.now(), True)
+        self.order2 = Order(self.order_id2, AssetPair(AssetAmount(5, 'BTC'), AssetAmount(6, 'EUR')),
+                            Timeout(3600), Timestamp.now(), False)
+        self.order2.reserve_quantity_for_tick(OrderId(TraderId('3'), OrderNumber(4)), 3)
 
         self.transaction_id1 = TransactionId(TraderId("0"), TransactionNumber(4))
-        self.transaction1 = Transaction(self.transaction_id1, Price(100, 'BTC'), Quantity(30, 'MC'),
+        self.transaction1 = Transaction(self.transaction_id1, AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')),
                                         OrderId(TraderId("0"), OrderNumber(1)), OrderId(TraderId("1"), OrderNumber(2)),
                                         Timestamp(20.0))
 
-        self.payment1 = Payment(TraderId("0"), self.transaction_id1, Quantity(5, 'MC'), Price(6, 'BTC'),
+        self.payment1 = Payment(TraderId("0"), self.transaction_id1, AssetAmount(5, 'BTC'),
                                 WalletAddress('abc'), WalletAddress('def'), PaymentId("abc"), Timestamp(20.0), False)
 
         self.transaction1.add_payment(self.payment1)

@@ -9,10 +9,10 @@ class Side(object):
     """Class for representing a side of the order book"""
 
     def __init__(self):
-        self._price_level_list_map = {}  # Dict of (price_type, quantity_type) -> PriceLevelList
+        self._price_level_list_map = {}  # Dict of (price_type, asset_type) -> PriceLevelList
         self._price_map = {}  # Map: Price -> PriceLevel
         self._tick_map = {}  # Map: MessageId -> TickEntry
-        self._depth = {}  # Dict of (price_type, quantity_type) -> Int
+        self._depth = {}  # Dict of (price_type, asset_type) -> Int
 
     def __len__(self):
         """
@@ -40,29 +40,24 @@ class Side(object):
         """
         return self._tick_map[order_id] if order_id in self._tick_map else None
 
-    def _create_price_level(self, price, quantity_wallet_id):
+    def _create_price_level(self, price):
         """
         :param price: The price to create the level for
-        :param quantity_wallet_id: the id of the quantities stored in this price level
         :type price: Price
-        :type quantity_wallet_id: str
         """
-        self._depth[(price.asset_id, quantity_wallet_id)] += 1
-
-        price_level = PriceLevel(quantity_wallet_id, price)
-        self._price_level_list_map[(price.asset_id, quantity_wallet_id)].insert(price, price_level)
+        self._depth[(price.numerator, price.denominator)] += 1
+        price_level = PriceLevel(price)
+        self._price_level_list_map[(price.numerator, price.denominator)].insert(price_level)
         self._price_map[price] = price_level
 
-    def _remove_price_level(self, price, quantity_wallet_id):
+    def _remove_price_level(self, price):
         """
         :param price: The price to remove the level for
-        :param quantity_wallet_id: the id of the quantities stored in this price level
         :type price: Price
-        :type quantity_wallet_id: str
         """
-        self._depth[(price.asset_id, quantity_wallet_id)] -= 1
+        self._depth[(price.numerator, price.denominator)] -= 1
 
-        self._price_level_list_map[(price.asset_id, quantity_wallet_id)].remove(price)
+        self._price_level_list_map[(price.numerator, price.denominator)].remove(price)
         del self._price_map[price]
 
     def _price_level_exists(self, price):
@@ -88,12 +83,12 @@ class Side(object):
         :param tick: The tick to insert
         :type tick: Tick
         """
-        if (tick.price.asset_id, tick.quantity.asset_id) not in self._price_level_list_map:
-            self._price_level_list_map[(tick.price.asset_id, tick.quantity.asset_id)] = PriceLevelList()
-            self._depth[(tick.price.asset_id, tick.quantity.asset_id)] = 0
+        if (tick.assets.second.asset_id, tick.assets.first.asset_id) not in self._price_level_list_map:
+            self._price_level_list_map[(tick.assets.second.asset_id, tick.assets.first.asset_id)] = PriceLevelList()
+            self._depth[(tick.assets.second.asset_id, tick.assets.first.asset_id)] = 0
 
         if not self._price_level_exists(tick.price):  # First tick for that price
-            self._create_price_level(tick.price, tick.quantity.asset_id)
+            self._create_price_level(tick.price)
         tick_entry = TickEntry(tick, self._price_map[tick.price])
         self.get_price_level(tick.price).append_tick(tick_entry)
         self._tick_map[tick.order_id] = tick_entry
@@ -108,7 +103,7 @@ class Side(object):
             tick.shutdown_task_manager()
             tick.price_level().remove_tick(tick)
             if len(tick.price_level()) == 0:  # Last tick for that price
-                self._remove_price_level(tick.price, tick.quantity.asset_id)
+                self._remove_price_level(tick.price)
             del self._tick_map[order_id]
 
     def get_price_level_list(self, price_wallet_id, quantity_wallet_id):
@@ -126,7 +121,7 @@ class Side(object):
     def get_max_price(self, price_wallet_id, quantity_wallet_id):
         """
         Return the maximum price that a tick is listed for on this side of the order book
-        :rtype: Price
+        :rtype: float
         """
         key = price_wallet_id, quantity_wallet_id
 
@@ -177,8 +172,8 @@ class Side(object):
         :rtype: list
         """
         rlist = []
-        for price_type, quantity_type in self._price_level_list_map.keys():
-            rlist.append({'price_type': price_type, 'quantity_type': quantity_type,
-                          'ticks': self._price_level_list_map[(price_type, quantity_type)].get_ticks_list()})
+        for asset1, asset2 in self._price_level_list_map.keys():
+            rlist.append({'asset1': asset2, 'asset2': asset1,
+                          'ticks': self._price_level_list_map[(asset1, asset2)].get_ticks_list()})
 
         return rlist

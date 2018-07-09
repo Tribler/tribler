@@ -69,8 +69,6 @@ class AssetAmount(object):
     def __eq__(self, other):
         if not isinstance(other, AssetAmount) or self.asset_id != other.asset_id:
             return NotImplemented
-        elif self is other:
-            return True
         else:
             return self.amount == other.amount
 
@@ -90,23 +88,10 @@ class AssetAmount(object):
             return NotImplemented
 
     def __hash__(self):
-        return hash(self.amount)
+        return hash((self.amount, self.asset_id))
 
-
-class Quantity(AssetAmount):
-    """
-    The quantity class describes a specific amount of assets in an order.
-    """
-    pass
-
-
-class Price(AssetAmount):
-    """
-    The price class describes a specific price of assets in an order.
-    """
-
-    def __init__(self, amount, asset_id):
-        super(Price, self).__init__(amount, asset_id)
-
-        if amount < 0:
-            raise ValueError("The price should be non-negative")
+    def to_dictionary(self):
+        return {
+            "amount": self.amount,
+            "type": self.asset_id
+        }

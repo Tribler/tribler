@@ -1,18 +1,16 @@
-from Tribler.community.market.core.tick import Quantity
 from Tribler.community.market.core.tickentry import TickEntry
 
 
 class PriceLevel(object):
     """Class to represents a list of ticks at a specific price level"""
 
-    def __init__(self, quantity_wallet_id, price):
+    def __init__(self, price):
         self._head_tick = None  # First tick of the double linked list
         self._tail_tick = None  # Last tick of the double linked list
         self._length = 0  # The number of ticks in the price level
-        self._depth = Quantity(0, quantity_wallet_id)  # Total amount of quantity contained in this price level
-        self._reserved = Quantity(0, quantity_wallet_id)  # Total amount of reserved quantity in this price level
+        self._depth = 0  # Total amount of quantity contained in this price level
+        self._reserved = 0  # Total amount of reserved quantity in this price level
         self._last = None  # The current tick of the iterator
-        self._quantity_wallet_id = quantity_wallet_id  # The quantity wallet ID of the price level
         self._price = price  # The price of this price level
 
     @property
@@ -33,7 +31,7 @@ class PriceLevel(object):
     def length(self):
         """
         Return the length of the amount of ticks contained in the price level
-        :rtype: integer
+        :rtype: int
         """
         return self._length
 
@@ -41,7 +39,7 @@ class PriceLevel(object):
     def depth(self):
         """
         The depth is equal to the total amount of volume contained in this price level
-        :rtype: Quantity
+        :rtype: int
         """
         return self._depth
 
@@ -49,7 +47,7 @@ class PriceLevel(object):
     def depth(self, new_depth):
         """
         :param new_depth: The new depth
-        :type new_depth: Quantity
+        :type new_depth: int
         """
         self._depth = new_depth
 
@@ -57,6 +55,7 @@ class PriceLevel(object):
     def reserved(self):
         """
         The amount of reserved quantity (for matching) in this price level
+        :rtype: int
         """
         return self._reserved
 
@@ -106,7 +105,7 @@ class PriceLevel(object):
 
         # Update the counters
         self._length += 1
-        self._depth += tick.quantity
+        self._depth += tick.assets.first.amount
 
     def remove_tick(self, tick):
         """
@@ -116,7 +115,7 @@ class PriceLevel(object):
         :type tick: TickEntry
         """
         # Update the counters
-        self._depth -= tick.quantity
+        self._depth -= tick.assets.first.amount
         self._reserved -= tick.reserved_for_matching
         self._length -= 1
 

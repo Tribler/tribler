@@ -5,7 +5,6 @@ from time import time
 
 from Tribler.community.market.core.order import OrderId
 from Tribler.community.market.core.orderbook import OrderBook
-from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.tickentry import TickEntry
 
 
@@ -72,25 +71,25 @@ class PriceTimeStrategy(MatchingStrategy):
         :param is_ask: Whether the object we want to match is an ask
         :type order_id: OrderId
         :type price: Price
-        :type quantity: Quantity
+        :type quantity: int
         :type is_ask: Bool
         :return: A list of tuples containing the ticks and the matched quantity
         :rtype: [(str, TickEntry, Quantity)]
         """
         matched_ticks = []
-        quantity_to_match = Quantity(quantity.amount, quantity.asset_id)
+        quantity_to_match = quantity
 
         # First check whether we can match our order at all in the order book
-        if is_ask and price > self.order_book.get_bid_price(price.asset_id, quantity.asset_id):
+        if is_ask and price > self.order_book.get_bid_price(price.numerator, price.denominator):
             return []
-        if not is_ask and price < self.order_book.get_ask_price(price.asset_id, quantity.asset_id):
+        if not is_ask and price < self.order_book.get_ask_price(price.numerator, price.denominator):
             return []
 
         # Next, check whether we have a price level we can start our match search from
         if is_ask:
-            price_level = self.order_book.get_bid_price_level(price.asset_id, quantity.asset_id)
+            price_level = self.order_book.get_bid_price_level(price.numerator, price.denominator)
         else:
-            price_level = self.order_book.get_ask_price_level(price.asset_id, quantity.asset_id)
+            price_level = self.order_book.get_ask_price_level(price.numerator, price.denominator)
 
         if not price_level:
             return []
@@ -99,16 +98,13 @@ class PriceTimeStrategy(MatchingStrategy):
         cur_price_level_price = price_level.price
 
         # We now start to iterate through price levels and tick entries and match on the fly
-        while cur_tick_entry and quantity_to_match.amount > 0:
+        while cur_tick_entry and quantity_to_match > 0:
             if cur_tick_entry.is_blocked_for_matching(order_id):
                 cur_tick_entry = cur_tick_entry.next_tick
                 continue
 
-            quantity_matched = Quantity(min(quantity_to_match.amount,
-                                            cur_tick_entry.quantity.amount -
-                                            cur_tick_entry.reserved_for_matching.amount),
-                                        quantity.asset_id)
-            if quantity_matched.amount > 0:
+            quantity_matched = min(quantity_to_match, cur_tick_entry.available_for_matching)
+            if quantity_matched > 0:
                 matched_ticks.append((self.get_unique_match_id(), cur_tick_entry, quantity_matched))
                 quantity_to_match -= quantity_matched
 
@@ -118,13 +114,12 @@ class PriceTimeStrategy(MatchingStrategy):
                 try:
                     # Get the next price level
                     if is_ask:
-                        next_price, next_price_level = self.order_book.bids. \
-                            get_price_level_list(price.asset_id, quantity.asset_id).prev_item(cur_price_level_price)
-                        cur_price_level_price = next_price
+                        next_price_level = self.order_book.bids.\
+                            get_price_level_list(price.numerator, price.denominator).prev_item(cur_price_level_price)
                     else:
-                        next_price, next_price_level = self.order_book.asks. \
-                            get_price_level_list(price.asset_id, quantity.asset_id).succ_item(cur_price_level_price)
-                        cur_price_level_price = next_price
+                        next_price_level = self.order_book.asks.\
+                            get_price_level_list(price.numerator, price.denominator).succ_item(cur_price_level_price)
+                    cur_price_level_price = next_price_level.price
                 except IndexError:
                     break
 
@@ -162,7 +157,7 @@ class MatchingEngine(object):
 
         matched_ticks = self.matching_strategy.match(tick_entry.order_id,
                                                      tick_entry.price,
-                                                     tick_entry.quantity - tick_entry.reserved_for_matching,
+                                                     tick_entry.available_for_matching,
                                                      tick_entry.tick.is_ask())
 
         for match_id, matched_tick_entry, quantity in matched_ticks:  # Store the matches

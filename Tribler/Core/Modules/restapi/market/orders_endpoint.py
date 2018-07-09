@@ -1,10 +1,9 @@
-import json
-
 from twisted.web import http
 
-from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
+from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
+import Tribler.Core.Utilities.json_util as json
 
 
 class OrdersEndpoint(BaseMarketEndpoint):
@@ -35,16 +34,22 @@ class OrdersEndpoint(BaseMarketEndpoint):
                     "orders": [{
                         "trader_id": "12c406358ba05e5883a75da3f009477e4ca699a9",
                         "timestamp": 1493906434.627721,
-                        "price": 10.0,
-                        "quantity_type": "MC",
-                        "reserved_quantity": 0.0,
+                        "assets" {
+                            "first": {
+                                "amount": 3,
+                                "type": "BTC",
+                            },
+                            "second": {
+                                "amount": 3,
+                                "type": "MB",
+                            }
+                        }
+                        "reserved_quantity": 0,
                         "is_ask": False,
-                        "price_type": "BTC",
-                        "timeout": 3600.0,
-                        "traded_quantity": 0.0,
+                        "timeout": 3600,
+                        "traded": 0,
                         "order_number": 1,
                         "completed_timestamp": null,
-                        "quantity": 10.0,
                         "cancelled": False,
                         "status": "open"
                     }]

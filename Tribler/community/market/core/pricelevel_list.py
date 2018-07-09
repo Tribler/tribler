@@ -11,14 +11,13 @@ class PriceLevelList(object):
         self._price_list = []
         self._price_level_dictionary = {}
 
-    def insert(self, price, price_level):
+    def insert(self, price_level):
         """
-        :type price: Price
         :type price_level: PriceLevel
         """
-        self._price_list.append(price)
+        self._price_list.append(price_level.price)
         self._price_list.sort()
-        self._price_level_dictionary[price] = price_level
+        self._price_level_dictionary[price_level.price] = price_level
 
     def remove(self, price):
         """
@@ -29,29 +28,29 @@ class PriceLevelList(object):
 
     def succ_item(self, price):
         """
-        Returns (price, price_level) pair where price is successor to given price
+        Returns the price level where price_level.price is successor to given price
 
         :type price: Price
-        :rtype: (Price, PriceLevel)
+        :rtype: PriceLevel
         """
         index = self._price_list.index(price) + 1
         if index >= len(self._price_list):
             raise IndexError
         succ_price = self._price_list[index]
-        return succ_price, self._price_level_dictionary[succ_price]
+        return self._price_level_dictionary[succ_price]
 
     def prev_item(self, price):
         """
-        Returns (price, price_level) pair where price is predecessor to given price
+        Returns the price level where price_level.price is predecessor to given price
 
         :type price: Price
-        :rtype: (Price, PriceLevel)
+        :rtype: PriceLevel
         """
         index = self._price_list.index(price) - 1
         if index < 0:
             raise IndexError
         prev_price = self._price_list[index]
-        return prev_price, self._price_level_dictionary[prev_price]
+        return self._price_level_dictionary[prev_price]
 
     def min_key(self):
         """
@@ -71,7 +70,7 @@ class PriceLevelList(object):
 
     def items(self, reverse=False):
         """
-        Returns a sorted list of price, price_level tuples
+        Returns a sorted list (on price) of price_levels
 
         :param reverse: When true returns the reversed sorted list of price, price_level tuples
         :type reverse: bool
@@ -80,9 +79,9 @@ class PriceLevelList(object):
         items = []
         for price in self._price_list:
             if reverse:
-                items.insert(0, (price, self._price_level_dictionary[price]))
+                items.insert(0, self._price_level_dictionary[price])
             else:
-                items.append((price, self._price_level_dictionary[price]))
+                items.append(self._price_level_dictionary[price])
         return items
 
     def get_ticks_list(self):
@@ -91,7 +90,7 @@ class PriceLevelList(object):
         :return: list
         """
         ticks_list = []
-        for _, price_level in self.items():
+        for price_level in self.items():
             for tick in price_level:
                 ticks_list.append(tick.tick.to_dictionary())
 

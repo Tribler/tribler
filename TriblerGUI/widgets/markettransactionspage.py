@@ -51,8 +51,11 @@ class MarketTransactionsPage(QWidget):
     def on_payment(self, payment):
         item = self.get_widget_with_transaction(payment["trader_id"], payment["transaction_number"])
         if item:
-            item.transaction["transferred_price"] += payment["price"]
-            item.transaction["transferred_quantity"] += payment["quantity"]
+            transferred_type = payment["transferred"]["type"]
+            if transferred_type == item.transaction["transferred"]["first"]["type"]:
+                item.transaction["transferred"]["first"]["amount"] += payment["transferred"]["amount"]
+            else:
+                item.transaction["transferred"]["second"]["amount"] += payment["transferred"]["amount"]
             item.update_item()
 
         # Update the payment detail pane if we have the right transaction selected
@@ -62,18 +65,11 @@ class MarketTransactionsPage(QWidget):
     def on_received_transactions(self, transactions):
         for transaction in transactions["transactions"]:
             if self.wallets:
-                transaction["quantity"] = prec_div(transaction["quantity"],
-                                                   self.wallets[transaction["quantity_type"]]["precision"])
-                transaction["transferred_quantity"] = prec_div(transaction["transferred_quantity"],
-                                                               self.wallets[transaction["quantity_type"]]["precision"])
-                transaction["price"] = prec_div(transaction["price"],
-                                                self.wallets[transaction["price_type"]]["precision"])
-                transaction["transferred_price"] = prec_div(transaction["transferred_price"],
-                                                            self.wallets[transaction["price_type"]]["precision"])
-
-            item = TransactionWidgetItem(self.window().market_transactions_list, transaction)
-            item.update_item()
-            self.window().market_transactions_list.addTopLevelItem(item)
+                asset1_prec = self.wallets[transaction["assets"]["first"]["type"]]["precision"]
+                asset2_prec = self.wallets[transaction["assets"]["second"]["type"]]["precision"]
+                item = TransactionWidgetItem(
+                    self.window().market_transactions_list, transaction, asset1_prec, asset2_prec)
+                self.window().market_transactions_list.addTopLevelItem(item)
 
     def on_transaction_item_clicked(self):
         if self.window().market_transactions_list.selectedItems():
@@ -96,16 +92,15 @@ class MarketTransactionsPage(QWidget):
 
     def add_payment_to_list(self, payment):
         if self.wallets:
-            payment["price"] = prec_div(payment["price"], self.wallets[payment["price_type"]]["precision"])
-            payment["quantity"] = prec_div(payment["quantity"], self.wallets[payment["quantity_type"]]["precision"])
+            payment["transferred"]["amount"] = prec_div(payment["transferred"]["amount"],
+                                                        self.wallets[payment["transferred"]["type"]]["precision"])
 
-        payment_time = datetime.datetime.fromtimestamp(int(payment["timestamp"])).strftime('%Y-%m-%d %H:%M:%S')
-        item = QTreeWidgetItem(self.window().market_payments_list)
-        item.setText(0, "%g %s" % (payment['price'], payment['price_type']))
-        item.setText(1, "%g %s" % (payment['quantity'], payment['quantity_type']))
-        item.setText(2, payment['address_from'])
-        item.setText(3, payment['address_to'])
-        item.setText(4, payment_time)
-        item.setText(5, "%s" % ('yes' if payment['success'] else 'no'))
+            payment_time = datetime.datetime.fromtimestamp(int(payment["timestamp"])).strftime('%Y-%m-%d %H:%M:%S')
+            item = QTreeWidgetItem(self.window().market_payments_list)
+            item.setText(0, "%g %s" % (payment['transferred']["amount"], payment['transferred']["type"]))
+            item.setText(1, payment['address_from'])
+            item.setText(2, payment['address_to'])
+            item.setText(3, payment_time)
+            item.setText(4, "%s" % ('yes' if payment['success'] else 'no'))
 
-        self.window().market_payments_list.addTopLevelItem(item)
+            self.window().market_payments_list.addTopLevelItem(item)

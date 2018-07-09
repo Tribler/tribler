@@ -44,13 +44,10 @@ class MarketOrdersPage(QWidget):
     def on_received_orders(self, orders):
         for order in orders["orders"]:
             if self.wallets:
-                order["quantity"] = prec_div(order["quantity"], self.wallets[order["quantity_type"]]["precision"])
-                order["traded_quantity"] = prec_div(order["traded_quantity"],
-                                                    self.wallets[order["quantity_type"]]["precision"])
-                order["price"] = prec_div(order["price"], self.wallets[order["price_type"]]["precision"])
-
-            item = OrderWidgetItem(self.window().market_orders_list, order)
-            self.window().market_orders_list.addTopLevelItem(item)
+                asset1_prec = self.wallets[order["assets"]["first"]["type"]]["precision"]
+                asset2_prec = self.wallets[order["assets"]["second"]["type"]]["precision"]
+                item = OrderWidgetItem(self.window().market_orders_list, order, asset1_prec, asset2_prec)
+                self.window().market_orders_list.addTopLevelItem(item)
 
     def on_right_click_order(self, pos):
         item_clicked = self.window().market_orders_list.itemAt(pos)

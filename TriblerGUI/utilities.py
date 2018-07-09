@@ -253,4 +253,4 @@ def prec_div(number, precision):
     """
     Divide a given number by 10^precision.
     """
-    return float(number) / (10 ** precision)
+    return float(number) / float(10 ** precision)

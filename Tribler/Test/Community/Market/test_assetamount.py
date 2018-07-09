@@ -1,6 +1,6 @@
 import unittest
 
-from Tribler.community.market.core.assetamount import AssetAmount, Price
+from Tribler.community.market.core.assetamount import AssetAmount
 
 
 class TestAssetAmount(unittest.TestCase):
@@ -69,15 +69,3 @@ class TestAssetAmount(unittest.TestCase):
         Test the string representation of a Price object
         """
         self.assertEqual(str(self.assetamount1), "2 BTC")
-
-
-class TestPrice(unittest.TestCase):
-
-    def setUp(self):
-        # Object creation
-        self.assetamount1 = Price(2, 'BTC')
-        self.assetamount2 = Price(100, 'BTC')
-
-    def test_negative_price(self):
-        with self.assertRaises(ValueError):
-            self.assetamount1 - self.assetamount2

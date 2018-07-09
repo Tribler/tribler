@@ -15,44 +15,40 @@ class OrderManager(object):
         """
         super(OrderManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
-        self._logger.info("Market OrderManager initialized")
+        self._logger.info("Market order manager initialized")
 
         self.order_repository = order_repository
 
-    def create_ask_order(self, price, quantity, timeout):
+    def create_ask_order(self, assets, timeout):
         """
         Create an ask order (sell order)
 
-        :param price: The price for the order
-        :param quantity: The quantity of the order
+        :param assets: The assets to be exchanged
         :param timeout: The timeout of the order, when does the order need to be timed out
-        :type price: Price
-        :type quantity: Quantity
+        :type assets: AssetPair
         :type timeout: Timeout
         :return: The order that is created
         :rtype: Order
         """
-        order = Order(self.order_repository.next_identity(), price, quantity, timeout, Timestamp.now(), True)
+        order = Order(self.order_repository.next_identity(), assets, timeout, Timestamp.now(), True)
         self.order_repository.add(order)
 
         self._logger.info("Ask order created with id: " + str(order.order_id))
 
         return order
 
-    def create_bid_order(self, price, quantity, timeout):
+    def create_bid_order(self, assets, timeout):
         """
         Create a bid order (buy order)
 
-        :param price: The price for the order
-        :param quantity: The quantity of the order
+        :param assets: The assets to be exchanged
         :param timeout: The timeout of the order, when does the order need to be timed out
-        :type price: Price
-        :type quantity: Quantity
+        :type assets: AssetPair
         :type timeout: Timeout
         :return: The order that is created
         :rtype: Order
         """
-        order = Order(self.order_repository.next_identity(), price, quantity, timeout, Timestamp.now(), False)
+        order = Order(self.order_repository.next_identity(), assets, timeout, Timestamp.now(), False)
         self.order_repository.add(order)
 
         self._logger.info("Bid order created with id: " + str(order.order_id))

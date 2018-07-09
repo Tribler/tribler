@@ -7,7 +7,6 @@ from os import path
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.payment import Payment
-from Tribler.community.market.core.assetamount import Quantity
 from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.transaction import Transaction, TransactionId, TransactionNumber
 from Tribler.pyipv8.ipv8.attestation.trustchain.database import TrustChainDB
@@ -22,10 +21,10 @@ schema = u"""
 CREATE TABLE IF NOT EXISTS orders(
  trader_id            TEXT NOT NULL,
  order_number         INTEGER NOT NULL,
- price                BIGINT NOT NULL,
- price_type           TEXT NOT NULL,
- quantity             BIGINT NOT NULL,
- quantity_type        TEXT NOT NULL,
+ asset1_amount        BIGINT NOT NULL,
+ asset1_type          TEXT NOT NULL,
+ asset2_amount        BIGINT NOT NULL,
+ asset2_type          TEXT NOT NULL,
  traded_quantity      BIGINT NOT NULL,
  timeout              INTEGER NOT NULL,
  order_timestamp      TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -44,12 +43,12 @@ CREATE TABLE IF NOT EXISTS orders(
   order_number             INTEGER NOT NULL,
   partner_trader_id        TEXT NOT NULL,
   partner_order_number     INTEGER NOT NULL,
-  price                    BIGINT NOT NULL,
-  price_type               TEXT NOT NULL,
-  transferred_price        BIGINT NOT NULL,
-  quantity                 BIGINT NOT NULL,
-  quantity_type            TEXT NOT NULL,
-  transferred_quantity     BIGINT NOT NULL,
+  asset1_amount            BIGINT NOT NULL,
+  asset1_type              TEXT NOT NULL,
+  asset1_transferred       BIGINT NOT NULL,
+  asset2_amount            BIGINT NOT NULL,
+  asset2_type              TEXT NOT NULL,
+  asset2_transferred       BIGINT NOT NULL,
   transaction_timestamp    TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   sent_wallet_info         INTEGER NOT NULL,
   received_wallet_info     INTEGER NOT NULL,
@@ -67,10 +66,8 @@ CREATE TABLE IF NOT EXISTS orders(
   transaction_trader_id    TEXT NOT NULL,
   transaction_number       INTEGER NOT NULL,
   payment_id               TEXT NOT NULL,
-  transferee_quantity      BIGINT NOT NULL,
-  quantity_type            TEXT NOT NULL,
-  transferee_price         BIGINT NOT NULL,
-  price_type               TEXT NOT NULL,
+  transferred_amount       BIGINT NOT NULL,
+  transferred_type         TEXT NOT NULL,
   address_from             TEXT NOT NULL,
   address_to               TEXT NOT NULL,
   timestamp                TIMESTAMP NOT NULL,
@@ -82,13 +79,14 @@ CREATE TABLE IF NOT EXISTS orders(
  CREATE TABLE IF NOT EXISTS ticks(
   trader_id            TEXT NOT NULL,
   order_number         INTEGER NOT NULL,
-  price                BIGINT NOT NULL,
-  price_type           TEXT NOT NULL,
-  quantity             BIGINT NOT NULL,
-  quantity_type        TEXT NOT NULL,
+  asset1_amount        BIGINT NOT NULL,
+  asset1_type          TEXT NOT NULL,
+  asset2_amount        BIGINT NOT NULL,
+  asset2_type          TEXT NOT NULL,
   timeout              INTEGER NOT NULL,
   timestamp            TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   is_ask               INTEGER NOT NULL,
+  traded               BIGINT NOT NULL,
   block_hash           TEXT NOT NULL,
 
   PRIMARY KEY (trader_id, order_number)
@@ -100,7 +98,6 @@ CREATE TABLE IF NOT EXISTS orders(
   reserved_trader_id     TEXT NOT NULL,
   reserved_order_number  INTEGER NOT NULL,
   quantity               BIGINT NOT NULL,
-  quantity_type          TEXT NOT NULL,
 
   PRIMARY KEY (trader_id, order_number, reserved_trader_id, reserved_order_number)
  );
@@ -155,7 +152,7 @@ class MarketDB(TrustChainDB):
         Add a specific order to the database
         """
         self.execute(
-            u"INSERT INTO orders (trader_id, order_number, price, price_type, quantity, quantity_type,"
+            u"INSERT INTO orders (trader_id, order_number, asset1_amount, asset1_type, asset2_amount, asset2_type,"
             u"traded_quantity, timeout, order_timestamp, completed_timestamp, is_ask, cancelled, verified) "
             u"VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
             order.to_database())
@@ -189,16 +186,15 @@ class MarketDB(TrustChainDB):
         self.execute(u"DELETE FROM orders_reserved_ticks WHERE trader_id = ? AND order_number = ?",
                      (unicode(order_id.trader_id), unicode(order_id.order_number)))
 
-    def add_reserved_tick(self, order_id, reserved_order_id, quantity):
+    def add_reserved_tick(self, order_id, reserved_order_id, amount):
         """
         Add a reserved tick to the database
         """
         self.execute(
             u"INSERT INTO orders_reserved_ticks (trader_id, order_number, reserved_trader_id, reserved_order_number,"
-            u"quantity, quantity_type) VALUES(?,?,?,?,?,?)",
+            u"quantity) VALUES(?,?,?,?,?)",
             (unicode(order_id.trader_id), unicode(order_id.order_number),
-             unicode(reserved_order_id.trader_id), unicode(reserved_order_id.order_number),
-             quantity.amount, unicode(quantity.asset_id)))
+             unicode(reserved_order_id.trader_id), unicode(reserved_order_id.order_number), amount))
         self.commit()
 
     def get_reserved_ticks(self, order_id):
@@ -207,8 +203,7 @@ class MarketDB(TrustChainDB):
         """
         db_results = self.execute(u"SELECT * FROM orders_reserved_ticks WHERE trader_id = ? AND order_number = ?",
                                   (unicode(order_id.trader_id), unicode(order_id.order_number)))
-        return [(OrderId(TraderId(str(data[2])), OrderNumber(data[3])),
-                 Quantity(data[4], str(data[5]))) for data in db_results]
+        return [(OrderId(TraderId(str(data[2])), OrderNumber(data[3])), data[4]) for data in db_results]
 
     def get_all_transactions(self):
         """
@@ -238,8 +233,8 @@ class MarketDB(TrustChainDB):
         """
         self.execute(
             u"INSERT INTO transactions (trader_id, transaction_number, order_trader_id, order_number,"
-            u"partner_trader_id, partner_order_number, price, price_type, transferred_price, quantity, quantity_type,"
-            u"transferred_quantity, transaction_timestamp, sent_wallet_info, received_wallet_info,"
+            u"partner_trader_id, partner_order_number, asset1_amount, asset1_type, asset1_transferred, asset2_amount,"
+            u"asset2_type, asset2_transferred, transaction_timestamp, sent_wallet_info, received_wallet_info,"
             u"incoming_address, outgoing_address, partner_incoming_address, partner_outgoing_address, match_id) "
             u"VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", transaction.to_database())
         self.commit()
@@ -271,8 +266,8 @@ class MarketDB(TrustChainDB):
         """
         self.execute(
             u"INSERT INTO payments (trader_id, transaction_trader_id, transaction_number, payment_id,"
-            u"transferee_quantity, quantity_type, transferee_price, price_type, address_from, address_to, timestamp,"
-            u"success) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", payment.to_database())
+            u"transferred_amount, transferred_type, address_from, address_to, timestamp,"
+            u"success) VALUES(?,?,?,?,?,?,?,?,?,?)", payment.to_database())
         self.commit()
 
     def get_payments(self, transaction_id):
@@ -297,9 +292,9 @@ class MarketDB(TrustChainDB):
         Add a specific tick to the database
         """
         self.execute(
-            u"INSERT INTO ticks (trader_id, order_number, price, price_type, quantity,"
-            u"quantity_type, timeout, timestamp, is_ask, block_hash) "
-            u"VALUES(?,?,?,?,?,?,?,?,?,?)", tick.to_database())
+            u"INSERT INTO ticks (trader_id, order_number, asset1_amount, asset1_type, asset2_amount,"
+            u"asset2_type, timeout, timestamp, is_ask, traded, block_hash) "
+            u"VALUES(?,?,?,?,?,?,?,?,?,?,?)", tick.to_database())
         self.commit()
 
     def delete_all_ticks(self):

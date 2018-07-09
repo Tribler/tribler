@@ -1,10 +1,11 @@
-import json
-
 from twisted.web import http
 from twisted.web.server import NOT_DONE_YET
 
+from Tribler.community.market.core.assetamount import AssetAmount
+from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.Core.Modules.restapi import has_param, get_param
 from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
+import Tribler.Core.Utilities.json_util as json
 
 
 class BaseAsksBidsEndpoint(BaseMarketEndpoint):
@@ -22,13 +23,14 @@ class BaseAsksBidsEndpoint(BaseMarketEndpoint):
         if has_param(parameters, 'timeout'):
             timeout = int(get_param(parameters, 'timeout'))
 
-        price = int(get_param(parameters, 'price'))
-        quantity = int(get_param(parameters, 'quantity'))
+        first_asset_amount = int(get_param(parameters, 'first_asset_amount'))
+        second_asset_amount = int(get_param(parameters, 'second_asset_amount'))
 
-        price_type = get_param(parameters, 'price_type')
-        quantity_type = get_param(parameters, 'quantity_type')
+        first_asset_type = get_param(parameters, 'first_asset_type')
+        second_asset_type = get_param(parameters, 'second_asset_type')
 
-        return price, price_type, quantity, quantity_type, timeout
+        return AssetPair(AssetAmount(first_asset_amount, first_asset_type),
+                         AssetAmount(second_asset_amount, second_asset_type)), timeout
 
 
 class AsksEndpoint(BaseAsksBidsEndpoint):
@@ -54,17 +56,24 @@ class AsksEndpoint(BaseAsksBidsEndpoint):
 
                 {
                     "asks": [{
-                        "price_type": "BTC",
-                        "quantity_type": "MB",
+                        "asset1": "BTC",
+                        "asset2": "MB",
                         "ticks": [{
                             "trader_id": "12c406358ba05e5883a75da3f009477e4ca699a9",
                             "timeout": 3600,
-                            "quantity_type": "MB",
-                            "price_type": "BTC",
+                            "assets": {
+                                "first": {
+                                    "amount": 10,
+                                    "type": "BTC"
+                                },
+                                "second": {
+                                    "amount": 10,
+                                    "type": "MB"
+                                }
+                            },
+                            "traded": 5,
                             "timestamp": 1493905920.68573,
-                            "price": 10.0,
-                            "order_number": 1,
-                            "quantity": 10.0}, ...]
+                            "order_number": 1}, ...]
                     }, ...]
                 }
         """
@@ -81,7 +90,7 @@ class AsksEndpoint(BaseAsksBidsEndpoint):
             .. sourcecode:: none
 
                 curl -X PUT http://localhost:8085/market/asks --data
-                "price=10&quantity=10&price_type=BTC&quantity_type=MB"
+                "first_asset_amount=10&second_asset_amount=10&first_asset_type=BTC&second_asset_type=MB"
 
             **Example response**:
 
@@ -93,13 +102,13 @@ class AsksEndpoint(BaseAsksBidsEndpoint):
         """
         parameters = http.parse_qs(request.content.read(), 1)
 
-        if not has_param(parameters, 'price') or not has_param(parameters, 'quantity'):
+        if not has_param(parameters, 'first_asset_amount') or not has_param(parameters, 'second_asset_amount'):
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "price or quantity parameter missing"})
+            return json.dumps({"error": "asset amount parameter missing"})
 
-        if not has_param(parameters, 'price_type') or not has_param(parameters, 'quantity_type'):
+        if not has_param(parameters, 'first_asset_type') or not has_param(parameters, 'second_asset_type'):
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "price_type or quantity_type parameter missing"})
+            return json.dumps({"error": "asset type parameter missing"})
 
         def on_ask_created(_):
             if not request.finished:
@@ -135,17 +144,24 @@ class BidsEndpoint(BaseAsksBidsEndpoint):
 
                 {
                     "bids": [{
-                        "price_type": "BTC",
-                        "quantity_type": "MB",
+                        "asset1": "BTC",
+                        "asset2": "MB",
                         "ticks": [{
                             "trader_id": "12c406358ba05e5883a75da3f009477e4ca699a9",
                             "timeout": 3600,
-                            "quantity_type": "MB",
-                            "price_type": "BTC",
+                            "assets": {
+                                "first": {
+                                    "amount": 10,
+                                    "type": "BTC"
+                                },
+                                "second": {
+                                    "amount": 10,
+                                    "type": "MB"
+                                }
+                            },
+                            "traded": 5,
                             "timestamp": 1493905920.68573,
-                            "price": 10.0,
-                            "order_number": 1,
-                            "quantity": 10.0}, ...]
+                            "order_number": 1}, ...]
                     }, ...]
                 }
         """
@@ -162,7 +178,7 @@ class BidsEndpoint(BaseAsksBidsEndpoint):
             .. sourcecode:: none
 
                 curl -X PUT http://localhost:8085/market/bids --data
-                "price=10&quantity=10&price_type=BTC&quantity_type=MB"
+                "first_asset_amount=10&second_asset_amount=10&first_asset_type=BTC&second_asset_type=MB"
 
             **Example response**:
 
@@ -174,13 +190,13 @@ class BidsEndpoint(BaseAsksBidsEndpoint):
         """
         parameters = http.parse_qs(request.content.read(), 1)
 
-        if not has_param(parameters, 'price') or not has_param(parameters, 'quantity'):
+        if not has_param(parameters, 'first_asset_amount') or not has_param(parameters, 'second_asset_amount'):
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "price or quantity parameter missing"})
+            return json.dumps({"error": "asset amount parameter missing"})
 
-        if not has_param(parameters, 'price_type') or not has_param(parameters, 'quantity_type'):
+        if not has_param(parameters, 'first_asset_type') or not has_param(parameters, 'second_asset_type'):
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "price_type or quantity_type parameter missing"})
+            return json.dumps({"error": "asset type parameter missing"})
 
         def on_bid_created(_):
             if not request.finished:
