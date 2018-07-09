@@ -421,7 +421,7 @@ class Order(object):
 
     def to_status_dictionary(self):
         """
-        Return a dictionary representation of this order (suitable for saving on the TradeChain)
+        Return a dictionary representation of this order (suitable for saving on the TrustChain)
         """
         return {
             "trader_id": str(self.order_id.trader_id),

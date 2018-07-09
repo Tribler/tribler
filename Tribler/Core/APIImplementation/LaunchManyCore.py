@@ -12,20 +12,14 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
-from twisted.internet import reactor
-from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, succeed
-from twisted.internet.task import LoopingCall
-from twisted.internet.threads import deferToThread
-from twisted.python.threadable import isInIOThread
-
-from Tribler.community.market.wallet.dummy_wallet import DummyWallet1, DummyWallet2
-from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DecentralizedTracking.dht_provider import MainlineDHTProvider
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
 from Tribler.Core.Modules.resource_monitor import ResourceMonitor
 from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
+from Tribler.Core.Modules.wallet.dummy_wallet import DummyWallet1, DummyWallet2
+from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Core.Modules.watch_folder import WatchFolder
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
@@ -47,6 +41,11 @@ from Tribler.pyipv8.ipv8.peerdiscovery.deprecated.discovery import DiscoveryComm
 from Tribler.pyipv8.ipv8.peerdiscovery.discovery import EdgeWalk, RandomWalk
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 from Tribler.pyipv8.ipv8_service import IPv8
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, succeed
+from twisted.internet.task import LoopingCall
+from twisted.internet.threads import deferToThread
+from twisted.python.threadable import isInIOThread
 
 
 class TriblerLaunchMany(TaskManager):
@@ -102,7 +101,9 @@ class TriblerLaunchMany(TaskManager):
         self.tracker_manager = None
         self.torrent_checker = None
         self.tunnel_community = None
-        self.triblerchain_community = None
+        self.trustchain_community = None
+        self.wallets = {}
+        self.popularity_community = None
 
         self.startup_deferred = Deferred()
 
@@ -243,17 +244,20 @@ class TriblerLaunchMany(TaskManager):
         if not self.session.config.get_dispersy_enabled():
             self.ipv8.strategies.append((RandomWalk(discovery_community), 20))
 
-        # TriblerChain Community
+        # TrustChain Community
         if self.session.config.get_trustchain_enabled():
-            triblerchain_peer = Peer(self.session.trustchain_keypair)
+            from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
+            trustchain_peer = Peer(self.session.trustchain_keypair)
 
-            from Tribler.community.triblerchain.community import TriblerChainCommunity
-            self.triblerchain_community = TriblerChainCommunity(triblerchain_peer, self.ipv8.endpoint,
-                                                                self.ipv8.network,
-                                                                tribler_session=self.session,
-                                                                working_directory=self.session.config.get_state_dir())
-            self.ipv8.overlays.append(self.triblerchain_community)
-            self.ipv8.strategies.append((EdgeWalk(self.triblerchain_community), 20))
+            self.trustchain_community = TrustChainCommunity(trustchain_peer, self.ipv8.endpoint,
+                                                            self.ipv8.network,
+                                                            working_directory=self.session.config.get_state_dir(),
+                                                            testnet=self.session.config.get_trustchain_testnet())
+            self.ipv8.overlays.append(self.trustchain_community)
+            self.ipv8.strategies.append((EdgeWalk(self.trustchain_community), 20))
+
+            tc_wallet = TrustchainWallet(self.trustchain_community)
+            self.wallets[tc_wallet.get_identifier()] = tc_wallet
 
         # Tunnel Community
         if self.session.config.get_tunnel_community_enabled():
@@ -265,44 +269,39 @@ class TriblerLaunchMany(TaskManager):
                                                            dht_provider=MainlineDHTProvider(
                                                                self.mainline_dht,
                                                                self.session.config.get_dispersy_port()),
-                                                           triblerchain_community=self.triblerchain_community)
+                                                           bandwidth_wallet=self.wallets["MB"])
             self.ipv8.overlays.append(self.tunnel_community)
             self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
 
         # Market Community
         if self.session.config.get_market_community_enabled():
-            wallets = {}
-
-            try:
-                from Tribler.community.market.wallet.btc_wallet import BitcoinWallet, BitcoinTestnetWallet
-                wallet_type = BitcoinTestnetWallet if self.session.config.get_btc_testnet() else BitcoinWallet
-                btc_wallet = wallet_type(os.path.join(self.session.config.get_state_dir(), 'wallet'))
-                wallets[btc_wallet.get_identifier()] = btc_wallet
-            except ImportError:
-                self._logger.error("Electrum wallet cannot be found, Bitcoin trading not available!")
-
-            mc_wallet = TrustchainWallet(self.triblerchain_community)
-            wallets[mc_wallet.get_identifier()] = mc_wallet
-
-            if self.session.config.get_dummy_wallets_enabled():
-                # For debugging purposes, we create dummy wallets
-                dummy_wallet1 = DummyWallet1()
-                wallets[dummy_wallet1.get_identifier()] = dummy_wallet1
-
-                dummy_wallet2 = DummyWallet2()
-                wallets[dummy_wallet2.get_identifier()] = dummy_wallet2
-
             from Tribler.community.market.community import MarketCommunity
-            market_peer = Peer(self.session.tradechain_keypair)
+            market_peer = Peer(self.session.trustchain_keypair)
 
             self.market_community = MarketCommunity(market_peer, self.ipv8.endpoint, self.ipv8.network,
                                                     tribler_session=self.session,
-                                                    wallets=wallets,
+                                                    trustchain=self.trustchain_community,
+                                                    wallets=self.wallets,
                                                     working_directory=self.session.config.get_state_dir())
 
             self.ipv8.overlays.append(self.market_community)
 
             self.ipv8.strategies.append((RandomWalk(self.market_community), 20))
+
+        # Popular Community
+        if self.session.config.get_popularity_community_enabled():
+            from Tribler.community.popularity.community import PopularityCommunity
+
+            local_peer = Peer(self.session.trustchain_keypair)
+
+            self.popularity_community = PopularityCommunity(local_peer, self.ipv8.endpoint, self.ipv8.network,
+                                                            torrent_db=self.session.lm.torrent_db, session=self.session)
+
+            self.ipv8.overlays.append(self.popularity_community)
+
+            self.ipv8.strategies.append((RandomWalk(self.popularity_community), 20))
+
+            self.popularity_community.start()
 
     @blocking_call_on_reactor_thread
     def load_dispersy_communities(self):
@@ -379,6 +378,23 @@ class TriblerLaunchMany(TaskManager):
             self.mainline_dht = mainlineDHT.init(('127.0.0.1', self.session.config.get_mainline_dht_port()),
                                                  self.session.config.get_state_dir())
             self.upnp_ports.append((self.session.config.get_mainline_dht_port(), 'UDP'))
+
+        # Wallets
+        try:
+            from Tribler.Core.Modules.wallet.btc_wallet import BitcoinWallet, BitcoinTestnetWallet
+            wallet_type = BitcoinTestnetWallet if self.session.config.get_btc_testnet() else BitcoinWallet
+            btc_wallet = wallet_type(os.path.join(self.session.config.get_state_dir(), 'wallet'))
+            self.wallets[btc_wallet.get_identifier()] = btc_wallet
+        except ImportError:
+            self._logger.error("Electrum wallet cannot be found, Bitcoin wallet not available!")
+
+        if self.session.config.get_dummy_wallets_enabled():
+            # For debugging purposes, we create dummy wallets
+            dummy_wallet1 = DummyWallet1()
+            self.wallets[dummy_wallet1.get_identifier()] = dummy_wallet1
+
+            dummy_wallet2 = DummyWallet2()
+            self.wallets[dummy_wallet2.get_identifier()] = dummy_wallet2
 
         if self.ipv8:
             self.load_ipv8_overlays()
@@ -555,6 +571,8 @@ class TriblerLaunchMany(TaskManager):
         # copy the old download_config and change the hop count
         dscfg = download.copy()
         dscfg.set_hops(new_hops)
+        # If the user wants to change the hop count to 0, don't automatically bump this up to 1 anymore
+        dscfg.set_safe_seeding(False)
 
         self.session.start_download_from_tdef(download.tdef, dscfg)
 
@@ -869,10 +887,10 @@ class TriblerLaunchMany(TaskManager):
 
         self.tracker_manager = None
 
-        if self.tunnel_community and self.triblerchain_community:
-            # We unload these overlays manually since the triblerchain has to be unloaded after the tunnel overlay.
+        if self.tunnel_community and self.trustchain_community:
+            # We unload these overlays manually since the TrustChain has to be unloaded after the tunnel overlay.
             yield self.ipv8.unload_overlay(self.tunnel_community)
-            yield self.ipv8.unload_overlay(self.triblerchain_community)
+            yield self.ipv8.unload_overlay(self.trustchain_community)
 
         if self.dispersy:
             self._logger.info("lmc: Shutting down Dispersy...")

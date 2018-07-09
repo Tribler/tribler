@@ -1,10 +1,11 @@
+from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
+from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.pyipv8.ipv8.test.base import TestBase
 from Tribler.pyipv8.ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
-from Tribler.community.triblerchain.community import TriblerChainCommunity
-from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
+from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RENDEZVOUS
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
@@ -47,11 +48,10 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_ipv8 = MockIPv8(u"curve25519", TriblerTunnelCommunity, socks_listen_ports=[])
         mock_ipv8.overlay.settings.max_circuits = 1
 
-        # Load the TriblerChain community
-        overlay = TriblerChainCommunity(mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network,
-                                        working_directory=u":memory:")
-        overlay._use_main_thread = False
-        mock_ipv8.overlay.triblerchain_community = overlay
+        # Load the TrustChain community
+        overlay = TrustChainCommunity(mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network,
+                                      working_directory=u":memory:")
+        mock_ipv8.overlay.bandwidth_wallet = TrustchainWallet(overlay)
         mock_ipv8.overlay.dht_provider = MockDHTProvider(mock_ipv8.endpoint.wan_address)
 
         return mock_ipv8
@@ -231,7 +231,7 @@ class TestTriblerTunnelCommunity(TestBase):
         self.nodes[2].overlay.settings.become_exitnode = True
         yield self.introduce_nodes()
         self.nodes[0].overlay.build_tunnels(2)
-        yield self.deliver_messages()
+        yield self.deliver_messages(timeout=.5)
 
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(2), 1.0)
 
@@ -240,12 +240,12 @@ class TestTriblerTunnelCommunity(TestBase):
             circuit.bytes_down = 250 * 1024 * 1024
             self.nodes[0].overlay.remove_circuit(circuit_id, destroy=True)
 
-        yield self.deliver_messages()
+        yield self.sleep(0.5)
 
         # Verify whether the downloader (node 0) correctly paid the relay and exit nodes.
-        self.assertTrue(self.nodes[0].overlay.triblerchain_community.get_bandwidth_tokens() < 0)
-        self.assertTrue(self.nodes[1].overlay.triblerchain_community.get_bandwidth_tokens() > 0)
-        self.assertTrue(self.nodes[2].overlay.triblerchain_community.get_bandwidth_tokens() > 0)
+        self.assertTrue(self.nodes[0].overlay.bandwidth_wallet.get_bandwidth_tokens() < 0)
+        self.assertTrue(self.nodes[1].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
+        self.assertTrue(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
 
     @twisted_wrapper
     def test_circuit_reject_too_many(self):
@@ -279,7 +279,7 @@ class TestTriblerTunnelCommunity(TestBase):
 
         self.nodes[0].overlay.do_dht_lookup(service)
 
-        yield self.deliver_messages(timeout=.2)
+        yield self.deliver_messages(timeout=.5)
 
         # Destroy the e2e-circuit
         for circuit_id, circuit in self.nodes[0].overlay.circuits.items():
@@ -287,12 +287,12 @@ class TestTriblerTunnelCommunity(TestBase):
                 circuit.bytes_down = 250 * 1024 * 1024
                 self.nodes[0].overlay.remove_circuit(circuit_id, destroy=True)
 
-        yield self.deliver_messages()
+        yield self.sleep(0.5)
 
         # Verify whether the downloader (node 0) correctly paid the subsequent nodes.
-        self.assertTrue(self.nodes[0].overlay.triblerchain_community.get_bandwidth_tokens() < 0)
-        self.assertTrue(self.nodes[1].overlay.triblerchain_community.get_bandwidth_tokens() > 0)
-        self.assertTrue(self.nodes[2].overlay.triblerchain_community.get_bandwidth_tokens() > 0)
+        self.assertTrue(self.nodes[0].overlay.bandwidth_wallet.get_bandwidth_tokens() < 0)
+        self.assertTrue(self.nodes[1].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
+        self.assertTrue(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
 
     @twisted_wrapper
     def test_decline_competing_slot(self):
@@ -388,8 +388,9 @@ class TestTriblerTunnelCommunity(TestBase):
 
         # Make sure that there's a token disbalance between node 0 and 1
         his_pubkey = self.nodes[1].overlay.my_peer.public_key.key_to_bin()
-        yield self.nodes[0].overlay.triblerchain_community.sign_block(
-            self.nodes[1].overlay.my_peer, public_key=his_pubkey, transaction={'up': 0, 'down': 1024 * 1024})
+        yield self.nodes[0].overlay.bandwidth_wallet.trustchain.sign_block(
+            self.nodes[1].overlay.my_peer, public_key=his_pubkey,
+            block_type='tribler_bandwidth', transaction={'up': 0, 'down': 1024 * 1024})
 
         self.nodes[2].overlay.random_slots = []
         self.nodes[2].overlay.competing_slots = [(0, None)]
@@ -408,15 +409,15 @@ class TestTriblerTunnelCommunity(TestBase):
         self.assertEqual(self.nodes[1].overlay.tunnels_ready(1), 1.0)
 
         # Check whether the exit node has been paid
-        self.assertGreaterEqual(self.nodes[2].overlay.triblerchain_community.get_bandwidth_tokens(), 250 * 1024 * 1024)
+        self.assertGreaterEqual(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens(), 250 * 1024 * 1024)
 
     @twisted_wrapper
-    def test_create_circuit_without_trustchain(self):
+    def test_create_circuit_without_wallet(self):
         """
-        Test whether creating a circuit without trustchain active, fails
+        Test whether creating a circuit without bandwidth wallet, fails
         """
         self.add_node_to_experiment(self.create_node())
-        self.nodes[0].overlay.triblerchain_community = None
+        self.nodes[0].overlay.bandwidth_wallet = None
         self.nodes[1].overlay.settings.become_exitnode = True
         yield self.introduce_nodes()
 

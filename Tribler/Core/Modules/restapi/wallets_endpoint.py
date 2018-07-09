@@ -47,8 +47,8 @@ class WalletsEndpoint(resource.Resource):
         """
         wallets = {}
         balance_deferreds = []
-        for wallet_id in self.session.lm.market_community.get_wallet_ids():
-            wallet = self.session.lm.market_community.wallets[wallet_id]
+        for wallet_id in self.session.lm.wallets.iterkeys():
+            wallet = self.session.lm.wallets[wallet_id]
             wallets[wallet_id] = {
                 'created': wallet.created,
                 'unlocked': wallet.unlocked,
@@ -108,7 +108,7 @@ class WalletEndpoint(resource.Resource):
                     "created": True
                 }
         """
-        if self.session.lm.market_community.wallets[self.identifier].created:
+        if self.session.lm.wallets[self.identifier].created:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "this wallet already exists"})
 
@@ -125,10 +125,10 @@ class WalletEndpoint(resource.Resource):
         if self.identifier == "BTC" or self.identifier == "TBTC":  # get the password
             if parameters['password'] and len(parameters['password']) > 0:
                 password = parameters['password'][0]
-                self.session.lm.market_community.wallets[self.identifier].create_wallet(password=password)\
+                self.session.lm.wallets[self.identifier].create_wallet(password=password)\
                     .addCallback(on_wallet_created)
         else:
-            self.session.lm.market_community.wallets[self.identifier].create_wallet().addCallback(on_wallet_created)
+            self.session.lm.wallets[self.identifier].create_wallet().addCallback(on_wallet_created)
 
         return NOT_DONE_YET
 
@@ -171,7 +171,7 @@ class WalletBalanceEndpoint(resource.Resource):
             request.write(json.dumps({"balance": balance}))
             request.finish()
 
-        self.session.lm.market_community.wallets[self.identifier].get_balance().addCallback(on_balance)
+        self.session.lm.wallets[self.identifier].get_balance().addCallback(on_balance)
 
         return NOT_DONE_YET
 
@@ -220,7 +220,7 @@ class WalletTransactionsEndpoint(resource.Resource):
             request.write(json.dumps({"transactions": transactions}))
             request.finish()
 
-        self.session.lm.market_community.wallets[self.identifier].get_transactions().addCallback(on_transactions)
+        self.session.lm.wallets[self.identifier].get_transactions().addCallback(on_transactions)
 
         return NOT_DONE_YET
 
@@ -262,7 +262,7 @@ class WalletTransferEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "currently, currency transfers using the API is only supported for Bitcoin"})
 
-        wallet = self.session.lm.market_community.wallets[self.identifier]
+        wallet = self.session.lm.wallets[self.identifier]
 
         if not wallet.created:
             request.setResponseCode(http.BAD_REQUEST)

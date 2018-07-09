@@ -1,10 +1,11 @@
+from twisted.internet.defer import Deferred
+
+from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
+from Tribler.Core.Modules.wallet.wallet import InsufficientFunds
+from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 from Tribler.pyipv8.ipv8.test.base import TestBase
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
-from Tribler.community.market.wallet.tc_wallet import TrustchainWallet
-from Tribler.community.market.wallet.wallet import InsufficientFunds
-from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
-from twisted.internet.defer import Deferred
 
 
 class TestTrustchainWallet(TestBase):
@@ -48,7 +49,8 @@ class TestTrustchainWallet(TestBase):
             'total_up': 20 * 1024 * 1024,
             'total_down': 5 * 1024 * 1024
         }
-        self.nodes[0].overlay.sign_block(self.nodes[0].network.verified_peers[0], public_key=his_pubkey, transaction=tx)
+        self.nodes[0].overlay.sign_block(self.nodes[0].network.verified_peers[0], public_key=his_pubkey,
+                                         block_type='tribler_bandwidth', transaction=tx)
 
         yield self.deliver_messages()
 
@@ -85,9 +87,32 @@ class TestTrustchainWallet(TestBase):
         tx_deferred = self.tc_wallet.monitor_transaction('%s.1' % his_pubkey.encode('hex'))
 
         # Now create the transaction
-        self.nodes[1].overlay.sign_block(self.nodes[1].network.verified_peers[0], public_key=his_pubkey, transaction={})
+        transaction = {
+            'up': 20 * 1024 * 1024,
+            'down': 5 * 1024 * 1024,
+            'total_up': 20 * 1024 * 1024,
+            'total_down': 5 * 1024 * 1024
+        }
+        self.nodes[1].overlay.sign_block(self.nodes[1].network.verified_peers[0], public_key=his_pubkey,
+                                         block_type='tribler_bandwidth', transaction=transaction)
 
         yield tx_deferred
+
+    @twisted_wrapper
+    def test_monitor_tx_existing(self):
+        """
+        Test monitoring a transaction that already exists
+        """
+        transaction = {
+            'up': 20 * 1024 * 1024,
+            'down': 5 * 1024 * 1024,
+            'total_up': 20 * 1024 * 1024,
+            'total_down': 5 * 1024 * 1024
+        }
+        his_pubkey = self.nodes[0].overlay.my_peer.public_key.key_to_bin()
+        yield self.nodes[1].overlay.sign_block(self.nodes[1].network.verified_peers[0], public_key=his_pubkey,
+                                               block_type='tribler_bandwidth', transaction=transaction)
+        yield self.tc_wallet.monitor_transaction('%s.1' % his_pubkey.encode('hex'))
 
     def test_address(self):
         """
@@ -110,3 +135,15 @@ class TestTrustchainWallet(TestBase):
         Test the minimum unit of a Trustchain wallet
         """
         self.assertEqual(self.tc_wallet.min_unit(), 1)
+
+    @twisted_wrapper
+    def test_get_statistics(self):
+        """
+        Test fetching statistics from a Trustchain wallet
+        """
+        self.tc_wallet.check_negative_balance = False
+        res = self.tc_wallet.get_statistics()
+        self.assertEqual(res["total_blocks"], 0)
+        yield self.tc_wallet.transfer(5, self.nodes[1].overlay.my_peer)
+        res = self.tc_wallet.get_statistics()
+        self.assertTrue(res["latest_block"])

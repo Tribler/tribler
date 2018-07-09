@@ -11,12 +11,14 @@ User=tunnel_helper
 Group=tunnel_helper
 Restart=always
 Environment=HOME=/var/lib/tunnel_helper/%I
+Environment=HELPER_INDEX=%I
+Environment=HELPER_BASE=35000
 Environment=EXTRA_TUNNEL_ARGS=--
 Environment=PYTHONPATH=/opt/tribler
 
 WorkingDirectory=/opt/tribler
 ExecStartPre=/bin/mkdir -p ${HOME}
-ExecStart=/usr/bin/twistd --nodaemon --logfile=- --pidfile= tunnel_helper ${EXTRA_TUNNEL_ARGS}
+ExecStart=/usr/bin/twistd --nodaemon --logfile=- --pidfile= tunnel_helper $EXTRA_TUNNEL_ARGS
 
 [Install]
 WantedBy=multi-user.target

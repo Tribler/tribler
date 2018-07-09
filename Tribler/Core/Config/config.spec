@@ -32,6 +32,7 @@ ec_keypair_filename = string(default='')
 enabled = boolean(default=True)
 ec_keypair_filename = string(default='')
 live_edges_enabled = boolean(default=True)
+testnet = boolean(default=False)
 
 [wallets]
 btc_testnet = boolean(default=False)
@@ -90,7 +91,7 @@ port = integer(min=-1, max=65536, default=-1)
 [ipv8]
 enabled = boolean(default=True)
 address = string(default='0.0.0.0')
-bootstrap_override = string(default='')
+bootstrap_override = tuple(default=None)
 
 [video_server]
 enabled = boolean(default=True)
@@ -114,3 +115,7 @@ history_size = integer(min=1, default=20)
 enabled = boolean(default=True)
 sources = string_list(default=list())
 max_disk_space = integer(min=0, default=53687091200)
+
+[popularity_community]
+enabled = boolean(default=True)
+cache_dir = string(default=health_cache)

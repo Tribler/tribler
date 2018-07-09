@@ -145,6 +145,25 @@ class TestTorrentDef(BaseTestCase):
             reals += file['length']
         self.assertEqual(exps, reals)
 
+    def test_get_name_utf8(self):
+        """ Add a TorrentDef with non-utf8 encoding"""
+        t = TorrentDef()
+        t.set_name('\xA1\xC0')
+        t.set_encoding('euc_kr')
+        t.set_tracker(TRACKER)
+        t.finalize()
+
+        self.assertEqual(t.get_name_utf8(), u'\xf7')
+
+    def test_get_name_utf8_unknown(self):
+        """ Add a TorrentDef with non-utf8 encoding"""
+        t = TorrentDef()
+        t.set_name('\xA1\xC0')
+        t.set_tracker(TRACKER)
+        t.finalize()
+
+        self.assertEqual(t.get_name_utf8(), u'\xa1\xc0')
+
     def test_add_content_announce_list(self):
         """ Add a single file with announce-list to a TorrentDef """
         t = TorrentDef()

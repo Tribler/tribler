@@ -188,6 +188,13 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
         menu.exec_(self.window().download_files_list.mapToGlobal(pos))
 
+    def get_video_file_index(self, file_index):
+        video_index = 0
+        for index in xrange(file_index):
+            if is_video_file(self.current_download["files"][index]['name']):
+                video_index += 1
+        return video_index
+
     def get_included_file_list(self):
         return [file_info["index"] for file_info in self.current_download["files"] if file_info["included"]]
 
@@ -209,7 +216,8 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
     def on_play_file(self, file_info):
         self.window().left_menu_button_video_player.click()
-        self.window().video_player_page.play_media_item(self.current_download["infohash"], file_info["index"])
+        self.window().video_player_page.play_media_item(self.current_download["infohash"],
+                                                        self.get_video_file_index(file_info["index"]))
 
     def set_included_files(self, files):
         data_str = ''.join("selected_files[]=%s&" % ind for ind in files)[:-1]

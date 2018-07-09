@@ -19,21 +19,6 @@ DATABASE_PATH = path.join(DATABASE_DIRECTORY, u"market.db")
 LATEST_DB_VERSION = 2
 # Schema for the Market DB.
 schema = u"""
-CREATE TABLE IF NOT EXISTS blocks(
- tx                   TEXT NOT NULL,
- public_key           TEXT NOT NULL,
- sequence_number      INTEGER NOT NULL,
- link_public_key      TEXT NOT NULL,
- link_sequence_number INTEGER NOT NULL,
- previous_hash	      TEXT NOT NULL,
- signature		      TEXT NOT NULL,
-
- insert_time          TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
- block_hash	          TEXT NOT NULL,
-
- PRIMARY KEY (public_key, sequence_number)
- );
-
 CREATE TABLE IF NOT EXISTS orders(
  trader_id            TEXT NOT NULL,
  order_number         INTEGER NOT NULL,
@@ -146,18 +131,6 @@ class MarketDB(TrustChainDB):
         Return the schema for the database.
         """
         return schema
-
-    def get_all_blocks(self):
-        """
-        Return all blocks in the database.
-        """
-        return self._getall(u"", ())
-
-    def get_block_with_hash(self, hash):
-        """
-        Return the block with a specific hash or None if it's not available in the database.
-        """
-        return self._get(u"WHERE block_hash = ?", (buffer(hash),))
 
     def get_all_orders(self):
         """

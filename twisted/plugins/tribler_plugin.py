@@ -1,11 +1,13 @@
 """
 This twistd plugin enables to start Tribler headless using the twistd command.
 """
+from socket import inet_aton
 from datetime import date
 import os
 import signal
 import time
 
+import re
 from twisted.application.service import MultiService, IServiceMaker
 from twisted.conch import manhole_tap
 from twisted.internet import reactor
@@ -23,7 +25,22 @@ from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.search.community import SearchCommunity
 from Tribler.dispersy.utils import twistd_yappi
 
-from .tunnel_helper_plugin import check_ipv8_bootstrap_override
+
+def check_ipv8_bootstrap_override(val):
+    parsed = re.match(r"^([\d\.]+)\:(\d+)$", val)
+    if not parsed:
+        raise ValueError("Invalid bootstrap address:port")
+
+    ip, port = parsed.group(1), int(parsed.group(2))
+    try:
+        inet_aton(ip)
+    except:
+        raise ValueError("Invalid bootstrap server address")
+
+    if port < 0 or port > 65535:
+        raise ValueError("Invalid bootstrap server port")
+    return ip, port
+check_ipv8_bootstrap_override.coerceDoc = "IPv8 bootstrap server address must be in ipv4_addr:port format"
 
 
 class Options(usage.Options):
@@ -33,7 +50,8 @@ class Options(usage.Options):
         ["restapi", "p", -1, "Use an alternate port for the REST API", int],
         ["dispersy", "d", -1, "Use an alternate port for Dispersy", int],
         ["libtorrent", "l", -1, "Use an alternate port for libtorrent", int],
-        ["ipv8_bootstrap_override", "b", "", "Force the usage of specific IPv8 bootstrap server (ip:port)", check_ipv8_bootstrap_override]
+        ["ipv8_bootstrap_override", "b", None, "Force the usage of specific IPv8 bootstrap server (ip:port)",
+         check_ipv8_bootstrap_override]
     ]
     optFlags = [
         ["auto-join-channel", "a", "Automatically join a channel when discovered"],
@@ -108,7 +126,7 @@ class TriblerServiceMaker(object):
         if options["libtorrent"] != -1 and options["libtorrent"] > 0:
             config.set_libtorrent_port(options["libtorrent"])
 
-        if "ipv8_bootstrap_override" in options:
+        if options["ipv8_bootstrap_override"] is not None:
             config.set_ipv8_bootstrap_override(options["ipv8_bootstrap_override"])
 
         self.session = Session(config)

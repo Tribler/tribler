@@ -213,7 +213,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
             num_seeds, num_peers = state.get_num_seeds_peers()
 
-            download_json = {"name": tdef.get_name(), "progress": state.get_progress(),
+            download_json = {"name": tdef.get_name_utf8(), "progress": state.get_progress(),
                              "infohash": tdef.get_infohash().encode('hex'),
                              "speed_down": state.get_current_speed(DOWNLOAD),
                              "speed_up": state.get_current_speed(UPLOAD),

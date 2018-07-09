@@ -146,18 +146,6 @@ class Session(object):
             permid_module.save_keypair_trustchain(self.trustchain_keypair, trustchain_pairfilename)
             permid_module.save_pub_key_trustchain(self.trustchain_keypair, trustchain_pubfilename)
 
-        tradechain_pairfilename = self.config.get_tradechain_permid_keypair_filename()
-
-        if os.path.exists(tradechain_pairfilename):
-            self.tradechain_keypair = permid_module.read_keypair_trustchain(tradechain_pairfilename)
-        else:
-            self.tradechain_keypair = permid_module.generate_keypair_trustchain()
-
-            # Save keypair
-            tradechain_pubfilename = os.path.join(self.config.get_state_dir(), 'ecpub_tradechain.pem')
-            permid_module.save_keypair_trustchain(self.tradechain_keypair, tradechain_pairfilename)
-            permid_module.save_pub_key_trustchain(self.tradechain_keypair, tradechain_pubfilename)
-
     def unhandled_error_observer(self, event):
         """
         This method is called when an unhandled error in Tribler is observed.
@@ -172,18 +160,26 @@ class Session(object):
 
             # There are some errors that we are ignoring.
             # No route to host: this issue is non-critical since Tribler can still function when a request fails.
-            if 'socket.error: [Errno 113]' in text:
+            if 'socket.error' in text and '[Errno 113]' in text:
                 self._logger.error("Observed no route to host error (but ignoring)."
                                    "This might indicate a problem with your firewall.")
                 return
 
             # Socket block: this sometimes occurres on Windows and is non-critical.
-            if 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE in text:
+            if 'socket.error' in text and '[Errno %s]' % SOCKET_BLOCK_ERRORCODE in text:
                 self._logger.error("Unable to send data due to socket.error %s", SOCKET_BLOCK_ERRORCODE)
                 return
 
-            if 'socket.error: [Errno 51]' in text:
+            if 'socket.error' in text and '[Errno 51]' in text:
                 self._logger.error("Could not send data: network is unreachable.")
+                return
+
+            if 'socket.error' in text and '[Errno 16]' in text:
+                self._logger.error("Could not send data: socket is busy.")
+                return
+
+            if 'socket.error' in text and '[Errno 10054]' in text:
+                self._logger.error("Connection forcibly closed by the remote host.")
                 return
 
             if 'exceptions.ValueError: Invalid DNS-ID' in text:

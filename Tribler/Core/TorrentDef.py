@@ -21,6 +21,29 @@ from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
+def escape_as_utf8(string, encoding='utf8'):
+    """
+    Make a string UTF-8 compliant, destroying characters if necessary.
+
+    :param string: the string to convert
+    :type string: str
+    :return: the utf-8 string derivative
+    :rtype: str
+    """
+    try:
+        # Try seeing if the delivered encoding is correct and we
+        # can convert to utf8 without any issues.
+        return string.decode(encoding).encode('utf8').decode('utf8')
+    except (LookupError, TypeError, ValueError):
+        try:
+            # The delivered encoding is incorrect, cast it to
+            # latin1 and hope for the best (minor corruption).
+            return string.decode('latin1').encode('utf8', 'ignore').decode('utf8')
+        except (TypeError, ValueError):
+            # This is a very nasty string (e.g. u'\u266b'), remove the illegal entries.
+            return string.encode('utf8', 'ignore').decode('utf8')
+
+
 class TorrentDef(object):
 
     """
@@ -502,6 +525,12 @@ class TorrentDef(object):
         else:
             raise TorrentDefNotFinalizedException()
 
+    def get_name_utf8(self):
+        """
+        Not all names are utf-8, attempt to construct it as utf-8 anyway.
+        """
+        return escape_as_utf8(self.get_name(), self.get_encoding())
+
     def set_name(self, name):
         """ Set the name of this torrent
         @param name name of torrent as String
@@ -793,6 +822,12 @@ class TorrentDefNoMetainfo(object):
 
     def is_multifile_torrent(self):
         return False
+
+    def get_name_utf8(self):
+        """
+        Not all names are utf-8, attempt to construct it as utf-8 anyway.
+        """
+        return escape_as_utf8(self.get_name())
 
     def get_name_as_unicode(self):
         return unicode(self.name) if self.name else u''

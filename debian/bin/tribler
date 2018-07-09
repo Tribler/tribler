@@ -1,7 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 # Startup script for Ubuntu Linux
 
 echo "Starting Tribler..."
 
-cd "/usr/share/tribler"
+pushd "/usr/share/tribler"
 exec /usr/bin/python2.7 run_tribler.py "$@" > `mktemp /tmp/$USER-tribler-XXXXXXXX.log` 2>&1
+popd

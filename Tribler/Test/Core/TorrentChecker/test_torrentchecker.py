@@ -10,8 +10,9 @@ from Tribler.Core.Session import Session
 from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UdpSocketManager
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.simpledefs import NTFY_TORRENTS
-from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.twisted_thread import deferred
+from Tribler.community.popularity.repository import TYPE_TORRENT_HEALTH
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
@@ -32,6 +33,7 @@ class TestTorrentChecker(TriblerCoreTest):
         self.session.lm.torrent_db = TorrentDBHandler(self.session)
         self.session.lm.torrent_checker = TorrentChecker(self.session)
         self.session.lm.tracker_manager = TrackerManager(self.session)
+        self.session.lm.popularity_community = MockObject()
 
         self.torrent_checker = self.session.lm.torrent_checker
         self.torrent_checker._torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
@@ -185,6 +187,47 @@ class TestTorrentChecker(TriblerCoreTest):
         next_tracker_url = self.torrent_checker.get_valid_next_tracker_for_auto_check()
         self.assertEqual(len(test_tracker_list), 1)
         self.assertEqual(next_tracker_url, "http://announce.torrentsmd.com:8080/announce")
+
+    def test_publish_torrent_result(self):
+        MSG_ZERO_SEED_TORRENT = "Not publishing zero seeded torrents"
+        MSG_NO_popularity_community = "Popular community not available to publish torrent checker result"
+
+        def _fake_logger_info(torrent_checker, msg):
+            if msg == MSG_ZERO_SEED_TORRENT:
+                torrent_checker.zero_seed_torrent = True
+            if msg == MSG_NO_popularity_community:
+                torrent_checker.popularity_community_not_found = True
+
+        original_logger_info = self.torrent_checker._logger.info
+        self.torrent_checker._logger.info = lambda msg: _fake_logger_info(self.torrent_checker, msg)
+
+        def popularity_community_queue_content(torrent_checker, _type, _):
+            torrent_checker.popularity_community_queue_content_called = True
+            torrent_checker.popularity_community_queue_content_called_type = _type
+
+        self.torrent_checker.tribler_session.lm.popularity_community.queue_content = lambda _type, _content: \
+            popularity_community_queue_content(self.torrent_checker, _type, _content)
+
+        # Case1: Fake torrent checker response, seeders:0
+        fake_response = {'infohash': 'a'*20, 'seeders': 0, 'leechers': 0, 'last_check': time.time()}
+        self.torrent_checker.publish_torrent_result(fake_response)
+        self.assertTrue(self.torrent_checker.zero_seed_torrent)
+
+        # Case2: Positive seeders
+        fake_response['seeders'] = 5
+        self.torrent_checker.popularity_community_queue_content_called = False
+        self.torrent_checker.popularity_community_queue_content_called_type = None
+
+        self.torrent_checker.publish_torrent_result(fake_response)
+        self.assertTrue(self.torrent_checker.popularity_community_queue_content_called)
+        self.assertEqual(self.torrent_checker.popularity_community_queue_content_called_type, TYPE_TORRENT_HEALTH)
+
+        # Case3: Popular community is None
+        self.torrent_checker.tribler_session.lm.popularity_community = None
+        self.torrent_checker.publish_torrent_result(fake_response)
+        self.assertTrue(self.torrent_checker.popularity_community_not_found)
+
+        self.torrent_checker._logger.info = original_logger_info
 
     @inlineCallbacks
     @blocking_call_on_reactor_thread

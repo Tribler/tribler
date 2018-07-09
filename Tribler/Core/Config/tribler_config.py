@@ -209,6 +209,12 @@ class TriblerConfig(object):
     def get_trustchain_live_edges_enabled(self):
         return self.config['trustchain']['live_edges_enabled']
 
+    def set_trustchain_testnet(self, value):
+        self.config['trustchain']['testnet'] = value
+
+    def get_trustchain_testnet(self):
+        return self.config['trustchain']['testnet']
+
     def set_megacache_enabled(self, value):
         self.config['general']['megacache'] = value
 
@@ -276,7 +282,9 @@ class TriblerConfig(object):
         self.config['ipv8']['bootstrap_override'] = value
 
     def get_ipv8_bootstrap_override(self):
-        return self.config['ipv8']['bootstrap_override']
+        val = self.config['ipv8']['bootstrap_override']
+        ip_port_tuple = (val[0], int(val[1])) if val else None
+        return ip_port_tuple
 
     def set_ipv8_address(self, value):
         self.config['ipv8']['address'] = value
@@ -507,16 +515,6 @@ class TriblerConfig(object):
     def get_is_matchmaker(self):
         return self.config['market_community']['matchmaker']
 
-    def set_tradechain_permid_keypair_filename(self, keypairfilename):
-        self.config['market_community']['ec_keypair_filename'] = keypairfilename
-
-    def get_tradechain_permid_keypair_filename(self):
-        file_name = self.config['market_community']['ec_keypair_filename']
-        if not file_name:
-            file_name = os.path.join(self.get_state_dir(), 'ec_tradechain.pem')
-            self.set_tradechain_permid_keypair_filename(file_name)
-        return file_name
-
     # Wallets
 
     def set_btc_testnet(self, value):
@@ -530,6 +528,14 @@ class TriblerConfig(object):
 
     def get_dummy_wallets_enabled(self):
         return self.config['wallets']['dummy_wallets_enabled']
+
+    # Popular Community
+
+    def get_popularity_community_enabled(self):
+        return self.config['popularity_community']['enabled']
+
+    def set_popularity_community_enabled(self, value):
+        self.config['popularity_community']['enabled'] = value
 
     # Torrent store
 

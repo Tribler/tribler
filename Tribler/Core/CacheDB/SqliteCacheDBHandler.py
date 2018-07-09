@@ -799,6 +799,16 @@ class TorrentDBHandler(BasicDBHandler):
         results = self._db.fetchall(sql, (limit,))
         return [[str2bin(result[0]), result[1], result[2], result[3] or 0, result[4]] for result in results]
 
+    def getRecentlyCheckedTorrents(self, limit):
+        sql = u"""
+                    SELECT T.infohash, T.num_seeders, T.num_leechers, T.last_tracker_check
+                     FROM Torrent T
+                     WHERE T.is_collected = 0 AND T.num_seeders > 1 
+                     AND T.secret is not 1 ORDER BY T.last_tracker_check, T.num_seeders DESC LIMIT ?
+                     """
+        results = self._db.fetchall(sql, (limit,))
+        return [[str2bin(result[0]), result[1], result[2], result[3] or 0] for result in results]
+
     def getRandomlyCollectedTorrents(self, insert_time, limit):
         sql = u"""
             SELECT CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check
@@ -893,6 +903,7 @@ class TorrentDBHandler(BasicDBHandler):
             right_side = ((term_freq * (1.2 + 1)) / (term_freq + 1.2))
 
             score += inv_doc_freq * right_side
+        return score
 
     def search_in_local_torrents_db(self, query, keys=None):
         """
