@@ -45,10 +45,10 @@ class TorrentHealthPayload(Payload):
 
     def __init__(self, infohash, num_seeders, num_leechers, timestamp):
         super(TorrentHealthPayload, self).__init__()
-        self._infohash = infohash
-        self._num_seeders = num_seeders
-        self._num_leechers = num_leechers
-        self._timestamp = timestamp
+        self.infohash = infohash
+        self.num_seeders = num_seeders or 0
+        self.num_leechers = num_leechers or 0
+        self.timestamp = timestamp or -1
 
     def to_pack_list(self):
         data = [('20s', self.infohash),
@@ -63,22 +63,6 @@ class TorrentHealthPayload(Payload):
         (infohash, num_seeders, num_leechers, timestamp) = args
         return TorrentHealthPayload(infohash, num_seeders, num_leechers, timestamp)
 
-    @property
-    def infohash(self):
-        return self._infohash
-
-    @property
-    def num_seeders(self):
-        return self._num_seeders
-
-    @property
-    def num_leechers(self):
-        return self._num_leechers
-
-    @property
-    def timestamp(self):
-        return self._timestamp
-
 
 class ChannelHealthPayload(Payload):
     """
@@ -90,10 +74,10 @@ class ChannelHealthPayload(Payload):
     def __init__(self, channel_id, num_votes, num_torrents, swarm_size_sum, timestamp):
         super(ChannelHealthPayload, self).__init__()
         self.channel_id = channel_id
-        self.num_votes = num_votes
-        self.num_torrents = num_torrents
-        self.swarm_size_sum = swarm_size_sum
-        self.timestamp = timestamp
+        self.num_votes = num_votes or 0
+        self.num_torrents = num_torrents or 0
+        self.swarm_size_sum = swarm_size_sum or 0
+        self.timestamp = timestamp or -1
 
     def to_pack_list(self):
         data = [('varlenI', self.channel_id),
@@ -138,50 +122,26 @@ class TorrentInfoResponsePayload(Payload):
 
     def __init__(self, infohash, name, length, creation_date, num_files, comment):
         super(TorrentInfoResponsePayload, self).__init__()
-        self._infohash = infohash
-        self._name = name
-        self._length = length
-        self._creation_date = creation_date
-        self._num_files = num_files
-        self._comment = comment
+        self.infohash = infohash
+        self.name = name
+        self.length = length or 0
+        self.creation_date = creation_date or -1
+        self.num_files = num_files or 0
+        self.comment = comment or ''
 
     def to_pack_list(self):
         data = [('20s', self.infohash),
-                ('varlenH', str(self._name)),
-                ('I', self._length),
-                ('I', self._creation_date),
-                ('I', self._num_files),
-                ('varlenH', str(self._comment))]
+                ('varlenH', self.name.encode('utf-8')),
+                ('I', self.length),
+                ('I', self.creation_date),
+                ('I', self.num_files),
+                ('varlenH', str(self.comment))]
         return data
 
     @classmethod
     def from_unpack_list(cls, *args):
         (infohash, name, length, creation_date, num_files, comment) = args
-        return TorrentInfoResponsePayload(infohash, name, length, creation_date, num_files, comment)
-
-    @property
-    def infohash(self):
-        return self._infohash
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def length(self):
-        return self._length
-
-    @property
-    def creation_date(self):
-        return self._creation_date
-
-    @property
-    def num_files(self):
-        return self._num_files
-
-    @property
-    def comment(self):
-        return self._comment
+        return TorrentInfoResponsePayload(infohash, name.decode('utf-8'), length, creation_date, num_files, comment)
 
 
 class SearchResponseItemPayload(Payload):
@@ -195,17 +155,17 @@ class SearchResponseItemPayload(Payload):
     def __init__(self, infohash, name, length, num_files, category_list, creation_date, seeders, leechers, cid):
         self.infohash = infohash
         self.name = name
-        self.length = length
-        self.num_files = num_files
-        self.category_list = category_list
-        self.creation_date = creation_date
-        self.seeders = seeders
-        self.leechers = leechers
+        self.length = length or 0
+        self.num_files = num_files or 0
+        self.category_list = category_list or []
+        self.creation_date = creation_date or -1
+        self.seeders = seeders or 0
+        self.leechers = leechers or 0
         self.cid = cid
 
     def to_pack_list(self):
         data = [('20s', str(self.infohash)),
-                ('varlenH', str(self.name)),
+                ('varlenH', self.name.encode('utf-8')),
                 ('Q', self.length),
                 ('I', self.num_files),
                 ('varlenH', encode_values(self.category_list)),
@@ -219,8 +179,8 @@ class SearchResponseItemPayload(Payload):
     def from_unpack_list(cls, *args):
         (infohash, name, length, num_files, category_list_str, creation_date, seeders, leechers, cid) = args
         category_list = decode_values(category_list_str)
-        return SearchResponseItemPayload(infohash, name, length, num_files, category_list, creation_date, seeders,
-                                         leechers, cid)
+        return SearchResponseItemPayload(infohash, name.decode('utf-8'), length, num_files, category_list,
+                                         creation_date, seeders, leechers, cid)
 
 
 class ChannelItemPayload(Payload):
@@ -233,18 +193,18 @@ class ChannelItemPayload(Payload):
     def __init__(self, dbid, dispersy_cid, name, description, nr_torrents, nr_favorite, nr_spam, modified):
         self.id = dbid
         self.name = name
-        self.description = description
+        self.description = description or ''
         self.cid = dispersy_cid
-        self.modified = modified
-        self.nr_torrents = nr_torrents
-        self.nr_favorite = nr_favorite
-        self.nr_spam = nr_spam
+        self.modified = modified or -1
+        self.nr_torrents = nr_torrents or 0
+        self.nr_favorite = nr_favorite or 0
+        self.nr_spam = nr_spam or 0
 
     def to_pack_list(self):
         data = [('I', id),
                 ('20s', str(self.cid)),
                 ('varlenH', self.name),
-                ('varlenH', self.description),
+                ('varlenH', self.description.encode('utf-8')),
                 ('I', self.nr_torrents),
                 ('I', self.nr_favorite),
                 ('I', self.nr_spam),
@@ -253,7 +213,8 @@ class ChannelItemPayload(Payload):
 
     @classmethod
     def from_unpack_list(cls, dbid, dispersy_cid, name, description, nr_torrents, nr_favorite, nr_spam, modified):
-        return ChannelItemPayload(dbid, dispersy_cid, name, description, nr_torrents, nr_favorite, nr_spam, modified)
+        return ChannelItemPayload(dbid, dispersy_cid, name.decode('utf-8'), description.decode('utf-8'), nr_torrents,
+                                  nr_favorite, nr_spam, modified)
 
 
 class SearchResponsePayload(Payload):
