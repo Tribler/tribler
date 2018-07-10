@@ -6,12 +6,13 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_IP_RECREATE, NTFY_REMOVE, NTFY_EXTENDED, NTFY_CREATED,\
-    NTFY_JOINED, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED
+    NTFY_JOINED, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, DLSTATUS_METADATA
 from Tribler.Core.Socks5.server import Socks5Server
 from Tribler.dispersy.util import call_on_reactor_thread
+from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import decode
 from Tribler.pyipv8.ipv8.messaging.anonymization.community import CreatePayload
 from Tribler.pyipv8.ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
-from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload
+from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload, DHTResponsePayload
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_RP, \
     CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_RENDEZVOUS
 from Tribler.pyipv8.ipv8.peer import Peer
@@ -232,6 +233,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         # Monitor downloads with anonymous flag set, and build rendezvous/introduction points when needed.
         new_states = {}
         hops = {}
+        real_hashes = {}
 
         for ds in dslist:
             download = ds.get_download()
@@ -239,6 +241,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 # Convert the real infohash to the infohash used for looking up introduction points
                 real_info_hash = download.get_def().get_infohash()
                 info_hash = self.get_lookup_info_hash(real_info_hash)
+                real_hashes[info_hash] = real_info_hash
                 hops[info_hash] = download.get_hops()
                 self.service_callbacks[info_hash] = download.add_peer
                 new_states[info_hash] = ds.get_status()
@@ -268,9 +271,9 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             time_elapsed = (time.time() - self.last_dht_lookup.get(info_hash, 0))
             force_dht_lookup = time_elapsed >= self.settings.dht_lookup_interval
             if (state_changed or force_dht_lookup) and \
-                    (new_state == DLSTATUS_SEEDING or new_state == DLSTATUS_DOWNLOADING):
+               (new_state == DLSTATUS_SEEDING or new_state == DLSTATUS_DOWNLOADING or new_state == DLSTATUS_METADATA):
                 self.logger.info('Do dht lookup to find hidden services peers for %s', info_hash.encode('hex'))
-                self.do_raw_dht_lookup(info_hash)
+                self.do_raw_dht_lookup(info_hash, real_hashes[info_hash])
 
             if state_changed and new_state == DLSTATUS_SEEDING:
                 self.create_introduction_point(info_hash)
@@ -300,6 +303,25 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         for download in self.tribler_session.get_downloads():
             if lookup_info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
                 return download
+
+    def on_dht_response(self, source_address, data, circuit_id=''):
+        dist, payload = self._ez_unpack_noauth(DHTResponsePayload, data)
+
+        if not self.check_dht_response(payload):
+            return
+
+        cache = self.request_cache.get(u"dht-request", payload.identifier)
+        if not cache.is_real:
+            super(TriblerTunnelCommunity, self).on_dht_response(source_address, data, circuit_id)
+        else:
+            info_hash = payload.info_hash
+            _, peers = decode(payload.peers)
+            download = self.tribler_session.get_download(info_hash)
+            self.logger.info("Received dht response containing %d peers" % len(peers))
+            if download:
+                for peer in peers:
+                    self._logger.info("Added real info hash peer looked up in dht (%s)", repr(peer))
+                    download.add_peer(peer)
 
     def create_introduction_point(self, info_hash, amount=1):
         download = self.get_download(info_hash)
