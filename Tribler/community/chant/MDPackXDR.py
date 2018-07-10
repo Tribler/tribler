@@ -20,6 +20,8 @@ def serialize_metadata_gossip(md, key=None):
     if md["type"] == MD_DELETE:
         p.pack_opaque(md["delete_signature"])
     else:
+        if md["type"] == CHANNEL_TORRENT:
+            p.pack_hyper(md["version"])
         p.pack_fopaque(INFOHASH_SIZE, md["infohash"])
         p.pack_uhyper(md["size"])
         p.pack_double(time2float(md["torrent_date"]))
@@ -50,6 +52,8 @@ def deserialize_metadata_gossip(buf, check_signature=True):
     if md["type"] == MD_DELETE:
         md["delete_signature"] = u.unpack_opaque()
     else:
+        if md["type"] == CHANNEL_TORRENT:
+            md["version"] = u.unpack_hyper()
         md["infohash"] = u.unpack_fopaque(INFOHASH_SIZE)
         md["size"] = u.unpack_uhyper()
         md["torrent_date"] = float2time(u.unpack_double())
