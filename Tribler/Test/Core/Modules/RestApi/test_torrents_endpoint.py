@@ -10,7 +10,7 @@ from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.twisted_thread import deferred
 from Tribler.Test.util.Tracker.HTTPTracker import HTTPTracker
 from Tribler.Test.util.Tracker.UDPTracker import UDPTracker
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTorrentsEndpoint(AbstractApiTest):

@@ -2,7 +2,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.RemoteTorrentHandler import TftpRequester, RemoteTorrentHandler
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTftpRequester(TriblerCoreTest):

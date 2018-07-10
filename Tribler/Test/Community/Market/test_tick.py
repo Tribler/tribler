@@ -9,7 +9,6 @@ from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.tick import Tick, Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.dispersy.crypto import ECCrypto
 
 
 class TickTestSuite(unittest.TestCase):

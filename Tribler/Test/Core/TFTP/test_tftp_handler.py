@@ -5,7 +5,7 @@ from Tribler.Core.TFTP.exception import FileNotFound
 from Tribler.Core.TFTP.handler import TftpHandler, METADATA_PREFIX
 from Tribler.Core.TFTP.packet import OPCODE_OACK, OPCODE_ERROR, OPCODE_RRQ
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTFTPHandler(TriblerCoreTest):

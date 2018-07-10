@@ -8,10 +8,10 @@ from math import ceil
 from random import choice, sample
 from struct import pack, unpack_from
 
-from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
+from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode, decode
 
 
 class SearchConversion(BinaryConversion):

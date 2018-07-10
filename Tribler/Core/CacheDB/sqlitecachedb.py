@@ -14,8 +14,8 @@ from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
 from Tribler.Core.Utilities.install_dir import get_lib_path
-from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 DB_SCRIPT_NAME = "schema_sdb_v%s.sql" % str(LATEST_DB_VERSION)
 
@@ -26,7 +26,7 @@ DB_SCRIPT_ABSOLUTE_PATH = os.path.join(get_lib_path(), 'Core', 'CacheDB', DB_SCR
 
 DEFAULT_BUSY_TIMEOUT = 10000
 
-forceDBThread = call_on_reactor_thread
+forceDBThread = blocking_call_on_reactor_thread
 forceAndReturnDBThread = blocking_call_on_reactor_thread
 
 
@@ -228,7 +228,7 @@ class SQLiteCacheDB(TaskManager):
         self.commit_now()
         self._version = version
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def commit_now(self, vacuum=False, exiting=False):
         if self._should_commit and isInIOThread():
             try:

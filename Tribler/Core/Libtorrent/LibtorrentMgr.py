@@ -30,8 +30,8 @@ from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileExcep
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
                                      NTFY_REACHABLE, NTFY_TORRENTS)
 from Tribler.Core.version import version_id
-from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 LTSTATE_FILENAME = "lt.state"
 METAINFO_CACHE_PERIOD = 5 * 60
@@ -588,7 +588,7 @@ class LibtorrentMgr(TaskManager):
             self.notifier.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
             self.check_reachability_lc.stop()
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def _schedule_next_check(self, delay, retries_left):
         self.register_task(u'check_dht', reactor.callLater(delay, self.do_dht_check, retries_left))
 

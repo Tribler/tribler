@@ -16,7 +16,7 @@ from Tribler.community.market.core.transaction import Transaction, TransactionId
 from Tribler.community.market.core.wallet_address import WalletAddress
 from Tribler.community.market.database import LATEST_DB_VERSION
 from Tribler.community.market.database import MarketDB
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestDatabase(AbstractServer):

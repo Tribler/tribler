@@ -2,10 +2,10 @@ import zlib
 from random import sample
 from struct import pack, unpack_from
 
-from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket, Packet, DelayPacketByMissingMessage, DelayPacketByMissingMember
+from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode, decode
 
 DEBUG = False
 

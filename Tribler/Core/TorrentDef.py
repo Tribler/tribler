@@ -18,7 +18,7 @@ from Tribler.Core.Utilities.utilities import parse_magnetlink, http_get
 from Tribler.Core.defaults import TDEF_DEFAULTS
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, NotYetImplementedException
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 def escape_as_utf8(string, encoding='utf8'):

@@ -1,12 +1,12 @@
 import json
 
-from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
-from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
-from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock
+from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
+from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.twisted_thread import deferred
 

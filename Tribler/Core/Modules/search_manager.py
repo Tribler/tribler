@@ -6,8 +6,8 @@ from Tribler.Core.simpledefs import (SIGNAL_SEARCH_COMMUNITY, SIGNAL_ALLCHANNEL_
                                      NTFY_CHANNELCAST, SIGNAL_TORRENT, SIGNAL_CHANNEL)
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.search.community import SearchCommunity
-from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class SearchManager(TaskManager):
@@ -37,7 +37,7 @@ class SearchManager(TaskManager):
         self.dispersy = None
         self.session = None
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def search_for_torrents(self, keywords):
         """
         Searches for torrents using SearchCommunity with the given keywords.
@@ -62,7 +62,7 @@ class SearchManager(TaskManager):
 
         return nr_requests_made
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def _on_torrent_search_results(self, subject, change_type, object_id, search_results):
         """
         The callback function handles the search results from SearchCommunity.
@@ -173,7 +173,7 @@ class SearchManager(TaskManager):
         # inform other components about the results
         self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_data)
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def search_for_channels(self, keywords):
         """
         Searches for channels using AllChannelCommunity with the given keywords.
@@ -188,7 +188,7 @@ class SearchManager(TaskManager):
                 community.create_channelsearch(keywords)
                 break
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def _on_channel_search_results(self, subject, change_type, object_id, search_results):
         """
         The callback function handles the search results from AllChannelCommunity.

@@ -10,7 +10,7 @@ from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.tickentry import TickEntry
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TickEntryTestSuite(AbstractServer):

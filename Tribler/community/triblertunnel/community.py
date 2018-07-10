@@ -13,7 +13,7 @@ from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_IP_RECREATE, NTFY_REMOVE, NTFY_EXTENDED, NTFY_CREATED,\
     NTFY_JOINED, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED
 from Tribler.Core.Socks5.server import Socks5Server
-from Tribler.dispersy.util import call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.pyipv8.ipv8.messaging.anonymization.community import CreatePayload, message_to_payload, \
     SINGLE_HOP_ENC_PACKETS
 from Tribler.pyipv8.ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
@@ -411,7 +411,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         anon_seed = circuit.ctype == CIRCUIT_TYPE_RP
         self.dispatcher.on_incoming_from_tunnel(self, circuit, origin, data, anon_seed)
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def monitor_downloads(self, dslist):
         # Monitor downloads with anonymous flag set, and build rendezvous/introduction points when needed.
         new_states = {}

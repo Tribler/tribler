@@ -11,8 +11,7 @@ from Tribler.Core.CreditMining.CreditMiningPolicy import BasePolicy
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningTorrent
 
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED
-from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.Core.base_test import MockObject
 

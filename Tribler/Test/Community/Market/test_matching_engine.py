@@ -11,7 +11,7 @@ from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.tick import Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class PriceTimeStrategyTestSuite(AbstractServer):

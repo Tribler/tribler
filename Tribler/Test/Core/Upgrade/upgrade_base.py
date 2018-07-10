@@ -9,7 +9,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.Config.tribler_config import TriblerConfig, CONFIG_SPEC_PATH
 from Tribler.Core.Session import Session
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class MockTorrentStore(object):

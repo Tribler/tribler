@@ -9,8 +9,8 @@ from twisted.internet.defer import DeferredList
 from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_CREATED, SIGNAL_RSS_FEED, SIGNAL_ON_UPDATED
-from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class ChannelObject(TaskManager):
@@ -50,7 +50,7 @@ class ChannelObject(TaskManager):
         deferreds = [feed.parse_feed() for feed in self._rss_feed_dict.itervalues()]
         return DeferredList(deferreds, consumeErrors=True)
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def initialize(self):
         # load existing rss_feeds
         if os.path.exists(self._rss_file_path):
@@ -71,7 +71,7 @@ class ChannelObject(TaskManager):
             # subscribe to the channel creation event
             self._session.add_observer(self._on_channel_created, SIGNAL_CHANNEL, [SIGNAL_ON_CREATED])
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def shutdown(self):
         self.shutdown_task_manager()
         for key, rss_parser in self._rss_feed_dict.iteritems():
@@ -99,7 +99,7 @@ class ChannelObject(TaskManager):
         task_name = u'create_rss_%s' % hexlify(channel_data[u'channel'].cid)
         self.register_task(task_name, reactor.callLater(0, _create_rss_feed, channel_data))
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def create_rss_feed(self, rss_feed_url):
         if rss_feed_url in self._rss_feed_dict:
             self._logger.warn(u"skip existing rss feed: %s", repr(rss_feed_url))
@@ -119,7 +119,7 @@ class ChannelObject(TaskManager):
             rss_list = [rss_url for rss_url in self._rss_feed_dict.iterkeys()]
             json.dump(rss_list, f)
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def remove_rss_feed(self, rss_feed_url):
         if rss_feed_url not in self._rss_feed_dict:
             self._logger.warn(u"skip existing rss feed: %s", repr(rss_feed_url))

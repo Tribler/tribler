@@ -1,4 +1,4 @@
-from Tribler.dispersy.util import is_valid_address
+from Tribler.Core.Utilities.network_utils import is_valid_address
 
 
 class SocketAddress(object):

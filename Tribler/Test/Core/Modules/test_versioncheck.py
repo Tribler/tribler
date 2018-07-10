@@ -6,7 +6,7 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import reactor, deferred
-from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class VersionResource(resource.Resource):
@@ -40,7 +40,7 @@ class TestVersionCheck(TestAsServer):
     def notifier_callback(self, subject, changeType, obj_id, *args):
         self.new_version_called = True
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def setup_version_server(self, response, response_code=200):
         site = server.Site(VersionResource(response, response_code))
         self.server = reactor.listenTCP(self.port, site)
