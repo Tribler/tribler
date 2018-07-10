@@ -2,25 +2,31 @@ import os
 from datetime import datetime
 
 from pony import orm
-from libtorrent import add_files, bdecode, bencode, create_torrent, file_storage, set_piece_hashes
+from pony.orm import db_session
+from libtorrent import add_files, bdecode, bencode, create_torrent, file_storage, set_piece_hashes, torrent_info
 from Tribler.community.chant.MDPackXDR import serialize_metadata_gossip, \
     deserialize_metadata_gossip, CHANNEL_TORRENT, MD_DELETE, REGULAR_TORRENT
 
 from Tribler.community.chant.orm import MetadataGossip, PeerORM, known_signature, known_pk, trusted_pk
 
 
+
 def create_torrent_from_dir(directory, torrent_filename):
     fs = file_storage()
     add_files(fs, directory)
+    t = create_torrent(fs)
+    # FIXME: for a torrent created with flags=19 with 200+ small files
+    # libtorrent client_test can't see it's files on disk.
     # optimize_alignment + merke + mutable_torrent_support = 19
-    t = create_torrent(fs, flags=19)
+    #t = create_torrent(fs, flags=19) # BUG?
     t.set_priv(False)
     set_piece_hashes(t, os.path.dirname(directory))
-    generated = t.generate()
+    torrent = t.generate()
     with open(torrent_filename, 'w') as f:
-        f.write(bencode(generated))
+        f.write(bencode(torrent))
 
-    return generated
+    infohash = torrent_info(torrent).info_hash().to_bytes()
+    return infohash
 
 
 def create_channel_torrent(channels_store_dir, title, buf_list, version):
@@ -32,14 +38,14 @@ def create_channel_torrent(channels_store_dir, title, buf_list, version):
     # Write serialized and signed metadata into files
     for buf in buf_list:
         version += 1
-        with open(os.path.join(channel_dir, str(version)), 'w') as f:
+        with open(os.path.join(channel_dir, str(version).zfill(9)), 'w') as f:
             f.write(buf)
 
     # Make torrent out of dir with metadata files
     torrent_filename = os.path.join(channels_store_dir, title + ".torrent")
-    torrent = create_torrent_from_dir(channel_dir, torrent_filename)
+    infohash = create_torrent_from_dir(channel_dir, torrent_filename)
 
-    return torrent, version
+    return infohash, version
 
 
 def update_channel(key, old_channel, channels_dir, add_list=None, remove_list=None, buf_list=None):
@@ -73,13 +79,15 @@ def create_channel(key, title, channels_dir, buf_list=None, add_list=None, versi
     if not buf_list:
         buf_list = []
     buf_list.extend([e.serialized() for e in add_list])
-    (torrent, version) = create_channel_torrent(channels_dir, title,
+    (infohash, version) = create_channel_torrent(channels_dir, title,
                                                 buf_list, version)
+
+    #print str(infohash).encode("hex")
 
     now = datetime.utcnow()
     md = create_metadata_gossip(key,
                                 {"type": CHANNEL_TORRENT,
-                                 "infohash": torrent['info']['root hash'],
+                                 "infohash": infohash ,
                                  "title": title,
                                  "tags": tags,
                                  "size": len(buf_list),  # FIXME
@@ -97,12 +105,14 @@ def create_metadata_gossip(key, md_dict):
     return md
 
 
+@db_session
 def process_channel_dir(dirname):
     # TODO: add skip on file numbers for efficiency of updates.
     now = datetime.utcnow()
     for filename in sorted(os.listdir(dirname)):
         with open(os.path.join(dirname, filename)) as f:
             gsp = deserialize_metadata_gossip(f.read())
+            #print filename
             if check_gossip(gsp):
                 if gsp["type"] == MD_DELETE:
                     # We check for public key to prevent abuse
