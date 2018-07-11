@@ -40,9 +40,7 @@ class TestAssetAmount(unittest.TestCase):
     def test_comparison(self):
         # Test for comparison
         self.assertTrue(self.assetamount1 < self.assetamount2)
-        self.assertTrue(self.assetamount1 <= self.assetamount1)
         self.assertTrue(self.assetamount2 > self.assetamount1)
-        self.assertTrue(self.assetamount3 >= self.assetamount3)
         self.assertEqual(NotImplemented, self.assetamount1.__le__(10))
         self.assertEqual(NotImplemented, self.assetamount1.__lt__(10))
         self.assertEqual(NotImplemented, self.assetamount1.__ge__(10))
