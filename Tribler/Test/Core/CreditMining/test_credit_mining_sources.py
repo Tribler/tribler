@@ -11,7 +11,7 @@ from twisted.internet import reactor
 
 from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_DISCOVERED, NTFY_TORRENT
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Test.test_as_server import TestAsServer

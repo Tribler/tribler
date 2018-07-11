@@ -112,6 +112,51 @@ def autodetect_socket_style():
             return 0
 
 
+def is_valid_address(address):
+    """
+    Returns True when ADDRESS is valid.
+
+    ADDRESS must be supplied as a (HOST string, PORT integer) tuple.
+
+    An address is valid when it meets the following criteria:
+    - HOST must be non empty
+    - HOST must be non '0.0.0.0'
+    - PORT must be > 0
+    - HOST must be 'A.B.C.D' where A, B, and C are numbers higher or equal to 0 and lower or
+      equal to 255.  And where D is higher than 0 and lower than 255
+    """
+    assert isinstance(address, tuple), type(address)
+    assert len(address) == 2, len(address)
+    assert isinstance(address[0], str), type(address[0])
+    assert isinstance(address[1], int), type(address[1])
+
+    if address[0] == "":
+        return False
+
+    if address[0] == "0.0.0.0":
+        return False
+
+    if address[1] <= 0:
+        return False
+
+    try:
+        socket.inet_aton(address[0])
+    except socket.error:
+        return False
+
+    # ending with .0
+    # Niels: is now allowed, subnet mask magic call actually allow for this
+    #        if binary[3] == "\x00":
+    #            return False
+
+    # ending with .255
+    # Niels: same for this one, if the netmask is /23 a .255 could indicate 011111111 which is allowed
+    #        if binary[3] == "\xff":
+    #            return False
+
+    return True
+
+
 class InterruptSocket(object):
     """
     When we need the poll to return before the timeout expires, we

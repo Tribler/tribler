@@ -3,7 +3,7 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 FAKE_PERMID_X = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'

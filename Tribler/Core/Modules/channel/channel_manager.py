@@ -4,8 +4,8 @@ from binascii import hexlify
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.community.channel.community import ChannelCommunity
-from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class ChannelManager(TaskManager):
@@ -41,7 +41,7 @@ class ChannelManager(TaskManager):
 
                 self._logger.debug(u"loaded channel '%s', %s", channel_obj.name, hexlify(community.cid))
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def shutdown(self):
         self.shutdown_task_manager()
         self._channel_mode_map = None
@@ -53,7 +53,7 @@ class ChannelManager(TaskManager):
         self.dispersy = None
         self.session = None
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def create_channel(self, name, description, mode, rss_url=None):
         """
         Creates a new Channel.

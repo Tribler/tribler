@@ -32,7 +32,7 @@ from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT,
                                      STATEDIR_WALLET_DIR, STATE_OPEN_DB, STATE_START_API, STATE_UPGRADING_READABLE,
                                      STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED)
 from Tribler.Core.statistics import TriblerStatistics
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK

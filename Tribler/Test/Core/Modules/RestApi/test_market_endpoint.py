@@ -14,7 +14,7 @@ from Tribler.community.market.core.trade import Trade
 from Tribler.community.market.core.wallet_address import WalletAddress
 from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
 from Tribler.Core.Modules.wallet.dummy_wallet import DummyWallet1, DummyWallet2
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.twisted_thread import deferred

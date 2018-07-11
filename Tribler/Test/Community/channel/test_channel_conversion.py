@@ -2,12 +2,12 @@ import zlib
 from struct import pack
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Utilities.encoding import encode
 from Tribler.Test.Community.channel.test_channel_base import AbstractTestChannelCommunity
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.channel.conversion import ChannelConversion
 from Tribler.dispersy.message import DropPacket
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestChannelConversion(AbstractTestChannelCommunity):

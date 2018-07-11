@@ -9,7 +9,7 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.CreditMining.CreditMiningPolicy import RandomPolicy, SeederRatioPolicy, UploadPolicy
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningTorrent
 
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 
 

@@ -1,11 +1,10 @@
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
-from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
 from Tribler.Test.twisted_thread import deferred
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTunnelCommunity(TestTunnelBase):

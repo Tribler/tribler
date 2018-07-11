@@ -2,7 +2,7 @@ from Tribler.Core.Modules.wallet.dummy_wallet import BaseDummyWallet, DummyWalle
 from Tribler.Core.Modules.wallet.wallet import InsufficientFunds
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.Test.twisted_thread import deferred
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 

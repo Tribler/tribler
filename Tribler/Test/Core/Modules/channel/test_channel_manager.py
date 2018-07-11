@@ -4,7 +4,7 @@ from Tribler.Core.Modules.channel.channel_manager import ChannelManager
 from Tribler.Core.Session import Session
 from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.log import removeObserver
 

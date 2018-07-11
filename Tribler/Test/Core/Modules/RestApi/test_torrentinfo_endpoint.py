@@ -13,7 +13,7 @@ from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import UBUNTU_1504_INFOHASH, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
 from Tribler.Test.twisted_thread import deferred
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTorrentInfoEndpoint(AbstractApiTest):

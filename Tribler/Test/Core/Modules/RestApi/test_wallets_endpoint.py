@@ -5,7 +5,7 @@ from twisted.python.failure import Failure
 
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.twisted_thread import deferred
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestWalletsEndpoint(AbstractApiTest):
