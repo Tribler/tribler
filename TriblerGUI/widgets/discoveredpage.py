@@ -25,6 +25,9 @@ class DiscoveredPage(QWidget):
         self.request_mgr.perform_request("channels/discovered", self.received_discovered_channels)
 
     def received_discovered_channels(self, results):
+        if not results or 'channels' not in results:
+            return
+
         self.discovered_channels = []
         self.window().discovered_channels_list.set_data_items([])
         items = []
