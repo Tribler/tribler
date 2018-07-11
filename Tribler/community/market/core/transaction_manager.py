@@ -17,9 +17,7 @@ class TransactionManager(object):
         super(TransactionManager, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
-        self._logger.info("Transaction Manager initialized")
-
-        assert isinstance(transaction_repository, TransactionRepository), type(transaction_repository)
+        self._logger.info("Transaction manager initialized")
 
         self.transaction_repository = transaction_repository
 
@@ -29,14 +27,12 @@ class TransactionManager(object):
         :type match_id: str
         :rtype: Transaction
         """
-        assert isinstance(proposed_trade, ProposedTrade), type(proposed_trade)
-
         transaction = Transaction.from_proposed_trade(proposed_trade, self.transaction_repository.next_identity())
         transaction.match_id = match_id
         self.transaction_repository.add(transaction)
 
-        self._logger.info("Transaction created with id: %s, quantity: %s, price: %s",
-                          str(transaction.transaction_id), str(transaction.total_quantity), str(transaction.price))
+        self._logger.info("Transaction created with id: %s, asset pair %s",
+                          transaction.transaction_id, transaction.assets)
         return transaction
 
     def create_from_start_transaction(self, start_transaction, match_id):
@@ -45,20 +41,18 @@ class TransactionManager(object):
         :type match_id: str
         :rtype: Transaction
         """
-        assert isinstance(start_transaction, StartTransaction), type(start_transaction)
-
-        transaction = Transaction(start_transaction.transaction_id, start_transaction.price, start_transaction.quantity,
+        transaction = Transaction(start_transaction.transaction_id, start_transaction.assets,
                                   start_transaction.recipient_order_id, start_transaction.order_id, Timestamp.now())
         transaction.match_id = match_id
         self.transaction_repository.add(transaction)
 
-        self._logger.info("Transaction created with id: %s, quantity: %s, price: %s",
-                          str(transaction.transaction_id), str(transaction.total_quantity), str(transaction.price))
+        self._logger.info("Transaction created with id: %s, asset pair %s",
+                          transaction.transaction_id, transaction.assets)
 
         return transaction
 
-    def create_payment_message(self, message_id, payment_id, transaction, payment, success):
-        payment_message = Payment(message_id, transaction.transaction_id, payment[0], payment[1],
+    def create_payment_message(self, message_id, payment_id, transaction, transferred_assets, success):
+        payment_message = Payment(message_id, transaction.transaction_id, transferred_assets,
                                   transaction.outgoing_address, transaction.partner_incoming_address,
                                   payment_id, Timestamp.now(), success)
         transaction.add_payment(payment_message)
@@ -73,8 +67,6 @@ class TransactionManager(object):
         :return: The transaction or null if it cannot be found
         :rtype: Transaction
         """
-        assert isinstance(transaction_id, TransactionId), type(transaction_id)
-
         return self.transaction_repository.find_by_id(transaction_id)
 
     def find_all(self):

@@ -1,10 +1,10 @@
 import logging
 from decimal import Decimal
 
-from Tribler.community.market.core.message import TraderId, Message, MessageId, MessageNumber
+from Tribler.community.market.core.assetamount import AssetAmount
+from Tribler.community.market.core.assetpair import AssetPair
+from Tribler.community.market.core.message import TraderId, Message
 from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import ProposedTrade
 from Tribler.community.market.core.wallet_address import WalletAddress
@@ -59,9 +59,6 @@ class TransactionId(object):
         """
         super(TransactionId, self).__init__()
 
-        assert isinstance(trader_id, TraderId), type(trader_id)
-        assert isinstance(transaction_number, TransactionNumber), type(transaction_number)
-
         self._trader_id = trader_id
         self._transaction_number = transaction_number
 
@@ -104,17 +101,15 @@ class TransactionId(object):
 class Transaction(object):
     """Class for representing a transaction between two nodes"""
 
-    def __init__(self, transaction_id, price, quantity, order_id, partner_order_id, timestamp):
+    def __init__(self, transaction_id, assets, order_id, partner_order_id, timestamp):
         """
         :param transaction_id: An transaction id to identify the order
-        :param price: A price to indicate for which amount to sell or buy
-        :param quantity: A quantity to indicate how much to sell or buy
+        :param assets: The asset pair to exchange
         :param order_id: The id of your order for this transaction
         :param partner_order_id: The id of the order of the other party
         :param timestamp: A timestamp when the transaction was created
         :type transaction_id: TransactionId
-        :type price: Price
-        :type quantity: Quantity
+        :type assets: AssetPair
         :type order_id: OrderId
         :type partner_order_id: OrderId
         :type timestamp: Timestamp
@@ -122,19 +117,10 @@ class Transaction(object):
         super(Transaction, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        assert isinstance(transaction_id, TransactionId), type(transaction_id)
-        assert isinstance(price, Price), type(price)
-        assert isinstance(quantity, Quantity), type(quantity)
-        assert isinstance(order_id, OrderId), type(order_id)
-        assert isinstance(partner_order_id, OrderId), type(partner_order_id)
-        assert isinstance(timestamp, Timestamp), type(timestamp)
-
         self._transaction_id = transaction_id
-        self._price = price
-        self._transferred_price = Price(0, price.wallet_id)
-        self._total_price = Price(float(price) * float(quantity), price.wallet_id)
-        self._quantity = quantity
-        self._transferred_quantity = Quantity(0, quantity.wallet_id)
+        self._assets = assets
+        self._transferred_assets = AssetPair(AssetAmount(0, assets.first.asset_id),
+                                             AssetAmount(0, assets.second.asset_id))
         self._order_id = order_id
         self._partner_order_id = partner_order_id
         self._timestamp = timestamp
@@ -155,20 +141,21 @@ class Transaction(object):
         """
         Create a Transaction object based on information in the database.
         """
-        trader_id, transaction_number, order_trader_id, order_number, partner_trader_id, partner_order_number, price,\
-        price_type, transferred_price, quantity, quantity_type, transferred_quantity, transaction_timestamp,\
-        sent_wallet_info, received_wallet_info, incoming_address, outgoing_address, partner_incoming_address,\
-        partner_outgoing_address, match_id = data
+        trader_id, transaction_number, order_trader_id, order_number, partner_trader_id, partner_order_number,\
+        asset1_amount, asset1_type, asset1_transferred, asset2_amount, asset2_type, asset2_transferred,\
+        transaction_timestamp, sent_wallet_info, received_wallet_info, incoming_address, outgoing_address,\
+        partner_incoming_address, partner_outgoing_address, match_id = data
 
         transaction_id = TransactionId(TraderId(str(trader_id)), TransactionNumber(transaction_number))
-        transaction = cls(transaction_id, Price(price, str(price_type)),
-                          Quantity(quantity, str(quantity_type)), OrderId(TraderId(str(order_trader_id)),
-                                                                          OrderNumber(order_number)),
+        transaction = cls(transaction_id,
+                          AssetPair(AssetAmount(asset1_amount, str(asset1_type)),
+                                    AssetAmount(asset2_amount, str(asset2_type))),
+                          OrderId(TraderId(str(order_trader_id)), OrderNumber(order_number)),
                           OrderId(TraderId(str(partner_trader_id)), OrderNumber(partner_order_number)),
                           Timestamp(float(transaction_timestamp)))
 
-        transaction._transferred_price = Price(transferred_price, str(price_type))
-        transaction._transferred_quantity = Quantity(transferred_quantity, str(quantity_type))
+        transaction._transferred_assets = AssetPair(AssetAmount(asset1_transferred, str(asset1_type)),
+                                                    AssetAmount(asset2_transferred, str(asset2_type)))
         transaction.sent_wallet_info = sent_wallet_info
         transaction.received_wallet_info = received_wallet_info
         transaction.incoming_address = WalletAddress(str(incoming_address))
@@ -187,10 +174,10 @@ class Transaction(object):
         """
         return (unicode(self.transaction_id.trader_id), int(self.transaction_id.transaction_number),
                 unicode(self.order_id.trader_id), int(self.order_id.order_number),
-                unicode(self.partner_order_id.trader_id), int(self.partner_order_id.order_number), float(self.price),
-                unicode(self.price.wallet_id), float(self.transferred_price), float(self.total_quantity),
-                unicode(self.total_quantity.wallet_id), float(self.transferred_quantity), float(self.timestamp),
-                self.sent_wallet_info, self.received_wallet_info, unicode(self.incoming_address),
+                unicode(self.partner_order_id.trader_id), int(self.partner_order_id.order_number),
+                self.assets.first.amount, unicode(self.assets.first.asset_id), self.transferred_assets.first.amount,
+                self.assets.second.amount, unicode(self.assets.second.asset_id), self.transferred_assets.second.amount,
+                float(self.timestamp), self.sent_wallet_info, self.received_wallet_info, unicode(self.incoming_address),
                 unicode(self.outgoing_address), unicode(self.partner_incoming_address),
                 unicode(self.partner_outgoing_address), unicode(self.match_id))
 
@@ -204,11 +191,8 @@ class Transaction(object):
         :return: The created transaction
         :rtype: Transaction
         """
-        assert isinstance(proposed_trade, ProposedTrade), type(proposed_trade)
-        assert isinstance(transaction_id, TransactionId), type(transaction_id)
-
-        return cls(transaction_id, proposed_trade.price, proposed_trade.quantity, proposed_trade.recipient_order_id,
-                   proposed_trade.order_id, proposed_trade.timestamp)
+        return cls(transaction_id, proposed_trade.assets, proposed_trade.recipient_order_id,
+                   proposed_trade.order_id, Timestamp.now())
 
     @property
     def transaction_id(self):
@@ -218,39 +202,18 @@ class Transaction(object):
         return self._transaction_id
 
     @property
-    def price(self):
+    def assets(self):
         """
-        :rtype: Price
+        :rtype: AssetPair
         """
-        return self._price
+        return self._assets
 
     @property
-    def total_price(self):
+    def transferred_assets(self):
         """
-        :rtype: Price
+        :rtype: AssetPair
         """
-        return self._total_price
-
-    @property
-    def transferred_price(self):
-        """
-        :rtype: Price
-        """
-        return self._transferred_price
-
-    @property
-    def total_quantity(self):
-        """
-        :rtype: Quantity
-        """
-        return self._quantity
-
-    @property
-    def transferred_quantity(self):
-        """
-        :rtype: Quantity
-        """
-        return self._transferred_quantity
+        return self._transferred_assets
 
     @property
     def order_id(self):
@@ -291,68 +254,31 @@ class Transaction(object):
             return "error"
         return "completed" if self.is_payment_complete() else "pending"
 
-    @staticmethod
-    def unitize(amount, min_unit):
-        """
-        Return an a amount that is a multiple of min_unit.
-        """
-        if Decimal(str(amount)) % Decimal(str(min_unit)) == Decimal(0):
-            return amount
-
-        return (int(amount / min_unit) + 1) * min_unit
-
     def add_payment(self, payment):
-        self._logger.debug("Adding price %s and quantity %s to transaction %s",
-                           payment.transferee_price, payment.transferee_quantity, self.transaction_id)
-        self._transferred_quantity += payment.transferee_quantity
-        self._transferred_price += payment.transferee_price
-        self._logger.debug("Transferred price: %s, transferred quantity: %s",
-                           self.transferred_price, self.transferred_quantity)
+        """
+        Add a completed payment to this transaction and update its state.
+        """
+        self._logger.debug("Adding transferred assets %s to transaction %s",
+                           payment.transferred_assets, self.transaction_id)
+        if payment.transferred_assets.asset_id == self.transferred_assets.first.asset_id:
+            self.transferred_assets.first += payment.transferred_assets
+        else:
+            self.transferred_assets.second += payment.transferred_assets
         self._payments.append(payment)
 
-    def last_payment(self, is_ask):
-        for payment in reversed(self._payments):
-            if is_ask and float(payment.transferee_quantity) > 0:
-                return payment
-            elif not is_ask and float(payment.transferee_price) > 0:
-                return payment
-        return None
-
-    def next_payment(self, order_is_ask, min_unit, incremental):
-        if not incremental:
-            # Don't use incremental payments, just return the full amount
-            ret_val = self.total_quantity if order_is_ask else self.total_price
-            self._logger.debug("Returning %s for the next payment (no incremental payments)", ret_val)
-            return ret_val
-
-        last_payment = self.last_payment(not order_is_ask)
-        if not last_payment:
-            # Just return the lowest unit possible
-            return Quantity(min_unit, self.total_quantity.wallet_id) if order_is_ask else \
-                Price(min_unit, self.total_price.wallet_id)
-
-        # We determine the percentage of the last payment of the total amount
-        if order_is_ask:
-            if self.transferred_price >= self.total_price:  # Complete the trade
-                return self.total_quantity - self.transferred_quantity
-
-            percentage = float(last_payment.transferee_price) / float(self.total_price)
-            transfer_amount = Transaction.unitize(float(percentage * float(self.total_quantity)), min_unit) * 2
-            if transfer_amount > float(self.total_quantity - self.transferred_quantity):
-                transfer_amount = float(self.total_quantity - self.transferred_quantity)
-            return Quantity(transfer_amount, self.total_quantity.wallet_id)
-        else:
-            if self.transferred_quantity >= self.total_quantity:  # Complete the trade
-                return self.total_price - self.transferred_price
-
-            percentage = float(last_payment.transferee_quantity) / float(self.total_quantity)
-            transfer_amount = Transaction.unitize(float(percentage * float(self.total_price)), min_unit) * 2
-            if transfer_amount > float(self.total_price - self.transferred_price):
-                transfer_amount = float(self.total_price - self.transferred_price)
-            return Price(transfer_amount, self.total_price.wallet_id)
+    def next_payment(self, order_is_ask):
+        """
+        Return the assets that this user has to send to the counterparty as a next step.
+        :param order_is_ask: Whether the order is an ask or not.
+        :return: An AssetAmount object, indicating how much we should send to the counterparty.
+        """
+        assets_to_transfer = self.assets.first if order_is_ask else self.assets.second
+        self._logger.debug("Returning %s for the next payment (no incremental payments)", assets_to_transfer)
+        return assets_to_transfer
 
     def is_payment_complete(self):
-        return self.transferred_price >= self.total_price and self.transferred_quantity >= self.total_quantity
+        return self.transferred_assets.first >= self.assets.first and \
+               self.transferred_assets.second >= self.assets.second
 
     def to_dictionary(self):
         """
@@ -364,12 +290,8 @@ class Transaction(object):
             "partner_trader_id": str(self.partner_order_id.trader_id),
             "partner_order_number": int(self.partner_order_id.order_number),
             "transaction_number": int(self.transaction_id.transaction_number),
-            "price": float(self.price),
-            "price_type": self.price.wallet_id,
-            "transferred_price": float(self.transferred_price),
-            "quantity": float(self.total_quantity),
-            "quantity_type": self.total_quantity.wallet_id,
-            "transferred_quantity": float(self.transferred_quantity),
+            "assets": self.assets.to_dictionary(),
+            "transferred": self.transferred_assets.to_dictionary(),
             "timestamp": float(self.timestamp),
             "payment_complete": self.is_payment_complete(),
             "status": self.status
@@ -379,40 +301,29 @@ class Transaction(object):
 class StartTransaction(Message):
     """Class for representing a message to indicate the start of a payment set"""
 
-    def __init__(self, message_id, transaction_id, order_id, recipient_order_id, proposal_id,
-                 price, quantity, timestamp):
+    def __init__(self, trader_id, transaction_id, order_id, recipient_order_id, proposal_id, assets, timestamp):
         """
-        :param message_id: A message id to identify the message
+        :param trader_id: The trader ID who created the order
         :param transaction_id: A transaction id to identify the transaction
         :param order_id: My order id
         :param recipient_order_id: The order id of the recipient of this message
         :param proposal_id: The proposal ID associated with this start transaction message
-        :param price: A price for the trade
-        :param quantity: A quantity to be traded
+        :param assets: The assets to be traded
         :param timestamp: A timestamp when the transaction was created
-        :type message_id: MessageId
+        :type trader_id: TraderId
         :type transaction_id: TransactionId
         :type proposal_id: int
         :type order_id: OrderId
-        :type price: Price
-        :type quantity: Quantity
+        :type assets: AssetPair
         :type timestamp: Timestamp
         """
-        super(StartTransaction, self).__init__(message_id, timestamp)
-
-        assert isinstance(transaction_id, TransactionId), type(transaction_id)
-        assert isinstance(order_id, OrderId), type(order_id)
-        assert isinstance(recipient_order_id, OrderId), type(order_id)
-        assert isinstance(proposal_id, int), type(proposal_id)
-        assert isinstance(price, Price), type(price)
-        assert isinstance(quantity, Quantity), type(quantity)
+        super(StartTransaction, self).__init__(trader_id, timestamp)
 
         self._transaction_id = transaction_id
         self._order_id = order_id
         self._recipient_order_id = recipient_order_id
         self._proposal_id = proposal_id
-        self._price = price
-        self._quantity = quantity
+        self._assets = assets
 
     @property
     def transaction_id(self):
@@ -444,20 +355,12 @@ class StartTransaction(Message):
         return self._proposal_id
 
     @property
-    def price(self):
+    def assets(self):
         """
-        :return: The price
-        :rtype: Price
+        :return: The assets to be traded
+        :rtype: AssetPair
         """
-        return self._price
-
-    @property
-    def quantity(self):
-        """
-        :return: The quantity
-        :rtype: Quantity
-        """
-        return self._quantity
+        return self._assets
 
     @classmethod
     def from_network(cls, data):
@@ -469,13 +372,12 @@ class StartTransaction(Message):
         :rtype: StartTransaction
         """
         return cls(
-            data.message_id,
+            data.trader_id,
             data.transaction_id,
             data.order_id,
             data.recipient_order_id,
             data.proposal_id,
-            data.price,
-            data.quantity,
+            data.assets,
             data.timestamp
         )
 
@@ -484,12 +386,11 @@ class StartTransaction(Message):
         Return network representation of the start transaction message
         """
         return (
-            self._message_id,
+            self._trader_id,
             self._timestamp,
             self._transaction_id,
             self._order_id,
             self._recipient_order_id,
             self._proposal_id,
-            self._price,
-            self._quantity,
+            self._assets
         )

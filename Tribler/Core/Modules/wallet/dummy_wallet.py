@@ -32,7 +32,11 @@ class BaseDummyWallet(Wallet):
         return succeed(None)
 
     def get_balance(self):
-        return succeed({'available': self.balance, 'pending': 0, 'currency': self.get_identifier()})
+        return succeed({
+            'available': self.balance,
+            'pending': 0,
+            'currency': self.get_identifier(),
+        })
 
     def transfer(self, quantity, candidate):
         def on_balance(balance):
@@ -90,6 +94,9 @@ class BaseDummyWallet(Wallet):
     def min_unit(self):
         return 1
 
+    def precision(self):
+        return 0
+
 
 class DummyWallet1(BaseDummyWallet):
 
@@ -102,8 +109,15 @@ class DummyWallet1(BaseDummyWallet):
 
 class DummyWallet2(BaseDummyWallet):
 
+    def __init__(self):
+        super(DummyWallet2, self).__init__()
+        self.balance = 10000
+
     def get_name(self):
         return 'Dummy 2'
 
     def get_identifier(self):
         return 'DUM2'
+
+    def precision(self):
+        return 1

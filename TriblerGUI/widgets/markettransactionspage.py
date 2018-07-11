@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QTreeWidgetItem
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_image_path
+from TriblerGUI.utilities import get_image_path, prec_div
 from TriblerGUI.widgets.transactionwidgetitem import TransactionWidgetItem
 
 
@@ -20,8 +20,9 @@ class MarketTransactionsPage(QWidget):
         self.request_mgr = None
         self.initialized = False
         self.selected_transaction_item = None
+        self.wallets = {}
 
-    def initialize_transactions_page(self):
+    def initialize_transactions_page(self, wallets):
         if not self.initialized:
             self.window().core_manager.events_manager.market_payment_received.connect(self.on_payment)
             self.window().core_manager.events_manager.market_payment_sent.connect(self.on_payment)
@@ -32,6 +33,7 @@ class MarketTransactionsPage(QWidget):
             self.initialized = True
 
         self.window().market_payments_container.hide()
+        self.wallets = wallets
         self.load_transactions()
 
     def load_transactions(self):
@@ -49,8 +51,11 @@ class MarketTransactionsPage(QWidget):
     def on_payment(self, payment):
         item = self.get_widget_with_transaction(payment["trader_id"], payment["transaction_number"])
         if item:
-            item.transaction["transferred_price"] += payment["price"]
-            item.transaction["transferred_quantity"] += payment["quantity"]
+            transferred_type = payment["transferred"]["type"]
+            if transferred_type == item.transaction["transferred"]["first"]["type"]:
+                item.transaction["transferred"]["first"]["amount"] += payment["transferred"]["amount"]
+            else:
+                item.transaction["transferred"]["second"]["amount"] += payment["transferred"]["amount"]
             item.update_item()
 
         # Update the payment detail pane if we have the right transaction selected
@@ -59,9 +64,12 @@ class MarketTransactionsPage(QWidget):
 
     def on_received_transactions(self, transactions):
         for transaction in transactions["transactions"]:
-            item = TransactionWidgetItem(self.window().market_transactions_list, transaction)
-            item.update_item()
-            self.window().market_transactions_list.addTopLevelItem(item)
+            if self.wallets:
+                asset1_prec = self.wallets[transaction["assets"]["first"]["type"]]["precision"]
+                asset2_prec = self.wallets[transaction["assets"]["second"]["type"]]["precision"]
+                item = TransactionWidgetItem(
+                    self.window().market_transactions_list, transaction, asset1_prec, asset2_prec)
+                self.window().market_transactions_list.addTopLevelItem(item)
 
     def on_transaction_item_clicked(self):
         if self.window().market_transactions_list.selectedItems():
@@ -83,13 +91,16 @@ class MarketTransactionsPage(QWidget):
             self.add_payment_to_list(payment)
 
     def add_payment_to_list(self, payment):
-        payment_time = datetime.datetime.fromtimestamp(int(payment["timestamp"])).strftime('%Y-%m-%d %H:%M:%S')
-        item = QTreeWidgetItem(self.window().market_payments_list)
-        item.setText(0, "%g %s" % (payment['price'], payment['price_type']))
-        item.setText(1, "%g %s" % (payment['quantity'], payment['quantity_type']))
-        item.setText(2, payment['address_from'])
-        item.setText(3, payment['address_to'])
-        item.setText(4, payment_time)
-        item.setText(5, "%s" % ('yes' if payment['success'] else 'no'))
+        if self.wallets:
+            payment["transferred"]["amount"] = prec_div(payment["transferred"]["amount"],
+                                                        self.wallets[payment["transferred"]["type"]]["precision"])
 
-        self.window().market_payments_list.addTopLevelItem(item)
+            payment_time = datetime.datetime.fromtimestamp(int(payment["timestamp"])).strftime('%Y-%m-%d %H:%M:%S')
+            item = QTreeWidgetItem(self.window().market_payments_list)
+            item.setText(0, "%g %s" % (payment['transferred']["amount"], payment['transferred']["type"]))
+            item.setText(1, payment['address_from'])
+            item.setText(2, payment['address_to'])
+            item.setText(3, payment_time)
+            item.setText(4, "%s" % ('yes' if payment['success'] else 'no'))
+
+            self.window().market_payments_list.addTopLevelItem(item)

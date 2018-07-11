@@ -2,7 +2,6 @@ import logging
 
 from twisted.internet import reactor
 
-from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.tick import Tick
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
@@ -18,7 +17,6 @@ class TickEntry(TaskManager):
         :type price_level: PriceLevel
         """
         super(TickEntry, self).__init__()
-        assert isinstance(tick, Tick), type(tick)
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -26,7 +24,7 @@ class TickEntry(TaskManager):
         self._price_level = price_level
         self._prev_tick = None
         self._next_tick = None
-        self._reserved_for_matching = Quantity(0, tick.quantity.wallet_id)
+        self._reserved_for_matching = 0
         self._blocked_for_matching = []
 
     @property
@@ -44,29 +42,29 @@ class TickEntry(TaskManager):
         return self._tick.order_id
 
     @property
+    def assets(self):
+        """
+        :rtype: AssetPair
+        """
+        return self._tick.assets
+
+    @property
+    def traded(self):
+        """
+        :rtype int
+        """
+        return self._tick.traded
+
+    @traded.setter
+    def traded(self, new_traded):
+        self._tick.traded = new_traded
+
+    @property
     def price(self):
         """
         :rtype: Price
         """
-        return self._tick.price
-
-    @property
-    def quantity(self):
-        """
-        :rtype: Quantity
-        """
-        return self._tick.quantity
-
-    @quantity.setter
-    def quantity(self, new_quantity):
-        """
-        :param new_quantity: The new quantity
-        :type new_quantity: Quantity
-        """
-        assert isinstance(new_quantity, Quantity), type(new_quantity)
-
-        self._price_level.depth -= (self._tick.quantity - new_quantity)
-        self._tick.quantity = new_quantity
+        return self.assets.price
 
     def block_for_matching(self, order_id):
         """
@@ -151,9 +149,17 @@ class TickEntry(TaskManager):
     @property
     def reserved_for_matching(self):
         """
-        :rtype: Quantity
+        :rtype: long
         """
         return self._reserved_for_matching
+
+    @property
+    def available_for_matching(self):
+        """
+        Return the amount that we can match in this TickEntry object.
+        :rtype: long
+        """
+        return self.assets.first.amount - self.reserved_for_matching - self.tick.traded
 
     @next_tick.setter
     def next_tick(self, new_next_tick):
@@ -168,4 +174,5 @@ class TickEntry(TaskManager):
         format: <quantity>\t@\t<price>
         :rtype: str
         """
-        return "%s\t@\t%s (R: %s)" % (str(self._tick.quantity), str(self._tick.price), str(self.reserved_for_matching))
+        return "%s\t@\t%g %s (R: %s)" % (self._tick.assets.first, self._tick.price.amount,
+                                         self._tick.assets.second.asset_id, self.reserved_for_matching)

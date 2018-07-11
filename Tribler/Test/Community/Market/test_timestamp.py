@@ -32,9 +32,7 @@ class TimestampTestSuite(unittest.TestCase):
     def test_comparison(self):
         # Test for comparison
         self.assertTrue(self.timestamp3 < self.timestamp)
-        self.assertTrue(self.timestamp <= self.timestamp)
         self.assertTrue(self.timestamp > self.timestamp3)
-        self.assertTrue(self.timestamp3 >= self.timestamp3)
         self.assertTrue(self.timestamp3 < 1405743832.438)
         self.assertTrue(self.timestamp <= 1462224447.117)
         self.assertTrue(self.timestamp > 1362224447.117)
@@ -47,7 +45,6 @@ class TimestampTestSuite(unittest.TestCase):
     def test_equality(self):
         # Test for equality
         self.assertTrue(self.timestamp == self.timestamp2)
-        self.assertTrue(self.timestamp == self.timestamp)
         self.assertTrue(self.timestamp != self.timestamp3)
         self.assertFalse(self.timestamp == 6)
 

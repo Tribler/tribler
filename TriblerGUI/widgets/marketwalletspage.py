@@ -37,12 +37,6 @@ class MarketWalletsPage(QWidget):
                 lambda: self.initialize_wallet_info('TBTC', self.window().wallet_tbtc_overview_button))
             self.window().wallet_mc_overview_button.clicked.connect(
                 lambda: self.initialize_wallet_info('MB', self.window().wallet_mc_overview_button))
-            self.window().wallet_paypal_overview_button.clicked.connect(
-                lambda: self.initialize_wallet_info('PP', self.window().wallet_paypal_overview_button))
-            self.window().wallet_abn_overview_button.clicked.connect(
-                lambda: self.initialize_wallet_info('ABNA', self.window().wallet_abn_overview_button))
-            self.window().wallet_rabo_overview_button.clicked.connect(
-                lambda: self.initialize_wallet_info('RABO', self.window().wallet_rabo_overview_button))
             self.window().add_wallet_button.clicked.connect(self.on_add_wallet_clicked)
             self.window().wallet_mc_overview_button.hide()
             self.window().wallet_btc_overview_button.hide()
@@ -73,15 +67,6 @@ class MarketWalletsPage(QWidget):
 
         if 'TBTC' in self.wallets and self.wallets["TBTC"]["created"]:
             self.window().wallet_tbtc_overview_button.show()
-
-        if 'PP' in self.wallets and self.wallets["PP"]["created"]:
-            self.window().wallet_paypal_overview_button.show()
-
-        if 'ABNA' in self.wallets and self.wallets["ABNA"]["created"]:
-            self.window().wallet_abn_overview_button.show()
-
-        if 'RABO' in self.wallets and self.wallets["RABO"]["created"]:
-            self.window().wallet_rabo_overview_button.show()
 
         # Find out which wallets we still can create
         self.wallets_to_create = []

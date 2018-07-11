@@ -1,8 +1,8 @@
 import logging
 
-from Tribler.community.market.core.message import TraderId, MessageId
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import AssetAmount
+from Tribler.community.market.core.assetpair import AssetPair
+from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 
@@ -62,9 +62,6 @@ class OrderId(object):
         """
         super(OrderId, self).__init__()
 
-        assert isinstance(trader_id, TraderId), type(trader_id)
-        assert isinstance(order_number, OrderNumber), type(order_number)
-
         self._trader_id = trader_id
         self._order_number = order_number
 
@@ -107,17 +104,15 @@ class OrderId(object):
 class Order(object):
     """Class for representing an ask or a bid created by the user"""
 
-    def __init__(self, order_id, price, quantity, timeout, timestamp, is_ask):
+    def __init__(self, order_id, assets, timeout, timestamp, is_ask):
         """
         :param order_id: An order id to identify the order
-        :param price: A price to indicate for which amount to sell or buy
-        :param quantity: A quantity to indicate how much to sell or buy
+        :param assets: The assets to exchange in this order
         :param timeout: A timeout when this tick is going to expire
         :param timestamp: A timestamp when the order was created
         :param is_ask: A bool to indicate if this order is an ask
         :type order_id: OrderId
-        :type price: Price
-        :type quantity: Quantity
+        :type assets: AssetPair
         :type timeout: Timeout
         :type timestamp: Timestamp
         :type is_ask: bool
@@ -125,18 +120,10 @@ class Order(object):
         super(Order, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        assert isinstance(order_id, OrderId), type(order_id)
-        assert isinstance(price, Price), type(price)
-        assert isinstance(quantity, Quantity), type(quantity)
-        assert isinstance(timeout, Timeout), type(timeout)
-        assert isinstance(timestamp, Timestamp), type(timestamp)
-        assert isinstance(is_ask, bool), type(is_ask)
-
         self._order_id = order_id
-        self._price = price
-        self._quantity = quantity
-        self._reserved_quantity = Quantity(0, quantity.wallet_id)
-        self._traded_quantity = Quantity(0, quantity.wallet_id)
+        self._assets = assets
+        self._reserved_quantity = 0
+        self._traded_quantity = 0
         self._timeout = timeout
         self._timestamp = timestamp
         self._completed_timestamp = None
@@ -150,13 +137,14 @@ class Order(object):
         """
         Create an Order object based on information in the database.
         """
-        trader_id, order_number, price, price_type, quantity, quantity_type, traded_quantity, timeout, \
-        order_timestamp, completed_timestamp, is_ask, cancelled, verified = data
+        trader_id, order_number, asset1_amount, asset1_type, asset2_amount, asset2_type, traded_quantity,\
+        timeout, order_timestamp, completed_timestamp, is_ask, cancelled, verified = data
 
         order_id = OrderId(TraderId(str(trader_id)), OrderNumber(order_number))
-        order = cls(order_id, Price(price, str(price_type)), Quantity(quantity, str(quantity_type)), Timeout(timeout),
-                    Timestamp(order_timestamp), bool(is_ask))
-        order._traded_quantity = Quantity(traded_quantity, str(quantity_type))
+        order = cls(order_id, AssetPair(AssetAmount(asset1_amount, str(asset1_type)),
+                                        AssetAmount(asset2_amount, str(asset2_type))),
+                    Timeout(timeout), Timestamp(order_timestamp), bool(is_ask))
+        order._traded_quantity = traded_quantity
         order._cancelled = bool(cancelled)
         order._verified = verified
         if completed_timestamp:
@@ -174,15 +162,15 @@ class Order(object):
         :rtype: tuple
         """
         completed_timestamp = float(self.completed_timestamp) if self.completed_timestamp else None
-        return (unicode(self.order_id.trader_id), unicode(self.order_id.order_number), float(self.price),
-                unicode(self.price.wallet_id), float(self.total_quantity), unicode(self.total_quantity.wallet_id),
-                float(self.traded_quantity), float(self.timeout), float(self.timestamp), completed_timestamp,
-                self.is_ask(), self._cancelled, self._verified)
+        return (unicode(self.order_id.trader_id), unicode(self.order_id.order_number), self.assets.first.amount,
+                unicode(self.assets.first.asset_id), self.assets.second.amount,
+                unicode(self.assets.second.asset_id), self.traded_quantity, int(self.timeout),
+                float(self.timestamp), completed_timestamp, self.is_ask(), self._cancelled, self._verified)
 
     @property
     def reserved_ticks(self):
         """
-        :rtype: Dictionary[OrderId: Quantity]
+        :rtype: Dictionary[OrderId: int]
         """
         return self._reserved_ticks
 
@@ -194,19 +182,26 @@ class Order(object):
         return self._order_id
 
     @property
+    def assets(self):
+        """
+        :rtype: AssetPair
+        """
+        return self._assets
+
+    @property
     def price(self):
         """
         :rtype: Price
         """
-        return self._price
+        return self.assets.price
 
     @property
     def total_quantity(self):
         """
-        Return the total quantity of the order
-        :rtype: Quantity
+        Return the total assets to buy/sell in the order
+        :rtype: long
         """
-        return self._quantity
+        return self.assets.first.amount
 
     @property
     def available_quantity(self):
@@ -214,15 +209,13 @@ class Order(object):
         Return the quantity that is not reserved
         :rtype: Quantity
         """
-        self._logger.debug("quantity: %s, reserved: %s, traded: %s", self._quantity, self._reserved_quantity,
-                           self._traded_quantity)
-        return self._quantity - self._reserved_quantity - self._traded_quantity
+        return self.assets.first.amount - self._reserved_quantity - self._traded_quantity
 
     @property
     def reserved_quantity(self):
         """
         Return the reserved quantity of the order
-        :rtype: Quantity
+        :rtype: long
         """
         return self._reserved_quantity
 
@@ -230,7 +223,7 @@ class Order(object):
     def traded_quantity(self):
         """
         Return the traded quantity of the order
-        :rtype: Quantity
+        :rtype: long
         """
         return self._traded_quantity
 
@@ -285,7 +278,7 @@ class Order(object):
         :return: True if the order is completed.
         :rtype: bool
         """
-        return self._traded_quantity >= self._quantity
+        return self._traded_quantity >= self.assets.first.amount
 
     @property
     def status(self):
@@ -304,6 +297,15 @@ class Order(object):
             return "expired"
         return "open"
 
+    def has_acceptable_price(self, proposal_assets):
+        """
+        Return whether an incoming trade proposal has an acceptable price.
+        :rtype: bool
+        """
+        my_price = self.assets.price
+        other_price = proposal_assets.price
+        return (self.is_ask() and my_price <= other_price) or (not self.is_ask() and my_price >= other_price)
+
     def set_verified(self):
         """
         Mark the order as verified.
@@ -315,13 +317,10 @@ class Order(object):
         :param order_id: The order id from another peer that the quantity needs to be reserved for
         :param quantity: The quantity to reserve
         :type order_id: OrderId
-        :type quantity: Quantity
+        :type quantity: int
         :return: True if the quantity was reserved, False otherwise
         :rtype: bool
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-        assert isinstance(quantity, Quantity), type(quantity)
-
         if self.available_quantity >= quantity:
             self._reserved_quantity += quantity
             if order_id not in self._reserved_ticks:
@@ -332,7 +331,7 @@ class Order(object):
             raise ValueError("Order %s does not have enough available quantity for reservation", self.order_id)
 
         self._logger.debug("reserved quantity for order id %s (own order id: %s),"
-                           "total quantity: %s, traded quantity: %s, reserved quantity: %s",
+                           "total quantity: %d, traded quantity: %d, reserved quantity: %d",
                            str(order_id), str(self.order_id), self.total_quantity, self.traded_quantity,
                            self.reserved_quantity)
 
@@ -349,15 +348,15 @@ class Order(object):
         if self._reserved_quantity >= quantity:
             self._reserved_quantity -= quantity
             self._reserved_ticks[order_id] -= quantity
-            assert self.available_quantity >= Quantity(0, self._quantity.wallet_id), str(self.available_quantity)
+            assert self.available_quantity >= 0, str(self.available_quantity)
 
-            if self._reserved_ticks[order_id] <= Quantity(0, quantity.wallet_id):  # Remove the quantity if it's zero
+            if self._reserved_ticks[order_id] <= 0:  # Remove the quantity if it's zero
                 del self._reserved_ticks[order_id]
         else:
             raise ValueError("Not enough reserved quantity for order id %s" % order_id)
 
         self._logger.debug("Released quantity for order id %s (own order id: %s),"
-                           "total quantity: %s, traded quantity: %s, reserved quantity: %s",
+                           "total quantity: %d, traded quantity: %d, reserved quantity: %d",
                            str(order_id), str(self.order_id), self.total_quantity, self.traded_quantity,
                            self.reserved_quantity)
 
@@ -372,27 +371,24 @@ class Order(object):
         self._cancelled = True
 
     def add_trade(self, other_order_id, quantity):
-        assert isinstance(other_order_id, OrderId), type(other_order_id)
-
         self._logger.debug("Adding trade for order %s with quantity %s (other id: %s)",
                            str(self.order_id), quantity, str(other_order_id))
         self._traded_quantity += quantity
         self.release_quantity_for_tick(other_order_id, quantity)
-        assert self.available_quantity >= Quantity(0, quantity.wallet_id), str(self.available_quantity)
+        assert self.available_quantity >= 0, str(self.available_quantity)
 
         if self.is_complete():
             self._completed_timestamp = Timestamp.now()
 
-    def to_network(self, message_id):
+    def to_network(self):
         """
         Return network representation of the order
         """
         return (
-            MessageId(self._order_id.trader_id, message_id.message_number),
+            self._order_id.trader_id,
             self._timestamp,
             self._order_id.order_number,
-            self._price,
-            self._quantity,
+            self._assets,
             self._timeout,
             self._traded_quantity
         )
@@ -405,13 +401,10 @@ class Order(object):
         return {
             "trader_id": str(self.order_id.trader_id),
             "order_number": int(self.order_id.order_number),
-            "price": float(self.price),
-            "price_type": self.price.wallet_id,
-            "quantity": float(self.total_quantity),
-            "quantity_type": self.total_quantity.wallet_id,
-            "reserved_quantity": float(self.reserved_quantity),
-            "traded_quantity": float(self.traded_quantity),
-            "timeout": float(self.timeout),
+            "assets": self.assets.to_dictionary(),
+            "reserved_quantity": self.reserved_quantity,
+            "traded": self.traded_quantity,
+            "timeout": int(self.timeout),
             "timestamp": float(self.timestamp),
             "completed_timestamp": completed_timestamp,
             "is_ask": self.is_ask(),
@@ -426,11 +419,8 @@ class Order(object):
         return {
             "trader_id": str(self.order_id.trader_id),
             "order_number": int(self.order_id.order_number),
-            "price": float(self.price),
-            "price_type": self.price.wallet_id,
-            "quantity": float(self.total_quantity),
-            "quantity_type": self.total_quantity.wallet_id,
-            "traded_quantity": float(self.traded_quantity),
-            "timeout": float(self.timeout),
+            "assets": self.assets.to_dictionary(),
+            "traded": self.traded_quantity,
+            "timeout": int(self.timeout),
             "timestamp": float(self.timestamp)
         }

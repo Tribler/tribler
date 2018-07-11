@@ -54,6 +54,7 @@ class WalletsEndpoint(resource.Resource):
                 'unlocked': wallet.unlocked,
                 'address': wallet.get_address(),
                 'name': wallet.get_name(),
+                'precision': wallet.precision()
             }
             balance_deferreds.append(wallet.get_balance().addCallback(
                 lambda balance, wid=wallet_id: (wid, balance)))

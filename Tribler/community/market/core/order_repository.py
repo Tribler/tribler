@@ -78,8 +78,6 @@ class MemoryOrderRepository(OrderRepository):
         :return: The order or null if it cannot be found
         :rtype: Order
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-
         self._logger.debug("Order with the id: " + str(order_id) + " was searched for in the order repository")
 
         return self._orders.get(order_id)
@@ -88,8 +86,6 @@ class MemoryOrderRepository(OrderRepository):
         """
         :type order: Order
         """
-        assert isinstance(order, Order), type(order)
-
         self._logger.debug("Order with the id: " + str(order.order_id) + " was added to the order repository")
 
         self._orders[order.order_id] = order
@@ -98,8 +94,6 @@ class MemoryOrderRepository(OrderRepository):
         """
         :type order: Order
         """
-        assert isinstance(order, Order), type(order)
-
         self._logger.debug("Order with the id: " + str(order.order_id) + " was updated to the order repository")
 
         self._orders[order.order_id] = order
@@ -108,8 +102,6 @@ class MemoryOrderRepository(OrderRepository):
         """
         :type order_id: OrderId
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-
         self._logger.debug("Order with the id: " + str(order_id) + " was deleted from the order repository")
 
         del self._orders[order_id]
@@ -155,8 +147,6 @@ class DatabaseOrderRepository(OrderRepository):
         :return: The order or null if it cannot be found
         :rtype: Order
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-
         self._logger.debug("Order with the id: " + str(order_id) + " was searched for in the order repository")
 
         return self.persistence.get_order(order_id)

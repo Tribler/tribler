@@ -12,20 +12,20 @@ class PriceLevelListTestSuite(unittest.TestCase):
         # Object creation
         self.price_level_list = PriceLevelList()
         self.price_level_list2 = PriceLevelList()
-        self.price = Price(1, 'BTC')
-        self.price2 = Price(2, 'BTC')
-        self.price3 = Price(3, 'BTC')
-        self.price4 = Price(4, 'BTC')
-        self.price_level = PriceLevel('MC')
-        self.price_level2 = PriceLevel('MC')
-        self.price_level3 = PriceLevel('MC')
-        self.price_level4 = PriceLevel('MC')
+        self.price = Price(1, 'BTC', 'MB')
+        self.price2 = Price(2, 'BTC', 'MB')
+        self.price3 = Price(3, 'BTC', 'MB')
+        self.price4 = Price(4, 'BTC', 'MB')
+        self.price_level = PriceLevel(self.price)
+        self.price_level2 = PriceLevel(self.price2)
+        self.price_level3 = PriceLevel(self.price3)
+        self.price_level4 = PriceLevel(self.price4)
 
         # Fill price level list
-        self.price_level_list.insert(self.price, self.price_level)
-        self.price_level_list.insert(self.price2, self.price_level2)
-        self.price_level_list.insert(self.price3, self.price_level3)
-        self.price_level_list.insert(self.price4, self.price_level4)
+        self.price_level_list.insert(self.price_level)
+        self.price_level_list.insert(self.price_level2)
+        self.price_level_list.insert(self.price_level3)
+        self.price_level_list.insert(self.price_level4)
 
     def test_min_key(self):
         # Test for min key
@@ -47,8 +47,8 @@ class PriceLevelListTestSuite(unittest.TestCase):
 
     def test_succ_item(self):
         # Test for succ item
-        self.assertEquals((self.price2, self.price_level2), self.price_level_list.succ_item(self.price))
-        self.assertEquals((self.price4, self.price_level4), self.price_level_list.succ_item(self.price3))
+        self.assertEquals(self.price_level2, self.price_level_list.succ_item(self.price))
+        self.assertEquals(self.price_level4, self.price_level_list.succ_item(self.price3))
 
     def test_succ_item_tail(self):
         # Test for succ item when at tail
@@ -57,7 +57,8 @@ class PriceLevelListTestSuite(unittest.TestCase):
 
     def test_prev_item(self):
         # Test for prev item
-        self.assertEquals((self.price2, self.price_level2), self.price_level_list.prev_item(self.price3))
+        self.assertEquals(self.price_level3, self.price_level_list.prev_item(self.price4))
+        self.assertEquals(self.price_level2, self.price_level_list.prev_item(self.price3))
 
     def test_prev_item_head(self):
         # Test for prev item when at head
@@ -78,12 +79,10 @@ class PriceLevelListTestSuite(unittest.TestCase):
     def test_items(self):
         # Test for items
         self.assertEquals(
-            [(self.price, self.price_level), (self.price2, self.price_level2), (self.price3, self.price_level3),
-             (self.price4, self.price_level4)], self.price_level_list.items())
+            [self.price_level, self.price_level2, self.price_level3, self.price_level4], self.price_level_list.items())
         self.price_level_list.remove(self.price2)
         self.assertEquals(
-            [(self.price, self.price_level), (self.price3, self.price_level3),
-             (self.price4, self.price_level4)], self.price_level_list.items())
+            [self.price_level, self.price_level3, self.price_level4], self.price_level_list.items())
 
     def test_items_empty(self):
         # Test for items when empty
@@ -92,12 +91,11 @@ class PriceLevelListTestSuite(unittest.TestCase):
     def test_items_reverse(self):
         # Test for items with reverse attribute
         self.assertEquals(
-            [(self.price4, self.price_level4), (self.price3, self.price_level3), (self.price2, self.price_level2),
-             (self.price, self.price_level)], self.price_level_list.items(reverse=True))
+            [self.price_level4, self.price_level3, self.price_level2, self.price_level],
+            self.price_level_list.items(reverse=True))
         self.price_level_list.remove(self.price2)
         self.assertEquals(
-            [(self.price4, self.price_level4), (self.price3, self.price_level3), (self.price, self.price_level)],
-            self.price_level_list.items(reverse=True))
+            [self.price_level4, self.price_level3, self.price_level], self.price_level_list.items(reverse=True))
 
     def test_items_reverse_empty(self):
         # Test for items when empty with reverse attribute

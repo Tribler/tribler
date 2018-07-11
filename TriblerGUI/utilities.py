@@ -247,3 +247,10 @@ def quote_plus_unicode(s):
     :return: the safe URI string
     """
     return ''.join([unicode_quoter(c) for c in s])
+
+
+def prec_div(number, precision):
+    """
+    Divide a given number by 10^precision.
+    """
+    return float(number) / float(10 ** precision)

@@ -1,13 +1,12 @@
+from Tribler.community.market.core.assetamount import AssetAmount
+from Tribler.community.market.core.assetpair import AssetPair
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.community.market.core.matching_engine import MatchingEngine, PriceTimeStrategy
-from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
-from Tribler.community.market.core.message_repository import MemoryMessageRepository
+from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.orderbook import OrderBook
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.tick import Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
@@ -22,36 +21,34 @@ class PriceTimeStrategyTestSuite(AbstractServer):
     def setUp(self, annotate=True):
         yield super(PriceTimeStrategyTestSuite, self).setUp(annotate=annotate)
         # Object creation
-        self.ask = Ask(OrderId(TraderId('0'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
-                       Timeout(100), Timestamp.now())
-        self.ask2 = Ask(OrderId(TraderId('1'), OrderNumber(2)), Price(100, 'BTC'), Quantity(30, 'MC'),
-                        Timeout(100), Timestamp.now())
-        self.ask3 = Ask(OrderId(TraderId('0'), OrderNumber(3)), Price(200, 'BTC'), Quantity(200, 'MC'),
-                        Timeout(100), Timestamp.now())
-        self.ask4 = Ask(OrderId(TraderId('1'), OrderNumber(4)), Price(50, 'BTC'), Quantity(200, 'MC'),
-                        Timeout(100), Timestamp.now())
-        self.ask5 = Ask(OrderId(TraderId('1'), OrderNumber(4)), Price(100, 'A'), Quantity(30, 'MC'),
-                        Timeout(100), Timestamp.now())
-        self.ask6 = Ask(OrderId(TraderId('1'), OrderNumber(4)), Price(100, 'BTC'), Quantity(30, 'A'),
-                        Timeout(100), Timestamp.now())
+        self.ask = Ask(OrderId(TraderId('0'), OrderNumber(1)),
+                       AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
+        self.ask2 = Ask(OrderId(TraderId('1'), OrderNumber(2)),
+                        AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
+        self.ask3 = Ask(OrderId(TraderId('0'), OrderNumber(3)),
+                        AssetPair(AssetAmount(40000, 'BTC'), AssetAmount(200, 'MB')), Timeout(100), Timestamp.now())
+        self.ask4 = Ask(OrderId(TraderId('1'), OrderNumber(4)),
+                        AssetPair(AssetAmount(3000, 'A'), AssetAmount(3000, 'MB')), Timeout(100), Timestamp.now())
+        self.ask5 = Ask(OrderId(TraderId('1'), OrderNumber(4)),
+                        AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'C')), Timeout(100), Timestamp.now())
 
-        self.bid = Bid(OrderId(TraderId('0'), OrderNumber(5)), Price(100, 'BTC'), Quantity(30, 'MC'),
-                       Timeout(100), Timestamp.now())
-        self.bid2 = Bid(OrderId(TraderId('0'), OrderNumber(6)), Price(200, 'BTC'), Quantity(30, 'MC'),
-                        Timeout(100), Timestamp.now())
-        self.bid3 = Bid(OrderId(TraderId('0'), OrderNumber(7)), Price(50, 'BTC'), Quantity(200, 'MC'),
-                        Timeout(100), Timestamp.now())
-        self.bid4 = Bid(OrderId(TraderId('0'), OrderNumber(8)), Price(100, 'BTC'), Quantity(200, 'MC'),
-                        Timeout(100), Timestamp.now())
+        self.bid = Bid(OrderId(TraderId('0'), OrderNumber(5)),
+                       AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
+        self.bid2 = Bid(OrderId(TraderId('0'), OrderNumber(6)),
+                        AssetPair(AssetAmount(6000, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
 
-        self.ask_order = Order(OrderId(TraderId('9'), OrderNumber(11)), Price(100, 'BTC'), Quantity(30, 'MC'),
+        self.ask_order = Order(OrderId(TraderId('9'), OrderNumber(11)),
+                               AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')),
                                Timeout(100), Timestamp.now(), True)
-        self.ask_order2 = Order(OrderId(TraderId('9'), OrderNumber(12)), Price(10, 'BTC'), Quantity(60, 'MC'),
+        self.ask_order2 = Order(OrderId(TraderId('9'), OrderNumber(12)),
+                                AssetPair(AssetAmount(600, 'BTC'), AssetAmount(60, 'MB')),
                                 Timeout(100), Timestamp.now(), True)
 
-        self.bid_order = Order(OrderId(TraderId('9'), OrderNumber(13)), Price(100, 'BTC'), Quantity(30, 'MC'),
+        self.bid_order = Order(OrderId(TraderId('9'), OrderNumber(13)),
+                               AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')),
                                Timeout(100), Timestamp.now(), False)
-        self.bid_order2 = Order(OrderId(TraderId('9'), OrderNumber(14)), Price(100, 'BTC'), Quantity(60, 'MC'),
+        self.bid_order2 = Order(OrderId(TraderId('9'), OrderNumber(14)),
+                                AssetPair(AssetAmount(6000, 'BTC'), AssetAmount(60, 'MB')),
                                 Timeout(100), Timestamp.now(), False)
         self.order_book = OrderBook()
         self.price_time_strategy = PriceTimeStrategy(self.order_book)
@@ -97,7 +94,7 @@ class PriceTimeStrategyTestSuite(AbstractServer):
         """
         Test whether two ticks with different price types are not matched
         """
-        self.order_book.insert_ask(self.ask5)
+        self.order_book.insert_ask(self.ask4)
         self.assertEqual([], self.price_time_strategy.match(self.bid_order.order_id,
                                                             self.bid_order.price,
                                                             self.bid_order.available_quantity, False))
@@ -106,7 +103,7 @@ class PriceTimeStrategyTestSuite(AbstractServer):
         """
         Test whether two ticks with different quantity types are not matched
         """
-        self.order_book.insert_ask(self.ask6)
+        self.order_book.insert_ask(self.ask5)
         self.assertEqual([], self.price_time_strategy.match(self.bid_order.order_id,
                                                             self.bid_order.price,
                                                             self.bid_order.available_quantity, False))
@@ -120,7 +117,7 @@ class PriceTimeStrategyTestSuite(AbstractServer):
                                                         self.ask_order.available_quantity, True)
         self.assertEquals(1, len(matching_ticks))
         self.assertEquals(self.order_book.get_tick(self.bid.order_id), matching_ticks[0][1])
-        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][2])
+        self.assertEquals(3000, matching_ticks[0][2])
 
     def test_match_order_bid(self):
         """
@@ -131,7 +128,7 @@ class PriceTimeStrategyTestSuite(AbstractServer):
                                                         self.bid_order.available_quantity, False)
         self.assertEquals(1, len(matching_ticks))
         self.assertEquals(self.order_book.get_tick(self.ask.order_id), matching_ticks[0][1])
-        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][2])
+        self.assertEquals(3000, matching_ticks[0][2])
 
     def test_match_order_divided(self):
         """
@@ -143,104 +140,32 @@ class PriceTimeStrategyTestSuite(AbstractServer):
                                                         self.bid_order2.price,
                                                         self.bid_order2.available_quantity, False)
         self.assertEquals(2, len(matching_ticks))
-        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][2])
-        self.assertEquals(Quantity(30, 'MC'), matching_ticks[1][2])
+        self.assertEquals(3000, matching_ticks[0][2])
+        self.assertEquals(3000, matching_ticks[1][2])
 
     def test_match_order_partial_ask(self):
         """
         Test partial matching of a bid order with the matching engine
         """
-        self.ask._quantity = Quantity(20, 'MC')
+        self.ask.traded = 1000
         self.order_book.insert_ask(self.ask)
-        matching_ticks = self.price_time_strategy.match(self.bid_order2.order_id,
-                                                        self.bid_order2.price,
-                                                        self.bid_order2.available_quantity, False)
+        matching_ticks = self.price_time_strategy.match(self.bid_order.order_id,
+                                                        self.bid_order.price,
+                                                        self.bid_order.available_quantity, False)
         self.assertEquals(1, len(matching_ticks))
-        self.assertEquals(Quantity(20, 'MC'), matching_ticks[0][2])
+        self.assertEquals(2000, matching_ticks[0][2])
 
     def test_match_order_partial_bid(self):
         """
         Test partial matching of an ask order with the matching engine
         """
-        self.bid._quantity = Quantity(20, 'MC')
+        self.bid.traded = 1000
         self.order_book.insert_bid(self.bid)
-        matching_ticks = self.price_time_strategy.match(self.ask_order2.order_id,
-                                                        self.ask_order2.price,
-                                                        self.ask_order2.available_quantity, True)
-        self.assertEquals(1, len(matching_ticks))
-        self.assertEquals(Quantity(20, 'MC'), matching_ticks[0][2])
-
-    def test_match_order_different_price_level(self):
-        """
-        Test for match order given an ask order and bid in different price levels
-        """
-        self.order_book.insert_bid(self.bid2)
-        matching_ticks = self.price_time_strategy.match(self.ask_order.order_id, self.ask_order.price,
+        matching_ticks = self.price_time_strategy.match(self.ask_order.order_id,
+                                                        self.ask_order.price,
                                                         self.ask_order.available_quantity, True)
         self.assertEquals(1, len(matching_ticks))
-        self.assertEquals(Price(200, 'BTC'), self.bid2.price)
-        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][2])
-
-    def test_search_for_quantity_in_order_book_partial_ask_low(self):
-        """
-        Test for protected search for quantity in order book partial ask when price is too low
-        """
-        self.order_book.insert_bid(self.bid)
-        self.order_book.insert_bid(self.bid2)
-        self.order_book.insert_bid(self.bid3)
-        self.order_book.insert_bid(self.bid4)
-        matching_ticks = self.price_time_strategy._search_for_quantity_in_order_book_partial_ask(
-            self.ask_order2.order_id, Price(100, 'BTC'), Quantity(30, 'MC'), [], self.ask_order2.price, True)
-        self.assertEquals(1, len(matching_ticks))
-        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][2])
-
-    def test_search_for_quantity_in_order_book_partial_ask(self):
-        """
-        Test for protected search for quantity in order book partial ask
-        """
-        self.order_book.insert_bid(self.bid)
-        self.order_book.insert_bid(self.bid2)
-        self.order_book.insert_bid(self.bid3)
-        self.order_book.insert_bid(self.bid4)
-        matching_ticks = self.price_time_strategy._search_for_quantity_in_order_book_partial_ask(
-            self.ask_order.order_id, Price(100, 'BTC'), Quantity(30, 'MC'), [], self.ask_order.price, True)
-        self.assertEquals(0, len(matching_ticks))
-
-    def test_search_for_quantity_in_order_book_partial_bid_high(self):
-        """
-        Test for protected search for quantity in order book partial bid when price is too high
-        """
-        self.order_book.insert_ask(self.ask)
-        self.order_book.insert_ask(self.ask2)
-        self.order_book.insert_ask(self.ask3)
-        self.order_book.insert_ask(self.ask4)
-        matching_ticks = self.price_time_strategy._search_for_quantity_in_order_book_partial_bid(
-            self.bid_order.order_id, Price(100, 'BTC'), Quantity(30, 'MC'), [], self.bid_order.price, False)
-        self.assertEquals(0, len(matching_ticks))
-
-    def test_search_for_quantity_in_order_book_partial_bid(self):
-        """
-        Test for protected search for quantity in order book partial bid
-        """
-        self.order_book.insert_ask(self.ask)
-        self.order_book.insert_ask(self.ask2)
-        self.order_book.insert_ask(self.ask3)
-        self.order_book.insert_ask(self.ask4)
-        matching_ticks = self.price_time_strategy._search_for_quantity_in_order_book_partial_bid(
-            self.bid_order.order_id, Price(50, 'BTC'), Quantity(30, 'MC'), [], self.bid_order.price, False)
-        self.assertEquals(1, len(matching_ticks))
-        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][2])
-
-    def test_search_for_quantity_in_price_level(self):
-        """
-        Test searching within a price level
-        """
-        self.bid_order._order_id = self.ask.order_id
-        self.order_book.insert_ask(self.ask)
-        self.order_book.insert_ask(self.ask2)
-        matching_ticks = self.price_time_strategy._search_for_quantity_in_price_level(
-            self.bid_order.order_id, None, Quantity(10, 'MC'), self.bid_order.price, False)
-        self.assertFalse(matching_ticks)
+        self.assertEquals(2000, matching_ticks[0][2])
 
     def test_bid_blocked_for_matching(self):
         """
@@ -259,7 +184,7 @@ class PriceTimeStrategyTestSuite(AbstractServer):
         self.order_book.insert_ask(self.ask)
         self.order_book.get_tick(self.ask.order_id).block_for_matching(self.bid_order.order_id)
         matching_ticks = self.price_time_strategy.match(self.bid_order.order_id, self.bid_order.price,
-                                                        self.bid_order.available_quantity, True)
+                                                        self.bid_order.available_quantity, False)
         self.assertEquals(0, len(matching_ticks))
 
 
@@ -271,13 +196,15 @@ class MatchingEngineTestSuite(AbstractServer):
     def setUp(self, annotate=True):
         yield super(MatchingEngineTestSuite, self).setUp(annotate=annotate)
         # Object creation
-        self.ask = Ask(OrderId(TraderId('2'), OrderNumber(1)), Price(100, 'BTC'), Quantity(30, 'MC'),
-                       Timeout(30), Timestamp.now())
-        self.bid = Bid(OrderId(TraderId('4'), OrderNumber(2)), Price(100, 'BTC'), Quantity(30, 'MC'),
-                       Timeout(30), Timestamp.now())
-        self.ask_order = Order(OrderId(TraderId('5'), OrderNumber(3)), Price(100, 'BTC'), Quantity(30, 'MC'),
+        self.ask = Ask(OrderId(TraderId('2'), OrderNumber(1)),
+                       AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp.now())
+        self.bid = Bid(OrderId(TraderId('4'), OrderNumber(2)),
+                       AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp.now())
+        self.ask_order = Order(OrderId(TraderId('5'), OrderNumber(3)),
+                               AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')),
                                Timeout(30), Timestamp.now(), True)
-        self.bid_order = Order(OrderId(TraderId('6'), OrderNumber(4)), Price(100, 'BTC'), Quantity(30, 'MC'),
+        self.bid_order = Order(OrderId(TraderId('6'), OrderNumber(4)),
+                               AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')),
                                Timeout(30), Timestamp.now(), False)
         self.order_book = OrderBook()
         self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book))
@@ -285,21 +212,21 @@ class MatchingEngineTestSuite(AbstractServer):
         self.ask_count = 2
         self.bid_count = 2
 
-    def create_ask(self, price, quantity):
+    def create_ask(self, amount1, amount2):
         """
         Create an ask with a specific price and quantity
         """
-        new_ask = Ask(OrderId(TraderId('2'), OrderNumber(self.ask_count)), Price(price, 'BTC'),
-                      Quantity(quantity, 'MC'), Timeout(30), Timestamp.now())
+        new_ask = Ask(OrderId(TraderId('2'), OrderNumber(self.ask_count)),
+                      AssetPair(AssetAmount(amount1, 'BTC'), AssetAmount(amount2, 'MB')), Timeout(30), Timestamp.now())
         self.ask_count += 1
         return new_ask
 
-    def create_bid(self, price, quantity):
+    def create_bid(self, amount1, amount2):
         """
         Create a bid with a specific price and quantity
         """
-        new_bid = Bid(OrderId(TraderId('2'), OrderNumber(self.bid_count)), Price(price, 'BTC'),
-                      Quantity(quantity, 'MC'), Timeout(30), Timestamp.now())
+        new_bid = Bid(OrderId(TraderId('2'), OrderNumber(self.bid_count)),
+                      AssetPair(AssetAmount(amount1, 'BTC'), AssetAmount(amount2, 'MB')), Timeout(30), Timestamp.now())
         self.bid_count += 1
         return new_bid
 
@@ -325,7 +252,7 @@ class MatchingEngineTestSuite(AbstractServer):
         self.order_book.insert_bid(self.bid)
         matching_ticks = self.matching_engine.match(self.order_book.get_bid(self.bid.order_id))
         self.assertEquals(1, len(matching_ticks))
-        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][2])
+        self.assertEquals(3000, matching_ticks[0][2])
 
     def test_match_order_ask(self):
         # Test for match ask order
@@ -333,14 +260,14 @@ class MatchingEngineTestSuite(AbstractServer):
         self.order_book.insert_ask(self.ask)
         matching_ticks = self.matching_engine.match(self.order_book.get_ask(self.ask.order_id))
         self.assertEquals(1, len(matching_ticks))
-        self.assertEquals(Quantity(30, 'MC'), matching_ticks[0][2])
+        self.assertEquals(3000, matching_ticks[0][2])
 
     def test_no_match_reserved(self):
         """
         Test whether there is no match when we already reserved some quantity
         """
         self.order_book.insert_bid(self.bid)
-        self.order_book.get_tick(self.bid.order_id).reserve_for_matching(Quantity(30, 'MC'))
+        self.order_book.get_tick(self.bid.order_id).reserve_for_matching(3000)
         self.order_book.insert_ask(self.ask)
         matching_ticks = self.matching_engine.match(self.order_book.get_ask(self.ask.order_id))
         self.assertEquals([], matching_ticks)
@@ -349,28 +276,71 @@ class MatchingEngineTestSuite(AbstractServer):
         """
         Test matching when there are asks in multiple price levels
         """
-        self.order_book.insert_ask(self.create_ask(7, 50))
-        self.order_book.insert_ask(self.create_ask(4, 18))
-        self.order_book.insert_ask(self.create_ask(7, 100))
-        my_bid = self.create_bid(10, 100)
+        self.order_book.insert_ask(self.create_ask(50, 350))
+        self.order_book.insert_ask(self.create_ask(18, 72))
+        self.order_book.insert_ask(self.create_ask(100, 700))
+        my_bid = self.create_bid(200, 2000)
         self.order_book.insert_bid(my_bid)
         matching_ticks = self.matching_engine.match(self.order_book.get_bid(my_bid.order_id))
 
         self.assertEqual(len(matching_ticks), 3)
-        total_matched = sum([float(quantity) for _, _, quantity in matching_ticks])
-        self.assertEqual(Quantity(total_matched, 'MC'), Quantity(100, 'MC'))
+        total_matched = sum([quantity for _, _, quantity in matching_ticks])
+        self.assertEqual(total_matched, 168)
 
     def test_multiple_price_levels_bids(self):
         """
         Test matching when there are bids in multiple price levels
         """
-        self.order_book.insert_bid(self.create_bid(4, 50))
-        self.order_book.insert_bid(self.create_bid(7, 18))
-        self.order_book.insert_bid(self.create_bid(4, 100))
-        my_ask = self.create_ask(1, 100)
+        self.order_book.insert_bid(self.create_bid(50, 200))
+        self.order_book.insert_bid(self.create_bid(18, 72))
+        self.order_book.insert_bid(self.create_bid(100, 400))
+        my_ask = self.create_ask(200, 200)
         self.order_book.insert_ask(my_ask)
         matching_ticks = self.matching_engine.match(self.order_book.get_ask(my_ask.order_id))
 
         self.assertEqual(len(matching_ticks), 3)
-        total_matched = sum([float(quantity) for _, _, quantity in matching_ticks])
-        self.assertEqual(Quantity(total_matched, 'MC'), Quantity(100, 'MC'))
+        total_matched = sum([quantity for _, _, quantity in matching_ticks])
+        self.assertEqual(total_matched, 168)
+
+    def test_price_time_priority_asks(self):
+        """
+        Test whether the price-time priority works correctly
+        """
+        self.order_book.insert_ask(self.create_ask(20, 100))
+        self.order_book.insert_ask(self.create_ask(25, 125))
+        self.order_book.insert_ask(self.create_ask(10, 50))
+
+        my_bid = self.create_bid(50, 250)
+        self.order_book.insert_bid(my_bid)
+        matching_ticks = self.matching_engine.match(self.order_book.get_bid(my_bid.order_id))
+
+        self.assertEqual(len(matching_ticks), 3)
+        self.assertEqual(matching_ticks[-1][1].assets.first.amount, 10)
+        self.assertEqual(matching_ticks[-1][2], 5)
+
+    def test_price_time_priority_bids(self):
+        """
+        Test whether the price-time priority works correctly
+        """
+        self.order_book.insert_bid(self.create_bid(20, 100))
+        self.order_book.insert_bid(self.create_bid(25, 125))
+        self.order_book.insert_bid(self.create_bid(10, 50))
+
+        my_ask = self.create_ask(50, 250)
+        self.order_book.insert_ask(my_ask)
+        matching_ticks = self.matching_engine.match(self.order_book.get_ask(my_ask.order_id))
+
+        self.assertEqual(len(matching_ticks), 3)
+        self.assertEqual(matching_ticks[-1][1].assets.first.amount, 10)
+        self.assertEqual(matching_ticks[-1][2], 5)
+
+    def test_matching_multiple_levels(self):
+        """
+        Test a matching with multiple price levels
+        """
+        self.order_book.insert_bid(self.create_bid(10, 60))
+        self.order_book.insert_bid(self.create_bid(10, 50))
+        my_ask = self.create_ask(30, 180)
+        self.order_book.insert_ask(my_ask)
+        matching_ticks = self.matching_engine.match(self.order_book.get_ask(my_ask.order_id))
+        self.assertEqual(len(matching_ticks), 1)

@@ -26,7 +26,7 @@ class TestBtcWallet(AbstractServer):
             return wallet.monitor_transaction("abc")
 
         def on_wallet_balance(balance):
-            self.assertDictEqual(balance, {'available': 0, 'pending': 0, 'currency': 'BTC'})
+            self.assertDictEqual(balance, {'available': 0, 'pending': 0, 'currency': 'BTC', 'precision': 8})
             return wallet.get_transactions().addCallback(on_wallet_transactions)
 
         def on_wallet_created(_):
@@ -68,14 +68,14 @@ class TestBtcWallet(AbstractServer):
         Test the mininum unit of a Bitcoin wallet
         """
         wallet = BitcoinTestnetWallet(self.session_base_dir)
-        self.assertEqual(wallet.min_unit(), 0.0001)
+        self.assertEqual(wallet.min_unit(), 100000)
 
     def test_btc_balance_no_wallet(self):
         """
         Test the retrieval of the balance of a BTC wallet that is not created yet
         """
         def on_wallet_balance(balance):
-            self.assertDictEqual(balance, {'available': 0, 'pending': 0, 'currency': 'BTC'})
+            self.assertDictEqual(balance, {'available': 0, 'pending': 0, 'currency': 'BTC', 'precision': 8})
 
         wallet = BitcoinTestnetWallet(self.session_base_dir)
         return wallet.get_balance().addCallback(on_wallet_balance)

@@ -6,6 +6,7 @@ from random import randint
 import unittest
 from unittest import skipUnless, skipIf
 
+import time
 from PyQt5.QtCore import QPoint, Qt, QTimer
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
@@ -637,9 +638,44 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.wait_for_list_populated(window.bids_list)
         self.screenshot(window, name="market_page_overview")
 
+        # Pretend we receive an ask
+        ask = {
+            "trader_id": 'a' * 40,
+            "order_number": 3,
+            "assets": {
+                "first": {
+                    "amount": 12345,
+                    "type": 'DUM1'
+                },
+                "second": {
+                    "amount": 1,
+                    "type": 'DUM2'
+                }
+            },
+            "timeout": 3600,
+            "timestamp": time.time(),
+            "traded": 0,
+            "block_hash": '0' * 40
+        }
+        old_amount = window.asks_list.topLevelItemCount()
+        window.core_manager.events_manager.received_market_ask.emit(ask)
+        self.assertEqual(window.asks_list.topLevelItemCount(), old_amount + 1)
+
+        # Pretend we receive a bid
+        old_amount = window.bids_list.topLevelItemCount()
+        window.core_manager.events_manager.received_market_bid.emit(ask)
+        self.assertEqual(window.bids_list.topLevelItemCount(), old_amount + 1)
+
+        # Click on one of the ticks to get more information
+        first_widget = window.asks_list.topLevelItem(0)
+        rect = window.asks_list.visualItemRect(first_widget)
+        QTest.mouseClick(window.asks_list.viewport(), Qt.LeftButton, Qt.NoModifier, rect.center())
+        self.screenshot(window, name="market_page_overview_details")
+
     def test_market_orders_page(self):
         QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
         QTest.mouseClick(window.trade_button, Qt.LeftButton)
+        self.wait_for_signal(window.market_page.received_wallets)
         QTest.mouseClick(window.market_orders_button, Qt.LeftButton)
         self.wait_for_list_populated(window.market_orders_list)
         self.screenshot(window, name="market_page_orders")
@@ -647,16 +683,57 @@ class TriblerGUITest(AbstractTriblerGUITest):
     def test_market_transactions_page(self):
         QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
         QTest.mouseClick(window.trade_button, Qt.LeftButton)
+        self.wait_for_signal(window.market_page.received_wallets)
         QTest.mouseClick(window.market_transactions_button, Qt.LeftButton)
         self.wait_for_list_populated(window.market_transactions_list)
         self.screenshot(window, name="market_page_transactions")
 
+        # Click on one of the transactions to get more information
+        first_widget = window.market_transactions_list.topLevelItem(0)
+        rect = window.market_transactions_list.visualItemRect(first_widget)
+        QTest.mouseClick(window.market_transactions_list.viewport(), Qt.LeftButton, Qt.NoModifier, rect.center())
+        QTest.qWait(100)
+        self.screenshot(window, name="market_page_transactions_payments")
+
+        # Pretend we receive a payment
+        transaction = first_widget.transaction
+        payment = {
+            "trader_id": transaction['trader_id'],
+            "transaction_number": transaction['transaction_number'],
+            "transferred": {
+                "amount": transaction['assets']['second']['amount'],
+                "type": transaction['assets']['second']['type']
+            },
+            "payment_id": 'test',
+            "address_from": 'a',
+            "address_to": 'b',
+            "timestamp": transaction['timestamp'] + 10,
+            "success": True
+        }
+        window.core_manager.events_manager.market_payment_received.emit(payment)
+        self.screenshot(window, name="market_page_transactions_newpayment")
+        window.hide_status_bar()
+
     def test_market_wallets_page(self):
         QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
         QTest.mouseClick(window.trade_button, Qt.LeftButton)
+        self.wait_for_signal(window.market_page.received_wallets)
         QTest.mouseClick(window.market_wallets_button, Qt.LeftButton)
         self.wait_for_variable("market_wallets_page.wallets")
         self.screenshot(window, name="market_page_wallets")
+
+    def test_market_create_order(self):
+        QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
+        QTest.mouseClick(window.trade_button, Qt.LeftButton)
+        self.wait_for_signal(window.market_page.received_wallets)
+        QTest.mouseClick(window.create_bid_button, Qt.LeftButton)
+        self.screenshot(window, name="market_create_order_dialog")
+
+        # Enter some bogus input
+        QTest.keyClick(window.market_page.dialog.dialog_widget.order_quantity_input, 't')
+        QTest.keyClick(window.market_page.dialog.dialog_widget.order_price_input, 't')
+        QTest.mouseClick(window.market_page.dialog.dialog_widget.create_button, Qt.LeftButton)
+        self.screenshot(window, name="market_create_order_dialog_error")
 
 if __name__ == "__main__":
     unittest.main()

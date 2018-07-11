@@ -2,12 +2,12 @@ from urllib import urlencode
 
 import datetime
 from PyQt5.QtCore import Qt
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QCursor
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QSpacerItem
-from PyQt5.QtWidgets import QTreeWidgetItem
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.defs import PAGE_MARKET_TRANSACTIONS, PAGE_MARKET_WALLETS, PAGE_MARKET_ORDERS
@@ -16,7 +16,7 @@ from TriblerGUI.dialogs.iom_input_dialog import IomInputDialog
 from TriblerGUI.dialogs.newmarketorderdialog import NewMarketOrderDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_image_path
+from TriblerGUI.utilities import get_image_path, prec_div
 from TriblerGUI.widgets.marketcurrencybox import MarketCurrencyBox
 from TriblerGUI.widgets.tickwidgetitem import TickWidgetItem
 
@@ -25,6 +25,7 @@ class MarketPage(QWidget):
     """
     This page displays the decentralized market in Tribler.
     """
+    received_wallets = pyqtSignal(object)
 
     def __init__(self):
         QWidget.__init__(self)
@@ -33,7 +34,7 @@ class MarketPage(QWidget):
         self.bids_request_mgr = None
         self.dialog = None
         self.initialized = False
-        self.wallets = []
+        self.wallets = {}
         self.chosen_wallets = None
         self.wallet_widgets = {}
 
@@ -52,18 +53,17 @@ class MarketPage(QWidget):
             self.window().core_manager.events_manager.market_payment_received.connect(self.on_payment)
             self.window().core_manager.events_manager.market_payment_sent.connect(self.on_payment)
             self.window().core_manager.events_manager.market_transaction_complete.connect(self.on_transaction_complete)
-            self.window().core_manager.events_manager.market_iom_input_required.connect(self.on_iom_input_required)
 
             self.window().create_ask_button.clicked.connect(self.on_create_ask_clicked)
             self.window().create_bid_button.clicked.connect(self.on_create_bid_clicked)
-            self.window().market_currency_type_button.clicked.connect(self.on_currency_type_clicked)
+            self.window().market_currency_type_button.clicked.connect(self.on_asset_type_clicked)
             self.window().market_transactions_button.clicked.connect(self.on_transactions_button_clicked)
             self.window().market_wallets_button.clicked.connect(self.on_wallets_button_clicked)
             self.window().market_orders_button.clicked.connect(self.on_orders_button_clicked)
             self.window().market_create_wallet_button.clicked.connect(self.on_wallets_button_clicked)
 
             # Sort asks ascending and bids descending
-            self.window().asks_list.sortItems(2, Qt.AscendingOrder)
+            self.window().asks_list.sortItems(0, Qt.AscendingOrder)
             self.window().bids_list.sortItems(2, Qt.DescendingOrder)
 
             self.window().asks_list.itemSelectionChanged.connect(
@@ -84,6 +84,7 @@ class MarketPage(QWidget):
 
     def on_wallets(self, wallets):
         wallets = wallets["wallets"]
+        self.received_wallets.emit(wallets)
 
         currency_wallets = ['BTC']
         total_currency_wallets = 0
@@ -96,12 +97,9 @@ class MarketPage(QWidget):
             self.window().create_ask_button.hide()
             self.window().create_bid_button.hide()
 
-        self.wallets = []
-        for wallet_id in wallets.keys():
-            self.wallets.append(wallet_id)
-
-        if self.chosen_wallets is None and len(self.wallets) >= 2:
-            self.chosen_wallets = (self.wallets[0], self.wallets[1])
+        self.wallets = wallets
+        if self.chosen_wallets is None and len(self.wallets.keys()) >= 2:
+            self.chosen_wallets = sorted(self.wallets.keys())[0], sorted(self.wallets.keys())[1]
             self.update_button_texts()
 
         for wallet_id, wallet in wallets.iteritems():
@@ -119,12 +117,8 @@ class MarketPage(QWidget):
                 spacer = QSpacerItem(10, 20, QSizePolicy.Fixed, QSizePolicy.Fixed)
                 self.window().market_header_widget.layout().insertSpacerItem(5, spacer)
 
-            # The total balance keys might be different between wallet
-            balance_amount = wallet['balance']['available']
+            balance_amount = prec_div(wallet['balance']['available'], wallet['precision'])
             balance_currency = None
-
-            if wallet_id == 'PP' or wallet_id == 'ABNA' or wallet_id == 'RABO':
-                balance_currency = wallet['balance']['currency']
 
             self.wallet_widgets[wallet_id].update_with_amount(balance_amount, balance_currency)
 
@@ -136,12 +130,17 @@ class MarketPage(QWidget):
         self.window().create_ask_button.setText("Sell %s for %s" % (self.chosen_wallets[0], self.chosen_wallets[1]))
         self.window().create_bid_button.setText("Buy %s for %s" % (self.chosen_wallets[0], self.chosen_wallets[1]))
 
+        # Update headers of the tree widget
+        self.window().asks_list.headerItem().setText(1, '%s' % self.chosen_wallets[0])
+        self.window().asks_list.headerItem().setText(2, 'Total (%s)' % self.chosen_wallets[0])
+        self.window().bids_list.headerItem().setText(2, '%s' % self.chosen_wallets[0])
+        self.window().bids_list.headerItem().setText(1, 'Total (%s)' % self.chosen_wallets[0])
+
     def create_widget_item_from_tick(self, tick_list, tick, is_ask=True):
         tick["type"] = "ask" if is_ask else "bid"
-        item = TickWidgetItem(tick_list, tick)
-        item.setText(0, "%s %s" % (tick["quantity"], tick["quantity_type"]))
-        item.setText(1, "%s %s" % (tick["price"], tick["price_type"]))
-        return item
+        asset1_prec = self.wallets[tick["assets"]["first"]["type"]]["precision"]
+        asset2_prec = self.wallets[tick["assets"]["second"]["type"]]["precision"]
+        return TickWidgetItem(tick_list, tick, asset1_prec, asset2_prec)
 
     def load_asks(self):
         self.asks_request_mgr = TriblerRequestManager()
@@ -150,15 +149,18 @@ class MarketPage(QWidget):
     def on_received_asks(self, asks):
         self.asks = asks["asks"]
         self.update_filter_asks_list()
+        self.update_filter_bids_list()
 
     def update_filter_asks_list(self):
         self.window().asks_list.clear()
 
-        ticks = None
+        ticks = []
         for price_level_info in self.asks:
-            if (price_level_info['quantity_type'], price_level_info['price_type']) == self.chosen_wallets:
-                ticks = price_level_info["ticks"]
-                break
+            if (price_level_info['asset1'], price_level_info['asset2']) == self.chosen_wallets:
+                ticks.extend(price_level_info["ticks"])
+        for price_level_info in self.bids:
+            if (price_level_info['asset2'], price_level_info['asset1']) == self.chosen_wallets:
+                ticks.extend(price_level_info["ticks"])
 
         if ticks:
             for ask in ticks:
@@ -171,16 +173,19 @@ class MarketPage(QWidget):
 
     def on_received_bids(self, bids):
         self.bids = bids["bids"]
+        self.update_filter_asks_list()
         self.update_filter_bids_list()
 
     def update_filter_bids_list(self):
         self.window().bids_list.clear()
 
-        ticks = None
+        ticks = []
         for price_level_info in self.bids:
-            if (price_level_info['quantity_type'], price_level_info['price_type']) == self.chosen_wallets:
-                ticks = price_level_info["ticks"]
-                break
+            if (price_level_info['asset1'], price_level_info['asset2']) == self.chosen_wallets:
+                ticks.extend(price_level_info["ticks"])
+        for price_level_info in self.asks:
+            if (price_level_info['asset2'], price_level_info['asset1']) == self.chosen_wallets:
+                ticks.extend(price_level_info["ticks"])
 
         if ticks:
             for bid in ticks:
@@ -190,35 +195,39 @@ class MarketPage(QWidget):
     def on_ask(self, ask):
         has_level = False
         for price_level_info in self.asks:
-            if price_level_info['quantity_type'] == ask['quantity_type'] \
-                    and price_level_info['price_type'] == ask['price_type']:
+            if price_level_info['asset1'] == ask['assets']['first']['type'] \
+                    and price_level_info['asset2'] == ask['assets']['second']['type']:
                 price_level_info['ticks'].append(ask)
                 has_level = True
 
         if not has_level:
-            self.asks.append({'price_type': ask['price_type'], 'quantity_type': ask['quantity_type'], 'ticks': [ask]})
+            self.asks.append({
+                'asset1': ask['assets']['first']['type'],
+                'asset2': ask['assets']['second']['type'],
+                'ticks': [ask]
+            })
 
         self.update_filter_asks_list()
 
     def on_bid(self, bid):
         has_level = False
         for price_level_info in self.bids:
-            if price_level_info['quantity_type'] == bid['quantity_type'] \
-                    and price_level_info['price_type'] == bid['price_type']:
+            if price_level_info['asset1'] == bid['assets']['first']['type'] \
+                    and price_level_info['asset2'] == bid['assets']['second']['type']:
                 price_level_info['ticks'].append(bid)
+                has_level = True
 
         if not has_level:
-            self.bids.append({'price_type': bid['price_type'], 'quantity_type': bid['quantity_type'], 'ticks': [bid]})
+            self.bids.append({
+                'asset1': bid['assets']['first']['type'],
+                'asset2': bid['assets']['second']['type'],
+                'ticks': [bid]
+            })
 
         self.update_filter_bids_list()
 
     def on_transaction_complete(self, transaction):
         if transaction["mine"]:
-            transaction = transaction["tx"]
-            main_text = "Transaction with price %f %s and quantity %f %s completed." \
-                        % (transaction["price"], transaction["price_type"],
-                           transaction["quantity"], transaction["quantity_type"])
-            self.window().tray_icon.showMessage("Transaction completed", main_text)
             self.window().hide_status_bar()
 
             # Reload wallets
@@ -230,33 +239,27 @@ class MarketPage(QWidget):
             self.load_asks()
             self.load_bids()
 
-    def on_iom_input_required(self, event_dict):
-        self.dialog = IomInputDialog(self.window().stackedWidget, event_dict['bank_name'], event_dict['input'])
-        self.dialog.button_clicked.connect(self.on_iom_input)
-        self.dialog.show()
-
-    def on_iom_input(self, action):
-        if action == 1:
-            post_data = {'input_name': self.dialog.required_input['name']}
-            for input_name, input_widget in self.dialog.input_widgets.iteritems():
-                post_data[input_name] = input_widget.text()
-
-            self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("iominput", None, data=urlencode(post_data), method='POST')
-
-        self.dialog.close_dialog()
-        self.dialog = None
-
     def create_order(self, is_ask, price, price_type, quantity, quantity_type):
-        post_data = str("price=%f&price_type=%s&quantity=%f&quantity_type=%s" %
-                        (price, price_type, quantity, quantity_type))
+        """
+        Create a new ask or bid order.
+        """
+        asset1_amount = long(quantity * (10 ** self.wallets[quantity_type]["precision"]))
+
+        price_num = price * (10 ** self.wallets[price_type]["precision"])
+        price_denom = float(10 ** self.wallets[quantity_type]["precision"])
+        price = price_num / price_denom
+
+        asset2_amount = long(float(asset1_amount) / price)
+
+        post_data = str("first_asset_amount=%d&first_asset_type=%s&second_asset_amount=%d&second_asset_type=%s" %
+                        (asset1_amount, quantity_type, asset2_amount, price_type))
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("market/%s" % ('asks' if is_ask else 'bids'),
                                          lambda response: self.on_order_created(response, is_ask),
                                          data=post_data, method='PUT')
 
     def on_transactions_button_clicked(self):
-        self.window().market_transactions_page.initialize_transactions_page()
+        self.window().market_transactions_page.initialize_transactions_page(self.wallets)
         self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
         self.window().stackedWidget.setCurrentIndex(PAGE_MARKET_TRANSACTIONS)
 
@@ -266,7 +269,7 @@ class MarketPage(QWidget):
         self.window().stackedWidget.setCurrentIndex(PAGE_MARKET_WALLETS)
 
     def on_orders_button_clicked(self):
-        self.window().market_orders_page.initialize_orders_page()
+        self.window().market_orders_page.initialize_orders_page(self.wallets)
         self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
         self.window().stackedWidget.setCurrentIndex(PAGE_MARKET_ORDERS)
 
@@ -279,7 +282,8 @@ class MarketPage(QWidget):
     def on_tick_item_clicked(self, tick_list):
         if len(tick_list.selectedItems()) == 0:
             return
-        tick = tick_list.selectedItems()[0].tick
+        selected_item = tick_list.selectedItems()[0]
+        tick = selected_item.tick
 
         if tick_list == self.window().asks_list:
             self.window().bids_list.clearSelection()
@@ -289,8 +293,12 @@ class MarketPage(QWidget):
         tick_time = datetime.datetime.fromtimestamp(int(tick["timestamp"])).strftime('%Y-%m-%d %H:%M:%S')
         self.window().market_detail_trader_id_label.setText(tick["trader_id"])
         self.window().market_detail_order_number_label.setText("%s" % tick["order_number"])
-        self.window().market_detail_quantity_label.setText("%s %s" % (tick["quantity"], tick["quantity_type"]))
-        self.window().market_detail_price_label.setText("%s %s" % (tick["price"], tick["price_type"]))
+        self.window().market_detail_total_volume_label.setText(
+            "%g %s" % (selected_item.total_volume, tick["assets"]["first"]["type"]))
+        self.window().market_detail_pending_volume_label.setText(
+            "%g %s" % (selected_item.cur_volume, tick["assets"]["first"]["type"]))
+        self.window().market_detail_price_label.setText(
+            "%g %s" % (selected_item.price, tick["assets"]["second"]["type"]))
         self.window().market_detail_time_created_label.setText(tick_time)
 
         self.window().tick_detail_container.show()
@@ -301,30 +309,31 @@ class MarketPage(QWidget):
     def on_create_bid_clicked(self):
         self.show_new_order_dialog(False)
 
-    def on_currency_type_clicked(self):
+    def on_asset_type_clicked(self):
         menu = TriblerActionMenu(self)
 
-        for first_wallet_id in self.wallets:
-            sub_menu = menu.addMenu(first_wallet_id)
-
-            for second_wallet_id in self.wallets:
-                if first_wallet_id == second_wallet_id:
+        for first_wallet_id in self.wallets.keys():
+            for second_wallet_id in self.wallets.keys():
+                if first_wallet_id >= second_wallet_id:
                     continue
 
                 wallet_action = QAction('%s / %s' % (first_wallet_id, second_wallet_id), self)
                 wallet_action.triggered.connect(
-                    lambda _, id1=first_wallet_id, id2=second_wallet_id: self.on_currency_type_changed(id1, id2))
-                sub_menu.addAction(wallet_action)
+                    lambda _, id1=first_wallet_id, id2=second_wallet_id: self.on_asset_type_changed(id1, id2))
+                menu.addAction(wallet_action)
         menu.exec_(QCursor.pos())
 
-    def on_currency_type_changed(self, currency1, currency2):
-        self.chosen_wallets = (currency1, currency2)
+    def on_asset_type_changed(self, asset1, asset2):
+        """
+        The trading pair has been changed by the user. Update various elements in the user interface.
+        """
+        self.chosen_wallets = asset1, asset2
         self.update_button_texts()
         self.update_filter_asks_list()
         self.update_filter_bids_list()
 
     def show_new_order_dialog(self, is_ask):
-        self.dialog = NewMarketOrderDialog(self.window().stackedWidget, is_ask, self.chosen_wallets[1], self.chosen_wallets[0])
+        self.dialog = NewMarketOrderDialog(self.window().stackedWidget, is_ask, self.chosen_wallets[0], self.chosen_wallets[1])
         self.dialog.button_clicked.connect(self.on_new_order_action)
         self.dialog.show()
 
@@ -337,16 +346,16 @@ class MarketPage(QWidget):
         self.dialog = None
 
     def on_ask_timeout(self, ask):
-        self.remove_tick_with_msg_id(self.window().asks_list, ask["message_id"])
+        self.remove_tick_with_order_id(self.window().asks_list, ask["trader_id"], ask["order_number"])
 
     def on_bid_timeout(self, bid):
-        self.remove_tick_with_msg_id(self.window().bids_list, bid["message_id"])
+        self.remove_tick_with_order_id(self.window().bids_list, bid["trader_id"], bid["order_number"])
 
-    def remove_tick_with_msg_id(self, tick_list, msg_id):
+    def remove_tick_with_order_id(self, tick_list, trader_id, order_number):
         index_to_remove = -1
         for ind in xrange(tick_list.topLevelItemCount()):
             item = tick_list.topLevelItem(ind)
-            if item.tick["message_id"] == msg_id:
+            if item.tick["trader_id"] == trader_id and item.tick["order_number"] == order_number:
                 index_to_remove = ind
                 break
 

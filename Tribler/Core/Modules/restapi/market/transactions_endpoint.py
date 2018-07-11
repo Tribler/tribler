@@ -1,10 +1,9 @@
-import json
-
 from twisted.web import http
 
-from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.transaction import TransactionId, TransactionNumber
+from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
+import Tribler.Core.Utilities.json_util as json
 
 
 class TransactionsEndpoint(BaseMarketEndpoint):
@@ -38,12 +37,26 @@ class TransactionsEndpoint(BaseMarketEndpoint):
                         "partner_trader_id": "34c406358ba05e5883a75da3f009477e4ca699a9",
                         "partner_order_number": 1,
                         "transaction_number": 3,
-                        "price": 10,
-                        "price_type": "MC",
-                        "transferred_price": 5,
-                        "quantity": 10,
-                        "quantity_type": "BTC",
-                        "transferred_quantity": 4,
+                        "assets" {
+                            "first": {
+                                "amount": 3,
+                                "type": "BTC",
+                            },
+                            "second": {
+                                "amount": 3,
+                                "type": "MB",
+                            }
+                        },
+                        "transferred" {
+                            "first": {
+                                "amount": 3,
+                                "type": "BTC",
+                            },
+                            "second": {
+                                "amount": 3,
+                                "type": "MB",
+                            }
+                        }
                         "timestamp": 1493906434.627721,
                         "payment_complete": False
                     ]

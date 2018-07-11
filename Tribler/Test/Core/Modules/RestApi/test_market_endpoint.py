@@ -1,13 +1,12 @@
 import json
 
 from Tribler.community.market.community import MarketCommunity
-from Tribler.community.market.core.message import MessageId, MessageNumber
+from Tribler.community.market.core.assetamount import AssetAmount
+from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.payment import Payment
 from Tribler.community.market.core.payment_id import PaymentId
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import Trade
@@ -57,15 +56,16 @@ class TestMarketEndpoint(AbstractApiTest):
         """
         Add a transaction and a payment to the market
         """
-        proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber(1)),
+        proposed_trade = Trade.propose(TraderId('0'),
                                        OrderId(TraderId('0'), OrderNumber(1)),
                                        OrderId(TraderId('1'), OrderNumber(2)),
-                                       Price(63400, 'BTC'), Quantity(30, 'MC'), Timestamp(1462224447.117))
+                                       AssetPair(AssetAmount(30, 'BTC'), AssetAmount(60, 'MB')),
+                                       Timestamp(1462224447.117))
         transaction = self.session.lm.market_community.transaction_manager.create_from_proposed_trade(
             proposed_trade, 'abcd')
 
-        payment = Payment(MessageId(TraderId("0"), MessageNumber(1)), transaction.transaction_id,
-                          Quantity(0, 'MC'), Price(20, 'BTC'), WalletAddress('a'), WalletAddress('b'),
+        payment = Payment(TraderId("0"), transaction.transaction_id,
+                          AssetAmount(20, 'BTC'), WalletAddress('a'), WalletAddress('b'),
                           PaymentId('aaa'), Timestamp(4.0), True)
         transaction.add_payment(payment)
         self.session.lm.market_community.transaction_manager.transaction_repository.update(transaction)
@@ -102,7 +102,7 @@ class TestMarketEndpoint(AbstractApiTest):
         self.session.lm.market_community.trustchain.send_block_pair = lambda *_: None
         self.session.lm.market_community.create_new_tick_block = \
             lambda _: succeed(self.create_fake_block_pair())
-        self.session.lm.market_community.create_ask(10, 'DUM1', 10, 'DUM2', 3600)
+        self.session.lm.market_community.create_ask(AssetPair(AssetAmount(10, 'DUM1'), AssetAmount(10, 'DUM2')), 3600)
         self.should_check_equality = False
         return self.do_request('market/asks', expected_code=200).addCallback(on_response)
 
@@ -117,26 +117,27 @@ class TestMarketEndpoint(AbstractApiTest):
         self.should_check_equality = False
         self.session.lm.market_community.trustchain.send_block_pair = lambda *_: None
         self.session.lm.market_community.create_new_tick_block = lambda _: succeed(self.create_fake_block_pair())
-        post_data = {'price': 10, 'quantity': 10, 'price_type': 'DUM1', 'quantity_type': 'DUM2', 'timeout': 3400}
+        post_data = {'first_asset_amount': 10, 'second_asset_amount': 10,
+                     'first_asset_type': 'DUM1', 'second_asset_type': 'DUM2', 'timeout': 3400}
         return self.do_request('market/asks', expected_code=200, request_type='PUT', post_data=post_data)\
             .addCallback(on_response)
 
     @deferred(timeout=10)
-    def test_create_ask_no_price(self):
+    def test_create_ask_no_amount(self):
         """
-        Test for an error when we don't add a price when creating an ask
+        Test for an error when we don't add an asset amount when creating an ask
         """
         self.should_check_equality = False
-        post_data = {'quantity': 10, 'price_type': 'DUM1', 'quantity_type': 'DUM2', 'timeout': 3400}
+        post_data = {'first_asset_amount': 10, 'first_asset_type': 'DUM1', 'second_asset_type': 'DUM2', 'timeout': 3400}
         return self.do_request('market/asks', expected_code=400, request_type='PUT', post_data=post_data)
 
     @deferred(timeout=10)
-    def test_create_ask_no_price_type(self):
+    def test_create_ask_no_type(self):
         """
-        Test for an error when we don't add a price type when creating an ask
+        Test for an error when we don't add an asset type when creating an ask
         """
         self.should_check_equality = False
-        post_data = {'price': 10, 'quantity': 10, 'quantity_type': 'DUM2', 'timeout': 3400}
+        post_data = {'first_asset_amount': 10, 'second_asset_amount': 10, 'second_asset_type': 'DUM2', 'timeout': 3400}
         return self.do_request('market/asks', expected_code=400, request_type='PUT', post_data=post_data)
 
     @deferred(timeout=10)
@@ -153,7 +154,7 @@ class TestMarketEndpoint(AbstractApiTest):
 
         self.session.lm.market_community.trustchain.send_block_pair = lambda *_: None
         self.session.lm.market_community.create_new_tick_block = lambda _: succeed(self.create_fake_block_pair())
-        self.session.lm.market_community.create_bid(10, 'DUM1', 10, 'DUM2', 3600)
+        self.session.lm.market_community.create_bid(AssetPair(AssetAmount(10, 'DUM1'), AssetAmount(10, 'DUM2')), 3600)
         self.should_check_equality = False
         return self.do_request('market/bids', expected_code=200).addCallback(on_response)
 
@@ -168,26 +169,27 @@ class TestMarketEndpoint(AbstractApiTest):
         self.should_check_equality = False
         self.session.lm.market_community.trustchain.send_block_pair = lambda *_: None
         self.session.lm.market_community.create_new_tick_block = lambda _: succeed(self.create_fake_block_pair())
-        post_data = {'price': 10, 'quantity': 10, 'price_type': 'DUM1', 'quantity_type': 'DUM2'}
+        post_data = {'first_asset_amount': 10, 'second_asset_amount': 10,
+                     'first_asset_type': 'DUM1', 'second_asset_type': 'DUM2', 'timeout': 3400}
         return self.do_request('market/bids', expected_code=200, request_type='PUT', post_data=post_data) \
             .addCallback(on_response)
 
     @deferred(timeout=10)
-    def test_create_bid_no_price(self):
+    def test_create_bid_no_amount(self):
         """
-        Test for an error when we don't add a price when creating a bid
+        Test for an error when we don't add an asset amount when creating a bid
         """
         self.should_check_equality = False
-        post_data = {'quantity': 10, 'price_type': 'DUM1', 'quantity_type': 'DUM2', 'timeout': 3400}
+        post_data = {'first_asset_amount': 10, 'first_asset_type': 'DUM1', 'second_asset_type': 'DUM2', 'timeout': 3400}
         return self.do_request('market/bids', expected_code=400, request_type='PUT', post_data=post_data)
 
     @deferred(timeout=10)
-    def test_create_bid_no_price_type(self):
+    def test_create_bid_no_type(self):
         """
-        Test for an error when we don't add a price type when creating a bid
+        Test for an error when we don't add an asset type when creating a bid
         """
         self.should_check_equality = False
-        post_data = {'price': 10, 'quantity': 10, 'quantity_type': 'DUM2', 'timeout': 3400}
+        post_data = {'first_asset_amount': 10, 'second_asset_amount': 10, 'second_asset_type': 'DUM2', 'timeout': 3400}
         return self.do_request('market/bids', expected_code=400, request_type='PUT', post_data=post_data)
 
     @deferred(timeout=10)
@@ -223,7 +225,7 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertEqual(len(json_response['orders']), 1)
 
         self.session.lm.market_community.order_manager.create_ask_order(
-            Price(3, 'DUM1'), Quantity(4, 'DUM2'), Timeout(3600))
+            AssetPair(AssetAmount(3, 'DUM1'), AssetAmount(4, 'DUM2')), Timeout(3600))
 
         self.should_check_equality = False
         return self.do_request('market/orders', expected_code=200).addCallback(on_response)
@@ -250,7 +252,7 @@ class TestMarketEndpoint(AbstractApiTest):
         Test whether a 404 is returned when we try to cancel an order that does not exist
         """
         self.session.lm.market_community.order_manager.create_ask_order(
-            Price(3, 'DUM1'), Quantity(4, 'DUM2'), Timeout(3600))
+            AssetPair(AssetAmount(3, 'DUM1'), AssetAmount(4, 'DUM2')), Timeout(3600))
         self.should_check_equality = False
         return self.do_request('market/orders/1234/cancel', request_type='POST', expected_code=404)
 
@@ -260,7 +262,7 @@ class TestMarketEndpoint(AbstractApiTest):
         Test whether an error is returned when we try to cancel an order that has expired
         """
         order = self.session.lm.market_community.order_manager.create_ask_order(
-            Price(3, 'DUM1'), Quantity(4, 'DUM2'), Timeout(0))
+            AssetPair(AssetAmount(3, 'DUM1'), AssetAmount(4, 'DUM2')), Timeout(0))
         order.set_verified()
         self.session.lm.market_community.order_manager.order_repository.update(order)
         self.should_check_equality = False
@@ -272,7 +274,7 @@ class TestMarketEndpoint(AbstractApiTest):
         Test whether an error is returned when we try to cancel an order that has expired
         """
         order = self.session.lm.market_community.order_manager.create_ask_order(
-            Price(3, 'DUM1'), Quantity(4, 'DUM2'), Timeout(3600))
+            AssetPair(AssetAmount(3, 'DUM1'), AssetAmount(4, 'DUM2')), Timeout(3600))
 
         def on_response(response):
             json_response = json.loads(response)
