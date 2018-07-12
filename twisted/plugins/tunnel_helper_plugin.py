@@ -177,6 +177,7 @@ class Tunnel(object):
         config.set_market_community_enabled(False)
         config.set_mainline_dht_enabled(False)
         config.set_tunnel_community_exitnode_enabled(bool(self.options["exit"]))
+        config.set_popularity_community_enabled(False)
         config.set_testnet(bool(self.options["testnet"]))
 
         if self.options["restapi"] is not None:
