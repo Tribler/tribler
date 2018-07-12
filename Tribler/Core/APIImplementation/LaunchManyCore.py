@@ -243,15 +243,20 @@ class TriblerLaunchMany(TaskManager):
         if not self.session.config.get_dispersy_enabled():
             self.ipv8.strategies.append((RandomWalk(discovery_community), 20))
 
+        if self.session.config.get_testnet():
+            peer = Peer(self.session.trustchain_keypair)
+        else:
+            peer = Peer(self.session.trustchain_testnet_keypair)
+
         # TrustChain Community
         if self.session.config.get_trustchain_enabled():
-            from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
-            trustchain_peer = Peer(self.session.trustchain_keypair)
+            from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity, \
+                TrustChainTestnetCommunity
 
-            self.trustchain_community = TrustChainCommunity(trustchain_peer, self.ipv8.endpoint,
-                                                            self.ipv8.network,
-                                                            working_directory=self.session.config.get_state_dir(),
-                                                            testnet=self.session.config.get_trustchain_testnet())
+            community_cls = TrustChainTestnetCommunity if self.session.config.get_testnet() else TrustChainCommunity
+            self.trustchain_community = community_cls(peer, self.ipv8.endpoint,
+                                                      self.ipv8.network,
+                                                      working_directory=self.session.config.get_state_dir())
             self.ipv8.overlays.append(self.trustchain_community)
             self.ipv8.strategies.append((EdgeWalk(self.trustchain_community), 20))
 
@@ -260,28 +265,29 @@ class TriblerLaunchMany(TaskManager):
 
         # Tunnel Community
         if self.session.config.get_tunnel_community_enabled():
-            tunnel_peer = Peer(self.session.trustchain_keypair)
 
-            from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
-            self.tunnel_community = TriblerTunnelCommunity(tunnel_peer, self.ipv8.endpoint, self.ipv8.network,
-                                                           tribler_session=self.session,
-                                                           dht_provider=MainlineDHTProvider(
-                                                               self.mainline_dht,
-                                                               self.session.config.get_dispersy_port()),
-                                                           bandwidth_wallet=self.wallets["MB"])
+            from Tribler.community.triblertunnel.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
+            community_cls = TriblerTunnelTestnetCommunity if self.session.config.get_testnet() else \
+                TriblerTunnelCommunity
+            self.tunnel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
+                                                  tribler_session=self.session,
+                                                  dht_provider=MainlineDHTProvider(
+                                                      self.mainline_dht,
+                                                      self.session.config.get_dispersy_port()),
+                                                  bandwidth_wallet=self.wallets["MB"])
             self.ipv8.overlays.append(self.tunnel_community)
             self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
 
         # Market Community
         if self.session.config.get_market_community_enabled():
-            from Tribler.community.market.community import MarketCommunity
-            market_peer = Peer(self.session.trustchain_keypair)
+            from Tribler.community.market.community import MarketCommunity, MarketTestnetCommunity
 
-            self.market_community = MarketCommunity(market_peer, self.ipv8.endpoint, self.ipv8.network,
-                                                    tribler_session=self.session,
-                                                    trustchain=self.trustchain_community,
-                                                    wallets=self.wallets,
-                                                    working_directory=self.session.config.get_state_dir())
+            community_cls = MarketTestnetCommunity if self.session.config.get_testnet() else MarketCommunity
+            self.market_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
+                                                  tribler_session=self.session,
+                                                  trustchain=self.trustchain_community,
+                                                  wallets=self.wallets,
+                                                  working_directory=self.session.config.get_state_dir())
 
             self.ipv8.overlays.append(self.market_community)
 
@@ -291,9 +297,7 @@ class TriblerLaunchMany(TaskManager):
         if self.session.config.get_popularity_community_enabled():
             from Tribler.community.popularity.community import PopularityCommunity
 
-            local_peer = Peer(self.session.trustchain_keypair)
-
-            self.popularity_community = PopularityCommunity(local_peer, self.ipv8.endpoint, self.ipv8.network,
+            self.popularity_community = PopularityCommunity(peer, self.ipv8.endpoint, self.ipv8.network,
                                                             torrent_db=self.session.lm.torrent_db, session=self.session)
 
             self.ipv8.overlays.append(self.popularity_community)

@@ -134,8 +134,7 @@ class Session(object):
             permid_module.save_keypair(self.keypair, pair_filename)
             permid_module.save_pub_key(self.keypair, public_key_filename)
 
-        trustchain_pairfilename = self.config.get_trustchain_permid_keypair_filename()
-
+        trustchain_pairfilename = self.config.get_trustchain_keypair_filename()
         if os.path.exists(trustchain_pairfilename):
             self.trustchain_keypair = permid_module.read_keypair_trustchain(trustchain_pairfilename)
         else:
@@ -145,6 +144,17 @@ class Session(object):
             trustchain_pubfilename = os.path.join(self.config.get_state_dir(), 'ecpub_multichain.pem')
             permid_module.save_keypair_trustchain(self.trustchain_keypair, trustchain_pairfilename)
             permid_module.save_pub_key_trustchain(self.trustchain_keypair, trustchain_pubfilename)
+
+        trustchain_testnet_pairfilename = self.config.get_trustchain_testnet_keypair_filename()
+        if os.path.exists(trustchain_testnet_pairfilename):
+            self.trustchain_testnet_keypair = permid_module.read_keypair_trustchain(trustchain_testnet_pairfilename)
+        else:
+            self.trustchain_testnet_keypair = permid_module.generate_keypair_trustchain()
+
+            # Save keypair
+            trustchain_testnet_pubfilename = os.path.join(self.config.get_state_dir(), 'ecpub_trustchain_testnet.pem')
+            permid_module.save_keypair_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pairfilename)
+            permid_module.save_pub_key_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pubfilename)
 
     def unhandled_error_observer(self, event):
         """

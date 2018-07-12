@@ -56,6 +56,7 @@ class Options(usage.Options):
     optFlags = [
         ["auto-join-channel", "a", "Automatically join a channel when discovered"],
         ["log-incoming-searches", "i", "Write information about incoming remote searches to a file"],
+        ["testnet", "t", "Join the testnet"]
     ]
 
 
@@ -128,6 +129,9 @@ class TriblerServiceMaker(object):
 
         if options["ipv8_bootstrap_override"] is not None:
             config.set_ipv8_bootstrap_override(options["ipv8_bootstrap_override"])
+
+        if "testnet" in options and options["testnet"]:
+            config.set_testnet(True)
 
         self.session = Session(config)
         self.session.start().addErrback(lambda failure: self.shutdown_process(failure.getErrorMessage()))

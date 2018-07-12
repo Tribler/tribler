@@ -24,6 +24,10 @@ from Tribler.pyipv8.ipv8.peer import Peer
 
 
 class TriblerTunnelCommunity(HiddenTunnelCommunity):
+    """
+    This community is built upon the anonymous messaging layer in IPv8.
+    It adds support for libtorrent anonymous downloads and bandwidth token payout when closing circuits.
+    """
     master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000407df3e6d69794baa5590617b729ebea421d82bb02"
                        "e70fb2dcc91111f636a591d37a5af44becae32467e840be09e7a85d28e4ec4074776d97a1cf479eeff7f040a6852a"
                        "bddbe275a1047614ee9b4a74c172b1ab454f4b26119fa3207914b018d7379d0b8beef96625a41327450d51aa63a2b"
@@ -508,3 +512,13 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             yield socks_server.stop()
 
         super(TriblerTunnelCommunity, self).unload()
+
+
+class TriblerTunnelTestnetCommunity(TriblerTunnelCommunity):
+    """
+    This community defines a testnet for the anonymous tunnels.
+    """
+    master_peer = Peer("3081a7301006072a8648ce3d020106052b810400270381920004002831990fc973aaf5a8f5bd401f8771fd411d763"
+                       "0ccc4a61c4147a1200135023a2397006e0acb215783cc0245bbc69ebe66abdd13f1fa3434c630604ef2c0d99e5f98"
+                       "727e75ae7901529ba5a2dd875bab582f3f508aa7b675c9d9bd7fd6c2e2684c7fc71b72f007e080634cecf007b718f"
+                       "5cf24d24821cd08feb30d3f3059c7702615ea6f8b23823415bd1673c406e1".decode('hex'))
