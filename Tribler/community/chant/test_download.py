@@ -6,25 +6,15 @@ from twisted.internet.task import deferLater
 from Tribler.Test.twisted_thread import reactor
 import time
 
-import Tribler.community.chant.testtools as tt
+from Tribler.community.chant.testtools import LoadGspFromDisk
 from Tribler.community.chant.MDPackXDR import REGULAR_TORRENT
 from Tribler.community.chant.chant import *
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.chant.orm import start_orm, db
-from datetime import datetime
 from Tribler.Core.simpledefs import NTFY_TORRENT, NTFY_FINISHED
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
-
-import shutil
-
-@db_session
-def LoadGspFromDisk(filename):
-    with open(filename) as f:
-        gsp = deserialize_metadata_gossip(f.read())
-    now = datetime.utcnow()
-    return MetadataGossip(addition_timestamp=now, **gsp)
 
 class TestChant(TestAsServer):
 
@@ -32,6 +22,7 @@ class TestChant(TestAsServer):
         super(TestChant, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
         self.config.set_megacache_enabled(True)
+        self.config.get
 
     def setUp(self):
         super(TestChant, self).setUp()

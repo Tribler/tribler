@@ -148,3 +148,15 @@ class TestChant(TestAsServer):
         self.assertEqual(5, len(Search("tag1")))
         self.assertEqual(1, len(Search("Regular AND Torrent1")))
         self.assertEqual(2, len(Search("Torrent1 OR Torrent2")))
+
+    @db_session
+    def TestFtsWithType(self):
+        chan = self.CreateChanSnippet()
+
+        def Search(query, type):
+            return MetadataGossip.search_keyword(query, type)[:]
+
+        self.assertEqual(5, len(Search("tag1", REGULAR_TORRENT)))
+        self.assertEqual(0, len(Search("tag1", CHANNEL_TORRENT)))
+        self.assertEqual(1, len(Search("Channel", CHANNEL_TORRENT)))
+        self.assertEqual(0, len(Search("Channel", REGULAR_TORRENT)))

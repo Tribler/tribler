@@ -72,11 +72,15 @@ class MetadataGossip(db.Entity):
         self.signature = md["signature"]
 
     @classmethod
-    def search_keyword(cls, query):
+    def search_keyword(cls, query, type=None, lim=100):
         # Requires FTS4 table "FtsIndex" to be generated and populated.
         # FTS table is maintained automatically by SQL triggers.
+
         sql_search_fts = 'rowid IN (SELECT rowid FROM FtsIndex WHERE \
-            FtsIndex MATCH $query)'
+            FtsIndex MATCH $query LIMIT $lim)'
+        if type:
+            sql_search_fts = 'type = {type} AND '.format(type=type) +\
+                sql_search_fts
         q = MetadataGossip.select(lambda x: raw_sql(sql_search_fts))
         return q[:]
 

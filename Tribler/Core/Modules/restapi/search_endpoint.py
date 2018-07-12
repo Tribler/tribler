@@ -6,6 +6,7 @@ from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, \
     SIGNAL_CHANNEL
 import Tribler.Core.Utilities.json_util as json
+from Tribler.community.chant import chant
 
 
 class SearchEndpoint(resource.Resource):
@@ -69,23 +70,31 @@ class SearchEndpoint(resource.Resource):
         # We first search the local database for torrents and channels
         query = unicode(request.args['q'][0], 'utf-8')
         keywords = split_into_keywords(query)
-        results_local_channels = self.channel_db_handler.search_in_local_channels_db(query)
+
+        #TODO: use a unified request for ORM-style queries into both channels and torrents
+        #TODO: use direct results dict from ORM instead of list
+        results_local_channels = chant.search_local_channels(query)
+        #results_local_channels = self.channel_db_handler.search_in_local_channels_db(query)
+        #results_local_channels.extend(results_local_channels_old)
+
         results_dict = {"keywords": keywords, "result_list": results_local_channels}
         self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
+        #torrent_db_columns = ['T.torrent_id', 'infohash', 'T.name', 'length', 'category',
+        #                      'num_seeders', 'num_leechers', 'last_tracker_check']
+        #results_local_torrents = self.torrent_db_handler.search_in_local_torrents_db(query, keys=torrent_db_columns)
 
-        torrent_db_columns = ['T.torrent_id', 'infohash', 'T.name', 'length', 'category',
-                              'num_seeders', 'num_leechers', 'last_tracker_check']
-        results_local_torrents = self.torrent_db_handler.search_in_local_torrents_db(query, keys=torrent_db_columns)
+        results_local_torrents = chant.search_local_torrents(query)
         results_dict = {"keywords": keywords, "result_list": results_local_torrents}
         self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
 
+        """
         # Create remote searches
         try:
             self.session.search_remote_torrents(keywords)
             self.session.search_remote_channels(keywords)
         except OperationNotEnabledByConfigurationException as exc:
             self._logger.error(exc)
-
+        """
         return json.dumps({"queried": True})
 
 
@@ -126,5 +135,6 @@ class SearchCompletionsEndpoint(resource.Resource):
             return json.dumps({"error": "query parameter missing"})
 
         keywords = unicode(request.args['q'][0], 'utf-8').lower()
-        results = self.torrent_db_handler.getAutoCompleteTerms(keywords, max_terms=5)
+        #results = self.torrent_db_handler.getAutoCompleteTerms(keywords, max_terms=5)
+        results = chant.getAutoCompleteTerms(keywords, max_terms=5)
         return json.dumps({"completions": results})

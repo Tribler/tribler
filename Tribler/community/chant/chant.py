@@ -153,3 +153,71 @@ def list_channel(channel):
                          g.public_key == channel.public_key and
                          g.type == REGULAR_TORRENT)[:]
     return md_list
+
+@db_session
+def search_local_channels(query):
+    from time import mktime
+    results_list = MetadataGossip.search_keyword(query, CHANNEL_TORRENT)
+    # Format:
+    #  0 |       1      |   2  |       3     |       4     |  5          |   6      |     7    |         |     8           |
+    # id | dispersy_cid | name | description | nr_torrents | nr_favorite | nr_spam  | modified | my_vote | relevance_score |
+    search_results = []
+
+    for r in results_list:
+        favorite = 1
+        my_vote = 0
+        spam = 0
+        relevance = 0.9
+        unix_timestamp = r.torrent_date
+        entry = (r.rowid, str(r.public_key), r.title, r.tags, int(r.size), favorite, spam , unix_timestamp, my_vote, relevance)
+        search_results.append(entry)
+
+    return search_results
+
+@db_session
+def search_local_torrents(query):
+    results_list = MetadataGossip.search_keyword(query, REGULAR_TORRENT)
+    search_results = []
+
+    for r in results_list:
+        favorite = 1
+        my_vote = 0
+        spam = 0
+        relevance = 0.9
+        unix_timestamp = r.torrent_date
+        seeders = 0
+        leechers = 0
+        last_tracker_check = 0
+        category = r.tags.split(".")[0]
+        infohash = str(r.infohash)
+        entry = (r.rowid, infohash, r.title, int(r.size), category, seeders, leechers, last_tracker_check, None, relevance)
+        search_results.append(entry)
+
+    return search_results
+
+
+def getAutoCompleteTerms(keyword, max_terms, limit=100):
+    #FIXME: kinda works, but far from perfect
+    with db_session:
+        result = MetadataGossip.search_keyword(keyword+"*", lim=limit)
+        titles = [g.title.lower() for g in result]
+
+    #Totally copy-pasted from the old DBHandler
+    all_terms = set()
+    for line in titles:
+        if len(all_terms) >= max_terms:
+            break
+        i1 = line.find(keyword)
+        i2 = line.find(' ', i1 + len(keyword))
+        all_terms.add(line[i1:i2] if i2 >= 0 else line[i1:])
+
+    if keyword in all_terms:
+        all_terms.remove(keyword)
+    if '' in all_terms:
+        all_terms.remove('')
+
+    return list(all_terms)
+
+
+
+
