@@ -3,7 +3,8 @@ import string
 from unittest import TestCase
 
 from Tribler.community.popularity.payload import SearchResponsePayload, SearchResponseItemPayload, ContentInfoRequest, \
-    Pagination, ContentInfoResponse, ContentSubscription, TorrentHealthPayload, ChannelHealthPayload
+    Pagination, ContentInfoResponse, ContentSubscription, TorrentHealthPayload, ChannelHealthPayload, \
+    TorrentInfoResponsePayload
 from Tribler.pyipv8.ipv8.messaging.serialization import Serializer
 
 
@@ -71,6 +72,29 @@ class TestSerializer(TestCase):
         self.assertEqual(num_torrents, deserialized_payload.num_torrents)
         self.assertEqual(swarm_size_sum, deserialized_payload.swarm_size_sum)
         self.assertEqual(timestamp, deserialized_payload.timestamp)
+
+    def test_torrent_info_response_payload_for_default_values(self):
+        """ Test serialization/deserialization of Torrent health info response payload for default values. """
+        infohash = 'a' * 20
+        name = None
+        length = None
+        creation_date = None
+        num_files = None
+        comment = None
+
+        health_payload = TorrentInfoResponsePayload(infohash, name, length, creation_date, num_files, comment)
+        serialized = self.serializer.pack_multiple(health_payload.to_pack_list())
+
+        # Deserialize and test it
+        (deserialized, _) = self.serializer.unpack_multiple(TorrentInfoResponsePayload.format_list, serialized)
+        deserialized_payload = TorrentInfoResponsePayload.from_unpack_list(*deserialized)
+
+        self.assertEqual(infohash, deserialized_payload.infohash)
+        self.assertEqual('', deserialized_payload.name)
+        self.assertEqual(0, deserialized_payload.length)
+        self.assertEqual(0, deserialized_payload.creation_date)
+        self.assertEqual(0, deserialized_payload.num_files)
+        self.assertEqual('', deserialized_payload.comment)
 
     def test_search_result_payload_serialization(self):
         """ Test serialization & deserialization of search payload """
