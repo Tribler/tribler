@@ -187,14 +187,24 @@ class TriblerConfig(object):
             self.set_permid_keypair_filename(file_name)
         return file_name
 
-    def set_trustchain_permid_keypair_filename(self, keypairfilename):
+    def set_trustchain_keypair_filename(self, keypairfilename):
         self.config['trustchain']['ec_keypair_filename'] = keypairfilename
 
-    def get_trustchain_permid_keypair_filename(self):
+    def get_trustchain_keypair_filename(self):
         file_name = self.config['trustchain']['ec_keypair_filename']
         if not file_name:
             file_name = os.path.join(self.get_state_dir(), 'ec_multichain.pem')
-            self.set_trustchain_permid_keypair_filename(file_name)
+            self.set_trustchain_keypair_filename(file_name)
+        return file_name
+
+    def set_trustchain_testnet_keypair_filename(self, keypairfilename):
+        self.config['trustchain']['testnet_keypair_filename'] = keypairfilename
+
+    def get_trustchain_testnet_keypair_filename(self):
+        file_name = self.config['trustchain']['testnet_keypair_filename']
+        if not file_name:
+            file_name = os.path.join(self.get_state_dir(), 'ec_trustchain_testnet.pem')
+            self.set_trustchain_testnet_keypair_filename(file_name)
         return file_name
 
     def set_trustchain_enabled(self, value):
@@ -208,12 +218,6 @@ class TriblerConfig(object):
 
     def get_trustchain_live_edges_enabled(self):
         return self.config['trustchain']['live_edges_enabled']
-
-    def set_trustchain_testnet(self, value):
-        self.config['trustchain']['testnet'] = value
-
-    def get_trustchain_testnet(self):
-        return self.config['trustchain']['testnet']
 
     def set_megacache_enabled(self, value):
         self.config['general']['megacache'] = value
@@ -233,6 +237,12 @@ class TriblerConfig(object):
     def get_log_dir(self):
         log_dir = self.config['general']['log_dir']
         return os.path.join(self.get_state_dir(), 'logs') if (not log_dir or log_dir == 'None') else log_dir
+
+    def set_testnet(self, value):
+        self.config['general']['testnet'] = value
+
+    def get_testnet(self):
+        return self.config['general']['testnet']
 
     # Torrent checking
 

@@ -114,17 +114,26 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_permid_keypair_filename("TEST")
         self.assertEqual(self.tribler_config.get_permid_keypair_filename(), "TEST")
 
-        self.tribler_config.set_trustchain_permid_keypair_filename(None)
-        self.assertEqual(self.tribler_config.get_trustchain_permid_keypair_filename(),
+        self.tribler_config.set_trustchain_keypair_filename(None)
+        self.assertEqual(self.tribler_config.get_trustchain_keypair_filename(),
                          os.path.join("TEST", "ec_multichain.pem"))
-        self.tribler_config.set_trustchain_permid_keypair_filename("TEST")
-        self.assertEqual(self.tribler_config.get_trustchain_permid_keypair_filename(), "TEST")
+        self.tribler_config.set_trustchain_keypair_filename("TEST")
+        self.assertEqual(self.tribler_config.get_trustchain_keypair_filename(), "TEST")
+
+        self.tribler_config.set_trustchain_testnet_keypair_filename(None)
+        self.assertEqual(self.tribler_config.get_trustchain_testnet_keypair_filename(),
+                         os.path.join("TEST", "ec_trustchain_testnet.pem"))
+        self.tribler_config.set_trustchain_testnet_keypair_filename("TEST")
+        self.assertEqual(self.tribler_config.get_trustchain_testnet_keypair_filename(), "TEST")
 
         self.tribler_config.set_megacache_enabled(True)
         self.assertEqual(self.tribler_config.get_megacache_enabled(), True)
 
         self.tribler_config.set_video_analyser_path(True)
         self.assertEqual(self.tribler_config.get_video_analyser_path(), True)
+
+        self.tribler_config.set_testnet(True)
+        self.assertTrue(self.tribler_config.get_testnet())
 
     def test_get_set_methods_torrent_checking(self):
         """

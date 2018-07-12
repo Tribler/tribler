@@ -83,7 +83,7 @@ check_ipv8_bootstrap_override.coerceDoc = "IPv8 bootstrap server address must be
 class Options(usage.Options):
     optFlags = [
         ["exit", "x", "Allow being an exit-node"],
-        ["testnet", "t", "Join the TrustChain testnet"]
+        ["testnet", "t", "Join the testnet"]
     ]
 
     optParameters = [
@@ -177,7 +177,7 @@ class Tunnel(object):
         config.set_market_community_enabled(False)
         config.set_mainline_dht_enabled(False)
         config.set_tunnel_community_exitnode_enabled(bool(self.options["exit"]))
-        config.set_trustchain_testnet(bool(self.options["testnet"]))
+        config.set_testnet(bool(self.options["testnet"]))
 
         if self.options["restapi"] is not None:
             config.set_http_api_enabled(True)

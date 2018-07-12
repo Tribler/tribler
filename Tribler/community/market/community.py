@@ -129,6 +129,7 @@ class MarketCommunity(Community, BlockListener):
                        "85e3cd472537c49f5744abb74bde47801ca4fb28bf97c4019681497238f34".decode('hex'))
     PROTOCOL_VERSION = 1
     BLOCK_CLASS = MarketBlock
+    DB_NAME = 'market'
 
     def __init__(self, *args, **kwargs):
         self.is_matchmaker = kwargs.pop('is_matchmaker', True)
@@ -147,7 +148,7 @@ class MarketCommunity(Community, BlockListener):
         self.mid = self.my_peer.mid.encode('hex')
         self.mid_register = {}
         self.order_book = None
-        self.market_database = MarketDB(db_working_dir, 'market')
+        self.market_database = MarketDB(db_working_dir, self.DB_NAME)
         self.matching_engine = None
         self.incoming_match_messages = {}  # Map of TraderId -> Message (we save all incoming matches)
         self.transaction_manager = None
@@ -1597,3 +1598,14 @@ class MarketCommunity(Community, BlockListener):
         """
         rep_manager = TemporalPagerankReputationManager(self.trustchain.persistence.get_all_blocks())
         self.reputation_dict = rep_manager.compute(self.my_peer.public_key.key_to_bin())
+
+
+class MarketTestnetCommunity(MarketCommunity):
+    """
+    This community defines a testnet for the market.
+    """
+    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000406aeac19f997920c42f80455aeccfb9a60eba6c"
+                       "f09dfa7dc747efe9a74e85552f656bb918b0000c13cf2ad39cdec3e950bd011657fd49dcf5af2273f3ed09019fc"
+                       "443ad5d2ecc41f02f88458880e0ce680b34367ee68d708b873d60f994a0d3c97585d3d4dd489a8071ebb89acdac"
+                       "67107726b87135169d94909885ae4057c32b974de000d8e875a43d413d685079178".decode('hex'))
+    DB_NAME = 'market_testnet'

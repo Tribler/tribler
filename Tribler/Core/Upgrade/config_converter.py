@@ -152,7 +152,7 @@ def add_libtribler_config(new_config, old_config):
             elif section == "tunnel_community" and name == "exitnode_enabled":
                 temp_config.set_tunnel_community_exitnode_enabled(value)
             elif section == "general" and name == "ec_keypair_filename_multichain":
-                temp_config.set_trustchain_permid_keypair_filename(value)
+                temp_config.set_trustchain_keypair_filename(value)
             elif section == "metadata" and name == "enabled":
                 temp_config.set_metadata_enabled(value)
             elif section == "metadata" and name == "store_dir":
