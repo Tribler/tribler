@@ -258,13 +258,15 @@ class DownloadsPage(QWidget):
         return status != DLSTATUS_METADATA and status != DLSTATUS_HASHCHECKING and status != DLSTATUS_WAITING4HASHCHECK
 
     def on_download_item_clicked(self):
-        self.window().download_details_widget.show()
         if len(self.window().downloads_list.selectedItems()) == 0:
             self.window().play_download_button.setEnabled(False)
             self.window().remove_download_button.setEnabled(False)
             self.window().start_download_button.setEnabled(False)
             self.window().stop_download_button.setEnabled(False)
+            self.window().download_details_widget.hide()
             return
+        else:
+            self.window().download_details_widget.show()
 
         self.selected_item = self.window().downloads_list.selectedItems()[0]
         self.window().play_download_button.setEnabled(True)
