@@ -73,13 +73,15 @@ def update_channel(key, old_channel, channels_dir, add_list=None, remove_list=No
     return new_channel
 
 
+@db_session
 def create_channel(key, title, channels_dir, buf_list=None, add_list=None, version=0, tags=""):
     if not add_list:
         add_list = []
     if not buf_list:
         buf_list = []
     buf_list.extend([e.serialized() for e in add_list])
-    (infohash, version) = create_channel_torrent(channels_dir, title,
+    channel_dirname = str(key.pub().key_to_bin()).encode("hex")
+    (infohash, version) = create_channel_torrent(channels_dir, channel_dirname,
                                                 buf_list, version)
 
     #print str(infohash).encode("hex")
@@ -154,8 +156,13 @@ def list_channel(channel):
     return md_list
 
 @db_session
-def get_channel_info(cid):
+def get_channel(cid):
     return MetadataGossip.get(public_key=cid, type=CHANNEL_TORRENT)
+
+@db_session
+def get_channel_dict(cid):
+    chan = get_channel(cid)
+    return chan.to_dict() if chan else None
 
 @db_session
 def search_local_channels(query):

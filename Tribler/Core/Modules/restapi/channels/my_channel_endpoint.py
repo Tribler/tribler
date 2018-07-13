@@ -3,6 +3,7 @@ from twisted.web import http
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.util import get_parameter
 import Tribler.Core.Utilities.json_util as json
+from Tribler.community.chant import chant
 
 NO_CHANNEL_CREATED_RESPONSE_MSG = "your channel has not been created"
 
@@ -39,15 +40,17 @@ class MyChannelEndpoint(BaseChannelsEndpoint):
 
             :statuscode 404: if your channel has not been created (yet).
         """
-        my_channel_id = self.channel_db_handler.getMyChannelId()
-        if my_channel_id is None:
+
+        my_channel_id = self.session.trustchain_keypair.pub().key_to_bin()
+        my_channel = chant.get_channel_dict(my_channel_id)
+
+        if my_channel is None:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": NO_CHANNEL_CREATED_RESPONSE_MSG})
 
-        my_channel = self.channel_db_handler.getChannel(my_channel_id)
-
-        return json.dumps({'mychannel': {'identifier': my_channel[1].encode('hex'), 'name': my_channel[2],
-                                         'description': my_channel[3]}})
+        return json.dumps({'mychannel': {'identifier': my_channel["public_key"].encode('hex'),
+                                         'name': my_channel["title"],
+                                         'description': my_channel["tags"]}})
 
     def render_POST(self, request):
         """
@@ -73,18 +76,18 @@ class MyChannelEndpoint(BaseChannelsEndpoint):
 
             :statuscode 404: if your channel has not been created (yet).
         """
-        my_channel_id = self.channel_db_handler.getMyChannelId()
-        if my_channel_id is None:
-            request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": NO_CHANNEL_CREATED_RESPONSE_MSG})
+        key = self.session.trustchain_keypair
+        my_channel_id = key.pub().key_to_bin()
+        my_channel = chant.get_channel_dict(my_channel_id)
 
-        channel_community = self.get_community_for_channel_id(my_channel_id)
-        if channel_community is None:
-            return BaseChannelsEndpoint.return_404(request,
-                                                   message="the community for the your channel cannot be found")
+        channels_seeding_dir = os.path.join(self.session.config.get_state_dir(), "channels")
+
+        #my_channel_id = self.channel_db_handler.getMyChannelId()
+        #if my_channel_id is None:
+        #    request.setResponseCode(http.NOT_FOUND)
+        #   return json.dumps({"error": NO_CHANNEL_CREATED_RESPONSE_MSG})
 
         parameters = http.parse_qs(request.content.read(), 1)
-        my_channel = self.channel_db_handler.getChannel(my_channel_id)
 
         if not get_parameter(parameters, 'name'):
             request.setResponseCode(http.BAD_REQUEST)
@@ -96,6 +99,9 @@ class MyChannelEndpoint(BaseChannelsEndpoint):
         if my_channel[3] != get_parameter(parameters, 'description'):
             changes['description'] = unicode(get_parameter(parameters, 'description'), 'utf-8')
 
-        channel_community.modifyChannel(changes)
+        md_list = chant.get
+
+        chant.create_channel(key, my_channel["title"], channels_seeding_dir,   )
+        #channel_community.modifyChannel(changes)
 
         return json.dumps({'modified': True})

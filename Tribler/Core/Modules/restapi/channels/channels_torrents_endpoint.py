@@ -69,7 +69,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
 
         chant_results = []
         with db_session:
-            channel = chant.get_channel_info(self.cid)
+            channel = chant.get_channel(self.cid)
             if channel:
                 channel_contents = chant.list_channel(channel)
                 chant_results = [chant.md2rest(md) for md in channel_contents]
