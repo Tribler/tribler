@@ -9,11 +9,13 @@ import os
 from pony import orm
 from pony.orm import db_session
 
+# FIXME global vars! shadowing!
 crypto = ECCrypto()
 key = crypto.generate_key('curve25519')
 public_key = key.pub().key_to_bin()
 
-def get_regular_md_dict(n=1):
+def get_regular_md_dict(n=1, key_loc=None):
+    key_loc = key_loc or key
     template = {"type": REGULAR_TORRENT,
                 "infohash"     : str(n).zfill(40).decode("hex"),
                 "title"        : "Regular Torrent" + str(n),
@@ -22,7 +24,7 @@ def get_regular_md_dict(n=1):
                 "timestamp"    : datetime.datetime(2005, 7, 14, 12, 30),
                 "torrent_date" : datetime.datetime(2005, 7, 14, 12, 30),
                 "tc_pointer"   : long(0),
-                "public_key"   : key.pub().key_to_bin()}
+                "public_key"   : key_loc.pub().key_to_bin()}
     return template
 
 
@@ -58,11 +60,9 @@ def create_sample_db(db_filename, chans=10, chansize=100):
             key = crypto.generate_key('curve25519')
             public_key = key.pub().key_to_bin()
             md_list = []
-            for md_dict in [get_regular_md_dict(n) for n in xrange(startnum, startnum+chansize)]:
+            for md_dict in [get_regular_md_dict(n, key) for n in xrange(startnum, startnum+chansize)]:
                 md_list.append(create_metadata_gossip(key=key, md_dict=md_dict))
             title = "Test chan " + str(startnum)
             chan = create_channel(key, title, channels_dir,
                     add_list=md_list, tags="tchan chn" + str(startnum))
-    
-
 

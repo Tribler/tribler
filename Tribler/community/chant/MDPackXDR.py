@@ -14,7 +14,10 @@ def serialize_metadata_gossip(md, key=None):
     p = xdrlib.Packer()
 
     p.pack_int(md["type"])
-    p.pack_opaque(md["public_key"])
+    if key:
+        p.pack_opaque(key.pub().key_to_bin())
+    else:
+        p.pack_opaque(md["public_key"])
     p.pack_double(time2float(md["timestamp"]))
     p.pack_uhyper(md["tc_pointer"])  # TrustChain pointer
     if md["type"] == MD_DELETE:

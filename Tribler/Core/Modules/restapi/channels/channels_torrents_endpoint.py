@@ -11,6 +11,9 @@ from Tribler.Core.exceptions import DuplicateTorrentFileError, HttpError
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.utilities import http_get
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.community.chant import chant
+from pony.orm import db_session
+from Tribler.community.chant.orm import MetadataGossip
 
 UNKNOWN_TORRENT_MSG = "this torrent is not found in the specified channel"
 UNKNOWN_COMMUNITY_MSG = "the community for the specified channel cannot be found"
@@ -62,20 +65,32 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
 
             :statuscode 404: if the specified channel cannot be found.
         """
-        channel_info = self.get_channel_from_db(self.cid)
-        if channel_info is None:
-            return ChannelsTorrentsEndpoint.return_404(request)
 
-        torrent_db_columns = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
-                              'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.inserted']
-        results_local_torrents_channel = self.channel_db_handler\
-            .getTorrentsFromChannelId(channel_info[0], True, torrent_db_columns)
+
+        chant_results = []
+        with db_session:
+            channel = chant.get_channel_info(self.cid)
+            if channel:
+                channel_contents = chant.list_channel(channel)
+                chant_results = [chant.md2rest(md) for md in channel_contents]
+
+        channel_info = self.get_channel_from_db(self.cid)
+        if (channel_info is None) and (channel is None):
+            return ChannelsTorrentsEndpoint.return_404(request)
 
         should_filter = self.session.config.get_family_filter_enabled()
         if 'disable_filter' in request.args and len(request.args['disable_filter']) > 0 \
                 and request.args['disable_filter'][0] == "1":
             should_filter = False
 
+        results_local_torrents_channel = []
+        if channel_info is not None:
+            torrent_db_columns = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
+                                  'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.inserted']
+            results_local_torrents_channel = self.channel_db_handler\
+                .getTorrentsFromChannelId(channel_info[0], True, torrent_db_columns)
+
+        results_local_torrents_channel.extend(chant_results)
         results_json = []
         for torrent_result in results_local_torrents_channel:
             torrent_json = convert_db_torrent_to_json(torrent_result)
@@ -148,6 +163,7 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
         self.cid = cid
         self.path = path
         self.deferred = Deferred()
+        self.chant_channel = (len(cid) != 20)
 
     def render_PUT(self, request):
         """
@@ -174,7 +190,14 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
             :statuscode 404: if your channel does not exist.
             :statuscode 500: if the specified torrent is already in your channel.
         """
-        channel = self.get_channel_from_db(self.cid)
+
+        if self.chant_channel:
+            channel = self.session.trustchain_keypair.pub().key_to_bin() == self.cid
+            print str(self.cid).encode("hex")
+            print str(self.session.trustchain_keypair.pub().key_to_bin()).encode("hex")
+        else:
+            channel = self.get_channel_from_db(self.cid)
+
         if channel is None:
             return BaseChannelsEndpoint.return_404(request)
 
@@ -193,7 +216,10 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
 
         @blocking_call_on_reactor_thread
         def _on_torrent_def_loaded(torrent_def):
-            self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
+            if self.chant_channel:
+                chant.create_metadata_gossip_from_tdef(self.session.trustchain_keypair, torrent_def, extra_info)
+            else:
+                self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
             return self.path
 
         def _on_added(added):

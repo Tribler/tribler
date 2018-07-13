@@ -24,16 +24,12 @@ class EditChannelPage(QWidget):
     This class is responsible for managing lists and data on the your channel page, including torrents, playlists
     and rss feeds.
     """
-    playlists_loaded = pyqtSignal(object)
 
     def __init__(self):
         QWidget.__init__(self)
 
         self.remove_torrent_requests = []
         self.channel_overview = None
-        self.playlists = None
-        self.editing_playlist = None
-        self.viewing_playlist = None
         self.editing_own_channel = False
         self.dialog = None
         self.editchannel_request_mgr = None
@@ -54,15 +50,6 @@ class EditChannelPage(QWidget):
         self.window().edit_channel_torrents_remove_all_button.clicked.connect(self.on_torrents_remove_all_clicked)
         self.window().edit_channel_torrents_add_button.clicked.connect(self.on_torrents_add_clicked)
 
-        self.window().edit_channel_details_playlist_manage.playlist_saved.connect(self.load_channel_playlists)
-
-        self.window().edit_channel_playlist_torrents_back.clicked.connect(self.on_playlist_torrents_back_clicked)
-        self.window().edit_channel_playlists_list.itemClicked.connect(self.on_playlist_item_clicked)
-        self.window().edit_channel_playlist_manage_torrents_button.clicked.connect(self.on_playlist_manage_clicked)
-        self.window().edit_channel_create_playlist_button.clicked.connect(self.on_playlist_created_clicked)
-
-        self.window().playlist_edit_save_button.clicked.connect(self.on_playlist_edit_save_clicked)
-        self.window().playlist_edit_cancel_button.clicked.connect(self.on_playlist_edit_cancel_clicked)
 
         self.window().edit_channel_details_rss_feeds_remove_selected_button.clicked.connect(
             self.on_rss_feeds_remove_selected_clicked)
@@ -108,7 +95,6 @@ class EditChannelPage(QWidget):
 
         self.window().edit_channel_settings_button.setHidden(not edit_own)
         self.window().edit_channel_rss_feeds_button.setHidden(not edit_own)
-        self.window().edit_channel_playlists_button.setHidden(not edit_own)
 
         self.window().edit_channel_torrents_remove_all_button.setHidden(not edit_own)
         self.window().edit_channel_torrents_remove_selected_button.setHidden(not edit_own)
@@ -488,9 +474,6 @@ class EditChannelPage(QWidget):
         elif tab_button_name == "edit_channel_torrents_button":
             self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_TORRENTS)
             self.load_channel_torrents()
-        elif tab_button_name == "edit_channel_playlists_button":
-            self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_PLAYLISTS)
-            self.load_channel_playlists()
         elif tab_button_name == "edit_channel_rss_feeds_button":
             self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_RSS_FEEDS)
             self.load_channel_rss_feeds()

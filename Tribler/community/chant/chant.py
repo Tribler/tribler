@@ -94,11 +94,10 @@ def create_channel(key, title, channels_dir, buf_list=None, add_list=None, versi
                                  "timestamp": now,
                                  "version": version,
                                  "torrent_date": now,
-                                 "tc_pointer": 0,
-                                 "public_key": key.pub().key_to_bin()})
+                                 "tc_pointer": 0})
     return md
 
-
+@db_session
 def create_metadata_gossip(key, md_dict):
     serialize_metadata_gossip(md_dict, key)
     md = MetadataGossip(**md_dict)
@@ -155,6 +154,10 @@ def list_channel(channel):
     return md_list
 
 @db_session
+def get_channel_info(cid):
+    return MetadataGossip.get(public_key=cid, type=CHANNEL_TORRENT)
+
+@db_session
 def search_local_channels(query):
     from time import mktime
     results_list = MetadataGossip.search_keyword(query, CHANNEL_TORRENT)
@@ -179,21 +182,23 @@ def search_local_torrents(query):
     results_list = MetadataGossip.search_keyword(query, REGULAR_TORRENT)
     search_results = []
 
-    for r in results_list:
-        favorite = 1
-        my_vote = 0
-        spam = 0
-        relevance = 0.9
-        unix_timestamp = r.torrent_date
-        seeders = 0
-        leechers = 0
-        last_tracker_check = 0
-        category = r.tags.split(".")[0]
-        infohash = str(r.infohash)
-        entry = (r.rowid, infohash, r.title, int(r.size), category, seeders, leechers, last_tracker_check, None, relevance)
-        search_results.append(entry)
+    for entry in results_list:
+        search_results.append(md2rest(entry))
 
     return search_results
+
+def md2rest(md):
+    favorite = 1
+    my_vote = 0
+    spam = 0
+    relevance = 0.9
+    unix_timestamp = md.torrent_date
+    seeders = 0
+    leechers = 0
+    last_tracker_check = 0
+    category = md.tags.split(".")[0]
+    infohash = str(md.infohash)
+    return (md.rowid, infohash, md.title, int(md.size), category, seeders, leechers, last_tracker_check, None, relevance)
 
 
 def getAutoCompleteTerms(keyword, max_terms, limit=100):
@@ -217,6 +222,25 @@ def getAutoCompleteTerms(keyword, max_terms, limit=100):
         all_terms.remove('')
 
     return list(all_terms)
+
+
+def create_metadata_gossip_from_tdef(key, tdef, extra_info=None):
+    extra_info = extra_info or {}
+    version = 0
+    tc_pointer = 0
+    now = datetime.utcnow()
+    torrent_date = datetime.fromtimestamp(tdef.get_creation_date())
+    md = create_metadata_gossip(key,
+                                {"type": REGULAR_TORRENT,
+                                 "infohash": tdef.get_infohash(),
+                                 "title": tdef.get_name_as_unicode(),
+                                 "tags": extra_info.get('description', ''),
+                                 "size": tdef.get_length(),
+                                 "timestamp": now,
+                                 "version": version,
+                                 "torrent_date": torrent_date,
+                                 "tc_pointer": tc_pointer})
+    return md
 
 
 
