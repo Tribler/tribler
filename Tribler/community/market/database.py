@@ -110,8 +110,8 @@ CREATE TABLE IF NOT EXISTS orders(
   PRIMARY KEY(trader_id)
  );
 
-CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
-INSERT INTO option(key, value) VALUES('database_version', '""" + str(LATEST_DB_VERSION) + u"""');
+CREATE TABLE IF NOT EXISTS option(key TEXT PRIMARY KEY, value BLOB);
+INSERT OR REPLACE INTO option(key, value) VALUES('database_version', '""" + str(LATEST_DB_VERSION) + u"""');
 """
 
 
@@ -320,16 +320,13 @@ class MarketDB(TrustChainDB):
         return super(MarketDB, self).open(initial_statements, prepare_visioning)
 
     def get_upgrade_script(self, current_version):
-        if current_version == 1:
-            return u"ALTER TABLE orders ADD COLUMN verified INTEGER DEFAULT 1 NOT NULL;" \
-                   u"UPDATE option SET value=\"2\" WHERE key = \"database_version\";" \
-                   u"ALTER TABLE ticks ADD COLUMN block_hash TEXT DEFAULT %s NOT NULL;" % ('0' * 32)
-        elif current_version == 2:
-            return u"DROP TABLE orders;" \
-                   u"DROP TABLE transactions;" \
-                   u"DROP TABLE payments;" \
-                   u"DROP TABLE ticks;" \
-                   u"DROP TABLE orders_reserved_ticks;"
+        if current_version == 1 or current_version == 2:
+            return u"DROP TABLE IF EXISTS orders;" \
+                   u"DROP TABLE IF EXISTS transactions;" \
+                   u"DROP TABLE IF EXISTS payments;" \
+                   u"DROP TABLE IF EXISTS ticks;" \
+                   u"DROP TABLE IF EXISTS orders_reserved_ticks;" \
+                   u"DROP TABLE IF EXISTS option;"
 
     def check_database(self, database_version):
         """
@@ -342,15 +339,13 @@ class MarketDB(TrustChainDB):
         assert int(database_version) >= 0
         database_version = int(database_version)
 
-        if database_version == 0:
+        if database_version < self.LATEST_DB_VERSION:
+            while database_version < LATEST_DB_VERSION:
+                upgrade_script = self.get_upgrade_script(current_version=database_version)
+                if upgrade_script:
+                    self.executescript(upgrade_script)
+                database_version += 1
             self.executescript(self.get_schema())
             self.commit()
-            database_version = LATEST_DB_VERSION
-
-        while database_version < LATEST_DB_VERSION:
-            upgrade_script = self.get_upgrade_script(current_version=database_version)
-            if upgrade_script:
-                self.executescript(upgrade_script)
-            database_version += 1
 
         return LATEST_DB_VERSION
