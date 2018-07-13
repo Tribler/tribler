@@ -41,20 +41,20 @@ class ContentSubscription(Payload):
 
 class TorrentHealthPayload(Payload):
 
-    format_list = ['20s', 'I', 'I', 'I']
+    format_list = ['20s', 'I', 'I', 'Q']
 
     def __init__(self, infohash, num_seeders, num_leechers, timestamp):
         super(TorrentHealthPayload, self).__init__()
         self.infohash = infohash
         self.num_seeders = num_seeders or 0
         self.num_leechers = num_leechers or 0
-        self.timestamp = timestamp or -1
+        self.timestamp = timestamp or 0
 
     def to_pack_list(self):
         data = [('20s', self.infohash),
                 ('I', self.num_seeders),
                 ('I', self.num_leechers),
-                ('I', self.timestamp)]
+                ('Q', self.timestamp)]
 
         return data
 
@@ -69,7 +69,7 @@ class ChannelHealthPayload(Payload):
     Payload for a channel popularity message in the popularity community.
     """
 
-    format_list = ['varlenI', 'I', 'I', 'I', 'I']
+    format_list = ['varlenI', 'I', 'I', 'I', 'Q']
 
     def __init__(self, channel_id, num_votes, num_torrents, swarm_size_sum, timestamp):
         super(ChannelHealthPayload, self).__init__()
@@ -77,14 +77,14 @@ class ChannelHealthPayload(Payload):
         self.num_votes = num_votes or 0
         self.num_torrents = num_torrents or 0
         self.swarm_size_sum = swarm_size_sum or 0
-        self.timestamp = timestamp or -1
+        self.timestamp = timestamp or 0
 
     def to_pack_list(self):
         data = [('varlenI', self.channel_id),
                 ('I', self.num_votes),
                 ('I', self.num_torrents),
                 ('I', self.swarm_size_sum),
-                ('I', self.timestamp)]
+                ('Q', self.timestamp)]
 
         return data
 
@@ -118,22 +118,22 @@ class TorrentInfoResponsePayload(Payload):
     """
     Payload for torrent info response.
     """
-    format_list = ['20s', 'varlenH', 'I', 'I', 'I', 'varlenH']
+    format_list = ['20s', 'varlenH', 'Q', 'Q', 'I', 'varlenH']
 
     def __init__(self, infohash, name, length, creation_date, num_files, comment):
         super(TorrentInfoResponsePayload, self).__init__()
         self.infohash = infohash
         self.name = name or ''
         self.length = length or 0
-        self.creation_date = creation_date or -1
+        self.creation_date = creation_date or 0
         self.num_files = num_files or 0
         self.comment = comment or ''
 
     def to_pack_list(self):
         data = [('20s', self.infohash),
                 ('varlenH', self.name.encode('utf-8')),
-                ('I', self.length),
-                ('I', self.creation_date),
+                ('Q', self.length),
+                ('Q', self.creation_date),
                 ('I', self.num_files),
                 ('varlenH', str(self.comment))]
         return data
@@ -149,7 +149,7 @@ class SearchResponseItemPayload(Payload):
     Payload for search response items
     """
 
-    format_list = ['20s', 'varlenH', 'Q', 'I', 'varlenH', 'l', 'I', 'I', '20s']
+    format_list = ['20s', 'varlenH', 'Q', 'I', 'varlenH', 'Q', 'I', 'I', '20s']
     is_list_descriptor = True
 
     def __init__(self, infohash, name, length, num_files, category_list, creation_date, seeders, leechers, cid):
@@ -158,7 +158,7 @@ class SearchResponseItemPayload(Payload):
         self.length = length or 0
         self.num_files = num_files or 0
         self.category_list = category_list or []
-        self.creation_date = creation_date or -1
+        self.creation_date = creation_date or 0
         self.seeders = seeders or 0
         self.leechers = leechers or 0
         self.cid = cid
@@ -169,7 +169,7 @@ class SearchResponseItemPayload(Payload):
                 ('Q', self.length),
                 ('I', self.num_files),
                 ('varlenH', encode_values(self.category_list)),
-                ('l', self.creation_date),
+                ('Q', self.creation_date),
                 ('I', self.seeders),
                 ('I', self.leechers),
                 ('20s', self.cid if self.cid else '')]
@@ -187,7 +187,7 @@ class ChannelItemPayload(Payload):
     """
     Payload for search response channel items
     """
-    format_list = ['I', '20s', 'varlenH', 'varlenH', 'I', 'I', 'I', 'I']
+    format_list = ['I', '20s', 'varlenH', 'varlenH', 'I', 'I', 'I', 'Q']
     is_list_descriptor = True
 
     def __init__(self, dbid, dispersy_cid, name, description, nr_torrents, nr_favorite, nr_spam, modified):
@@ -195,7 +195,7 @@ class ChannelItemPayload(Payload):
         self.name = name
         self.description = description or ''
         self.cid = dispersy_cid
-        self.modified = modified or -1
+        self.modified = modified or 0
         self.nr_torrents = nr_torrents or 0
         self.nr_favorite = nr_favorite or 0
         self.nr_spam = nr_spam or 0
@@ -208,7 +208,7 @@ class ChannelItemPayload(Payload):
                 ('I', self.nr_torrents),
                 ('I', self.nr_favorite),
                 ('I', self.nr_spam),
-                ('I', self.modified)]
+                ('Q', self.modified)]
         return data
 
     @classmethod
