@@ -249,7 +249,7 @@ class MarketPage(QWidget):
         price_denom = float(10 ** self.wallets[quantity_type]["precision"])
         price = price_num / price_denom
 
-        asset2_amount = long(float(asset1_amount) / price)
+        asset2_amount = long(asset1_amount * price)
 
         post_data = str("first_asset_amount=%d&first_asset_type=%s&second_asset_amount=%d&second_asset_type=%s" %
                         (asset1_amount, quantity_type, asset2_amount, price_type))
