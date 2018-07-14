@@ -207,16 +207,18 @@ class MarketCommunity(Community, BlockListener):
         tx = block.transaction
         if block.type == "tick" or block.type == "cancel_order":
             self.logger.info("Signing %s block as matchmaker!", block.type)
+            return block.is_valid_tick_block()
+        elif block.type == "cancel_order":
             return True  # Just sign it
         elif block.type == "tx_payment":
             txid = TransactionId(TraderId(tx["payment"]["trader_id"]),
                                  TransactionNumber(tx["payment"]["transaction_number"]))
             transaction = self.transaction_manager.find_by_id(txid)
-            return bool(transaction)
+            return transaction and block.is_valid_tx_payment_block()
         elif block.type == "tx_init" or block.type == "tx_done":
             txid = TransactionId(TraderId(tx["tx"]["trader_id"]), TransactionNumber(tx["tx"]["transaction_number"]))
             transaction = self.transaction_manager.find_by_id(txid)
-            return bool(transaction)
+            return transaction and block.is_valid_tx_init_done_block()
         else:
             return False  # Unknown block type
 

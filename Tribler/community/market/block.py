@@ -22,7 +22,7 @@ class MarketBlock(TrustChainBlock):
         return True
 
     @staticmethod
-    def is_valid_asset_pair(assets_dict):
+    def is_valid_asset_pair(assets_dict, amount_positive=True):
         if 'first' not in assets_dict or 'second' not in assets_dict:
             return False
         if 'amount' not in assets_dict['first'] or 'type' not in assets_dict['first']:
@@ -33,6 +33,9 @@ class MarketBlock(TrustChainBlock):
         if not MarketBlock.has_required_types([('amount', (int, long)), ('type', str)], assets_dict['first']):
             return False
         if not MarketBlock.has_required_types([('amount', (int, long)), ('type', str)], assets_dict['second']):
+            return False
+
+        if amount_positive and (assets_dict['first']['amount'] <= 0 or assets_dict['second']['amount'] <= 0):
             return False
 
         return True
@@ -90,7 +93,7 @@ class MarketBlock(TrustChainBlock):
             return False
         if not MarketBlock.is_valid_asset_pair(tx['assets']):
             return False
-        if not MarketBlock.is_valid_asset_pair(tx['transferred']):
+        if not MarketBlock.is_valid_asset_pair(tx['transferred'], amount_positive=False):
             return False
         if not MarketBlock.has_required_types(required_types, tx):
             return False
