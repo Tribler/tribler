@@ -133,8 +133,8 @@ class MarketPage(QWidget):
         # Update headers of the tree widget
         self.window().asks_list.headerItem().setText(1, '%s' % self.chosen_wallets[0])
         self.window().asks_list.headerItem().setText(2, 'Total (%s)' % self.chosen_wallets[0])
-        self.window().bids_list.headerItem().setText(2, '%s' % self.chosen_wallets[0])
-        self.window().bids_list.headerItem().setText(1, 'Total (%s)' % self.chosen_wallets[0])
+        self.window().bids_list.headerItem().setText(1, '%s' % self.chosen_wallets[0])
+        self.window().bids_list.headerItem().setText(0, 'Total (%s)' % self.chosen_wallets[0])
 
     def create_widget_item_from_tick(self, tick_list, tick, is_ask=True):
         tick["type"] = "ask" if is_ask else "bid"
