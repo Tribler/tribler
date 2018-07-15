@@ -220,20 +220,20 @@ font-size: 15px;
    <item>
     <widget class="SubscriptionsWidget" name="subscriptions_widget" native="true">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
      <property name="minimumSize">
       <size>
-       <width>80</width>
+       <width>0</width>
        <height>0</height>
       </size>
      </property>
      <property name="maximumSize">
       <size>
-       <width>80</width>
+       <width>10000</width>
        <height>16777215</height>
       </size>
      </property>
@@ -313,7 +313,7 @@ background-color: transparent;
       <item>
        <widget class="QLabel" name="num_subs_label">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -339,7 +339,6 @@ background-color: transparent;</string>
         </property>
        </widget>
       </item>
-
       <item>
        <spacer name="horizontalSpacer_5">
         <property name="orientation">
@@ -396,20 +395,6 @@ background-color: transparent;
          </size>
         </property>
        </widget>
-      </item>
-
-      <item>
-       <spacer name="horizontalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
       </item>
      </layout>
     </widget>

@@ -205,3 +205,19 @@ class TestMarketBlock(AbstractServer):
         self.payment_block.transaction['payment']['address_to'] = 'a'
         self.payment_block.transaction['payment']['trader_id'] = 'a' * 39
         self.assertFalse(self.payment_block.is_valid_tx_payment_block())
+
+    def test_is_valid_asset_pair(self):
+        """
+        Test the method to verify whether an asset pair is valid
+        """
+        self.assertFalse(MarketBlock.is_valid_asset_pair({'a': 'b'}))
+        self.assertFalse(MarketBlock.is_valid_asset_pair({'first': {'amount': 3, 'type': 'DUM1'},
+                                                          'second': {'amount': 3}}))
+        self.assertFalse(MarketBlock.is_valid_asset_pair({'first': {'type': 'DUM1'},
+                                                          'second': {'amount': 3, 'type': 'DUM2'}}))
+        self.assertFalse(MarketBlock.is_valid_asset_pair({'first': {'amount': "4", 'type': 'DUM1'},
+                                                          'second': {'amount': 3, 'type': 'DUM2'}}))
+        self.assertFalse(MarketBlock.is_valid_asset_pair({'first': {'amount': 4, 'type': 'DUM1'},
+                                                          'second': {'amount': "3", 'type': 'DUM2'}}))
+        self.assertFalse(MarketBlock.is_valid_asset_pair({'first': {'amount': -4, 'type': 'DUM1'},
+                                                          'second': {'amount': 3, 'type': 'DUM2'}}))

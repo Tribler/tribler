@@ -133,8 +133,8 @@ class MarketPage(QWidget):
         # Update headers of the tree widget
         self.window().asks_list.headerItem().setText(1, '%s' % self.chosen_wallets[0])
         self.window().asks_list.headerItem().setText(2, 'Total (%s)' % self.chosen_wallets[0])
-        self.window().bids_list.headerItem().setText(2, '%s' % self.chosen_wallets[0])
-        self.window().bids_list.headerItem().setText(1, 'Total (%s)' % self.chosen_wallets[0])
+        self.window().bids_list.headerItem().setText(1, '%s' % self.chosen_wallets[0])
+        self.window().bids_list.headerItem().setText(0, 'Total (%s)' % self.chosen_wallets[0])
 
     def create_widget_item_from_tick(self, tick_list, tick, is_ask=True):
         tick["type"] = "ask" if is_ask else "bid"
@@ -249,7 +249,7 @@ class MarketPage(QWidget):
         price_denom = float(10 ** self.wallets[quantity_type]["precision"])
         price = price_num / price_denom
 
-        asset2_amount = long(float(asset1_amount) / price)
+        asset2_amount = long(asset1_amount * price)
 
         post_data = str("first_asset_amount=%d&first_asset_type=%s&second_asset_amount=%d&second_asset_type=%s" %
                         (asset1_amount, quantity_type, asset2_amount, price_type))

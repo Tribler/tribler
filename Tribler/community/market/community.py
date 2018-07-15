@@ -207,16 +207,18 @@ class MarketCommunity(Community, BlockListener):
         tx = block.transaction
         if block.type == "tick" or block.type == "cancel_order":
             self.logger.info("Signing %s block as matchmaker!", block.type)
+            return block.is_valid_tick_block()
+        elif block.type == "cancel_order":
             return True  # Just sign it
         elif block.type == "tx_payment":
             txid = TransactionId(TraderId(tx["payment"]["trader_id"]),
                                  TransactionNumber(tx["payment"]["transaction_number"]))
             transaction = self.transaction_manager.find_by_id(txid)
-            return bool(transaction)
+            return transaction and block.is_valid_tx_payment_block()
         elif block.type == "tx_init" or block.type == "tx_done":
             txid = TransactionId(TraderId(tx["tx"]["trader_id"]), TransactionNumber(tx["tx"]["transaction_number"]))
             transaction = self.transaction_manager.find_by_id(txid)
-            return bool(transaction)
+            return transaction and block.is_valid_tx_init_done_block()
         else:
             return False  # Unknown block type
 
@@ -876,9 +878,9 @@ class MarketCommunity(Community, BlockListener):
         else:
             address = self.lookup_ip(recipient_order_id.trader_id)
 
-        self.logger.debug("Sending match message with id %s, order id %s and tick order id %s to trader "
-                          "%s (quantity: %d)", match_id, str(recipient_order_id),
-                          str(tick.order_id), recipient_order_id.trader_id, matched_quantity)
+        self.logger.info("Sending match message with id %s, order id %s and tick order id %s to trader "
+                         "%s (quantity: %d)", match_id, str(recipient_order_id),
+                         str(tick.order_id), recipient_order_id.trader_id, matched_quantity)
 
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = MatchPayload(*payload).to_pack_list()
@@ -891,8 +893,8 @@ class MarketCommunity(Community, BlockListener):
         """
         We received a match message from a matchmaker.
         """
-        self.logger.debug("We received a match message for order %s.%s (matched quantity: %s)",
-                          TraderId(self.mid), payload.recipient_order_number, payload.match_quantity)
+        self.logger.info("We received a match message for order %s.%s (matched quantity: %s)",
+                         TraderId(self.mid), payload.recipient_order_number, payload.match_quantity)
 
         # We got a match, check whether we can respond to this match
         self.update_ip(payload.matchmaker_trader_id, peer.address)
@@ -963,8 +965,8 @@ class MarketCommunity(Community, BlockListener):
             return
 
         order_id, matched_order_id, reserved_quantity = self.matching_engine.matches[payload.match_id]
-        self.logger.debug("Received accept-match message (%s vs %s), modifying quantities if necessary",
-                          order_id, matched_order_id)
+        self.logger.info("Received accept-match message (%s vs %s), modifying quantities if necessary",
+                         order_id, matched_order_id)
         tick_entry = self.order_book.get_tick(order_id)
         matched_tick_entry = self.order_book.get_tick(matched_order_id)
 
@@ -984,8 +986,8 @@ class MarketCommunity(Community, BlockListener):
         del self.incoming_match_messages[match_id]
         address = self.lookup_ip(matchmaker_trader_id)
 
-        self.logger.debug("Sending decline match message with match id %s to trader "
-                          "%s (ip: %s, port: %s)", str(match_id), str(matchmaker_trader_id), *address)
+        self.logger.info("Sending decline match message with match id %s to trader "
+                         "%s (ip: %s, port: %s)", str(match_id), str(matchmaker_trader_id), *address)
 
         auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
         payload = (TraderId(self.mid), Timestamp.now(), match_id, decline_reason)
@@ -1001,7 +1003,7 @@ class MarketCommunity(Community, BlockListener):
             return
 
         order_id, matched_order_id, quantity = self.matching_engine.matches[payload.match_id]
-        self.logger.debug("Received decline-match message for tick %s matched with %s", order_id, matched_order_id)
+        self.logger.info("Received decline-match message for tick %s matched with %s", order_id, matched_order_id)
 
         # It could be that one or both matched tick(s) have already been removed from the order book by a
         # tx_done block. We have to account for that and act accordingly.
