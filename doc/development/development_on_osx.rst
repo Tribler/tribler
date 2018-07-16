@@ -1,4 +1,4 @@
-Tribler development environment setup on MacOS (10.10 to 10.12).
+Tribler development environment setup on MacOS (10.10 to 10.13).
 
 1. `MacPorts <development_on_osx.rst#macports>`_
 2. `HomeBrew <development_on_osx.rst#homebrew>`_
