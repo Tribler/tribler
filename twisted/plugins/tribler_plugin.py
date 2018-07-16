@@ -39,7 +39,7 @@ def check_ipv8_bootstrap_override(val):
 
     if port < 0 or port > 65535:
         raise ValueError("Invalid bootstrap server port")
-    return ip, port
+    return val
 check_ipv8_bootstrap_override.coerceDoc = "IPv8 bootstrap server address must be in ipv4_addr:port format"
 
 

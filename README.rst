@@ -38,7 +38,7 @@ Have a look at the `issue tracker <https://github.com/Tribler/tribler/issues>`_ 
 Setting up your development environment
 =======================================
 
-We support development on Linux, OS X and Windows. We have written documentation that guides you through installing the required packages when setting up a Tribler development environment. See `our Linux development guide <http://tribler.readthedocs.io/en/devel/development/development_on_linux.html>`_ for the guide on setting up a development environment on Linux distributions. See `our Windows development guide <http://tribler.readthedocs.io/en/devel/development/development_on_windows.html>`_ for setting everything up on Windows. See `our OS X development guide <http://tribler.readthedocs.io/en/devel/development/development_on_osx.html>`_ for the guide to setup the development environment on OS X. For German translations, see `here <http://tribler.readthedocs.io/de/devel>`_.
+We support development on Linux, macOS and Windows. We have written documentation that guides you through installing the required packages when setting up a Tribler development environment. See `our Linux development guide <http://tribler.readthedocs.io/en/devel/development/development_on_linux.html>`_ for the guide on setting up a development environment on Linux distributions. See `our Windows development guide <http://tribler.readthedocs.io/en/devel/development/development_on_windows.html>`_ for setting everything up on Windows. See `our OS X development guide <http://tribler.readthedocs.io/en/devel/development/development_on_osx.html>`_ for the guide to setup the development environment on macOS.
 
 Running Tribler from the repository
 ===================================

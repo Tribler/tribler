@@ -1050,7 +1050,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>14</number>
+         <number>7</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -8063,6 +8063,7 @@ padding-left: 2px;</string>
                     <string notr="true">QTreeWidget {
     border: none;
     font-size: 13px;
+    outline: 0;
     }
     QTreeWidget::item {
     color: white;
@@ -8233,8 +8234,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>131</width>
-                       <height>260</height>
+                       <width>673</width>
+                       <height>335</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
