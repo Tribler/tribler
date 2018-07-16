@@ -21,8 +21,8 @@ class DialogContainer(QWidget):
         self.style().drawPrimitive(QStyle.PE_Widget, opt, painter, self)
 
     def close_dialog(self):
-        self.setParent(None)
         try:
+            self.setParent(None)
             self.deleteLater()
         except RuntimeError:
             pass
