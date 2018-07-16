@@ -28,7 +28,7 @@ class DialogContainer(QWidget):
             pass
 
     def on_main_window_resize(self):
-        if not self.parentWidget():
+        if not self or self.parentWidget():
             return
 
         self.setFixedSize(self.parentWidget().size())
