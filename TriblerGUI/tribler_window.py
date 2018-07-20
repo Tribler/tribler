@@ -841,7 +841,8 @@ class TriblerWindow(QMainWindow):
             request_queue.clear()
 
             # Stop the token balance timer
-            self.token_refresh_timer.stop()
+            if self.token_refresh_timer:
+                self.token_refresh_timer.stop()
 
     def closeEvent(self, close_event):
         self.close_tribler()
