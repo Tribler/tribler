@@ -312,7 +312,8 @@ class DebugMemoryHistoryEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        return json.dumps({"memory_history": self.session.lm.resource_monitor.get_memory_history_dict()})
+        history = self.session.lm.resource_monitor.get_memory_history_dict() if self.session.lm.resource_monitor else {}
+        return json.dumps({"memory_history": history})
 
 
 class DebugMemoryDumpEndpoint(resource.Resource):
