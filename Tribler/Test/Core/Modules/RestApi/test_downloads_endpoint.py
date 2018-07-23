@@ -297,7 +297,9 @@ class TestDownloadsEndpoint(AbstractApiTest):
         infohash = video_tdef.get_infohash().encode('hex')
 
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"remove_data": True},
-                                           expected_code=200, expected_json={"removed": True}, request_type='DELETE')
+                                           expected_code=200, request_type='DELETE',
+                                           expected_json={"removed": True,
+                                                          "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
         return request_deferred.addCallback(verify_removed)
 
     @deferred(timeout=10)
@@ -330,7 +332,9 @@ class TestDownloadsEndpoint(AbstractApiTest):
         download.stop = mocked_stop
 
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"state": "stop"},
-                                           expected_code=200, expected_json={"modified": True}, request_type='PATCH')
+                                           expected_code=200, request_type='PATCH',
+                                           expected_json={"modified": True,
+                                                          "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
         return request_deferred.addCallback(verify_removed)
 
     @deferred(timeout=10)
@@ -366,7 +370,9 @@ class TestDownloadsEndpoint(AbstractApiTest):
         download.set_selected_files = mocked_set_selected_files
 
         return self.do_request('downloads/%s' % infohash, post_data={"selected_files[]": 0},
-                               expected_code=200, expected_json={"modified": True}, request_type='PATCH')\
+                               expected_code=200, request_type='PATCH',
+                               expected_json={"modified": True,
+                                              "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})\
             .addCallback(verify_method_called)
 
     @deferred(timeout=10)
@@ -397,7 +403,9 @@ class TestDownloadsEndpoint(AbstractApiTest):
         download.restart = mocked_restart
 
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"state": "resume"},
-                                           expected_code=200, expected_json={"modified": True}, request_type='PATCH')
+                                           expected_code=200, request_type='PATCH',
+                                           expected_json={"modified": True,
+                                                          "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
         return request_deferred.addCallback(verify_resumed)
 
     @deferred(timeout=10)
@@ -420,7 +428,9 @@ class TestDownloadsEndpoint(AbstractApiTest):
             self.assertTrue(mocked_recheck.called)
 
         request_deferred = self.do_request('downloads/%s' % infohash, post_data={"state": "recheck"},
-                                           expected_code=200, expected_json={"modified": True}, request_type='PATCH')
+                                           expected_code=200, request_type='PATCH',
+                                           expected_json={"modified": True,
+                                                          "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
         return request_deferred.addCallback(verify_rechecked)
 
     @deferred(timeout=10)
@@ -519,7 +529,9 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
 
         return download.get_handle().addCallback(
             lambda _: self.do_request('downloads/%s' % infohash, post_data={'anon_hops': 1},
-                                      expected_code=200, expected_json={'modified': True}, request_type='PATCH')
+                                      expected_code=200, request_type='PATCH',
+                                      expected_json={'modified': True,
+                                                     "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
         )
 
     @deferred(timeout=10)

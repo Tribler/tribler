@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtWidgets import QListWidget, QListWidgetItem
+from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
 
 from TriblerGUI.widgets.channel_torrent_list_item import ChannelTorrentListItem
 
@@ -13,6 +13,7 @@ class LazyLoadList(QListWidget):
     """
     def __init__(self, parent):
         QListWidget.__init__(self, parent)
+        self.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.verticalScrollBar().valueChanged.connect(self.on_list_scroll)
         self.itemSelectionChanged.connect(self.on_item_clicked)
         self.data_items = []  # Tuple of (ListWidgetClass, json data)
@@ -73,6 +74,6 @@ class LazyLoadList(QListWidget):
         if len(self.selectedItems()) == 0:
             return
 
-        item_widget = self.itemWidget(self.selectedItems()[0])
-        if isinstance(item_widget, ChannelTorrentListItem):
-            item_widget.check_health()
+        for item_widget in (self.itemWidget(widget) for widget in self.selectedItems()):
+            if isinstance(item_widget, ChannelTorrentListItem):
+                item_widget.check_health()

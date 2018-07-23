@@ -33,7 +33,7 @@ class DownloadsPage(QWidget):
         self.downloads_timer = QTimer()
         self.downloads_timeout_timer = QTimer()
         self.downloads_last_update = 0
-        self.selected_item = None
+        self.selected_items = None
         self.dialog = None
         self.downloads_request_mgr = TriblerRequestManager()
         self.request_mgr = None
@@ -244,66 +244,82 @@ class DownloadsPage(QWidget):
                                                                                     format_size(float(bytes_max))))
 
     @staticmethod
-    def start_download_enabled(download_widget):
-        return download_widget.get_raw_download_status() == DLSTATUS_STOPPED
+    def start_download_enabled(download_widgets):
+        return any([download_widget.get_raw_download_status() == DLSTATUS_STOPPED
+                    for download_widget in download_widgets])
 
     @staticmethod
-    def stop_download_enabled(download_widget):
-        status = download_widget.get_raw_download_status()
-        return status != DLSTATUS_STOPPED and status != DLSTATUS_STOPPED_ON_ERROR
+    def stop_download_enabled(download_widgets):
+        return any([download_widget.get_raw_download_status() not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
+                    for download_widget in download_widgets])
 
     @staticmethod
-    def force_recheck_download_enabled(download_widget):
-        status = download_widget.get_raw_download_status()
-        return status != DLSTATUS_METADATA and status != DLSTATUS_HASHCHECKING and status != DLSTATUS_WAITING4HASHCHECK
+    def force_recheck_download_enabled(download_widgets):
+        return any([download_widget.get_raw_download_status() not in
+                    [DLSTATUS_METADATA, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]
+                    for download_widget in download_widgets])
 
     def on_download_item_clicked(self):
-        if len(self.window().downloads_list.selectedItems()) == 0:
+        selected_count = len(self.window().downloads_list.selectedItems())
+        if selected_count == 0:
             self.window().play_download_button.setEnabled(False)
             self.window().remove_download_button.setEnabled(False)
             self.window().start_download_button.setEnabled(False)
             self.window().stop_download_button.setEnabled(False)
             self.window().download_details_widget.hide()
-            return
-        else:
+        elif selected_count == 1:
+            self.selected_items = self.window().downloads_list.selectedItems()
+            self.window().play_download_button.setEnabled(True)
+            self.window().remove_download_button.setEnabled(True)
+            self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
+            self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
+
+            self.window().download_details_widget.update_with_download(self.selected_items[0].download_info)
             self.window().download_details_widget.show()
-
-        self.selected_item = self.window().downloads_list.selectedItems()[0]
-        self.window().play_download_button.setEnabled(True)
-        self.window().remove_download_button.setEnabled(True)
-        self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_item))
-        self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_item))
-
-        self.window().download_details_widget.update_with_download(self.selected_item.download_info)
+        else:
+            self.selected_items = self.window().downloads_list.selectedItems()
+            self.window().play_download_button.setEnabled(False)
+            self.window().remove_download_button.setEnabled(True)
+            self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
+            self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
+            self.window().download_details_widget.hide()
 
     def on_start_download_clicked(self):
-        infohash = self.selected_item.download_info["infohash"]
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_resumed,
-                                         method='PATCH', data="state=resume")
+        for selected_item in self.selected_items:
+            infohash = selected_item.download_info["infohash"]
+            self.request_mgr = TriblerRequestManager()
+            self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_resumed,
+                                             method='PATCH', data="state=resume")
 
     def on_download_resumed(self, json_result):
         if json_result and 'modified' in json_result:
-            self.selected_item.download_info['status'] = "DLSTATUS_DOWNLOADING"
-            self.selected_item.update_item()
-            self.on_download_item_clicked()
+            for selected_item in self.selected_items:
+                if selected_item.download_info["infohash"] == json_result["infohash"]:
+                    selected_item.download_info['status'] = "DLSTATUS_DOWNLOADING"
+                    selected_item.update_item()
+                    self.on_download_item_clicked()
 
     def on_stop_download_clicked(self):
-        infohash = self.selected_item.download_info["infohash"]
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_stopped,
-                                         method='PATCH', data="state=stop")
+        for selected_item in self.selected_items:
+            infohash = selected_item.download_info["infohash"]
+            self.request_mgr = TriblerRequestManager()
+            self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_stopped,
+                                             method='PATCH', data="state=stop")
 
     def on_play_download_clicked(self):
         self.window().left_menu_button_video_player.click()
-        if self.window().video_player_page.active_infohash != self.selected_item.download_info["infohash"]:
-            self.window().video_player_page.play_media_item(self.selected_item.download_info["infohash"], -1)
+        selected_item = self.selected_items[:1]
+        if selected_item and \
+           self.window().video_player_page.active_infohash != selected_item[0].download_info["infohash"]:
+            self.window().video_player_page.play_media_item(selected_item[0].download_info["infohash"], -1)
 
     def on_download_stopped(self, json_result):
         if json_result and "modified" in json_result:
-            self.selected_item.download_info['status'] = "DLSTATUS_STOPPED"
-            self.selected_item.update_item()
-            self.on_download_item_clicked()
+            for selected_item in self.selected_items:
+                if selected_item.download_info["infohash"] == json_result["infohash"]:
+                    selected_item.download_info['status'] = "DLSTATUS_STOPPED"
+                    selected_item.update_item()
+                    self.on_download_item_clicked()
 
     def on_remove_download_clicked(self):
         self.dialog = ConfirmationDialog(self, "Remove download", "Are you sure you want to remove this download?",
@@ -315,15 +331,16 @@ class DownloadsPage(QWidget):
 
     def on_remove_download_dialog(self, action):
         if action != 2:
-            infohash = self.selected_item.download_info["infohash"]
+            for selected_item in self.selected_items:
+                infohash = selected_item.download_info["infohash"]
 
-            # Reset video player if necessary before doing the actual request
-            if self.window().video_player_page.active_infohash == infohash:
-                self.window().video_player_page.reset_player()
+                # Reset video player if necessary before doing the actual request
+                if self.window().video_player_page.active_infohash == infohash:
+                    self.window().video_player_page.reset_player()
 
-            self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_removed,
-                                             method='DELETE', data="remove_data=%d" % action)
+                self.request_mgr = TriblerRequestManager()
+                self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_removed,
+                                                 method='DELETE', data="remove_data=%d" % action)
 
         self.dialog.close_dialog()
         self.dialog = None
@@ -334,35 +351,41 @@ class DownloadsPage(QWidget):
             self.window().download_details_widget.hide()
 
     def on_force_recheck_download(self):
-        infohash = self.selected_item.download_info["infohash"]
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("downloads/%s" % infohash, self.on_forced_recheck,
-                                         method='PATCH', data='state=recheck')
+        for selected_item in self.selected_items:
+            infohash = selected_item.download_info["infohash"]
+            self.request_mgr = TriblerRequestManager()
+            self.request_mgr.perform_request("downloads/%s" % infohash, self.on_forced_recheck,
+                                             method='PATCH', data='state=recheck')
 
     def on_forced_recheck(self, result):
         if result and "modified" in result:
-            self.selected_item.download_info['status'] = "DLSTATUS_HASHCHECKING"
-            self.selected_item.update_item()
-            self.on_download_item_clicked()
+            for selected_item in self.selected_items:
+                if selected_item.download_info["infohash"] == result["infohash"]:
+                    selected_item.download_info['status'] = "DLSTATUS_HASHCHECKING"
+                    selected_item.update_item()
+                    self.on_download_item_clicked()
 
     def change_anonymity(self, hops):
-        infohash = self.selected_item.download_info["infohash"]
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("downloads/%s" % infohash, lambda _: None,
-                                         method='PATCH', data='anon_hops=%d' % hops)
+        for selected_item in self.selected_items:
+            infohash = selected_item.download_info["infohash"]
+            self.request_mgr = TriblerRequestManager()
+            self.request_mgr.perform_request("downloads/%s" % infohash, lambda _: None,
+                                             method='PATCH', data='anon_hops=%d' % hops)
 
     def on_explore_files(self):
-        path = os.path.normpath(os.path.join(self.window().tribler_settings['download_defaults']['saveas'],
-                                             self.selected_item.download_info["destination"]))
-        QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+        for selected_item in self.selected_items:
+            path = os.path.normpath(os.path.join(self.window().tribler_settings['download_defaults']['saveas'],
+                                                 selected_item.download_info["destination"]))
+            QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def on_export_download(self):
         self.export_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory", "",
                                                            QFileDialog.ShowDirsOnly)
 
-        if len(self.export_dir) > 0:
+        selected_item = self.selected_items[:1]
+        if len(self.export_dir) > 0 and selected_item:
             # Show confirmation dialog where we specify the name of the file
-            torrent_name = self.selected_item.download_info['name']
+            torrent_name = selected_item[0].download_info['name']
             self.dialog = ConfirmationDialog(self, "Export torrent file",
                                              "Please enter the name of the torrent file:",
                                              [('SAVE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
@@ -374,10 +397,11 @@ class DownloadsPage(QWidget):
             self.dialog.show()
 
     def on_export_download_dialog_done(self, action):
-        if action == 0:
+        selected_item = self.selected_items[:1]
+        if action == 0 and selected_item:
             filename = self.dialog.dialog_widget.dialog_input.text()
             self.request_mgr = TriblerRequestManager()
-            self.request_mgr.download_file("downloads/%s/torrent" % self.selected_item.download_info['infohash'],
+            self.request_mgr.download_file("downloads/%s/torrent" % selected_item[0].download_info['infohash'],
                                            lambda data: self.on_export_download_request_done(filename, data))
 
         self.dialog.close_dialog()
@@ -401,7 +425,8 @@ class DownloadsPage(QWidget):
         if not item_clicked:
             return
 
-        self.selected_item = item_clicked
+        if item_clicked not in self.selected_items:
+            self.selected_items.append(item_clicked)
 
         menu = TriblerActionMenu(self)
 
@@ -418,12 +443,12 @@ class DownloadsPage(QWidget):
         three_hop_anon_action = QAction('Three hops', self)
 
         start_action.triggered.connect(self.on_start_download_clicked)
-        start_action.setEnabled(DownloadsPage.start_download_enabled(self.selected_item))
+        start_action.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
         stop_action.triggered.connect(self.on_stop_download_clicked)
-        stop_action.setEnabled(DownloadsPage.stop_download_enabled(self.selected_item))
+        stop_action.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
         remove_download_action.triggered.connect(self.on_remove_download_clicked)
         force_recheck_action.triggered.connect(self.on_force_recheck_download)
-        force_recheck_action.setEnabled(DownloadsPage.force_recheck_download_enabled(self.selected_item))
+        force_recheck_action.setEnabled(DownloadsPage.force_recheck_download_enabled(self.selected_items))
         export_download_action.triggered.connect(self.on_export_download)
         explore_files_action.triggered.connect(self.on_explore_files)
 
@@ -435,7 +460,7 @@ class DownloadsPage(QWidget):
         menu.addAction(start_action)
         menu.addAction(stop_action)
 
-        if self.window().vlc_available:
+        if self.window().vlc_available and len(self.selected_items) == 1:
             play_action = QAction('Play', self)
             play_action.triggered.connect(self.on_play_download_clicked)
             menu.addAction(play_action)
