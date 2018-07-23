@@ -64,7 +64,7 @@ class ChannelPage(QWidget):
         list_widget = item.listWidget()
         list_item = list_widget.itemWidget(item)
         if isinstance(list_item, ChannelTorrentListItem):
-            if not self.window().channel_torrents_list.selectedItems():
+            if len(self.window().channel_torrents_list.selectedItems()) != 1:
                 self.window().channel_torrents_detail_widget.hide()
             else:
                 self.window().channel_torrents_detail_widget.update_with_torrent(list_item.torrent_info)

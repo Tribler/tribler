@@ -343,7 +343,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
 
                 .. sourcecode:: javascript
 
-                    {"removed": True}
+                    {"removed": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
         """
         parameters = http.parse_qs(request.content.read(), 1)
 
@@ -361,7 +361,8 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
             """
             Success callback
             """
-            request.write(json.dumps({"removed": True}))
+            request.write(json.dumps({"removed": True,
+                                      "infohash": download.get_def().get_infohash().encode('hex')}))
             request.finish()
 
         def _on_remove_failure(failure):
@@ -408,7 +409,7 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
 
                 .. sourcecode:: javascript
 
-                    {"modified": True}
+                    {"modified": True, "infohash": "4344503b7e797ebf31582327a5baae35b11bda01"}
         """
         download = self.session.get_download(self.infohash)
         if not download:
@@ -427,7 +428,8 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 """
                 Success callback
                 """
-                request.write(json.dumps({"modified": True}))
+                request.write(json.dumps({"modified": True,
+                                          "infohash": download.get_def().get_infohash().encode('hex')}))
                 request.finish()
 
             def _on_download_readd_failure(failure):
@@ -469,7 +471,8 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.dumps({"error": "unknown state parameter"})
 
-        return json.dumps({"modified": True})
+        return json.dumps({"modified": True,
+                           "infohash": download.get_def().get_infohash().encode('hex')})
 
 
 class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):
