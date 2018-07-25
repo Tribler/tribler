@@ -63,12 +63,18 @@ class SearchResultsPage(QWidget):
                                                        (len(self.search_results['channels']) +
                                                         len(self.search_results['torrents'])))
 
-    def clicked_item(self, item):
-        list_widget = item.listWidget()
-        list_item = list_widget.itemWidget(item)
-        if isinstance(list_item, ChannelTorrentListItem):
-            self.window().search_torrents_detail_widget.update_with_torrent(list_item.torrent_info)
-            self.window().search_torrents_detail_widget.show()
+    def clicked_item(self):
+        if len(self.window().search_results_list.selectedItems()) != 1:
+            self.window().search_torrents_detail_widget.hide()
+        else:
+            item = self.window().search_results_list.selectedItems()[0]
+            list_widget = item.listWidget()
+            list_item = list_widget.itemWidget(item)
+            if isinstance(list_item, ChannelTorrentListItem):
+                self.window().search_torrents_detail_widget.update_with_torrent(list_item.torrent_info)
+                self.window().search_torrents_detail_widget.show()
+            else:
+                self.window().search_torrents_detail_widget.hide()
 
     def load_search_results_in_list(self):
         all_items = []

@@ -145,7 +145,7 @@ class TriblerWindow(QMainWindow):
         self.search_torrents_detail_widget = self.search_page_container.details_tab_widget
         self.search_torrents_detail_widget.initialize_details_widget()
         self.search_results_list.itemClicked.connect(self.on_channel_item_click)
-        self.search_results_list.itemClicked.connect(self.search_results_page.clicked_item)
+        self.search_results_list.itemSelectionChanged.connect(self.search_results_page.clicked_item)
         self.token_balance_widget.mouseReleaseEvent = self.on_token_balance_click
 
         def on_state_update(new_state):
