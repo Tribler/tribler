@@ -3,7 +3,8 @@ import logging
 import os
 import sys
 import traceback
-from urllib import quote_plus, pathname2url
+from urllib import pathname2url, unquote
+import urlparse
 import signal
 
 import time
@@ -335,6 +336,8 @@ class TriblerWindow(QMainWindow):
             self.stackedWidget.setCurrentIndex(PAGE_DISCOVERING)
         else:
             self.clicked_menu_button_home()
+
+        self.setAcceptDrops(True)
 
     def on_events_started(self, json_dict):
         self.setWindowTitle("Tribler %s" % json_dict["version"])
@@ -854,6 +857,24 @@ class TriblerWindow(QMainWindow):
             if self.isFullScreen():
                 self.exit_full_screen()
 
+    def dragEnterEvent(self, e):
+        file_urls = [_qurl_to_path(url) for url in e.mimeData().urls()] if e.mimeData().hasUrls() else []
+
+        if any(os.path.isfile(filename) for filename in file_urls):
+            e.accept()
+        else:
+            e.ignore()
+
+    def dropEvent(self, e):
+        file_urls = ([(_qurl_to_path(url), url.toString()) for url in e.mimeData().urls()]
+                     if e.mimeData().hasUrls() else [])
+
+        for filename, fileurl in file_urls:
+            if os.path.isfile(filename):
+                self.start_download_from_uri(fileurl)
+
+        e.accept()
+
     def clicked_force_shutdown(self):
         process_checker = ProcessChecker()
         if process_checker.already_running:
@@ -861,3 +882,8 @@ class TriblerWindow(QMainWindow):
             os.kill(int(core_pid), 9)
         # Stop the Qt application
         QApplication.quit()
+
+
+def _qurl_to_path(qurl):
+    parsed = urlparse.urlparse(qurl.toString())
+    return os.path.abspath(os.path.join(parsed.netloc, unquote(parsed.path)))
