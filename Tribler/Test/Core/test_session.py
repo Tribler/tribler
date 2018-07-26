@@ -32,6 +32,7 @@ class TestSession(TriblerCoreTest):
         config.set_state_dir(self.getStateDir())
         config.set_torrent_store_enabled(True)
         session = Session(config)
+        raise RuntimeError(session.config.get_torrent_store_dir())
         # Manually set the torrent store as we don't want to start the session.
         session.lm.torrent_store = LevelDbStore(session.config.get_torrent_store_dir())
         session.lm.torrent_store[hexlify("fakehash")] = "Something"
