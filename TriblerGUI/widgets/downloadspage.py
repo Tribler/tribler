@@ -4,7 +4,7 @@ import time
 
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtWidgets import QWidget, QAction, QFileDialog, QSystemTrayIcon
+from PyQt5.QtWidgets import QWidget, QAbstractItemView, QAction, QFileDialog, QTreeWidgetItem
 
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.defs import DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_COMPLETED, \
@@ -15,6 +15,7 @@ from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.widgets.downloadwidgetitem import DownloadWidgetItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_speed, format_size
+from TriblerGUI.widgets.loading_list_item import LoadingListItem
 
 
 class DownloadsPage(QWidget):
@@ -37,6 +38,7 @@ class DownloadsPage(QWidget):
         self.dialog = None
         self.downloads_request_mgr = TriblerRequestManager()
         self.request_mgr = None
+        self.loading_message_widget = None
 
     def showEvent(self, QShowEvent):
         """
@@ -101,6 +103,11 @@ class DownloadsPage(QWidget):
         self.update_download_visibility()
 
     def start_loading_downloads(self):
+        self.window().downloads_list.setSelectionMode(QAbstractItemView.NoSelection)
+        self.loading_message_widget = QTreeWidgetItem()
+        self.window().downloads_list.addTopLevelItem(self.loading_message_widget)
+        self.window().downloads_list.setItemWidget(self.loading_message_widget, 2,
+                                                   LoadingListItem(self.window().downloads_list))
         self.schedule_downloads_timer(now=True)
 
     def schedule_downloads_timer(self, now=False):
@@ -140,8 +147,11 @@ class DownloadsPage(QWidget):
     def on_received_downloads(self, downloads):
         if not downloads:
             return  # This might happen when closing Tribler
+        loading_widget_index = self.window().downloads_list.indexOfTopLevelItem(self.loading_message_widget)
+        if loading_widget_index > -1:
+            self.window().downloads_list.takeTopLevelItem(loading_widget_index)
+            self.window().downloads_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
-        self.received_downloads.emit(downloads)
         self.downloads = downloads
 
         self.total_download = 0
@@ -195,6 +205,8 @@ class DownloadsPage(QWidget):
             self.on_download_item_clicked()
 
         self.update_credit_mining_disk_usage()
+
+        self.received_downloads.emit(downloads)
 
     def update_download_visibility(self):
         for i in range(self.window().downloads_list.topLevelItemCount()):
@@ -422,7 +434,7 @@ class DownloadsPage(QWidget):
 
     def on_right_click_item(self, pos):
         item_clicked = self.window().downloads_list.itemAt(pos)
-        if not item_clicked:
+        if not item_clicked or self.selected_items is None:
             return
 
         if item_clicked not in self.selected_items:
