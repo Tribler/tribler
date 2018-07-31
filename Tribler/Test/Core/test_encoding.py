@@ -22,7 +22,7 @@ class TriblerCoreTestUnicode(TriblerCoreTest):
         _a_encode_int('42', None)
 
     def test_a_encode_long(self):
-        result = _a_encode_long(42, None)
+        result = _a_encode_long(42L, None)
         self.assertEqual(result, ('2', 'J', '42'))
 
     @raises(AssertionError)
