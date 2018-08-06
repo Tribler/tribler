@@ -173,6 +173,32 @@ class TestTorrentDBHandler(AbstractDB):
         self.updateTorrent()
 
     @blocking_call_on_reactor_thread
+    def test_update_torrent_from_metainfo(self):
+        # Add torrent first
+        infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
+        # Only infohash is added to the database
+        self.tdb.addOrGetTorrentID(infohash)
+
+        # Then update the torrent with metainfo
+        metainfo = {'info': {'files': [{'path': ['Something.something.pdf'], 'length': 123456789},
+                                       {'path': ['Another-thing.jpg'], 'length': 100000000}],
+                             'piece length': 2097152,
+                             'name': 'Something awesome (2015)',
+                             'pieces': ''},
+                    'seeders': 0, 'initial peers': [],
+                    'leechers': 36, 'download_exists': False, 'nodes': []}
+        self.tdb.update_torrent_with_metainfo(infohash, metainfo)
+
+        # Check updates are correct
+        torrent_id = self.tdb.getTorrentID(infohash)
+        name = self.tdb.getOne('name', torrent_id=torrent_id)
+        self.assertEqual(name, metainfo['info']['name'])
+        num_files = self.tdb.getOne('num_files', torrent_id=torrent_id)
+        self.assertEqual(num_files, 2)
+        length = self.tdb.getOne('length', torrent_id=torrent_id)
+        self.assertEqual(length, 223456789)
+
+    @blocking_call_on_reactor_thread
     def test_add_external_torrent_no_def_existing(self):
         infohash = str2bin('AA8cTG7ZuPsyblbRE7CyxsrKUCg=')
         self.tdb.addExternalTorrentNoDef(infohash, "test torrent", [], [], 1234)

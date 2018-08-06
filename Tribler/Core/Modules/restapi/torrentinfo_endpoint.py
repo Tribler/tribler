@@ -1,6 +1,5 @@
 import logging
 import hashlib
-
 from urllib import url2pathname
 
 from libtorrent import bdecode, bencode
@@ -65,6 +64,10 @@ class TorrentInfoEndpoint(resource.Resource):
 
             # Check if the torrent is already in the downloads
             metainfo['download_exists'] = infohash in self.session.lm.downloads
+
+            # Update the torrent database with metainfo if it is an unnamed torrent
+            if self.session.lm.torrent_db:
+                self.session.lm.torrent_db.update_torrent_with_metainfo(infohash, metainfo)
 
             # Save the torrent to our store
             try:
