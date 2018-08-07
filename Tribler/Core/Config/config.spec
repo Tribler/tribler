@@ -5,6 +5,7 @@ ec_keypair_filename = string(default='')
 megacache = boolean(default=True)
 log_dir = string(default=None)
 testnet = boolean(default=False)
+chant_channel_edit = boolean(default=False)
 
 [allchannel_community]
 enabled = boolean(default=True)

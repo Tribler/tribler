@@ -1,8 +1,9 @@
+from pony.orm import db_session, RowNotFound
 from twisted.web import http
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.util import get_parameter
-import Tribler.Core.Utilities.json_util as json
 
 NO_CHANNEL_CREATED_RESPONSE_MSG = "your channel has not been created"
 
@@ -39,6 +40,19 @@ class MyChannelEndpoint(BaseChannelsEndpoint):
 
             :statuscode 404: if your channel has not been created (yet).
         """
+        if self.session.config.get_chant_channel_edit():
+            my_channel_id = self.session.trustchain_keypair.pub().key_to_bin()
+            try:
+                with db_session:
+                    my_channel = self.session.mds.ChannelMD.get(public_key=buffer(my_channel_id)).to_dict()
+            except(RowNotFound):
+                request.setResponseCode(http.NOT_FOUND)
+                return json.dumps({"error": NO_CHANNEL_CREATED_RESPONSE_MSG})
+
+            return json.dumps({'mychannel': {'identifier': str(my_channel["public_key"]).encode('hex'),
+                                             'name': my_channel["title"],
+                                             'description': my_channel["tags"]}})
+
         my_channel_id = self.channel_db_handler.getMyChannelId()
         if my_channel_id is None:
             request.setResponseCode(http.NOT_FOUND)
@@ -73,6 +87,32 @@ class MyChannelEndpoint(BaseChannelsEndpoint):
 
             :statuscode 404: if your channel has not been created (yet).
         """
+        if self.session.config.get_chant_channel_edit():
+
+            parameters = http.parse_qs(request.content.read(), 1)
+
+            if not get_parameter(parameters, 'name'):
+                request.setResponseCode(http.BAD_REQUEST)
+                return json.dumps({"error": 'channel name cannot be empty'})
+
+            key = self.session.trustchain_keypair
+            my_channel_id = key.pub().key_to_bin()
+            try:
+                with db_session:
+                    my_channel = self.session.mds.ChannelMD.get(public_key=buffer(my_channel_id))
+                    my_channel.commit_to_torrent(key, self.session.channels_dir,
+                                                 md_list=my_channel.newer_entries)
+                    my_channel.update_metadata(key, update_dict=
+                        {"tags": unicode(get_parameter(parameters, 'description'), 'utf-8'),
+                         "title": unicode(get_parameter(parameters, 'name'), 'utf-8')})
+
+                    my_channel.garbage_collect()
+            except(RowNotFound):
+                request.setResponseCode(http.NOT_FOUND)
+                return json.dumps({"error": NO_CHANNEL_CREATED_RESPONSE_MSG})
+
+            return json.dumps({'modified': True})
+
         my_channel_id = self.channel_db_handler.getMyChannelId()
         if my_channel_id is None:
             request.setResponseCode(http.NOT_FOUND)

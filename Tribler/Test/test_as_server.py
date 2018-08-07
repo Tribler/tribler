@@ -124,6 +124,20 @@ class AbstractServer(BaseTestCase):
 
     @inlineCallbacks
     def checkReactor(self, phase, *_):
+        delayed_calls = reactor.getDelayedCalls()
+        if delayed_calls:
+            self._logger.error("The reactor was dirty during %s:", phase)
+            for dc in delayed_calls:
+                self._logger.error(">     %s", dc)
+                dc.cancel()
+
+        from pony.orm.core import local
+        if local.db_context_counter > 0:
+            self._logger.error("Leftover pony db sessions found!")
+        from pony.orm import db_session
+        for _ in range(local.db_context_counter):
+            db_session.__exit__()
+
         has_network_selectables = False
         for item in reactor.getReaders() + reactor.getWriters():
             if isinstance(item, HTTPChannel) or isinstance(item, Client):
@@ -326,7 +340,7 @@ class TestAsServer(AbstractServer):
 
         return tdef, torrent_path
 
-    def setup_seeder(self, tdef, seed_dir):
+    def setup_seeder(self, tdef, seed_dir, port=None):
         self.seed_config = TriblerConfig()
         self.seed_config.set_torrent_checking_enabled(False)
         self.seed_config.set_megacache_enabled(False)
@@ -347,6 +361,9 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_state_dir(self.getStateDir(2))
         self.seed_config.set_version_checker_enabled(False)
         self.seed_config.set_bitcoinlib_enabled(False)
+
+        if port is not None:
+            self.seed_config.set_libtorrent_port(port)
 
         def start_seed_download(_):
             self.dscfg_seed = DownloadStartupConfig()

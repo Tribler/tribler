@@ -1,10 +1,12 @@
 from twisted.web import http
 from twisted.web.server import NOT_DONE_YET
+from pony.orm import db_session
 
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE, VOTE_UNSUBSCRIBE
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.MetadataStore.channels import download_channel
 
 ALREADY_SUBSCRIBED_RESPONSE_MSG = "you are already subscribed to this channel"
 NOT_SUBSCRIBED_RESPONSE_MSG = "you are not subscribed to this channel"
@@ -117,6 +119,23 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
             :statuscode 409: (conflict) if you are already subscribed to the specified channel.
         """
         request.setHeader('Content-Type', 'text/json')
+
+        if self.session.config.get_chant_channel_edit():
+            with db_session:
+                channel = self.session.mds.ChannelMD.get(public_key=buffer(self.cid))
+                if channel is not None and channel.subscribed:
+                    request.setResponseCode(http.CONFLICT)
+                    return json.dumps({"error": ALREADY_SUBSCRIBED_RESPONSE_MSG})
+                channel.subscribed = True # FIXME: this should only trigger after the channel download is finished
+                infohash, title = (channel.infohash, channel.title)
+            # FIXME: do proper deferred errback here
+            download_channel(self.session, infohash, title)
+
+            # request.processingFailed(failure)
+            request.write(json.dumps({"subscribed": True}))
+            request.finish()
+            return NOT_DONE_YET
+
         channel_info = self.get_channel_from_db(self.cid)
 
         if channel_info is not None and channel_info[7] == VOTE_SUBSCRIBE:
@@ -133,6 +152,8 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
         self.vote_for_channel(self.cid, VOTE_SUBSCRIBE).addCallback(on_vote_done).addErrback(on_vote_error)
 
         return NOT_DONE_YET
+
+
 
     def render_DELETE(self, request):
         """

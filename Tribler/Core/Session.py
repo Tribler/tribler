@@ -15,6 +15,8 @@ from twisted.python.failure import Failure
 from twisted.python.log import addObserver
 from twisted.python.threadable import isInIOThread
 
+from Tribler.Core.Modules.MetadataStore.base import METADATA_DB_RELATIVE_PATH, start_orm
+from Tribler.Core.Modules.MetadataStore.channels import CHANNELS_DIR_RELATIVE_PATH
 import Tribler.Core.permid as permid_module
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
@@ -86,6 +88,10 @@ class Session(object):
         self.readable_status = ''  # Human-readable string to indicate the status during startup/shutdown of Tribler
 
         self.autoload_discovery = autoload_discovery
+        self.chant_db_filename = os.path.join(self.config.get_state_dir(), METADATA_DB_RELATIVE_PATH)
+        self.channels_dir = os.path.join(self.config.get_state_dir(), CHANNELS_DIR_RELATIVE_PATH)
+        self.mds = None # MetadataStore PonyORM-managed Database object
+
 
     def create_state_directory_structure(self):
         """Create directory structure of the state directory."""
@@ -480,6 +486,10 @@ class Session(object):
 
         self.start_database()
 
+        #FIXME: EXPERIMENTAL STUFF!!!
+        self.mds = start_orm(self.chant_db_filename,
+                create_db=(os.path.isfile(self.chant_db_filename) is False))
+
         if self.upgrader_enabled:
             upgrader = TriblerUpgrader(self, self.sqlite_db)
             self.readable_status = STATE_UPGRADING_READABLE
@@ -517,6 +527,8 @@ class Session(object):
             if self.sqlite_db:
                 self.sqlite_db.close()
             self.sqlite_db = None
+            if self.mds:
+                self.mds.disconnect()
 
         return self.lm.early_shutdown().addCallback(on_early_shutdown_complete)
 
@@ -717,7 +729,7 @@ class Session(object):
         """
         return self.lm.channel_manager.create_channel(name, description, mode)
 
-    def add_torrent_def_to_channel(self, channel_id, torrent_def, extra_info={}, forward=True):
+    def add_torrent_def_to_channel(self, channel_id, torrent_def, extra_info=None, forward=True):
         """
         Adds a TorrentDef to a Channel.
 
@@ -728,6 +740,7 @@ class Session(object):
          destination policy) to other nodes in the community. This parameter should (almost always)
          be True, its inclusion is mostly to allow certain debugging scenarios
         """
+        extra_info = extra_info or {}
         # Make sure that this new torrent_def is also in collected torrents
         self.lm.rtorrent_handler.save_torrent(torrent_def)
 

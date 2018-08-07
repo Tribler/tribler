@@ -152,6 +152,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.deferred_added = Deferred()
         self.deferred_removed = Deferred()
 
+        self.deferred_finished = Deferred() # for chant notification
+
         self.handle_check_lc = self.register_task("handle_check", LoopingCall(self.check_handle))
 
     def __str__(self):
@@ -643,6 +645,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
     def on_torrent_finished_alert(self, alert):
         self.update_lt_status(self.handle.status())
         progress = self.get_state().get_progress()
+        self.deferred_finished.callback(self)
         if self.get_mode() == DLMODE_VOD:
             if progress == 1.0:
                 self.handle.set_sequential_download(False)

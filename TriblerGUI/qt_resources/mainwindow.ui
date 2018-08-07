@@ -5459,6 +5459,34 @@ color: white;</string>
                     </property>
                    </widget>
                   </item>
+                  <item row="13" column="0">
+                   <widget class="QLabel" name="label_33">
+                    <property name="styleSheet">
+                     <string notr="true">font-weight: bold;
+color: white;</string>
+                    </property>
+                    <property name="text">
+                     <string>Beta features</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="14" column="0">
+                   <widget class="QLabel" name="label_34">
+                    <property name="text">
+                     <string>Enable Channel 2.0 editing</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="14" column="1">
+                   <widget class="QCheckBox" name="chant_channel_edit">
+                    <property name="styleSheet">
+                     <string notr="true">margin-top: 2px;</string>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                   </widget>
+                  </item>
                  </layout>
                 </widget>
                 <widget class="QWidget" name="settings_connection_tab">

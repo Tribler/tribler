@@ -580,14 +580,17 @@ class TriblerWindow(QMainWindow):
         browse_files_action = QAction('Import torrent from file', self)
         browse_directory_action = QAction('Import torrent(s) from directory', self)
         add_url_action = QAction('Import torrent from magnet/URL', self)
+        add_mdblob_action = QAction('Import Tribler metadata from file', self)
 
         browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
         browse_directory_action.triggered.connect(self.on_add_torrent_browse_dir)
         add_url_action.triggered.connect(self.on_add_torrent_from_url)
+        add_mdblob_action.triggered.connect(self.on_add_mdblob_browse_file)
 
         menu.addAction(browse_files_action)
         menu.addAction(browse_directory_action)
         menu.addAction(add_url_action)
+        menu.addAction(add_mdblob_action)
 
         return menu
 
@@ -599,6 +602,15 @@ class TriblerWindow(QMainWindow):
                                                  "Please select the .torrent file",
                                                  QDir.homePath(),
                                                  "Torrent files (*.torrent)")
+        if len(filenames[0]) > 0:
+            [self.pending_uri_requests.append(u"file:%s" % filename) for filename in filenames[0]]
+            self.process_uri_request()
+
+    def on_add_mdblob_browse_file(self):
+        filenames = QFileDialog.getOpenFileNames(self,
+                                                 "Please select the .mdblob file",
+                                                 QDir.homePath(),
+                                                 "Tribler metadata files (*.mdblob)")
         if len(filenames[0]) > 0:
             [self.pending_uri_requests.append(u"file:%s" % filename) for filename in filenames[0]]
             self.process_uri_request()

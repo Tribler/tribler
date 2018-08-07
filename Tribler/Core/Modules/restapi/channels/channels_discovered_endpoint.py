@@ -1,3 +1,4 @@
+from pony.orm import db_session
 from twisted.web import http
 
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
@@ -94,6 +95,16 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
             description = u''
         else:
             description = unicode(parameters['description'][0], 'utf-8')
+
+        if self.session.config.get_chant_channel_edit():
+            title = unicode(parameters['name'][0], 'utf-8')
+            tags = description
+            key = self.session.trustchain_keypair
+
+            my_channel_id = key.pub().key_to_bin()
+            with db_session:
+                self.session.mds.ChannelMD(public_key=buffer(my_channel_id), title=title, tags=tags)
+            return json.dumps({"added": str(my_channel_id).encode("hex")})
 
         if 'mode' not in parameters or len(parameters['mode']) == 0:
             # By default, the mode of the new channel is closed.
