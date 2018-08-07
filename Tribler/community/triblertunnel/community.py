@@ -14,8 +14,7 @@ from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_IP_RECREATE, NTFY_REMOVE, 
     NTFY_JOINED, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED
 from Tribler.Core.Socks5.server import Socks5Server
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
-from Tribler.pyipv8.ipv8.messaging.anonymization.community import CreatePayload, message_to_payload, \
-    SINGLE_HOP_ENC_PACKETS
+from Tribler.pyipv8.ipv8.messaging.anonymization.community import message_to_payload, SINGLE_HOP_ENC_PACKETS
 from Tribler.pyipv8.ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
 from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_RP, \
@@ -161,7 +160,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.logger.warning("Got payout while not having a TrustChain community running!")
             return
 
-        _, payload = self._ez_unpack_noauth(PayoutPayload, data)
+        payload = self._ez_unpack_noauth(PayoutPayload, data, global_time=False)
         peer = Peer(payload.public_key, source_address)
         block = TriblerBandwidthBlock.from_payload(payload, self.serializer)
         self.bandwidth_wallet.trustchain.process_half_block(block, peer)
@@ -169,7 +168,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         # Send the next payout
         if payload.circuit_id in self.relay_from_to and block.transaction['down'] > payload.base_amount:
             relay = self.relay_from_to[payload.circuit_id]
-            circuit_peer = self.get_peer_from_address(relay.sock_addr)
+            circuit_peer = self.get_peer_from_address(relay.peer.address)
             if not circuit_peer:
                 self.logger.warning("%s Unable to find next peer %s for payout!", self.my_peer, relay.mid.encode('hex'))
                 return
@@ -178,21 +177,19 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                            payload.base_amount)
 
     def on_balance_request_cell(self, source_address, data, _):
-        _, payload = self._ez_unpack_noauth(BalanceRequestPayload, data)
+        payload = self._ez_unpack_noauth(BalanceRequestPayload, data, global_time=False)
 
         circuit_id = payload.circuit_id
         request = self.request_cache.get(u"anon-circuit", circuit_id)
         if request.should_forward:
-            forwarding_relay = RelayRoute(request.from_circuit_id,
-                                          request.candidate_sock_addr,
-                                          mid=request.candidate_mid)
-            self.send_cell([forwarding_relay.sock_addr], u"relay-balance-request",
+            forwarding_relay = RelayRoute(request.from_circuit_id, request.peer)
+            self.send_cell([forwarding_relay.peer.address], u"relay-balance-request",
                            BalanceRequestPayload(forwarding_relay.circuit_id))
         else:
             self.on_balance_request(payload)
 
     def on_relay_balance_request_cell(self, source_address, data, _):
-        _, payload = self._ez_unpack_noauth(BalanceRequestPayload, data)
+        payload = self._ez_unpack_noauth(BalanceRequestPayload, data, global_time=False)
         self.on_balance_request(payload)
 
     def on_balance_request(self, payload):
@@ -213,18 +210,18 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         # We either send the response directly or relay the response to the last verified hop
         circuit = self.circuits[payload.circuit_id]
         if not circuit.hops:
-            self.increase_bytes_sent(circuit, self.send_cell([circuit.sock_addr],
+            self.increase_bytes_sent(circuit, self.send_cell([circuit.peer.address],
                                                              u"balance-response",
                                                              BalanceResponsePayload.from_half_block(
                                                                  latest_block, circuit.circuit_id)))
         else:
-            self.increase_bytes_sent(circuit, self.send_cell([circuit.sock_addr],
+            self.increase_bytes_sent(circuit, self.send_cell([circuit.peer.address],
                                                              u"relay-balance-response",
                                                              BalanceResponsePayload.from_half_block(
                                                                  latest_block, circuit.circuit_id)))
 
     def on_balance_response_cell(self, source_address, data, _):
-        _, payload = self._ez_unpack_noauth(BalanceResponsePayload, data)
+        payload = self._ez_unpack_noauth(BalanceResponsePayload, data, global_time=False)
         block = TriblerBandwidthBlock.from_payload(payload, self.serializer)
         if not block.transaction:
             self.on_token_balance(payload.circuit_id, 0)
@@ -233,14 +230,14 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                   block.transaction["total_up"] - block.transaction["total_down"])
 
     def on_relay_balance_response_cell(self, source_address, data, _):
-        _, payload = self._ez_unpack_noauth(BalanceResponsePayload, data)
+        payload = self._ez_unpack_noauth(BalanceResponsePayload, data, global_time=False)
         block = TriblerBandwidthBlock.from_payload(payload, self.serializer)
 
         # At this point, we don't have the circuit ID of the follow-up hop. We have to iterate over the items in the
         # request cache and find the link to the next hop.
         for cache in self.request_cache._identifiers.values():
             if isinstance(cache, ExtendRequestCache) and cache.from_circuit_id == payload.circuit_id:
-                self.send_cell([cache.to_candidate_sock_addr],
+                self.send_cell([cache.to_peer.address],
                                u"balance-response",
                                BalanceResponsePayload.from_half_block(block, cache.to_circuit_id))
 
@@ -302,10 +299,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         block.sign(self.my_peer.key)
         self.bandwidth_wallet.trustchain.persistence.add_block(block)
 
-        global_time = self.claim_global_time()
-        dist = GlobalTimeDistributionPayload(global_time).to_pack_list()
         payload = PayoutPayload.from_half_block(block, circuit_id, base_amount).to_pack_list()
-        packet = self._ez_pack(self._prefix, 23, [dist, payload], False)
+        packet = self._ez_pack(self._prefix, 23, [payload], False)
         self.send_packet([peer], u"payout", packet)
 
     def clean_from_slots(self, circuit_id):
@@ -329,9 +324,9 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         # Send the notification
         if self.tribler_session:
-            self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, circuit.sock_addr)
+            self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, circuit.peer.address)
 
-        circuit_peer = self.get_peer_from_address(circuit.sock_addr)
+        circuit_peer = self.get_peer_from_address(circuit.peer.address)
         if circuit.bytes_down >= 1024 * 1024 and self.bandwidth_wallet and circuit_peer:
             # We should perform a payout of the removed circuit.
             if circuit.ctype == CIRCUIT_TYPE_RENDEZVOUS:
@@ -375,12 +370,13 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         if self.tribler_session:
             for removed_relay in removed_relays:
-                self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, removed_relay, removed_relay.sock_addr)
+                self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, removed_relay,
+                                                     removed_relay.peer.address)
 
     def remove_exit_socket(self, circuit_id, additional_info='', remove_now=False, destroy=False):
         if circuit_id in self.exit_sockets and self.tribler_session:
             exit_socket = self.exit_sockets[circuit_id]
-            self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket, exit_socket.sock_addr)
+            self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket, exit_socket.peer.address)
 
         self.clean_from_slots(circuit_id)
 
@@ -398,18 +394,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.tribler_session.notifier.notify(
                 NTFY_TUNNEL, NTFY_CREATED if len(circuit.hops) == 1 else NTFY_EXTENDED, circuit)
 
-    def on_create(self, source_address, data, _):
-        _, payload = self._ez_unpack_noauth(CreatePayload, data)
-
-        if not self.check_create(payload):
-            return
-
-        circuit_id = payload.circuit_id
+    def join_circuit(self, create_payload, previous_node_address):
+        super(TriblerTunnelCommunity, self).join_circuit(create_payload, previous_node_address)
 
         if self.tribler_session:
-            self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_JOINED, source_address, circuit_id)
-
-        super(TriblerTunnelCommunity, self).on_create(source_address, data, _)
+            circuit_id = create_payload.circuit_id
+            self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_JOINED, previous_node_address, circuit_id)
 
     def on_raw_data(self, circuit, origin, data):
         anon_seed = circuit.ctype == CIRCUIT_TYPE_RP
@@ -496,7 +486,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         super(TriblerTunnelCommunity, self).create_introduction_point(info_hash, amount)
 
     def on_linked_e2e(self, source_address, data, circuit_id):
-        _, payload = self._ez_unpack_noauth(LinkedE2EPayload, data)
+        payload = self._ez_unpack_noauth(LinkedE2EPayload, data, global_time=False)
         cache = self.request_cache.get(u"link-request", payload.identifier)
         if cache:
             download = self.get_download(cache.info_hash)

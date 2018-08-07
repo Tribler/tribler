@@ -80,7 +80,7 @@ class TunnelDispatcher(object):
 
         self._logger.debug("Sending data over circuit destined for %r:%r", *request.destination)
         self.circuit_id_to_connection[circuit.circuit_id] = udp_connection.socksconnection
-        self.tunnel_community.send_data([circuit.sock_addr], circuit.circuit_id, request.destination,
+        self.tunnel_community.send_data([circuit.peer.address], circuit.circuit_id, request.destination,
                                         ('0.0.0.0', 0), request.payload)
         return True
 

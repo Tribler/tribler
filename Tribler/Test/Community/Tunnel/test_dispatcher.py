@@ -28,7 +28,8 @@ class TestTunnelDispatcher(AbstractServer):
         self.mock_circuit = MockObject()
         self.mock_circuit.state = CIRCUIT_STATE_EXTENDING
         self.mock_circuit.circuit_id = 3
-        self.mock_circuit.sock_addr = ("1.1.1.1", 1234)
+        self.mock_circuit.peer = MockObject()
+        self.mock_circuit.peer.address = ("1.1.1.1", 1234)
         self.mock_circuit.tunnel_data = lambda *_: None
 
     def test_on_tunnel_in(self):
