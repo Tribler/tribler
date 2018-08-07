@@ -52,6 +52,8 @@ class LeftMenuPlaylist(QListWidget):
                                                capture_errors=False)
 
     def on_received_files(self, files):
+        if not files:
+            return
         if "files" not in files or not files["files"]:
             return
 

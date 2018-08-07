@@ -100,6 +100,8 @@ class FeedbackDialog(QDialog):
         QApplication.quit()
 
     def on_report_sent(self, response):
+        if not response:
+            return
         sent = response[u'sent']
 
         success_text = "Successfully sent the report! Thanks for your contribution."

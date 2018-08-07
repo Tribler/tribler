@@ -127,6 +127,8 @@ class SettingsPage(QWidget):
                                                         self.on_emptying_tokens)
 
     def on_emptying_tokens(self, data):
+        if not data:
+            return
         json_data = json.dumps(data)
 
         if has_qr:
@@ -204,6 +206,8 @@ class SettingsPage(QWidget):
             self.window().log_location_input.setText(log_dir)
 
     def initialize_with_settings(self, settings):
+        if not settings:
+            return
         self.settings = settings
         settings = settings["settings"]
         gui_settings = self.window().gui_settings
@@ -414,7 +418,9 @@ class SettingsPage(QWidget):
         self.settings_request_mgr.perform_request("settings", self.on_settings_saved,
                                                   method='POST', data=json.dumps(settings_data))
 
-    def on_settings_saved(self, _):
+    def on_settings_saved(self, data):
+        if not data:
+            return
         # Now save the GUI settings
         self.window().gui_settings.setValue("ask_download_settings",
                                             self.window().always_ask_location_checkbox.isChecked())

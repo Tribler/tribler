@@ -439,6 +439,8 @@ class TriblerWindow(QMainWindow):
         self.request_mgr.perform_request("settings", self.received_settings, capture_errors=False)
 
     def received_settings(self, settings):
+        if not settings:
+            return
         # If we cannot receive the settings, stop Tribler with an option to send the crash report.
         if 'error' in settings:
             raise RuntimeError(TriblerRequestManager.get_message_from_error(settings))
@@ -676,6 +678,8 @@ class TriblerWindow(QMainWindow):
                 self.start_download_from_uri(uri)
 
     def on_download_added(self, result):
+        if not result:
+            return
         if len(self.pending_uri_requests) == 0:  # Otherwise, we first process the remaining requests.
             self.window().left_menu_button_downloads.click()
         else:

@@ -63,6 +63,8 @@ class MarketTransactionsPage(QWidget):
             self.add_payment_to_list(payment)
 
     def on_received_transactions(self, transactions):
+        if not transactions:
+            return
         for transaction in transactions["transactions"]:
             if self.wallets:
                 asset1_prec = self.wallets[transaction["assets"]["first"]["type"]]["precision"]
@@ -87,6 +89,8 @@ class MarketTransactionsPage(QWidget):
                                          self.on_received_payments)
 
     def on_received_payments(self, payments):
+        if not payments:
+            return
         for payment in payments["payments"]:
             self.add_payment_to_list(payment)
 

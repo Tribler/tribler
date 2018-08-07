@@ -51,6 +51,8 @@ class TorrentDetailsTabWidget(QTabWidget):
         self.check_health_button.clicked.connect(lambda: self.on_check_health_clicked(timeout=15))
 
     def on_torrent_info(self, torrent_info):
+        if not torrent_info:
+            return
         self.setTabEnabled(1, True)
         self.setTabEnabled(2, True)
 
@@ -119,6 +121,8 @@ class TorrentDetailsTabWidget(QTabWidget):
                                                 on_cancel=self.on_cancel_health_check)
 
     def on_health_response(self, response):
+        if not response:
+            return
         total_seeders = 0
         total_leechers = 0
 

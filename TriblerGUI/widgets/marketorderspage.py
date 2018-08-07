@@ -42,6 +42,8 @@ class MarketOrdersPage(QWidget):
         self.request_mgr.perform_request("market/orders", self.on_received_orders)
 
     def on_received_orders(self, orders):
+        if not orders:
+            return
         for order in orders["orders"]:
             if self.wallets:
                 asset1_prec = self.wallets[order["assets"]["first"]["type"]]["precision"]
@@ -81,4 +83,6 @@ class MarketOrdersPage(QWidget):
         self.dialog = None
 
     def on_order_cancelled(self, response):
+        if not response:
+            return
         self.load_orders()

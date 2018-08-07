@@ -78,6 +78,8 @@ class ChannelPage(QWidget):
             self.window().channel_torrents_list.set_data_items(self.playlists + self.torrents)
 
     def received_torrents_in_channel(self, results):
+        if not results:
+            return
         def sort_key(torrent):
             """ Scoring algorithm for sorting the torrent to show liveness. The score is basically the sum of number
                 of seeders and leechers. If swarm info is unknown, we give unknown seeder and leecher as 0.5 & 0.4 so
@@ -102,6 +104,8 @@ class ChannelPage(QWidget):
         self.update_result_list()
 
     def received_playlists_in_channel(self, results):
+        if not results:
+            return
         for result in results['playlists']:
             self.playlists.append((PlaylistListItem, result))
         self.loaded_playlists = True
