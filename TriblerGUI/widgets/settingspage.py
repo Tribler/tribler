@@ -316,6 +316,7 @@ class SettingsPage(QWidget):
         settings_data['general']['family_filter'] = self.window().family_filter_checkbox.isChecked()
         settings_data['download_defaults']['saveas'] = self.window().download_location_input.text().encode('utf-8')
         settings_data['general']['log_dir'] = self.window().log_location_input.text()
+        settings_data['general']['chant_channel_edit'] = self.window().chant_channel_edit.isChecked()
 
         settings_data['watch_folder']['enabled'] = self.window().watchfolder_enabled_checkbox.isChecked()
         if settings_data['watch_folder']['enabled']:
