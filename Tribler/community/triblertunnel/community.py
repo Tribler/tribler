@@ -28,10 +28,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     This community is built upon the anonymous messaging layer in IPv8.
     It adds support for libtorrent anonymous downloads and bandwidth token payout when closing circuits.
     """
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000407df3e6d69794baa5590617b729ebea421d82bb02"
-                       "e70fb2dcc91111f636a591d37a5af44becae32467e840be09e7a85d28e4ec4074776d97a1cf479eeff7f040a6852a"
-                       "bddbe275a1047614ee9b4a74c172b1ab454f4b26119fa3207914b018d7379d0b8beef96625a41327450d51aa63a2b"
-                       "e2c86f2bf5c38249b16da30fe71f8726d08c349639bd530fadb59384acca8".decode('hex'))
+    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000405d21a70973974a672d5141e9b17ae19b74bcd7c"
+                       "53202b6a8c10bf0e02d9db6ba991af9d9e45be95a647a446b60a3b429295cb25379b9c775c18da21a091197ef65d"
+                       "a894edad3ffc040b75c85e84a193cfd4ba547c9ae2b5b24945f2431cdbb3ce14a91db24733ec41171ab2a848a584"
+                       "ebd33ff78bc951f1866d72fe3d91691d870cb347b434fe7c98dbcb26559366d6".decode('hex'))
 
     def __init__(self, *args, **kwargs):
         self.tribler_session = kwargs.pop('tribler_session', None)
