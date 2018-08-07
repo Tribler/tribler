@@ -1,10 +1,12 @@
 import logging
 from urllib import unquote_plus, url2pathname
 
+from pony.orm import db_session
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Modules.MetadataStore.channels import load_blob, download_channel
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
 import Tribler.Core.Utilities.json_util as json
@@ -304,7 +306,16 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
         uri = parameters['uri'][0]
         if uri.startswith("file:"):
-            download_uri = u"file:%s" % url2pathname(unicode(uri[5:], 'utf-8'))
+            if uri.endswith(".mdblob"):
+                filename = url2pathname(uri[5:].encode('utf-8') if isinstance(uri, unicode) else uri[5:])
+                # TODO: by passing around dicts instead of ORM objects, we could remove db_session lock here
+                with db_session:
+                    # FIXME: add error checks! Check for md type.
+                    channel = load_blob(self.session.mds, filename)
+                    download_channel(self.session, channel.infohash, channel.title)
+                return NOT_DONE_YET
+            else:
+                download_uri = u"file:%s" % url2pathname(unicode(uri[5:], 'utf-8'))
         else:
             download_uri = unquote_plus(unicode(uri, 'utf-8'))
         download_deferred = self.session.start_download_from_uri(download_uri, download_config)

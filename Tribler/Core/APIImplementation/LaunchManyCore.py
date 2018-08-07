@@ -428,6 +428,7 @@ class TriblerLaunchMany(TaskManager):
         tunnel_community_ports = self.session.config.get_tunnel_community_socks5_listen_ports()
         self.session.config.set_anon_proxy_settings(2, ("127.0.0.1", tunnel_community_ports))
 
+
         if self.session.config.get_channel_search_enabled() and self.session.config.get_dispersy_enabled():
             self.session.readable_status = STATE_INITIALIZE_CHANNEL_MGR
             from Tribler.Core.Modules.channel.channel_manager import ChannelManager

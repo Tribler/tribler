@@ -1,6 +1,9 @@
 import logging
+
+from pony.orm import db_session
 from twisted.web import http, resource
 
+from Tribler.Core.Modules.restapi.channels.channels_torrents_endpoint import md2rest
 from Tribler.Core.Utilities.search_utils import split_into_keywords
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, \
@@ -69,13 +72,20 @@ class SearchEndpoint(resource.Resource):
         # We first search the local database for torrents and channels
         query = unicode(request.args['q'][0], 'utf-8')
         keywords = split_into_keywords(query)
+
         results_local_channels = self.channel_db_handler.search_in_local_channels_db(query)
+        #TODO: use direct results dict from ORM instead of list
+        with db_session:
+            results_local_channels.extend(map(chan2rest, self.session.mds.ChannelMD.search_keyword(query)))
+
         results_dict = {"keywords": keywords, "result_list": results_local_channels}
         self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
 
         torrent_db_columns = ['T.torrent_id', 'infohash', 'T.name', 'length', 'category',
                               'num_seeders', 'num_leechers', 'last_tracker_check']
         results_local_torrents = self.torrent_db_handler.search_in_local_torrents_db(query, keys=torrent_db_columns)
+        with db_session:
+            results_local_torrents.extend(map(md2rest, self.session.mds.TorrentMD.search_keyword(query)))
         results_dict = {"keywords": keywords, "result_list": results_local_torrents}
         self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
 
@@ -88,6 +98,16 @@ class SearchEndpoint(resource.Resource):
 
         return json.dumps({"queried": True})
 
+def chan2rest(chan):
+    favorite = 1
+    my_vote = 0
+    spam = 0
+    relevance = 0.9
+    unix_timestamp = chan.torrent_date
+    # Format:
+    #  0 |       1      |   2  |       3     |       4     |  5          |   6      |     7    |         |     8           |
+    # id | dispersy_cid | name | description | nr_torrents | nr_favorite | nr_spam  | modified | my_vote | relevance_score |
+    return (chan.rowid, str(chan.public_key), chan.title, chan.tags, int(chan.size), favorite, spam, unix_timestamp, my_vote, relevance)
 
 class SearchCompletionsEndpoint(resource.Resource):
     """
@@ -127,4 +147,5 @@ class SearchCompletionsEndpoint(resource.Resource):
 
         keywords = unicode(request.args['q'][0], 'utf-8').lower()
         results = self.torrent_db_handler.getAutoCompleteTerms(keywords, max_terms=5)
+        results.extend(self.session.mds.TorrentMD.getAutoCompleteTerms(keywords, max_terms=5))
         return json.dumps({"completions": results})

@@ -8,6 +8,7 @@ from twisted.internet.error import DNSLookupError, ConnectError, ConnectionLost
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
+from Tribler.Core.Modules.MetadataStore.channels import load_blob
 from Tribler.Core.exceptions import HttpError
 from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
@@ -93,29 +94,7 @@ class TorrentInfoEndpoint(resource.Resource):
             request.write(json.dumps({"error": failure.getErrorMessage()}))
             self.finish_request(request)
 
-        if 'uri' not in request.args or len(request.args['uri']) == 0:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "uri parameter missing"})
-
-        uri = unicode(request.args['uri'][0], 'utf-8')
-        if uri.startswith('file:'):
-            try:
-                filename = url2pathname(uri[5:].encode('utf-8') if isinstance(uri, unicode) else uri[5:])
-                metainfo_deferred.callback(bdecode(fix_torrent(filename)))
-            except TypeError:
-                request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-                return json.dumps({"error": "error while decoding torrent file"})
-        elif uri.startswith('http'):
-            def _on_loaded(response):
-                if response.startswith('magnet'):
-                    _, infohash, _ = parse_magnetlink(response)
-                    if infohash:
-                        self.session.lm.ltmgr.get_metainfo(response, callback=metainfo_deferred.callback, timeout=20,
-                                                           timeout_callback=on_metainfo_timeout, notify=True)
-                        return
-                metainfo_deferred.callback(bdecode(response))
-            http_get(uri.encode('utf-8')).addCallback(_on_loaded).addErrback(on_lookup_error)
-        elif uri.startswith('magnet'):
+        def on_magnet(uri):
             infohash = parse_magnetlink(uri)[1]
             if infohash is None:
                 request.setResponseCode(http.BAD_REQUEST)
@@ -132,6 +111,45 @@ class TorrentInfoEndpoint(resource.Resource):
 
             self.session.lm.ltmgr.get_metainfo(uri, callback=metainfo_deferred.callback, timeout=20,
                                                timeout_callback=on_metainfo_timeout, notify=True)
+            return None
+
+        if 'uri' not in request.args or len(request.args['uri']) == 0:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "uri parameter missing"})
+
+        uri = unicode(request.args['uri'][0], 'utf-8')
+        if uri.startswith('file:'):
+            filename = url2pathname(uri[5:].encode('utf-8') if isinstance(uri, unicode) else uri[5:])
+            if uri.endswith('.mdblob'):
+                try:
+                    # FIXME: add check for already added metadata/infohash
+                    md = load_blob(self.session.mds, filename)
+                except TypeError:
+                    request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+                    return json.dumps({"error": "error while decoding metadata blob file"})
+                result = on_magnet(md.get_magnet())
+                if result is not None:
+                    return result
+            else:
+                try:
+                    metainfo_deferred.callback(bdecode(fix_torrent(filename)))
+                except TypeError:
+                    request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+                    return json.dumps({"error": "error while decoding torrent file"})
+        elif uri.startswith('http'):
+            def _on_loaded(response):
+                if response.startswith('magnet'):
+                    _, infohash, _ = parse_magnetlink(response)
+                    if infohash:
+                        self.session.lm.ltmgr.get_metainfo(response, callback=metainfo_deferred.callback, timeout=20,
+                                                           timeout_callback=on_metainfo_timeout, notify=True)
+                        return
+                metainfo_deferred.callback(bdecode(response))
+            http_get(uri.encode('utf-8')).addCallback(_on_loaded).addErrback(on_lookup_error)
+        elif uri.startswith('magnet'):
+            result = on_magnet(uri)
+            if result is not None:
+                return result
         else:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "invalid uri"})

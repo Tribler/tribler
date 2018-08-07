@@ -121,6 +121,11 @@ class TriblerConfig(object):
         return self.selected_ports[path]
 
     # General
+    def set_chant_channel_edit(self, value):
+        self.config['general']['chant_channel_edit'] = bool(value)
+
+    def get_chant_channel_edit(self):
+        return self.config['general'].as_bool('chant_channel_edit')
 
     def set_family_filter_enabled(self, value):
         self.config['general']['family_filter'] = bool(value)
