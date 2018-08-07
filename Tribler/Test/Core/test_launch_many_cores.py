@@ -165,7 +165,7 @@ class TestLaunchManyCoreFullSession(TestAsServer):
 
         # Enable all communities
         config_sections = ['search_community', 'trustchain', 'allchannel_community', 'channel_community',
-                           'preview_channel_community', 'tunnel_community', 'dispersy', 'ipv8']
+                           'preview_channel_community', 'tunnel_community', 'dispersy', 'ipv8', 'dht']
 
         for section in config_sections:
             self.config.config[section]['enabled'] = True

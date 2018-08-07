@@ -29,6 +29,9 @@ enabled = boolean(default=True)
 matchmaker = boolean(default=True)
 ec_keypair_filename = string(default='')
 
+[dht]
+enabled = boolean(default=True)
+
 [trustchain]
 enabled = boolean(default=True)
 ec_keypair_filename = string(default='')
