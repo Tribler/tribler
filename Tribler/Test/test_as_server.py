@@ -299,6 +299,7 @@ class TestAsServer(AbstractServer):
         self.config.set_credit_mining_enabled(False)
         self.config.set_market_community_enabled(False)
         self.config.set_popularity_community_enabled(False)
+        self.config.set_dht_enabled(False)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -354,6 +355,7 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_metadata_enabled(False)
         self.seed_config.set_tunnel_community_enabled(False)
         self.seed_config.set_market_community_enabled(False)
+        self.seed_config.set_dht_enabled(False)
         self.seed_config.set_state_dir(self.getStateDir(2))
 
         def start_seed_download(_):

@@ -108,6 +108,7 @@ class TriblerLaunchMany(TaskManager):
 
         self.credit_mining_manager = None
         self.market_community = None
+        self.dht_community = None
 
     def register(self, session, session_lock):
         assert isInIOThread()
@@ -262,6 +263,15 @@ class TriblerLaunchMany(TaskManager):
 
             tc_wallet = TrustchainWallet(self.trustchain_community)
             self.wallets[tc_wallet.get_identifier()] = tc_wallet
+
+        # DHT Community
+        if self.session.config.get_dht_enabled():
+            from Tribler.pyipv8.ipv8.dht.discovery import DHTDiscoveryCommunity
+
+            dht_peer = Peer(self.session.trustchain_keypair)
+            self.dht_community = DHTDiscoveryCommunity(dht_peer, self.ipv8.endpoint, self.ipv8.network)
+            self.ipv8.overlays.append(self.dht_community)
+            self.ipv8.strategies.append((RandomWalk(self.dht_community), 20))
 
         # Tunnel Community
         if self.session.config.get_tunnel_community_enabled():

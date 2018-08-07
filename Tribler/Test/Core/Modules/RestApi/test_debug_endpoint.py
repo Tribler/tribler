@@ -32,7 +32,8 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         mock_circuit.bytes_down = 400
         mock_circuit.creation_time = 1234
         mock_circuit.hops = [mock_hop]
-        mock_circuit.sock_addr = ("1.1.1.1", 1234)
+        mock_circuit.peer = MockObject()
+        mock_circuit.peer.address = ("1.1.1.1", 1234)
         mock_circuit.circuit_id = 1234
         mock_circuit.ctype = CIRCUIT_TYPE_DATA
         mock_circuit.destroy = lambda: None

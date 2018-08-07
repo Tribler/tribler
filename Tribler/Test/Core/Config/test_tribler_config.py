@@ -352,3 +352,10 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_credit_mining_sources(), True)
         self.tribler_config.set_credit_mining_disk_space(1024 ** 2)
         self.assertEqual(self.tribler_config.get_credit_mining_disk_space(), 1024 ** 2)
+
+    def test_get_set_methods_dht(self):
+        """
+        Check whether dht get and set methods are working as expected.
+        """
+        self.tribler_config.set_dht_enabled(False)
+        self.assertFalse(self.tribler_config.get_dht_enabled())

@@ -527,6 +527,14 @@ class TriblerConfig(object):
     def get_is_matchmaker(self):
         return self.config['market_community']['matchmaker']
 
+    # DHT
+
+    def set_dht_enabled(self, value):
+        self.config['dht']['enabled'] = value
+
+    def get_dht_enabled(self):
+        return self.config['dht']['enabled']
+
     # Wallets
 
     def set_btc_testnet(self, value):
