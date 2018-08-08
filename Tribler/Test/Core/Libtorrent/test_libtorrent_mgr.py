@@ -30,6 +30,8 @@ class TestLibtorrentMgr(AbstractServer):
         self.tribler_session = MockObject()
         self.tribler_session.notifier = Notifier()
         self.tribler_session.state_dir = self.session_base_dir
+        self.tribler_session.trustchain_keypair = MockObject()
+        self.tribler_session.trustchain_keypair.key_to_hash = lambda: 'a' * 20
 
         self.tribler_session.config = MockObject()
         self.tribler_session.config.get_libtorrent_utp = lambda: True
@@ -418,15 +420,20 @@ class TestLibtorrentMgr(AbstractServer):
 
         self.assertTrue(os.path.isfile(filename))
 
+    @deferred(timeout=5)
     def test_callback_on_alert(self):
         """
         Test whether the alert callback is called when a libtorrent alert is posted
         """
         self.ltmgr.default_alert_mask = 0xffffffff
-        mutable_container = [False]
+        test_deferred = Deferred()
+
         def callback(*args):
-            mutable_container[0] = True
+            self.ltmgr.alert_callback = None
+            test_deferred.callback(None)
+
+        callback.called = False
         self.ltmgr.alert_callback = callback
         self.ltmgr.initialize()
         self.ltmgr._task_process_alerts()
-        self.assertTrue(mutable_container[0])
+        return test_deferred

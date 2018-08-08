@@ -15,6 +15,7 @@ from traceback import print_exc
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DecentralizedTracking.dht_provider import MainlineDHTProvider
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
+from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.Modules.resource_monitor import ResourceMonitor
 from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
@@ -109,6 +110,7 @@ class TriblerLaunchMany(TaskManager):
         self.credit_mining_manager = None
         self.market_community = None
         self.dht_community = None
+        self.payout_manager = None
 
     def register(self, session, session_lock):
         assert isInIOThread()
@@ -463,6 +465,9 @@ class TriblerLaunchMany(TaskManager):
         self.version_check_manager = VersionCheckManager(self.session)
         self.session.set_download_states_callback(self.sesscb_states_callback)
 
+        if self.session.config.get_ipv8_enabled() and self.session.config.get_trustchain_enabled():
+            self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
+
         self.initComplete = True
 
     def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,
@@ -708,6 +713,13 @@ class TriblerLaunchMany(TaskManager):
                     # Re-add the download with anonymity enabled
                     hops = self.session.config.get_default_number_hops()
                     self.update_download_hops(download, hops)
+
+            # Check the peers of this download every five seconds and add them to the payout manager when
+            # this peer runs a Tribler instance
+            if self.state_cb_count % 5 == 0 and download.get_hops() == 0 and self.payout_manager:
+                for peer in download.get_peerlist():
+                    if peer["extended_version"].startswith('Tribler'):
+                        self.payout_manager.update_peer(peer["id"].decode('hex'), infohash, peer["dtotal"])
 
         self.previous_active_downloads = new_active_downloads
         if do_checkpoint:
