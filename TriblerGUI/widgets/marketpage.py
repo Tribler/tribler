@@ -83,6 +83,8 @@ class MarketPage(QWidget):
         self.request_mgr.perform_request("wallets", self.on_wallets)
 
     def on_wallets(self, wallets):
+        if not wallets:
+            return
         wallets = wallets["wallets"]
         self.received_wallets.emit(wallets)
 
@@ -147,6 +149,8 @@ class MarketPage(QWidget):
         self.asks_request_mgr.perform_request("market/asks", self.on_received_asks)
 
     def on_received_asks(self, asks):
+        if not asks:
+            return
         self.asks = asks["asks"]
         self.update_filter_asks_list()
         self.update_filter_bids_list()
@@ -172,6 +176,8 @@ class MarketPage(QWidget):
         self.bids_request_mgr.perform_request("market/bids", self.on_received_bids)
 
     def on_received_bids(self, bids):
+        if not bids:
+            return
         self.bids = bids["bids"]
         self.update_filter_asks_list()
         self.update_filter_bids_list()
@@ -274,6 +280,8 @@ class MarketPage(QWidget):
         self.window().stackedWidget.setCurrentIndex(PAGE_MARKET_ORDERS)
 
     def on_order_created(self, response, is_ask):
+        if not response:
+            return
         if is_ask:
             self.load_asks()
         else:

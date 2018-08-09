@@ -57,6 +57,8 @@ class MarketWalletsPage(QWidget):
         self.request_mgr.perform_request("wallets", self.on_wallets)
 
     def on_wallets(self, wallets):
+        if not wallets:
+            return
         self.wallets = wallets["wallets"]
 
         if 'MB' in self.wallets and self.wallets["MB"]["created"]:
@@ -123,6 +125,8 @@ class MarketWalletsPage(QWidget):
         self.request_mgr.perform_request("wallets/%s/transactions" % wallet_id, self.on_transactions)
 
     def on_transactions(self, transactions):
+        if not transactions:
+            return
         for transaction in transactions["transactions"]:
             item = QTreeWidgetItem(self.window().wallet_transactions_list)
             item.setText(0, "Sent" if transaction["outgoing"] else "Received")
@@ -175,6 +179,8 @@ class MarketWalletsPage(QWidget):
                                              method='PUT', data=post_data)
 
     def on_wallet_created(self, response):
+        if not response:
+            return
         if self.dialog:
             self.dialog.close_dialog()
             self.dialog = None

@@ -84,6 +84,8 @@ class ManagePlaylistPage(QWidget):
             del remove_from_list[index]
 
     def on_received_channel_torrents(self, result):
+        if not result:
+            return
         self.torrents_in_playlist = self.playlist_info['torrents']
 
         self.torrents_in_channel = []
@@ -140,7 +142,9 @@ class ManagePlaylistPage(QWidget):
                                     self.on_request_done, method="DELETE")
             self.pending_requests.append(request)
 
-    def on_request_done(self, _):
+    def on_request_done(self, result):
+        if not result:
+            return
         self.requests_done += 1
         if self.requests_done == len(self.pending_requests):
             self.on_requests_done()

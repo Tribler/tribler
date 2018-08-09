@@ -82,6 +82,8 @@ class EditChannelPage(QWidget):
                                                      capture_errors=False)
 
     def initialize_with_channel_overview(self, overview):
+        if not overview:
+            return
         if 'error' in overview:
             self.window().edit_channel_stacked_widget.setCurrentIndex(0)
         else:
@@ -120,6 +122,8 @@ class EditChannelPage(QWidget):
                                                      self.channel_overview["identifier"], self.initialize_with_torrents)
 
     def initialize_with_torrents(self, torrents):
+        if not torrents:
+            return
         self.window().edit_channel_torrents_list.set_data_items([])
 
         items = []
@@ -136,6 +140,8 @@ class EditChannelPage(QWidget):
                                                      self.initialize_with_playlists)
 
     def initialize_with_playlists(self, playlists):
+        if not playlists:
+            return
         self.playlists_loaded.emit(playlists)
         self.playlists = playlists
         self.window().edit_channel_playlists_list.set_data_items([])
@@ -154,6 +160,8 @@ class EditChannelPage(QWidget):
                                                      self.initialize_with_rss_feeds)
 
     def initialize_with_rss_feeds(self, rss_feeds):
+        if not rss_feeds:
+            return
         self.window().edit_channel_rss_feeds_list.clear()
         for feed in rss_feeds["rssfeeds"]:
             item = QTreeWidgetItem(self.window().edit_channel_rss_feeds_list)
@@ -183,6 +191,8 @@ class EditChannelPage(QWidget):
                                                      method='PUT')
 
     def on_channel_created(self, result):
+        if not result:
+            return
         if u'added' in result:
             self.window().create_channel_button.setEnabled(True)
             self.load_my_channel_overview()
@@ -198,6 +208,8 @@ class EditChannelPage(QWidget):
                                                      method='POST')
 
     def on_channel_edited(self, result):
+        if not result:
+            return
         if 'modified' in result:
             self.window().edit_channel_name_label.setText(self.window().edit_channel_name_edit.text())
             self.window().edit_channel_description_label.setText(
@@ -279,6 +291,8 @@ class EditChannelPage(QWidget):
         self.dialog = None
 
     def on_torrent_to_channel_added(self, result):
+        if not result:
+            return
         if 'added' in result:
             self.load_channel_torrents()
 
@@ -344,6 +358,8 @@ class EditChannelPage(QWidget):
         self.dialog = None
 
     def on_playlist_torrent_removed(self, result, torrent):
+        if not result:
+            return
         self.remove_torrent_from_playlist(torrent)
 
     def get_index_of_viewing_playlist(self):
@@ -394,10 +410,14 @@ class EditChannelPage(QWidget):
                                                          method='POST')
 
     def on_playlist_created(self, json_result):
+        if not json_result:
+            return
         if 'created' in json_result and json_result['created']:
             self.on_playlist_edited_done()
 
     def on_playlist_edited(self, json_result):
+        if not json_result:
+            return
         if 'modified' in json_result and json_result['modified']:
             self.on_playlist_edited_done()
 
@@ -435,6 +455,8 @@ class EditChannelPage(QWidget):
         self.dialog = None
 
     def on_playlist_removed(self, json_result):
+        if not json_result:
+            return
         if 'removed' in json_result and json_result['removed']:
             self.load_channel_playlists()
 
@@ -462,6 +484,8 @@ class EditChannelPage(QWidget):
         self.dialog = None
 
     def on_torrent_removed(self, json_result):
+        if not json_result:
+            return
         if 'removed' in json_result and json_result['removed']:
             self.load_channel_torrents()
 
@@ -520,6 +544,8 @@ class EditChannelPage(QWidget):
         self.dialog = None
 
     def on_rss_feed_added(self, json_result):
+        if not json_result:
+            return
         if json_result['added']:
             self.load_channel_rss_feeds()
 
@@ -546,6 +572,8 @@ class EditChannelPage(QWidget):
         self.dialog = None
 
     def on_rss_feed_removed(self, json_result):
+        if not json_result:
+            return
         if json_result['removed']:
             self.load_channel_rss_feeds()
 
@@ -557,5 +585,7 @@ class EditChannelPage(QWidget):
                                                      method='POST')
 
     def on_rss_feeds_refreshed(self, json_result):
+        if not json_result:
+            return
         if json_result["rechecked"]:
             self.window().edit_channel_details_rss_refresh_button.setEnabled(True)
