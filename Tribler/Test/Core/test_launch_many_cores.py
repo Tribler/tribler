@@ -1,4 +1,6 @@
 import os
+
+from Tribler.Core.Modules.payout_manager import PayoutManager
 from nose.tools import raises
 
 from twisted.internet.defer import Deferred
@@ -9,7 +11,7 @@ from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_SEEDING
+from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
@@ -40,6 +42,27 @@ class TestLaunchManyCore(TriblerCoreTest):
         mock_notifier.notify = lambda *_: None
         self.lm.session.notifier = mock_notifier
 
+    @staticmethod
+    def create_fake_download_and_state():
+        """
+        Create a fake download and state which can be passed to the global download callback.
+        """
+        tdef = TorrentDef()
+        tdef.get_infohash = lambda: 'aaaa'
+        fake_peer = {'extended_version': 'Tribler', 'id': 'a' * 20, 'dtotal': 10 * 1024 * 1024}
+        fake_download = MockObject()
+        fake_download.get_def = lambda: tdef
+        fake_download.get_def().get_name_as_unicode = lambda: "test.iso"
+        fake_download.get_hops = lambda: 0
+        fake_download.get_safe_seeding = lambda: True
+        fake_download.get_peerlist = lambda: [fake_peer]
+        dl_state = MockObject()
+        dl_state.get_infohash = lambda: 'aaaa'
+        dl_state.get_status = lambda: DLSTATUS_SEEDING
+        dl_state.get_download = lambda: fake_download
+
+        return fake_download, dl_state
+
     @raises(ValueError)
     def test_add_tdef_not_finalized(self):
         """
@@ -66,17 +89,10 @@ class TestLaunchManyCore(TriblerCoreTest):
         def mocked_stop():
             error_stop_deferred.callback(None)
 
-        error_tdef = TorrentDef()
-        error_tdef.get_infohash = lambda: 'aaaa'
-        fake_error_download = MockObject()
-        fake_error_download.get_def = lambda: error_tdef
-        fake_error_download.get_def().get_name_as_unicode = lambda: "test.iso"
+        fake_error_download, fake_error_state = TestLaunchManyCore.create_fake_download_and_state()
         fake_error_download.stop = mocked_stop
-        fake_error_state = MockObject()
-        fake_error_state.get_infohash = lambda: 'aaaa'
-        fake_error_state.get_error = lambda: "test error"
         fake_error_state.get_status = lambda: DLSTATUS_STOPPED_ON_ERROR
-        fake_error_state.get_download = lambda: fake_error_download
+        fake_error_state.get_error = lambda: "test error"
 
         self.lm.downloads = {'aaaa': fake_error_download}
         self.lm.sesscb_states_callback([fake_error_state])
@@ -94,22 +110,28 @@ class TestLaunchManyCore(TriblerCoreTest):
 
         self.lm.update_download_hops = mocked_update_download_hops
 
-        tdef = TorrentDef()
-        tdef.get_infohash = lambda: 'aaaa'
-        fake_download = MockObject()
-        fake_download.get_def = lambda: tdef
-        fake_download.get_def().get_name_as_unicode = lambda: "test.iso"
-        fake_download.get_hops = lambda: 0
-        fake_download.get_safe_seeding = lambda: True
-        dl_state = MockObject()
-        dl_state.get_infohash = lambda: 'aaaa'
-        dl_state.get_status = lambda: DLSTATUS_SEEDING
-        dl_state.get_download = lambda: fake_download
-
+        fake_download, dl_state = TestLaunchManyCore.create_fake_download_and_state()
         self.lm.downloads = {'aaaa': fake_download}
         self.lm.sesscb_states_callback([dl_state])
 
         return readd_deferred
+
+    def test_update_payout_balance(self):
+        """
+        Test whether the balance of peers is correctly updated
+        """
+        fake_download, dl_state = TestLaunchManyCore.create_fake_download_and_state()
+        dl_state.get_status = lambda: DLSTATUS_DOWNLOADING
+
+        fake_tc = MockObject()
+        fake_tc.add_listener = lambda *_: None
+        self.lm.payout_manager = PayoutManager(fake_tc, None)
+
+        self.lm.state_cb_count = 4
+        self.lm.downloads = {'aaaa': fake_download}
+        self.lm.sesscb_states_callback([dl_state])
+
+        self.assertTrue(self.lm.payout_manager.tribler_peers)
 
     def test_load_checkpoint(self):
         """

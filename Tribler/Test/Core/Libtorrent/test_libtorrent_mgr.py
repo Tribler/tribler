@@ -28,6 +28,7 @@ class TestLibtorrentMgr(AbstractServer):
         yield super(TestLibtorrentMgr, self).setUp(annotate)
 
         self.tribler_session = MockObject()
+        self.tribler_session.lm = MockObject()
         self.tribler_session.notifier = Notifier()
         self.tribler_session.state_dir = self.session_base_dir
         self.tribler_session.trustchain_keypair = MockObject()
@@ -437,3 +438,26 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.initialize()
         self.ltmgr._task_process_alerts()
         return test_deferred
+
+    def test_payout_on_disconnect(self):
+        """
+        Test whether a payout is initialized when a peer disconnects
+        """
+        class peer_disconnected_alert(object):
+            def __init__(self):
+                self.pid = MockObject()
+                self.pid.to_string = lambda: 'a' * 20
+
+        def mocked_do_payout(mid):
+            self.assertEqual(mid, 'a' * 20)
+            mocked_do_payout.called = True
+        mocked_do_payout.called = False
+
+        disconnect_alert = peer_disconnected_alert()
+        self.ltmgr.tribler_session.lm.payout_manager = MockObject()
+        self.ltmgr.tribler_session.lm.payout_manager.do_payout = mocked_do_payout
+        self.ltmgr.initialize()
+        self.ltmgr.get_session(0).pop_alerts = lambda: [disconnect_alert]
+        self.ltmgr._task_process_alerts()
+
+        self.assertTrue(mocked_do_payout.called)
