@@ -24,7 +24,7 @@ class TestSerializer(TestCase):
         subscribe = True
         identifier = 123123
         subscription = ContentSubscription(identifier, subscribe)
-        serialized = self.serializer.pack_multiple(subscription.to_pack_list())
+        serialized = self.serializer.pack_multiple(subscription.to_pack_list())[0]
 
         # Deserialize and test it
         (deserialized, _) = self.serializer.unpack_multiple(ContentSubscription.format_list, serialized)
@@ -41,7 +41,7 @@ class TestSerializer(TestCase):
         timestamp = 123123123
 
         health_payload = TorrentHealthPayload(infohash, num_seeders, num_leechers, timestamp)
-        serialized = self.serializer.pack_multiple(health_payload.to_pack_list())
+        serialized = self.serializer.pack_multiple(health_payload.to_pack_list())[0]
 
         # Deserialize and test it
         (deserialized, _) = self.serializer.unpack_multiple(TorrentHealthPayload.format_list, serialized)
@@ -61,7 +61,7 @@ class TestSerializer(TestCase):
         timestamp = 123123123
 
         health_payload = ChannelHealthPayload(channel_id, num_votes, num_torrents, swarm_size_sum, timestamp)
-        serialized = self.serializer.pack_multiple(health_payload.to_pack_list())
+        serialized = self.serializer.pack_multiple(health_payload.to_pack_list())[0]
 
         # Deserialize and test it
         (deserialized, _) = self.serializer.unpack_multiple(ChannelHealthPayload.format_list, serialized)
@@ -83,7 +83,7 @@ class TestSerializer(TestCase):
         comment = None
 
         health_payload = TorrentInfoResponsePayload(infohash, name, length, creation_date, num_files, comment)
-        serialized = self.serializer.pack_multiple(health_payload.to_pack_list())
+        serialized = self.serializer.pack_multiple(health_payload.to_pack_list())[0]
 
         # Deserialize and test it
         (deserialized, _) = self.serializer.unpack_multiple(TorrentInfoResponsePayload.format_list, serialized)
@@ -121,9 +121,9 @@ class TestSerializer(TestCase):
         # Serialize the results
         results = ''
         for item in sample_items:
-            results += self.serializer.pack_multiple(item.to_pack_list())
+            results += self.serializer.pack_multiple(item.to_pack_list())[0]
         serialized_results = self.serializer.pack_multiple(
-            SearchResponsePayload(identifier, response_type, results).to_pack_list())
+            SearchResponsePayload(identifier, response_type, results).to_pack_list())[0]
 
         # De-serialize the response payload and check the identifier and get the results
         response_format = SearchResponsePayload.format_list
@@ -172,7 +172,7 @@ class TestSerializer(TestCase):
 
         # Serialize request
         in_request = ContentInfoRequest(identifier, content_type, query_list, limit)
-        serialized_request = self.serializer.pack_multiple(in_request.to_pack_list())
+        serialized_request = self.serializer.pack_multiple(in_request.to_pack_list())[0]
 
         # Deserialize request and test it
         (deserialized_request, _) = self.serializer.unpack_multiple(ContentInfoRequest.format_list, serialized_request)
@@ -192,7 +192,7 @@ class TestSerializer(TestCase):
 
         # Serialize request
         in_response = ContentInfoResponse(identifier, content_type, response, pagination)
-        serialized_response = self.serializer.pack_multiple(in_response.to_pack_list())
+        serialized_response = self.serializer.pack_multiple(in_response.to_pack_list())[0]
 
         # Deserialize request and test it
         (deserialized_response, _) = self.serializer.unpack_multiple(ContentInfoResponse.format_list,
