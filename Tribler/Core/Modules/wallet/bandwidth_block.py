@@ -8,7 +8,7 @@ class TriblerBandwidthBlock(TrustChainBlock):
     """
 
     @classmethod
-    def create(cls, block_type, transaction, database, public_key, link=None, link_pk=None):
+    def create(cls, block_type, transaction, database, public_key, link=None, link_pk=None, additional_info=None):
         """
         Create an empty next block.
         :param block_type: the type of the block to be created
@@ -17,6 +17,8 @@ class TriblerBandwidthBlock(TrustChainBlock):
         :param public_key: the public key to use for this block
         :param link: optionally create the block as a linked block to this block
         :param link_pk: the public key of the counterparty in this transaction
+        :param additional_info: additional information, which has a higher priority than the
+               transaction when link exists
         :return: A newly created block
         """
         latest_bw_block = database.get_latest(public_key, block_type='tribler_bandwidth')
