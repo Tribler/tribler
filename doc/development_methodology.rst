@@ -64,7 +64,7 @@ For bug fixes:
 
 3. Create a `Pull Request <https://github.com/Tribler/tribler/compare>`_.
 
-It is usually a good idea to create a pull request for a branch even if it's a work in progress. Doing so will make our `Jenkins instance <https://jenkins.tribler.org>`_ run all the checks, tests and experiments every time you push a change so you can have continuous feedback on the state of your branch.
+It is usually a good idea to create a pull request for a branch even if it's a work in progress. Doing so will make our `Jenkins instance <https://jenkins-ci.tribler.org>`_ run all the checks, tests and experiments every time you push a change so you can have continuous feedback on the state of your branch.
 
 When creating a PR, always prepend the PR title with **WIP** until it's ready for the final round of reviews. More about this on the next section.
 
