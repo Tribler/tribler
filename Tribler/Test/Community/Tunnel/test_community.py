@@ -22,7 +22,7 @@ class MockDHTProvider(object):
 
     def lookup(self, info_hash, cb):
         if info_hash in global_dht_services:
-            cb(info_hash, global_dht_services[info_hash], None)
+            cb((info_hash, global_dht_services[info_hash], None))
 
     def announce(self, info_hash):
         if info_hash in global_dht_services:
