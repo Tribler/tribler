@@ -1106,7 +1106,7 @@ class MarketCommunity(Community, BlockListener):
             self.logger.info("Discarding current outstanding proposals for order %s", proposed_trade.order_id)
             for proposal_id, _ in outstanding_proposals:
                 request = self.request_cache.pop(u"proposed-trade", int(proposal_id.split(':')[1]))
-                order.release_quantity_for_tick(proposed_trade.order_id, request.proposed_trade.quantity)
+                order.release_quantity_for_tick(proposed_trade.order_id, request.proposed_trade.assets.first.amount)
 
         should_decline = True
         decline_reason = 0
