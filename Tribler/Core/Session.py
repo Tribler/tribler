@@ -196,6 +196,10 @@ class Session(object):
                 self._logger.error("Invalid DNS-ID")
                 return
 
+            if 'twisted.web._newclient.ResponseNeverReceived' in text:
+                self._logger.error("Internal Twisted response error, consider updating your Twisted version.")
+                return
+
             # We already have a check for invalid infohash when adding a torrent, but if somehow we get this
             # error then we simply log and ignore it.
             if 'exceptions.RuntimeError: invalid info-hash' in text:
