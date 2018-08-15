@@ -121,10 +121,10 @@ class MarketCommunity(Community, BlockListener):
     """
     Community for general asset trading.
     """
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000402c935859fed58ce550438218ffbb84e0d7c6e38f"
-                       "53b7855f32e1e0cdfce0f1aaa41173d89c16c192260977952e68b53f9da8b162bf1863da4b5985665020f41196ef0"
-                       "efbc7c0adc0464a1e879a614465c775f4dfac5467cbe1536ebed6d4b3010a82bf3956e785ed1d486d9640017e05fd"
-                       "85e3cd472537c49f5744abb74bde47801ca4fb28bf97c4019681497238f34".decode('hex'))
+    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000403225c5011b442e40d36c3918d1ee12729f95e11"
+                       "f0f0f3a517b858d4ca093faa35cc92f6a152152312398e5ec87cb636818020812a04667d7c174d9b1303a6183dcd"
+                       "2c8f72d98f9f04988c299e01ed65ef65d5f413c22ea836eade5d7c5762fb816043f9cf82166d5d8fe558afa4e7b2"
+                       "c252374e589d6033908138c95c9145d603074aa81bff0055006f9ca430f28b82".decode('hex'))
     PROTOCOL_VERSION = 1
     BLOCK_CLASS = MarketBlock
     DB_NAME = 'market'
@@ -1620,8 +1620,8 @@ class MarketTestnetCommunity(MarketCommunity):
     """
     This community defines a testnet for the market.
     """
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000406aeac19f997920c42f80455aeccfb9a60eba6c"
-                       "f09dfa7dc747efe9a74e85552f656bb918b0000c13cf2ad39cdec3e950bd011657fd49dcf5af2273f3ed09019fc"
-                       "443ad5d2ecc41f02f88458880e0ce680b34367ee68d708b873d60f994a0d3c97585d3d4dd489a8071ebb89acdac"
-                       "67107726b87135169d94909885ae4057c32b974de000d8e875a43d413d685079178".decode('hex'))
+    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000401c7bdfc0069db5849a1fa3b3ef09e26828ae4a34"
+                       "4cfd8d042533988d50a4860edfdf4f71bccdc6dc1e76df1741a22546774d9a24162fd8e06e41a6fb3fc730fbc49c4"
+                       "502b4416b407fd2216f5a25efb87307dd83225c76cea762b098e51788cb42d4baa5c00487627bb9617bf40eea9ccb"
+                       "b16dfa88d2d3944c202e024d34ddd4e5b21ae7390622260f5551ef7cf99c9".decode('hex'))
     DB_NAME = 'market_testnet'
