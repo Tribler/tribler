@@ -69,7 +69,7 @@ class PopularityCommunity(PubSubCommunity):
         dropped. In other case, a decision to accept or reject the message is made based on freshness of the message
         and the trustscore (check update_torrent in ContentRepository for the implementation).
         """
-        self.logger.info("Got torrent health response from %s", source_address)
+        self.logger.debug("Got torrent health response from %s", source_address)
         auth, _, payload = self._ez_unpack_auth(TorrentHealthPayload, data)
         peer = self.get_peer_from_auth(auth, source_address)
 
@@ -93,7 +93,7 @@ class PopularityCommunity(PubSubCommunity):
         """
         Message handler for torrent info request.
         """
-        self.logger.info("Got torrent info request from %s", source_address)
+        self.logger.debug("Got torrent info request from %s", source_address)
         auth, _, payload = self._ez_unpack_auth(TorrentInfoRequestPayload, data)
         peer = self.get_peer_from_auth(auth, source_address)
 
@@ -107,7 +107,7 @@ class PopularityCommunity(PubSubCommunity):
         """
         Message handler for torrent info response.
         """
-        self.logger.info("Got torrent info response from %s", source_address)
+        self.logger.debug("Got torrent info response from %s", source_address)
         auth, _, payload = self._ez_unpack_auth(TorrentInfoResponsePayload, data)
         peer = self.get_peer_from_auth(auth, source_address)
 
@@ -222,7 +222,7 @@ class PopularityCommunity(PubSubCommunity):
         :rtype Deferred
         """
         cache = self.request_cache.add(ContentRequest(self.request_cache, content_type, request_list))
-        self.logger.info("Sending search request query:%s, identifier:%s", request_list, cache.number)
+        self.logger.debug("Sending search request query:%s, identifier:%s", request_list, cache.number)
 
         content_request = ContentInfoRequest(cache.number, content_type, request_list, limit)
         packet = self.create_message_packet(MSG_CONTENT_INFO_REQUEST, content_request)
