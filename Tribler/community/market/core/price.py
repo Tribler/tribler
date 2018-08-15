@@ -1,90 +1,54 @@
 class Price(object):
-    """Price is used for having a consistent comparable and usable class that deals with floats."""
+    """
+    This class represents a price in the market.
+    The price is simply a fraction that expresses one asset in another asset.
+    For instance, 0.5 MB/BTC means that one exchanges 0.5 MB for 1 BTC.
+    """
 
-    def __init__(self, price, wallet_id):
-        """
-        :param price: Integer representation of a price that is positive or zero
-        :param wallet_id: Identifier of the wallet type of this price
-        :type price: float
-        :type wallet_id: str
-        :raises ValueError: Thrown when one of the arguments are invalid
-        """
-        super(Price, self).__init__()
-
-        if not isinstance(price, (int, float)):
-            raise ValueError("Price must be an int or a float")
-
-        if not isinstance(wallet_id, str):
-            raise ValueError("Wallet id must be a string")
-
-        if price < 0:
-            raise ValueError("Price must be positive or zero")
-
-        self._price = price
-        self._wallet_id = wallet_id
-
-    @property
-    def wallet_id(self):
-        """
-        :rtype: str
-        """
-        return self._wallet_id
-
-    def __int__(self):
-        return int(self._price)
-
-    def __float__(self):
-        return float(self._price)
+    def __init__(self, amount, numerator, denominator):
+        self.amount = amount
+        self.numerator = numerator
+        self.denominator = denominator
 
     def __str__(self):
-        return "%f %s" % (self._price, self.wallet_id)
-
-    def __add__(self, other):
-        if isinstance(other, Price) and self.wallet_id == other.wallet_id:
-            return Price(self._price + float(other), self._wallet_id)
-        else:
-            return NotImplemented
-
-    def __sub__(self, other):
-        if isinstance(other, Price) and self.wallet_id == other.wallet_id:
-            return Price(self._price - float(other), self._wallet_id)
-        else:
-            return NotImplemented
+        return "%g %s/%s" % (self.amount, self.numerator, self.denominator)
 
     def __lt__(self, other):
-        if isinstance(other, Price) and self.wallet_id == other.wallet_id:
-            return self._price < float(other)
+        if isinstance(other, Price) and self.numerator == other.numerator and self.denominator == other.denominator:
+            return self.amount < other.amount
         else:
             return NotImplemented
 
     def __le__(self, other):
-        if isinstance(other, Price) and self.wallet_id == other.wallet_id:
-            return self._price <= float(other)
+        if isinstance(other, Price) and self.numerator == other.numerator and self.denominator == other.denominator:
+            return self.amount <= other.amount
         else:
             return NotImplemented
-
-    def __eq__(self, other):
-        if not isinstance(other, Price) or self.wallet_id != other.wallet_id:
-            return NotImplemented
-        elif self is other:
-            return True
-        else:
-            return self._price == float(other)
 
     def __ne__(self, other):
+        if not isinstance(other, Price) or self.numerator != other.numerator or self.denominator != other.denominator:
+            return NotImplemented
         return not self.__eq__(other)
 
     def __gt__(self, other):
-        if isinstance(other, Price) and self.wallet_id == other.wallet_id:
-            return self._price > float(other)
+        if isinstance(other, Price) and self.numerator == other.numerator and self.denominator == other.denominator:
+            return self.amount > other.amount
         else:
             return NotImplemented
 
     def __ge__(self, other):
-        if isinstance(other, Price) and self.wallet_id == other.wallet_id:
-            return self._price >= float(other)
+        if isinstance(other, Price) and self.numerator == other.numerator and self.denominator == other.denominator:
+            return self.amount >= other.amount
         else:
             return NotImplemented
 
+    def __eq__(self, other):
+        if not isinstance(other, Price) or self.numerator != other.numerator or self.denominator != other.denominator:
+            return NotImplemented
+        else:
+            rel_tol = 1e-09
+            abs_tol = 0.0
+            return abs(self.amount - other.amount) <= max(rel_tol * max(abs(self.amount), abs(other.amount)), abs_tol)
+
     def __hash__(self):
-        return hash(self._price)
+        return hash((self.amount, self.numerator, self.denominator))

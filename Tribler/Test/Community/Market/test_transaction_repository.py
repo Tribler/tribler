@@ -1,11 +1,11 @@
 import unittest
 
+from Tribler.community.market.core.assetamount import AssetAmount
+from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.transaction_repository import MemoryTransactionRepository
 from Tribler.community.market.core.transaction import TransactionNumber, TransactionId, Transaction
 from Tribler.community.market.core.message import TraderId
-from Tribler.community.market.core.quantity import Quantity
-from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.timestamp import Timestamp
 
 
@@ -16,7 +16,7 @@ class MemoryTransactionRepositoryTestSuite(unittest.TestCase):
         # Object creation
         self.memory_transaction_repository = MemoryTransactionRepository("0")
         self.transaction_id = TransactionId(TraderId("0"), TransactionNumber(1))
-        self.transaction = Transaction(self.transaction_id, Price(100, 'BTC'), Quantity(30, 'MC'),
+        self.transaction = Transaction(self.transaction_id, AssetPair(AssetAmount(10, 'BTC'), AssetAmount(10, 'MB')),
                                        OrderId(TraderId("0"), OrderNumber(1)),
                                        OrderId(TraderId("2"), OrderNumber(2)), Timestamp(0.0))
 

@@ -2,9 +2,9 @@ from hashlib import sha256
 import random
 
 from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
-from Tribler.Core.Utilities.encoding import encode
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import GENESIS_SEQ, GENESIS_HASH, ValidationResult
+from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 
 

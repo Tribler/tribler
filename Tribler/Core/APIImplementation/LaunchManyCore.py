@@ -15,6 +15,7 @@ from traceback import print_exc
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DecentralizedTracking.dht_provider import MainlineDHTProvider
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
+from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.Modules.resource_monitor import ResourceMonitor
 from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
@@ -26,20 +27,19 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Video.VideoServer import VideoServer
-from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,
                                      NTFY_FINISHED, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
                                      DLSTATUS_SEEDING, NTFY_TORRENT, STATE_STARTING_DISPERSY, STATE_LOADING_COMMUNITIES,
                                      STATE_INITIALIZE_CHANNEL_MGR, STATE_START_MAINLINE_DHT, STATE_START_LIBTORRENT,
                                      STATE_START_TORRENT_CHECKER, STATE_START_REMOTE_TORRENT_HANDLER,
                                      STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING)
-from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
 from Tribler.pyipv8.ipv8.keyvault.private.m2crypto import M2CryptoSK
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.churn import RandomChurn
 from Tribler.pyipv8.ipv8.peerdiscovery.deprecated.discovery import DiscoveryCommunity
 from Tribler.pyipv8.ipv8.peerdiscovery.discovery import EdgeWalk, RandomWalk
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.util import blockingCallFromThread, blocking_call_on_reactor_thread
 from Tribler.pyipv8.ipv8_service import IPv8
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, succeed
@@ -109,6 +109,8 @@ class TriblerLaunchMany(TaskManager):
 
         self.credit_mining_manager = None
         self.market_community = None
+        self.dht_community = None
+        self.payout_manager = None
 
     def register(self, session, session_lock):
         assert isInIOThread()
@@ -244,45 +246,60 @@ class TriblerLaunchMany(TaskManager):
         if not self.session.config.get_dispersy_enabled():
             self.ipv8.strategies.append((RandomWalk(discovery_community), 20))
 
+        if self.session.config.get_testnet():
+            peer = Peer(self.session.trustchain_keypair)
+        else:
+            peer = Peer(self.session.trustchain_testnet_keypair)
+
         # TrustChain Community
         if self.session.config.get_trustchain_enabled():
-            from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
-            trustchain_peer = Peer(self.session.trustchain_keypair)
+            from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity, \
+                TrustChainTestnetCommunity
 
-            self.trustchain_community = TrustChainCommunity(trustchain_peer, self.ipv8.endpoint,
-                                                            self.ipv8.network,
-                                                            working_directory=self.session.config.get_state_dir(),
-                                                            testnet=self.session.config.get_trustchain_testnet())
+            community_cls = TrustChainTestnetCommunity if self.session.config.get_testnet() else TrustChainCommunity
+            self.trustchain_community = community_cls(peer, self.ipv8.endpoint,
+                                                      self.ipv8.network,
+                                                      working_directory=self.session.config.get_state_dir())
             self.ipv8.overlays.append(self.trustchain_community)
             self.ipv8.strategies.append((EdgeWalk(self.trustchain_community), 20))
 
             tc_wallet = TrustchainWallet(self.trustchain_community)
             self.wallets[tc_wallet.get_identifier()] = tc_wallet
 
+        # DHT Community
+        if self.session.config.get_dht_enabled():
+            from Tribler.pyipv8.ipv8.dht.discovery import DHTDiscoveryCommunity
+
+            dht_peer = Peer(self.session.trustchain_keypair)
+            self.dht_community = DHTDiscoveryCommunity(dht_peer, self.ipv8.endpoint, self.ipv8.network)
+            self.ipv8.overlays.append(self.dht_community)
+            self.ipv8.strategies.append((RandomWalk(self.dht_community), 20))
+
         # Tunnel Community
         if self.session.config.get_tunnel_community_enabled():
-            tunnel_peer = Peer(self.session.trustchain_keypair)
 
-            from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
-            self.tunnel_community = TriblerTunnelCommunity(tunnel_peer, self.ipv8.endpoint, self.ipv8.network,
-                                                           tribler_session=self.session,
-                                                           dht_provider=MainlineDHTProvider(
-                                                               self.mainline_dht,
-                                                               self.session.config.get_dispersy_port()),
-                                                           bandwidth_wallet=self.wallets["MB"])
+            from Tribler.community.triblertunnel.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
+            community_cls = TriblerTunnelTestnetCommunity if self.session.config.get_testnet() else \
+                TriblerTunnelCommunity
+            self.tunnel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
+                                                  tribler_session=self.session,
+                                                  dht_provider=MainlineDHTProvider(
+                                                      self.mainline_dht,
+                                                      self.session.config.get_dispersy_port()),
+                                                  bandwidth_wallet=self.wallets["MB"])
             self.ipv8.overlays.append(self.tunnel_community)
             self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
 
         # Market Community
         if self.session.config.get_market_community_enabled():
-            from Tribler.community.market.community import MarketCommunity
-            market_peer = Peer(self.session.trustchain_keypair)
+            from Tribler.community.market.community import MarketCommunity, MarketTestnetCommunity
 
-            self.market_community = MarketCommunity(market_peer, self.ipv8.endpoint, self.ipv8.network,
-                                                    tribler_session=self.session,
-                                                    trustchain=self.trustchain_community,
-                                                    wallets=self.wallets,
-                                                    working_directory=self.session.config.get_state_dir())
+            community_cls = MarketTestnetCommunity if self.session.config.get_testnet() else MarketCommunity
+            self.market_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
+                                                  tribler_session=self.session,
+                                                  trustchain=self.trustchain_community,
+                                                  wallets=self.wallets,
+                                                  working_directory=self.session.config.get_state_dir())
 
             self.ipv8.overlays.append(self.market_community)
 
@@ -292,9 +309,7 @@ class TriblerLaunchMany(TaskManager):
         if self.session.config.get_popularity_community_enabled():
             from Tribler.community.popularity.community import PopularityCommunity
 
-            local_peer = Peer(self.session.trustchain_keypair)
-
-            self.popularity_community = PopularityCommunity(local_peer, self.ipv8.endpoint, self.ipv8.network,
+            self.popularity_community = PopularityCommunity(peer, self.ipv8.endpoint, self.ipv8.network,
                                                             torrent_db=self.session.lm.torrent_db, session=self.session)
 
             self.ipv8.overlays.append(self.popularity_community)
@@ -449,6 +464,9 @@ class TriblerLaunchMany(TaskManager):
 
         self.version_check_manager = VersionCheckManager(self.session)
         self.session.set_download_states_callback(self.sesscb_states_callback)
+
+        if self.session.config.get_ipv8_enabled() and self.session.config.get_trustchain_enabled():
+            self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
 
         self.initComplete = True
 
@@ -675,25 +693,33 @@ class TriblerLaunchMany(TaskManager):
             download = ds.get_download()
             tdef = download.get_def()
             safename = tdef.get_name_as_unicode()
+            infohash = tdef.get_infohash()
 
             if state == DLSTATUS_DOWNLOADING:
-                new_active_downloads.append(safename)
+                new_active_downloads.append(infohash)
             elif state == DLSTATUS_STOPPED_ON_ERROR:
                 self._logger.error("Error during download: %s", repr(ds.get_error()))
-                if self.download_exists(tdef.get_infohash()):
-                    self.get_download(tdef.get_infohash()).stop()
-                    self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, tdef.get_infohash(), repr(ds.get_error()))
+                if self.download_exists(infohash):
+                    self.get_download(infohash).stop()
+                    self.session.notifier.notify(NTFY_TORRENT, NTFY_ERROR, infohash, repr(ds.get_error()))
             elif state == DLSTATUS_SEEDING:
-                seeding_download_list.append({u'infohash': tdef.get_infohash(),
+                seeding_download_list.append({u'infohash': infohash,
                                               u'download': download})
 
-                if safename in self.previous_active_downloads:
-                    self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, tdef.get_infohash(), safename)
+                if infohash in self.previous_active_downloads:
+                    self.session.notifier.notify(NTFY_TORRENT, NTFY_FINISHED, infohash, safename)
                     do_checkpoint = True
                 elif download.get_hops() == 0 and download.get_safe_seeding():
                     # Re-add the download with anonymity enabled
                     hops = self.session.config.get_default_number_hops()
                     self.update_download_hops(download, hops)
+
+            # Check the peers of this download every five seconds and add them to the payout manager when
+            # this peer runs a Tribler instance
+            if self.state_cb_count % 5 == 0 and download.get_hops() == 0 and self.payout_manager:
+                for peer in download.get_peerlist():
+                    if peer["extended_version"].startswith('Tribler'):
+                        self.payout_manager.update_peer(peer["id"].decode('hex'), infohash, peer["dtotal"])
 
         self.previous_active_downloads = new_active_downloads
         if do_checkpoint:

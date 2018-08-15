@@ -5,7 +5,7 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65
 from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Test.Core.Upgrade.test_torrent_upgrade_63_64 import AbstractTorrentUpgrade63to64
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class AbstractTorrentUpgrade64to65(AbstractTorrentUpgrade63to64):

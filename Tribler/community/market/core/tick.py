@@ -1,9 +1,9 @@
 import time
 
-from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId, Message
-from Tribler.community.market.core.order import OrderId, OrderNumber, Order
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import AssetAmount
+from Tribler.community.market.core.assetpair import AssetPair
+from Tribler.community.market.core.message import TraderId
+from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import GENESIS_HASH
@@ -16,55 +16,48 @@ class Tick(object):
     """
     TIME_TOLERANCE = 10  # A small tolerance for the timestamp, to account for network delays
 
-    def __init__(self, order_id, price, quantity, timeout, timestamp, is_ask, block_hash=GENESIS_HASH):
+    def __init__(self, order_id, assets, timeout, timestamp, is_ask, traded=0, block_hash=GENESIS_HASH):
         """
         Don't use this class directly, use one of the class methods
 
         :param order_id: A order id to identify the order this tick represents
-        :param price: A price to indicate for which amount to sell or buy
-        :param quantity: A quantity to indicate how much to sell or buy
+        :param assets: The assets being sold/bought
         :param timeout: A timeout when this tick is going to expire
         :param timestamp: A timestamp when the tick was created
         :param is_ask: A bool to indicate if this tick is an ask
+        :param traded: How much assets have been traded already
         :param block_hash: The hash of the block that created this tick
         :type order_id: OrderId
-        :type price: Price
-        :type quantity: Quantity
+        :type assets: AssetPair
         :type timeout: Timeout
         :type timestamp: Timestamp
         :type is_ask: bool
+        :type traded: int
         :type block_hash: str
         """
-        assert isinstance(order_id, OrderId), type(order_id)
-        assert isinstance(price, Price), type(price)
-        assert isinstance(quantity, Quantity), type(quantity)
-        assert isinstance(timeout, Timeout), type(timeout)
-        assert isinstance(timestamp, Timestamp), type(timestamp)
-        assert isinstance(is_ask, bool), type(is_ask)
-        assert isinstance(block_hash, str), type(block_hash)
-
         self._order_id = order_id
-        self._price = price
-        self._quantity = quantity
+        self._assets = assets
         self._timeout = timeout
         self._timestamp = timestamp
         self._is_ask = is_ask
+        self._traded = traded
         self._block_hash = block_hash
 
     @classmethod
     def from_database(cls, data):
-        trader_id, order_number, price, price_type, quantity, quantity_type, timeout, timestamp,\
-        is_ask, block_hash = data
+        trader_id, order_number, asset1_amount, asset1_type, asset2_amount, asset2_type, timeout, timestamp,\
+        is_ask, traded, block_hash = data
 
         tick_cls = Ask if is_ask else Bid
         order_id = OrderId(TraderId(str(trader_id)), OrderNumber(order_number))
-        return tick_cls(order_id, Price(price, str(price_type)), Quantity(quantity, str(quantity_type)),
-                        Timeout(timeout), Timestamp(timestamp), block_hash=str(block_hash))
+        return tick_cls(order_id, AssetPair(AssetAmount(asset1_amount, str(asset1_type)),
+                                            AssetAmount(asset2_amount, str(asset2_type))),
+                        Timeout(timeout), Timestamp(timestamp), traded=traded, block_hash=str(block_hash))
 
     def to_database(self):
-        return (unicode(self.order_id.trader_id), int(self.order_id.order_number), float(self.price),
-                unicode(self.price.wallet_id), float(self.quantity), unicode(self.quantity.wallet_id),
-                float(self.timeout), float(self.timestamp), self.is_ask(), buffer(self.block_hash))
+        return (unicode(self.order_id.trader_id), int(self.order_id.order_number), self.assets.first.amount,
+                unicode(self.assets.first.asset_id), self.assets.second.amount, unicode(self.assets.second.asset_id),
+                int(self.timeout), float(self.timestamp), self.is_ask(), self.traded, buffer(self.block_hash))
 
     @classmethod
     def from_order(cls, order):
@@ -75,14 +68,10 @@ class Tick(object):
         :return: The created tick
         :rtype: Tick
         """
-        assert isinstance(order, Order), type(order)
-
         if order.is_ask():
-            return Ask(order.order_id, order.price, order.total_quantity - order.traded_quantity,
-                       order.timeout, order.timestamp)
+            return Ask(order.order_id, order.assets, order.timeout, order.timestamp, traded=order.traded_quantity)
         else:
-            return Bid(order.order_id, order.price, order.total_quantity - order.traded_quantity,
-                       order.timeout, order.timestamp)
+            return Bid(order.order_id, order.assets, order.timeout, order.timestamp, traded=order.traded_quantity)
 
     @property
     def order_id(self):
@@ -92,27 +81,18 @@ class Tick(object):
         return self._order_id
 
     @property
+    def assets(self):
+        """
+        :rtype: AssetPair
+        """
+        return self._assets
+
+    @property
     def price(self):
         """
         :rtype: Price
         """
-        return self._price
-
-    @property
-    def quantity(self):
-        """
-        :rtype: Quantity
-        """
-        return self._quantity
-
-    @quantity.setter
-    def quantity(self, quantity):
-        """
-        :param quantity: The new quantity
-        :type quantity: Quantity
-        """
-        assert isinstance(quantity, Quantity), type(quantity)
-        self._quantity = quantity
+        return self.assets.price
 
     @property
     def timeout(self):
@@ -138,6 +118,22 @@ class Tick(object):
         return self._is_ask
 
     @property
+    def traded(self):
+        """
+        Return how much assets have been traded already
+        :rtype int
+        """
+        return self._traded
+
+    @traded.setter
+    def traded(self, new_traded):
+        """
+        :param new_traded: The new amount of traded assets
+        :type new_traded: int
+        """
+        self._traded = new_traded
+
+    @property
     def block_hash(self):
         """
         Return the hash of the associated block
@@ -151,7 +147,6 @@ class Tick(object):
         :param new_hash: The new block hash
         :type new_hash: str
         """
-        assert isinstance(new_hash, str), type(new_hash)
         self._block_hash = new_hash
 
     def is_valid(self):
@@ -162,17 +157,17 @@ class Tick(object):
         return not self._timeout.is_timed_out(self._timestamp) and \
             time.time() >= float(self.timestamp) - self.TIME_TOLERANCE
 
-    def to_network(self, message_id):
+    def to_network(self):
         """
         Return network representation of the tick
         """
         return (
-            MessageId(self._order_id.trader_id, message_id.message_number),
+            self._order_id.trader_id,
             self._timestamp,
             self._order_id.order_number,
-            self._price,
-            self._quantity,
+            self._assets,
             self._timeout,
+            self._traded,
         )
 
     def to_block_dict(self):
@@ -182,13 +177,11 @@ class Tick(object):
         return {
             "trader_id": str(self.order_id.trader_id),
             "order_number": int(self.order_id.order_number),
-            "price": float(self.price),
-            "price_type": self.price.wallet_id,
-            "quantity": float(self.quantity),
-            "quantity_type": self.quantity.wallet_id,
-            "timeout": float(self.timeout),
+            "assets": self.assets.to_dictionary(),
+            "timeout": int(self.timeout),
             "timestamp": float(self.timestamp),
-            "is_ask": self.is_ask()
+            "is_ask": self.is_ask(),
+            "traded": self.traded
         }
 
     def to_dictionary(self):
@@ -198,42 +191,40 @@ class Tick(object):
         return {
             "trader_id": str(self.order_id.trader_id),
             "order_number": int(self.order_id.order_number),
-            "price": float(self.price),
-            "price_type": self.price.wallet_id,
-            "quantity": float(self.quantity),
-            "quantity_type": self.quantity.wallet_id,
-            "timeout": float(self.timeout),
+            "assets": self.assets.to_dictionary(),
+            "timeout": int(self.timeout),
             "timestamp": float(self.timestamp),
-            "block_hash": self.block_hash.encode('hex')
+            "traded": self.traded,
+            "block_hash": self.block_hash.encode('hex'),
         }
 
     def __str__(self):
         """
         Return the string representation of this tick.
         """
-        return "<%s P: %s, Q: %s, O: %s>" % \
-               (self.__class__.__name__, str(self.price), str(self.quantity), str(self.order_id))
+        return "<%s P: %f, Q: %s, O: %s>" % \
+               (self.__class__.__name__, float(self.price.amount), self.assets.first, str(self.order_id))
 
 
 class Ask(Tick):
     """Represents an ask from a order located on another node."""
 
-    def __init__(self, order_id, price, quantity, timeout, timestamp, block_hash=GENESIS_HASH):
+    def __init__(self, order_id, assets, timeout, timestamp, traded=0, block_hash=GENESIS_HASH):
         """
         :param order_id: A order id to identify the order this tick represents
-        :param price: A price that needs to be paid for the ask
-        :param quantity: The quantity that needs to be sold
+        :param assets: The assets being sold/bought
         :param timeout: A timeout for the ask
         :param timestamp: A timestamp for when the ask was created
+        :param traded: How much assets have been traded already
         :param block_hash: The hash of the block that created this tick
         :type order_id: OrderId
-        :type price: Price
-        :type quantity: Quantity
+        :type assets: AssetPair
         :type timeout: Timeout
         :type timestamp: Timestamp
+        :type traded: int
         :type block_hash: str
         """
-        super(Ask, self).__init__(order_id, price, quantity, timeout, timestamp, True, block_hash=block_hash)
+        super(Ask, self).__init__(order_id, assets, timeout, timestamp, True, traded=traded, block_hash=block_hash)
 
     @classmethod
     def from_block(cls, block):
@@ -247,10 +238,10 @@ class Ask(Tick):
         tx_dict = block.transaction["tick"]
         return cls(
             OrderId(TraderId(tx_dict["trader_id"]), OrderNumber(tx_dict["order_number"])),
-            Price(tx_dict["price"], tx_dict["price_type"]),
-            Quantity(tx_dict["quantity"], tx_dict["quantity_type"]),
+            AssetPair.from_dictionary(tx_dict["assets"]),
             Timeout(tx_dict["timeout"]),
             Timestamp(tx_dict["timestamp"]),
+            traded=tx_dict["traded"],
             block_hash=block.hash
         )
 
@@ -258,22 +249,22 @@ class Ask(Tick):
 class Bid(Tick):
     """Represents a bid from a order located on another node."""
 
-    def __init__(self, order_id, price, quantity, timeout, timestamp, block_hash=GENESIS_HASH):
+    def __init__(self, order_id, assets, timeout, timestamp, traded=0, block_hash=GENESIS_HASH):
         """
         :param order_id: A order id to identify the order this tick represents
-        :param price: A price that you are willing to pay for the bid
-        :param quantity: The quantity that you want to buy
+        :param assets: The assets being sold/bought
         :param timeout: A timeout for the bid
         :param timestamp: A timestamp for when the bid was created
+        :param traded: How much assets have been traded already
         :param block_hash: The hash of the block that created this tick
         :type order_id: OrderId
-        :type price: Price
-        :type quantity: Quantity
+        :type assets: AssetPair
         :type timeout: Timeout
         :type timestamp: Timestamp
+        :type traded: int
         :type block_hash: str
         """
-        super(Bid, self).__init__(order_id, price, quantity, timeout, timestamp, False, block_hash=block_hash)
+        super(Bid, self).__init__(order_id, assets, timeout, timestamp, False, traded=traded, block_hash=block_hash)
 
     @classmethod
     def from_block(cls, block):
@@ -287,9 +278,9 @@ class Bid(Tick):
         tx_dict = block.transaction["tick"]
         return cls(
             OrderId(TraderId(tx_dict["trader_id"]), OrderNumber(tx_dict["order_number"])),
-            Price(tx_dict["price"], tx_dict["price_type"]),
-            Quantity(tx_dict["quantity"], tx_dict["quantity_type"]),
+            AssetPair.from_dictionary(tx_dict["assets"]),
             Timeout(tx_dict["timeout"]),
             Timestamp(tx_dict["timestamp"]),
+            traded=tx_dict["traded"],
             block_hash=block.hash
         )

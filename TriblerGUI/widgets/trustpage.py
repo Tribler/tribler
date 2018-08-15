@@ -141,13 +141,18 @@ class TrustPage(QWidget):
         plot_data = [[[], []], []]
 
         # Convert all dates to a datetime object
+        num_bandwidth_blocks = 0
         for block in self.blocks:
+            if block["type"] != "tribler_bandwidth":
+                continue
+
             plot_data[1].append(datetime.datetime.strptime(block["insert_time"], "%Y-%m-%d %H:%M:%S"))
 
             plot_data[0][0].append(block["transaction"]["total_up"] / self.byte_scale)
             plot_data[0][1].append(block["transaction"]["total_down"] / self.byte_scale)
+            num_bandwidth_blocks += 1
 
-        if len(self.blocks) == 0:
+        if num_bandwidth_blocks == 0:
             # Create on single data point with 0mb up and 0mb down
             plot_data = [[[0], [0]], [datetime.datetime.now()]]
 

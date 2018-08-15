@@ -10,10 +10,10 @@ from twisted.internet.protocol import DatagramProtocol
 from twisted.python.failure import Failure
 from twisted.web.client import Agent, readBody, RedirectAgent, HTTPConnectionPool
 
-from Tribler.Core.Utilities.encoding import add_url_params
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
-from Tribler.dispersy.util import call_on_reactor_thread
+from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import add_url_params
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.
@@ -682,12 +682,12 @@ class FakeDHTSession(TrackerSession):
         Fakely connects to a tracker.
         :return: A deferred with a callback containing an empty dictionary.
         """
-        @call_on_reactor_thread
+        @blocking_call_on_reactor_thread
         def on_metainfo_received(metainfo):
             self.result_deferred.callback({'DHT': [{'infohash': self.infohash.encode('hex'),
                                                     'seeders': metainfo['seeders'], 'leechers': metainfo['leechers']}]})
 
-        @call_on_reactor_thread
+        @blocking_call_on_reactor_thread
         def on_metainfo_timeout(_):
             self.result_deferred.errback(Failure(RuntimeError("DHT timeout")))
 

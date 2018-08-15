@@ -8,7 +8,7 @@ import libtorrent
 from Tribler.Core.Utilities.torrent_utils import create_torrent_file
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTorrent(AbstractServer):

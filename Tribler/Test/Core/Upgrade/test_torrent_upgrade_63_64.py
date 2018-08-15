@@ -7,7 +7,7 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Upgrade.torrent_upgrade64 import TorrentMigrator64
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class AbstractTorrentUpgrade63to64(TriblerCoreTest):

@@ -3,7 +3,7 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser
 from Tribler.Test.Core.base_test_channel import BaseTestChannel
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestChannel(BaseTestChannel):

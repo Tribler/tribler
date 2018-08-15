@@ -221,7 +221,7 @@ class PubSubCommunity(Community):
         num_payloads = len(payload_list)
         while current_index < num_payloads:
             item = payload_list[current_index]
-            packed_item = self.serializer.pack_multiple(item.to_pack_list())
+            packed_item = self.serializer.pack_multiple(item.to_pack_list())[0]
             packed_item_length = len(packed_item)
             if size + packed_item_length > fit_size:
                 break

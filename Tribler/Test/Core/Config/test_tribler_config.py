@@ -114,17 +114,26 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_permid_keypair_filename("TEST")
         self.assertEqual(self.tribler_config.get_permid_keypair_filename(), "TEST")
 
-        self.tribler_config.set_trustchain_permid_keypair_filename(None)
-        self.assertEqual(self.tribler_config.get_trustchain_permid_keypair_filename(),
+        self.tribler_config.set_trustchain_keypair_filename(None)
+        self.assertEqual(self.tribler_config.get_trustchain_keypair_filename(),
                          os.path.join("TEST", "ec_multichain.pem"))
-        self.tribler_config.set_trustchain_permid_keypair_filename("TEST")
-        self.assertEqual(self.tribler_config.get_trustchain_permid_keypair_filename(), "TEST")
+        self.tribler_config.set_trustchain_keypair_filename("TEST")
+        self.assertEqual(self.tribler_config.get_trustchain_keypair_filename(), "TEST")
+
+        self.tribler_config.set_trustchain_testnet_keypair_filename(None)
+        self.assertEqual(self.tribler_config.get_trustchain_testnet_keypair_filename(),
+                         os.path.join("TEST", "ec_trustchain_testnet.pem"))
+        self.tribler_config.set_trustchain_testnet_keypair_filename("TEST")
+        self.assertEqual(self.tribler_config.get_trustchain_testnet_keypair_filename(), "TEST")
 
         self.tribler_config.set_megacache_enabled(True)
         self.assertEqual(self.tribler_config.get_megacache_enabled(), True)
 
         self.tribler_config.set_video_analyser_path(True)
         self.assertEqual(self.tribler_config.get_video_analyser_path(), True)
+
+        self.tribler_config.set_testnet(True)
+        self.assertTrue(self.tribler_config.get_testnet())
 
     def test_get_set_methods_torrent_checking(self):
         """
@@ -157,7 +166,7 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         self.tribler_config.set_ipv8_enabled(False)
         self.assertEqual(self.tribler_config.get_ipv8_enabled(), False)
-        self.tribler_config.set_ipv8_bootstrap_override(("127.0.0.1", 12345))
+        self.tribler_config.set_ipv8_bootstrap_override("127.0.0.1:12345")
         self.assertEqual(self.tribler_config.get_ipv8_bootstrap_override(), ("127.0.0.1", 12345))
 
     def test_get_set_methods_libtorrent(self):
@@ -343,3 +352,10 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_credit_mining_sources(), True)
         self.tribler_config.set_credit_mining_disk_space(1024 ** 2)
         self.assertEqual(self.tribler_config.get_credit_mining_disk_space(), 1024 ** 2)
+
+    def test_get_set_methods_dht(self):
+        """
+        Check whether dht get and set methods are working as expected.
+        """
+        self.tribler_config.set_dht_enabled(False)
+        self.assertFalse(self.tribler_config.get_dht_enabled())

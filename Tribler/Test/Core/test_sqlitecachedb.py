@@ -9,7 +9,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_SCRIPT_ABSOLUTE_PATH, CorruptedDatabaseError
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestSqliteCacheDB(TriblerCoreTest):

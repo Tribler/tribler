@@ -14,8 +14,8 @@ from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTS
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.community.popularity.repository import TYPE_TORRENT_HEALTH
-from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 # some settings
 DEFAULT_TORRENT_SELECTION_INTERVAL = 20  # every 20 seconds, the thread will select torrents to check
@@ -204,7 +204,7 @@ class TorrentChecker(TaskManager):
 
         return final_response
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def add_gui_request(self, infohash, timeout=20, scrape_now=False):
         """
         Public API for adding a GUI request.

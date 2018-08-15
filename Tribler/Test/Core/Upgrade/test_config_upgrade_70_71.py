@@ -83,8 +83,14 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         """
         os.makedirs(os.path.join(self.state_dir, STATEDIR_DLPSTATE_DIR))
 
+        # Copy an old pstate file
         src_path = os.path.join(self.CONFIG_PATH, "download_pstate_70.state")
         shutil.copyfile(src_path, os.path.join(self.state_dir, STATEDIR_DLPSTATE_DIR, "download.state"))
+
+        # Copy a corrupt pstate file
+        src_path = os.path.join(self.CONFIG_PATH, "download_pstate_70_corrupt.state")
+        corrupt_dest_path = os.path.join(self.state_dir, STATEDIR_DLPSTATE_DIR, "downloadcorrupt.state")
+        shutil.copyfile(src_path, corrupt_dest_path)
 
         old_config = RawConfigParser()
         old_config.read(os.path.join(self.CONFIG_PATH, "tribler70.conf"))
@@ -95,6 +101,7 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         download_config.read(os.path.join(self.state_dir, STATEDIR_DLPSTATE_DIR, "download.state"))
         self.assertTrue(download_config.has_section("download_defaults"))
         self.assertFalse(download_config.has_section("downloadconfig"))
+        self.assertFalse(os.path.exists(corrupt_dest_path))
 
         # Do the upgrade again, it should not fail
         convert_config_to_tribler71(old_config, state_dir=self.state_dir)

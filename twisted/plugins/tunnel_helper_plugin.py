@@ -77,14 +77,14 @@ def check_ipv8_bootstrap_override(val):
 
     if not (0 < port < 65535):
         raise ValueError("Invalid bootstrap server port")
-    return ip, port
+    return val
 check_ipv8_bootstrap_override.coerceDoc = "IPv8 bootstrap server address must be in ipv4_addr:port format"
 
 
 class Options(usage.Options):
     optFlags = [
         ["exit", "x", "Allow being an exit-node"],
-        ["testnet", "t", "Join the TrustChain testnet"]
+        ["testnet", "t", "Join the testnet"]
     ]
 
     optParameters = [
@@ -92,7 +92,7 @@ class Options(usage.Options):
         ["socks5", "p", None, "Socks5 port", check_socks5_port],
         ["ipv8_port", "d", -1, 'IPv8 port', check_ipv8_port],
         ["ipv8_address", "i", "0.0.0.0", 'IPv8 listening address', check_ipv8_address],
-        ["ipv8_bootstrap_override", "b", "", "Force the usage of specific IPv8 bootstrap server (ip:port)", check_ipv8_bootstrap_override],
+        ["ipv8_bootstrap_override", "b", None, "Force the usage of specific IPv8 bootstrap server (ip:port)", check_ipv8_bootstrap_override],
         ["restapi", "p", None, "Use an alternate port for the REST API", check_api_port],
     ]
 
@@ -177,14 +177,16 @@ class Tunnel(object):
         config.set_credit_mining_enabled(False)
         config.set_market_community_enabled(False)
         config.set_mainline_dht_enabled(False)
+        config.set_dht_enabled(False)
         config.set_tunnel_community_exitnode_enabled(bool(self.options["exit"]))
-        config.set_trustchain_testnet(bool(self.options["testnet"]))
+        config.set_popularity_community_enabled(False)
+        config.set_testnet(bool(self.options["testnet"]))
 
         if self.options["restapi"] is not None:
             config.set_http_api_enabled(True)
             config.set_http_api_port(self.options["restapi"])
 
-        if "ipv8_bootstrap_override" in self.options:
+        if self.options["ipv8_bootstrap_override"] is not None:
             config.set_ipv8_bootstrap_override(self.options["ipv8_bootstrap_override"])
 
         self.session = Session(config)

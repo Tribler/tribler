@@ -9,7 +9,7 @@ from Tribler.Core.Upgrade.db_upgrader import DBUpgrader
 from Tribler.Core.Upgrade.pickle_converter import PickleConverter
 from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65
 from Tribler.Core.simpledefs import NTFY_UPGRADER, NTFY_FINISHED, NTFY_STARTED, NTFY_UPGRADER_TICK
-from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 # Database versions:
@@ -136,7 +136,7 @@ class TriblerUpgrader(object):
         except Exception as e:
             self._logger.exception(u"failed to upgrade: %s", e)
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def stash_database(self):
         self.db.close()
         old_dir = os.path.dirname(self.db.sqlite_db_path)

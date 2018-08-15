@@ -38,7 +38,7 @@ Have a look at the `issue tracker <https://github.com/Tribler/tribler/issues>`_ 
 Setting up your development environment
 =======================================
 
-We support development on Linux, OS X and Windows. We have written documentation that guides you through installing the required packages when setting up a Tribler development environment. See `our Linux development guide <http://tribler.readthedocs.io/en/devel/development/development_on_linux.html>`_ for the guide on setting up a development environment on Linux distributions. See `our Windows development guide <http://tribler.readthedocs.io/en/devel/development/development_on_windows.html>`_ for setting everything up on Windows. See `our OS X development guide <http://tribler.readthedocs.io/en/devel/development/development_on_osx.html>`_ for the guide to setup the development environment on OS X. For German translations, see `here <http://tribler.readthedocs.io/de/devel>`_.
+We support development on Linux, macOS and Windows. We have written documentation that guides you through installing the required packages when setting up a Tribler development environment. See `our Linux development guide <http://tribler.readthedocs.io/en/devel/development/development_on_linux.html>`_ for the guide on setting up a development environment on Linux distributions. See `our Windows development guide <http://tribler.readthedocs.io/en/devel/development/development_on_windows.html>`_ for setting everything up on Windows. See `our OS X development guide <http://tribler.readthedocs.io/en/devel/development/development_on_osx.html>`_ for the guide to setup the development environment on macOS.
 
 Running Tribler from the repository
 ===================================
@@ -83,8 +83,8 @@ Submodule notes
 - Take care of not accidentally committing a submodule revision change with ``git commit -a``.
 - Do not commit a submodule update without running all the tests first and making sure the new code is not breaking Tribler.
 
-.. |jenkins_build| image:: http://jenkins.tribler.org/job/Test_tribler_devel/badge/icon
-    :target: http://jenkins.tribler.org/job/Test_tribler_devel/
+.. |jenkins_build| image:: http://jenkins-ci.tribler.org/job/Test_tribler_next/badge/icon
+    :target: http://jenkins-ci.tribler.org/job/Test_tribler_next/
     :alt: Build status on Jenkins
 
 .. |pr_closed| image:: https://img.shields.io/github/issues-pr-closed/tribler/tribler.svg?style=flat

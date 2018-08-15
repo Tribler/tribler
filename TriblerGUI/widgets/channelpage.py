@@ -60,18 +60,26 @@ class ChannelPage(QWidget):
 
         self.window().edit_channel_button.setHidden(True)
 
-    def clicked_item(self, item):
-        list_widget = item.listWidget()
-        list_item = list_widget.itemWidget(item)
-        if isinstance(list_item, ChannelTorrentListItem):
-            self.window().channel_torrents_detail_widget.update_with_torrent(list_item.torrent_info)
-            self.window().channel_torrents_detail_widget.show()
+    def clicked_item(self):
+        if len(self.window().channel_torrents_list.selectedItems()) != 1:
+            self.window().channel_torrents_detail_widget.hide()
+        else:
+            item = self.window().channel_torrents_list.selectedItems()[0]
+            list_widget = item.listWidget()
+            list_item = list_widget.itemWidget(item)
+            if isinstance(list_item, ChannelTorrentListItem):
+                self.window().channel_torrents_detail_widget.update_with_torrent(list_item.torrent_info)
+                self.window().channel_torrents_detail_widget.show()
+            else:
+                self.window().channel_torrents_detail_widget.hide()
 
     def update_result_list(self):
         if self.loaded_channels and self.loaded_playlists:
             self.window().channel_torrents_list.set_data_items(self.playlists + self.torrents)
 
     def received_torrents_in_channel(self, results):
+        if not results:
+            return
         def sort_key(torrent):
             """ Scoring algorithm for sorting the torrent to show liveness. The score is basically the sum of number
                 of seeders and leechers. If swarm info is unknown, we give unknown seeder and leecher as 0.5 & 0.4 so
@@ -96,6 +104,8 @@ class ChannelPage(QWidget):
         self.update_result_list()
 
     def received_playlists_in_channel(self, results):
+        if not results:
+            return
         for result in results['playlists']:
             self.playlists.append((PlaylistListItem, result))
         self.loaded_playlists = True

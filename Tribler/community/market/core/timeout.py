@@ -8,14 +8,14 @@ class Timeout(object):
 
     def __init__(self, timeout):
         """
-        :param timeout: Float representation of a timeout
-        :type timeout: float
+        :param timeout: Integer representation of a timeout
+        :type timeout: int
         :raises ValueError: Thrown when one of the arguments are invalid
         """
         super(Timeout, self).__init__()
 
-        if not isinstance(timeout, (float, int, long)):
-            raise ValueError("Timeout must be a float, integer or long")
+        if not isinstance(timeout, int):
+            raise ValueError("Timeout must be an integer")
 
         if timeout < 0:
             raise ValueError("Timeout must be positive or zero")
@@ -31,11 +31,10 @@ class Timeout(object):
         :return: True if timeout has occurred, False otherwise
         :rtype: bool
         """
-        assert isinstance(timestamp, Timestamp), type(timestamp)
         return time.time() - float(timestamp) >= self._timeout
 
-    def __float__(self):
-        return float(self._timeout)
+    def __int__(self):
+        return self._timeout
 
     def __hash__(self):
         return hash(self._timeout)

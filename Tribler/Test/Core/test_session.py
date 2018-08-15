@@ -14,7 +14,7 @@ from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import deferred
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestSession(TriblerCoreTest):
@@ -137,12 +137,14 @@ class TestSessionAsServer(TestAsServer):
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 113]'})
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 51]'})
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 16]'})
+        self.session.unhandled_error_observer({'isError': True, 'log_failure': 'socket.error: [Errno 10054]'})
         self.session.unhandled_error_observer({'isError': True,
                                                'log_failure': 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'exceptions.ValueError: Invalid DNS-ID'})
         self.session.unhandled_error_observer({'isError': True,
+                                               'log_failure': 'twisted.web._newclient.ResponseNeverReceived'})
+        self.session.unhandled_error_observer({'isError': True,
                                                'log_failure': 'exceptions.RuntimeError: invalid info-hash'})
-
 
     @deferred(timeout=10)
     def test_add_torrent_def_to_channel(self):

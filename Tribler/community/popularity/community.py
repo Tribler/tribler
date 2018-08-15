@@ -19,10 +19,10 @@ class PopularityCommunity(PubSubCommunity):
     """
     Community for disseminating the content across the network. Follows publish-subscribe model.
     """
-    MASTER_PUBLIC_KEY = "3081a7301006072a8648ce3d020106052b810400270381920004073beff7002b6a9fc2824a3b1bbb1c4fc32546" \
-                        "261e3ef7537874560346c5fdc0c17fe654f67d23b08cbb44141879f79a7a4c8deddf9beb4fbc7a0f02ee1586cc" \
-                        "ebedb623eeef51710108d702f9250361c071482e83c0a4a86c8f45a0b13a19ef83eacb6267b4bfccf220ae5f6d" \
-                        "1db7125ea1d10da3744b65679828f23376e28b76ab33132b7fa984a77f159dba7351a7"
+    MASTER_PUBLIC_KEY = "3081a7301006072a8648ce3d020106052b8104002703819200040504278d20d6776ce7081ad57d99fe066bb2a93" \
+                        "ce7cc92405a534ef7175bab702be557d8c7d3b725ea0eb09c686e798f6c7ad85e8781a4c3b20e54c15ede38077c" \
+                        "8f5c801b71d13105f261da7ddcaa94ae14bd177bf1a05a66f595b9bb99117d11f73b4c8d3dcdcdc2b3f838b8ba3" \
+                        "5a9f600d2c543e8b3ba646083307b917bbbccfc53fc5ab6ded90b711d7eeda46f5f"
 
     master_peer = Peer(MASTER_PUBLIC_KEY.decode('hex'))
 
@@ -69,7 +69,7 @@ class PopularityCommunity(PubSubCommunity):
         dropped. In other case, a decision to accept or reject the message is made based on freshness of the message
         and the trustscore (check update_torrent in ContentRepository for the implementation).
         """
-        self.logger.info("Got torrent health response from %s", source_address)
+        self.logger.debug("Got torrent health response from %s", source_address)
         auth, _, payload = self._ez_unpack_auth(TorrentHealthPayload, data)
         peer = self.get_peer_from_auth(auth, source_address)
 
@@ -93,7 +93,7 @@ class PopularityCommunity(PubSubCommunity):
         """
         Message handler for torrent info request.
         """
-        self.logger.info("Got torrent info request from %s", source_address)
+        self.logger.debug("Got torrent info request from %s", source_address)
         auth, _, payload = self._ez_unpack_auth(TorrentInfoRequestPayload, data)
         peer = self.get_peer_from_auth(auth, source_address)
 
@@ -107,7 +107,7 @@ class PopularityCommunity(PubSubCommunity):
         """
         Message handler for torrent info response.
         """
-        self.logger.info("Got torrent info response from %s", source_address)
+        self.logger.debug("Got torrent info response from %s", source_address)
         auth, _, payload = self._ez_unpack_auth(TorrentInfoResponsePayload, data)
         peer = self.get_peer_from_auth(auth, source_address)
 
@@ -222,7 +222,7 @@ class PopularityCommunity(PubSubCommunity):
         :rtype Deferred
         """
         cache = self.request_cache.add(ContentRequest(self.request_cache, content_type, request_list))
-        self.logger.info("Sending search request query:%s, identifier:%s", request_list, cache.number)
+        self.logger.debug("Sending search request query:%s, identifier:%s", request_list, cache.number)
 
         content_request = ContentInfoRequest(cache.number, content_type, request_list, limit)
         packet = self.create_message_packet(MSG_CONTENT_INFO_REQUEST, content_request)

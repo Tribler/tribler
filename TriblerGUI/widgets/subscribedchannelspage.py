@@ -28,6 +28,8 @@ class SubscribedChannelsPage(QWidget):
         self.request_mgr.perform_request("channels/subscribed", self.received_subscribed_channels)
 
     def received_subscribed_channels(self, results):
+        if not results:
+            return
         self.window().subscribed_channels_list.set_data_items([])
         items = []
 

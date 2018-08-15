@@ -1,6 +1,6 @@
 import random
-import string
 
+from Tribler.Core.Utilities.random_utils import random_infohash, random_string, random_utf8_string
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.popularity import constants
 from Tribler.community.popularity.community import PopularityCommunity, MSG_TORRENT_HEALTH_RESPONSE, \
@@ -49,24 +49,18 @@ class MockRepository(object):
 
     def setup_torrents(self):
         for _ in range(10):
-            infohash = self._random_infohash()
-            name = self._random_string()
+            infohash = random_infohash()
+            name = random_utf8_string()
             length = random.randint(1000, 9999)
             num_files = random.randint(1, 10)
             category_list = ['video', 'audio']
             creation_date = random.randint(1000000, 111111111)
             seeders = random.randint(10, 200)
             leechers = random.randint(5, 1000)
-            cid = self._random_string(size=20)
+            cid = random_string(size=20)
 
             self.sample_torrents.append([infohash, name, length, num_files, category_list, creation_date,
                                          seeders, leechers, cid])
-
-    def _random_string(self, size=6, chars=string.ascii_uppercase + string.digits):
-        return ''.join(random.choice(chars) for _ in range(size))
-
-    def _random_infohash(self):
-        return ''.join(random.choice('0123456789abcdef') for _ in range(20))
 
     def search_torrent(self, _):
         sample_items = []

@@ -427,6 +427,8 @@ class DebugWindow(QMainWindow):
         self.request_mgr.perform_request("debug/profiler", self.on_profiler_info)
 
     def on_profiler_info(self, data):
+        if not data:
+            return
         self.profiler_enabled = (data["state"] == "STARTED")
         self.window().toggle_profiler_button.setEnabled(True)
         self.window().toggle_profiler_button.setText("%s profiler" %
@@ -443,6 +445,8 @@ class DebugWindow(QMainWindow):
         self.request_mgr.perform_request("debug/profiler", self.on_profiler_state_changed, method=method)
 
     def on_profiler_state_changed(self, data):
+        if not data:
+            return
         self.toggling_profiler = False
         self.window().toggle_profiler_button.setEnabled(True)
         self.load_profiler_tab()
@@ -516,6 +520,8 @@ class DebugWindow(QMainWindow):
         self.request_mgr.perform_request("debug/log?%s" % request_query, self.display_logs)
 
     def display_logs(self, data):
+        if not data:
+            return
         tab_index = self.window().log_tab_widget.currentIndex()
         log_display_widget = self.window().core_log_display_area if tab_index == 0 \
             else self.window().gui_log_display_area

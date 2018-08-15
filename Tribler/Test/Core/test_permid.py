@@ -5,7 +5,7 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core import permid
 from Tribler.pyipv8.ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TriblerCoreTestPermid(TriblerCoreTest):

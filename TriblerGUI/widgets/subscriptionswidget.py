@@ -71,6 +71,8 @@ class SubscriptionsWidget(QWidget):
                                              self.on_channel_subscribed, method='PUT')
 
     def on_channel_unsubscribed(self, json_result):
+        if not json_result:
+            return
         if json_result["unsubscribed"]:
             self.unsubscribed_channel.emit(self.channel_info)
             self.channel_info["subscribed"] = False
@@ -78,6 +80,8 @@ class SubscriptionsWidget(QWidget):
             self.update_subscribe_button()
 
     def on_channel_subscribed(self, json_result):
+        if not json_result:
+            return
         if json_result["subscribed"]:
             self.subscribed_channel.emit(self.channel_info)
             self.channel_info["subscribed"] = True
@@ -94,6 +98,8 @@ class SubscriptionsWidget(QWidget):
                                          method='POST', data=json.dumps(settings))
 
     def on_credit_mining_sources(self, json_result):
+        if not json_result:
+            return
         if json_result["modified"]:
             old_source = next(iter(self.window().tribler_settings["credit_mining"]["sources"]), None)
 

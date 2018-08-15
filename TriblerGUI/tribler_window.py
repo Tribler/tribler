@@ -3,7 +3,8 @@ import logging
 import os
 import sys
 import traceback
-from urllib import quote_plus, pathname2url
+from urllib import pathname2url, unquote
+import urlparse
 import signal
 
 import time
@@ -138,14 +139,14 @@ class TriblerWindow(QMainWindow):
         self.channel_torrents_list = self.channel_page_container.items_list
         self.channel_torrents_detail_widget = self.channel_page_container.details_tab_widget
         self.channel_torrents_detail_widget.initialize_details_widget()
-        self.channel_torrents_list.itemClicked.connect(self.channel_page.clicked_item)
+        self.channel_torrents_list.itemSelectionChanged.connect(self.channel_page.clicked_item)
 
         uic.loadUi(get_ui_file_path('torrent_channel_list_container.ui'), self.search_page_container)
         self.search_results_list = self.search_page_container.items_list
         self.search_torrents_detail_widget = self.search_page_container.details_tab_widget
         self.search_torrents_detail_widget.initialize_details_widget()
         self.search_results_list.itemClicked.connect(self.on_channel_item_click)
-        self.search_results_list.itemClicked.connect(self.search_results_page.clicked_item)
+        self.search_results_list.itemSelectionChanged.connect(self.search_results_page.clicked_item)
         self.token_balance_widget.mouseReleaseEvent = self.on_token_balance_click
 
         def on_state_update(new_state):
@@ -336,6 +337,8 @@ class TriblerWindow(QMainWindow):
         else:
             self.clicked_menu_button_home()
 
+        self.setAcceptDrops(True)
+
     def on_events_started(self, json_dict):
         self.setWindowTitle("Tribler %s" % json_dict["version"])
 
@@ -436,6 +439,8 @@ class TriblerWindow(QMainWindow):
         self.request_mgr.perform_request("settings", self.received_settings, capture_errors=False)
 
     def received_settings(self, settings):
+        if not settings:
+            return
         # If we cannot receive the settings, stop Tribler with an option to send the crash report.
         if 'error' in settings:
             raise RuntimeError(TriblerRequestManager.get_message_from_error(settings))
@@ -673,6 +678,8 @@ class TriblerWindow(QMainWindow):
                 self.start_download_from_uri(uri)
 
     def on_download_added(self, result):
+        if not result:
+            return
         if len(self.pending_uri_requests) == 0:  # Otherwise, we first process the remaining requests.
             self.window().left_menu_button_downloads.click()
         else:
@@ -841,7 +848,8 @@ class TriblerWindow(QMainWindow):
             request_queue.clear()
 
             # Stop the token balance timer
-            self.token_refresh_timer.stop()
+            if self.token_refresh_timer:
+                self.token_refresh_timer.stop()
 
     def closeEvent(self, close_event):
         self.close_tribler()
@@ -853,6 +861,24 @@ class TriblerWindow(QMainWindow):
             if self.isFullScreen():
                 self.exit_full_screen()
 
+    def dragEnterEvent(self, e):
+        file_urls = [_qurl_to_path(url) for url in e.mimeData().urls()] if e.mimeData().hasUrls() else []
+
+        if any(os.path.isfile(filename) for filename in file_urls):
+            e.accept()
+        else:
+            e.ignore()
+
+    def dropEvent(self, e):
+        file_urls = ([(_qurl_to_path(url), url.toString()) for url in e.mimeData().urls()]
+                     if e.mimeData().hasUrls() else [])
+
+        for filename, fileurl in file_urls:
+            if os.path.isfile(filename):
+                self.start_download_from_uri(fileurl)
+
+        e.accept()
+
     def clicked_force_shutdown(self):
         process_checker = ProcessChecker()
         if process_checker.already_running:
@@ -860,3 +886,8 @@ class TriblerWindow(QMainWindow):
             os.kill(int(core_pid), 9)
         # Stop the Qt application
         QApplication.quit()
+
+
+def _qurl_to_path(qurl):
+    parsed = urlparse.urlparse(qurl.toString())
+    return os.path.abspath(os.path.join(parsed.netloc, unquote(parsed.path)))

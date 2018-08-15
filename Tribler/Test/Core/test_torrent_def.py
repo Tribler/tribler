@@ -18,7 +18,7 @@ from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import BaseTestCase
 from Tribler.Test.twisted_thread import deferred
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 TRACKER = 'http://www.tribler.org/announce'
 

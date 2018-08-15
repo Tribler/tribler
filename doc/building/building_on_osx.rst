@@ -1,4 +1,4 @@
-This guide explains how to build Tribler on MacOS (10.10 to 10.12). The final result is a ``.dmg`` file which, when opened, allows ``Tribler.app`` to be copied to the Applications directory and or launched. Make sure the required packages required by Tribler are installed 
+This guide explains how to build Tribler on MacOS (10.10 to 10.13). The final result is a ``.dmg`` file which, when opened, allows ``Tribler.app`` to be copied to the Applications directory and or launched. Make sure the required packages required by Tribler are installed
 from the  `Development instructions <../development/development_on_osx.rst>`_.
 
 Required packages

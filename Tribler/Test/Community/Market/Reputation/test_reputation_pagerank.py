@@ -1,6 +1,6 @@
 from Tribler.Test.Community.Market.Reputation.test_reputation_base import TestReputationBase
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.assetamount import AssetAmount
+from Tribler.community.market.core.assetpair import AssetPair
 
 
 class TestReputationPagerank(TestReputationBase):
@@ -12,7 +12,7 @@ class TestReputationPagerank(TestReputationBase):
         """
         Test a very simple Temporal Pagerank computation
         """
-        self.insert_transaction('a', 'b', Quantity(1, 'BTC'), Price(1, 'MC'))
+        self.insert_transaction('a', 'b', AssetPair(AssetAmount(1, 'BTC'), AssetAmount(1, 'MB')))
         rep_dict = self.compute_reputations()
         self.assertTrue('a' in rep_dict)
         self.assertTrue('b' in rep_dict)
@@ -23,8 +23,8 @@ class TestReputationPagerank(TestReputationBase):
         """
         Test isolated nodes during a Temporal Pagerank computation
         """
-        self.insert_transaction('a', 'b', Quantity(1, 'BTC'), Price(1, 'MC'))
-        self.insert_transaction('c', 'd', Quantity(1, 'BTC'), Price(1, 'MC'))
+        self.insert_transaction('a', 'b', AssetPair(AssetAmount(1, 'BTC'), AssetAmount(1, 'MB')))
+        self.insert_transaction('c', 'd', AssetPair(AssetAmount(1, 'BTC'), AssetAmount(1, 'MB')))
         rep_dict = self.compute_reputations()
         self.assertTrue('c' in rep_dict)
         self.assertTrue('d' in rep_dict)
@@ -33,10 +33,10 @@ class TestReputationPagerank(TestReputationBase):
         """
         Test a more involved example of a Temporal Pagerank computation
         """
-        self.insert_transaction('a', 'b', Quantity(1, 'BTC'), Price(1, 'MC'))
-        self.insert_transaction('b', 'c', Quantity(100, 'BTC'), Price(100, 'MC'))
-        self.insert_transaction('b', 'd', Quantity(100, 'BTC'), Price(100, 'MC'))
-        self.insert_transaction('b', 'e', Quantity(100, 'BTC'), Price(100, 'MC'))
+        self.insert_transaction('a', 'b', AssetPair(AssetAmount(1, 'BTC'), AssetAmount(1, 'MB')))
+        self.insert_transaction('b', 'c', AssetPair(AssetAmount(100, 'BTC'), AssetAmount(10000, 'MB')))
+        self.insert_transaction('b', 'd', AssetPair(AssetAmount(100, 'BTC'), AssetAmount(10000, 'MB')))
+        self.insert_transaction('b', 'e', AssetPair(AssetAmount(100, 'BTC'), AssetAmount(10000, 'MB')))
         rep_dict = self.compute_reputations()
         self.assertEqual(len(rep_dict.keys()), 5)
         for _, rep in rep_dict.iteritems():
@@ -53,13 +53,13 @@ class TestReputationPagerank(TestReputationBase):
         """
         Test a Temporal Pagerank computation
         """
-        self.insert_transaction('a', 'b', Quantity(1, 'BTC'), Price(1, 'MC'))
-        self.insert_transaction('a', 'c', Quantity(1, 'BTC'), Price(2, 'MC'))
-        self.insert_transaction('a', 'd', Quantity(1, 'BTC'), Price(3, 'MC'))
-        self.insert_transaction('a', 'e', Quantity(1, 'BTC'), Price(4, 'MC'))
-        self.insert_transaction('a', 'f', Quantity(1, 'BTC'), Price(5, 'MC'))
-        self.insert_transaction('a', 'g', Quantity(1, 'BTC'), Price(6, 'MC'))
-        self.insert_transaction('a', 'h', Quantity(1, 'BTC'), Price(7, 'MC'))
+        self.insert_transaction('a', 'b', AssetPair(AssetAmount(1, 'BTC'), AssetAmount(1, 'MB')))
+        self.insert_transaction('a', 'c', AssetPair(AssetAmount(2, 'BTC'), AssetAmount(2, 'MB')))
+        self.insert_transaction('a', 'd', AssetPair(AssetAmount(3, 'BTC'), AssetAmount(3, 'MB')))
+        self.insert_transaction('a', 'e', AssetPair(AssetAmount(4, 'BTC'), AssetAmount(4, 'MB')))
+        self.insert_transaction('a', 'f', AssetPair(AssetAmount(5, 'BTC'), AssetAmount(5, 'MB')))
+        self.insert_transaction('a', 'g', AssetPair(AssetAmount(6, 'BTC'), AssetAmount(6, 'MB')))
+        self.insert_transaction('a', 'h', AssetPair(AssetAmount(7, 'BTC'), AssetAmount(7, 'MB')))
         rep_dict = self.compute_reputations()
         self.assertTrue('c' in rep_dict)
         self.assertTrue('d' in rep_dict)

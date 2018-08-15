@@ -9,7 +9,7 @@ from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.Core.base_test_channel import BaseTestChannel
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.twisted_thread import deferred
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestChannelRss(BaseTestChannel):

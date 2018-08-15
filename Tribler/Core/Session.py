@@ -32,7 +32,7 @@ from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT,
                                      STATEDIR_WALLET_DIR, STATE_OPEN_DB, STATE_START_API, STATE_UPGRADING_READABLE,
                                      STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED)
 from Tribler.Core.statistics import TriblerStatistics
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
@@ -134,8 +134,7 @@ class Session(object):
             permid_module.save_keypair(self.keypair, pair_filename)
             permid_module.save_pub_key(self.keypair, public_key_filename)
 
-        trustchain_pairfilename = self.config.get_trustchain_permid_keypair_filename()
-
+        trustchain_pairfilename = self.config.get_trustchain_keypair_filename()
         if os.path.exists(trustchain_pairfilename):
             self.trustchain_keypair = permid_module.read_keypair_trustchain(trustchain_pairfilename)
         else:
@@ -145,6 +144,17 @@ class Session(object):
             trustchain_pubfilename = os.path.join(self.config.get_state_dir(), 'ecpub_multichain.pem')
             permid_module.save_keypair_trustchain(self.trustchain_keypair, trustchain_pairfilename)
             permid_module.save_pub_key_trustchain(self.trustchain_keypair, trustchain_pubfilename)
+
+        trustchain_testnet_pairfilename = self.config.get_trustchain_testnet_keypair_filename()
+        if os.path.exists(trustchain_testnet_pairfilename):
+            self.trustchain_testnet_keypair = permid_module.read_keypair_trustchain(trustchain_testnet_pairfilename)
+        else:
+            self.trustchain_testnet_keypair = permid_module.generate_keypair_trustchain()
+
+            # Save keypair
+            trustchain_testnet_pubfilename = os.path.join(self.config.get_state_dir(), 'ecpub_trustchain_testnet.pem')
+            permid_module.save_keypair_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pairfilename)
+            permid_module.save_pub_key_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pubfilename)
 
     def unhandled_error_observer(self, event):
         """
@@ -160,26 +170,34 @@ class Session(object):
 
             # There are some errors that we are ignoring.
             # No route to host: this issue is non-critical since Tribler can still function when a request fails.
-            if 'socket.error: [Errno 113]' in text:
+            if 'socket.error' in text and '[Errno 113]' in text:
                 self._logger.error("Observed no route to host error (but ignoring)."
                                    "This might indicate a problem with your firewall.")
                 return
 
             # Socket block: this sometimes occurres on Windows and is non-critical.
-            if 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE in text:
+            if 'socket.error' in text and '[Errno %s]' % SOCKET_BLOCK_ERRORCODE in text:
                 self._logger.error("Unable to send data due to socket.error %s", SOCKET_BLOCK_ERRORCODE)
                 return
 
-            if 'socket.error: [Errno 51]' in text:
+            if 'socket.error' in text and '[Errno 51]' in text:
                 self._logger.error("Could not send data: network is unreachable.")
                 return
 
-            if 'socket.error: [Errno 16]' in text:
+            if 'socket.error' in text and '[Errno 16]' in text:
                 self._logger.error("Could not send data: socket is busy.")
+                return
+
+            if 'socket.error' in text and '[Errno 10054]' in text:
+                self._logger.error("Connection forcibly closed by the remote host.")
                 return
 
             if 'exceptions.ValueError: Invalid DNS-ID' in text:
                 self._logger.error("Invalid DNS-ID")
+                return
+
+            if 'twisted.web._newclient.ResponseNeverReceived' in text:
+                self._logger.error("Internal Twisted response error, consider updating your Twisted version.")
                 return
 
             # We already have a check for invalid infohash when adding a torrent, but if somehow we get this

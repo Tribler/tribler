@@ -39,7 +39,7 @@ def check_ipv8_bootstrap_override(val):
 
     if port < 0 or port > 65535:
         raise ValueError("Invalid bootstrap server port")
-    return ip, port
+    return val
 check_ipv8_bootstrap_override.coerceDoc = "IPv8 bootstrap server address must be in ipv4_addr:port format"
 
 
@@ -50,12 +50,13 @@ class Options(usage.Options):
         ["restapi", "p", -1, "Use an alternate port for the REST API", int],
         ["dispersy", "d", -1, "Use an alternate port for Dispersy", int],
         ["libtorrent", "l", -1, "Use an alternate port for libtorrent", int],
-        ["ipv8_bootstrap_override", "b", "", "Force the usage of specific IPv8 bootstrap server (ip:port)",
+        ["ipv8_bootstrap_override", "b", None, "Force the usage of specific IPv8 bootstrap server (ip:port)",
          check_ipv8_bootstrap_override]
     ]
     optFlags = [
         ["auto-join-channel", "a", "Automatically join a channel when discovered"],
         ["log-incoming-searches", "i", "Write information about incoming remote searches to a file"],
+        ["testnet", "t", "Join the testnet"]
     ]
 
 
@@ -126,8 +127,11 @@ class TriblerServiceMaker(object):
         if options["libtorrent"] != -1 and options["libtorrent"] > 0:
             config.set_libtorrent_port(options["libtorrent"])
 
-        if "ipv8_bootstrap_override" in options:
+        if options["ipv8_bootstrap_override"] is not None:
             config.set_ipv8_bootstrap_override(options["ipv8_bootstrap_override"])
+
+        if "testnet" in options and options["testnet"]:
+            config.set_testnet(True)
 
         self.session = Session(config)
         self.session.start().addErrback(lambda failure: self.shutdown_process(failure.getErrorMessage()))

@@ -12,7 +12,7 @@ The stabilization branch ``next`` contains the most up to date bugfixes. If your
 To backup your Tribler installation and checkout the latest version of the stabilization branch, please perform the following steps.
 * Copy the ``.Tribler`` folder to a safe location on your system (for instance the desktop) Make sure to leave the original folder on its original location. This folder is located at ``~/.Tribler/`` (Linux/OS X) or ``%APPDATA\.Tribler`` (Windows).
 * Remove the ``tribler`` installation folder.
-* Go to `the latest tested version of Tribler <https://jenkins.tribler.org/job/Publish_tribler_next/lastStableBuild/>`_ and under 'Build Artifacts', download the package appropriate to your operating system.
+* Go to `the latest tested version of Tribler <https://jenkins-ci.tribler.org/job/Build_Tribler_next/lastStableBuild/>`_ and under 'Build Artifacts', download the package appropriate to your operating system.
 * Install/unzip this package.
 
 To revert back to your original version of Tribler, `download the installer again <https://github.com/Tribler/tribler/releases>`_ and install it. Afterwards you can restore your backed up Tribler data folder.
@@ -28,7 +28,7 @@ Reporting bugs
     * The OS and version you are running.
     * Step by step instructions to reproduce the issue in case it's a bug.
 * Attach Tribler's log file. On Windows, these are found in ``%APPDATA%``. On Linux distributions, the log file is located in ``~/.Tribler/``. On OS X, the crash logs can be found in ``~/Library/Logs/DiagnosticReports`` and logger output can be found in the ``syslog``. The location of this log is ``/var/log/system.log``. You can use the following command to extract Tribler-related lines from the syslog: ``syslog -C |grep -i tribler > ~/tribler.log``. Please have a look at the content of the log files before posting it in case you want to edit out something.
-    * Does it still happen if you move ``%APPDATA\.Tribler`` away temporarily? (Do **not** delete it!)
+    * Does it still happen if you move ``%APPDATA%\.Tribler`` away temporarily? (Do **not** delete it!)
     * Do you have any other software installed that might interfere with Tribler?
 
 Pull requests

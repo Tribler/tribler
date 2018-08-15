@@ -9,7 +9,7 @@ from twisted.internet.defer import Deferred, DeferredList, succeed
 
 from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
 from Tribler.Core.CreditMining.CreditMiningPolicy import UploadPolicy, RandomPolicy
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig, DownloadStartupConfig
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, DLSTATUS_SEEDING, \
                                     DLSTATUS_STOPPED_ON_ERROR, UPLOAD
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
@@ -40,7 +40,7 @@ class CreditMiningSettings(object):
         # Maximum number of bytes of disk space that credit mining is allowed to use.
         self.max_disk_space = config.get_credit_mining_disk_space() if config else 50 * 1024 ** 3
         self.low_disk_space = 1000 * 1024 ** 2
-        self.save_path = os.path.join(DefaultDownloadStartupConfig.getInstance().get_dest_dir(), 'credit_mining')
+        self.save_path = os.path.join(config.get_default_destination_dir(), 'credit_mining')
 
 
 class CreditMiningManager(TaskManager):
@@ -158,7 +158,7 @@ class CreditMiningManager(TaskManager):
 
             return DeferredList(deferreds)
 
-        self._logger.error('Cannot remove non-existing source %s', source)
+        self._logger.error('Cannot remove non-existing source %s', source_str)
         return succeed(None)
 
     def on_torrent_insert(self, source_str, infohash, name):

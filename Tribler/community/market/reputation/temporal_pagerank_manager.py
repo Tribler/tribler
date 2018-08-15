@@ -28,8 +28,7 @@ class TemporalPagerankReputationManager(ReputationManager):
             # In our market, we consider the amount of Bitcoin that have been transferred from A -> B.
             # For now, we assume that the value from B -> A is of equal worth.
 
-            is_price_btc = block.transaction["tx"]["quantity_type"] == "BTC"
-            value_exchange = block.transaction["tx"]["quantity"] if is_price_btc else block.transaction["tx"]["price"]
+            value_exchange = block.transaction["tx"]["transferred"]["first"]["amount"]
 
             G.add_edge((pubkey_requester, sequence_number_requester), (pubkey_requester, sequence_number_requester + 1),
                        contribution=value_exchange)

@@ -5,9 +5,6 @@ from time import time
 
 from Tribler.community.market.core.order import OrderId
 from Tribler.community.market.core.orderbook import OrderBook
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.pricelevel import PriceLevel
-from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.tickentry import TickEntry
 
 
@@ -22,8 +19,6 @@ class MatchingStrategy(object):
         """
         super(MatchingStrategy, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
-
-        assert isinstance(order_book, OrderBook), type(order_book)
 
         self.order_book = order_book
         self.used_match_ids = set()
@@ -76,196 +71,65 @@ class PriceTimeStrategy(MatchingStrategy):
         :param is_ask: Whether the object we want to match is an ask
         :type order_id: OrderId
         :type price: Price
-        :type quantity: Quantity
+        :type quantity: int
         :type is_ask: Bool
         :return: A list of tuples containing the ticks and the matched quantity
         :rtype: [(str, TickEntry, Quantity)]
         """
-        matched_ticks = self._match_ask(order_id, price, quantity, is_ask) if is_ask \
-            else self._match_bid(order_id, price, quantity, is_ask)
-
-        return matched_ticks
-
-    def _match_ask(self, order_id, price, quantity, is_ask):
         matched_ticks = []
+        quantity_to_match = quantity
 
-        if price <= self.order_book.get_bid_price(price.wallet_id, quantity.wallet_id) \
-                and quantity > Quantity(0, quantity.wallet_id):
-            # Scan the price levels in the order book
-            matched_ticks = self._search_for_quantity_in_order_book(
-                order_id,
-                self.order_book.get_bid_price(price.wallet_id, quantity.wallet_id),
-                self.order_book.get_bid_price_level(price.wallet_id, quantity.wallet_id),
-                quantity, price, is_ask)
-        return matched_ticks
-
-    def _match_bid(self, order_id, price, quantity, is_ask):
-        matched_ticks = []
-
-        if price >= self.order_book.get_ask_price(price.wallet_id, quantity.wallet_id) \
-                and quantity > Quantity(0, quantity.wallet_id):
-            # Scan the price levels in the order book
-            matched_ticks = self._search_for_quantity_in_order_book(
-                order_id,
-                self.order_book.get_ask_price(price.wallet_id, quantity.wallet_id),
-                self.order_book.get_ask_price_level(price.wallet_id, quantity.wallet_id),
-                quantity, price, is_ask)
-        return matched_ticks
-
-    def _search_for_quantity_in_order_book(self, order_id, price, price_level, quantity_to_trade, tick_price, is_ask):
-        """
-        Search through the price levels in the order book
-        :param order_id: The order id of the tick to match
-        :param price: The price of the price level
-        :param price_level: The price level to search in
-        :param quantity_to_trade: The quantity still to be matched
-        :param tick_price: The price of the tick being matched
-        :param is_ask: Whether our tick being matched is an ask
-        :type order_id: OrderId
-        :type price: Price
-        :type price_level: PriceLevel
-        :type quantity_to_trade: Quantity
-        :type tick_price: Price
-        :type is_ask: bool
-        :return: A list of tuples containing the ticks and the matched quantity
-        :rtype: [(str, TickEntry, Quantity)]
-        """
-        if price_level is None:  # Last price level
+        # First check whether we can match our order at all in the order book
+        if is_ask and price > self.order_book.get_bid_price(price.numerator, price.denominator):
+            return []
+        if not is_ask and price < self.order_book.get_ask_price(price.numerator, price.denominator):
             return []
 
-        assert isinstance(order_id, OrderId), type(order_id)
-        assert isinstance(price, Price), type(price)
-        assert isinstance(price_level, PriceLevel), type(price_level)
-        assert isinstance(quantity_to_trade, Quantity), type(quantity_to_trade)
-        assert isinstance(tick_price, Price), type(tick_price)
-        assert isinstance(is_ask, bool), type(is_ask)
-
-        self._logger.debug("Searching in price level: %f (depth: %f, reserved: %f)",
-                           float(price), float(price_level.depth), float(price_level.reserved))
-
-        if quantity_to_trade <= price_level.depth - price_level.reserved:
-            # All the quantity can be matched in this price level
-            return self._search_for_quantity_in_price_level(order_id, price_level.first_tick,
-                                                            quantity_to_trade,
-                                                            tick_price, is_ask)
-        else:
-            # Not all the quantity can be matched in this price level
-            return self._search_for_quantity_in_order_book_partial(order_id, price, price_level, quantity_to_trade,
-                                                                   tick_price, is_ask)
-
-    def _search_for_quantity_in_order_book_partial(self, order_id, price, price_level, quantity_to_trade,
-                                                   tick_price, is_ask):
-        # Not all the quantity can be matched in this price level
-        matching_ticks = self._search_for_quantity_in_price_level(order_id, price_level.first_tick, quantity_to_trade,
-                                                                  tick_price, is_ask)
-
-        matched_quantity = Quantity(0, quantity_to_trade.wallet_id)
-        for _, _, quantity in matching_ticks:
-            matched_quantity += quantity
-        quantity_to_trade -= matched_quantity
-
+        # Next, check whether we have a price level we can start our match search from
         if is_ask:
-            return self._search_for_quantity_in_order_book_partial_ask(order_id, price, quantity_to_trade,
-                                                                       matching_ticks, tick_price, is_ask)
+            price_level = self.order_book.get_bid_price_level(price.numerator, price.denominator)
         else:
-            return self._search_for_quantity_in_order_book_partial_bid(order_id, price, quantity_to_trade,
-                                                                       matching_ticks, tick_price, is_ask)
+            price_level = self.order_book.get_ask_price_level(price.numerator, price.denominator)
 
-    def _search_for_quantity_in_order_book_partial_ask(self, order_id, price, quantity_to_trade, matching_ticks,
-                                                       tick_price, is_ask):
-        # Select the next price level
-        try:
-            # Search the next price level
-            next_price, next_price_level = self.order_book.bids.\
-                get_price_level_list(price.wallet_id, quantity_to_trade.wallet_id).prev_item(price)
-        except IndexError:
-            return matching_ticks
-
-        if tick_price > next_price:  # Price is too low
-            return matching_ticks
-
-        matching_ticks += self._search_for_quantity_in_order_book(order_id, next_price, next_price_level,
-                                                                  quantity_to_trade, tick_price, is_ask)
-
-        return matching_ticks
-
-    def _search_for_quantity_in_order_book_partial_bid(self, order_id, price, quantity_to_trade, matching_ticks,
-                                                       tick_price, is_ask):
-        # Select the next price level
-        try:
-            # Search the next price level
-            next_price, next_price_level = self.order_book.asks.\
-                get_price_level_list(price.wallet_id, quantity_to_trade.wallet_id).succ_item(price)
-        except IndexError:
-            return matching_ticks
-
-        if tick_price < next_price:  # Price is too high
-            return matching_ticks
-
-        matching_ticks += self._search_for_quantity_in_order_book(order_id, next_price, next_price_level,
-                                                                  quantity_to_trade, tick_price, is_ask)
-
-        return matching_ticks
-
-    def _search_for_quantity_in_price_level(self, order_id, tick_entry, quantity_to_trade, tick_price, is_ask):
-        """
-        Search through the tick entries in the price levels
-
-        :param order_id: The order id to match
-        :param tick_entry: The tick entry to match against
-        :param quantity_to_trade: The quantity still to be matched
-        :param tick_price: The price of the tick being matched
-        :param is_ask: Whether our tick being matched is an ask
-        :type tick_entry: TickEntry
-        :type quantity_to_trade: Quantity
-        :type tick_price: Price
-        :type is_ask: bool
-        :return: A list of tuples containing the ticks and the matched quantity
-        :rtype: [(str, TickEntry, Quantity)]
-        """
-        if tick_entry is None:  # Last tick
+        if not price_level:
             return []
 
-        assert isinstance(order_id, OrderId), type(order_id)
-        assert isinstance(tick_entry, TickEntry), type(tick_entry)
-        assert isinstance(quantity_to_trade, Quantity), type(quantity_to_trade)
-        assert isinstance(tick_price, Price), type(tick_price)
-        assert isinstance(is_ask, bool), type(is_ask)
+        cur_tick_entry = price_level.first_tick
+        cur_price_level_price = price_level.price
 
-        if quantity_to_trade <= tick_entry.quantity - tick_entry.reserved_for_matching \
-                and not tick_entry.is_blocked_for_matching(order_id):
-            # All the quantity can be matched in this tick
-            return self._search_for_quantity_in_price_level_total(tick_entry, quantity_to_trade)
-        else:
-            # Not all the quantity can be matched in this tick
-            return self._search_for_quantity_in_price_level_partial(order_id, tick_entry, quantity_to_trade,
-                                                                    tick_price, is_ask)
+        # We now start to iterate through price levels and tick entries and match on the fly
+        while cur_tick_entry and quantity_to_match > 0:
+            if cur_tick_entry.is_blocked_for_matching(order_id):
+                cur_tick_entry = cur_tick_entry.next_tick
+                continue
 
-    def _search_for_quantity_in_price_level_total(self, tick_entry, quantity_to_trade):
-        trading_quantity = quantity_to_trade
+            quantity_matched = min(quantity_to_match, cur_tick_entry.available_for_matching)
+            if quantity_matched > 0:
+                matched_ticks.append((self.get_unique_match_id(), cur_tick_entry, quantity_matched))
+                quantity_to_match -= quantity_matched
 
-        self._logger.debug("Match with the id (%s) was found: price %f, quantity %f",
-                           str(tick_entry.order_id), float(tick_entry.price), float(trading_quantity))
+            cur_tick_entry = cur_tick_entry.next_tick
+            if not cur_tick_entry:
+                # We probably reached the end of a price level, check whether we have a next price level
+                try:
+                    # Get the next price level
+                    if is_ask:
+                        next_price_level = self.order_book.bids.\
+                            get_price_level_list(price.numerator, price.denominator).prev_item(cur_price_level_price)
+                    else:
+                        next_price_level = self.order_book.asks.\
+                            get_price_level_list(price.numerator, price.denominator).succ_item(cur_price_level_price)
+                    cur_price_level_price = next_price_level.price
+                except IndexError:
+                    break
 
-        return [(self.get_unique_match_id(), tick_entry, trading_quantity)]
+                if (is_ask and price > cur_price_level_price) or (not is_ask and price < cur_price_level_price):
+                    # The price of this price level is too high/low
+                    break
 
-    def _search_for_quantity_in_price_level_partial(self, order_id, tick_entry, quantity_to_trade, tick_price, is_ask):
-        matched_quantity = tick_entry.quantity - tick_entry.reserved_for_matching
-        matching_ticks = []
+                cur_tick_entry = next_price_level.first_tick
 
-        if matched_quantity > Quantity(0, matched_quantity.wallet_id) and not \
-                tick_entry.is_blocked_for_matching(order_id):
-            quantity_to_trade -= matched_quantity
-
-            self._logger.debug("Match with the id (%s) was found: price %f, quantity %f",
-                               str(tick_entry.order_id), float(tick_entry.price), float(matched_quantity))
-
-            matching_ticks = [(self.get_unique_match_id(), tick_entry, matched_quantity)]
-
-        # Search the next tick
-        matching_ticks += self._search_for_quantity_in_price_level(order_id, tick_entry.next_tick, quantity_to_trade,
-                                                                   tick_price, is_ask)
-        return matching_ticks
+        return matched_ticks
 
 
 class MatchingEngine(object):
@@ -279,7 +143,6 @@ class MatchingEngine(object):
         super(MatchingEngine, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        assert isinstance(matching_strategy, MatchingStrategy), type(matching_strategy)
         self.matching_strategy = matching_strategy
         self.matches = {}  # Keep track of all matches
 
@@ -290,12 +153,11 @@ class MatchingEngine(object):
         :return: A list of tuples containing a random match id, ticks and the matched quantity
         :rtype: [(str, TickEntry, Quantity)]
         """
-        assert isinstance(tick_entry, TickEntry), type(tick_entry)
         now = time()
 
         matched_ticks = self.matching_strategy.match(tick_entry.order_id,
                                                      tick_entry.price,
-                                                     tick_entry.quantity - tick_entry.reserved_for_matching,
+                                                     tick_entry.available_for_matching,
                                                      tick_entry.tick.is_ask())
 
         for match_id, matched_tick_entry, quantity in matched_ticks:  # Store the matches

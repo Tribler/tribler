@@ -30,8 +30,8 @@ from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileExcep
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
                                      NTFY_REACHABLE, NTFY_TORRENTS)
 from Tribler.Core.version import version_id
-from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 LTSTATE_FILENAME = "lt.state"
 METAINFO_CACHE_PERIOD = 5 * 60
@@ -82,7 +82,7 @@ class LibtorrentMgr(TaskManager):
 
         self.default_alert_mask = lt.alert.category_t.error_notification | lt.alert.category_t.status_notification | \
                                   lt.alert.category_t.storage_notification | lt.alert.category_t.performance_warning | \
-                                  lt.alert.category_t.tracker_notification
+                                  lt.alert.category_t.tracker_notification | lt.alert.category_t.debug_notification
         self.alert_callback = None
 
     @blocking_call_on_reactor_thread
@@ -158,6 +158,10 @@ class LibtorrentMgr(TaskManager):
                 pe_settings = lt.pe_settings()
                 pe_settings.prefer_rc4 = True
                 ltsession.set_pe_settings(pe_settings)
+
+            mid = self.tribler_session.trustchain_keypair.key_to_hash()
+            settings['peer_fingerprint'] = mid
+            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + mid.encode('hex')
         else:
             settings['enable_outgoing_utp'] = True
             settings['enable_incoming_utp'] = True
@@ -378,7 +382,6 @@ class LibtorrentMgr(TaskManager):
                     self._logger.debug("Got state_update %s for unknown torrent %s", alert_type, infohash)
                     continue
                 self.torrents[infohash][0].update_lt_status(status)
-            return
 
         handle = getattr(alert, 'handle', None)
         if handle and handle.is_valid():
@@ -409,6 +412,10 @@ class LibtorrentMgr(TaskManager):
                 self._logger.debug("Removed torrent %s", infohash)
             else:
                 self._logger.debug("Removed alert for unknown torrent")
+
+        elif alert_type == 'peer_disconnected_alert' and \
+                self.tribler_session and self.tribler_session.lm.payout_manager:
+            self.tribler_session.lm.payout_manager.do_payout(alert.pid.to_string())
 
         if self.alert_callback:
             self.alert_callback(alert)
@@ -588,7 +595,7 @@ class LibtorrentMgr(TaskManager):
             self.notifier.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
             self.check_reachability_lc.stop()
 
-    @call_on_reactor_thread
+    @blocking_call_on_reactor_thread
     def _schedule_next_check(self, delay, retries_left):
         self.register_task(u'check_dht', reactor.callLater(delay, self.do_dht_check, retries_left))
 

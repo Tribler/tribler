@@ -1,4 +1,4 @@
-from Tribler.dispersy.util import is_valid_address
+from Tribler.Core.Utilities.network_utils import is_valid_address
 
 
 class SocketAddress(object):
@@ -13,9 +13,6 @@ class SocketAddress(object):
         :raises ValueError: Thrown when one of the arguments are invalid
         """
         super(SocketAddress, self).__init__()
-
-        assert isinstance(ip, str), type(ip)
-        assert isinstance(port, int), type(port)
 
         if not is_valid_address((ip, port)):
             raise ValueError("Address is not valid")

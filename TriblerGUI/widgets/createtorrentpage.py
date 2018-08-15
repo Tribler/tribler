@@ -100,6 +100,8 @@ class CreateTorrentPage(QWidget):
         self.dialog = None
 
     def on_torrent_created(self, result):
+        if not result:
+            return
         self.window().edit_channel_create_torrent_button.setEnabled(True)
         if 'torrent' in result:
             self.add_torrent_to_channel(result['torrent'])
@@ -112,6 +114,8 @@ class CreateTorrentPage(QWidget):
                                          data=post_data, method='PUT')
 
     def on_torrent_to_channel_added(self, result):
+        if not result:
+            return
         self.window().edit_channel_create_torrent_progress_label.hide()
         if 'added' in result:
             self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_TORRENTS)

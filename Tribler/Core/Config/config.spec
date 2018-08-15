@@ -5,6 +5,7 @@ ec_keypair_filename = string(default='')
 megacache = boolean(default=True)
 videoanalyserpath = string(default='')
 log_dir = string(default=None)
+testnet = boolean(default=False)
 
 [allchannel_community]
 enabled = boolean(default=True)
@@ -28,11 +29,14 @@ enabled = boolean(default=True)
 matchmaker = boolean(default=True)
 ec_keypair_filename = string(default='')
 
+[dht]
+enabled = boolean(default=True)
+
 [trustchain]
 enabled = boolean(default=True)
 ec_keypair_filename = string(default='')
+testnet_keypair_filename = string(default='')
 live_edges_enabled = boolean(default=True)
-testnet = boolean(default=False)
 
 [wallets]
 btc_testnet = boolean(default=False)
@@ -91,7 +95,7 @@ port = integer(min=-1, max=65536, default=-1)
 [ipv8]
 enabled = boolean(default=True)
 address = string(default='0.0.0.0')
-bootstrap_override = tuple(default=None)
+bootstrap_override = string(default='')
 
 [video_server]
 enabled = boolean(default=True)

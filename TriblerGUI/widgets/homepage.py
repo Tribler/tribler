@@ -56,6 +56,8 @@ class HomePage(QWidget):
         self.window().resizeEvent(None)
 
     def received_popular_channels(self, result):
+        if not result:
+            return
         self.show_channels = True
         if not self.has_loaded_cells:
             self.load_cells()
@@ -72,6 +74,8 @@ class HomePage(QWidget):
         self.window().resizeEvent(None)
 
     def received_popular_torrents(self, result):
+        if not result:
+            return
         self.show_channels = False
         if not self.has_loaded_cells:
             self.load_cells()

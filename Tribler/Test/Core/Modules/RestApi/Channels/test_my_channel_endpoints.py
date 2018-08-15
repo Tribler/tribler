@@ -4,7 +4,7 @@ from Tribler.Core.Modules.restapi.channels.my_channel_endpoint import NO_CHANNEL
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.twisted_thread import deferred
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestMyChannelEndpoints(AbstractTestChannelsEndpoint):
