@@ -142,6 +142,8 @@ class TestSessionAsServer(TestAsServer):
                                                'log_failure': 'socket.error: [Errno %s]' % SOCKET_BLOCK_ERRORCODE})
         self.session.unhandled_error_observer({'isError': True, 'log_failure': 'exceptions.ValueError: Invalid DNS-ID'})
         self.session.unhandled_error_observer({'isError': True,
+                                               'log_failure': 'twisted.web._newclient.ResponseNeverReceived'})
+        self.session.unhandled_error_observer({'isError': True,
                                                'log_failure': 'exceptions.RuntimeError: invalid info-hash'})
 
     @deferred(timeout=10)
