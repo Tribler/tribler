@@ -19,7 +19,6 @@ class PayoutManager(object):
         Perform a payout to a given mid. First, determine the outstanding balance. Then resolve the node in the DHT.
         """
         if mid not in self.tribler_peers:
-            self.logger.warning("Mid %s not found in known peers, not doing payout!", mid.encode('hex'))
             return
 
         total_bytes = 0
