@@ -296,13 +296,14 @@ class TriblerLaunchMany(TaskManager):
             self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
 
         # Market Community
-        if self.session.config.get_market_community_enabled():
+        if self.session.config.get_market_community_enabled() and self.session.config.get_dht_enabled():
             from Tribler.community.market.community import MarketCommunity, MarketTestnetCommunity
 
             community_cls = MarketTestnetCommunity if self.session.config.get_testnet() else MarketCommunity
             self.market_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
                                                   tribler_session=self.session,
                                                   trustchain=self.trustchain_community,
+                                                  dht=self.dht_community,
                                                   wallets=self.wallets,
                                                   working_directory=self.session.config.get_state_dir())
 

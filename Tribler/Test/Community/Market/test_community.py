@@ -13,7 +13,7 @@ from Tribler.community.market.core.transaction import TransactionId, Transaction
 from Tribler.pyipv8.ipv8.test.base import TestBase
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
-from twisted.internet.defer import fail
+from twisted.internet.defer import fail, succeed
 
 
 class TestMarketCommunityBase(TestBase):
@@ -34,7 +34,7 @@ class TestMarketCommunityBase(TestBase):
 
         wallets = {'DUM1': dum1_wallet, 'DUM2': dum2_wallet}
 
-        mock_ipv8 = MockIPv8(u"curve25519", MarketCommunity, create_trustchain=True,
+        mock_ipv8 = MockIPv8(u"curve25519", MarketCommunity, create_trustchain=True, create_dht=True,
                              is_matchmaker=True, wallets=wallets, use_database=False, working_directory=u":memory:")
         tc_wallet = TrustchainWallet(mock_ipv8.trustchain)
         mock_ipv8.overlay.wallets['MB'] = tc_wallet
@@ -51,20 +51,6 @@ class TestMarketCommunity(TestMarketCommunityBase):
 
         self.nodes[0].overlay.disable_matchmaker()
         self.nodes[1].overlay.disable_matchmaker()
-
-    @twisted_wrapper
-    def test_info_message(self):
-        """
-        Test sending info messages to other traders
-        """
-        yield self.introduce_nodes()
-
-        self.nodes[0].overlay.send_info(self.nodes[1].my_peer)
-
-        yield self.deliver_messages()
-
-        self.assertTrue(self.nodes[0].overlay.matchmakers)
-        self.assertTrue(self.nodes[1].overlay.matchmakers)
 
     @twisted_wrapper(2)
     def test_create_ask(self):
@@ -113,7 +99,6 @@ class TestMarketCommunity(TestMarketCommunityBase):
         """
         Test declining a trade
         """
-        self.nodes[0].overlay.disable_matchmaker()
         yield self.introduce_nodes()
 
         order = yield self.nodes[0].overlay.create_ask(AssetPair(AssetAmount(1, 'DUM1'), AssetAmount(1, 'DUM2')), 3600)
@@ -134,7 +119,6 @@ class TestMarketCommunity(TestMarketCommunityBase):
         """
         Test making a counter trade
         """
-        self.nodes[0].overlay.disable_matchmaker()
         yield self.introduce_nodes()
 
         order = yield self.nodes[0].overlay.create_ask(AssetPair(AssetAmount(2, 'DUM1'), AssetAmount(2, 'DUM2')), 3600)
@@ -178,6 +162,36 @@ class TestMarketCommunity(TestMarketCommunityBase):
         balance2 = yield self.nodes[1].overlay.wallets['MB'].get_balance()
         self.assertEqual(balance1['available'], 1050)
         self.assertEqual(balance2['available'], -50)
+
+    @twisted_wrapper(2)
+    def test_e2e_trade_dht(self):
+        """
+        Test a full trade with (dummy assets), where both traders are not connected to each other
+        """
+        yield self.introduce_nodes()
+
+        for node in self.nodes:
+            for other in self.nodes:
+                if other != node:
+                    node.dht.walk_to(other.endpoint.wan_address)
+        yield self.deliver_messages()
+
+        # Remove the address from the mid registry from the trading peers
+        self.nodes[0].overlay.mid_register.pop(TraderId(self.nodes[1].overlay.mid))
+        self.nodes[1].overlay.mid_register.pop(TraderId(self.nodes[0].overlay.mid))
+
+        for node in self.nodes:
+            node.dht.store_peer()
+        yield self.deliver_messages()
+
+        yield self.nodes[0].overlay.create_ask(AssetPair(AssetAmount(10, 'DUM1'), AssetAmount(10, 'DUM2')), 3600)
+        yield self.nodes[1].overlay.create_bid(AssetPair(AssetAmount(10, 'DUM1'), AssetAmount(10, 'DUM2')), 3600)
+
+        yield self.sleep(0.5)
+
+        # Verify that the trade has been made
+        self.assertTrue(self.nodes[0].overlay.transaction_manager.find_all())
+        self.assertTrue(self.nodes[1].overlay.transaction_manager.find_all())
 
     @twisted_wrapper
     def test_cancel(self):
@@ -241,6 +255,27 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.assertEqual(bid_tick_entry.reserved_for_matching, 0)
         self.assertEqual(ask_tick_entry.reserved_for_matching, 0)
 
+    @twisted_wrapper(3)
+    def test_address_resolv_fail(self):
+        """
+        Test whether an order is unreserved when address resolution fails
+        """
+        yield self.introduce_nodes()
+
+        self.nodes[1].overlay.get_address_for_trader = lambda *_: succeed(None)
+
+        ask_order = yield self.nodes[0].overlay.create_ask(
+            AssetPair(AssetAmount(1, 'DUM1'), AssetAmount(1, 'DUM2')), 3600)
+        bid_order = yield self.nodes[1].overlay.create_bid(
+            AssetPair(AssetAmount(1, 'DUM1'), AssetAmount(1, 'DUM2')), 3600)
+
+        yield self.sleep(0.5)
+
+        ask_tick_entry = self.nodes[2].overlay.order_book.get_tick(ask_order.order_id)
+        bid_tick_entry = self.nodes[2].overlay.order_book.get_tick(bid_order.order_id)
+        self.assertEqual(bid_tick_entry.reserved_for_matching, 0)
+        self.assertEqual(ask_tick_entry.reserved_for_matching, 0)
+
     @twisted_wrapper(4)
     def test_orderbook_sync(self):
         """
@@ -273,7 +308,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
         self.assertTrue(self.nodes[4].overlay.order_book.get_tick(ask_order.order_id))
         self.assertTrue(self.nodes[4].overlay.order_book.get_tick(bid_order.order_id))
 
-    @twisted_wrapper(40000)
+    @twisted_wrapper(4)
     def test_partial_trade(self):
         """
         Test a partial trade between two nodes with a matchmaker

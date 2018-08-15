@@ -56,12 +56,12 @@ class MarketBlock(TrustChainBlock):
         """
         Verify whether a dictionary that contains a tick, is valid.
         """
-        required_fields = ['trader_id', 'order_number', 'assets', 'timeout', 'timestamp', 'address', 'port', 'traded']
+        required_fields = ['trader_id', 'order_number', 'assets', 'timeout', 'timestamp', 'traded']
         if not MarketBlock.has_fields(required_fields, tick):
             return False
 
         required_types = [('trader_id', str), ('order_number', int), ('assets', dict), ('timestamp', float),
-                          ('timeout', int), ('address', str), ('port', int)]
+                          ('timeout', int)]
 
         if not MarketBlock.is_valid_trader_id(tick['trader_id']):
             return False
