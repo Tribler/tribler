@@ -83,6 +83,17 @@ class DownloadState(object):
             return self.lt_status.upload_rate
         return self.lt_status.download_rate
 
+    def get_current_payload_speed(self, direct):
+        """
+        Returns the current up or download payload speed.
+        @return The speed in bytes/s.
+        """
+        if not self.lt_status or self.get_status() not in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
+            return 0
+        elif direct == UPLOAD:
+            return self.lt_status.upload_payload_rate
+        return self.lt_status.download_payload_rate
+
     def get_total_transferred(self, direct):
         """
         Returns the total amount of up or downloaded bytes.
