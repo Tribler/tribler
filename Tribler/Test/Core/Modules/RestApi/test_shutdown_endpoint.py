@@ -1,7 +1,7 @@
 from twisted.internet import defer
 
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 
 
 class TestShutdownEndpoint(AbstractApiTest):

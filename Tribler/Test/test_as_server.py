@@ -1,8 +1,6 @@
 """
 Testing as server.
 
-Make sure the thread reactor is installed.
-
 Author(s): Arno Bakker, Jie Yang, Niels Zeilemaker
 """
 import functools
@@ -12,16 +10,17 @@ import os
 import re
 import shutil
 import time
-import unittest
 from tempfile import mkdtemp
 from threading import enumerate as enumerate_threads
 
 from configobj import ConfigObj
 from twisted.internet import interfaces
+from twisted.internet import reactor
 from twisted.internet.base import BasePort
 from twisted.internet.defer import maybeDeferred, inlineCallbacks, Deferred, succeed
 from twisted.internet.task import deferLater
 from twisted.internet.tcp import Client
+from twisted.trial import unittest
 from twisted.web.http import HTTPChannel
 from twisted.web.server import Site
 from twisted.web.static import File
@@ -33,7 +32,6 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.instrumentation import WatchDog
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
-from Tribler.Test.twisted_thread import reactor
 from Tribler.Test.util.util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
@@ -150,8 +148,7 @@ class AbstractServer(BaseTestCase):
         # Check whether we have closed all the sockets
         open_readers = reactor.getReaders()
         for reader in open_readers:
-            self.assertNotIsInstance(reader, BasePort,
-                                     "Listening ports left on the reactor during %s: %s" % (phase, reader))
+            self.assertNotIsInstance(reader, BasePort)
 
         # Check whether the threadpool is clean
         tp_items = len(reactor.getThreadPool().working)

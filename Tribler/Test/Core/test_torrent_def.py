@@ -5,6 +5,7 @@ from tempfile import mkdtemp
 
 from libtorrent import bdecode
 from nose.tools import raises
+from nose.twistedtools import deferred
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.web.server import Site
@@ -17,7 +18,6 @@ from Tribler.Core.exceptions import TorrentDefNotFinalizedException, HttpError
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import BaseTestCase
-from Tribler.Test.twisted_thread import deferred
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 TRACKER = 'http://www.tribler.org/announce'

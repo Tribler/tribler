@@ -1,3 +1,4 @@
+from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred, inlineCallbacks
 from twisted.web import server, resource
 
@@ -6,7 +7,7 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.twisted_thread import reactor, deferred
+from nose.twistedtools import deferred
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 

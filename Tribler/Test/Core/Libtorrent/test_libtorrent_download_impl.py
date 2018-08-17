@@ -1,5 +1,7 @@
 import binascii
 import os
+
+from twisted.internet import reactor
 from twisted.internet.defer import Deferred, succeed
 
 import libtorrent as lt
@@ -13,7 +15,7 @@ from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.twisted_thread import deferred, reactor
+from nose.twistedtools import deferred
 
 
 class TestLibtorrentDownloadImpl(TestAsServer):
