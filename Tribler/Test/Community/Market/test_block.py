@@ -9,7 +9,6 @@ from Tribler.community.market.core.tick import Ask
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.transaction import Transaction, TransactionId, TransactionNumber
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.Test.test_as_server import AbstractServer
 
 
@@ -18,10 +17,9 @@ class TestMarketBlock(AbstractServer):
     This class contains tests for a TrustChain block as used in the market.
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestMarketBlock, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TestMarketBlock, self).setUp()
 
         self.ask = Ask(OrderId(TraderId('0' * 40), OrderNumber(1)),
                        AssetPair(AssetAmount(30, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp(0.0), True)

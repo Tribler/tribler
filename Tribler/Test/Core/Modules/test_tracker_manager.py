@@ -4,7 +4,6 @@ from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.tracker_manager import TrackerManager
 from Tribler.Core.Session import Session
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTrackerManager(TriblerCoreTest):
@@ -13,17 +12,15 @@ class TestTrackerManager(TriblerCoreTest):
         self.config = TriblerConfig()
         self.config.set_state_dir(self.getStateDir())
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestTrackerManager, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TestTrackerManager, self).setUp()
 
         self.setUpPreSession()
         self.session = Session(self.config)
         self.session.start_database()
         self.tracker_manager = TrackerManager(self.session)
 
-    @blocking_call_on_reactor_thread
     def test_add_tracker(self):
         """
         Test whether adding a tracker works correctly
@@ -34,7 +31,6 @@ class TestTrackerManager(TriblerCoreTest):
         self.tracker_manager.add_tracker("http://test1.com:80/announce")
         self.assertTrue(self.tracker_manager.get_tracker_info("http://test1.com:80/announce"))
 
-    @blocking_call_on_reactor_thread
     def test_remove_tracker(self):
         """
         Test whether removing a tracker works correctly
@@ -44,7 +40,6 @@ class TestTrackerManager(TriblerCoreTest):
         self.tracker_manager.remove_tracker("http://test1.com:80/announce")
         self.assertFalse(self.tracker_manager.get_tracker_info("http://test1.com:80/announce"))
 
-    @blocking_call_on_reactor_thread
     def test_get_tracker_info(self):
         """
         Test whether the correct tracker info is returned when requesting it in the tracker manager
@@ -54,7 +49,6 @@ class TestTrackerManager(TriblerCoreTest):
         self.tracker_manager.add_tracker("http://test1.com:80/announce")
         self.assertTrue(self.tracker_manager.get_tracker_info("http://test1.com:80/announce"))
 
-    @blocking_call_on_reactor_thread
     def test_update_tracker_info(self):
         """
         Test whether the tracker info is correctly updated
@@ -73,7 +67,6 @@ class TestTrackerManager(TriblerCoreTest):
         tracker_info = self.tracker_manager.get_tracker_info("http://test1.com/announce")
         self.assertTrue(tracker_info['is_alive'])
 
-    @blocking_call_on_reactor_thread
     def test_get_tracker_for_check(self):
         """
         Test whether the correct tracker is returned when fetching the next eligable tracker for the auto check

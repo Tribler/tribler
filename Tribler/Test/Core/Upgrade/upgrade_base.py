@@ -9,7 +9,6 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.Config.tribler_config import TriblerConfig, CONFIG_SPEC_PATH
 from Tribler.Core.Session import Session
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class MockTorrentStore(object):
@@ -26,7 +25,6 @@ class AbstractUpgrader(TriblerCoreTest):
             file.write("lorem ipsum")
             file.close()
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self):
         yield super(AbstractUpgrader, self).setUp()

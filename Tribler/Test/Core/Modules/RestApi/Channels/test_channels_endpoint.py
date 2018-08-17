@@ -4,7 +4,7 @@ from Tribler.Core.Modules.channel.channel_manager import ChannelManager
 from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test_channel import BaseTestChannel
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 
 
 class ChannelCommunityMock(object):
@@ -31,8 +31,8 @@ class ChannelCommunityMock(object):
 
 class AbstractTestChannelsEndpoint(AbstractApiTest, BaseTestChannel):
 
-    def setUp(self, autoload_discovery=True):
-        super(AbstractTestChannelsEndpoint, self).setUp(autoload_discovery)
+    def setUp(self):
+        super(AbstractTestChannelsEndpoint, self).setUp()
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
 
     def vote_for_channel(self, cid, vote_time):

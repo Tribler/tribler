@@ -7,7 +7,6 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Upgrade.torrent_upgrade64 import TorrentMigrator64
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class AbstractTorrentUpgrade63to64(TriblerCoreTest):
@@ -22,7 +21,6 @@ class AbstractTorrentUpgrade63to64(TriblerCoreTest):
 
 
     # This setup creates a directory with files that should be used for the 6.3 -> 6.4 upgrade
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self):
         yield super(AbstractTorrentUpgrade63to64, self).setUp()

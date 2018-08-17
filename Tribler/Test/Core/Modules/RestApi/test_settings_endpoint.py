@@ -2,7 +2,7 @@ from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 from Tribler.Core.DownloadConfig import DownloadConfigInterface
 
 

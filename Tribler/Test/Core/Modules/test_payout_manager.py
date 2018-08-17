@@ -2,7 +2,6 @@ from twisted.internet.defer import inlineCallbacks, succeed
 
 from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestPayoutManager(TriblerCoreTest):
@@ -10,10 +9,9 @@ class TestPayoutManager(TriblerCoreTest):
     This class contains various tests for the payout manager.
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestPayoutManager, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TestPayoutManager, self).setUp()
 
         fake_tc = MockObject()
         fake_tc.add_listener = lambda *_: None

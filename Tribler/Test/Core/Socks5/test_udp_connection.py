@@ -2,7 +2,6 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Socks5.udp_connection import SocksUDPConnection
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestSocks5UDPConnection(AbstractServer):
@@ -10,18 +9,15 @@ class TestSocks5UDPConnection(AbstractServer):
     Test the basic functionality of the socks5 UDP connection.
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestSocks5UDPConnection, self).setUp(annotate=annotate)
-
+    def setUp(self):
+        yield super(TestSocks5UDPConnection, self).setUp()
         self.connection = SocksUDPConnection(None, ("1.1.1.1", 1234))
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         yield self.connection.close()
-        yield super(TestSocks5UDPConnection, self).tearDown(annotate=annotate)
+        yield super(TestSocks5UDPConnection, self).tearDown()
 
     def test_datagram_received(self):
         """

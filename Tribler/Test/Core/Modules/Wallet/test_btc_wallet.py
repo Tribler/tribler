@@ -4,7 +4,7 @@ import sys
 from Tribler.Core.Modules.wallet.btc_wallet import BitcoinTestnetWallet, BitcoinWallet
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 from jsonrpclib import ProtocolError
 from twisted.internet.defer import succeed, Deferred
 

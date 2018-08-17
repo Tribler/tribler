@@ -5,7 +5,6 @@ from Tribler.Core.TFTP.exception import FileNotFound
 from Tribler.Core.TFTP.handler import TftpHandler, METADATA_PREFIX
 from Tribler.Core.TFTP.packet import OPCODE_OACK, OPCODE_ERROR, OPCODE_RRQ
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTFTPHandler(TriblerCoreTest):
@@ -13,19 +12,16 @@ class TestTFTPHandler(TriblerCoreTest):
     This class contains tests for the TFTP handler class.
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield TriblerCoreTest.setUp(self, annotate=annotate)
+    def setUp(self):
+        yield TriblerCoreTest.setUp(self, )
         self.handler = TftpHandler(None, None, None)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.handler.shutdown_task_manager()
-        yield TriblerCoreTest.tearDown(self, annotate=annotate)
+        yield TriblerCoreTest.tearDown(self, )
 
-    @blocking_call_on_reactor_thread
     def test_download_file_not_running(self):
         """
         Testing whether we do nothing if we are not running a session

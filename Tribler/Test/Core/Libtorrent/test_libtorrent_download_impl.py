@@ -1,5 +1,7 @@
 import binascii
 import os
+
+from twisted.internet import reactor
 from twisted.internet.defer import Deferred, succeed
 
 import libtorrent as lt
@@ -13,7 +15,7 @@ from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.twisted_thread import deferred, reactor
+from nose.twistedtools import deferred
 
 
 class TestLibtorrentDownloadImpl(TestAsServer):
@@ -222,8 +224,8 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
 class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
 
-    def setUp(self, annotate=True):
-        TriblerCoreTest.setUp(self, annotate=annotate)
+    def setUp(self):
+        TriblerCoreTest.setUp(self, )
         self.libtorrent_download_impl = LibtorrentDownloadImpl(None, None)
         mock_handle = MockObject()
         mock_status = MockObject()
@@ -251,9 +253,9 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.tdef.get_name = lambda: "ubuntu.iso"
         self.libtorrent_download_impl.tdef.is_multifile_torrent = lambda: False
 
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.libtorrent_download_impl.shutdown_task_manager()
-        super(TestLibtorrentDownloadImplNoSession, self).tearDown(annotate=annotate)
+        super(TestLibtorrentDownloadImplNoSession, self).tearDown()
 
     def test_selected_files(self):
         """
