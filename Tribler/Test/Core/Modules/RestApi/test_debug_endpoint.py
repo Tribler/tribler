@@ -3,7 +3,7 @@ import os
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_DATA
 
 

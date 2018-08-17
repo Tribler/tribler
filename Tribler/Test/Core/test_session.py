@@ -1,6 +1,7 @@
 from binascii import hexlify, unhexlify
 
 from nose.tools import raises
+from nose.twistedtools import deferred
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
@@ -13,7 +14,6 @@ from Tribler.Core.simpledefs import NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON_
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.twisted_thread import deferred
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 

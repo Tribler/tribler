@@ -4,7 +4,7 @@ from Tribler.Core.Modules.channel.channel_manager import ChannelManager
 from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test_channel import BaseTestChannel
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 
 
 class ChannelCommunityMock(object):

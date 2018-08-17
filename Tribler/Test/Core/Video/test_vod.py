@@ -9,7 +9,7 @@ from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings, UPLOAD, DOWNLOAD, DLMODE_VOD
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 

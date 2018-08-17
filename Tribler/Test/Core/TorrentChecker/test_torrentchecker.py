@@ -11,7 +11,7 @@ from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UdpSocketMan
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 from Tribler.community.popularity.repository import TYPE_TORRENT_HEALTH
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 

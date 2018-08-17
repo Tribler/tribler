@@ -1,4 +1,6 @@
 import time
+
+from nose.twistedtools import deferred
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
@@ -7,7 +9,6 @@ from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.twisted_thread import deferred
 from Tribler.Test.util.Tracker.HTTPTracker import HTTPTracker
 from Tribler.Test.util.Tracker.UDPTracker import UDPTracker
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread

@@ -13,7 +13,7 @@ from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.exceptions import TorrentFileException
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 

@@ -3,7 +3,7 @@ from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 

@@ -1,6 +1,7 @@
 import os
 import urllib
 
+from twisted.internet import reactor
 from twisted.internet.defer import succeed, inlineCallbacks
 from twisted.python.threadable import isInIOThread
 from twisted.web.client import Agent, readBody, HTTPConnectionPool
@@ -13,7 +14,6 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.version import version_id
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.twisted_thread import reactor
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 

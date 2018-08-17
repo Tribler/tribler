@@ -6,7 +6,7 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.common import TESTS_DATA_DIR
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 
 
 class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):

@@ -1,4 +1,6 @@
 import time
+
+from nose.twistedtools import deferred
 from twisted.internet.defer import succeed, fail
 from twisted.python.failure import Failure
 
@@ -7,7 +9,6 @@ from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN
 from Tribler.Core.Modules.restapi.channels.channels_subscription_endpoint import ALREADY_SUBSCRIBED_RESPONSE_MSG, \
     NOT_SUBSCRIBED_RESPONSE_MSG, ChannelsModifySubscriptionEndpoint
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
-from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
 
