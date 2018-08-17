@@ -138,6 +138,8 @@ class TestDownloadsEndpoint(AbstractApiTest):
         status.state = 3
         status.upload_rate = 123
         status.download_rate = 43
+        status.upload_payload_rate = 123
+        status.download_payload_rate = 43
         status.total_upload = 100
         status.total_download = 200
         status.all_time_upload = 100

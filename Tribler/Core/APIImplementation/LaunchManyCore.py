@@ -462,7 +462,10 @@ class TriblerLaunchMany(TaskManager):
             self.resource_monitor = ResourceMonitor(self.session)
             self.resource_monitor.start()
 
-        self.version_check_manager = VersionCheckManager(self.session)
+        if self.session.config.get_version_checker_enabled():
+            self.version_check_manager = VersionCheckManager(self.session)
+            self.version_check_manager.start()
+
         self.session.set_download_states_callback(self.sesscb_states_callback)
 
         if self.session.config.get_ipv8_enabled() and self.session.config.get_trustchain_enabled():

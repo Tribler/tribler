@@ -242,7 +242,7 @@ class DownloadsPage(QWidget):
         on_credit_mining_tab = self.filter == DOWNLOADS_FILTER_CREDITMINING
         self.window().diskspace_usage.setVisible(on_credit_mining_tab)
 
-        if not on_credit_mining_tab:
+        if not on_credit_mining_tab or not self.window().tribler_settings or not self.downloads:
             return
 
         bytes_max = self.window().tribler_settings["credit_mining"]["max_disk_space"]

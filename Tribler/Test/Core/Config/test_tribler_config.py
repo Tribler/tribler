@@ -135,6 +135,19 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_testnet(True)
         self.assertTrue(self.tribler_config.get_testnet())
 
+    def test_get_set_methods_version_checker(self):
+        """
+        Checks whether version checker get and set methods are working as expected.
+        """
+        # Default is always true
+        self.assertTrue(self.tribler_config.get_version_checker_enabled())
+        # Test disabling
+        self.tribler_config.set_version_checker_enabled(False)
+        self.assertFalse(self.tribler_config.get_version_checker_enabled())
+        # Test enabling
+        self.tribler_config.set_version_checker_enabled(True)
+        self.assertTrue(self.tribler_config.get_version_checker_enabled())
+
     def test_get_set_methods_torrent_checking(self):
         """
         Check whether torrent checking get and set methods are working as expected.

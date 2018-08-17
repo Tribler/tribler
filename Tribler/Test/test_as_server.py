@@ -300,6 +300,7 @@ class TestAsServer(AbstractServer):
         self.config.set_market_community_enabled(False)
         self.config.set_popularity_community_enabled(False)
         self.config.set_dht_enabled(False)
+        self.config.set_version_checker_enabled(False)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks

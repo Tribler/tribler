@@ -215,8 +215,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
             download_json = {"name": tdef.get_name_utf8(), "progress": state.get_progress(),
                              "infohash": tdef.get_infohash().encode('hex'),
-                             "speed_down": state.get_current_speed(DOWNLOAD),
-                             "speed_up": state.get_current_speed(UPLOAD),
+                             "speed_down": state.get_current_payload_speed(DOWNLOAD),
+                             "speed_up": state.get_current_payload_speed(UPLOAD),
                              "status": dlstatus_strings[state.get_status()],
                              "size": tdef.get_length(), "eta": state.get_eta(),
                              "num_peers": num_peers, "num_seeds": num_seeds,

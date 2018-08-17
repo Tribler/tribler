@@ -305,6 +305,8 @@ class EditChannelPage(QWidget):
 
     def on_playlist_item_clicked(self, item):
         playlist_info = item.data(Qt.UserRole)
+        if not playlist_info:
+            return
         self.window().edit_channel_playlist_torrents_list.set_data_items([])
         self.window().edit_channel_details_playlist_torrents_header.setText("Torrents in '%s'" % playlist_info['name'])
         self.window().edit_channel_playlist_torrents_back.setIcon(QIcon(get_image_path('page_back.png')))

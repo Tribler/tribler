@@ -244,6 +244,15 @@ class TriblerConfig(object):
     def get_testnet(self):
         return self.config['general']['testnet']
 
+    # Version Checker
+    def set_version_checker_enabled(self, value):
+        self.config['general']['version_checker_enabled'] = value
+
+    def get_version_checker_enabled(self):
+        if 'version_checker_enabled' not in self.config['general']:
+            return True
+        return self.config['general']['version_checker_enabled']
+
     # Torrent checking
 
     def set_torrent_checking_enabled(self, value):

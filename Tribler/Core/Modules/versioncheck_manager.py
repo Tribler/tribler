@@ -12,7 +12,7 @@ from Tribler.Core.version import version_id
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 VERSION_CHECK_URL = 'https://api.github.com/repos/tribler/tribler/releases/latest'
-
+VERSION_CHECK_INTERVAL = 86400  # One day
 
 class VersionCheckManager(TaskManager):
 
@@ -22,14 +22,13 @@ class VersionCheckManager(TaskManager):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.session = session
 
-    def start(self, interval):
-        self.register_task("tribler version check", LoopingCall(self.check_new_version)).start(interval)
+    def start(self, interval=VERSION_CHECK_INTERVAL):
+        self.register_task("tribler version check", LoopingCall(self.check_new_version)).start(interval, now=True)
 
     def stop(self):
         self.shutdown_task_manager()
 
     def check_new_version(self):
-
         def parse_body(body):
             if body is None:
                 return
