@@ -3,6 +3,7 @@ from twisted.web import server, resource
 
 from Tribler.Core.Modules import versioncheck_manager
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.twisted_thread import reactor, deferred
@@ -34,6 +35,7 @@ class TestVersionCheck(TestAsServer):
         self.new_version_called = False
         versioncheck_manager.VERSION_CHECK_URL = 'http://localhost:%s' % self.port
         yield super(TestVersionCheck, self).setUp()
+        self.session.lm.version_check_manager = VersionCheckManager(self.session)
 
         self.session.notifier.notify = self.notifier_callback
 

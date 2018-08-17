@@ -14,6 +14,7 @@ from urlparse import urlsplit, parse_qsl
 from libtorrent import bencode, bdecode
 from twisted.internet import reactor
 from twisted.internet.defer import fail
+from twisted.internet.ssl import ClientContextFactory
 from twisted.web import http
 from twisted.web.client import Agent, readBody
 from twisted.web.http_headers import Headers
@@ -340,6 +341,11 @@ def is_valid_url(url):
     return not(split_url[0] == '' or split_url[1] == '')
 
 
+class WebClientContextFactory(ClientContextFactory):
+    def getContext(self, hostname, port):
+        return ClientContextFactory.getContext(self)
+
+
 def http_get(uri):
     """
     Performs a GET request
@@ -353,12 +359,13 @@ def http_get(uri):
         raise HttpError(response)
 
     try:
+        contextFactory = WebClientContextFactory()
+        agent = Agent(reactor, contextFactory)
+        headers = Headers({'User-Agent': ['Tribler ' + version_id]})
         if use_treq:
-            deferred = treq.get(uri, persistent=False)
+            deferred = treq.get(uri, persistent=False, headers=headers, agent=agent)
         else:
-            agent = Agent(reactor)
-            deferred = agent.request('GET', uri, Headers({'User-Agent': ['Tribler ' + version_id]}), None)
-
+            deferred = agent.request('GET', uri, headers, None)
         deferred.addCallback(_on_response)
         return deferred
     except:
