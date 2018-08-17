@@ -1,4 +1,6 @@
 import logging
+
+from nose.twistedtools import deferred
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.protocol import Protocol
@@ -15,8 +17,6 @@ from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SI
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.version import version_id
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from nose.twistedtools import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class EventDataProtocol(Protocol):
@@ -43,24 +43,22 @@ class EventDataProtocol(Protocol):
 
 class TestEventsEndpoint(AbstractApiTest):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield super(TestEventsEndpoint, self).setUp(autoload_discovery=autoload_discovery)
+    def setUp(self):
+        yield super(TestEventsEndpoint, self).setUp()
         self.events_deferred = Deferred()
         self.connection_pool = HTTPConnectionPool(reactor, False)
         self.socket_open_deferred = self.tribler_started_deferred.addCallback(self.open_events_socket)
         self.messages_to_wait_for = 0
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         yield self.close_connections()
 
         # Wait to make sure the HTTPChannel is closed, see https://twistedmatrix.com/trac/ticket/2447
         yield deferLater(reactor, 0.3, lambda: None)
 
-        yield super(TestEventsEndpoint, self).tearDown(annotate=annotate)
+        yield super(TestEventsEndpoint, self).tearDown()
 
     def on_event_socket_opened(self, response):
         response.deliverBody(EventDataProtocol(self.messages_to_wait_for, self.events_deferred, response))

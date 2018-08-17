@@ -1,4 +1,5 @@
 import os
+
 from nose.tools import raises
 from twisted.internet.defer import inlineCallbacks
 
@@ -8,22 +9,19 @@ from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.community.search.community import SearchCommunity
 from Tribler.community.search.conversion import SearchConversion
 from Tribler.dispersy.message import DropPacket
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestSearchCommunity(AbstractTestCommunity):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestSearchCommunity, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TestSearchCommunity, self).setUp()
         self.search_community = SearchCommunity(self.dispersy, self.master_member, self.member)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.search_community.cancel_all_pending_tasks()
-        yield super(TestSearchCommunity, self).tearDown(annotate=annotate)
+        yield super(TestSearchCommunity, self).tearDown()
 
     def test_on_search(self):
         """
@@ -71,7 +69,6 @@ class TestSearchCommunity(AbstractTestCommunity):
         search_conversion = SearchConversion(self.search_community)
         search_conversion._decode_search_response(None, 0, "a[]")
 
-    @blocking_call_on_reactor_thread
     def test_create_torrent(self):
         """
         Test the creation of a torrent in the search community

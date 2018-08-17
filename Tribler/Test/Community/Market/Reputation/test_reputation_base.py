@@ -11,8 +11,8 @@ class TestReputationBase(AbstractServer):
     This class contains various utility methods to add transactions to the TrustChain.
     """
 
-    def setUp(self, annotate=True):
-        super(TestReputationBase, self).setUp(annotate=annotate)
+    def setUp(self):
+        super(TestReputationBase, self).setUp()
 
         os.mkdir(os.path.join(self.session_base_dir, 'sqlite'))
         self.market_db = TrustChainDB(self.session_base_dir, 'market')

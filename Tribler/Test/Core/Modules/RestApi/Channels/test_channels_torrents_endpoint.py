@@ -163,8 +163,8 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
 
 class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
 
-    def setUp(self, autoload_discovery=True):
-        super(TestModifyChannelTorrentEndpoint, self).setUp(autoload_discovery)
+    def setUp(self):
+        super(TestModifyChannelTorrentEndpoint, self).setUp()
         self.session.lm.ltmgr = MockObject()
         self.session.lm.ltmgr.shutdown = lambda: True
 

@@ -4,8 +4,8 @@ from Tribler.Test.test_as_server import AbstractServer
 
 class TriblerCategoryTestFamilyFilter(AbstractServer):
 
-    def setUp(self, annotate=True):
-        super(TriblerCategoryTestFamilyFilter, self).setUp(annotate=annotate)
+    def setUp(self):
+        super(TriblerCategoryTestFamilyFilter, self).setUp()
         self.family_filter = XXXFilter()
         self.family_filter.xxx_terms.add("term1")
         self.family_filter.xxx_terms.add("term2")

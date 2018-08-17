@@ -20,6 +20,7 @@ from twisted.internet.base import BasePort
 from twisted.internet.defer import maybeDeferred, inlineCallbacks, Deferred, succeed
 from twisted.internet.task import deferLater
 from twisted.internet.tcp import Client
+from twisted.python.threadable import isInIOThread
 from twisted.trial import unittest
 from twisted.web.http import HTTPChannel
 from twisted.web.server import Site
@@ -33,7 +34,6 @@ from Tribler.Core.Utilities.instrumentation import WatchDog
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
 from Tribler.Test.util.util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 TESTS_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 TESTS_DATA_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"data"))
@@ -78,16 +78,18 @@ class AbstractServer(BaseTestCase):
         from twisted.internet.defer import setDebugging
         setDebugging(True)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
+    def setUp(self):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session_base_dir = mkdtemp(suffix="_tribler_test_session")
         self.state_dir = os.path.join(self.session_base_dir, u"dot.Tribler")
         self.dest_dir = os.path.join(self.session_base_dir, u"TriblerDownloads")
 
-        yield self.checkReactor(phase="setUp")
+        # Wait until the reactor has started
+        reactor_deferred = Deferred()
+        reactor.callWhenRunning(reactor_deferred.callback, None)
+        yield reactor_deferred
 
         self.setUpCleanup()
         os.makedirs(self.session_base_dir)
@@ -96,8 +98,7 @@ class AbstractServer(BaseTestCase):
         self.file_server = None
         self.dscfg_seed = None
 
-        if annotate:
-            self.annotate(self._testMethodName, start=True)
+        self.annotate(self._testMethodName, start=True)
         self.watchdog.start()
 
     def setUpCleanup(self):
@@ -112,16 +113,8 @@ class AbstractServer(BaseTestCase):
         factory = Site(resource)
         self.file_server = reactor.listenTCP(port, factory)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def checkReactor(self, phase, *_):
-        delayed_calls = reactor.getDelayedCalls()
-        if delayed_calls:
-            self._logger.error("The reactor was dirty during %s:", phase)
-            for dc in delayed_calls:
-                self._logger.error(">     %s" % dc)
-                dc.cancel()
-
         has_network_selectables = False
         for item in reactor.getReaders() + reactor.getWriters():
             if isinstance(item, HTTPChannel) or isinstance(item, Client):
@@ -141,7 +134,6 @@ class AbstractServer(BaseTestCase):
                 sel.signalProcess('KILL')
             selectable_strings.append(repr(sel))
 
-        self.assertFalse(delayed_calls, "The reactor was dirty during %s" % phase)
         self.assertFalse(selectable_strings,
                          "The reactor has leftover readers/writers during %s: %r" % (phase, selectable_strings))
 
@@ -156,12 +148,10 @@ class AbstractServer(BaseTestCase):
             self.watchdog.print_all_stacks()
         self.assertEqual(tp_items, 0, "Still items left in the threadpool")
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.tearDownCleanup()
-        if annotate:
-            self.annotate(self._testMethodName, start=False)
+        self.annotate(self._testMethodName, start=False)
 
         process_unhandled_exceptions()
         process_unhandled_twisted_exceptions()
@@ -245,10 +235,9 @@ class TestAsServer(AbstractServer):
     Parent class for testing the server-side of Tribler
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield super(TestAsServer, self).setUp(annotate=False)
+    def setUp(self):
+        yield super(TestAsServer, self).setUp()
         self.setUpPreSession()
 
         self.quitting = False
@@ -294,9 +283,8 @@ class TestAsServer(AbstractServer):
         self.config.set_libtorrent_dht_enabled(False)
         self.config.set_bitcoinlib_enabled(False)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.annotate(self._testMethodName, start=False)
 
         """ unittest test tear down code """
@@ -312,7 +300,7 @@ class TestAsServer(AbstractServer):
         for t in ts:
             self._logger.debug("Thread still running %s, daemon: %s, instance: %s", t.getName(), t.isDaemon(), t)
 
-        yield super(TestAsServer, self).tearDown(annotate=False)
+        yield super(TestAsServer, self).tearDown()
 
     def create_local_torrent(self, source_file):
         '''

@@ -12,7 +12,6 @@ from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RENDEZVOUS
 from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 # Map of info_hash -> peer list
 global_dht_services = {}
@@ -90,7 +89,7 @@ class TestTriblerTunnelCommunity(TestBase):
         for exit_socket in exit_sockets:
             exit_sockets[exit_socket] = MockTunnelExitSocket(exit_sockets[exit_socket])
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_backup_exitnodes(self):
         """
         Check if exitnodes are serialized and deserialized to and from disk properly.
@@ -112,7 +111,6 @@ class TestTriblerTunnelCommunity(TestBase):
         self.assertGreaterEqual(len(self.nodes[0].overlay.exit_candidates), 1)
 
 
-    @blocking_call_on_reactor_thread
     def test_download_remove(self):
         """
         Test the effects of removing a download in the tunnel community
@@ -124,7 +122,6 @@ class TestTriblerTunnelCommunity(TestBase):
 
         self.assertEqual(self.nodes[0].overlay.num_hops_by_downloads[1], 0)
 
-    @blocking_call_on_reactor_thread
     def test_readd_bittorrent_peers(self):
         """
         Test the readd bittorrent peers method
@@ -147,7 +144,6 @@ class TestTriblerTunnelCommunity(TestBase):
         self.nodes[0].overlay.remove_circuit(3)
         self.assertNotIn(3, self.nodes[0].overlay.circuits)
 
-    @blocking_call_on_reactor_thread
     def test_monitor_downloads_stop_ip(self):
         """
         Test whether we stop building IPs when a download doesn't exist anymore
@@ -157,7 +153,6 @@ class TestTriblerTunnelCommunity(TestBase):
         self.nodes[0].overlay.monitor_downloads([])
         self.assertNotIn('a', self.nodes[0].overlay.infohash_ip_circuits)
 
-    @blocking_call_on_reactor_thread
     def test_monitor_downloads_recreate_ip(self):
         """
         Test whether an old introduction point is recreated
@@ -184,7 +179,6 @@ class TestTriblerTunnelCommunity(TestBase):
         self.nodes[0].overlay.monitor_downloads([mock_state])
         self.assertNotEqual(self.nodes[0].overlay.infohash_ip_circuits[real_ih][0][1], 0)
 
-    @blocking_call_on_reactor_thread
     def test_monitor_downloads_ih_pex(self):
         """
         Test whether we remove peers from the PEX info when a download is stopped
@@ -194,7 +188,6 @@ class TestTriblerTunnelCommunity(TestBase):
         self.nodes[0].overlay.monitor_downloads([])
         self.assertNotIn('a', self.nodes[0].overlay.infohash_pex)
 
-    @blocking_call_on_reactor_thread
     def test_monitor_downloads_intro(self):
         """
         Test whether rendezvous points are removed when a download is stopped
@@ -209,7 +202,6 @@ class TestTriblerTunnelCommunity(TestBase):
         self.nodes[0].overlay.monitor_downloads([])
         self.assertTrue(mocked_remove_circuit.called)
 
-    @blocking_call_on_reactor_thread
     def test_monitor_downloads_stop_all(self):
         """
         Test whether circuits are removed when all downloads are stopped
@@ -224,7 +216,6 @@ class TestTriblerTunnelCommunity(TestBase):
         self.nodes[0].overlay.monitor_downloads([])
         self.assertTrue(mocked_remove_circuit.called)
 
-    @blocking_call_on_reactor_thread
     def test_update_torrent(self):
         """
         Test updating a torrent when a circuit breaks

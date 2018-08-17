@@ -11,7 +11,6 @@ from twisted.internet import reactor
 
 from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_DISCOVERED, NTFY_TORRENT
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Test.test_as_server import TestAsServer
@@ -33,14 +32,12 @@ class TestCreditMiningSources(TestAsServer):
         self.config.set_dispersy_enabled(True)
         self.config.set_channel_search_enabled(True)
 
-    @blocking_call_on_reactor_thread
     def test_channel_lookup(self):
         source = ChannelSource(self.session, self.cid, lambda: None)
         source.start()
         self.assertIsInstance(source.community, ChannelCommunity, 'ChannelSource failed to create ChannelCommunity')
         source.stop()
 
-    @blocking_call_on_reactor_thread
     def test_existing_channel_lookup(self):
         # Find AllChannel
         for community in self.session.lm.dispersy.get_communities():
@@ -59,7 +56,6 @@ class TestCreditMiningSources(TestAsServer):
         self.assertEqual(source.community, community, 'ChannelSource failed to find existing ChannelCommunity')
         source.stop()
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def test_torrent_from_db(self):
         # Torrent is a tuple: (channel_id, dispersy_id, peer_id, infohash, timestamp, name, files, trackers)

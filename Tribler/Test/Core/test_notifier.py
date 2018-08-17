@@ -4,15 +4,13 @@ from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_STARTED, NTFY_FINISHED
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from nose.twistedtools import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TriblerCoreTestNotifier(TriblerCoreTest):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TriblerCoreTestNotifier, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TriblerCoreTestNotifier, self).setUp()
         self.test_deferred = Deferred()
         self.called_callback = False
 

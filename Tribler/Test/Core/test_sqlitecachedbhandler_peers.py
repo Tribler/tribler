@@ -3,7 +3,6 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 FAKE_PERMID_X = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
@@ -11,7 +10,6 @@ FAKE_PERMID_X = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x
 
 class TestSqlitePeerDBHandler(AbstractDB):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self):
         yield super(TestSqlitePeerDBHandler, self).setUp()
@@ -25,14 +23,12 @@ class TestSqlitePeerDBHandler(AbstractDB):
 
         self.assertFalse(self.pdb.hasPeer(FAKE_PERMID_X))
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self):
         self.pdb.close()
         self.pdb = None
         yield super(TestSqlitePeerDBHandler, self).tearDown()
 
-    @blocking_call_on_reactor_thread
     def test_getList(self):
         peer1 = self.pdb.getPeer(self.p1)
         peer2 = self.pdb.getPeer(self.p2)
@@ -41,7 +37,6 @@ class TestSqlitePeerDBHandler(AbstractDB):
         self.assertEqual(peer1[u'peer_id'], 1)
         self.assertEqual(peer2[u'peer_id'], 2)
 
-    @blocking_call_on_reactor_thread
     def test_addPeer(self):
         peer_x = {'permid': FAKE_PERMID_X, 'name': 'fake peer x'}
         oldsize = self.pdb.size()
@@ -63,14 +58,12 @@ class TestSqlitePeerDBHandler(AbstractDB):
         p = self.pdb.getPeer(FAKE_PERMID_X)
         self.assertEqual(p['name'], 'faka peer x')
 
-    @blocking_call_on_reactor_thread
     def test_aa_hasPeer(self):
         self.assertTrue(self.pdb.hasPeer(self.p1))
         self.assertTrue(self.pdb.hasPeer(self.p1, check_db=True))
         self.assertTrue(self.pdb.hasPeer(self.p2))
         self.assertFalse(self.pdb.hasPeer(FAKE_PERMID_X))
 
-    @blocking_call_on_reactor_thread
     def test_deletePeer(self):
         peer_x = {'permid': FAKE_PERMID_X, 'name': 'fake peer x'}
         oldsize = self.pdb.size()
@@ -92,12 +85,10 @@ class TestSqlitePeerDBHandler(AbstractDB):
 
         self.assertFalse(self.pdb.deletePeer(FAKE_PERMID_X))
 
-    @blocking_call_on_reactor_thread
     def test_add_or_get_peer(self):
         self.assertIsInstance(self.pdb.addOrGetPeerID(FAKE_PERMID_X), int)
         self.assertIsInstance(self.pdb.addOrGetPeerID(FAKE_PERMID_X), int)
 
-    @blocking_call_on_reactor_thread
     def test_get_peer_by_id(self):
         self.assertEqual(self.pdb.getPeerById(1, ['name']), 'Peer 1')
         p = self.pdb.getPeerById(1)

@@ -6,19 +6,16 @@ from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.simpledefs import NTFY_UPGRADER_TICK, NTFY_STARTED
 from Tribler.Test.Core.Upgrade.upgrade_base import AbstractUpgrader
 from nose.twistedtools import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestUpgrader(AbstractUpgrader):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self):
         yield super(TestUpgrader, self).setUp()
         self.copy_and_initialize_upgrade_database('tribler_v17.sdb')
         self.upgrader = TriblerUpgrader(self.session, self.sqlitedb)
 
-    @blocking_call_on_reactor_thread
     def test_stash_database(self):
         self.upgrader.stash_database()
         old_dir = os.path.dirname(self.sqlitedb.sqlite_db_path)
@@ -26,7 +23,6 @@ class TestUpgrader(AbstractUpgrader):
         self.assertIsNotNone(self.sqlitedb._connection)
         self.assertTrue(self.upgrader.is_done)
 
-    @blocking_call_on_reactor_thread
     def test_should_upgrade(self):
         self.sqlitedb._version = LATEST_DB_VERSION + 1
         self.assertTrue(self.upgrader.check_should_upgrade_database()[0])
@@ -44,14 +40,12 @@ class TestUpgrader(AbstractUpgrader):
         self.assertFalse(self.upgrader.check_should_upgrade_database()[0])
         self.assertTrue(self.upgrader.check_should_upgrade_database()[1])
 
-    @blocking_call_on_reactor_thread
     def test_upgrade_with_upgrader_enabled(self):
         self.upgrader.run()
 
         self.assertTrue(self.upgrader.is_done)
         self.assertFalse(self.upgrader.failed)
 
-    @blocking_call_on_reactor_thread
     def test_run(self):
         """
         Test the run method of the upgrader

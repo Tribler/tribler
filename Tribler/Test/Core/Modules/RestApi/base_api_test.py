@@ -14,7 +14,6 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.version import version_id
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class POSTDataProducer(object):
@@ -41,25 +40,22 @@ class AbstractBaseApiTest(TestAsServer):
     """
     Tests for the Tribler HTTP API should create a subclass of this class.
     """
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield super(AbstractBaseApiTest, self).setUp(autoload_discovery=autoload_discovery)
+    def setUp(self):
+        yield super(AbstractBaseApiTest, self).setUp()
         self.connection_pool = HTTPConnectionPool(reactor, False)
         terms = self.session.lm.category.xxx_filter.xxx_terms
         terms.add("badterm")
         self.session.lm.category.xxx_filter.xxx_terms = terms
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         yield self.close_connections()
-        yield super(AbstractBaseApiTest, self).tearDown(annotate=annotate)
+        yield super(AbstractBaseApiTest, self).tearDown()
 
     def close_connections(self):
         return self.connection_pool.closeCachedConnections()
 
-    @blocking_call_on_reactor_thread
     def setUpPreSession(self):
         super(AbstractBaseApiTest, self).setUpPreSession()
         self.config.set_http_api_enabled(True)
@@ -104,7 +100,6 @@ class AbstractApiTest(AbstractBaseApiTest):
 
     def do_request(self, endpoint, expected_code=200, expected_json=None,
                    request_type='GET', post_data='', raw_data=False):
-        assert isInIOThread()
         self.expected_response_code = expected_code
         self.expected_response_json = expected_json
 

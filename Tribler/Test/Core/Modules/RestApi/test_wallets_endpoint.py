@@ -1,16 +1,14 @@
 import json
 
+from nose.twistedtools import deferred
 from twisted.internet.defer import succeed, fail
 from twisted.python.failure import Failure
 
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from nose.twistedtools import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestWalletsEndpoint(AbstractApiTest):
 
-    @blocking_call_on_reactor_thread
     def setUpPreSession(self):
         super(TestWalletsEndpoint, self).setUpPreSession()
         self.config.set_ipv8_enabled(True)

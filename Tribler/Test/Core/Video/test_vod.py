@@ -2,6 +2,7 @@ import os
 from tempfile import mkstemp
 
 from M2Crypto import Rand
+from nose.twistedtools import deferred
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -9,8 +10,6 @@ from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings, UPLOAD, DOWNLOAD, DLMODE_VOD
 from Tribler.Test.test_as_server import TestAsServer
-from nose.twistedtools import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestVideoOnDemand(TestAsServer):
@@ -23,10 +22,9 @@ class TestVideoOnDemand(TestAsServer):
     See BitTornado/BT1/Connecter.py
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
+    def setUp(self):
+        yield TestAsServer.setUp(self, )
         self.content = None
         self.tdef = None
         self.test_deferred = Deferred()

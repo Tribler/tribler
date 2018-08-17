@@ -4,7 +4,6 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, \
     SIGNAL_TORRENT
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class FakeSearchManager(object):
@@ -33,10 +32,9 @@ class TestSearchEndpoint(AbstractApiTest):
         super(TestSearchEndpoint, self).__init__(*args, **kwargs)
         self.expected_events_messages = []
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield super(TestSearchEndpoint, self).setUp(autoload_discovery)
+    def setUp(self):
+        yield super(TestSearchEndpoint, self).setUp()
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
         self.torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)

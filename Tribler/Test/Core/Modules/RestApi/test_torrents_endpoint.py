@@ -11,7 +11,6 @@ from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.util.Tracker.HTTPTracker import HTTPTracker
 from Tribler.Test.util.Tracker.UDPTracker import UDPTracker
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTorrentsEndpoint(AbstractApiTest):
@@ -112,10 +111,9 @@ class TestTorrentTrackersEndpoint(AbstractApiTest):
 
 class TestTorrentHealthEndpoint(AbstractApiTest):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield super(TestTorrentHealthEndpoint, self).setUp(autoload_discovery=autoload_discovery)
+    def setUp(self):
+        yield super(TestTorrentHealthEndpoint, self).setUp()
 
         min_base_port, max_base_port = self.get_bucket_range_port()
 
@@ -125,13 +123,12 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         self.http_port = get_random_port(min_port=min_base_port, max_port=max_base_port)
         self.http_tracker = HTTPTracker(self.http_port)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.session.lm.ltmgr = None
         yield self.udp_tracker.stop()
         yield self.http_tracker.stop()
-        yield super(TestTorrentHealthEndpoint, self).tearDown(annotate=annotate)
+        yield super(TestTorrentHealthEndpoint, self).tearDown()
 
     @deferred(timeout=20)
     @inlineCallbacks

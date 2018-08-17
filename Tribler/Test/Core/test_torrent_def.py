@@ -18,7 +18,6 @@ from Tribler.Core.exceptions import TorrentDefNotFinalizedException, HttpError
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import BaseTestCase
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 TRACKER = 'http://www.tribler.org/announce'
 
@@ -35,7 +34,6 @@ class TestTorrentDef(BaseTestCase):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.file_server = None
 
-    @blocking_call_on_reactor_thread
     def setUpFileServer(self, port, path):
         # Create a local file server, can be used to serve local files. This is preferred over an external network
         # request in order to get files.
@@ -43,7 +41,6 @@ class TestTorrentDef(BaseTestCase):
         factory = Site(resource)
         self.file_server = reactor.listenTCP(port, factory)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self):
         super(TestTorrentDef, self).tearDown()
