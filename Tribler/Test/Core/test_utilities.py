@@ -1,11 +1,11 @@
 from nose.tools import raises
+from nose.twistedtools import deferred
 
 from Tribler.Core.Utilities.utilities import create_valid_metainfo, parse_magnetlink, validate_files, \
     validate_http_seeds, validate_init_peers, validate_torrent_info, valid_torrent_file, validate_torrent_nodes, \
     validate_url_list, http_get
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import add_url_params
-from Tribler.Test.twisted_thread import deferred
 
 
 class TriblerCoreTestUtilities(TriblerCoreTest):

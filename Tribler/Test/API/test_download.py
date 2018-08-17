@@ -4,13 +4,13 @@ import shutil
 from binascii import hexlify
 from unittest import skip
 
+from nose.twistedtools import deferred
 from twisted.internet.defer import Deferred
 
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_DOWNLOADING
 from Tribler.Test.common import UBUNTU_1504_INFOHASH, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.twisted_thread import deferred
 
 
 class TestDownload(TestAsServer):

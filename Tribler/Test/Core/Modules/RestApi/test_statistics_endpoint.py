@@ -1,6 +1,6 @@
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread

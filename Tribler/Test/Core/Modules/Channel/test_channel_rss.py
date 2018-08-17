@@ -8,7 +8,7 @@ from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.Core.base_test_channel import BaseTestChannel
 from Tribler.Test.common import TESTS_DATA_DIR
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 

@@ -6,7 +6,7 @@ from Tribler.community.market.core.price import Price
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.orderbook import OrderBook, DatabaseOrderBook

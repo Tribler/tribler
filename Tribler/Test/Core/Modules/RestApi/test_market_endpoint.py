@@ -16,7 +16,7 @@ from Tribler.Core.Modules.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 from twisted.internet.defer import inlineCallbacks, succeed
 

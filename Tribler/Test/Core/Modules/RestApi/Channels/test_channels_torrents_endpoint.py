@@ -2,6 +2,8 @@ import base64
 import os
 import shutil
 import urllib
+
+from nose.twistedtools import deferred
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentDef import TorrentDef
@@ -10,7 +12,6 @@ from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
-from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.exception import CommunityNotFoundException
 
 

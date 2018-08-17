@@ -15,7 +15,7 @@ from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SI
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.version import version_id
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from Tribler.Test.twisted_thread import deferred
+from nose.twistedtools import deferred
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
