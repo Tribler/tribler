@@ -11,11 +11,11 @@ class TestTriblerConfig(TriblerCoreTest):
     This class contains tests for the tribler configuration file.
     """
 
-    def setUp(self, annotate=True):
+    def setUp(self):
         """
         Create a new TriblerConfig instance
         """
-        super(TestTriblerConfig, self).setUp(annotate=annotate)
+        super(TestTriblerConfig, self).setUp()
 
         self.tribler_config = TriblerConfig()
         self.assertIsNotNone(self.tribler_config)

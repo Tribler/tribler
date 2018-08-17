@@ -8,9 +8,7 @@ from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.deprecated.discovery import DiscoveryCommunity
 from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from twisted.internet.defer import returnValue, inlineCallbacks
-from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
@@ -40,13 +38,12 @@ class MockDHTProvider(object):
 
 class TestTunnelBase(TestAsServer):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
+    def setUp(self):
         """
         Setup various variables and load the tunnel community in the main downloader session.
         """
-        yield TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
+        yield TestAsServer.setUp(self)
         self.seed_tdef = None
         self.sessions = []
         self.session2 = None
@@ -71,23 +68,21 @@ class TestTunnelBase(TestAsServer):
         self.config.set_resource_monitor_enabled(False)
         self.config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         if self.session2:
             yield self.session2.shutdown()
 
         for session in self.sessions:
             yield session.shutdown()
 
-        yield TestAsServer.tearDown(self, annotate=annotate)
+        yield TestAsServer.tearDown(self, )
 
     @inlineCallbacks
     def setup_nodes(self, num_relays=1, num_exitnodes=1, seed_hops=0):
         """
         Setup all required nodes, including the relays, exit nodes and seeder.
         """
-        assert isInIOThread()
         baseindex = 3
         for i in xrange(baseindex, baseindex + num_relays):  # Normal relays
             proxy = yield self.create_proxy(i)
@@ -125,7 +120,6 @@ class TestTunnelBase(TestAsServer):
         # Also reset the IPv8 network
         session.lm.ipv8.network = Network()
 
-    @blocking_call_on_reactor_thread
     def load_tunnel_community_in_session(self, session, exitnode=False):
         """
         Load the tunnel community in a given session. We are using our own tunnel community here instead of the one
@@ -160,7 +154,7 @@ class TestTunnelBase(TestAsServer):
         config.set_state_dir(self.getStateDir(index))
         config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
-        session = Session(config, autoload_discovery=False)
+        session = Session(config)
         yield session.start()
         self.sessions.append(session)
 
@@ -177,7 +171,7 @@ class TestTunnelBase(TestAsServer):
         self.seed_config.set_megacache_enabled(True)
         self.seed_config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
         if self.session2 is None:
-            self.session2 = Session(self.seed_config, autoload_discovery=False)
+            self.session2 = Session(self.seed_config)
             self.session2.start()
 
         tdef = TorrentDef()

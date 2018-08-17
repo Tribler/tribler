@@ -1,22 +1,20 @@
 import json
 
+from nose.twistedtools import deferred
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from nose.twistedtools import deferred
 
 
 class TestTrustchainStatsEndpoint(AbstractApiTest):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield super(TestTrustchainStatsEndpoint, self).setUp(autoload_discovery=autoload_discovery)
+    def setUp(self):
+        yield super(TestTrustchainStatsEndpoint, self).setUp()
 
         self.mock_ipv8 = MockIPv8(u"low",
                                   TrustChainCommunity,
@@ -24,11 +22,10 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         self.session.lm.trustchain_community = self.mock_ipv8.overlay
         self.session.lm.wallets['MB'] = TrustchainWallet(self.session.lm.trustchain_community)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         yield self.mock_ipv8.unload()
-        yield super(TestTrustchainStatsEndpoint, self).tearDown(annotate=annotate)
+        yield super(TestTrustchainStatsEndpoint, self).tearDown()
 
     @deferred(timeout=10)
     def test_get_statistics_no_community(self):

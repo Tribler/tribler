@@ -1,17 +1,18 @@
-from Tribler.Test.Community.AbstractTestCommunity import AbstractTestCommunity
 from nose.twistedtools import deferred
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.dispersy.member import DummyMember
 from Tribler.dispersy.message import Message
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.Test.Community.AbstractTestCommunity import AbstractTestCommunity
 
 
 class TestAllChannelCommunity(AbstractTestCommunity):
 
-    @blocking_call_on_reactor_thread
-    def setUp(self, annotate=True):
-        super(TestAllChannelCommunity, self).setUp(annotate=annotate)
+    @inlineCallbacks
+    def setUp(self):
+        yield super(TestAllChannelCommunity, self).setUp()
         self.community = AllChannelCommunity(self.dispersy, self.master_member, self.member)
         self.dispersy._communities['a' * 20] = self.community
         self.community.initialize(auto_join_channel=True)

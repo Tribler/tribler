@@ -10,8 +10,8 @@ from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 
 class TestResourceMonitor(TriblerCoreTest):
 
-    def setUp(self, annotate=True):
-        super(TestResourceMonitor, self).setUp(annotate=annotate)
+    def setUp(self):
+        super(TestResourceMonitor, self).setUp()
 
         mock_session = MockObject()
         mock_session.config = MockObject()

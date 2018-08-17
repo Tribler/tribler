@@ -16,15 +16,13 @@ from Tribler.community.market.core.transaction import Transaction, TransactionId
 from Tribler.community.market.core.wallet_address import WalletAddress
 from Tribler.community.market.database import LATEST_DB_VERSION
 from Tribler.community.market.database import MarketDB
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestDatabase(AbstractServer):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestDatabase, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TestDatabase, self).setUp()
 
         path = os.path.join(self.getStateDir(), 'sqlite')
         if not os.path.exists(path):
@@ -50,7 +48,6 @@ class TestDatabase(AbstractServer):
 
         self.transaction1.add_payment(self.payment1)
 
-    @blocking_call_on_reactor_thread
     def test_add_get_order(self):
         """
         Test the insertion and retrieval of an order in the database
@@ -60,7 +57,6 @@ class TestDatabase(AbstractServer):
         orders = self.database.get_all_orders()
         self.assertEqual(len(orders), 2)
 
-    @blocking_call_on_reactor_thread
     def test_get_specific_order(self):
         """
         Test the retrieval of a specific order
@@ -70,7 +66,6 @@ class TestDatabase(AbstractServer):
         self.database.add_order(self.order1)
         self.assertIsNotNone(self.database.get_order(order_id))
 
-    @blocking_call_on_reactor_thread
     def test_delete_order(self):
         """
         Test the deletion of an order from the database
@@ -80,7 +75,6 @@ class TestDatabase(AbstractServer):
         self.database.delete_order(self.order_id1)
         self.assertEqual(len(self.database.get_all_orders()), 0)
 
-    @blocking_call_on_reactor_thread
     def test_get_next_order_number(self):
         """
         Test the retrieval of the next order number from the database
@@ -89,7 +83,6 @@ class TestDatabase(AbstractServer):
         self.database.add_order(self.order1)
         self.assertEqual(self.database.get_next_order_number(), 5)
 
-    @blocking_call_on_reactor_thread
     def test_add_delete_reserved_ticks(self):
         """
         Test the retrieval, addition and deletion of reserved ticks in the database
@@ -99,7 +92,6 @@ class TestDatabase(AbstractServer):
         self.database.delete_reserved_ticks(self.order_id1)
         self.assertEqual(len(self.database.get_reserved_ticks(self.order_id1)), 0)
 
-    @blocking_call_on_reactor_thread
     def test_add_get_transaction(self):
         """
         Test the insertion and retrieval of a transaction in the database
@@ -109,7 +101,6 @@ class TestDatabase(AbstractServer):
         self.assertEqual(len(transactions), 1)
         self.assertEqual(len(self.database.get_payments(self.transaction1.transaction_id)), 1)
 
-    @blocking_call_on_reactor_thread
     def test_get_specific_transaction(self):
         """
         Test the retrieval of a specific transaction
@@ -119,7 +110,6 @@ class TestDatabase(AbstractServer):
         self.database.add_transaction(self.transaction1)
         self.assertIsNotNone(self.database.get_transaction(transaction_id))
 
-    @blocking_call_on_reactor_thread
     def test_delete_transaction(self):
         """
         Test the deletion of a transaction from the database
@@ -129,7 +119,6 @@ class TestDatabase(AbstractServer):
         self.database.delete_transaction(self.transaction_id1)
         self.assertEqual(len(self.database.get_all_transactions()), 0)
 
-    @blocking_call_on_reactor_thread
     def test_get_next_transaction_number(self):
         """
         Test the retrieval of the next transaction number from the database
@@ -138,7 +127,6 @@ class TestDatabase(AbstractServer):
         self.database.add_transaction(self.transaction1)
         self.assertEqual(self.database.get_next_transaction_number(), 5)
 
-    @blocking_call_on_reactor_thread
     def test_add_get_payment(self):
         """
         Test the insertion and retrieval of a payment in the database
@@ -147,7 +135,6 @@ class TestDatabase(AbstractServer):
         payments = self.database.get_payments(self.transaction_id1)
         self.assertEqual(len(payments), 1)
 
-    @blocking_call_on_reactor_thread
     def test_add_remove_tick(self):
         """
         Test addition, retrieval and deletion of ticks in the database
@@ -162,7 +149,6 @@ class TestDatabase(AbstractServer):
         self.database.delete_all_ticks()
         self.assertEqual(len(self.database.get_ticks()), 0)
 
-    @blocking_call_on_reactor_thread
     def test_add_get_trader_identity(self):
         """
         Test the addition and retrieval of a trader identity in the database
@@ -173,21 +159,18 @@ class TestDatabase(AbstractServer):
         self.assertEqual(len(traders), 2)
         self.assertEqual(traders, [("a", "123", 1234), ("b", "124", 1235)])
 
-    @blocking_call_on_reactor_thread
     def test_check_database(self):
         """
         Test the check of the database
         """
         self.assertEqual(self.database.check_database(unicode(LATEST_DB_VERSION)), LATEST_DB_VERSION)
 
-    @blocking_call_on_reactor_thread
     def test_get_upgrade_script(self):
         """
         Test fetching the upgrade script of the database
         """
         self.assertTrue(self.database.get_upgrade_script(1))
 
-    @blocking_call_on_reactor_thread
     def test_db_upgrade(self):
         self.database.execute(u"DROP TABLE orders;")
         self.database.execute(u"DROP TABLE ticks;")

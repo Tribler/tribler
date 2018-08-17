@@ -15,12 +15,12 @@ from Tribler.dispersy.endpoint import ManualEnpoint
 
 class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
 
-    def setUp(self, autoload_discovery=True):
+    def setUp(self):
         """
         The startup method of this class creates a fake Dispersy instance with a fake AllChannel community. It also
         inserts some random channels so we have some data to work with.
         """
-        super(TestChannelsSubscriptionEndpoint, self).setUp(autoload_discovery)
+        super(TestChannelsSubscriptionEndpoint, self).setUp()
         self.expected_votecast_cid = None
         self.expected_votecast_vote = None
         self.create_votecast_called = False

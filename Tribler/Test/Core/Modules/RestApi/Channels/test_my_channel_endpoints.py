@@ -4,7 +4,6 @@ from Tribler.Core.Modules.restapi.channels.my_channel_endpoint import NO_CHANNEL
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.Core.base_test import MockObject
 from nose.twistedtools import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestMyChannelEndpoints(AbstractTestChannelsEndpoint):
@@ -48,7 +47,6 @@ class TestMyChannelEndpoints(AbstractTestChannelsEndpoint):
 
         return self.do_request('mychannel', expected_code=404, request_type='POST')
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def test_edit_channel(self):
         """

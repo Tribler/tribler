@@ -8,8 +8,6 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CreditMining.CreditMiningPolicy import RandomPolicy, SeederRatioPolicy, UploadPolicy
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningTorrent
-
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 
 
@@ -18,10 +16,9 @@ class TestCreditMiningPolicies(TriblerCoreTest):
     Class to test the credit mining policies
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestCreditMiningPolicies, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TestCreditMiningPolicies, self).setUp()
         self.torrents = [CreditMiningTorrent(i, 'test torrent %d' % i) for i in range(10)]
 
     def test_random_policy(self):

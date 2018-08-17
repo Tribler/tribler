@@ -1,17 +1,16 @@
+from nose.twistedtools import deferred
+from twisted.internet.defer import inlineCallbacks, Deferred
+
 from Tribler.Core.Modules.wallet.dummy_wallet import BaseDummyWallet, DummyWallet1, DummyWallet2
 from Tribler.Core.Modules.wallet.wallet import InsufficientFunds
 from Tribler.Test.test_as_server import AbstractServer
-from nose.twistedtools import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
-from twisted.internet.defer import inlineCallbacks, Deferred
 
 
 class TestDummyWallet(AbstractServer):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestDummyWallet, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TestDummyWallet, self).setUp()
         self.dummy_wallet = BaseDummyWallet()
 
     def test_wallet_id(self):

@@ -10,16 +10,14 @@ from Tribler.community.market.core.orderbook import OrderBook
 from Tribler.community.market.core.tick import Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class PriceTimeStrategyTestSuite(AbstractServer):
     """Price time strategy test cases."""
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(PriceTimeStrategyTestSuite, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(PriceTimeStrategyTestSuite, self).setUp()
         # Object creation
         self.ask = Ask(OrderId(TraderId('0'), OrderNumber(1)),
                        AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
@@ -53,11 +51,10 @@ class PriceTimeStrategyTestSuite(AbstractServer):
         self.order_book = OrderBook()
         self.price_time_strategy = PriceTimeStrategy(self.order_book)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.order_book.shutdown_task_manager()
-        yield super(PriceTimeStrategyTestSuite, self).tearDown(annotate=annotate)
+        yield super(PriceTimeStrategyTestSuite, self).tearDown()
 
     def test_generate_match_id(self):
         """
@@ -191,10 +188,9 @@ class PriceTimeStrategyTestSuite(AbstractServer):
 class MatchingEngineTestSuite(AbstractServer):
     """Matching engine test cases."""
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(MatchingEngineTestSuite, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(MatchingEngineTestSuite, self).setUp()
         # Object creation
         self.ask = Ask(OrderId(TraderId('2'), OrderNumber(1)),
                        AssetPair(AssetAmount(3000, 'BTC'), AssetAmount(30, 'MB')), Timeout(30), Timestamp.now())
@@ -230,11 +226,10 @@ class MatchingEngineTestSuite(AbstractServer):
         self.bid_count += 1
         return new_bid
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.order_book.shutdown_task_manager()
-        yield super(MatchingEngineTestSuite, self).tearDown(annotate=annotate)
+        yield super(MatchingEngineTestSuite, self).tearDown()
 
     def test_empty_match_order_empty(self):
         # Test for match order with an empty order book

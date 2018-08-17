@@ -2,7 +2,6 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.RemoteTorrentHandler import TftpRequester, RemoteTorrentHandler
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTftpRequester(TriblerCoreTest):
@@ -10,10 +9,9 @@ class TestTftpRequester(TriblerCoreTest):
     This class contains tests for the TFTP requester.
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestTftpRequester, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TestTftpRequester, self).setUp()
         self.mock_session = MockObject()
         self.remote_torrent_handler = RemoteTorrentHandler(self.mock_session)
         self.remote_torrent_handler.running = True

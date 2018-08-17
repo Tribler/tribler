@@ -11,7 +11,6 @@ from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from nose.twistedtools import deferred
 from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestRemoteTorrentHandler(TestAsServer):
@@ -37,11 +36,10 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.config.set_torrent_store_enabled(True)
         self.config.set_metadata_enabled(True)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         yield self.session2.shutdown()
-        yield super(TestRemoteTorrentHandler, self).tearDown(annotate=annotate)
+        yield super(TestRemoteTorrentHandler, self).tearDown()
 
     def setup_downloader(self):
         self.config2 = self.config.copy()
