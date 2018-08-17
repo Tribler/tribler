@@ -13,7 +13,6 @@ from Tribler.community.market.core.trade import Trade
 from Tribler.community.market.core.wallet_address import WalletAddress
 from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
 from Tribler.Core.Modules.wallet.dummy_wallet import DummyWallet1, DummyWallet2
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from nose.twistedtools import deferred
@@ -23,10 +22,9 @@ from twisted.internet.defer import inlineCallbacks, succeed
 
 class TestMarketEndpoint(AbstractApiTest):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield super(TestMarketEndpoint, self).setUp(autoload_discovery=autoload_discovery)
+    def setUp(self):
+        yield super(TestMarketEndpoint, self).setUp()
 
         dummy1_wallet = DummyWallet1()
         dummy2_wallet = DummyWallet2()
@@ -39,11 +37,10 @@ class TestMarketEndpoint(AbstractApiTest):
                                   working_directory=self.session.config.get_state_dir())
         self.session.lm.market_community = self.mock_ipv8.overlay
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         yield self.mock_ipv8.unload()
-        yield super(TestMarketEndpoint, self).tearDown(annotate=annotate)
+        yield super(TestMarketEndpoint, self).tearDown()
 
     def test_get_market_community(self):
         """
@@ -82,11 +79,6 @@ class TestMarketEndpoint(AbstractApiTest):
         block_b = MockObject()
         block_b.hash = 'b'
         return block_a, block_b
-
-    @blocking_call_on_reactor_thread
-    def setUpPreSession(self):
-        super(TestMarketEndpoint, self).setUpPreSession()
-        self.config.set_dispersy_enabled(False)
 
     @deferred(timeout=10)
     def test_get_asks(self):

@@ -12,16 +12,16 @@ class TestRestApiUtil(TriblerCoreTest):
     """
     This class contains various tests for the rest api utility methods.
     """
-    def setUp(self, annotate=True):
-        super(TestRestApiUtil, self).setUp(annotate=annotate)
+    def setUp(self):
+        super(TestRestApiUtil, self).setUp()
 
         config = TriblerConfig()
         config.set_state_dir(self.getStateDir())
         config.get_dispersy_enabled = lambda: False
         self.session = Session(config)
 
-    def tearDown(self, annotate=True):
-        TriblerCoreTest.tearDown(self, annotate=annotate)
+    def tearDown(self):
+        TriblerCoreTest.tearDown(self, )
 
     def test_convert_torrent_to_json_dict(self):
         """

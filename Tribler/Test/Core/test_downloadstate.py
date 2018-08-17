@@ -9,8 +9,8 @@ class TestDownloadState(TriblerCoreTest):
     This class contains tests for the download state.
     """
 
-    def setUp(self, annotate=True):
-        TriblerCoreTest.setUp(self, annotate=annotate)
+    def setUp(self):
+        TriblerCoreTest.setUp(self, )
         self.mock_download = MockObject()
         self.mocked_tdef = MockObject()
         self.mocked_tdef.get_name = lambda: "test"

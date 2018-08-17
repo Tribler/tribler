@@ -1,18 +1,17 @@
-import Tribler.Core.Utilities.json_util as json
-from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from nose.twistedtools import deferred
+from twisted.internet.defer import inlineCallbacks
+
+import Tribler.Core.Utilities.json_util as json
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
-from twisted.internet.defer import inlineCallbacks
+from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 
 
 class TestStatisticsEndpoint(AbstractApiTest):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield super(TestStatisticsEndpoint, self).setUp(autoload_discovery=autoload_discovery)
+    def setUp(self):
+        yield super(TestStatisticsEndpoint, self).setUp()
 
         self.mock_ipv8 = MockIPv8(u"low",
                                   TrustChainCommunity,
@@ -23,12 +22,11 @@ class TestStatisticsEndpoint(AbstractApiTest):
         self.session.lm.ipv8 = self.mock_ipv8
         self.session.config.set_ipv8_enabled(True)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.session.lm.ipv8 = None
         yield self.mock_ipv8.unload()
-        yield super(TestStatisticsEndpoint, self).tearDown(annotate=annotate)
+        yield super(TestStatisticsEndpoint, self).tearDown()
 
     def setUpPreSession(self):
         super(TestStatisticsEndpoint, self).setUpPreSession()

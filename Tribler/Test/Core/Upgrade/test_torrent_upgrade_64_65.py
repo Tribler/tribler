@@ -5,12 +5,10 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65
 from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Test.Core.Upgrade.test_torrent_upgrade_63_64 import AbstractTorrentUpgrade63to64
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class AbstractTorrentUpgrade64to65(AbstractTorrentUpgrade63to64):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self):
         yield super(AbstractTorrentUpgrade64to65, self).setUp()
@@ -21,7 +19,7 @@ class AbstractTorrentUpgrade64to65(AbstractTorrentUpgrade63to64):
         self.torrent_upgrader = TorrentMigrator65(self.torrent_collecting_dir,
                                                   self.session_base_dir, self.torrent_store)
 
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.torrent_store.close()
         super(AbstractTorrentUpgrade64to65, self).tearDown()
 

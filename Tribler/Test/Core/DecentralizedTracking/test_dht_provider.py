@@ -1,16 +1,14 @@
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.DecentralizedTracking.dht_provider import MainlineDHTProvider
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 
 
 class TestDHTProvider(TriblerCoreTest):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestDHTProvider, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TestDHTProvider, self).setUp()
 
         self.cb_invoked = False
 

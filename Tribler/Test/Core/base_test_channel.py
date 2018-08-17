@@ -8,21 +8,16 @@ from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
 from Tribler.dispersy.member import DummyMember
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class BaseTestChannel(TestAsServer):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True, autoload_discovery=True):
+    def setUp(self):
         """
         Setup some classes and files that are used by the tests in this module.
         """
-        yield super(BaseTestChannel, self).setUp(autoload_discovery=autoload_discovery)
-
-        if annotate:
-            self.annotate(self._testMethodName, start=True)
+        yield super(BaseTestChannel, self).setUp()
 
         self.fake_session = MockObject()
         self.fake_session.add_observer = lambda a, b, c: False
@@ -57,7 +52,6 @@ class BaseTestChannel(TestAsServer):
     def insert_torrents_into_channel(self, torrent_list):
         self.channel_db_handler.on_torrents_from_dispersy(torrent_list)
 
-    @blocking_call_on_reactor_thread
     def create_fake_allchannel_community(self):
         """
         This method creates a fake AllChannel community so we can check whether a request is made in the community
@@ -70,9 +64,8 @@ class BaseTestChannel(TestAsServer):
         self.session.lm.dispersy._communities = {"allchannel": fake_community}
         return fake_community
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.session.lm.dispersy.cancel_all_pending_tasks()
         self.session.lm.dispersy = None
         yield super(BaseTestChannel, self).tearDown()

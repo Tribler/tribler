@@ -12,7 +12,6 @@ from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from nose.twistedtools import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestSeeding(TestAsServer):
@@ -20,10 +19,9 @@ class TestSeeding(TestAsServer):
     Test whether the seeding works correctly.
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield super(TestSeeding, self).setUp(autoload_discovery=autoload_discovery)
+    def setUp(self):
+        yield super(TestSeeding, self).setUp()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.test_deferred = Deferred()
         self.tdef = None

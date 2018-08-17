@@ -4,8 +4,8 @@ from Tribler.Test.test_as_server import AbstractServer
 
 class TriblerCategoryTest(AbstractServer):
 
-    def setUp(self, annotate=True):
-        super(TriblerCategoryTest, self).setUp(annotate=annotate)
+    def setUp(self):
+        super(TriblerCategoryTest, self).setUp()
         self.category = Category()
         self.category.xxx_filter.xxx_terms.add("term1")
 
@@ -46,8 +46,8 @@ class TriblerCategoryTest(AbstractServer):
         test_category = Category()
         self.assertEqual(test_category.category_info, [])
 
-    def tearDown(self, annotate=True):
-        super(TriblerCategoryTest, self).tearDown(annotate=annotate)
+    def tearDown(self):
+        super(TriblerCategoryTest, self).tearDown()
 
         import Tribler.Core.Category.Category as category_file
         category_file.CATEGORY_CONFIG_FILE = "category.conf"

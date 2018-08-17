@@ -4,6 +4,7 @@ import shutil
 import tempfile
 
 from libtorrent import bencode
+from nose.twistedtools import deferred
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet import reactor
 
@@ -13,8 +14,6 @@ from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.exceptions import TorrentFileException
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
-from nose.twistedtools import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestLibtorrentMgr(AbstractServer):
@@ -22,9 +21,8 @@ class TestLibtorrentMgr(AbstractServer):
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     LIBTORRENT_FILES_DIR = os.path.abspath(os.path.join(FILE_DIR, u"../data/libtorrent/"))
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
+    def setUp(self):
         yield super(TestLibtorrentMgr, self).setUp(annotate)
 
         self.tribler_session = MockObject()
@@ -49,9 +47,8 @@ class TestLibtorrentMgr(AbstractServer):
 
         self.ltmgr = LibtorrentMgr(self.tribler_session)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.ltmgr.shutdown()
         self.assertTrue(os.path.exists(os.path.join(self.session_base_dir, 'lt.state')))
         yield super(TestLibtorrentMgr, self).tearDown(annotate)

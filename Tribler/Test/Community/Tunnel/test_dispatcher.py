@@ -3,7 +3,6 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_EXTENDING, CIRCUIT_TYPE_DATA, \
     CIRCUIT_STATE_READY
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
 
@@ -13,10 +12,9 @@ class TestTunnelDispatcher(AbstractServer):
     Test the functionality of the tunnel dispatcher.
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestTunnelDispatcher, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TestTunnelDispatcher, self).setUp()
 
         self.mock_tunnel_community = MockObject()
         self.selection_strategy = MockObject()

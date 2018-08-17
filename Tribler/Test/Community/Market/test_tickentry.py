@@ -11,16 +11,14 @@ from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.tickentry import TickEntry
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TickEntryTestSuite(AbstractServer):
     """TickEntry test cases."""
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TickEntryTestSuite, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TickEntryTestSuite, self).setUp()
 
         # Object creation
         tick = Tick(OrderId(TraderId('0'), OrderNumber(1)), AssetPair(AssetAmount(60, 'BTC'), AssetAmount(30, 'MB')),
@@ -32,12 +30,11 @@ class TickEntryTestSuite(AbstractServer):
         self.tick_entry = TickEntry(tick, self.price_level)
         self.tick_entry2 = TickEntry(tick2, self.price_level)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.tick_entry.shutdown_task_manager()
         self.tick_entry2.shutdown_task_manager()
-        yield super(TickEntryTestSuite, self).tearDown(annotate=annotate)
+        yield super(TickEntryTestSuite, self).tearDown()
 
     def test_price_level(self):
         self.assertEquals(self.price_level, self.tick_entry.price_level())

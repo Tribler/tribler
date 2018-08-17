@@ -5,6 +5,8 @@ Author(s): Arno Bakker
 """
 import binascii
 import os
+
+from nose.twistedtools import deferred
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
@@ -17,8 +19,6 @@ from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
-from nose.twistedtools import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class VideoServerProtocol(Protocol):
@@ -78,8 +78,8 @@ class VideoServerProtocol(Protocol):
 
 class TestVideoServer(TriblerCoreTest):
 
-    def setUp(self, annotate=True):
-        TriblerCoreTest.setUp(self, annotate=annotate)
+    def setUp(self):
+        TriblerCoreTest.setUp(self, )
         self.mock_session = MockObject()
         self.video_server = VideoServer(get_random_port(), self.mock_session)
 
@@ -111,11 +111,10 @@ class TestVideoServerSession(TestAsServer):
 
     Mainly HTTP range queries.
     """
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
+    def setUp(self):
         """ unittest test setup code """
-        yield TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
+        yield super(TestVideoServerSession, self).setUp()
         self.port = self.session.config.get_video_server_port()
         self.sourcefn = os.path.join(TESTS_DATA_DIR, "video.avi")
         self.sourcesize = os.path.getsize(self.sourcefn)
@@ -128,9 +127,6 @@ class TestVideoServerSession(TestAsServer):
         self.config.set_libtorrent_enabled(True)
         self.config.set_video_server_enabled(True)
 
-    #
-    # Tests
-    #
     @deferred(timeout=10)
     def test_specific_range(self):
         return self.range_check(115, 214)

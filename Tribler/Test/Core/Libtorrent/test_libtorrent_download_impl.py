@@ -224,8 +224,8 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
 class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
 
-    def setUp(self, annotate=True):
-        TriblerCoreTest.setUp(self, annotate=annotate)
+    def setUp(self):
+        TriblerCoreTest.setUp(self, )
         self.libtorrent_download_impl = LibtorrentDownloadImpl(None, None)
         mock_handle = MockObject()
         mock_status = MockObject()
@@ -253,9 +253,9 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.tdef.get_name = lambda: "ubuntu.iso"
         self.libtorrent_download_impl.tdef.is_multifile_torrent = lambda: False
 
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.libtorrent_download_impl.shutdown_task_manager()
-        super(TestLibtorrentDownloadImplNoSession, self).tearDown(annotate=annotate)
+        super(TestLibtorrentDownloadImplNoSession, self).tearDown()
 
     def test_selected_files(self):
         """

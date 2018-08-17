@@ -1,7 +1,6 @@
 from Tribler.Core.Socks5.connection import Socks5Connection, ConnectionState
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from twisted.internet.defer import inlineCallbacks
 
 
@@ -31,20 +30,18 @@ class TestSocks5Connection(AbstractServer):
     Test the basic functionality of the socks5 connection.
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestSocks5Connection, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TestSocks5Connection, self).setUp()
 
         self.connection = Socks5Connection(None)
         self.connection.transport = MockTransport()
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         if self.connection._udp_socket:  # Close opened UDP sockets
             yield self.connection._udp_socket.close()
-        yield super(TestSocks5Connection, self).tearDown(annotate=annotate)
+        yield super(TestSocks5Connection, self).tearDown()
 
     def test_invalid_version(self):
         """

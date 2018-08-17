@@ -24,8 +24,8 @@ class FakeUdpSocketManager(object):
 
 class TestTorrentCheckerSession(TriblerCoreTest):
 
-    def setUp(self, annotate=True):
-        super(TestTorrentCheckerSession, self).setUp(annotate=annotate)
+    def setUp(self):
+        super(TestTorrentCheckerSession, self).setUp()
         self.mock_transport = MockObject()
         self.mock_transport.write = lambda *_: None
         self.socket_mgr = FakeUdpSocketManager()
@@ -321,8 +321,8 @@ class TestDHTSession(TriblerCoreTest):
     Test the DHT session that we use to fetch the swarm status from the DHT.
     """
 
-    def setUp(self, annotate=True):
-        super(TestDHTSession, self).setUp(annotate=annotate)
+    def setUp(self):
+        super(TestDHTSession, self).setUp()
 
         config = TriblerConfig()
         config.set_state_dir(self.getStateDir())

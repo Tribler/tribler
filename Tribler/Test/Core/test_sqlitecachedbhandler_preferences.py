@@ -3,12 +3,10 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestMyPreferenceDBHandler(AbstractDB):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self):
         yield super(TestMyPreferenceDBHandler, self).setUp()
@@ -25,12 +23,10 @@ class TestMyPreferenceDBHandler(AbstractDB):
 
         super(TestMyPreferenceDBHandler, self).tearDown()
 
-    @blocking_call_on_reactor_thread
     def test_getPrefList(self):
         pl = self.mdb.getMyPrefListInfohash()
         self.assertEqual(len(pl), 12)
 
-    @blocking_call_on_reactor_thread
     def test_addMyPreference_deletePreference(self):
         p = self.mdb.getOne(('torrent_id', 'destination_path', 'creation_time'), torrent_id=126)
         torrent_id = p[0]
@@ -58,14 +54,12 @@ class TestMyPreferenceDBHandler(AbstractDB):
         p3 = self.mdb.getOne(('torrent_id', 'destination_path', 'creation_time'), torrent_id=126)
         self.assertEqual(p3, p)
 
-    @blocking_call_on_reactor_thread
     def test_getMyPrefListInfohash(self):
         preflist = self.mdb.getMyPrefListInfohash()
         for p in preflist:
             self.assertTrue(not p or len(p) == 20)
         self.assertEqual(len(preflist), 12)
 
-    @blocking_call_on_reactor_thread
     def test_get_my_pref_stats(self):
         res = self.mdb.getMyPrefStats()
         self.assertEqual(len(res), 12)
@@ -76,18 +70,15 @@ class TestMyPreferenceDBHandler(AbstractDB):
         res = self.mdb.getMyPrefStats(torrent_id=126)
         self.assertEqual(len(res), 1)
 
-    @blocking_call_on_reactor_thread
     def test_my_pref_stats_infohash(self):
         infohash = str2bin('AB8cTG7ZuPsyblbRE7CyxsrKUCg=')
         self.assertIsNone(self.mdb.getMyPrefStatsInfohash(infohash))
         infohash = str2bin('ByJho7yj9mWY1ORWgCZykLbU1Xc=')
         self.assertTrue(self.mdb.getMyPrefStatsInfohash(infohash))
 
-    @blocking_call_on_reactor_thread
     def test_get_my_pref_list_infohash_limit(self):
         self.assertEqual(len(self.mdb.getMyPrefListInfohash(limit=10)), 10)
 
-    @blocking_call_on_reactor_thread
     def test_add_my_preference(self):
         self.assertTrue(self.mdb.addMyPreference(127, {'destination_path': 'C:/mytorrent'}))
         self.assertTrue(self.mdb.addMyPreference(12345678, {'destination_path': 'C:/mytorrent'}))

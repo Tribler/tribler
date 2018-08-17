@@ -3,6 +3,7 @@ import shutil
 from binascii import hexlify
 from urllib import pathname2url, quote_plus
 
+from nose.twistedtools import deferred
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentDef import TorrentDef
@@ -12,8 +13,6 @@ from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import UBUNTU_1504_INFOHASH, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
-from nose.twistedtools import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTorrentInfoEndpoint(AbstractApiTest):
@@ -22,7 +21,6 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         super(TestTorrentInfoEndpoint, self).setUpPreSession()
         self.config.set_torrent_store_enabled(True)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def test_get_torrentinfo(self):
         """

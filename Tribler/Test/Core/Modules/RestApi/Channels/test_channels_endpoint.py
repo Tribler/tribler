@@ -31,8 +31,8 @@ class ChannelCommunityMock(object):
 
 class AbstractTestChannelsEndpoint(AbstractApiTest, BaseTestChannel):
 
-    def setUp(self, autoload_discovery=True):
-        super(AbstractTestChannelsEndpoint, self).setUp(autoload_discovery)
+    def setUp(self):
+        super(AbstractTestChannelsEndpoint, self).setUp()
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
 
     def vote_for_channel(self, cid, vote_time):

@@ -2,9 +2,8 @@ from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
+from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
 from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
-from nose.twistedtools import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTunnelCommunity(TestTunnelBase):
@@ -12,14 +11,12 @@ class TestTunnelCommunity(TestTunnelBase):
     This class contains full session tests for the tunnel community.
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
+    def setUp(self):
         self.test_deferred = Deferred()
-        yield super(TestTunnelCommunity, self).setUp(autoload_discovery=autoload_discovery)
+        yield super(TestTunnelCommunity, self).setUp()
 
-    @deferred(timeout=60)
-    @inlineCallbacks
+    @twisted_wrapper(60)
     def test_anon_download(self):
         """
         Testing whether an anonymous download over our tunnels works
@@ -37,8 +34,7 @@ class TestTunnelCommunity(TestTunnelBase):
 
         yield self.test_deferred
 
-    @deferred(timeout=60)
-    @inlineCallbacks
+    @twisted_wrapper(60)
     def test_anon_download_no_exitnodes(self):
         """
         Testing whether an anon download does not make progress without exit nodes
@@ -59,8 +55,7 @@ class TestTunnelCommunity(TestTunnelBase):
 
         yield self.test_deferred
 
-    @deferred(timeout=60)
-    @inlineCallbacks
+    @twisted_wrapper(60)
     def test_anon_download_no_relays(self):
         """
         Testing whether an anon download does not make progress without relay nodes

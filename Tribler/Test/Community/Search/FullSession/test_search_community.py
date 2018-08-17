@@ -9,7 +9,6 @@ from nose.twistedtools import deferred
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.search.community import SearchCommunity
 from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 MASTER_KEY = "3081a7301006072a8648ce3d020106052b81040027038192000400f4771c58e65f2cc0385a14027a937a0eb54df0e" \
              "4ae2f72acd8f8286066a48a5e8dcff81c7dfa369fbc33bfe9823587057557cf168b41586dc9ff7615a7e5213f3ec6" \
@@ -54,10 +53,9 @@ class TestSearchCommunity(TestAsServer):
     Contains tests to test remote search with booted Tribler sessions.
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield super(TestSearchCommunity, self).setUp(autoload_discovery=autoload_discovery)
+    def setUp(self):
+        yield super(TestSearchCommunity, self).setUp()
 
         self.config2 = None
         self.session2 = None
@@ -81,7 +79,6 @@ class TestSearchCommunity(TestAsServer):
         self.config.set_torrent_checking_enabled(True)
         self.config.set_megacache_enabled(True)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setup_peer(self):
         """
@@ -97,7 +94,6 @@ class TestSearchCommunity(TestAsServer):
         yield self.session2.start()
         self.dispersy2 = self.session2.get_dispersy_instance()
 
-        @blocking_call_on_reactor_thread
         @inlineCallbacks
         def unload_communities():
             for community in self.dispersy.get_communities():
@@ -108,7 +104,6 @@ class TestSearchCommunity(TestAsServer):
                 if isinstance(community, SearchCommunity) or isinstance(community, AllChannelCommunity):
                     yield community.unload_community()
 
-        @blocking_call_on_reactor_thread
         def load_communities():
             self.search_community = \
             self.dispersy.define_auto_load(SearchCommunityTests, self.session.dispersy_member, load=True,
@@ -176,8 +171,7 @@ class TestSearchCommunity(TestAsServer):
 
         return test_deferred
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         yield self.session2.shutdown()
-        yield super(TestSearchCommunity, self).tearDown(annotate=annotate)
+        yield super(TestSearchCommunity, self).tearDown()

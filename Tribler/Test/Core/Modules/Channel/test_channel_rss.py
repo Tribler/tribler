@@ -1,26 +1,25 @@
 import os
 import shutil
 
+from nose.twistedtools import deferred
 from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.Modules.channel.cache import SimpleCache
 from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser, RSSFeedParser
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.Core.base_test_channel import BaseTestChannel
 from Tribler.Test.common import TESTS_DATA_DIR
-from nose.twistedtools import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestChannelRss(BaseTestChannel):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True, autoload_discovery=True):
+    def setUp(self):
         """
         Setup the tests by creating the ChannelRssParser instance and initializing it.
         """
-        yield super(TestChannelRss, self).setUp(annotate=annotate)
+        yield super(TestChannelRss, self).setUp()
         self.channel_rss = ChannelRssParser(self.fake_session, self.fake_channel_community, 'a')
         self.channel_rss.initialize()
 
@@ -32,13 +31,12 @@ class TestChannelRss(BaseTestChannel):
         self.file_server_port = get_random_port()
         self.setUpFileServer(self.file_server_port, files_path)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         if self.channel_rss.running:
             self.channel_rss.shutdown()
 
-        yield super(TestChannelRss, self).tearDown(annotate=annotate)
+        yield super(TestChannelRss, self).tearDown()
 
     @deferred(timeout=10)
     def test_task_scrape_no_stop(self):

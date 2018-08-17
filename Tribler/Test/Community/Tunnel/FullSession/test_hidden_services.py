@@ -7,8 +7,8 @@ from nose.twistedtools import deferred
 
 class TestHiddenServices(TestTunnelBase):
 
-    def setUp(self, autoload_discovery=True):
-        TestTunnelBase.setUp(self, autoload_discovery=autoload_discovery)
+    def setUp(self):
+        TestTunnelBase.setUp(self)
         self.test_deferred = Deferred()
 
     @deferred(timeout=180)
