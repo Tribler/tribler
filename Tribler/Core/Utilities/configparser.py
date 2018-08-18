@@ -7,7 +7,10 @@ import ast
 import codecs
 import StringIO
 
-from ConfigParser import DEFAULTSECT, RawConfigParser
+try:                 # Python 3
+    from configparser import DEFAULTSECT, RawConfigParser
+except ImportError:  # Python 2
+    from ConfigParser import DEFAULTSECT, RawConfigParser
 from threading import RLock
 
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException

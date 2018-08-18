@@ -5,6 +5,7 @@ Make sure the thread reactor is installed.
 
 Author(s): Arno Bakker, Jie Yang, Niels Zeilemaker
 """
+from __future__ import print_function
 import functools
 import inspect
 import keyring
@@ -209,13 +210,13 @@ class AbstractServer(BaseTestCase):
                 f = open(filename, 'a')
             else:
                 f = open(filename, 'w')
-                print >> f, "annotation start end"
+                print("annotation start end", file=f)
 
             AbstractServer._annotate_counter += 1
             _annotation = re.sub('[^a-zA-Z0-9_]', '_', annotation)
             _annotation = u"%d_" % AbstractServer._annotate_counter + _annotation
 
-            print >> f, _annotation, self.annotate_dict[annotation], time.time()
+            print(_annotation, self.annotate_dict[annotation], time.time(), file=f)
             f.close()
 
     def get_bucket_range_port(self):
