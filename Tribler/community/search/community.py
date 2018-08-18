@@ -681,7 +681,9 @@ class SearchCommunity(Community):
     def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
         try:
-            packet, _ = next(self._dispersy.database.execute(u"SELECT sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)))
+            packet, _ = next(self._dispersy.database.execute(
+                u"SELECT sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?",
+                (dispersy_id,)))
         except StopIteration:
             raise RuntimeError(u"Unknown dispersy_id")
 

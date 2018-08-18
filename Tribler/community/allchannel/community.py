@@ -558,7 +558,8 @@ class AllChannelCommunity(Community):
     def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
         try:
             packet, = next(self._dispersy.database.execute(
-                u"SELECT sync.packet FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)))
+                u"SELECT sync.packet FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?",
+                (dispersy_id,)))
         except StopIteration:
             raise RuntimeError("Unknown dispersy_id")
         return str(packet)
@@ -673,7 +674,7 @@ class VoteCastDBStub():
 
         sql = u"SELECT sync.id FROM sync JOIN member ON sync.member = member.id JOIN community ON community.id = sync.community JOIN meta_message ON sync.meta_message = meta_message.id WHERE community.classification = 'AllChannelCommunity' AND meta_message.name = 'votecast' AND member.public_key = ? ORDER BY global_time DESC LIMIT 1"
         try:
-            id, = next(self._dispersy.database.execute(sql, (buffer(public_key),)))
+            id, = next(self._dispersy.database.execute(sql, (buffer(public_key),)))  # pylint: disable=redefined-builtin
             self._votecache[public_key] = int(id)
             return self._votecache[public_key]
         except StopIteration:

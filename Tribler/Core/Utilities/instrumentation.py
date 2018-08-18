@@ -98,7 +98,7 @@ class WatchDog(Thread):
         self._registered_events.pop(name, None)
 
     def printe(self, line):
-            print(line, file=sys.stderr)
+        print(line, file=sys.stderr)
 
     def run(self):
         events_to_unregister = []

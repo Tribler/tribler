@@ -146,7 +146,7 @@ class MarketDB(TrustChainDB):
         """
         try:
             db_result = next(self.execute(u"SELECT * FROM orders WHERE trader_id = ? AND order_number = ?",
-                                     (unicode(order_id.trader_id), unicode(order_id.order_number))))
+                                          (unicode(order_id.trader_id), unicode(order_id.order_number))))
         except StopIteration:
             return None
         return Order.from_database(db_result, self.get_reserved_ticks(order_id))

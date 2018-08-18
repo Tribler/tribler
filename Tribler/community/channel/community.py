@@ -1129,7 +1129,7 @@ class ChannelCommunity(Community):
         try:
             packet, packet_id = next(self._dispersy.database.execute(
                 u"SELECT packet, id FROM sync WHERE meta_message = ? ORDER BY global_time DESC LIMIT 1",
-                                                                (channel_meta.database_id,)))
+                (channel_meta.database_id,)))
         except StopIteration:
             raise RuntimeError("Could not find requested packet")
 
@@ -1280,7 +1280,7 @@ class ChannelCommunity(Community):
                     JOIN member ON (member.id = sync.member)
                     JOIN meta_message ON (meta_message.id = sync.meta_message)
                     WHERE sync.community = ? AND sync.global_time = ? AND member.mid = ?""",
-                                                             (self.database_id, global_time, buffer(mid))))
+                                                                  (self.database_id, global_time, buffer(mid))))
             except StopIteration:
                 pass
             return packet_id
