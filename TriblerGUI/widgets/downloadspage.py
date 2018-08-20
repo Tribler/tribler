@@ -10,7 +10,7 @@ from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.defs import DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_COMPLETED, \
     DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_INACTIVE, DOWNLOADS_FILTER_CREDITMINING, DOWNLOADS_FILTER_DEFINITION, \
     DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, DLSTATUS_METADATA, \
-    DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK
+    DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_CIRCUITS
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.widgets.downloadwidgetitem import DownloadWidgetItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -481,8 +481,11 @@ class DownloadsPage(QWidget):
         menu.addSeparator()
         menu.addAction(force_recheck_action)
         menu.addSeparator()
-        menu.addAction(export_download_action)
-        menu.addSeparator()
+
+        exclude_states = [DLSTATUS_METADATA, DLSTATUS_CIRCUITS, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]
+        if len(self.selected_items) == 1 and self.selected_items[0].get_raw_download_status() not in exclude_states:
+            menu.addAction(export_download_action)
+            menu.addSeparator()
         menu_anon_level = menu.addMenu("Change anonymity")
         menu_anon_level.addAction(no_anon_action)
         menu_anon_level.addAction(one_hop_anon_action)
