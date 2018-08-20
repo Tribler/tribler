@@ -33,6 +33,7 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
                                      STATE_INITIALIZE_CHANNEL_MGR, STATE_START_MAINLINE_DHT, STATE_START_LIBTORRENT,
                                      STATE_START_TORRENT_CHECKER, STATE_START_REMOTE_TORRENT_HANDLER,
                                      STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING)
+from Tribler.pyipv8.ipv8.dht.provider import DHTCommunityProvider
 from Tribler.pyipv8.ipv8.keyvault.private.m2crypto import M2CryptoSK
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.churn import RandomChurn
@@ -281,11 +282,15 @@ class TriblerLaunchMany(TaskManager):
             from Tribler.community.triblertunnel.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
             community_cls = TriblerTunnelTestnetCommunity if self.session.config.get_testnet() else \
                 TriblerTunnelCommunity
+
+            if self.mainline_dht:
+                dht_provider = MainlineDHTProvider(self.mainline_dht, self.session.config.get_dispersy_port())
+            else:
+                dht_provider = DHTCommunityProvider(self.dht_community, self.session.config.get_dispersy_port())
+
             self.tunnel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
                                                   tribler_session=self.session,
-                                                  dht_provider=MainlineDHTProvider(
-                                                      self.mainline_dht,
-                                                      self.session.config.get_dispersy_port()),
+                                                  dht_provider=dht_provider,
                                                   bandwidth_wallet=self.wallets["MB"])
             self.ipv8.overlays.append(self.tunnel_community)
             self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
