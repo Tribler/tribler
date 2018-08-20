@@ -34,6 +34,7 @@ class TestMarketEndpoint(AbstractApiTest):
         self.mock_ipv8 = MockIPv8(u"low",
                                   MarketCommunity,
                                   create_trustchain=True,
+                                  create_dht=True,
                                   wallets=wallets_dict,
                                   working_directory=self.session.config.get_state_dir())
         self.session.lm.market_community = self.mock_ipv8.overlay

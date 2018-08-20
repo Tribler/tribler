@@ -33,9 +33,7 @@ class TestMarketBlock(AbstractServer):
                                        OrderId(TraderId('1' * 40), OrderNumber(1)), Timestamp(0.0))
 
         ask_tx = self.ask.to_block_dict()
-        ask_tx["address"], ask_tx["port"] = "127.0.0.1", 1337
         bid_tx = self.bid.to_block_dict()
-        bid_tx["address"], bid_tx["port"] = "127.0.0.1", 1337
 
         self.tick_block = MarketBlock()
         self.tick_block.type = 'tick'
