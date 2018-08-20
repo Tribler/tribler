@@ -500,13 +500,13 @@ class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):
 
             The contents of the .torrent file.
         """
-        download = self.session.get_download(self.infohash)
-        if not download:
+        torrent = self.session.get_collected_torrent(self.infohash)
+        if not torrent:
             return DownloadExportTorrentEndpoint.return_404(request)
 
         request.setHeader(b'content-type', 'application/x-bittorrent')
         request.setHeader(b'Content-Disposition', 'attachment; filename=%s.torrent' % self.infohash.encode('hex'))
-        return self.session.get_collected_torrent(self.infohash)
+        return torrent
 
 
 class DownloadFilesEndpoint(DownloadBaseEndpoint):

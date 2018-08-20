@@ -20,6 +20,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         super(TestDownloadsEndpoint, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
         self.config.set_megacache_enabled(True)
+        self.config.set_torrent_store_enabled(True)
 
     @deferred(timeout=10)
     def test_get_downloads_no_downloads(self):
