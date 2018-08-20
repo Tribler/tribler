@@ -61,7 +61,7 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=True,
+          console=False,
           icon='Tribler/Main/Build/Win/tribler.ico')
 coll = COLLECT(exe,
                a.binaries,
@@ -75,7 +75,7 @@ app = BUNDLE(coll,
              icon='Tribler/Main/Build/Mac/tribler.icns',
              bundle_identifier='nl.tudelft.tribler',
              info_plist={'NSHighResolutionCapable': 'True', 'CFBundleInfoDictionaryVersion': 1.0, 'CFBundleVersion': version_str, 'CFBundleShortVersionString': version_str},
-             console=True)
+             console=False)
 
 # Remove libvlc - conflicts on Windows
 if sys.platform == 'win32':
