@@ -426,6 +426,10 @@ class Session(object):
         """Return a dictionary with Dispersy communities statistics."""
         return TriblerStatistics(self).get_dispersy_community_statistics()
 
+    def get_ipv8_statistics(self):
+        """Return a dictionary with IPv8 statistics."""
+        return TriblerStatistics(self).get_ipv8_statistics()
+
     def get_ipv8_overlay_statistics(self):
         """Return a dictionary with IPv8 overlay statistics."""
         return TriblerStatistics(self).get_ipv8_overlays_statistics()

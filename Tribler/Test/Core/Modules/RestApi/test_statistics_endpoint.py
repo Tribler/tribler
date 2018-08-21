@@ -18,6 +18,8 @@ class TestStatisticsEndpoint(AbstractApiTest):
                                   TrustChainCommunity,
                                   working_directory=self.session.config.get_state_dir())
         self.mock_ipv8.overlays = [self.mock_ipv8.overlay]
+        self.mock_ipv8.endpoint.bytes_up = 100
+        self.mock_ipv8.endpoint.bytes_down = 20
         self.session.lm.ipv8 = self.mock_ipv8
         self.session.config.set_ipv8_enabled(True)
 
@@ -54,6 +56,30 @@ class TestStatisticsEndpoint(AbstractApiTest):
 
         self.should_check_equality = False
         return self.do_request('statistics/dispersy', expected_code=200).addCallback(verify_dict)
+
+    @deferred(timeout=10)
+    def test_get_ipv8_statistics(self):
+        """
+        Testing whether the API returns a correct Dispersy statistics dictionary when requested
+        """
+        def verify_dict(data):
+            self.assertTrue(json.loads(data)["ipv8_statistics"])
+
+        self.should_check_equality = False
+        return self.do_request('statistics/ipv8', expected_code=200).addCallback(verify_dict)
+
+    @deferred(timeout=10)
+    def test_get_ipv8_statistics_unavailable(self):
+        """
+        Testing whether the API returns error 500 if IPv8 is not available
+        """
+        self.session.config.set_ipv8_enabled(False)
+
+        def verify_dict(data):
+            self.assertFalse(json.loads(data)["ipv8_statistics"])
+
+        self.should_check_equality = False
+        return self.do_request('statistics/ipv8', expected_code=200).addCallback(verify_dict)
 
     @deferred(timeout=10)
     def test_get_community_statistics(self):
