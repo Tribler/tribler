@@ -138,7 +138,7 @@ class AbstractTriblerGUITest(unittest.TestCase):
             if isinstance(llist, QListWidget) and llist.count() >= num_items:
                 if not isinstance(llist.itemWidget(llist.item(0)), LoadingListItem):
                     return
-            elif isinstance(llist, QTreeWidget) and llist.topLevelItemCount() > num_items:
+            elif isinstance(llist, QTreeWidget) and llist.topLevelItemCount() >= num_items:
                 if not isinstance(llist.topLevelItem(0), LoadingListItem):
                     return
 
