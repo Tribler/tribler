@@ -207,19 +207,19 @@ class LibtorrentMgr(TaskManager):
                     self._logger.warning("the lt.state appears to be corrupt, writing new data on shutdown")
             except Exception, exc:
                 self._logger.info("could not load libtorrent state, got exception: %r. starting from scratch" % exc)
-            ltsession.start_dht()
         else:
             ltsession.listen_on(self.tribler_session.config.get_anon_listen_port(),
                                 self.tribler_session.config.get_anon_listen_port() + 20)
-            ltsession.start_dht()
 
             ltsession_settings = ltsession.get_settings()
             ltsession_settings['upload_rate_limit'] = self.tribler_session.config.get_libtorrent_max_upload_rate()
             ltsession_settings['download_rate_limit'] = self.tribler_session.config.get_libtorrent_max_download_rate()
             ltsession.set_settings(ltsession_settings)
 
-        for router in DEFAULT_DHT_ROUTERS:
-            ltsession.add_dht_router(*router)
+        if self.tribler_session.config.get_libtorrent_dht_enabled():
+            ltsession.start_dht()
+            for router in DEFAULT_DHT_ROUTERS:
+                ltsession.add_dht_router(*router)
 
         self._logger.debug("Started libtorrent session for %d hops on port %d", hops, ltsession.listen_port())
 
@@ -597,6 +597,10 @@ class LibtorrentMgr(TaskManager):
 
     @blocking_call_on_reactor_thread
     def _schedule_next_check(self, delay, retries_left):
+        if not self.tribler_session.config.get_libtorrent_dht_enabled():
+            self.dht_ready = True
+            return
+
         self.register_task(u'check_dht', reactor.callLater(delay, self.do_dht_check, retries_left))
 
     def do_dht_check(self, retries_left):

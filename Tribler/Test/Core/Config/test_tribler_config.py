@@ -208,6 +208,8 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_libtorrent_max_upload_rate(), True)
         self.tribler_config.set_libtorrent_max_download_rate(True)
         self.assertEqual(self.tribler_config.get_libtorrent_max_download_rate(), True)
+        self.tribler_config.set_libtorrent_dht_enabled(False)
+        self.assertFalse(self.tribler_config.get_libtorrent_dht_enabled())
 
     def test_get_set_methods_mainline_dht(self):
         """
