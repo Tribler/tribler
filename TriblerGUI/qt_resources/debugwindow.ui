@@ -21,7 +21,7 @@
     <item>
      <widget class="QTabWidget" name="debug_tab_widget">
       <property name="currentIndex">
-       <number>5</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -156,7 +156,7 @@
       </widget>
       <widget class="QWidget" name="tab_4">
        <attribute name="title">
-        <string>Dispersy</string>
+        <string>IPv8</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="spacing">
@@ -175,9 +175,9 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="QTabWidget" name="dispersy_tab_widget">
+         <widget class="QTabWidget" name="ipv8_tab_widget">
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="tab_6">
            <attribute name="title">
@@ -200,7 +200,7 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QTreeWidget" name="dispersy_general_tree_widget">
+             <widget class="QTreeWidget" name="ipv8_general_tree_widget">
               <property name="indentation">
                <number>0</number>
               </property>
@@ -223,7 +223,7 @@
           </widget>
           <widget class="QWidget" name="tab_7">
            <attribute name="title">
-            <string>Communities</string>
+            <string>Overlays</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -251,22 +251,22 @@
               </attribute>
               <column>
                <property name="text">
-                <string>Classification</string>
+                <string>Name</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Identifier</string>
+                <string>Master peer</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Member</string>
+                <string>My peer</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Candidates</string>
+                <string>Peers</string>
                </property>
               </column>
              </widget>
