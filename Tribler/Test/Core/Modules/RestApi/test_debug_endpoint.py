@@ -54,6 +54,22 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         return self.do_request('debug/circuits', expected_code=200).addCallback(verify_response)
 
     @deferred(timeout=10)
+    def test_get_slots(self):
+        """
+        Test whether we can get slot information from the API
+        """
+        self.session.lm.tunnel_community = MockObject()
+        self.session.lm.tunnel_community.random_slots = [None, None, None, 12345]
+        self.session.lm.tunnel_community.competing_slots = [(0, None), (12345, 12345)]
+
+        def verify_response(response):
+            response_json = json.loads(response)
+            self.assertEqual(len(response_json["slots"]["random"]), 4)
+
+        self.should_check_equality = False
+        return self.do_request('debug/circuits/slots', expected_code=200).addCallback(verify_response)
+
+    @deferred(timeout=10)
     def test_get_open_files(self):
         """
         Test whether the API returns open files
