@@ -571,6 +571,12 @@ class TriblerWindow(QMainWindow):
         self.download_uri = uri
 
         if get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True):
+            # If tribler settings is not available, fetch the settings and inform the user to try again.
+            if not self.tribler_settings:
+                self.fetch_settings()
+                ConfirmationDialog.show_error(self, "Download Error", "Tribler settings is not available yet. "
+                                                                      "Fetching it now. Please try again later.")
+                return
             # Clear any previous dialog if exists
             if self.dialog:
                 self.dialog.close_dialog()
