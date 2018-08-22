@@ -243,7 +243,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         except Exception as e:
             self.error = e
-            print_exc()
 
     def can_create_engine_wrapper(self):
         """

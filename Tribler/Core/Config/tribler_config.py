@@ -447,6 +447,12 @@ class TriblerConfig(object):
         """
         return self.config['libtorrent'].as_int('max_download_rate')
 
+    def set_libtorrent_dht_enabled(self, value):
+        self.config['libtorrent']['dht'] = value
+
+    def get_libtorrent_dht_enabled(self):
+        return self.config['libtorrent']['dht']
+
     # Mainline DHT
 
     def set_mainline_dht_enabled(self, value):

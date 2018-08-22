@@ -106,7 +106,7 @@ class MemoryPlotMplCanvas(MplCanvas):
 
 class DebugWindow(QMainWindow):
     """
-    The debug window shows various statistics about Tribler such as performed requests, Dispersy statistics and
+    The debug window shows various statistics about Tribler such as performed requests, IPv8 statistics and
     community information.
     """
     resize_event = pyqtSignal()
@@ -133,10 +133,10 @@ class DebugWindow(QMainWindow):
         self.window().toggle_profiler_button.clicked.connect(self.on_toggle_profiler_button_clicked)
 
         self.window().debug_tab_widget.setCurrentIndex(0)
-        self.window().dispersy_tab_widget.setCurrentIndex(0)
+        self.window().ipv8_tab_widget.setCurrentIndex(0)
         self.window().system_tab_widget.setCurrentIndex(0)
         self.window().debug_tab_widget.currentChanged.connect(self.tab_changed)
-        self.window().dispersy_tab_widget.currentChanged.connect(self.dispersy_tab_changed)
+        self.window().ipv8_tab_widget.currentChanged.connect(self.ipv8_tab_changed)
         self.window().events_tree_widget.itemClicked.connect(self.on_event_clicked)
         self.window().system_tab_widget.currentChanged.connect(self.system_tab_changed)
         self.load_general_tab()
@@ -145,7 +145,7 @@ class DebugWindow(QMainWindow):
 
         # Enable/disable tabs, based on settings
         self.window().debug_tab_widget.setTabEnabled(2, settings and settings['trustchain']['enabled'])
-        self.window().debug_tab_widget.setTabEnabled(3, settings and settings['dispersy']['enabled'])
+        self.window().debug_tab_widget.setTabEnabled(3, settings and settings['ipv8']['enabled'])
         self.window().system_tab_widget.setTabEnabled(3, settings and settings['resource_monitor']['enabled'])
         self.window().system_tab_widget.setTabEnabled(4, settings and settings['resource_monitor']['enabled'])
 
@@ -168,7 +168,7 @@ class DebugWindow(QMainWindow):
         elif index == 2:
             self.load_trustchain_tab()
         elif index == 3:
-            self.dispersy_tab_changed(self.window().dispersy_tab_widget.currentIndex())
+            self.ipv8_tab_changed(self.window().ipv8_tab_widget.currentIndex())
         elif index == 4:
             self.load_events_tab()
         elif index == 5:
@@ -176,11 +176,11 @@ class DebugWindow(QMainWindow):
         elif index == 6:
             self.load_logs_tab()
 
-    def dispersy_tab_changed(self, index):
+    def ipv8_tab_changed(self, index):
         if index == 0:
-            self.load_dispersy_general_tab()
+            self.load_ipv8_general_tab()
         elif index == 1:
-            self.load_dispersy_communities_tab()
+            self.load_ipv8_communities_tab()
 
     def system_tab_changed(self, index):
         if index == 0:
@@ -252,31 +252,31 @@ class DebugWindow(QMainWindow):
         for key, value in data["statistics"].iteritems():
             self.create_and_add_widget_item(key, value, self.window().trustchain_tree_widget)
 
-    def load_dispersy_general_tab(self):
+    def load_ipv8_general_tab(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("statistics/dispersy", self.on_dispersy_general_stats)
+        self.request_mgr.perform_request("statistics/ipv8", self.on_ipv8_general_stats)
 
-    def on_dispersy_general_stats(self, data):
+    def on_ipv8_general_stats(self, data):
         if not data:
             return
-        self.window().dispersy_general_tree_widget.clear()
-        for key, value in data["dispersy_statistics"].iteritems():
-            self.create_and_add_widget_item(key, value, self.window().dispersy_general_tree_widget)
+        self.window().ipv8_general_tree_widget.clear()
+        for key, value in data["ipv8_statistics"].iteritems():
+            self.create_and_add_widget_item(key, value, self.window().ipv8_general_tree_widget)
 
-    def load_dispersy_communities_tab(self):
+    def load_ipv8_communities_tab(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("statistics/communities", self.on_dispersy_community_stats)
+        self.request_mgr.perform_request("statistics/communities", self.on_ipv8_community_stats)
 
-    def on_dispersy_community_stats(self, data):
+    def on_ipv8_community_stats(self, data):
         if not data:
             return
         self.window().communities_tree_widget.clear()
-        for community in data["dispersy_community_statistics"]:
+        for overlay in data["ipv8_overlay_statistics"]:
             item = QTreeWidgetItem(self.window().communities_tree_widget)
-            item.setText(0, community["classification"])
-            item.setText(1, community["identifier"][:6])
-            item.setText(2, community["member"][:6])
-            item.setText(3, "%s" % community["candidates"])
+            item.setText(0, overlay["overlay_name"])
+            item.setText(1, overlay["master_peer"][:6])
+            item.setText(2, overlay["my_peer"][:6])
+            item.setText(3, "%s" % len(overlay["peers"]))
             self.window().communities_tree_widget.addTopLevelItem(item)
 
     def on_event_clicked(self, item):

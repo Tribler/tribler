@@ -120,6 +120,20 @@ class TriblerStatistics(object):
 
         return communities_stats
 
+    def get_ipv8_statistics(self):
+        """
+        Return generic IPv8 statistics.
+        """
+        try:
+            ipv8 = self.session.get_ipv8_instance()
+        except OperationNotEnabledByConfigurationException:
+            return {}
+
+        return {
+            "total_up": ipv8.endpoint.bytes_up,
+            "total_down": ipv8.endpoint.bytes_down
+        }
+
     def get_ipv8_overlays_statistics(self):
         """
         Return a dictionary with IPv8 overlay statistics.

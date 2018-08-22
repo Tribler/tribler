@@ -72,6 +72,7 @@ max_connections_download = integer(default=-1)
 max_download_rate = integer(default=0)
 max_upload_rate = integer(default=0)
 utp = boolean(default=True)
+dht = boolean(default=True)
 
 anon_listen_port = integer(min=-1, max=65536, default=-1)
 anon_proxy_type = integer(min=0, max=5, default=0)
