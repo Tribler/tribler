@@ -165,7 +165,6 @@ class Tunnel(object):
         config.set_megacache_enabled(False)
         config.set_dispersy_enabled(False)
         config.set_ipv8_enabled(True)
-        config.set_mainline_dht_enabled(True)
         config.set_torrent_collecting_enabled(False)
         config.set_libtorrent_enabled(False)
         config.set_video_server_enabled(False)
