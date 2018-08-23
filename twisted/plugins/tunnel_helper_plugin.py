@@ -83,7 +83,8 @@ check_ipv8_bootstrap_override.coerceDoc = "IPv8 bootstrap server address must be
 class Options(usage.Options):
     optFlags = [
         ["exit", "x", "Allow being an exit-node"],
-        ["testnet", "t", "Join the testnet"]
+        ["testnet", "t", "Join the testnet"],
+        ["no-rest-api", "a", "Disable the REST api"],
     ]
 
     optParameters = [
@@ -92,7 +93,7 @@ class Options(usage.Options):
         ["ipv8_port", "d", -1, 'IPv8 port', check_ipv8_port],
         ["ipv8_address", "i", "0.0.0.0", 'IPv8 listening address', check_ipv8_address],
         ["ipv8_bootstrap_override", "b", None, "Force the usage of specific IPv8 bootstrap server (ip:port)", check_ipv8_bootstrap_override],
-        ["restapi", "p", None, "Use an alternate port for the REST API", check_api_port],
+        ["restapi", "p", 8085, "Use an alternate port for the REST API", check_api_port],
     ]
 
 if not os.path.exists("logger.conf"):
@@ -181,9 +182,12 @@ class Tunnel(object):
         config.set_popularity_community_enabled(False)
         config.set_testnet(bool(self.options["testnet"]))
 
-        if self.options["restapi"] is not None:
+        if not self.options['no-rest-api']:
             config.set_http_api_enabled(True)
-            config.set_http_api_port(self.options["restapi"])
+            api_port = self.options["restapi"]
+            if "HELPER_INDEX" in os.environ and "HELPER_BASE" in os.environ:
+                api_port = int(os.environ["HELPER_BASE"]) + 10000 + int(os.environ["HELPER_INDEX"])
+            config.set_http_api_port(api_port)
 
         if self.options["ipv8_bootstrap_override"] is not None:
             config.set_ipv8_bootstrap_override(self.options["ipv8_bootstrap_override"])
