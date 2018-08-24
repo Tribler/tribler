@@ -45,6 +45,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.tribler_session.config.get_libtorrent_max_upload_rate = lambda: 100
         self.tribler_session.config.get_libtorrent_max_download_rate = lambda: 120
         self.tribler_session.config.get_libtorrent_dht_enabled = lambda: False
+        self.tribler_session.config.set_libtorrent_port_runtime = lambda _: None
 
         self.ltmgr = LibtorrentMgr(self.tribler_session)
 
