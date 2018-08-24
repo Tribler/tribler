@@ -1,3 +1,6 @@
+from os.path import join
+from tempfile import mkdtemp
+
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Test.Core.base_test import MockObject
@@ -45,7 +48,8 @@ class TestTriblerTunnelCommunity(TestBase):
             node.unload()
 
     def create_node(self):
-        mock_ipv8 = MockIPv8(u"curve25519", TriblerTunnelCommunity, socks_listen_ports=[])
+        mock_ipv8 = MockIPv8(u"curve25519", TriblerTunnelCommunity, socks_listen_ports=[],
+                             exitnode_cache=join(mkdtemp(suffix="_tribler_test_cache"), 'cache.dat'))
         mock_ipv8.overlay.settings.max_circuits = 1
 
         # Load the TrustChain community
@@ -89,6 +93,28 @@ class TestTriblerTunnelCommunity(TestBase):
         exit_sockets = exit_node.overlay.exit_sockets
         for exit_socket in exit_sockets:
             exit_sockets[exit_socket] = MockTunnelExitSocket(exit_sockets[exit_socket])
+
+    @twisted_wrapper
+    def test_backup_exitnodes(self):
+        """
+        Check if exitnodes are serialized and deserialized to and from disk properly.
+        """
+        # 1. Add and exit node
+        exit_node = self.create_node()
+        exit_node.overlay.settings.become_exitnode = True
+        self.add_node_to_experiment(exit_node)
+        self.nodes[0].overlay.exit_candidates[exit_node.my_peer.public_key.key_to_bin()] = exit_node.my_peer
+        self.assertGreaterEqual(len(self.nodes[0].overlay.exit_candidates), 1)
+        # 2. Unload
+        self.nodes[0].overlay.cache_exitnodes_to_disk()
+        self.nodes[0].network.verified_peers = []
+        self.nodes[0].overlay.exit_candidates.clear()
+        # 3. Load again
+        self.nodes[0].overlay.restore_exitnodes_from_disk()
+        # 4. Check if exit node was contacted
+        yield self.deliver_messages()
+        self.assertGreaterEqual(len(self.nodes[0].overlay.exit_candidates), 1)
+
 
     @blocking_call_on_reactor_thread
     def test_download_remove(self):
