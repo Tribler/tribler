@@ -127,7 +127,8 @@ class TrustPage(QWidget):
         # Fetch the latest blocks of this user
         self.public_key = statistics["id"]
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("trustchain/blocks/%s" % self.public_key, self.received_trustchain_blocks)
+        self.request_mgr.perform_request("ipv8/trustchain/users/%s/blocks" % self.public_key,
+                                         self.received_trustchain_blocks)
 
     def received_trustchain_blocks(self, blocks):
         if blocks:
