@@ -1,6 +1,6 @@
 import logging
 
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.protocol import Protocol
@@ -72,7 +72,7 @@ class TestEventsEndpoint(AbstractApiTest):
     def close_connections(self):
         return self.connection_pool.closeCachedConnections()
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_search_results(self):
         """
         Testing whether the event endpoint returns search results when we have search results available
@@ -93,7 +93,7 @@ class TestEventsEndpoint(AbstractApiTest):
 
         return self.events_deferred.addCallback(verify_search_results)
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_events(self):
         """
         Testing whether various events are coming through the events endpoints
@@ -130,7 +130,7 @@ class TestEventsEndpoint(AbstractApiTest):
 
         return self.events_deferred
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_family_filter_search(self):
         """
         Testing the family filter when searching for torrents and channels

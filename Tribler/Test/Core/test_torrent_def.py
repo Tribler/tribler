@@ -5,7 +5,7 @@ from tempfile import mkdtemp
 
 from libtorrent import bdecode
 from nose.tools import raises
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.web.server import Site
@@ -237,7 +237,7 @@ class TestTorrentDef(BaseTestCase):
         self.assertTrue(t1.is_private())
         self.assertFalse(t2.is_private())
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_load_from_url(self):
         # Setup file server to serve torrent file
         self.session_base_dir = mkdtemp(suffix="_tribler_test_load_from_url")
@@ -259,7 +259,7 @@ class TestTorrentDef(BaseTestCase):
         deferred.addCallback(_on_load)
         return deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_load_from_url_404(self):
         # Setup file server to serve torrent file
         self.session_base_dir = mkdtemp(suffix="_tribler_test_load_from_url")

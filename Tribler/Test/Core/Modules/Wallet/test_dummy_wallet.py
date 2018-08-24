@@ -1,4 +1,4 @@
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.Modules.wallet.dummy_wallet import BaseDummyWallet, DummyWallet1, DummyWallet2
@@ -29,14 +29,14 @@ class TestDummyWallet(AbstractServer):
         self.assertEqual(DummyWallet1().get_name(), 'Dummy 1')
         self.assertEqual(DummyWallet2().get_name(), 'Dummy 2')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_wallet(self):
         """
         Test the creation of a dummy wallet
         """
         return self.dummy_wallet.create_wallet()
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_balance(self):
         """
         Test fetching the balance of a dummy wallet
@@ -46,7 +46,7 @@ class TestDummyWallet(AbstractServer):
 
         return self.dummy_wallet.get_balance().addCallback(on_balance)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_transfer(self):
         """
         Test the transfer of money from a dummy wallet
@@ -59,7 +59,7 @@ class TestDummyWallet(AbstractServer):
 
         return self.dummy_wallet.transfer(self.dummy_wallet.balance - 1, None).addCallback(get_transactions)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_transfer_invalid(self):
         """
         Test whether transferring a too large amount of money from a dummy wallet raises an error
@@ -73,7 +73,7 @@ class TestDummyWallet(AbstractServer):
         self.dummy_wallet.transfer(self.dummy_wallet.balance + 1, None).addErrback(on_error)
         return test_deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_monitor(self):
         """
         Test the monitor loop of a transaction wallet
@@ -81,7 +81,7 @@ class TestDummyWallet(AbstractServer):
         self.dummy_wallet.MONITOR_DELAY = 1
         return self.dummy_wallet.monitor_transaction("3.0")
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_monitor_instant(self):
         """
         Test an instant the monitor loop of a transaction wallet
@@ -95,7 +95,7 @@ class TestDummyWallet(AbstractServer):
         """
         self.assertIsInstance(self.dummy_wallet.get_address(), str)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_transaction(self):
         """
         Test the retrieval of transactions of a dummy wallet

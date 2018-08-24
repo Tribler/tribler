@@ -5,7 +5,7 @@ from Tribler.Core.Modules.wallet.wallet import InsufficientFunds
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 from Tribler.pyipv8.ipv8.test.base import TestBase
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
-from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
+from Tribler.Test.tools import trial_timeout
 
 
 class TestTrustchainWallet(TestBase):
@@ -32,7 +32,8 @@ class TestTrustchainWallet(TestBase):
         """
         self.assertEqual(self.tc_wallet.get_identifier(), 'MB')
 
-    @twisted_wrapper(2)
+    @trial_timeout(2)
+    @inlineCallbacks
     def test_get_balance(self):
         """
         Test the balance retrieval of a Trustchain wallet
@@ -63,7 +64,7 @@ class TestTrustchainWallet(TestBase):
         """
         self.assertRaises(RuntimeError, self.tc_wallet.create_wallet)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_transfer_invalid(self):
         """
         Test the transfer method of a Trustchain wallet
@@ -77,7 +78,7 @@ class TestTrustchainWallet(TestBase):
         self.tc_wallet.transfer(200, None).addErrback(on_error)
         yield test_deferred
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_monitor_transaction(self):
         """
         Test the monitoring of a transaction in a Trustchain wallet
@@ -98,7 +99,8 @@ class TestTrustchainWallet(TestBase):
 
         yield tx_deferred
 
-    @twisted_wrapper(2)
+    @trial_timeout(2)
+    @inlineCallbacks
     def test_monitor_tx_existing(self):
         """
         Test monitoring a transaction that already exists
@@ -120,7 +122,7 @@ class TestTrustchainWallet(TestBase):
         """
         self.assertIsInstance(self.tc_wallet.get_address(), str)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_get_transaction(self):
         """
         Test the retrieval of transactions of a Trustchain wallet
@@ -136,7 +138,7 @@ class TestTrustchainWallet(TestBase):
         """
         self.assertEqual(self.tc_wallet.min_unit(), 1)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_get_statistics(self):
         """
         Test fetching statistics from a Trustchain wallet

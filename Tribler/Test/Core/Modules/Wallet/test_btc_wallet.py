@@ -6,12 +6,11 @@ from Tribler.Core.Modules.wallet.btc_wallet import BitcoinTestnetWallet, Bitcoin
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.Test.twisted_thread import deferred
-from twisted.internet.defer import succeed, Deferred
-
+from Tribler.Test.tools import trial_timeout
 
 class TestBtcWallet(AbstractServer):
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_btc_wallet(self):
         """
         Test the creating, opening, transactions and balance query of a Bitcoin (testnet) wallet
@@ -80,7 +79,7 @@ class TestBtcWallet(AbstractServer):
         wallet = BitcoinTestnetWallet(self.session_base_dir)
         return wallet.get_balance().addCallback(on_wallet_balance)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_btc_wallet_transfer(self):
         """
         Test that the transfer method of a BTC wallet works
@@ -100,7 +99,7 @@ class TestBtcWallet(AbstractServer):
 
         return test_deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_btc_wallet_create_error(self):
         """
         Test whether an error during wallet creation is handled
@@ -115,7 +114,7 @@ class TestBtcWallet(AbstractServer):
 
         return test_deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_btc_wallet_transfer_no_funds(self):
         """
         Test that the transfer method of a BTC wallet raises an error when we don't have enough funds
@@ -133,7 +132,7 @@ class TestBtcWallet(AbstractServer):
 
         return test_deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_transactions(self):
         """
         Test whether transactions in bitcoinlib are correctly returned

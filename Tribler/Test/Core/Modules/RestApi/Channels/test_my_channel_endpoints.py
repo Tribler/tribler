@@ -3,12 +3,12 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.restapi.channels.my_channel_endpoint import NO_CHANNEL_CREATED_RESPONSE_MSG
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.Core.base_test import MockObject
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 
 
 class TestMyChannelEndpoints(AbstractTestChannelsEndpoint):
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_my_channel_overview_endpoint_no_my_channel(self):
         """
         Testing whether the API returns response code 404 if no channel has been created
@@ -16,7 +16,7 @@ class TestMyChannelEndpoints(AbstractTestChannelsEndpoint):
         expected_json = {"error": NO_CHANNEL_CREATED_RESPONSE_MSG}
         return self.do_request('mychannel', expected_json=expected_json, expected_code=404)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_my_channel_overview_endpoint_with_channel(self):
         """
         Testing whether the API returns the right JSON data if a channel overview is requested
@@ -27,14 +27,14 @@ class TestMyChannelEndpoints(AbstractTestChannelsEndpoint):
 
         return self.do_request('mychannel', expected_code=200, expected_json=channel_json)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_edit_my_channel_no_channel(self):
         """
         Testing whether an error 404 is returned when trying to edit your non-existing channel
         """
         return self.do_request('mychannel', expected_code=404, request_type='POST')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_edit_my_channel_no_cmty(self):
         """
         Testing whether an error 404 is returned when trying to edit your channel without community

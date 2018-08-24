@@ -1,7 +1,7 @@
 from binascii import hexlify, unhexlify
 
 from nose.tools import raises
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
@@ -144,7 +144,7 @@ class TestSessionAsServer(TestAsServer):
         self.session.unhandled_error_observer({'isError': True,
                                                'log_failure': 'exceptions.RuntimeError: invalid info-hash'})
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_def_to_channel(self):
         """
         Test whether adding a torrent def to a channel works
@@ -164,7 +164,7 @@ class TestSessionAsServer(TestAsServer):
 
         return test_deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_def_to_channel_duplicate(self):
         """
         Test whether adding a torrent def twice to a channel raises an exception
@@ -365,7 +365,7 @@ class TestSessionWithLibTorrent(TestSessionAsServer):
         super(TestSessionWithLibTorrent, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_remove_torrent_id(self):
         """
         Test whether removing a torrent id works.

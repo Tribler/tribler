@@ -9,5 +9,5 @@ class ClockedPlyvelStore(ClockedAbstractLevelDBStore):
 
 
 class TestPlyvelStore(AbstractTestLevelDBStore):
-    __test__ = True
+    skip = False
     _storetype = ClockedPlyvelStore

@@ -1,12 +1,12 @@
 from twisted.internet import defer
 
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 
 
 class TestShutdownEndpoint(AbstractApiTest):
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_shutdown(self):
         """
         Testing whether the API triggers a Tribler shutdown

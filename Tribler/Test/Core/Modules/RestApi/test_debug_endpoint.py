@@ -3,20 +3,20 @@ import os
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_DATA
 
 
 class TestCircuitDebugEndpoint(AbstractApiTest):
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_circuit_no_community(self):
         """
         Testing whether the API returns error 404 if no tunnel community is loaded
         """
         return self.do_request('debug/circuits', expected_code=404)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_circuits(self):
         """
         Testing whether the API returns the correct circuits
@@ -53,7 +53,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('debug/circuits', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_slots(self):
         """
         Test whether we can get slot information from the API
@@ -69,7 +69,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('debug/circuits/slots', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_open_files(self):
         """
         Test whether the API returns open files
@@ -81,7 +81,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('debug/open_files', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_open_sockets(self):
         """
         Test whether the API returns open sockets
@@ -94,7 +94,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('debug/open_sockets', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_threads(self):
         """
         Test whether the API returns open threads
@@ -107,7 +107,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('debug/threads', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_cpu_history(self):
         """
         Test whether the API returns the cpu history
@@ -121,7 +121,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('debug/cpu/history', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_memory_history(self):
         """
         Test whether the API returns the memory history
@@ -135,7 +135,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('debug/memory/history', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=60)
+    @trial_timeout(60)
     def test_dump_memory(self):
         """
         Test whether the API returns a memory dump
@@ -147,7 +147,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('debug/memory/dump', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_debug_pane_core_logs(self):
         """
         Test whether the API returns the logs
@@ -185,7 +185,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
             .addCallback(verify_log_exists)\
 
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_debug_pane_default_num_logs(self):
         """
         Test whether the API returns the last 100 logs when no max_lines parameter is not provided
@@ -214,7 +214,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         return self.do_request('debug/log?process=gui&max_lines=', expected_code=200)\
             .addCallback(verify_max_logs_returned)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_profiler_state(self):
         """
         Test getting the state of the profiler
@@ -226,7 +226,7 @@ class TestCircuitDebugEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('debug/profiler', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_start_stop_profiler(self):
         """
         Test starting and stopping the profiler using the API

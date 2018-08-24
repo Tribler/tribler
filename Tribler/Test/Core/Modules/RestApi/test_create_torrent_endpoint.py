@@ -6,7 +6,7 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.common import TESTS_DATA_DIR
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 
 
 class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
@@ -23,7 +23,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
                         os.path.join(self.files_path, 'video.avi.torrent'))
         self.config.set_libtorrent_enabled(True)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_torrent(self):
         """
         Testing whether the API returns a proper base64 encoded torrent
@@ -53,7 +53,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('createtorrent?download=1', 200, None, 'POST', post_data).addCallback(verify_torrent)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_torrent_name_is_as_specified(self):
         """
         Testing whether the torrent file is created with the name provided (with unicode support)
@@ -75,7 +75,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
         return self.do_request('createtorrent?download=1', 200, None, 'POST', post_data)\
             .addCallback(lambda response: verify_torrent_exists())
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_torrent_io_error(self):
         """
         Testing whether the API returns a formatted 500 error if IOError is raised
@@ -98,7 +98,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('createtorrent', 500, None, 'POST', post_data).addCallback(verify_error_message)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_torrent_missing_files_parameter(self):
         expected_json = {"error": "files parameter missing"}
         return self.do_request('createtorrent', 400, expected_json, 'POST')

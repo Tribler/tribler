@@ -5,9 +5,10 @@ Author(s): Mihai Capota, Ardhi Putra
 """
 
 from binascii import unhexlify, hexlify
+from twisted.internet import reactor
+
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import deferLater
-from twisted.internet import reactor
 
 from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_DISCOVERED, NTFY_TORRENT

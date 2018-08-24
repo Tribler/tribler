@@ -1,11 +1,11 @@
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN_CHANNEL_RESPONSE_MSG
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 
 
 class TestChannelsDiscoveredEndpoints(AbstractTestChannelsEndpoint):
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_channel_info_non_existent(self):
         """
         Testing whether the API returns error 404 if an unknown channel is queried
@@ -14,7 +14,7 @@ class TestChannelsDiscoveredEndpoints(AbstractTestChannelsEndpoint):
         expected_json = {"error": UNKNOWN_CHANNEL_RESPONSE_MSG}
         return self.do_request('channels/discovered/aabb', expected_code=404, expected_json=expected_json)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_channel_info(self):
         """
         Testing whether the API returns the right JSON data if a channel overview is requested

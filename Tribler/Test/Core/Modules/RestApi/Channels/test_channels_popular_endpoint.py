@@ -2,12 +2,12 @@ from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 
 
 class TestChannelsPlaylistEndpoints(AbstractTestChannelsEndpoint):
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     @inlineCallbacks
     def test_popular_channels_endpoint(self):
         """
@@ -29,7 +29,7 @@ class TestChannelsPlaylistEndpoints(AbstractTestChannelsEndpoint):
         yield self.do_request('channels/popular?limit=5', expected_code=200).addCallback(verify_channels_limit)
         yield self.do_request('channels/popular', expected_code=200).addCallback(verify_channels)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_popular_channels_limit_neg(self):
         """
         Testing whether error 400 is returned when a negative limit is passed to the request to fetch popular channels

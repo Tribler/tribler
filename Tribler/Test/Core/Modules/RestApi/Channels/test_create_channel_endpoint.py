@@ -1,11 +1,11 @@
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 
 
 class TestCreateChannelEndpoint(AbstractTestChannelsEndpoint):
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_my_channel_endpoint_create(self):
         """
         Testing whether the API returns the right JSON data if a channel is created
@@ -28,7 +28,7 @@ class TestCreateChannelEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered', expected_code=200, expected_json=None, request_type='PUT',
                                post_data=post_data).addCallback(verify_channel_created)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_my_channel_endpoint_create_default_mode(self):
         """
         Testing whether the API returns the right JSON data if a channel is created
@@ -50,7 +50,7 @@ class TestCreateChannelEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered', expected_code=200, expected_json=None,
                                request_type='PUT', post_data=post_data).addCallback(verify_channel_created)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_my_channel_endpoint_create_duplicate_name_error(self):
         """
         Testing whether the API returns a formatted 500 error if DuplicateChannelNameError is raised
@@ -77,7 +77,7 @@ class TestCreateChannelEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered', expected_code=500, expected_json=None, request_type='PUT',
                                post_data=post_data).addCallback(verify_error_message)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_my_channel_endpoint_create_no_name_param(self):
         """
         Testing whether the API returns a 400 and error if the name parameter is not passed
@@ -90,7 +90,7 @@ class TestCreateChannelEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered', expected_code=400, expected_json=expected_json,
                                request_type='PUT', post_data=post_data)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_my_channel_endpoint_create_no_description_param(self):
         """
         Testing whether the API returns the right JSON data if description parameter is not passed

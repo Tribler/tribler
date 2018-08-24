@@ -30,7 +30,7 @@ class ClockedLevelDBStore(ClockedAbstractLevelDBStore):
 
 class AbstractTestLevelDBStore(BaseTestCase):
 
-    __test__ = False
+    skip = True
     _storetype = None
 
     def __init__(self, *argv, **kwargs):
@@ -110,7 +110,7 @@ class AbstractTestLevelDBStore(BaseTestCase):
 
 
 class TestLevelDBStore(AbstractTestLevelDBStore):
-    __test__ = True
+    skip = False
     _storetype = ClockedLevelDBStore
 
     def test_invalid_handle(self):

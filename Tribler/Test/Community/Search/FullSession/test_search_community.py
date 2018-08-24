@@ -5,7 +5,7 @@ from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TORRENTS, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT, \
     NTFY_CHANNELCAST
 from Tribler.Test.test_as_server import TestAsServer
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.search.community import SearchCommunity
 from Tribler.dispersy.candidate import Candidate
@@ -139,7 +139,7 @@ class TestSearchCommunity(TestAsServer):
         channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         channel_db_handler.on_channel_from_dispersy('f' * 20, 42, "test", "channel for unit tests")
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_torrent_search(self):
         """
         Test whether we receive results when searching remotely for torrents
@@ -155,7 +155,7 @@ class TestSearchCommunity(TestAsServer):
 
         return test_deferred
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_channel_search(self):
         """
         Test whether we receive results when searching remotely for channels

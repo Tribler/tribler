@@ -1,6 +1,6 @@
 import json
 
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
@@ -27,7 +27,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         yield self.mock_ipv8.unload()
         yield super(TestTrustchainStatsEndpoint, self).tearDown()
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_statistics_no_community(self):
         """
         Testing whether the API returns error 404 if no trustchain community is loaded
@@ -35,7 +35,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         del self.session.lm.wallets['MB']
         return self.do_request('trustchain/statistics', expected_code=404)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_statistics(self):
         """
         Testing whether the API returns the correct statistics
@@ -73,7 +73,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('trustchain/statistics', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_statistics_no_data(self):
         """
         Testing whether the API returns the correct statistics
@@ -95,7 +95,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('trustchain/statistics', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_bootstrap_identity_no_community(self):
         """
         Testing whether the API returns error 404 if no trustchain community is loaded when bootstrapping a new identity
@@ -103,7 +103,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         del self.session.lm.wallets['MB']
         return self.do_request('trustchain/bootstrap', expected_code=404)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_bootstrap_identity_all_tokens(self):
         """
         Testing whether the API return all available tokens when no argument is supplied
@@ -124,7 +124,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('trustchain/bootstrap', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_bootstrap_identity_partial_tokens(self):
         """
         Testing whether the API return partial available credit when argument is supplied
@@ -145,7 +145,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('trustchain/bootstrap?amount=50', expected_code=200).addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_bootstrap_identity_not_enough_tokens(self):
         """
         Testing whether the API returns error 400 if bandwidth is to low when bootstrapping a new identity
@@ -160,7 +160,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('trustchain/bootstrap?amount=200', expected_code=400)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_bootstrap_identity_not_enough_tokens_2(self):
         """
         Testing whether the API returns error 400 if bandwidth is to low when bootstrapping a new identity
@@ -175,7 +175,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('trustchain/bootstrap?amount=10', expected_code=400)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_bootstrap_identity_zero_amount(self):
         """
         Testing whether the API returns error 400 if amount is zero when bootstrapping a new identity
@@ -183,7 +183,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('trustchain/bootstrap?amount=0', expected_code=400)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_bootstrap_identity_negative_amount(self):
         """
         Testing whether the API returns error 400 if amount is negative when bootstrapping a new identity
@@ -191,7 +191,7 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('trustchain/bootstrap?amount=-1', expected_code=400)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_bootstrap_identity_string(self):
         """
         Testing whether the API returns error 400 if amount is string when bootstrapping a new identity

@@ -2,7 +2,7 @@ from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from Tribler.Core.DownloadConfig import DownloadConfigInterface
 
 
@@ -26,7 +26,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         for section in check_section:
             self.assertTrue(settings_json['settings'][section])
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_unicode_chars(self):
         """
         Test setting watch_folder to a unicode path.
@@ -46,7 +46,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         return self.do_request('settings', expected_code=200, request_type='POST',
                                post_data=post_data.encode('latin_1'), raw_data=True).addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_settings(self):
         """
         Testing whether the API returns a correct settings dictionary when the settings are requested
@@ -54,7 +54,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('settings', expected_code=200).addCallback(self.verify_settings)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_set_settings_invalid_dict(self):
         """
         Testing whether an error is returned if we are passing an invalid dictionary that is too deep
@@ -68,7 +68,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         return self.do_request('settings', expected_code=500, request_type='POST', post_data=post_data, raw_data=True)\
             .addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     @inlineCallbacks
     def test_set_settings_no_key(self):
         """
@@ -87,7 +87,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         yield self.do_request('settings', expected_code=500, request_type='POST', post_data=post_data, raw_data=True)\
             .addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     @inlineCallbacks
     def test_set_settings(self):
         """

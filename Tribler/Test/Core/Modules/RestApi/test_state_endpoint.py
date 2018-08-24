@@ -1,10 +1,10 @@
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 
 
 class TestStateEndpoint(AbstractApiTest):
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_state(self):
         """
         Testing whether the API returns a correct state when requested

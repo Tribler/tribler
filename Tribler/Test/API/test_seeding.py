@@ -11,7 +11,7 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 
 
 class TestSeeding(TestAsServer):
@@ -46,7 +46,7 @@ class TestSeeding(TestAsServer):
 
         download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
 
-    @deferred(timeout=60)
+    @trial_timeout(60)
     def test_seeding(self):
         """
         Test whether a torrent is correctly seeded

@@ -8,7 +8,6 @@ from Tribler.Test.Core.base_test import MockObject
 from Tribler.pyipv8.ipv8.test.base import TestBase
 from Tribler.pyipv8.ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
-from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RENDEZVOUS
 from Tribler.pyipv8.ipv8.peer import Peer
@@ -232,7 +231,7 @@ class TestTriblerTunnelCommunity(TestBase):
         self.nodes[0].overlay.bittorrent_peers['a'] = {4}
         self.nodes[0].overlay.update_torrent(peers, mock_handle, 'a')
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_payouts(self):
         """
         Test whether nodes are correctly paid after transferring data
@@ -260,7 +259,7 @@ class TestTriblerTunnelCommunity(TestBase):
         self.assertTrue(self.nodes[1].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
         self.assertTrue(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_circuit_reject_too_many(self):
         """
         Test whether a circuit is rejected by an exit node if it already joined the max number of circuits
@@ -274,7 +273,7 @@ class TestTriblerTunnelCommunity(TestBase):
 
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 0.0)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_payouts_e2e(self):
         """
         Check if payouts work for an e2e-linked circuit
@@ -307,7 +306,7 @@ class TestTriblerTunnelCommunity(TestBase):
         self.assertTrue(self.nodes[1].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
         self.assertTrue(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens() > 0)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_decline_competing_slot(self):
         """
         Test whether a circuit is not created when a node does not have enough balance for a competing slot
@@ -323,7 +322,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Assert whether we didn't create the circuit
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 0.0)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_win_competing_slot(self):
         """
         Test whether a circuit is created when a node has enough balance for a competing slot
@@ -339,7 +338,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Assert whether we didn't create the circuit
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 1.0)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_empty_competing_slot(self):
         """
         Test whether a circuit is created when a node takes an empty competing slot
@@ -355,7 +354,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Assert whether we did create the circuit
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 1.0)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_win_competing_slot_exit(self):
         """
         Test whether a two-hop circuit is created when a node has enough balance for a competing slot at the exit
@@ -372,7 +371,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Assert whether we did create the circuit
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(2), 1.0)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_win_competing_slot_relay(self):
         """
         Test whether a two-hop circuit is created when a node has enough balance for a competing slot
@@ -389,8 +388,9 @@ class TestTriblerTunnelCommunity(TestBase):
         # Assert whether we did create the circuit
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(2), 1.0)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_payout_on_competition_kick(self):
+        #FIXME: this test fails when repeated 18-20 times in a single interpreter (trial -e -u)
         """
         Test whether a payout is initiated when an existing node is kicked out from a competing slot
         """
@@ -424,7 +424,7 @@ class TestTriblerTunnelCommunity(TestBase):
         # Check whether the exit node has been paid
         self.assertGreaterEqual(self.nodes[2].overlay.bandwidth_wallet.get_bandwidth_tokens(), 250 * 1024 * 1024)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_create_circuit_without_wallet(self):
         """
         Test whether creating a circuit without bandwidth wallet, fails

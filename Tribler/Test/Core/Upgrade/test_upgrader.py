@@ -5,7 +5,7 @@ from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION, LOWEST_SUPPORTED
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.simpledefs import NTFY_UPGRADER_TICK, NTFY_STARTED
 from Tribler.Test.Core.Upgrade.upgrade_base import AbstractUpgrader
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 
 
 class TestUpgrader(AbstractUpgrader):
@@ -59,7 +59,7 @@ class TestUpgrader(AbstractUpgrader):
         self.upgrader.run()
         self.assertTrue(self.upgrader.notified)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_update_status_text(self):
         test_deferred = Deferred()
 

@@ -1,6 +1,6 @@
 import time
 
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
@@ -15,7 +15,7 @@ from Tribler.Test.util.Tracker.UDPTracker import UDPTracker
 
 class TestTorrentsEndpoint(AbstractApiTest):
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_random_torrents(self):
         """
         Testing whether random torrents are returned if random torrents are fetched
@@ -40,7 +40,7 @@ class TestTorrentsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('torrents/random?limit=5', expected_code=200).addCallback(verify_torrents)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_random_torrents_negative(self):
         """
         Testing whether error 400 is returned when a negative limit is passed to the request to fetch random torrents
@@ -48,7 +48,7 @@ class TestTorrentsEndpoint(AbstractApiTest):
         expected_json = {"error": "the limit parameter must be a positive number"}
         return self.do_request('torrents/random?limit=-5', expected_code=400, expected_json=expected_json)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_info_torrent_404(self):
         """
         Test whether we get an error 404 if we are fetching info from a non-existing torrent
@@ -56,7 +56,7 @@ class TestTorrentsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('torrents/%s' % ('a' * 40), expected_code=404)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_info_torrent(self):
         """
         Testing whether the API returns the right information for a request of a specific torrent
@@ -81,7 +81,7 @@ class TestTorrentsEndpoint(AbstractApiTest):
 
 class TestTorrentTrackersEndpoint(AbstractApiTest):
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_torrent_trackers_404(self):
         """
         Testing whether we get an error 404 if we are fetching the trackers of a non-existent torrent
@@ -89,7 +89,7 @@ class TestTorrentTrackersEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('torrents/%s/trackers' % ('a' * 40), expected_code=404)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_torrent_trackers(self):
         """
         Testing whether fetching the trackers of a non-existent torrent is successful
@@ -130,7 +130,7 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         yield self.http_tracker.stop()
         yield super(TestTorrentHealthEndpoint, self).tearDown()
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     @inlineCallbacks
     def test_check_torrent_health(self):
         """
