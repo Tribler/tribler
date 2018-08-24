@@ -13,7 +13,6 @@ class TrustchainEndpoint(resource.Resource):
 
         child_handler_dict = {
             "statistics": TrustchainStatsEndpoint,
-            "blocks": TrustchainBlocksEndpoint,
             "bootstrap": TrustchainBootstrapEndpoint
         }
 
@@ -84,79 +83,6 @@ class TrustchainStatsEndpoint(TrustchainBaseEndpoint):
             return json.dumps({"error": "TrustChain community not found"})
 
         return json.dumps({'statistics': self.session.lm.wallets['MB'].get_statistics()})
-
-
-class TrustchainBlocksEndpoint(TrustchainBaseEndpoint):
-    """
-    This class handles requests regarding the trustchain community blocks.
-    """
-
-    def getChild(self, path, request):
-        return TrustchainBlocksIdentityEndpoint(self.session, path)
-
-
-class TrustchainBlocksIdentityEndpoint(TrustchainBaseEndpoint):
-    """
-    This class represents requests for blocks of a specific identity.
-    """
-
-    def __init__(self, session, identity):
-        TrustchainBaseEndpoint.__init__(self, session)
-        self.identity = identity
-
-    def render_GET(self, request):
-        """
-        .. http:get:: /trustchain/blocks/TGliTmFDTFBLOVGbxS406vrI=?limit=(int: max nr of returned blocks)
-
-        A GET request to this endpoint returns all blocks of a specific identity, both that were signed and responded
-        by him. You can optionally limit the amount of blocks returned, this will only return some of the most recent
-        blocks.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X GET http://localhost:8085/trustchain/blocks/d78130e71bdd1...=?limit=10
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "blocks": [{
-                        "hash": ab672fd6acc0...
-                        "sequence_number": 50,
-                        "link_public_key": 9a5572ec59bbf,
-                        "link_sequence_number": 3482,
-                        "previous_hash": bd7830e7bdd1...,
-                        "transaction": {
-                            "up": 123,
-                            "down": 495,
-                            "total_up": 8393,
-                            "total_down": 8943,
-                        }
-                    }, ...]
-                }
-        """
-        trustchain_community = self.session.lm.trustchain_community
-        if not trustchain_community:
-            request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "trustchain community not found"})
-
-        limit_blocks = 100
-
-        if 'limit' in request.args:
-            try:
-                limit_blocks = int(request.args['limit'][0])
-            except ValueError:
-                limit_blocks = -1
-
-        if limit_blocks < 1 or limit_blocks > 1000:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "limit parameter out of range"})
-
-        blocks = trustchain_community.persistence.get_latest_blocks(self.identity.decode("HEX"), limit_blocks)
-        return json.dumps({"blocks": [dict(block) for block in blocks]})
 
 
 class TrustchainBootstrapEndpoint(TrustchainBaseEndpoint):
