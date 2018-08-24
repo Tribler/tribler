@@ -6,7 +6,7 @@ from Tribler.community.market.core.price import Price
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import AbstractServer
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.orderbook import OrderBook
@@ -81,14 +81,14 @@ class TestOrderBook(AbstractTestOrderBook):
         self.assertTrue(self.order_book.get_tick(self.ask.order_id))
         self.assertTrue(self.order_book.get_tick(self.bid.order_id))
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_ask_insertion_invalid(self):
         """
         Test whether we get an error when we add an invalid ask to the order book
         """
         return self.order_book.insert_ask(self.invalid_ask)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_bid_insertion_invalid(self):
         """
         Test whether we get an error when we add an invalid bid to the order book

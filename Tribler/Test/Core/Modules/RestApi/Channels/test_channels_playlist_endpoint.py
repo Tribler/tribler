@@ -4,7 +4,7 @@ from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.Core.base_test import MockObject
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from Tribler.dispersy.exception import CommunityNotFoundException
 
 
@@ -22,7 +22,7 @@ class AbstractTestChannelsPlaylistsEndpoint(AbstractTestChannelsEndpoint):
 
 class TestChannelsPlaylistEndpoints(AbstractTestChannelsPlaylistsEndpoint):
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_playlists_endpoint_without_channel(self):
         """
         Testing whether the API returns error 404 if an unknown channel is queried for playlists
@@ -31,7 +31,7 @@ class TestChannelsPlaylistEndpoints(AbstractTestChannelsPlaylistsEndpoint):
         expected_json = {"error": UNKNOWN_CHANNEL_RESPONSE_MSG}
         return self.do_request('channels/discovered/aabb/playlists', expected_code=404, expected_json=expected_json)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_playlists_endpoint_no_playlists(self):
         """
         Testing whether the API returns the right JSON data if no playlists have been added to your channel
@@ -41,7 +41,7 @@ class TestChannelsPlaylistEndpoints(AbstractTestChannelsPlaylistsEndpoint):
         return self.do_request('channels/discovered/%s/playlists' % channel_cid,
                                expected_code=200, expected_json={"playlists": []})
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_playlists_endpoint(self):
         """
         Testing whether the API returns the right JSON data if playlists are fetched
@@ -71,7 +71,7 @@ class TestChannelsPlaylistEndpoints(AbstractTestChannelsPlaylistsEndpoint):
         return self.do_request('channels/discovered/%s/playlists' % channel_cid,
                                expected_code=200).addCallback(verify_playlists)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_playlist_no_channel(self):
         """
         Testing whether the API returns error 404 if the channel does not exist when creating a playlist
@@ -81,7 +81,7 @@ class TestChannelsPlaylistEndpoints(AbstractTestChannelsPlaylistsEndpoint):
         return self.do_request('channels/discovered/abcd/playlists', expected_code=404,
                                post_data=post_params, request_type='PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_playlist_no_name(self):
         """
         Testing whether the API returns error 400 if the name is missing when creating a new playlist
@@ -91,7 +91,7 @@ class TestChannelsPlaylistEndpoints(AbstractTestChannelsPlaylistsEndpoint):
         return self.do_request('channels/discovered/%s/playlists' % 'fakedispersyid'.encode('hex'),
                                expected_code=400, expected_json=expected_json, request_type='PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_playlist_no_description(self):
         """
         Testing whether the API returns error 400 if the description is missing when creating a new playlist
@@ -102,7 +102,7 @@ class TestChannelsPlaylistEndpoints(AbstractTestChannelsPlaylistsEndpoint):
         return self.do_request('channels/discovered/%s/playlists' % 'fakedispersyid'.encode('hex'), expected_code=400,
                                expected_json=expected_json, post_data=post_params, request_type='PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_playlist_no_cmty(self):
         """
         Testing whether the API returns error 404 if the the channel community is missing when creating a new playlist
@@ -121,7 +121,7 @@ class TestChannelsPlaylistEndpoints(AbstractTestChannelsPlaylistsEndpoint):
         return self.do_request('channels/discovered/%s/playlists' % 'fakedispersyid'.encode('hex'), expected_code=404,
                                expected_json=expected_json, post_data=post_params, request_type='PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_playlist(self):
         """
         Testing whether the API can create a new playlist in a given channel
@@ -156,14 +156,14 @@ class TestChannelsModifyPlaylistsEndpoints(AbstractTestChannelsPlaylistsEndpoint
     This class contains tests to verify the modification of playlists.
     """
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_delete_playlist_no_channel(self):
         """
         Testing whether an error 404 is returned when a playlist is removed from a non-existent channel
         """
         return self.do_request('channels/discovered/abcd/playlists/1', expected_code=404, request_type='DELETE')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_delete_playlist_no_playlist(self):
         """
         Testing whether an error 404 is returned when a non-existent playlist is removed from a channel
@@ -173,7 +173,7 @@ class TestChannelsModifyPlaylistsEndpoints(AbstractTestChannelsPlaylistsEndpoint
         return self.do_request('channels/discovered/%s/playlists/1' % channel_cid,
                                expected_code=404, request_type='DELETE')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_delete_playlist_no_community(self):
         """
         Testing whether an error 404 is returned when a playlist is removed from a channel without community
@@ -191,7 +191,7 @@ class TestChannelsModifyPlaylistsEndpoints(AbstractTestChannelsPlaylistsEndpoint
         return self.do_request('channels/discovered/%s/playlists/1' % channel_cid,
                                expected_code=404, request_type='DELETE')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_delete_playlist(self):
         """
         Testing whether a playlist is correctly removed
@@ -231,7 +231,7 @@ class TestChannelsModifyPlaylistsEndpoints(AbstractTestChannelsPlaylistsEndpoint
                                expected_code=200, expected_json={"removed": True},
                                request_type='DELETE').addCallback(verify_playlist_removed)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_edit_playlist_no_name(self):
         """
         Testing whether an error 400 is returned when a playlist is edit without a name parameter passed
@@ -241,7 +241,7 @@ class TestChannelsModifyPlaylistsEndpoints(AbstractTestChannelsPlaylistsEndpoint
         return self.do_request('channels/discovered/abcd/playlists/1', expected_code=400,
                                post_data=post_params, request_type='POST', expected_json=expected_json)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_edit_playlist_no_description(self):
         """
         Testing whether an error 400 is returned when a playlist is edit without a description parameter passed
@@ -251,7 +251,7 @@ class TestChannelsModifyPlaylistsEndpoints(AbstractTestChannelsPlaylistsEndpoint
         return self.do_request('channels/discovered/abcd/playlists/1', expected_code=400,
                                post_data=post_params, request_type='POST', expected_json=expected_json)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_edit_playlist_no_channel(self):
         """
         Testing whether an error 404 is returned when a playlist is edit from a non-existent channel
@@ -260,7 +260,7 @@ class TestChannelsModifyPlaylistsEndpoints(AbstractTestChannelsPlaylistsEndpoint
         return self.do_request('channels/discovered/abcd/playlists/1', expected_code=404,
                                post_data=post_params, request_type='POST')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_edit_playlist_no_playlist(self):
         """
         Testing whether an error 404 is returned when a non-existent playlist is edited
@@ -271,7 +271,7 @@ class TestChannelsModifyPlaylistsEndpoints(AbstractTestChannelsPlaylistsEndpoint
         return self.do_request('channels/discovered/%s/playlists/1' % channel_cid,
                                expected_code=404, request_type='POST', post_data=post_params)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_edit_playlist_no_community(self):
         """
         Testing whether an error 404 is returned when a playlist is edited from a channel without community
@@ -290,7 +290,7 @@ class TestChannelsModifyPlaylistsEndpoints(AbstractTestChannelsPlaylistsEndpoint
         return self.do_request('channels/discovered/%s/playlists/1' % channel_cid,
                                expected_code=404, request_type='POST', post_data=post_params)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_edit_playlist(self):
         """
         Testing whether a playlist is correctly modified
@@ -325,14 +325,14 @@ class TestChannelsModifyPlaylistsAddTorrentEndpoints(AbstractTestChannelsPlaylis
     """
     This class contains tests to verify the addition of torrents to playlists.
     """
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_no_channel(self):
         """
         Testing whether an error 404 is returned when a torrent is added to a playlist with a non-existent channel
         """
         return self.do_request('channels/discovered/abcd/playlists/1/abcd', expected_code=404, request_type='PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_no_playlist(self):
         """
         Testing whether an error 404 is returned when a torrent is added to a non-existing playlist
@@ -350,7 +350,7 @@ class TestChannelsModifyPlaylistsAddTorrentEndpoints(AbstractTestChannelsPlaylis
         return self.do_request('channels/discovered/%s/playlists/1/abcd' % channel_cid,
                                expected_code=404, request_type='PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_no_community(self):
         """
         Testing whether an error 404 is returned when a torrent is added to a playlist without channel community
@@ -368,7 +368,7 @@ class TestChannelsModifyPlaylistsAddTorrentEndpoints(AbstractTestChannelsPlaylis
         return self.do_request('channels/discovered/%s/playlists/1/abcd' % channel_cid,
                                expected_code=404, request_type='PUT')
 
-    @deferred(timeout=15)
+    @trial_timeout(15)
     @inlineCallbacks
     def test_add_torrent_playlist(self):
         """
@@ -415,14 +415,14 @@ class TestChannelsModifyPlaylistsRemoveTorrentEndpoints(AbstractTestChannelsPlay
     This class contains tests to verify the removal of torrents from playlists.
     """
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_delete_torrent_no_channel(self):
         """
         Testing whether an error 404 is returned when a torrent from a playlist is removed from a non-existent channel
         """
         return self.do_request('channels/discovered/abcd/playlists/1/abcd', expected_code=404, request_type='DELETE')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_delete_torrent_no_playlist(self):
         """
         Testing whether an error 404 is returned when a torrent from a playlist is removed from a non-existent playlist
@@ -432,7 +432,7 @@ class TestChannelsModifyPlaylistsRemoveTorrentEndpoints(AbstractTestChannelsPlay
         return self.do_request('channels/discovered/%s/playlists/1/abcd' % channel_cid,
                                expected_code=404, request_type='DELETE')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_remove_torrent_no_community(self):
         """
         Testing whether an error 404 is returned when a torrent from a playlist without channel community
@@ -450,7 +450,7 @@ class TestChannelsModifyPlaylistsRemoveTorrentEndpoints(AbstractTestChannelsPlay
         return self.do_request('channels/discovered/%s/playlists/1/abcd' % channel_cid,
                                expected_code=404, request_type='DELETE')
 
-    @deferred(timeout=15)
+    @trial_timeout(15)
     @inlineCallbacks
     def test_remove_torrent_playlist(self):
         """

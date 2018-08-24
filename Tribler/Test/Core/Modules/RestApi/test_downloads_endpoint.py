@@ -10,7 +10,7 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.common import UBUNTU_1504_INFOHASH, TESTS_DATA_DIR
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from Tribler.Test.Core.base_test import MockObject
 
 
@@ -22,7 +22,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.config.set_megacache_enabled(True)
         self.config.set_torrent_store_enabled(True)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_downloads_no_downloads(self):
         """
         Testing whether the API returns an empty list when downloads are fetched but no downloads are active
@@ -30,7 +30,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads?get_peers=1&get_pieces=1',
                                expected_code=200, expected_json={"downloads": []})
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_get_downloads(self):
         """
         Testing whether the API returns the right download when a download is added
@@ -48,7 +48,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads?get_peers=1&get_pieces=1',
                                expected_code=200).addCallback(verify_download)
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_get_downloads_with_files(self):
         """
         Testing whether the API returns the right right filenames fpr each download
@@ -72,7 +72,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads?get_peers=1&get_pieces=1&&get_files=1',
                                expected_code=200).addCallback(verify_download)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_start_download_no_uri(self):
         """
         Testing whether an error is returned when we start a torrent download and do not pass any URI
@@ -80,7 +80,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('downloads', expected_code=400, request_type='PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_start_download_bad_params(self):
         """
         Testing whether an error is returned when we start a torrent download and pass wrong data
@@ -89,7 +89,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         post_data = {'anon_hops': 1, 'safe_seeding': 0, 'uri': 'abcd'}
         return self.do_request('downloads', expected_code=400, request_type='PUT', post_data=post_data)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_start_download_bad_uri(self):
         """
         Testing whether an error is returned when we start a download from a bad URI
@@ -98,7 +98,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads', expected_code=500, request_type='PUT', post_data=post_data,
                                expected_json={'error': 'invalid uri'})
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_start_download_from_file(self):
         """
         Testing whether we can start a download from a file
@@ -111,7 +111,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_start_download_from_file_unicode(self):
         """
         Testing whether we can start a download from a file with a unicode name
@@ -155,7 +155,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         status.pieces = []
         return status
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_peers_illegal_fields_ascii(self):
         """
         Testing whether illegal fields are stripped from the Libtorrent download info response.
@@ -186,7 +186,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_peers_illegal_fields_unicode(self):
         """
         Testing whether illegal fields are stripped from the Libtorrent download info response.
@@ -216,7 +216,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_peers_illegal_fields_unknown(self):
         """
         Testing whether illegal fields are stripped from the Libtorrent download info response.
@@ -247,7 +247,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_start_download_from_magnet(self):
         """
         Testing whether we can start a download from a magnet
@@ -261,7 +261,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_start_download_from_bad_url(self):
         """
         Testing whether starting a download from a unexisting URL gives an error
@@ -270,7 +270,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('downloads', expected_code=500, request_type='PUT', post_data=post_data)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_remove_download_no_remove_data_param(self):
         """
         Testing whether the API returns error 400 if the remove_data parameter is not passed
@@ -278,7 +278,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('downloads/abcd', expected_code=400, request_type='DELETE')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_remove_download_wrong_infohash(self):
         """
         Testing whether the API returns error 404 if a non-existent download is removed
@@ -287,7 +287,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads/abcd', post_data={"remove_data": True},
                                expected_code=404, request_type='DELETE')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_remove_download(self):
         """
         Testing whether the API returns 200 if a download is being removed
@@ -305,7 +305,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                                           "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
         return request_deferred.addCallback(verify_removed)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_stop_download_wrong_infohash(self):
         """
         Testing whether the API returns error 404 if a non-existent download is stopped
@@ -313,7 +313,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('downloads/abcd', expected_code=404, post_data={"state": "stop"}, request_type='PATCH')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_stop_download(self):
         """
         Testing whether the API returns 200 if a download is being stopped
@@ -340,7 +340,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                                           "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
         return request_deferred.addCallback(verify_removed)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_select_download_file_range(self):
         """
         Testing whether an error is returned when we toggle a file for inclusion out of range
@@ -353,7 +353,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads/%s' % infohash, expected_code=400, post_data={"selected_files[]": 1234},
                                request_type='PATCH')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_select_download_file(self):
         """
         Testing whether files can be correctly toggled in a download
@@ -378,7 +378,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                               "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})\
             .addCallback(verify_method_called)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_resume_download_wrong_infohash(self):
         """
         Testing whether the API returns error 404 if a non-existent download is resumed
@@ -386,7 +386,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('downloads/abcd', expected_code=404, post_data={"state": "resume"}, request_type='PATCH')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_resume_download(self):
         """
         Testing whether the API returns 200 if a download is being resumed
@@ -411,7 +411,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                                           "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
         return request_deferred.addCallback(verify_resumed)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_recheck_download(self):
         """
         Testing whether the API returns 200 if a download is being rechecked
@@ -436,7 +436,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
                                                           "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
         return request_deferred.addCallback(verify_rechecked)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_change_hops_error(self):
         """
         Testing whether the API returns 400 if we supply both anon_hops and another parameter
@@ -449,7 +449,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads/%s' % infohash, post_data={"state": "resume", 'anon_hops': 1},
                                expected_code=400, request_type='PATCH')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_download_unknown_state(self):
         """
         Testing whether the API returns error 400 if an unknown state is passed when modifying a download
@@ -461,7 +461,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads/%s' % video_tdef.get_infohash().encode('hex'), expected_code=400,
                                post_data={"state": "abc"}, request_type='PATCH')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_export_unknown_download(self):
         """
         Testing whether the API returns error 404 if a non-existent download is exported
@@ -469,7 +469,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('downloads/abcd/torrent', expected_code=404, request_type='GET')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_export_download(self):
         """
         Testing whether the API returns the contents of the torrent file if a download is exported
@@ -488,7 +488,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads/%s/torrent' % video_tdef.get_infohash().encode('hex'),
                                expected_code=200, request_type='GET').addCallback(verify_exported_data)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_files_unknown_download(self):
         """
         Testing whether the API returns error 404 if the files of a non-existent download are requested
@@ -496,7 +496,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('downloads/abcd/files', expected_code=404, request_type='GET')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_download_files(self):
         """
         Testing whether the API returns file information of a specific download when requested
@@ -521,7 +521,7 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
         self.config.set_libtorrent_enabled(True)
         self.config.set_tunnel_community_enabled(True)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_change_hops(self):
         """
         Testing whether the API returns 200 if we change the amount of hops of a download
@@ -537,7 +537,7 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
                                                      "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})
         )
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_change_hops_fail(self):
         def on_remove_download(d, remove_content=False, remove_state=True, hidden=False):
             return fail(RuntimeError())

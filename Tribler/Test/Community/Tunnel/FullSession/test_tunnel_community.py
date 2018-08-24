@@ -2,7 +2,7 @@ from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
-from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
+from twisted.internet.defer import inlineCallbacks
 from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
 
 
@@ -16,7 +16,7 @@ class TestTunnelCommunity(TestTunnelBase):
         self.test_deferred = Deferred()
         yield super(TestTunnelCommunity, self).setUp()
 
-    @twisted_wrapper(60)
+    @inlineCallbacks
     def test_anon_download(self):
         """
         Testing whether an anonymous download over our tunnels works
@@ -33,8 +33,9 @@ class TestTunnelCommunity(TestTunnelBase):
         download.set_state_callback(download_state_callback)
 
         yield self.test_deferred
+        yield self.sleep(4) # FIXME: workaround for slow Tribler Session shutdown
 
-    @twisted_wrapper(60)
+    @inlineCallbacks
     def test_anon_download_no_exitnodes(self):
         """
         Testing whether an anon download does not make progress without exit nodes
@@ -55,7 +56,7 @@ class TestTunnelCommunity(TestTunnelBase):
 
         yield self.test_deferred
 
-    @twisted_wrapper(60)
+    @inlineCallbacks
     def test_anon_download_no_relays(self):
         """
         Testing whether an anon download does not make progress without relay nodes

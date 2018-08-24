@@ -1,3 +1,4 @@
+from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Category.Category import Category, cmp_rank
 from Tribler.Test.test_as_server import AbstractServer
 
@@ -46,8 +47,8 @@ class TriblerCategoryTest(AbstractServer):
         test_category = Category()
         self.assertEqual(test_category.category_info, [])
 
+    @inlineCallbacks
     def tearDown(self):
-        super(TriblerCategoryTest, self).tearDown()
-
         import Tribler.Core.Category.Category as category_file
         category_file.CATEGORY_CONFIG_FILE = "category.conf"
+        yield super(TriblerCategoryTest, self).tearDown()

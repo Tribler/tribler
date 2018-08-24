@@ -1,6 +1,6 @@
 from Tribler.Core.exceptions import TriblerException
 import Tribler.Core.Utilities.json_util as json
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from base_api_test import AbstractApiTest
 
 
@@ -9,7 +9,7 @@ class RestRequestTest(AbstractApiTest):
     def throw_unhandled_exception(self, name, description, mode=u'closed'):
         raise TriblerException(u"Oops! Something went wrong. Please restart Tribler")
 
-    @deferred(10)
+    @trial_timeout(10)
     def test_unhandled_exception(self):
         """
         Testing whether the API returns a formatted 500 error if an unhandled Exception is raised

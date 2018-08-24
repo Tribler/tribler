@@ -4,7 +4,7 @@ import shutil
 from binascii import hexlify
 from unittest import skip
 
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import Deferred
 
 from Tribler.Core.Utilities.network_utils import get_random_port
@@ -35,7 +35,7 @@ class TestDownload(TestAsServer):
         self._logger.debug("Download started: %s", download)
         download.set_state_callback(self.downloader_state_callback)
 
-    @deferred(timeout=60)
+    @trial_timeout(60)
     def test_download_torrent_from_url(self):
         # Setup file server to serve torrent file
         files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
@@ -49,14 +49,14 @@ class TestDownload(TestAsServer):
         return self.test_deferred
 
     @skip("Fetching a torrent from the external network is unreliable")
-    @deferred(timeout=60)
+    @trial_timeout(60)
     def test_download_torrent_from_magnet(self):
         magnet_link = 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH)
         d = self.session.start_download_from_uri(magnet_link)
         d.addCallback(self.on_download)
         return self.test_deferred
 
-    @deferred(timeout=60)
+    @trial_timeout(60)
     def test_download_torrent_from_file(self):
         from urllib import pathname2url
         d = self.session.start_download_from_uri('file:' + pathname2url(TORRENT_UBUNTU_FILE))

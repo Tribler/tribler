@@ -1,4 +1,4 @@
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, \
@@ -66,7 +66,7 @@ class TestSearchEndpoint(AbstractApiTest):
             self.torrent_db_handler.addExternalTorrentNoDef(str(unichr(97 + i)) * 20,
                                                             'Test %d' % i, [('Test.txt', 1337)], [], 1337)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_search_no_parameter(self):
         """
         Testing whether the API returns an error 400 if no search query is passed with the request
@@ -82,7 +82,7 @@ class TestSearchEndpoint(AbstractApiTest):
         for ind in xrange(len(self.search_results_list)):
             self.assertEqual(len(self.search_results_list[ind]), self.expected_num_results_list[ind])
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_search_no_matches(self):
         """
         Testing whether the API finds no channels/torrents when searching if they are not in the database
@@ -95,7 +95,7 @@ class TestSearchEndpoint(AbstractApiTest):
         return self.do_request('search?q=tribler', expected_code=200, expected_json=expected_json)\
             .addCallback(self.verify_search_results)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_search(self):
         """
         Testing whether the API finds channels/torrents when searching if there is some inserted data in the database
@@ -112,7 +112,7 @@ class TestSearchEndpoint(AbstractApiTest):
         return self.do_request('search?q=test', expected_code=200, expected_json=expected_json)\
             .addCallback(self.verify_search_results)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_completions_no_query(self):
         """
         Testing whether the API returns an error 400 if no query is passed when getting search completion terms
@@ -120,7 +120,7 @@ class TestSearchEndpoint(AbstractApiTest):
         expected_json = {"error": "query parameter missing"}
         return self.do_request('search/completions', expected_code=400, expected_json=expected_json)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_completions(self):
         """
         Testing whether the API returns the right terms when getting search completion terms

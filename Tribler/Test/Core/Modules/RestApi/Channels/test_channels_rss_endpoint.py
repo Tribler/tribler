@@ -6,12 +6,12 @@ from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN
     UNAUTHORIZED_RESPONSE_MSG
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 
 
 class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_rss_feeds_endpoint_with_channel(self):
         """
         Testing whether the API returns the right JSON data if a rss feeds from a channel are fetched
@@ -26,7 +26,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered/%s/rssfeeds' % 'fakedispersyid'.encode('hex'),
                                expected_code=200, expected_json=expected_json)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_rss_feed_no_my_channel(self):
         """
         Testing whether the API returns a 404 if no channel has been created when adding a rss feed
@@ -38,7 +38,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
                                '/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml',
                                expected_code=404, expected_json=expected_json, request_type='PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_rss_feed_conflict(self):
         """
         Testing whether the API returns error 409 if a channel the rss feed already exists
@@ -52,7 +52,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
                                '/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml', expected_code=409,
                                expected_json=expected_json, request_type='PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_rss_feed_with_channel(self):
         """
         Testing whether the API returns a 200 if a channel has been created and when adding a rss feed
@@ -69,7 +69,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
                                expected_json=expected_json, request_type='PUT')\
             .addCallback(verify_rss_added)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_remove_rss_feed_no_channel(self):
         """
         Testing whether the API returns a 404 if no channel has been removed when adding a rss feed
@@ -80,7 +80,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
                                '/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml',
                                expected_code=404, expected_json=expected_json, request_type='DELETE')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_remove_rss_feed_invalid_url(self):
         """
         Testing whether the API returns a 404 and error if the url parameter does not exist in the existing feeds
@@ -91,7 +91,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
                                '/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml', expected_code=404,
                                expected_json=expected_json, request_type='DELETE')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_remove_rss_feed_with_channel(self):
         """
         Testing whether the API returns a 200 if a channel has been created and when removing a rss feed
@@ -109,7 +109,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
                                '/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml', expected_code=200,
                                expected_json=expected_json, request_type='DELETE').addCallback(verify_rss_removed)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_recheck_rss_feeds_no_channel(self):
         """
         Testing whether the API returns a 404 if no channel has been created when rechecking rss feeds
@@ -119,7 +119,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered/%s/recheckfeeds' % 'fakedispersyid'.encode('hex'),
                                expected_code=404, expected_json=expected_json, request_type='POST')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_recheck_rss_feeds(self):
         """
         Testing whether the API returns a 200 if the rss feeds are rechecked in your channel
@@ -133,7 +133,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered/%s/recheckfeeds' % 'fakedispersyid'.encode('hex'),
                                expected_code=200, expected_json=expected_json, request_type='POST')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_recheck_rss_feeds_error(self):
         """
         Testing whether the API returns error 500 if refresh of rss feeds is failing
@@ -152,7 +152,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered/%s/recheckfeeds' % 'fakedispersyid'.encode('hex'),
                                expected_code=500, request_type='POST')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_rss_feed_no_authorization(self):
         """
         Testing whether the API returns unauthorized error if attempting to recheck feeds in another channel
@@ -164,7 +164,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered/%s/rssfeeds' % 'fake'.encode('hex'),
                                expected_code=401, expected_json=expected_json, request_type='GET')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_rss_feed_no_channel_obj(self):
         """
         Testing whether the API returns error 404 if no channel object exists in the channel manager

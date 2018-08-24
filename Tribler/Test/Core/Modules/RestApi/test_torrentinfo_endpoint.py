@@ -3,7 +3,7 @@ import shutil
 from binascii import hexlify
 from urllib import pathname2url, quote_plus
 
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentDef import TorrentDef
@@ -92,7 +92,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         path = 'http://fdsafksdlafdslkdksdlfjs9fsafasdf7lkdzz32.n38/324.torrent'
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=500)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_on_got_invalid_metainfo(self):
         """
         Test whether the right operations happen when we receive an invalid metainfo object

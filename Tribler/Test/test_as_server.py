@@ -13,6 +13,7 @@ import time
 from tempfile import mkdtemp
 from threading import enumerate as enumerate_threads
 
+import twisted
 from configobj import ConfigObj
 from twisted.internet import interfaces
 from twisted.internet import reactor
@@ -20,7 +21,6 @@ from twisted.internet.base import BasePort
 from twisted.internet.defer import maybeDeferred, inlineCallbacks, Deferred, succeed
 from twisted.internet.task import deferLater
 from twisted.internet.tcp import Client
-from twisted.python.threadable import isInIOThread
 from twisted.trial import unittest
 from twisted.web.http import HTTPChannel
 from twisted.web.server import Site
@@ -70,6 +70,7 @@ class AbstractServer(BaseTestCase):
 
     def __init__(self, *args, **kwargs):
         super(AbstractServer, self).__init__(*args, **kwargs)
+        twisted.internet.base.DelayedCall.debug = True
 
         self.watchdog = WatchDog()
         self.selected_socks5_ports = set()
@@ -89,7 +90,6 @@ class AbstractServer(BaseTestCase):
         # Wait until the reactor has started
         reactor_deferred = Deferred()
         reactor.callWhenRunning(reactor_deferred.callback, None)
-        yield reactor_deferred
 
         self.setUpCleanup()
         os.makedirs(self.session_base_dir)
@@ -100,6 +100,7 @@ class AbstractServer(BaseTestCase):
 
         self.annotate(self._testMethodName, start=True)
         self.watchdog.start()
+        yield reactor_deferred
 
     def setUpCleanup(self):
         # Change to an existing dir before cleaning up.

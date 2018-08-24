@@ -1,7 +1,7 @@
 import os
 
 from nose.tools import raises
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import Deferred
 
 from Tribler.Core import NoDispersyRLock
@@ -76,7 +76,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.assertIsInstance(config, CallbackConfigParser)
         self.assertEqual(config.get('general', 'version'), 11)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_dlstates_cb_error(self):
         """
         Testing whether a download is stopped on error in the download states callback in LaunchManyCore

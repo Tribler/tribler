@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.channel.cache import SimpleCache
@@ -38,7 +38,7 @@ class TestChannelRss(BaseTestChannel):
 
         yield super(TestChannelRss, self).tearDown()
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_task_scrape_no_stop(self):
         self.channel_rss.rss_url = 'http://localhost:%d/test_rss.xml' % self.file_server_port
         self.channel_rss.cancel_all_pending_tasks()
@@ -46,7 +46,7 @@ class TestChannelRss(BaseTestChannel):
         self.assertTrue(self.channel_rss.is_pending_task_active("rss_scrape"))
         return test_deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_task_scrape_stop(self):
         self.channel_rss.rss_url = 'http://localhost:%d/test_rss.xml' % self.file_server_port
         self.channel_rss.cancel_all_pending_tasks()
@@ -65,7 +65,7 @@ class TestChannelRss(BaseTestChannel):
         self.assertTrue(os.path.exists(cache_path))
         self.assertFalse(self.channel_rss.is_pending_task_active("rss_scrape"))
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_parse_rss_feed(self):
         """
         Test parsing a rss feed
@@ -77,7 +77,7 @@ class TestChannelRss(BaseTestChannel):
 
         return self.channel_rss.parse_feed().addCallback(verify_rss)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_parse_no_rss(self):
         """
         Test parsing a non-rss feed
@@ -89,7 +89,7 @@ class TestChannelRss(BaseTestChannel):
 
         return self.channel_rss.parse_feed().addCallback(verify_rss)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_parse_feed_stopped(self):
         """
         Test whether items are not parsed anymore when the parse feeder is stopped
@@ -118,7 +118,7 @@ class TestRssParser(TriblerCoreTest):
         self.assertEqual(parser._html2plaintext("test"), "test\n")
         self.assertEqual(parser._html2plaintext("<p>test\ntest2</p><p>test3</p>"), "test\ntest2\ntest3\n")
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_parse(self):
         test_rss_file = os.path.join(TESTS_DATA_DIR, 'test_rss.xml')
         files_path = os.path.join(self.session_base_dir, 'files')

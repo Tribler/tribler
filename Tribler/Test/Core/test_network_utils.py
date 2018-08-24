@@ -2,7 +2,7 @@ import random
 import socket
 
 from nose.tools import raises
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet import reactor
 from twisted.internet.protocol import Factory
 
@@ -17,7 +17,7 @@ class TriblerCoreTestNetworkUtils(TriblerCoreTest):
         self.assertIsInstance(random_port, int)
         self.assertTrue(random_port)
 
-    @deferred(timeout=5)
+    @trial_timeout(5)
     def test_get_random_port_tcp(self):
         rand_port_num = random.randint(*self.get_bucket_range_port())
         listenport = reactor.listenTCP(rand_port_num, Factory())

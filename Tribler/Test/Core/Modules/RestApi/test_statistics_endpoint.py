@@ -1,4 +1,4 @@
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
@@ -33,7 +33,7 @@ class TestStatisticsEndpoint(AbstractApiTest):
         self.config.set_dispersy_enabled(True)
         self.config.set_torrent_collecting_enabled(True)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_tribler_statistics(self):
         """
         Testing whether the API returns a correct Tribler statistics dictionary when requested
@@ -44,7 +44,7 @@ class TestStatisticsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('statistics/tribler', expected_code=200).addCallback(verify_dict)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_dispersy_statistics(self):
         """
         Testing whether the API returns a correct Dispersy statistics dictionary when requested
@@ -55,7 +55,7 @@ class TestStatisticsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('statistics/dispersy', expected_code=200).addCallback(verify_dict)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_ipv8_statistics(self):
         """
         Testing whether the API returns a correct Dispersy statistics dictionary when requested
@@ -66,7 +66,7 @@ class TestStatisticsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('statistics/ipv8', expected_code=200).addCallback(verify_dict)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_ipv8_statistics_unavailable(self):
         """
         Testing whether the API returns error 500 if IPv8 is not available
@@ -79,7 +79,7 @@ class TestStatisticsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('statistics/ipv8', expected_code=200).addCallback(verify_dict)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_community_statistics(self):
         """
         Testing whether the API returns a correct community statistics dictionary when requested

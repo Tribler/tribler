@@ -6,7 +6,7 @@ Author(s): Arno Bakker
 import binascii
 import os
 
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
@@ -127,19 +127,19 @@ class TestVideoServerSession(TestAsServer):
         self.config.set_libtorrent_enabled(True)
         self.config.set_video_server_enabled(True)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_specific_range(self):
         return self.range_check(115, 214)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_last_100(self):
         return self.range_check(self.sourcesize - 100, None)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_first_100(self):
         return self.range_check(None, 100)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_combined(self):
         return self.range_check(115, 214, setset=True)
 

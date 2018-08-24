@@ -2,7 +2,7 @@ import os
 from tempfile import mkstemp
 
 from M2Crypto import Rand
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -110,7 +110,7 @@ class TestVideoOnDemand(TestAsServer):
         self.assertEquals(len(data), size)
         self.assertEquals(data, self.content[off:off + size])
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_99(self):
         self.contentlen = 99
         self.piecelen = 16
@@ -119,7 +119,7 @@ class TestVideoOnDemand(TestAsServer):
         self._logger.debug("Letting network thread create Download, sleeping")
         return self.test_deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_100(self):
         self.contentlen = 100
         self.piecelen = 16
@@ -128,7 +128,7 @@ class TestVideoOnDemand(TestAsServer):
         self._logger.debug("Letting network thread create Download, sleeping")
         return self.test_deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_101(self):
         self.contentlen = 101
         self.piecelen = 16

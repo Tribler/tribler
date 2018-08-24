@@ -1,4 +1,4 @@
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.community.allchannel.community import AllChannelCommunity
@@ -17,7 +17,7 @@ class TestAllChannelCommunity(AbstractTestCommunity):
         self.dispersy._communities['a' * 20] = self.community
         self.community.initialize(auto_join_channel=True)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_votecast(self):
         """
         Testing whether a votecast can be created in the community
@@ -27,7 +27,7 @@ class TestAllChannelCommunity(AbstractTestCommunity):
 
         return self.community.disp_create_votecast("c" * 20, 2, 300).addCallback(verify)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_unload_preview(self):
         """
         Test the unloading of the preview community

@@ -1,7 +1,7 @@
 import socket
 import time
 
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
@@ -105,7 +105,7 @@ class TestTorrentChecker(TriblerCoreTest):
         self.torrent_checker.add_gui_request('a' * 20).addErrback(lambda _: test_deferred.callback(None))
         return test_deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_task_select_no_tracker(self):
         return self.torrent_checker._task_select_tracker()
 
@@ -121,7 +121,7 @@ class TestTorrentChecker(TriblerCoreTest):
 
         self.assertEqual(len(controlled_session.infohash_list), 1)
 
-    @deferred(timeout=30)
+    @trial_timeout(30)
     def test_tracker_test_error_resolve(self):
         """
         Test whether we capture the error when a tracker check fails
@@ -134,7 +134,7 @@ class TestTorrentChecker(TriblerCoreTest):
             'a' * 20, 'ubuntu.iso', [['a.test', 1234]], ['udp://non123exiszzting456tracker89fle.abc:80/announce'], 5)
         return self.torrent_checker._task_select_tracker().addCallback(verify_cleanup)
 
-    @deferred(timeout=30)
+    @trial_timeout(30)
     def test_tracker_test_invalid_tracker(self):
         """
         Test whether we do nothing when tracker URL is invalid
@@ -155,7 +155,7 @@ class TestTorrentChecker(TriblerCoreTest):
 
         return self.torrent_checker._task_select_tracker().addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_tracker_no_infohashes(self):
         """
         Test the check of a tracker without associated torrents

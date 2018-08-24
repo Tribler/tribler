@@ -15,7 +15,7 @@ from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
-from nose.twistedtools import deferred
+from Tribler.Test.tools import trial_timeout
 
 
 class TestLibtorrentDownloadImpl(TestAsServer):
@@ -49,14 +49,14 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
         return tdef
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_can_create_engine_wrapper(self):
         impl = LibtorrentDownloadImpl(self.session, None)
         impl.cew_scheduled = False
         self.session.lm.ltmgr.is_dht_ready = lambda: True
         return impl.can_create_engine_wrapper()
 
-    @deferred(timeout=15)
+    @trial_timeout(15)
     def test_can_create_engine_wrapper_retry(self):
         impl = LibtorrentDownloadImpl(self.session, None)
         impl.cew_scheduled = True
@@ -83,7 +83,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         impl.set_def(tdef)
         self.assertEqual(impl.tdef, tdef, "Torrent definitions were not equal!")
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_setup(self):
         tdef = self.create_tdef()
 
@@ -112,7 +112,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         impl.session.lm.on_download_wrapper_created = lambda _: True
         impl.restart()
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_restart_no_handle(self):
         test_deferred = Deferred()
         tdef = self.create_tdef()
@@ -121,7 +121,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         impl.restart()
         return test_deferred
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_multifile_torrent(self):
         tdef = TorrentDef()
 
@@ -159,7 +159,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         pstate.set("state", "engineresumedata", test_dict)
         return impl.network_create_engine_wrapper(pstate)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_save_resume(self):
         """
         testing call resume data alert
@@ -193,7 +193,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
         return result_deferred.addCallback(lambda _: impl.stop())
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_save_resume_disabled(self):
         """
         testing call resume data alert, if checkpointing is disabled
@@ -390,7 +390,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.process_alert(mock_alert, 'tracker_warning_alert')
         self.assertEqual(self.libtorrent_download_impl.tracker_status[url][1], 'Warning: test')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_on_metadata_received_alert(self):
         """
         Testing whether the right operations happen when we receive metadata
@@ -622,7 +622,7 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.handle.status().pieces = [True * 16]
         self.assertEqual(self.libtorrent_download_impl.get_pieces_base64(), "gA==")
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_resume_data_failed(self):
         """
         Testing whether the correct operations happen when an error is raised during resume data saving
