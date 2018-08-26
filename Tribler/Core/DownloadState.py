@@ -160,7 +160,8 @@ class DownloadState(object):
             files = self.download.get_def().get_files_with_length()
             progress = self.download.handle.file_progress(flags=1)
             for index, (path, size) in enumerate(files):
-                completion.append((path, float(progress[index]) / size))
+                completion_frac = (float(progress[index]) / size) if size > 0 else 1
+                completion.append((path, completion_frac))
 
         return completion
 
