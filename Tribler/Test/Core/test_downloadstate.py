@@ -117,6 +117,11 @@ class TestDownloadState(TriblerCoreTest):
         handle.file_progress = lambda **_: []
         self.assertEqual(download_state.get_files_completion(), [])
 
+        # Test a file with a length of zero
+        self.mocked_tdef.get_files_with_length = lambda: [("test.txt", 0)]
+        handle.file_progress = lambda **_: [0]
+        self.assertEqual(download_state.get_files_completion(), [('test.txt', 1.0)])
+
     def test_get_availability(self):
         """
         Testing whether the right availability of a file is returned
