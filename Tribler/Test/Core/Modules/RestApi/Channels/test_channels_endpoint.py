@@ -1,3 +1,5 @@
+from twisted.internet.defer import inlineCallbacks
+
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
@@ -31,8 +33,9 @@ class ChannelCommunityMock(object):
 
 class AbstractTestChannelsEndpoint(AbstractApiTest, BaseTestChannel):
 
+    @inlineCallbacks
     def setUp(self):
-        super(AbstractTestChannelsEndpoint, self).setUp()
+        yield super(AbstractTestChannelsEndpoint, self).setUp()
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
 
     def vote_for_channel(self, cid, vote_time):

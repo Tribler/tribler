@@ -1,7 +1,6 @@
 import time
 
-from Tribler.Test.tools import trial_timeout
-from twisted.internet.defer import succeed, fail
+from twisted.internet.defer import succeed, fail, inlineCallbacks
 from twisted.python.failure import Failure
 
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE, VOTE_UNSUBSCRIBE
@@ -9,18 +8,20 @@ from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN
 from Tribler.Core.Modules.restapi.channels.channels_subscription_endpoint import ALREADY_SUBSCRIBED_RESPONSE_MSG, \
     NOT_SUBSCRIBED_RESPONSE_MSG, ChannelsModifySubscriptionEndpoint
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
+from Tribler.Test.tools import trial_timeout
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
 
 
 class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
 
+    @inlineCallbacks
     def setUp(self):
         """
         The startup method of this class creates a fake Dispersy instance with a fake AllChannel community. It also
         inserts some random channels so we have some data to work with.
         """
-        super(TestChannelsSubscriptionEndpoint, self).setUp()
+        yield super(TestChannelsSubscriptionEndpoint, self).setUp()
         self.expected_votecast_cid = None
         self.expected_votecast_vote = None
         self.create_votecast_called = False
