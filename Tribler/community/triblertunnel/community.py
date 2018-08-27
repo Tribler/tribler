@@ -217,6 +217,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         circuit_id = payload.circuit_id
         request = self.request_cache.get(u"anon-circuit", circuit_id)
+        if not request:
+            self.logger.warning("Circuit creation cache for id %s not found!", circuit_id)
+            return
+
         if request.should_forward:
             forwarding_relay = RelayRoute(request.from_circuit_id, request.peer)
             self.send_cell([forwarding_relay.peer.address], u"relay-balance-request",
