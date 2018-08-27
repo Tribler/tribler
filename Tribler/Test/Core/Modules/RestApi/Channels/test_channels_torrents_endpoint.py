@@ -163,8 +163,10 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
 
 class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
 
+
+    @inlineCallbacks
     def setUp(self):
-        super(TestModifyChannelTorrentEndpoint, self).setUp()
+        yield super(TestModifyChannelTorrentEndpoint, self).setUp()
         self.session.lm.ltmgr = MockObject()
         self.session.lm.ltmgr.shutdown = lambda: True
 
