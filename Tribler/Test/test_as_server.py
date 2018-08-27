@@ -100,7 +100,6 @@ class AbstractServer(BaseTestCase):
 
         if annotate:
             self.annotate(self._testMethodName, start=True)
-        self.watchdog.start()
 
     def setUpCleanup(self):
         # Change to an existing dir before cleaning up.
@@ -168,12 +167,6 @@ class AbstractServer(BaseTestCase):
 
         process_unhandled_exceptions()
         process_unhandled_twisted_exceptions()
-
-        self.watchdog.join(2)
-        if self.watchdog.is_alive():
-            self._logger.critical("The WatchDog didn't stop!")
-            self.watchdog.print_all_stacks()
-            raise RuntimeError("Couldn't stop the WatchDog")
 
         if self.file_server:
             yield maybeDeferred(self.file_server.stopListening).addCallback(self.checkReactor)
