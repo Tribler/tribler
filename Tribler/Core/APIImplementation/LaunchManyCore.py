@@ -593,6 +593,8 @@ class TriblerLaunchMany(TaskManager):
         """
         infohash = binascii.hexlify(download.tdef.get_infohash())
         self._logger.info("Updating the amount of hops of download %s", infohash)
+        pstate = download.get_persistent_download_config()
+        pstate.set('state', 'engineresumedata', (yield download.save_resume_data()))
         yield self.session.remove_download(download)
 
         # copy the old download_config and change the hop count
@@ -601,7 +603,7 @@ class TriblerLaunchMany(TaskManager):
         # If the user wants to change the hop count to 0, don't automatically bump this up to 1 anymore
         dscfg.set_safe_seeding(False)
 
-        self.session.start_download_from_tdef(download.tdef, dscfg)
+        self.session.start_download_from_tdef(download.tdef, dscfg, pstate=pstate)
 
     def update_trackers(self, infohash, trackers):
         """ Update the trackers for a download.
