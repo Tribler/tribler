@@ -23,7 +23,7 @@ class TestLibtorrentMgr(AbstractServer):
 
     @inlineCallbacks
     def setUp(self):
-        yield super(TestLibtorrentMgr, self).setUp(annotate)
+        yield super(TestLibtorrentMgr, self).setUp()
 
         self.tribler_session = MockObject()
         self.tribler_session.lm = MockObject()
@@ -51,7 +51,7 @@ class TestLibtorrentMgr(AbstractServer):
     def tearDown(self):
         self.ltmgr.shutdown()
         self.assertTrue(os.path.exists(os.path.join(self.session_base_dir, 'lt.state')))
-        yield super(TestLibtorrentMgr, self).tearDown(annotate)
+        yield super(TestLibtorrentMgr, self).tearDown()
 
     def test_get_session_zero_hops(self):
         self.ltmgr.initialize()
