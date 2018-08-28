@@ -8,13 +8,13 @@ import logging
 import urlparse
 from base64 import b32decode
 from types import StringType, LongType, IntType, ListType, DictType
-from urllib import quote_plus
 from urlparse import urlsplit, parse_qsl
 
 from libtorrent import bencode, bdecode
 from twisted.internet import reactor
-from twisted.internet.defer import fail
+from twisted.internet.defer import fail, succeed
 from twisted.internet.ssl import ClientContextFactory
+from twisted.python.failure import Failure
 from twisted.web import http
 from twisted.web.client import Agent, readBody
 from twisted.web.http_headers import Headers
@@ -23,12 +23,6 @@ from Tribler.Core.exceptions import HttpError
 from Tribler.Core.version import version_id
 
 logger = logging.getLogger(__name__)
-
-try:
-    import treq
-    use_treq = True
-except ImportError:
-    use_treq = False
 
 
 def validate_torrent_nodes(metainfo):
@@ -356,16 +350,24 @@ def http_get(uri):
     def _on_response(response):
         if response.code == http.OK:
             return readBody(response)
+        if response.code == http.FOUND:
+            # Check if location header contains magnet link
+            location_headers = response.headers.getRawHeaders("location")
+            if not location_headers:
+                return fail(Failure(RuntimeError("HTTP redirect response does not contain location header")))
+            new_uri = location_headers[0]
+            if new_uri.startswith('magnet'):
+                _, infohash, _ = parse_magnetlink(new_uri)
+                if infohash:
+                    return succeed(new_uri)
+            return http_get(new_uri)
         raise HttpError(response)
 
     try:
         contextFactory = WebClientContextFactory()
         agent = Agent(reactor, contextFactory)
         headers = Headers({'User-Agent': ['Tribler ' + version_id]})
-        if use_treq:
-            deferred = treq.get(uri, persistent=False, headers=headers, agent=agent)
-        else:
-            deferred = agent.request('GET', uri, headers, None)
+        deferred = agent.request('GET', uri, headers, None)
         deferred.addCallback(_on_response)
         return deferred
     except:

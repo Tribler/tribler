@@ -1,10 +1,31 @@
-from urllib import unquote_plus
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
+from twisted.web.server import Site
+from twisted.web.util import Redirect
 
-from Tribler.Core.Utilities.utilities import parse_magnetlink, is_valid_url
+from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.Utilities.utilities import parse_magnetlink, is_valid_url, http_get
 from Tribler.Test.test_as_server import BaseTestCase
+from Tribler.Test.twisted_thread import deferred
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestMakeTorrent(BaseTestCase):
+
+    def __init__(self, *argv, **kwargs):
+        super(TestMakeTorrent, self).__init__(*argv, **kwargs)
+        self.http_server = None
+
+    @blocking_call_on_reactor_thread
+    def setUpHttpRedirectServer(self, port, redirect_url):
+        self.http_server = reactor.listenTCP(port, Site(Redirect(redirect_url)))
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self):
+        super(TestMakeTorrent, self).tearDown()
+        if self.http_server:
+            yield self.http_server.stopListening()
 
     def test_parse_magnetlink_lowercase(self):
         """
@@ -35,3 +56,23 @@ class TestMakeTorrent(BaseTestCase):
 
         test_url4 = "udp://localhost:1264"
         self.assertTrue(is_valid_url(test_url4))
+
+    @deferred(timeout=5)
+    def test_http_get_with_redirect(self):
+        """
+        Test if http_get is working properly if url redirects to a magnet link.
+        """
+
+        def on_callback(response):
+            self.assertEqual(response, magnet_link)
+
+        # Setup a redirect server which redirects to a magnet link
+        magnet_link = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
+        port = get_random_port()
+
+        self.setUpHttpRedirectServer(port, magnet_link)
+
+        test_url = "http://localhost:%d" % port
+        http_deferred = http_get(test_url).addCallback(on_callback)
+
+        return http_deferred
