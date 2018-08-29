@@ -919,19 +919,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 # After the callback is invoked, the return values will be passed to the
                 # returncallback for post-callback processing.
                 if not self.done and not self.session.lm.shutdownstarttime:
-                    # runs on the reactor
-                    def session_getstate_usercallback_target():
-                        when = usercallback(ds)
-                        if when > 0.0 and not self.session.lm.shutdownstarttime:
-                            # Schedule next invocation, either on general or DL specific
-                            def reschedule_cb():
-                                dc = reactor.callLater(when, lambda: self.network_get_state(usercallback))
-                                random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
-                                self.register_task("downloads_cb_%s" % random_id, dc)
-
-                            reactor.callFromThread(reschedule_cb)
-
-                    reactor.callInThread(session_getstate_usercallback_target)
+                    when = usercallback(ds)
+                    if when > 0.0 and not self.session.lm.shutdownstarttime:
+                        # Schedule next invocation, either on general or DL specific
+                        dc = reactor.callLater(when, lambda: self.network_get_state(usercallback))
+                        random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
+                        self.register_task("downloads_cb_%s" % random_id, dc)
             else:
                 return ds
 
