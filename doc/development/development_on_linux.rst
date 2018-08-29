@@ -7,7 +7,7 @@ First, install the required dependencies by executing the following command in y
 
 .. code-block:: none
 
-    sudo apt-get install libav-tools libsodium18 libx11-6 python-apsw python-cherrypy3 python-cryptography python-datrie python-decorator python-dnspython python-ecdsa python-feedparser python-jsonrpclib python-keyring python-keyrings.alt python-leveldb python-libtorrent python-matplotlib python-meliae python-m2crypto python-netifaces python-pbkdf2 python-pil python-protobuf python-pyasn1 python-pysocks python-requests python-scipy python-twisted python2.7 vlc python-chardet python-configobj python-pyqt5 python-pyqt5.qtsvg python-libnacl
+    sudo apt-get install libav-tools libsodium18 libx11-6 python-apsw python-cherrypy3 python-cryptography python-decorator python-dnspython python-ecdsa python-feedparser python-jsonrpclib python-keyring python-keyrings.alt python-leveldb python-libtorrent python-matplotlib python-meliae python-m2crypto python-netifaces python-pbkdf2 python-pil python-protobuf python-pyasn1 python-pysocks python-requests python-scipy python-twisted python2.7 vlc python-chardet python-configobj python-pyqt5 python-pyqt5.qtsvg python-libnacl
 
 Next, download the latest .deb file from `here <https://jenkins-ci.tribler.org/job/Build-Tribler_Ubuntu-64_devel/lastStableBuild/>`_.
 
@@ -71,4 +71,4 @@ Execute the following command in your terminal:
 
 .. code-block:: none
 
-    pacman -S libsodium libtorrent-rasterbar python2-pyqt5 qt5-svg phonon-qt5-vlc python2-apsw python2-cherrypy python2-cryptography python2-datrie python2-decorator python2-dnspython python2-ecdsa python2-feedparser python2-chardet python2-jsonrpclib python2-keyring python2-keyrings-alt python2-m2crypto python2-netifaces python2-pbkdf2 python2-plyvel python2-protobuf python2-pysocks python2-requests python2-pyaes python2-twisted python2-configobj python2-matplotlib python2-networkx python2-scipy python2-libnacl
+    pacman -S libsodium libtorrent-rasterbar python2-pyqt5 qt5-svg phonon-qt5-vlc python2-apsw python2-cherrypy python2-cryptography python2-decorator python2-dnspython python2-ecdsa python2-feedparser python2-chardet python2-jsonrpclib python2-keyring python2-keyrings-alt python2-m2crypto python2-netifaces python2-pbkdf2 python2-plyvel python2-protobuf python2-pysocks python2-requests python2-pyaes python2-twisted python2-configobj python2-matplotlib python2-networkx python2-scipy python2-libnacl
