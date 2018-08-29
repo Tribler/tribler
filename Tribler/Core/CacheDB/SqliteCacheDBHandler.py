@@ -523,7 +523,7 @@ class TorrentDBHandler(BasicDBHandler):
             num_files, length = 0, 0
             if 'info' in metainfo:
                 info = metainfo['info']
-                name = info["name"] if "name" in info else ""
+                name = u''.join([unichr(ord(c)) for c in info["name"]]) if "name" in info else ""
                 if 'files' in info:
                     num_files = len(info['files'])
                     for piece in info['files']:

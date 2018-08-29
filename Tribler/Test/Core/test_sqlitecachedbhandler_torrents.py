@@ -183,7 +183,7 @@ class TestTorrentDBHandler(AbstractDB):
         metainfo = {'info': {'files': [{'path': ['Something.something.pdf'], 'length': 123456789},
                                        {'path': ['Another-thing.jpg'], 'length': 100000000}],
                              'piece length': 2097152,
-                             'name': 'Something awesome (2015)',
+                             'name': '\xc3Something awesome (2015)',
                              'pieces': ''},
                     'seeders': 0, 'initial peers': [],
                     'leechers': 36, 'download_exists': False, 'nodes': []}
@@ -192,7 +192,7 @@ class TestTorrentDBHandler(AbstractDB):
         # Check updates are correct
         torrent_id = self.tdb.getTorrentID(infohash)
         name = self.tdb.getOne('name', torrent_id=torrent_id)
-        self.assertEqual(name, metainfo['info']['name'])
+        self.assertEqual(name, u'\xc3Something awesome (2015)')
         num_files = self.tdb.getOne('num_files', torrent_id=torrent_id)
         self.assertEqual(num_files, 2)
         length = self.tdb.getOne('length', torrent_id=torrent_id)
