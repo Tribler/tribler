@@ -172,7 +172,7 @@ There are some additional packages which should be installed. They can easily be
 .. code-block:: none
 
     pip install cython  # Needs to be installed first for meliae
-    pip install cherrypy chardet configobj cryptography datrie decorator dnspython ecdsa feedparser jsonrpclib keyring meliae netifaces networkx pbkdf2 pillow protobuf pyaes pysocks requests twisted win_inet_pton keyring pbkdf2 libnacl
+    pip install cherrypy chardet configobj cryptography decorator dnspython ecdsa feedparser jsonrpclib keyring meliae netifaces networkx pbkdf2 pillow protobuf pyaes pysocks requests twisted win_inet_pton keyring pbkdf2 libnacl
 
 Running Tribler
 ---------------
