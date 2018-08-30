@@ -40,7 +40,7 @@ MOCK_MODULES = ['twisted', 'twisted.web', 'twisted.web.server', 'twisted.web.cli
                 'twisted.internet.error', 'twisted.internet.protocol', 'apsw', 'libtorrent', 'treq',
                 'Tribler.community.tunnel.crypto.cryptowrapper', 'Tribler.community.market.core.orderbook',
                 'M2Crypto', 'M2Crypto.EC', 'M2Crypto.BIO', 'Tribler.dispersy.crypto', 'psutil', 'meliae', 'libnacl',
-                'decorator', 'libnacl.dual', 'libnacl.sign', 'libnacl.encode', 'libnacl.public', 'keyring', 'networkx',
+                'decorator', 'libnacl.dual', 'libnacl.sign', 'libnacl.encode', 'libnacl.public', 'networkx',
                 'netifaces']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 

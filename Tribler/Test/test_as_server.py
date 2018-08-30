@@ -7,8 +7,6 @@ Author(s): Arno Bakker, Jie Yang, Niels Zeilemaker
 """
 import functools
 import inspect
-import keyring
-from keyrings.alt.file import PlaintextKeyring
 import logging
 import os
 import re
@@ -255,11 +253,6 @@ class TestAsServer(AbstractServer):
     def setUp(self, autoload_discovery=True):
         yield super(TestAsServer, self).setUp(annotate=False)
         self.setUpPreSession()
-
-        # We don't use the system keychain but a PlainText keyring for performance during tests
-        for new_keyring in keyring.backend.get_all_keyring():
-            if isinstance(new_keyring, PlaintextKeyring):
-                keyring.set_keyring(new_keyring)
 
         self.quitting = False
         self.seeding_deferred = Deferred()

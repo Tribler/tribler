@@ -66,9 +66,21 @@ class MarketWalletsPage(QWidget):
 
         if 'BTC' in self.wallets and self.wallets["BTC"]["created"]:
             self.window().wallet_btc_overview_button.show()
+        elif 'BTC' not in self.wallets:
+            self.wallets['BTC'] = {
+                'name': 'Bitcoin',
+                'created': False,
+                'identifier': 'BTC'
+            }
 
         if 'TBTC' in self.wallets and self.wallets["TBTC"]["created"]:
             self.window().wallet_tbtc_overview_button.show()
+        elif 'TBTC' not in self.wallets:
+            self.wallets['TBTC'] = {
+                'name': 'Testnet BTC',
+                'created': False,
+                'identifier': 'TBTC'
+            }
 
         # Find out which wallets we still can create
         self.wallets_to_create = []
@@ -150,33 +162,19 @@ class MarketWalletsPage(QWidget):
         menu.exec_(QCursor.pos())
 
     def should_create_wallet(self, wallet_id):
-        if wallet_id == 'BTC' or wallet_id == 'TBTC':
-            self.dialog = ConfirmationDialog(self, "Create Bitcoin wallet",
-                                             "Please enter the password of your Bitcoin wallet below:",
-                                             [('CREATE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
-                                             show_input=True)
-            self.dialog.dialog_widget.dialog_input.setPlaceholderText('Wallet password')
-            self.dialog.button_clicked.connect(lambda action: self.on_create_btc_wallet_dialog_done(action, wallet_id))
-            self.dialog.show()
-        else:
-            self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("wallets/%s" % wallet_id, self.on_wallet_created,
-                                             method='PUT', data='')
+        if wallet_id == "BTC" or wallet_id == "TBTC":
+            # We check whether bitcoinlib is installed, if not, warn the user (should only happen on linux systems)
+            try:
+                import bitcoinlib
+            except ImportError:
+                ConfirmationDialog.show_error(self.window(), "bitcoinlib not found",
+                                              "bitcoinlib could not be located on your system. "
+                                              "Please install it using the following command: "
+                                              "pip install bitcoinlib --user")
+                return
 
-    def on_create_btc_wallet_dialog_done(self, action, wallet_id):
-        password = self.dialog.dialog_widget.dialog_input.text()
-
-        if action == 1:  # Remove the dialog right now
-            self.dialog.close_dialog()
-            self.dialog = None
-        elif action == 0:
-            self.dialog.buttons[0].setEnabled(False)
-            self.dialog.buttons[1].setEnabled(False)
-            self.dialog.buttons[0].setText("CREATING...")
-            self.request_mgr = TriblerRequestManager()
-            post_data = str("password=%s" % password)
-            self.request_mgr.perform_request("wallets/%s" % wallet_id, self.on_wallet_created,
-                                             method='PUT', data=post_data)
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("wallets/%s" % wallet_id, self.on_wallet_created, method='PUT', data='')
 
     def on_wallet_created(self, response):
         if not response:

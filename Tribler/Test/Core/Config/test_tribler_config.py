@@ -264,8 +264,6 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         Check whether wallet get and set methods are working as expected.
         """
-        self.tribler_config.set_btc_testnet(True)
-        self.assertTrue(self.tribler_config.get_btc_testnet())
         self.tribler_config.set_dummy_wallets_enabled(True)
         self.assertTrue(self.tribler_config.get_dummy_wallets_enabled())
 

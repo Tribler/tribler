@@ -552,12 +552,6 @@ class TriblerConfig(object):
 
     # Wallets
 
-    def set_btc_testnet(self, value):
-        self.config['wallets']['btc_testnet'] = value
-
-    def get_btc_testnet(self):
-        return self.config['wallets']['btc_testnet']
-
     def set_dummy_wallets_enabled(self, value):
         self.config['wallets']['dummy_wallets_enabled'] = value
 

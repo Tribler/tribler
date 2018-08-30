@@ -403,11 +403,13 @@ class TriblerLaunchMany(TaskManager):
         # Wallets
         try:
             from Tribler.Core.Modules.wallet.btc_wallet import BitcoinWallet, BitcoinTestnetWallet
-            wallet_type = BitcoinTestnetWallet if self.session.config.get_btc_testnet() else BitcoinWallet
-            btc_wallet = wallet_type(os.path.join(self.session.config.get_state_dir(), 'wallet'))
+            wallet_path = os.path.join(self.session.config.get_state_dir(), 'wallet')
+            btc_wallet = BitcoinWallet(wallet_path)
+            btc_testnet_wallet = BitcoinTestnetWallet(wallet_path)
             self.wallets[btc_wallet.get_identifier()] = btc_wallet
+            self.wallets[btc_testnet_wallet.get_identifier()] = btc_testnet_wallet
         except ImportError:
-            self._logger.error("Electrum wallet cannot be found, Bitcoin wallet not available!")
+            self._logger.error("bitcoinlib library cannot be found, Bitcoin wallet not available!")
 
         if self.session.config.get_dummy_wallets_enabled():
             # For debugging purposes, we create dummy wallets

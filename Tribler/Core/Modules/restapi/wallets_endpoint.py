@@ -99,7 +99,7 @@ class WalletEndpoint(resource.Resource):
 
             .. sourcecode:: none
 
-                curl -X PUT http://localhost:8085/wallets/BTC --data "password=secret"
+                curl -X PUT http://localhost:8085/wallets/BTC
 
             **Example response**:
 
@@ -117,19 +117,7 @@ class WalletEndpoint(resource.Resource):
             request.write(json.dumps({"created": True}))
             request.finish()
 
-        parameters = http.parse_qs(request.content.read(), 1)
-
-        if (self.identifier == "BTC" or self.identifier == "TBTC") and 'password' not in parameters:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "a password is required when creating a Bitcoin wallet"})
-
-        if self.identifier == "BTC" or self.identifier == "TBTC":  # get the password
-            if parameters['password'] and len(parameters['password']) > 0:
-                password = parameters['password'][0]
-                self.session.lm.wallets[self.identifier].create_wallet(password=password)\
-                    .addCallback(on_wallet_created)
-        else:
-            self.session.lm.wallets[self.identifier].create_wallet().addCallback(on_wallet_created)
+        self.session.lm.wallets[self.identifier].create_wallet().addCallback(on_wallet_created)
 
         return NOT_DONE_YET
 
@@ -282,7 +270,7 @@ class WalletTransferEndpoint(resource.Resource):
             request.write(json.dumps({"txid": "", "error": error.getErrorMessage()}))
             request.finish()
 
-        wallet.transfer(float(parameters['amount'][0]), parameters['destination'][0]).addCallback(on_transferred)\
+        wallet.transfer(parameters['amount'][0], parameters['destination'][0]).addCallback(on_transferred)\
             .addErrback(on_transfer_error)
 
         return NOT_DONE_YET
