@@ -293,7 +293,12 @@ class TestContentRepository(unittest.TestCase):
         def fake_update_torrent(ref):
             ref.called_update_torrent = True
 
+        def fake_add_or_get_torrent_id(ref):
+            ref.called_add_or_get_torrent_id = True
+
         self.content_repository.torrent_db.updateTorrent = lambda infohash, **kw: fake_update_torrent(
+            self.content_repository)
+        self.content_repository.torrent_db.addOrGetTorrentID = lambda infohash: fake_add_or_get_torrent_id(
             self.content_repository)
 
         # Case 1: Assume torrent does not exist in the database
@@ -303,11 +308,14 @@ class TestContentRepository(unittest.TestCase):
         self.content_repository.called_update_torrent = False
         self.content_repository.update_from_torrent_search_results(search_results.values())
         self.assertTrue(self.content_repository.called_update_torrent)
+        self.assertTrue(self.content_repository.called_add_or_get_torrent_id)
 
         # Case 2: Torrent already exist in the database
         self.content_repository.has_torrent = lambda infohash: infohash in search_results
         self.content_repository.get_torrent = lambda infohash: get_torrent(search_results[infohash])
 
         self.content_repository.called_update_torrent = False
+        self.content_repository.called_add_or_get_torrent_id = False
         self.content_repository.update_from_torrent_search_results(search_results.values())
         self.assertFalse(self.content_repository.called_update_torrent)
+        self.assertFalse(self.content_repository.called_add_or_get_torrent_id)

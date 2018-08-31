@@ -157,7 +157,10 @@ class ContentRepository(object):
                 db_torrent = self.get_torrent(infohash)
                 if db_torrent['name'] and db_torrent['name'] == torrent_item.name:
                     self.logger.info("Conflicting names for torrent. Ignoring the response")
-                    return
+                    continue
+            else:
+                self.logger.debug("Adding new torrent from search results to database")
+                self.torrent_db.addOrGetTorrentID(infohash)
 
             # Update local database
             self.torrent_db.updateTorrent(infohash, notify=False, name=torrent_item.name,
