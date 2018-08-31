@@ -71,32 +71,6 @@ class DownloadsPage(QWidget):
         if not self.window().vlc_available:
             self.window().play_download_button.setHidden(True)
 
-    def tray_set_tooltip(self, message):
-        """
-        Set a tooltip message for the tray icon, if possible.
-
-        :param message: the message to display on hover
-        """
-        if self.window().tray_icon:
-            try:
-                self.window().tray_icon.setToolTip(message)
-            except RuntimeError as e:
-                logging.error("Failed to set tray tooltip: %s", str(e))
-
-    def tray_show_message(self, title, message):
-        """
-        Show a message at the tray icon, if possible.
-
-        :param title: the title of the message
-        :param message: the message to display
-        """
-        if self.window().tray_icon:
-            try:
-                self.window().tray_icon.showMessage(title, message)
-            except RuntimeError as e:
-                logging.error("Failed to set tray message: %s", str(e))
-
-
     def on_filter_text_changed(self, text):
         self.window().downloads_list.clearSelection()
         self.window().download_details_widget.hide()
@@ -196,7 +170,7 @@ class DownloadsPage(QWidget):
                 self.window().downloads_list.takeTopLevelItem(index)
                 del self.download_widgets[infohash]
 
-        self.tray_set_tooltip("Down: %s, Up: %s" % (format_speed(self.total_download), format_speed(self.total_upload)))
+        self.window().tray_set_tooltip("Down: %s, Up: %s" % (format_speed(self.total_download), format_speed(self.total_upload)))
         self.update_download_visibility()
         self.schedule_downloads_timer()
 
@@ -430,7 +404,7 @@ class DownloadsPage(QWidget):
                                           "Error when exporting file",
                                           "An error occurred when exporting the torrent file: %s" % str(exc))
         else:
-            self.tray_show_message("Torrent file exported", "Torrent file exported to %s" % dest_path)
+            self.window().tray_show_message("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
     def on_right_click_item(self, pos):
         item_clicked = self.window().downloads_list.itemAt(pos)
