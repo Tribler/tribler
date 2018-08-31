@@ -558,6 +558,12 @@ class TriblerConfig(object):
     def get_dummy_wallets_enabled(self):
         return self.config['wallets']['dummy_wallets_enabled']
 
+    def set_bitcoinlib_enabled(self, value):
+        self.config['wallets']['bitcoinlib_enabled'] = value
+
+    def get_bitcoinlib_enabled(self):
+        return self.config['wallets']['bitcoinlib_enabled']
+
     # Popular Community
 
     def get_popularity_community_enabled(self):

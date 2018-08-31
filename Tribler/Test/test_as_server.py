@@ -295,6 +295,7 @@ class TestAsServer(AbstractServer):
         self.config.set_dht_enabled(False)
         self.config.set_version_checker_enabled(False)
         self.config.set_libtorrent_dht_enabled(False)
+        self.config.set_bitcoinlib_enabled(False)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -353,6 +354,7 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_dht_enabled(False)
         self.seed_config.set_state_dir(self.getStateDir(2))
         self.seed_config.set_version_checker_enabled(False)
+        self.seed_config.set_bitcoinlib_enabled(False)
 
         def start_seed_download(_):
             self.dscfg_seed = DownloadStartupConfig()

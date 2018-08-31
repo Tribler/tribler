@@ -401,15 +401,16 @@ class TriblerLaunchMany(TaskManager):
             self.upnp_ports.append((self.session.config.get_mainline_dht_port(), 'UDP'))
 
         # Wallets
-        try:
-            from Tribler.Core.Modules.wallet.btc_wallet import BitcoinWallet, BitcoinTestnetWallet
-            wallet_path = os.path.join(self.session.config.get_state_dir(), 'wallet')
-            btc_wallet = BitcoinWallet(wallet_path)
-            btc_testnet_wallet = BitcoinTestnetWallet(wallet_path)
-            self.wallets[btc_wallet.get_identifier()] = btc_wallet
-            self.wallets[btc_testnet_wallet.get_identifier()] = btc_testnet_wallet
-        except ImportError:
-            self._logger.error("bitcoinlib library cannot be found, Bitcoin wallet not available!")
+        if self.session.config.get_bitcoinlib_enabled():
+            try:
+                from Tribler.Core.Modules.wallet.btc_wallet import BitcoinWallet, BitcoinTestnetWallet
+                wallet_path = os.path.join(self.session.config.get_state_dir(), 'wallet')
+                btc_wallet = BitcoinWallet(wallet_path)
+                btc_testnet_wallet = BitcoinTestnetWallet(wallet_path)
+                self.wallets[btc_wallet.get_identifier()] = btc_wallet
+                self.wallets[btc_testnet_wallet.get_identifier()] = btc_testnet_wallet
+            except ImportError:
+                self._logger.error("bitcoinlib library cannot be found, Bitcoin wallet not available!")
 
         if self.session.config.get_dummy_wallets_enabled():
             # For debugging purposes, we create dummy wallets

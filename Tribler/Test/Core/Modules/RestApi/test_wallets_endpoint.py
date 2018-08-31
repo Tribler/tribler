@@ -15,6 +15,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         super(TestWalletsEndpoint, self).setUpPreSession()
         self.config.set_ipv8_enabled(True)
         self.config.set_dummy_wallets_enabled(True)
+        self.config.set_bitcoinlib_enabled(True)
 
     @deferred(timeout=20)
     def test_get_wallets(self):
