@@ -1,7 +1,6 @@
 import glob
 import logging
 import os
-import sip
 import sys
 import traceback
 from urllib import pathname2url, unquote
@@ -302,7 +301,7 @@ class TriblerWindow(QMainWindow):
         close_dialog.show()
 
     def on_torrent_finished(self, torrent_info):
-        if self.tray_icon and not sip.isdeleted(self.tray_icon):
+        if self.tray_icon:
             self.window().tray_icon.showMessage("Download finished",
                                                 "Download of %s has finished." % torrent_info["name"])
 
