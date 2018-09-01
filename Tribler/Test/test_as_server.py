@@ -207,13 +207,13 @@ class AbstractServer(BaseTestCase):
                 f = open(filename, 'a')
             else:
                 f = open(filename, 'w')
-                print >> f, "annotation start end"
+                f.write("annotation start end\n")
 
             AbstractServer._annotate_counter += 1
             _annotation = re.sub('[^a-zA-Z0-9_]', '_', annotation)
             _annotation = u"%d_" % AbstractServer._annotate_counter + _annotation
 
-            print >> f, _annotation, self.annotate_dict[annotation], time.time()
+            f.write("%s %s %s\n" % (_annotation, self.annotate_dict[annotation], time.time()))
             f.close()
 
     def get_bucket_range_port(self):
