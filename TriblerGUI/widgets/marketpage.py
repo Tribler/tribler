@@ -374,7 +374,7 @@ class MarketPage(QWidget):
         if not payment["success"]:
             # Error occurred during payment
             main_text = "Transaction with id %s failed." % payment["transaction_number"]
-            self.window().tray_icon.showMessage("Transaction failed", main_text)
+            self.window().tray_show_message("Transaction failed", main_text)
             ConfirmationDialog.show_error(self.window(), "Transaction failed", main_text)
             self.window().hide_status_bar()
         else:
