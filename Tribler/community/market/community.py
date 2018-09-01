@@ -1113,7 +1113,8 @@ class MarketCommunity(Community, BlockListener):
 
         proposed_trade = ProposedTrade.from_network(payload)
 
-        self.logger.debug("Proposed trade received from trader %s", str(proposed_trade.trader_id))
+        self.logger.debug("Proposed trade received from trader %s for order %s",
+                          str(proposed_trade.trader_id), str(proposed_trade.recipient_order_id))
 
         # Update the known IP address of the sender of this proposed trade
         self.update_ip(proposed_trade.trader_id, peer.address)
@@ -1155,8 +1156,6 @@ class MarketCommunity(Community, BlockListener):
                               order.traded_quantity, decline_reason)
             self.send_declined_trade(declined_trade)
         else:
-            self.logger.debug("Proposed trade received for order with id: %s", str(order.order_id))
-
             if order.available_quantity >= proposed_trade.assets.first.amount:  # Enough quantity left
                 order.reserve_quantity_for_tick(proposed_trade.order_id, proposed_trade.assets.first.amount)
                 self.order_manager.order_repository.update(order)

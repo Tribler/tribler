@@ -73,9 +73,6 @@ class MemoryTransactionRepository(TransactionRepository):
         :return: The transaction or null if it cannot be found
         :rtype: Transaction
         """
-        self._logger.debug(
-            "Transaction with the id: " + str(transaction_id) + " was searched for in the transaction repository")
-
         return self._transactions.get(transaction_id)
 
     def add(self, transaction):
@@ -141,9 +138,6 @@ class DatabaseTransactionRepository(TransactionRepository):
         :return: The transaction or null if it cannot be found
         :rtype: Transaction
         """
-        self._logger.debug("Transaction with the id: %s was searched for in the transaction repository",
-                           str(transaction_id))
-
         return self.persistence.get_transaction(transaction_id)
 
     def add(self, transaction):

@@ -78,8 +78,6 @@ class MemoryOrderRepository(OrderRepository):
         :return: The order or null if it cannot be found
         :rtype: Order
         """
-        self._logger.debug("Order with the id: " + str(order_id) + " was searched for in the order repository")
-
         return self._orders.get(order_id)
 
     def add(self, order):
@@ -147,8 +145,6 @@ class DatabaseOrderRepository(OrderRepository):
         :return: The order or null if it cannot be found
         :rtype: Order
         """
-        self._logger.debug("Order with the id: " + str(order_id) + " was searched for in the order repository")
-
         return self.persistence.get_order(order_id)
 
     def add(self, order):

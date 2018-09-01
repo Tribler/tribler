@@ -24,7 +24,7 @@ class TestMarketCommunityBase(TestBase):
         super(TestMarketCommunityBase, self).setUp()
         self.initialize(MarketCommunity, self.NUM_NODES)
         for node in self.nodes:
-            node.overlay._use_main_thread = False
+            node.overlay._use_main_thread = True
 
     def create_node(self):
         dum1_wallet = DummyWallet1()
