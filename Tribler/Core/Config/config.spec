@@ -39,7 +39,7 @@ testnet_keypair_filename = string(default='')
 live_edges_enabled = boolean(default=True)
 
 [wallets]
-btc_testnet = boolean(default=False)
+bitcoinlib_enabled = boolean(default=True)
 dummy_wallets_enabled = boolean(default=False)
 
 [metadata]
