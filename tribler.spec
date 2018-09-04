@@ -18,6 +18,13 @@ for file in os.listdir("TriblerGUI/widgets"):
         widget_files.append('TriblerGUI.widgets.%s' % file[:-3])
 
 data_to_copy = [('TriblerGUI/qt_resources', 'qt_resources'), ('TriblerGUI/images', 'images'), ('twisted', 'twisted'), ('Tribler', 'tribler_source/Tribler'), ('logger.conf', '.')]
+
+# For bitcoinlib, we have to copy the data directory to the root directory of the installation dir, otherwise
+# the library is unable to find the data files.
+import bitcoinlib
+bitcoinlib_dir = os.path.dirname(bitcoinlib.__file__)
+data_to_copy += [(bitcoinlib_dir, 'bitcoinlib')]
+
 if sys.platform.startswith('darwin'):
     data_to_copy += [('/Applications/VLC.app/Contents/MacOS/lib', 'vlc/lib'), ('/Applications/VLC.app/Contents/MacOS/plugins', 'vlc/plugins')]
 
@@ -31,13 +38,13 @@ if sys.platform.startswith('darwin'):
         f.write(content)
 
 # We use plyvel on Windows since leveldb is unable to deal with unicode paths
-excluded_libs = ['wx', 'leveldb'] if sys.platform == 'win32' else ['wx']
+excluded_libs = ['wx', 'leveldb', 'bitcoinlib'] if sys.platform == 'win32' else ['wx', 'bitcoinlib', ]
 
 a = Analysis(['run_tribler.py'],
              pathex=['/Users/martijndevos/Documents/tribler'],
              binaries=None,
              datas=data_to_copy,
-             hiddenimports=['csv', 'socks'] + widget_files,
+             hiddenimports=['csv', 'ecdsa', 'pyaes', 'scrypt', '_scrypt', 'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative', 'requests'] + widget_files,
              hookspath=[],
              runtime_hooks=[],
              excludes=excluded_libs,

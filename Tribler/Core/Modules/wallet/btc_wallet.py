@@ -1,8 +1,9 @@
 import os
 
 import time
-from bitcoinlib.transactions import Transaction
-from bitcoinlib.wallets import HDWallet, wallet_exists, DbTransaction, DbTransactionInput, WalletError
+
+# Important import, do not remove
+import Tribler.Core.Modules.bitcoinlib_main as bitcoinlib_main
 
 from Tribler.Core.Modules.wallet.wallet import Wallet, InsufficientFunds
 from twisted.internet.defer import Deferred, succeed, inlineCallbacks, fail
@@ -13,11 +14,18 @@ from twisted.python.failure import Failure
 class BitcoinWallet(Wallet):
     """
     This class is responsible for handling your wallet of bitcoins.
+
+    NOTE: all imports of bitcoinlib should be local. The reason for this is that we are patching the bitcoinlib_main
+          method in the __init__ method of the class (since we need access to the Tribler state directory) and
+          we can only import bitcoinlib *after* patching the bitcoinlib main file.
     """
     TESTNET = False
 
     def __init__(self, wallet_dir):
         super(BitcoinWallet, self).__init__()
+
+        bitcoinlib_main.initialize_lib(wallet_dir)
+        from bitcoinlib.wallets import wallet_exists, HDWallet
 
         self.network = 'testnet' if self.TESTNET else 'bitcoin'
         self.wallet_dir = wallet_dir
@@ -41,6 +49,8 @@ class BitcoinWallet(Wallet):
         """
         Create a new bitcoin wallet.
         """
+        from bitcoinlib.wallets import HDWallet, WalletError
+
         self._logger.info("Creating wallet in %s", self.wallet_dir)
         try:
             self.wallet = HDWallet.create(self.wallet_name, network=self.network, databasefile=self.db_path)
@@ -107,6 +117,9 @@ class BitcoinWallet(Wallet):
     def get_transactions(self):
         if not self.created:
             return succeed([])
+
+        from bitcoinlib.transactions import Transaction
+        from bitcoinlib.wallets import DbTransaction, DbTransactionInput
 
         # Update all transactions
         self.wallet.transactions_update(network=self.network)
