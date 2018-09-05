@@ -552,10 +552,26 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window.debug_window, name="debug_panel_communities_tab")
 
         window.debug_window.debug_tab_widget.setCurrentIndex(4)
+        self.wait_for_list_populated(window.debug_window.circuits_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_tunnel_circuits_tab")
+
+        window.debug_window.tunnel_tab_widget.setCurrentIndex(1)
+        self.wait_for_list_populated(window.debug_window.relays_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_tunnel_relays_tab")
+
+        window.debug_window.tunnel_tab_widget.setCurrentIndex(2)
+        self.wait_for_list_populated(window.debug_window.exits_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_tunnel_exits_tab")
+
+        window.debug_window.debug_tab_widget.setCurrentIndex(5)
+        self.wait_for_list_populated(window.debug_window.dht_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_dht_tab")
+
+        window.debug_window.debug_tab_widget.setCurrentIndex(6)
         self.wait_for_list_populated(window.debug_window.events_tree_widget)
         self.screenshot(window.debug_window, name="debug_panel_events_tab")
 
-        window.debug_window.debug_tab_widget.setCurrentIndex(5)
+        window.debug_window.debug_tab_widget.setCurrentIndex(7)
         self.wait_for_list_populated(window.debug_window.open_files_tree_widget)
         self.screenshot(window.debug_window, name="debug_panel_open_files_tab")
 
@@ -568,7 +584,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window.debug_window, name="debug_panel_threads_tab")
 
         # Logs shown in ui and from the debug endpoint should be same
-        window.debug_window.debug_tab_widget.setCurrentIndex(6)
+        window.debug_window.debug_tab_widget.setCurrentIndex(8)
         # logs from FakeTriblerApi
         fake_logs = ''.join(["Sample log [%d]\n" % i for i in xrange(10)]).strip()
 

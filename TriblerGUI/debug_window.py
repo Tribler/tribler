@@ -134,9 +134,11 @@ class DebugWindow(QMainWindow):
 
         self.window().debug_tab_widget.setCurrentIndex(0)
         self.window().ipv8_tab_widget.setCurrentIndex(0)
+        self.window().tunnel_tab_widget.setCurrentIndex(0)
         self.window().system_tab_widget.setCurrentIndex(0)
         self.window().debug_tab_widget.currentChanged.connect(self.tab_changed)
         self.window().ipv8_tab_widget.currentChanged.connect(self.ipv8_tab_changed)
+        self.window().tunnel_tab_widget.currentChanged.connect(self.tunnel_tab_changed)
         self.window().events_tree_widget.itemClicked.connect(self.on_event_clicked)
         self.window().system_tab_widget.currentChanged.connect(self.system_tab_changed)
         self.load_general_tab()
@@ -170,10 +172,14 @@ class DebugWindow(QMainWindow):
         elif index == 3:
             self.ipv8_tab_changed(self.window().ipv8_tab_widget.currentIndex())
         elif index == 4:
-            self.load_events_tab()
+            self.tunnel_tab_changed(self.window().tunnel_tab_widget.currentIndex())
         elif index == 5:
-            self.system_tab_changed(self.window().system_tab_widget.currentIndex())
+            self.load_dht_tab()
         elif index == 6:
+            self.load_events_tab()
+        elif index == 7:
+            self.system_tab_changed(self.window().system_tab_widget.currentIndex())
+        elif index == 8:
             self.load_logs_tab()
 
     def ipv8_tab_changed(self, index):
@@ -181,6 +187,14 @@ class DebugWindow(QMainWindow):
             self.load_ipv8_general_tab()
         elif index == 1:
             self.load_ipv8_communities_tab()
+
+    def tunnel_tab_changed(self, index):
+        if index == 0:
+            self.load_tunnel_circuits_tab()
+        elif index == 1:
+            self.load_tunnel_relays_tab()
+        elif index == 2:
+            self.load_tunnel_exits_tab()
 
     def system_tab_changed(self, index):
         if index == 0:
@@ -278,6 +292,54 @@ class DebugWindow(QMainWindow):
             item.setText(2, overlay["my_peer"][:6])
             item.setText(3, "%s" % len(overlay["peers"]))
             self.window().communities_tree_widget.addTopLevelItem(item)
+
+    def add_items_to_tree(self, tree, items, keys):
+        tree.clear()
+        for item in items:
+            widget_item = QTreeWidgetItem(tree)
+            for index, key in enumerate(keys):
+                value = format_size(item[key]) if key in ["bytes_up", "bytes_down"] else str(item[key])
+                widget_item.setText(index, value)
+            tree.addTopLevelItem(widget_item)
+
+    def load_tunnel_circuits_tab(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("ipv8/tunnel/circuits", self.on_tunnel_circuits)
+
+    def on_tunnel_circuits(self, data):
+        if data:
+            self.add_items_to_tree(self.window().circuits_tree_widget, data.get("circuits"),
+                                   ["circuit_id", "goal_hops", "actual_hops",
+                                    "type", "state", "bytes_up", "bytes_down"])
+
+    def load_tunnel_relays_tab(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("ipv8/tunnel/relays", self.on_tunnel_relays)
+
+    def on_tunnel_relays(self, data):
+        if data:
+            self.add_items_to_tree(self.window().relays_tree_widget, data["relays"],
+                                   ["circuit_from", "circuit_to", "is_rendezvous", "bytes_up", "bytes_down"])
+
+    def load_tunnel_exits_tab(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("ipv8/tunnel/exits", self.on_tunnel_exits)
+
+    def on_tunnel_exits(self, data):
+        if data:
+            self.add_items_to_tree(self.window().exits_tree_widget, data["exits"],
+                                   ["circuit_from", "enabled", "bytes_up", "bytes_down"])
+
+    def load_dht_tab(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("ipv8/dht/statistics", self.on_dht_statistics)
+
+    def on_dht_statistics(self, data):
+        if not data:
+            return
+        self.window().dht_tree_widget.clear()
+        for key, value in data["statistics"].iteritems():
+            self.create_and_add_widget_item(key, value, self.window().dht_tree_widget)
 
     def on_event_clicked(self, item):
         event_dict = item.data(0, Qt.UserRole)
