@@ -249,6 +249,7 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.tribler_started.connect(self.on_tribler_started)
         self.core_manager.events_manager.events_started.connect(self.on_events_started)
         self.core_manager.events_manager.low_storage_signal.connect(self.on_low_storage)
+        self.core_manager.events_manager.credit_mining_signal.connect(self.on_credit_mining_error)
 
         # Install signal handler for ctrl+c events
         def sigint_handler(*_):
@@ -827,6 +828,9 @@ class TriblerWindow(QMainWindow):
                 self.stackedWidget.widget(prev_page).load_discovered_channels()
         except IndexError:
             logging.exception("Unknown page found in stack")
+
+    def on_credit_mining_error(self, error):
+        ConfirmationDialog.show_error(self, "Credit Mining Error", error[u'message'])
 
     def on_edit_channel_clicked(self):
         self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)

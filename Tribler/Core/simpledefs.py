@@ -53,6 +53,7 @@ NTFY_VOTECAST = 'votecast'
 NTFY_CHANNELCAST = 'channelcast'
 NTFY_TUNNEL = 'tunnel'
 NTFY_TRACKERINFO = 'trackerinfo'
+NTFY_CREDIT_MINING = 'creditmining'
 
 NTFY_IP_REMOVED = 'intropointremoved'
 NTFY_RP_REMOVED = 'rendezvouspointremoved'

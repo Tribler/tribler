@@ -18,7 +18,7 @@ from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENT
                                      NTFY_MARKET_ON_BID, NTFY_MARKET_ON_TRANSACTION_COMPLETE,
                                      NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID_TIMEOUT,
                                      NTFY_MARKET_IOM_INPUT_REQUIRED, NTFY_MARKET_ON_PAYMENT_RECEIVED,
-                                     NTFY_MARKET_ON_PAYMENT_SENT, SIGNAL_RESOURCE_CHECK)
+                                     NTFY_MARKET_ON_PAYMENT_SENT, SIGNAL_RESOURCE_CHECK, NTFY_CREDIT_MINING)
 
 
 class Notifier(object):
@@ -31,7 +31,7 @@ class Notifier(object):
                 NTFY_TRIBLER, NTFY_UPGRADER_TICK, NTFY_TORRENT, NTFY_CHANNEL, NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_BID,
                 NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID_TIMEOUT, NTFY_MARKET_ON_TRANSACTION_COMPLETE,
                 NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT, NTFY_MARKET_IOM_INPUT_REQUIRED,
-                SIGNAL_RESOURCE_CHECK]
+                SIGNAL_RESOURCE_CHECK, NTFY_CREDIT_MINING]
 
     def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)

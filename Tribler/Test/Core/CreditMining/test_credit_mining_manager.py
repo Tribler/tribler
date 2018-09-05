@@ -3,17 +3,17 @@ Module of Credit mining function testing.
 
 Author(s): Mihai Capota, Ardhi Putra
 """
-import psutil
+import os
+import sys
 
 from twisted.internet.defer import inlineCallbacks, succeed
 
-from Tribler.Core.CreditMining.CreditMiningPolicy import BasePolicy
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningTorrent
-
-from Tribler.Core.simpledefs import DLSTATUS_STOPPED
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
-from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Core.CreditMining.CreditMiningPolicy import BasePolicy
+from Tribler.Core.simpledefs import DLSTATUS_STOPPED, NTFY_CREDIT_MINING, NTFY_ERROR
 from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.test_as_server import TestAsServer
+from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class FakeTorrent(object):
@@ -250,6 +250,58 @@ class TestCreditMiningManager(TestAsServer):
         self.credit_mining_manager.get_free_disk_space = lambda: 1
         self.credit_mining_manager.check_disk_space()
         self.assertTrue(all([d.upload_mode for d in downloads]))
+
+    def test_check_free_space_with_non_existing_path(self):
+        self.credit_mining_manager.cancel_pending_task('check_disk_space')
+        self.assertFalse(self.credit_mining_manager.upload_mode)
+
+        # Given: low disk space available
+        self.credit_mining_manager.settings.low_disk_space = 1024 ** 2
+        self.credit_mining_manager.get_free_disk_space = lambda: 1
+
+        # Should set credit mining to upload state unless the mining path is invalid or does not exist
+        test_path = os.path.join(self.credit_mining_manager.session.config.get_state_dir(), "fake_dir")
+        self.credit_mining_manager.settings.save_path = test_path
+        self.credit_mining_manager.check_disk_space()
+        self.assertFalse(self.credit_mining_manager.upload_mode)
+
+    def test_check_mining_directory(self):
+        """ Tests mining directory exists. If does not exist, it should be created. """
+        def fake_notifier_notify(miner, subject, changeType, *args):
+            miner.subject = subject
+            miner.changeType = changeType
+            miner.args = args
+
+        def on_mining_shutdown(miner):
+            miner.shutdown_task_manager()
+            miner.shutdown_called = True
+
+        self.credit_mining_manager.shutdown_called = False
+        self.credit_mining_manager.shutdown = lambda: on_mining_shutdown(self.credit_mining_manager)
+        self.credit_mining_manager.session.notifier.notify = lambda subject, changeType, object_id, args:\
+            fake_notifier_notify(self.credit_mining_manager, subject, changeType, args)
+
+        test_path = os.path.join(self.credit_mining_manager.session.config.get_state_dir(), "fake_dir")
+        self.assertFalse(os.path.exists(test_path))
+
+        self.credit_mining_manager.settings.save_path = test_path
+        self.credit_mining_manager.check_mining_directory()
+
+        self.assertTrue(os.path.exists(test_path))
+        self.assertEqual(self.credit_mining_manager.subject, NTFY_CREDIT_MINING)
+        self.assertEqual(self.credit_mining_manager.changeType, NTFY_ERROR)
+        self.assertIsNotNone(self.credit_mining_manager.args)
+
+        # Set the path to some non-allowed directory
+        test_path = "C:/Windows/system32/credit_mining" if sys.platform == 'win32' else "/root/credit_mining"
+        self.credit_mining_manager.settings.save_path = test_path
+        self.credit_mining_manager.check_mining_directory()
+
+        self.assertFalse(os.path.exists(test_path))
+        self.assertEqual(self.credit_mining_manager.subject, NTFY_CREDIT_MINING)
+        self.assertEqual(self.credit_mining_manager.changeType, NTFY_ERROR)
+        self.assertIsNotNone(self.credit_mining_manager.args)
+        self.assertTrue(self.credit_mining_manager.shutdown_called)
 
     def test_add_download_while_credit_mining(self):
         infohash_str = '00' * 20
