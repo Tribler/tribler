@@ -32,7 +32,7 @@ class TestTrustchainWallet(TestBase):
         """
         self.assertEqual(self.tc_wallet.get_identifier(), 'MB')
 
-    @twisted_wrapper
+    @twisted_wrapper(2)
     def test_get_balance(self):
         """
         Test the balance retrieval of a Trustchain wallet
