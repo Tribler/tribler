@@ -12,12 +12,25 @@ from Tribler.Core.version import version_id
 
 version_str = version_id.split('-')[0]
 
+# On macOS, we always show the console to prevent the double-dock bug (although the OS does not actually show the console).
+# See https://github.com/Tribler/tribler/issues/3817
+show_console = False
+if sys.platform == 'darwin':
+    show_console = True
+
 widget_files = []
 for file in os.listdir("TriblerGUI/widgets"):
     if file.endswith(".py"):
         widget_files.append('TriblerGUI.widgets.%s' % file[:-3])
 
 data_to_copy = [('TriblerGUI/qt_resources', 'qt_resources'), ('TriblerGUI/images', 'images'), ('twisted', 'twisted'), ('Tribler', 'tribler_source/Tribler'), ('logger.conf', '.')]
+
+# For bitcoinlib, we have to copy the data directory to the root directory of the installation dir, otherwise
+# the library is unable to find the data files.
+import bitcoinlib
+bitcoinlib_dir = os.path.dirname(bitcoinlib.__file__)
+data_to_copy += [(bitcoinlib_dir, 'bitcoinlib')]
+
 if sys.platform.startswith('darwin'):
     data_to_copy += [('/Applications/VLC.app/Contents/MacOS/lib', 'vlc/lib'), ('/Applications/VLC.app/Contents/MacOS/plugins', 'vlc/plugins')]
 
@@ -31,13 +44,13 @@ if sys.platform.startswith('darwin'):
         f.write(content)
 
 # We use plyvel on Windows since leveldb is unable to deal with unicode paths
-excluded_libs = ['wx', 'leveldb'] if sys.platform == 'win32' else ['wx']
+excluded_libs = ['wx', 'leveldb', 'bitcoinlib'] if sys.platform == 'win32' else ['wx', 'bitcoinlib', ]
 
 a = Analysis(['run_tribler.py'],
              pathex=['/Users/martijndevos/Documents/tribler'],
              binaries=None,
              datas=data_to_copy,
-             hiddenimports=['csv', 'socks'] + widget_files,
+             hiddenimports=['csv', 'ecdsa', 'pyaes', 'scrypt', '_scrypt', 'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative', 'requests'] + widget_files,
              hookspath=[],
              runtime_hooks=[],
              excludes=excluded_libs,
@@ -59,7 +72,7 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=False,
+          console=show_console,
           icon='Tribler/Main/Build/Win/tribler.ico')
 coll = COLLECT(exe,
                a.binaries,
@@ -73,7 +86,7 @@ app = BUNDLE(coll,
              icon='Tribler/Main/Build/Mac/tribler.icns',
              bundle_identifier='nl.tudelft.tribler',
              info_plist={'NSHighResolutionCapable': 'True', 'CFBundleInfoDictionaryVersion': 1.0, 'CFBundleVersion': version_str, 'CFBundleShortVersionString': version_str},
-             console=False)
+             console=show_console)
 
 # Remove libvlc - conflicts on Windows
 if sys.platform == 'win32':
