@@ -41,7 +41,7 @@ class PickleConverter(object):
         for key, value in sessconfig.iteritems():
             if key == 'minport':
                 new_config.config['libtorrent']['port'] = value
-            if key in ['state_dir', 'install_dir', 'eckeypairfilename', 'megacache', 'videoanalyserpath']:
+            if key in ['state_dir', 'install_dir', 'eckeypairfilename', 'megacache']:
                 new_config.config['general'][key] = value
             if key == 'mainline_dht':
                 new_config.config['mainline_dht']['enabled'] = value
