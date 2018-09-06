@@ -1,12 +1,14 @@
 import os
-from multiprocessing import Process
+from multiprocessing import Process, Value
+from time import sleep
 
 from Tribler.Core.Modules.process_checker import ProcessChecker, LOCK_FILE_NAME
 from Tribler.Test.test_as_server import AbstractServer
 
 
-def process_dummy_function():
-    while True:
+def process_dummy_function(stop_flag):
+    while stop_flag.value == 0:
+        sleep(0.01)
         pass
 
 
@@ -15,11 +17,13 @@ class TestProcessChecker(AbstractServer):
     def tearDown(self, annotate=True):
         super(TestProcessChecker, self).tearDown(annotate=annotate)
         if self.process:
-            self.process.terminate()
+            self.stop_flag.value = 1
+            self.process.join()
 
     def setUp(self, annotate=True):
         super(TestProcessChecker, self).setUp(annotate=annotate)
         self.process = None
+        self.stop_flag = Value('b', 0)
         self.state_dir = self.getStateDir()
 
     def create_lock_file_with_pid(self, pid):
@@ -72,7 +76,7 @@ class TestProcessChecker(AbstractServer):
 
     def test_other_instance_running(self):
         """Testing whether the process checker returns true when another process is running."""
-        self.process = Process(target=process_dummy_function)
+        self.process = Process(target=process_dummy_function, args=(self.stop_flag,))
         self.process.start()
 
         self.create_lock_file_with_pid(self.process.pid)
