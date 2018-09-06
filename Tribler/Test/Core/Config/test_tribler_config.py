@@ -129,9 +129,6 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_megacache_enabled(True)
         self.assertEqual(self.tribler_config.get_megacache_enabled(), True)
 
-        self.tribler_config.set_video_analyser_path(True)
-        self.assertEqual(self.tribler_config.get_video_analyser_path(), True)
-
         self.tribler_config.set_testnet(True)
         self.assertTrue(self.tribler_config.get_testnet())
 
