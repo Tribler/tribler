@@ -2,6 +2,7 @@
 
 block_cipher = None
 
+import imp
 import os
 import sys
 import shutil
@@ -27,9 +28,11 @@ data_to_copy = [('TriblerGUI/qt_resources', 'qt_resources'), ('TriblerGUI/images
 
 # For bitcoinlib, we have to copy the data directory to the root directory of the installation dir, otherwise
 # the library is unable to find the data files.
-import bitcoinlib
-bitcoinlib_dir = os.path.dirname(bitcoinlib.__file__)
-data_to_copy += [(bitcoinlib_dir, 'bitcoinlib')]
+try:
+    bitcoinlib_dir = imp.find_module('bitcoinlib')[1]
+    data_to_copy += [(bitcoinlib_dir, 'bitcoinlib')]
+except ImportError:
+    pass
 
 if sys.platform.startswith('darwin'):
     data_to_copy += [('/Applications/VLC.app/Contents/MacOS/lib', 'vlc/lib'), ('/Applications/VLC.app/Contents/MacOS/plugins', 'vlc/plugins')]
@@ -43,8 +46,11 @@ if sys.platform.startswith('darwin'):
     with open('Tribler/Main/Build/Mac/Info.plist', 'w') as f:
         f.write(content)
 
+excluded_libs = ['wx', 'bitcoinlib', 'PyQt4']
+
 # We use plyvel on Windows since leveldb is unable to deal with unicode paths
-excluded_libs = ['wx', 'leveldb', 'bitcoinlib'] if sys.platform == 'win32' else ['wx', 'bitcoinlib', ]
+if sys.platform == 'win32':
+    excluded_libs.append('leveldb')
 
 a = Analysis(['run_tribler.py'],
              pathex=['/Users/martijndevos/Documents/tribler'],
@@ -88,10 +94,8 @@ app = BUNDLE(coll,
              info_plist={'NSHighResolutionCapable': 'True', 'CFBundleInfoDictionaryVersion': 1.0, 'CFBundleVersion': version_str, 'CFBundleShortVersionString': version_str},
              console=show_console)
 
-# Remove libvlc - conflicts on Windows
-if sys.platform == 'win32':
-    os.remove(os.path.join(DISTPATH, 'tribler', 'libvlc.dll'))
-    os.remove(os.path.join(DISTPATH, 'tribler', 'libvlccore.dll'))
+# Remove the test directories in the Tribler source code
+shutil.rmtree(os.path.join(DISTPATH, 'tribler', 'tribler_source', 'Tribler', 'Test'))
 
 # Replace the Info.plist file on MacOS
 if sys.platform == 'darwin':
