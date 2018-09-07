@@ -42,12 +42,16 @@ class VideoPlayerPage(QWidget):
             os.environ['VLC_PLUGIN_PATH'] = vlc.plugin_path
 
         if not vlc_available:
-            # VLC is not available, we hide the video player button
             self.window().vlc_available = False
             self.window().left_menu_button_video_player.setHidden(True)
             return
 
         self.instance = vlc.Instance()
+        if not self.instance:
+            self.window().vlc_available = False
+            self.window().left_menu_button_video_player.setHidden(True)
+            return
+
         self.mediaplayer = self.instance.media_player_new()
         self.window().video_player_widget.should_hide_video_widgets.connect(self.hide_video_widgets)
         self.window().video_player_widget.should_show_video_widgets.connect(self.show_video_widgets)
