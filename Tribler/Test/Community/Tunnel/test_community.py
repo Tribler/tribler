@@ -1,5 +1,6 @@
 from os.path import join
 from tempfile import mkdtemp
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
@@ -12,7 +13,6 @@ from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommu
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RENDEZVOUS
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
-from twisted.internet.defer import inlineCallbacks
 
 # Map of info_hash -> peer list
 global_dht_services = {}
@@ -38,14 +38,10 @@ class TestTriblerTunnelCommunity(TestBase):
 
     def setUp(self):
         super(TestTriblerTunnelCommunity, self).setUp()
-        self.private_nodes = []
         self.initialize(TriblerTunnelCommunity, 1)
 
     def tearDown(self):
         super(TestTriblerTunnelCommunity, self).tearDown()
-
-        for node in self.private_nodes:
-            node.unload()
 
     def create_node(self):
         mock_ipv8 = MockIPv8(u"curve25519", TriblerTunnelCommunity, socks_listen_ports=[],
@@ -53,9 +49,9 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_ipv8.overlay.settings.max_circuits = 1
 
         # Load the TrustChain community
-        overlay = TrustChainCommunity(mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network,
+        mock_ipv8.trustchain = TrustChainCommunity(mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network,
                                       working_directory=u":memory:")
-        mock_ipv8.overlay.bandwidth_wallet = TrustchainWallet(overlay)
+        mock_ipv8.overlay.bandwidth_wallet = TrustchainWallet(mock_ipv8.trustchain)
         mock_ipv8.overlay.dht_provider = MockDHTProvider(mock_ipv8.endpoint.wan_address)
 
         return mock_ipv8
@@ -82,7 +78,7 @@ class TestTriblerTunnelCommunity(TestBase):
         Give a node a dedicated exit node to play with.
         """
         exit_node = self.create_node()
-        self.private_nodes.append(exit_node)
+        self.nodes.append(exit_node) # So it could be properly removed on exit
         exit_node.overlay.settings.become_exitnode = True
         public_peer = Peer(exit_node.my_peer.public_key, exit_node.my_peer.address)
         self.nodes[node_nr].network.add_verified_peer(public_peer)
@@ -443,6 +439,7 @@ class TestTriblerTunnelCommunity(TestBase):
         Test whether creating a circuit without bandwidth wallet, fails
         """
         self.add_node_to_experiment(self.create_node())
+        self.nodes[0].overlay.bandwidth_wallet.shutdown_task_manager()
         self.nodes[0].overlay.bandwidth_wallet = None
         self.nodes[1].overlay.settings.become_exitnode = True
         yield self.introduce_nodes()
