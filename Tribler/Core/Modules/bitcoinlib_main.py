@@ -56,7 +56,7 @@ def initialize_lib(wallet_dir):
 
         # Clear everything related to bitcoinlib from sys.modules
         for module_name in sys.modules.keys():
-            if module_name.startswith('bitcoinlib'):
+            if module_name.startswith('bitcoinlib') and module_name != 'bitcoinlib.main':
                 del sys.modules[module_name]
     except ImportError:
         pass
