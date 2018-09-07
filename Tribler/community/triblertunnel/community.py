@@ -538,6 +538,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
     @inlineCallbacks
     def unload(self):
+        if self.bandwidth_wallet:
+            self.bandwidth_wallet.shutdown_task_manager()
         for socks_server in self.socks_servers:
             yield socks_server.stop()
 
