@@ -225,7 +225,7 @@ class MatchingEngineTestSuite(AbstractServer):
         """
         Create a bid with a specific price and quantity
         """
-        new_bid = Bid(OrderId(TraderId('2'), OrderNumber(self.bid_count)),
+        new_bid = Bid(OrderId(TraderId('3'), OrderNumber(self.bid_count)),
                       AssetPair(AssetAmount(amount1, 'BTC'), AssetAmount(amount2, 'MB')), Timeout(30), Timestamp.now())
         self.bid_count += 1
         return new_bid
