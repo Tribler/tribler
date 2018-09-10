@@ -178,6 +178,8 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_ipv8_enabled(), False)
         self.tribler_config.set_ipv8_bootstrap_override("127.0.0.1:12345")
         self.assertEqual(self.tribler_config.get_ipv8_bootstrap_override(), ("127.0.0.1", 12345))
+        self.tribler_config.set_ipv8_statistics(True)
+        self.assertTrue(self.tribler_config.get_ipv8_statistics())
 
     def test_get_set_methods_libtorrent(self):
         """

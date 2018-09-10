@@ -267,6 +267,12 @@ class TriblerConfig(object):
     def get_ipv8_address(self):
         return self.config['ipv8']['address']
 
+    def set_ipv8_statistics(self, value):
+        self.config['ipv8']['statistics'] = value
+
+    def get_ipv8_statistics(self):
+        return self.config['ipv8']['statistics']
+
     # Libtorrent
 
     def set_libtorrent_enabled(self, value):
