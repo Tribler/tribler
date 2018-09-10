@@ -99,7 +99,8 @@ class PriceTimeStrategy(MatchingStrategy):
 
         # We now start to iterate through price levels and tick entries and match on the fly
         while cur_tick_entry and quantity_to_match > 0:
-            if cur_tick_entry.is_blocked_for_matching(order_id):
+            if cur_tick_entry.is_blocked_for_matching(order_id) or \
+                            order_id.trader_id == cur_tick_entry.order_id.trader_id:
                 cur_tick_entry = cur_tick_entry.next_tick
                 continue
 
