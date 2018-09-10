@@ -129,9 +129,6 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_megacache_enabled(True)
         self.assertEqual(self.tribler_config.get_megacache_enabled(), True)
 
-        self.tribler_config.set_video_analyser_path(True)
-        self.assertEqual(self.tribler_config.get_video_analyser_path(), True)
-
         self.tribler_config.set_testnet(True)
         self.assertTrue(self.tribler_config.get_testnet())
 
@@ -208,6 +205,8 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_libtorrent_max_upload_rate(), True)
         self.tribler_config.set_libtorrent_max_download_rate(True)
         self.assertEqual(self.tribler_config.get_libtorrent_max_download_rate(), True)
+        self.tribler_config.set_libtorrent_dht_enabled(False)
+        self.assertFalse(self.tribler_config.get_libtorrent_dht_enabled())
 
     def test_get_set_methods_mainline_dht(self):
         """
@@ -262,10 +261,10 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         Check whether wallet get and set methods are working as expected.
         """
-        self.tribler_config.set_btc_testnet(True)
-        self.assertTrue(self.tribler_config.get_btc_testnet())
         self.tribler_config.set_dummy_wallets_enabled(True)
         self.assertTrue(self.tribler_config.get_dummy_wallets_enabled())
+        self.tribler_config.set_bitcoinlib_enabled(False)
+        self.assertFalse(self.tribler_config.get_bitcoinlib_enabled())
 
     def test_get_set_is_matchmaker(self):
         """

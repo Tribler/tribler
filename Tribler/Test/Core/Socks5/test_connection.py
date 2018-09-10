@@ -94,3 +94,10 @@ class TestSocks5Connection(AbstractServer):
         self.connection.dataReceived('05490003096c6f63616c686f73740050'.decode('hex'))
         self.assertEqual(len(self.connection.transport.written_data), 2)
         self.assertEqual(self.connection.state, ConnectionState.CONNECTED)
+
+    def test_invalid_methods(self):
+        """
+        Test sending an invalid methods packet
+        """
+        self.connection.dataReceived('0501'.decode('hex'))
+        self.assertEqual(len(self.connection.buffer), 2)  # We are still waiting for data

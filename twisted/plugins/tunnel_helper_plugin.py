@@ -30,20 +30,12 @@ from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
 from Tribler.dispersy.utils import twistd_yappi
 
 
-def check_socks5_port(val):
-    socks5_port = int(val)
-    if socks5_port <= 0:
-        raise ValueError("Invalid port number")
-    return socks5_port
-check_socks5_port.coerceDoc = "Socks5 port must be greater than 0."
-
-
 def check_api_port(val):
     api_port = int(val)
     if api_port <= 0:
         raise ValueError("Invalid port number")
     return api_port
-check_socks5_port.coerceDoc = "Api port must be greater than 0."
+check_api_port.coerceDoc = "Api port must be greater than 0."
 
 
 def check_ipv8_port(val):
@@ -83,16 +75,16 @@ check_ipv8_bootstrap_override.coerceDoc = "IPv8 bootstrap server address must be
 class Options(usage.Options):
     optFlags = [
         ["exit", "x", "Allow being an exit-node"],
-        ["testnet", "t", "Join the testnet"]
+        ["testnet", "t", "Join the testnet"],
+        ["no-rest-api", "a", "Disable the REST api"],
     ]
 
     optParameters = [
         ["manhole", "m", 0, "Enable manhole telnet service listening at the specified port", int],
-        ["socks5", "p", None, "Socks5 port", check_socks5_port],
         ["ipv8_port", "d", -1, 'IPv8 port', check_ipv8_port],
         ["ipv8_address", "i", "0.0.0.0", 'IPv8 listening address', check_ipv8_address],
         ["ipv8_bootstrap_override", "b", None, "Force the usage of specific IPv8 bootstrap server (ip:port)", check_ipv8_bootstrap_override],
-        ["restapi", "p", None, "Use an alternate port for the REST API", check_api_port],
+        ["restapi", "p", 8085, "Use an alternate port for the REST API", check_api_port],
     ]
 
 if not os.path.exists("logger.conf"):
@@ -113,11 +105,9 @@ logger = logging.getLogger('TunnelMain')
 
 class Tunnel(object):
 
-    def __init__(self, options, ipv8_port=-1, ipv8_address="0.0.0.0"):
+    def __init__(self, options):
         self.options = options
         self.should_run = True
-        self.ipv8_port = ipv8_port
-        self.ipv8_address = ipv8_address
         self.session = None
         self.community = None
         self.clean_messages_lc = LoopingCall(self.clean_messages)
@@ -146,30 +136,26 @@ class Tunnel(object):
         self.session.lm.tunnel_community.bootstrap()
 
     def start(self):
-        # Determine socks5 ports
-        socks5_port = self.options['socks5']
-        if "HELPER_INDEX" in os.environ and "HELPER_BASE" in os.environ:
+        # Determine ipv8 port
+        ipv8_port = -1
+        if self.options["ipv8_port"] != -1:
+            ipv8_port = self.options["ipv8_port"]
+        elif "HELPER_INDEX" in os.environ and "HELPER_BASE" in os.environ:
             base_port = int(os.environ["HELPER_BASE"])
-            socks5_port = base_port + int(os.environ["HELPER_INDEX"]) * 5
-
-        if socks5_port is not None:
-            socks_listen_ports = range(socks5_port, socks5_port + 5)
-        else:
-            socks_listen_ports = [random.randint(1000, 65535) for _ in range(5)]
+            ipv8_port = base_port + int(os.environ["HELPER_INDEX"]) * 5
 
         config = TriblerConfig()
-        config.set_state_dir(os.path.join(config.get_state_dir(), "tunnel-%d") % socks_listen_ports[0])
-        config.set_tunnel_community_socks5_listen_ports(socks_listen_ports)
+        config.set_state_dir(os.path.join(config.get_state_dir(), "tunnel-%d") % ipv8_port)
+        config.set_tunnel_community_socks5_listen_ports([])
         config.set_torrent_checking_enabled(False)
         config.set_megacache_enabled(False)
         config.set_dispersy_enabled(False)
         config.set_ipv8_enabled(True)
-        config.set_mainline_dht_enabled(True)
         config.set_torrent_collecting_enabled(False)
         config.set_libtorrent_enabled(False)
         config.set_video_server_enabled(False)
-        config.set_dispersy_port(self.ipv8_port)
-        config.set_ipv8_address(self.ipv8_address)
+        config.set_dispersy_port(ipv8_port)
+        config.set_ipv8_address(self.options["ipv8_address"])
         config.set_torrent_search_enabled(False)
         config.set_channel_search_enabled(False)
         config.set_trustchain_enabled(True)
@@ -181,9 +167,12 @@ class Tunnel(object):
         config.set_popularity_community_enabled(False)
         config.set_testnet(bool(self.options["testnet"]))
 
-        if self.options["restapi"] is not None:
+        if not self.options['no-rest-api']:
             config.set_http_api_enabled(True)
-            config.set_http_api_port(self.options["restapi"])
+            api_port = self.options["restapi"]
+            if "HELPER_INDEX" in os.environ and "HELPER_BASE" in os.environ:
+                api_port = int(os.environ["HELPER_BASE"]) + 10000 + int(os.environ["HELPER_INDEX"])
+            config.set_http_api_port(api_port)
 
         if self.options["ipv8_bootstrap_override"] is not None:
             config.set_ipv8_bootstrap_override(self.options["ipv8_bootstrap_override"])
@@ -256,7 +245,7 @@ class TunnelHelperServiceMaker(object):
         Main method to startup a tunnel helper and add a signal handler.
         """
 
-        tunnel = Tunnel(options, options["ipv8_port"], options["ipv8_address"])
+        tunnel = Tunnel(options)
         StandardIO(LineHandler(tunnel))
 
         def signal_handler(sig, _):

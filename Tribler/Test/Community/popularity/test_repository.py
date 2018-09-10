@@ -1,11 +1,19 @@
+import os
 import random
 import string
+import tarfile
 import time
 import unittest
+from binascii import unhexlify
 
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.Core.test_sqlitecachedbhandler import BUSYTIMEOUT
+from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.community.popularity.payload import TorrentHealthPayload
 from Tribler.community.popularity.repository import ContentRepository, DEFAULT_FRESHNESS_LIMIT
+from Tribler.pyipv8.ipv8.test.base import TestBase
 
 
 class TestContentRepository(unittest.TestCase):
@@ -293,7 +301,12 @@ class TestContentRepository(unittest.TestCase):
         def fake_update_torrent(ref):
             ref.called_update_torrent = True
 
+        def fake_add_or_get_torrent_id(ref):
+            ref.called_add_or_get_torrent_id = True
+
         self.content_repository.torrent_db.updateTorrent = lambda infohash, **kw: fake_update_torrent(
+            self.content_repository)
+        self.content_repository.torrent_db.addOrGetTorrentID = lambda infohash: fake_add_or_get_torrent_id(
             self.content_repository)
 
         # Case 1: Assume torrent does not exist in the database
@@ -303,11 +316,76 @@ class TestContentRepository(unittest.TestCase):
         self.content_repository.called_update_torrent = False
         self.content_repository.update_from_torrent_search_results(search_results.values())
         self.assertTrue(self.content_repository.called_update_torrent)
+        self.assertTrue(self.content_repository.called_add_or_get_torrent_id)
 
         # Case 2: Torrent already exist in the database
         self.content_repository.has_torrent = lambda infohash: infohash in search_results
         self.content_repository.get_torrent = lambda infohash: get_torrent(search_results[infohash])
 
         self.content_repository.called_update_torrent = False
+        self.content_repository.called_add_or_get_torrent_id = False
         self.content_repository.update_from_torrent_search_results(search_results.values())
         self.assertFalse(self.content_repository.called_update_torrent)
+        self.assertFalse(self.content_repository.called_add_or_get_torrent_id)
+
+
+class TestContentRepositoryWithRealDatabase(TestBase):
+    """
+    Tests content repository with real database.
+    """
+
+    def setUp(self):
+        super(TestContentRepositoryWithRealDatabase, self).setUp()
+
+        session_base_dir = self.temporary_directory()
+        tar = tarfile.open(os.path.join(TESTS_DATA_DIR, 'bak_new_tribler.sdb.tar.gz'), 'r|gz')
+        tar.extractall(session_base_dir)
+        db_path = os.path.join(session_base_dir, 'bak_new_tribler.sdb')
+        self.sqlitedb = SQLiteCacheDB(db_path, busytimeout=BUSYTIMEOUT)
+        self.sqlitedb.initialize()
+
+        session = MockObject()
+        session.sqlite_db = self.sqlitedb
+        session.notifier = MockObject()
+
+        self.torrent_db = TorrentDBHandler(session)
+        channel_db = MockObject()
+        self.content_repository = ContentRepository(self.torrent_db, channel_db)
+
+    def tearDown(self):
+        self.torrent_db.close()
+        self.sqlitedb.close()
+        super(TestContentRepositoryWithRealDatabase, self).tearDown()
+
+    def test_update_db_from_search_results(self):
+        """
+        Test if database is properly updated with the search results.
+        Should not raise any UnicodeDecodeError.
+        """
+        # Add a torrent infohash before updating from search results
+        infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
+        self.content_repository.torrent_db.addOrGetTorrentID(infohash)
+
+        # Sample search results
+        name = 'Puppy.Linux.manual.301.espa\xc3\xb1ol.pdf'
+        length = random.randint(1000, 9999)
+        num_files = random.randint(1, 10)
+        category_list = ['other']
+        creation_date = random.randint(1000000, 111111111)
+        seeders = random.randint(10, 200)
+        leechers = random.randint(5, 1000)
+        cid = None
+        search_results = [[infohash, name, length, num_files, category_list, creation_date, seeders, leechers, cid]]
+
+        # Update from search results
+        self.content_repository.update_from_torrent_search_results(search_results)
+
+        # Check if database has correct results
+        torrent_info = self.content_repository.get_torrent(infohash)
+        expected_name = u'Puppy.Linux.manual.301.espa\xc3\xb1ol.pdf'
+        self.assertEqual(expected_name, torrent_info['name'])
+        self.assertEqual(seeders, torrent_info['num_seeders'])
+        self.assertEqual(leechers, torrent_info['num_leechers'])
+        self.assertEqual(creation_date, torrent_info['creation_date'])
+        self.assertEqual(num_files, torrent_info['num_files'])
+        self.assertEqual(length, torrent_info['length'])

@@ -151,19 +151,25 @@ class ContentRepository(object):
         """
         for result in search_results:
             (infohash, name, length, num_files, category_list, creation_date, seeders, leechers, cid) = result
+            name = u''.join([unichr(ord(c)) for c in name])
             torrent_item = SearchResponseItemPayload(infohash, name, length, num_files, category_list,
                                                      creation_date, seeders, leechers, cid)
             if self.has_torrent(infohash):
                 db_torrent = self.get_torrent(infohash)
                 if db_torrent['name'] and db_torrent['name'] == torrent_item.name:
                     self.logger.info("Conflicting names for torrent. Ignoring the response")
-                    return
+                    continue
+            else:
+                self.logger.debug("Adding new torrent from search results to database")
+                self.torrent_db.addOrGetTorrentID(infohash)
 
             # Update local database
             self.torrent_db.updateTorrent(infohash, notify=False, name=torrent_item.name,
                                           length=torrent_item.length,
                                           creation_date=torrent_item.creation_date,
                                           num_files=torrent_item.num_files,
+                                          seeder=seeders,
+                                          leecher=leechers,
                                           comment='')
 
     def update_from_channel_search_results(self, all_items):

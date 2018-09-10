@@ -15,6 +15,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         super(TestWalletsEndpoint, self).setUpPreSession()
         self.config.set_ipv8_enabled(True)
         self.config.set_dummy_wallets_enabled(True)
+        self.config.set_bitcoinlib_enabled(True)
 
     @deferred(timeout=20)
     def test_get_wallets(self):
@@ -38,21 +39,13 @@ class TestWalletsEndpoint(AbstractApiTest):
         return self.do_request('wallets/DUM1', expected_code=400, request_type='PUT')
 
     @deferred(timeout=20)
-    def test_create_wallet_btc_pw(self):
-        """
-        Test creating a BTC wallet without specifying a password, which should throw an error
-        """
-        self.should_check_equality = False
-        return self.do_request('wallets/BTC', expected_code=400, request_type='PUT')
-
-    @deferred(timeout=20)
     def test_create_wallet_btc(self):
         """
         Test creating a BTC wallet
         """
         self.session.lm.wallets['BTC'].create_wallet = lambda password='': succeed(None)
         self.should_check_equality = False
-        return self.do_request('wallets/BTC', expected_code=200, request_type='PUT', post_data={'password': 'a'})
+        return self.do_request('wallets/BTC', expected_code=200, request_type='PUT')
 
     @deferred(timeout=20)
     def test_create_wallet(self):

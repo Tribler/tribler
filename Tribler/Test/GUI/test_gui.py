@@ -105,8 +105,7 @@ class AbstractTriblerGUITest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         if window:
-            window.core_manager.stop()
-        QTest.qWait(2000)
+            window.close_tribler()
 
     def go_to_and_wait_for_downloads(self):
         QTest.mouseClick(window.left_menu_button_downloads, Qt.LeftButton)
@@ -138,7 +137,7 @@ class AbstractTriblerGUITest(unittest.TestCase):
             if isinstance(llist, QListWidget) and llist.count() >= num_items:
                 if not isinstance(llist.itemWidget(llist.item(0)), LoadingListItem):
                     return
-            elif isinstance(llist, QTreeWidget) and llist.topLevelItemCount() > num_items:
+            elif isinstance(llist, QTreeWidget) and llist.topLevelItemCount() >= num_items:
                 if not isinstance(llist.topLevelItem(0), LoadingListItem):
                     return
 
@@ -545,10 +544,10 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window.debug_window, name="debug_panel_trustchain_tab")
 
         window.debug_window.debug_tab_widget.setCurrentIndex(3)
-        self.wait_for_list_populated(window.debug_window.dispersy_general_tree_widget)
-        self.screenshot(window.debug_window, name="debug_panel_dispersy_tab")
+        self.wait_for_list_populated(window.debug_window.ipv8_general_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_ipv8_tab")
 
-        window.debug_window.dispersy_tab_widget.setCurrentIndex(1)
+        window.debug_window.ipv8_tab_widget.setCurrentIndex(1)
         self.wait_for_list_populated(window.debug_window.communities_tree_widget)
         self.screenshot(window.debug_window, name="debug_panel_communities_tab")
 

@@ -106,8 +106,14 @@ class TorrentInfoEndpoint(resource.Resource):
                 request.setResponseCode(http.INTERNAL_SERVER_ERROR)
                 return json.dumps({"error": "error while decoding torrent file"})
         elif uri.startswith('http'):
-            def _on_loaded(metadata):
-                metainfo_deferred.callback(bdecode(metadata))
+            def _on_loaded(response):
+                if response.startswith('magnet'):
+                    _, infohash, _ = parse_magnetlink(response)
+                    if infohash:
+                        self.session.lm.ltmgr.get_metainfo(response, callback=metainfo_deferred.callback, timeout=20,
+                                                           timeout_callback=on_metainfo_timeout, notify=True)
+                        return
+                metainfo_deferred.callback(bdecode(response))
             http_get(uri.encode('utf-8')).addCallback(_on_loaded).addErrback(on_lookup_error)
         elif uri.startswith('magnet'):
             infohash = parse_magnetlink(uri)[1]

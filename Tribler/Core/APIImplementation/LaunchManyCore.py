@@ -401,13 +401,16 @@ class TriblerLaunchMany(TaskManager):
             self.upnp_ports.append((self.session.config.get_mainline_dht_port(), 'UDP'))
 
         # Wallets
-        try:
-            from Tribler.Core.Modules.wallet.btc_wallet import BitcoinWallet, BitcoinTestnetWallet
-            wallet_type = BitcoinTestnetWallet if self.session.config.get_btc_testnet() else BitcoinWallet
-            btc_wallet = wallet_type(os.path.join(self.session.config.get_state_dir(), 'wallet'))
-            self.wallets[btc_wallet.get_identifier()] = btc_wallet
-        except ImportError:
-            self._logger.error("Electrum wallet cannot be found, Bitcoin wallet not available!")
+        if self.session.config.get_bitcoinlib_enabled():
+            try:
+                from Tribler.Core.Modules.wallet.btc_wallet import BitcoinWallet, BitcoinTestnetWallet
+                wallet_path = os.path.join(self.session.config.get_state_dir(), 'wallet')
+                btc_wallet = BitcoinWallet(wallet_path)
+                btc_testnet_wallet = BitcoinTestnetWallet(wallet_path)
+                self.wallets[btc_wallet.get_identifier()] = btc_wallet
+                self.wallets[btc_testnet_wallet.get_identifier()] = btc_testnet_wallet
+            except ImportError:
+                self._logger.error("bitcoinlib library cannot be found, Bitcoin wallet not available!")
 
         if self.session.config.get_dummy_wallets_enabled():
             # For debugging purposes, we create dummy wallets
@@ -593,6 +596,8 @@ class TriblerLaunchMany(TaskManager):
         """
         infohash = binascii.hexlify(download.tdef.get_infohash())
         self._logger.info("Updating the amount of hops of download %s", infohash)
+        pstate = download.get_persistent_download_config()
+        pstate.set('state', 'engineresumedata', (yield download.save_resume_data()))
         yield self.session.remove_download(download)
 
         # copy the old download_config and change the hop count
@@ -601,7 +606,7 @@ class TriblerLaunchMany(TaskManager):
         # If the user wants to change the hop count to 0, don't automatically bump this up to 1 anymore
         dscfg.set_safe_seeding(False)
 
-        self.session.start_download_from_tdef(download.tdef, dscfg)
+        self.session.start_download_from_tdef(download.tdef, dscfg, pstate=pstate)
 
     def update_trackers(self, infohash, trackers):
         """ Update the trackers for a download.

@@ -11,7 +11,7 @@ from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
 from Tribler.Core.CreditMining.CreditMiningPolicy import UploadPolicy, RandomPolicy
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, DLSTATUS_SEEDING, \
-                                    DLSTATUS_STOPPED_ON_ERROR, UPLOAD
+    DLSTATUS_STOPPED_ON_ERROR, UPLOAD, NTFY_CREDIT_MINING, NTFY_ERROR
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
@@ -92,7 +92,31 @@ class CreditMiningManager(TaskManager):
     def get_free_disk_space(self):
         return psutil.disk_usage(self.settings.save_path).free
 
+    def check_mining_directory(self):
+        # Check that credit mining directory exists, if not try to re-create it.
+        if not os.path.exists(self.settings.save_path):
+            try:
+                os.makedirs(self.settings.save_path)
+                error_message = u"Credit mining directory [%s]  does not exist. Tribler will re-create the " \
+                                u"directory and resume again.<br/>If you wish to disable credit mining entirely, " \
+                                u"please go to Settings >> ANONYMITY >> Token mining. " % \
+                                self.settings.save_path.encode('utf-8')
+            except OSError:
+                self.shutdown()
+                error_message = u"Credit mining directory [%s] was deleted or does not exist and Tribler could not " \
+                                u"re-create the directory again. Credit mining will shutdown. Try restarting " \
+                                u"Tribler. <br/>If you wish to disable credit mining entirely, please go to " \
+                                u"Settings >> ANONYMITY >> Token mining. " % self.settings.save_path.encode('utf-8')
+
+            gui_message = {"message": error_message}
+            self.session.notifier.notify(NTFY_CREDIT_MINING, NTFY_ERROR, None, gui_message)
+            return False
+        return True
+
     def check_disk_space(self):
+        if not self.check_mining_directory():
+            return
+
         # Note that we have a resource monitor that monitors the disk where the state-directory resides.
         # However, since the credit mining directory can be on a different disk, we query the disk space ourselves.
         is_low = self.get_free_disk_space() < self.settings.low_disk_space

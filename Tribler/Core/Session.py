@@ -225,7 +225,7 @@ class Session(object):
             return self.lm.ltmgr.start_download_from_uri(uri, dconfig=download_config)
         raise OperationNotEnabledByConfigurationException()
 
-    def start_download_from_tdef(self, torrent_definition, download_startup_config=None, hidden=False):
+    def start_download_from_tdef(self, torrent_definition, download_startup_config=None, pstate=None, hidden=False):
         """
         Creates a Download object and adds it to the session. The passed
         ContentDef and DownloadStartupConfig are copied into the new Download
@@ -244,7 +244,7 @@ class Session(object):
         :return: a Download
         """
         if self.config.get_libtorrent_enabled():
-            return self.lm.add(torrent_definition, download_startup_config, hidden=hidden)
+            return self.lm.add(torrent_definition, download_startup_config, pstate=pstate, hidden=hidden)
         raise OperationNotEnabledByConfigurationException()
 
     def resume_download_from_file(self, filename):
@@ -425,6 +425,10 @@ class Session(object):
     def get_dispersy_community_statistics(self):
         """Return a dictionary with Dispersy communities statistics."""
         return TriblerStatistics(self).get_dispersy_community_statistics()
+
+    def get_ipv8_statistics(self):
+        """Return a dictionary with IPv8 statistics."""
+        return TriblerStatistics(self).get_ipv8_statistics()
 
     def get_ipv8_overlay_statistics(self):
         """Return a dictionary with IPv8 overlay statistics."""

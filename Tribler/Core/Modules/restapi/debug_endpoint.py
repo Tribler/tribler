@@ -48,6 +48,8 @@ class DebugCircuitsEndpoint(resource.Resource):
         resource.Resource.__init__(self)
         self.session = session
 
+        self.putChild("slots", DebugCircuitSlotsEndpoint(session))
+
     def render_GET(self, request):
         """
         .. http:get:: /debug/circuits
@@ -98,6 +100,46 @@ class DebugCircuitsEndpoint(resource.Resource):
             circuits_json.append(item)
 
         return json.dumps({'circuits': circuits_json})
+
+
+class DebugCircuitSlotsEndpoint(resource.Resource):
+    """
+    This class handles requests for information about slots in the tunnel overlay.
+    """
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /debug/circuits/slots
+
+        A GET request to this endpoint returns information about the slots in the tunnel overlay.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/debug/circuits/slots
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "open_files": [{
+                        "path": "path/to/open/file.txt",
+                        "fd": 33,
+                    }, ...]
+                }
+        """
+        return json.dumps({
+            "slots": {
+                "random": self.session.lm.tunnel_community.random_slots,
+                "competing": self.session.lm.tunnel_community.competing_slots
+            }
+        })
 
 
 class DebugOpenFilesEndpoint(resource.Resource):

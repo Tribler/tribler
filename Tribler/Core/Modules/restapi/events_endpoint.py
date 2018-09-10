@@ -9,7 +9,7 @@ from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON
                                      NTFY_UPDATE, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_TRANSACTION_COMPLETE,
                                      NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID_TIMEOUT,
                                      NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT,
-                                     SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE)
+                                     SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE, NTFY_CREDIT_MINING)
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.version import version_id
 
@@ -88,6 +88,7 @@ class EventsEndpoint(resource.Resource):
         self.session.add_observer(self.on_market_payment_received, NTFY_MARKET_ON_PAYMENT_RECEIVED, [NTFY_UPDATE])
         self.session.add_observer(self.on_market_payment_sent, NTFY_MARKET_ON_PAYMENT_SENT, [NTFY_UPDATE])
         self.session.add_observer(self.on_resource_event, SIGNAL_RESOURCE_CHECK, [SIGNAL_LOW_SPACE])
+        self.session.add_observer(self.on_credit_minig_error, NTFY_CREDIT_MINING, [NTFY_ERROR])
 
     def write_data(self, message):
         """
@@ -203,6 +204,9 @@ class EventsEndpoint(resource.Resource):
 
     def on_resource_event(self, subject, changetype, objectID, *args):
         self.write_data({"type": changetype, "event": args[0]})
+
+    def on_credit_minig_error(self, subject, changetype, ojbectID, *args):
+        self.write_data({"type": "credit_mining_error", "event": args[0]})
 
     def render_GET(self, request):
         """

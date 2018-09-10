@@ -225,7 +225,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                 def schedule_create_engine():
                     self.cew_scheduled = True
                     create_engine_wrapper_deferred = self.network_create_engine_wrapper(
-                        self.pstate_for_restart, share_mode=share_mode, checkpoint_disabled=checkpoint_disabled)
+                        (pstate or self.pstate_for_restart), share_mode=share_mode,
+                        checkpoint_disabled=checkpoint_disabled)
                     create_engine_wrapper_deferred.chainDeferred(deferred)
 
                 def schedule_create_engine_call(_):
@@ -243,7 +244,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         except Exception as e:
             self.error = e
-            print_exc()
 
     def can_create_engine_wrapper(self):
         """
@@ -1035,9 +1035,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             basename = hexlify(self.tdef.get_infohash()) + '.state'
             filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
             if not os.path.isfile(filename):
+                resume_data = self.pstate_for_restart.get('state', 'engineresumedata') \
+                              if self.pstate_for_restart else None
+
                 # 2. If there is no saved data for this infohash, checkpoint it without data so we do not
                 #    lose it when we crash or restart before the download becomes known.
-                resume_data = {
+                resume_data = resume_data or {
                     'file-format': "libtorrent resume file",
                     'file-version': 1,
                     'info-hash': self.tdef.get_infohash()

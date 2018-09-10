@@ -100,6 +100,10 @@ def decode_methods_request(offset, data):
 
     offset += 2
 
+    # Check whether there are enough bytes for the number of methods
+    if len(data) - offset < number_of_methods:
+        return offset, None
+
     methods = set([])
     for i in range(number_of_methods):
         method, = struct.unpack_from("!B", data, offset)

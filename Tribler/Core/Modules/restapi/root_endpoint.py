@@ -16,6 +16,7 @@ from Tribler.Core.Modules.restapi.torrentinfo_endpoint import TorrentInfoEndpoin
 from Tribler.Core.Modules.restapi.torrents_endpoint import TorrentsEndpoint
 from Tribler.Core.Modules.restapi.trustchain_endpoint import TrustchainEndpoint
 from Tribler.Core.Modules.restapi.wallets_endpoint import WalletsEndpoint
+from Tribler.pyipv8.ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 
 
 class RootEndpoint(resource.Resource):
@@ -56,5 +57,8 @@ class RootEndpoint(resource.Resource):
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(self.session))
+
+        if self.session.config.get_ipv8_enabled():
+            self.putChild("ipv8", IPV8RootEndpoint(self.session.lm.ipv8))
 
         self.getChildWithDefault("search", None).events_endpoint = self.events_endpoint

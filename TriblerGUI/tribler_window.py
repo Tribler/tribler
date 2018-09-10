@@ -63,14 +63,7 @@ class TriblerWindow(QMainWindow):
 
         self.exception_handler_called = True
 
-        if self.tray_icon:
-            try:
-                self.tray_icon.deleteLater()
-            except RuntimeError:
-                # The tray icon might have already been removed when unloading Qt.
-                # This is due to the C code actually being asynchronous.
-                logging.debug("Tray icon already removed, no further deletion necessary.")
-            self.tray_icon = None
+        self.delete_tray_icon()
 
         # Stop the download loop
         self.downloads_page.stop_loading_downloads()
@@ -256,6 +249,7 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.tribler_started.connect(self.on_tribler_started)
         self.core_manager.events_manager.events_started.connect(self.on_events_started)
         self.core_manager.events_manager.low_storage_signal.connect(self.on_low_storage)
+        self.core_manager.events_manager.credit_mining_signal.connect(self.on_credit_mining_error)
 
         # Install signal handler for ctrl+c events
         def sigint_handler(*_):
@@ -285,6 +279,16 @@ class TriblerWindow(QMainWindow):
             self.tray_icon.setIcon(QIcon(QPixmap(get_image_path('tribler.png'))))
         self.tray_icon.show()
 
+    def delete_tray_icon(self):
+        if self.tray_icon:
+            try:
+                self.tray_icon.deleteLater()
+            except RuntimeError:
+                # The tray icon might have already been removed when unloading Qt.
+                # This is due to the C code actually being asynchronous.
+                logging.debug("Tray icon already removed, no further deletion necessary.")
+            self.tray_icon = None
+
     def on_low_storage(self):
         """
         Dealing with low storage space available. First stop the downloads and the core manager and ask user to user to
@@ -301,9 +305,7 @@ class TriblerWindow(QMainWindow):
         close_dialog.show()
 
     def on_torrent_finished(self, torrent_info):
-        if self.tray_icon:
-            self.window().tray_icon.showMessage("Download finished",
-                                                "Download of %s has finished." % torrent_info["name"])
+        self.tray_show_message("Download finished", "Download of %s has finished." % torrent_info["name"])
 
     def show_loading_screen(self):
         self.top_menu_button.setHidden(True)
@@ -313,6 +315,31 @@ class TriblerWindow(QMainWindow):
         self.add_torrent_button.setHidden(True)
         self.top_search_bar.setHidden(True)
         self.stackedWidget.setCurrentIndex(PAGE_LOADING)
+
+    def tray_set_tooltip(self, message):
+        """
+        Set a tooltip message for the tray icon, if possible.
+
+        :param message: the message to display on hover
+        """
+        if self.tray_icon:
+            try:
+                self.tray_icon.setToolTip(message)
+            except RuntimeError as e:
+                logging.error("Failed to set tray tooltip: %s", str(e))
+
+    def tray_show_message(self, title, message):
+        """
+        Show a message at the tray icon, if possible.
+
+        :param title: the title of the message
+        :param message: the message to display
+        """
+        if self.tray_icon:
+            try:
+                self.tray_icon.showMessage(title, message)
+            except RuntimeError as e:
+                logging.error("Failed to set tray message: %s", str(e))
 
     def on_tribler_started(self):
         self.tribler_started = True
@@ -571,6 +598,12 @@ class TriblerWindow(QMainWindow):
         self.download_uri = uri
 
         if get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True):
+            # If tribler settings is not available, fetch the settings and inform the user to try again.
+            if not self.tribler_settings:
+                self.fetch_settings()
+                ConfirmationDialog.show_error(self, "Download Error", "Tribler settings is not available yet. "
+                                                                      "Fetching it now. Please try again later.")
+                return
             # Clear any previous dialog if exists
             if self.dialog:
                 self.dialog.close_dialog()
@@ -796,6 +829,9 @@ class TriblerWindow(QMainWindow):
         except IndexError:
             logging.exception("Unknown page found in stack")
 
+    def on_credit_mining_error(self, error):
+        ConfirmationDialog.show_error(self, "Credit Mining Error", error[u'message'])
+
     def on_edit_channel_clicked(self):
         self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
         self.navigation_stack = []
@@ -825,8 +861,7 @@ class TriblerWindow(QMainWindow):
                                                 "to data loss.")
                 self.window().force_shutdown_btn.show()
 
-            if self.tray_icon:
-                self.tray_icon.deleteLater()
+            self.delete_tray_icon()
             self.show_loading_screen()
             self.hide_status_bar()
             self.loading_text_label.setText("Shutting down...")

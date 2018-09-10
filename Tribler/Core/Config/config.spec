@@ -3,7 +3,6 @@ family_filter = boolean(default=True)
 state_dir = string(default='')
 ec_keypair_filename = string(default='')
 megacache = boolean(default=True)
-videoanalyserpath = string(default='')
 log_dir = string(default=None)
 testnet = boolean(default=False)
 
@@ -39,7 +38,7 @@ testnet_keypair_filename = string(default='')
 live_edges_enabled = boolean(default=True)
 
 [wallets]
-btc_testnet = boolean(default=False)
+bitcoinlib_enabled = boolean(default=True)
 dummy_wallets_enabled = boolean(default=False)
 
 [metadata]
@@ -72,6 +71,7 @@ max_connections_download = integer(default=-1)
 max_download_rate = integer(default=0)
 max_upload_rate = integer(default=0)
 utp = boolean(default=True)
+dht = boolean(default=True)
 
 anon_listen_port = integer(min=-1, max=65536, default=-1)
 anon_proxy_type = integer(min=0, max=5, default=0)

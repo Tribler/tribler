@@ -3,16 +3,14 @@ Configuration object for the Tribler Core.
 """
 import logging
 import os
-import sys
-from distutils.spawn import find_executable
 
-from Tribler.Core.Utilities.install_dir import get_lib_path
 from configobj import ConfigObj
 from validate import Validator
 
+from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.exceptions import InvalidConfigException
-from Tribler.Core.osutils import get_appstate_dir, is_android
+from Tribler.Core.osutils import get_appstate_dir
 from Tribler.Core.DownloadConfig import get_default_dest_dir
 
 FILENAME = 'triblerd.conf'
@@ -50,7 +48,6 @@ class TriblerConfig(object):
         if not self.config['download_defaults']['saveas']:
             self.config['download_defaults']['saveas'] = get_default_dest_dir()
         self.selected_ports = {}
-        self._set_video_analyser_path()
 
     @staticmethod
     def load(config_path=None):
@@ -123,43 +120,6 @@ class TriblerConfig(object):
             self._logger.debug(u"Get random port %d for [%s]", self.selected_ports[path], path)
         return self.selected_ports[path]
 
-    def _set_video_analyser_path(self):
-        """
-        Set the path of the video analyser.
-
-        The path set depends on the current platform.
-        :return:
-        """
-        if sys.platform == 'win32':
-            # TODO: Remove this when migrating to Python 3
-            #  This is to work around the case where windows has non-ASCII chars on %PATH% contents.
-            from Tribler.Main.hacks import get_environment_variable
-            path_env = get_environment_variable(u"PATH")
-        elif is_android():
-            path_env = unicode(os.environ["PYTHONPATH"])
-        else:
-            path_env = os.environ["PATH"]
-
-        # Set video_analyser_path
-        if sys.platform == 'win32':
-            ffmpeg_name = u"ffmpeg.exe"
-        elif sys.platform == 'darwin':
-            ffmpeg_name = u"ffmpeg"
-        elif find_executable("avconv", path_env):
-            ffmpeg_name = u"avconv"
-        else:
-            ffmpeg_name = u"ffmpeg"
-
-        ffmpeg_path = find_executable(ffmpeg_name, path_env)
-
-        if ffmpeg_path is None:
-            if sys.platform == 'darwin':
-                self.config['general']['videoanalyserpath'] = "vlc/ffmpeg"
-            else:
-                self.config['general']['videoanalyserpath'] = os.path.abspath(ffmpeg_name)
-        else:
-            self.config['general']['videoanalyserpath'] = os.path.abspath(ffmpeg_path)
-
     # General
 
     def set_family_filter_enabled(self, value):
@@ -224,12 +184,6 @@ class TriblerConfig(object):
 
     def get_megacache_enabled(self):
         return self.config['general']['megacache']
-
-    def set_video_analyser_path(self, value):
-        self.config['general']['videoanalyserpath'] = value
-
-    def get_video_analyser_path(self):
-        return self.config['general']['videoanalyserpath']
 
     def set_log_dir(self, value):
         self.config['general']['log_dir'] = value
@@ -447,6 +401,12 @@ class TriblerConfig(object):
         """
         return self.config['libtorrent'].as_int('max_download_rate')
 
+    def set_libtorrent_dht_enabled(self, value):
+        self.config['libtorrent']['dht'] = value
+
+    def get_libtorrent_dht_enabled(self):
+        return self.config['libtorrent']['dht']
+
     # Mainline DHT
 
     def set_mainline_dht_enabled(self, value):
@@ -546,17 +506,17 @@ class TriblerConfig(object):
 
     # Wallets
 
-    def set_btc_testnet(self, value):
-        self.config['wallets']['btc_testnet'] = value
-
-    def get_btc_testnet(self):
-        return self.config['wallets']['btc_testnet']
-
     def set_dummy_wallets_enabled(self, value):
         self.config['wallets']['dummy_wallets_enabled'] = value
 
     def get_dummy_wallets_enabled(self):
         return self.config['wallets']['dummy_wallets_enabled']
+
+    def set_bitcoinlib_enabled(self, value):
+        self.config['wallets']['bitcoinlib_enabled'] = value
+
+    def get_bitcoinlib_enabled(self):
+        return self.config['wallets']['bitcoinlib_enabled']
 
     # Popular Community
 

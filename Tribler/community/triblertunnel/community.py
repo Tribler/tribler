@@ -1,3 +1,4 @@
+import os
 import time
 import sys
 
@@ -20,6 +21,7 @@ from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_RP, \
     CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_RENDEZVOUS, EXIT_NODE, RelayRoute
 from Tribler.pyipv8.ipv8.peer import Peer
+from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
 
 
 class TriblerTunnelCommunity(HiddenTunnelCommunity):
@@ -38,6 +40,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         num_random_slots = kwargs.pop('random_slots', 5)
         self.bandwidth_wallet = kwargs.pop('bandwidth_wallet', None)
         socks_listen_ports = kwargs.pop('socks_listen_ports', None)
+        self.exitnode_cache = kwargs.pop('exitnode_cache', (self.tribler_session.config.get_state_dir()
+                                                            if self.tribler_session else '') + 'exitnode_cache.dat')
         super(TriblerTunnelCommunity, self).__init__(*args, **kwargs)
         self._use_main_thread = True
 
@@ -83,6 +87,38 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         SINGLE_HOP_ENC_PACKETS.append(u"balance-request")
         SINGLE_HOP_ENC_PACKETS.append(u"balance-response")
+
+        if self.exitnode_cache:
+            self.restore_exitnodes_from_disk()
+
+    def cache_exitnodes_to_disk(self):
+        """
+        Wite a copy of self.exit_candidates to the file self.exitnode_cache.
+
+        :returns: None
+        """
+        exit_nodes = Network()
+        for peer in self.exit_candidates.values():
+            exit_nodes.add_verified_peer(peer)
+        self.logger.debug('Writing exit nodes to cache: %s', self.exitnode_cache)
+        with open(self.exitnode_cache, 'w') as cache:
+            cache.write(exit_nodes.snapshot())
+
+    def restore_exitnodes_from_disk(self):
+        """
+        Send introduction requests to peers stored in the file self.exitnode_cache.
+
+        :returns: None
+        """
+        if os.path.isfile(self.exitnode_cache):
+            self.logger.debug('Loading exit nodes from cache: %s', self.exitnode_cache)
+            exit_nodes = Network()
+            with open(self.exitnode_cache, 'r') as cache:
+                exit_nodes.load_snapshot(cache.read())
+            for exit_node in exit_nodes.get_walkable_addresses():
+                self.endpoint.send(exit_node, self.create_introduction_request(exit_node))
+        else:
+            self.logger.error('Could not retrieve backup exitnode cache, file does not exist!')
 
     def on_token_balance(self, circuit_id, balance):
         """
@@ -181,6 +217,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         circuit_id = payload.circuit_id
         request = self.request_cache.get(u"anon-circuit", circuit_id)
+        if not request:
+            self.logger.warning("Circuit creation cache for id %s not found!", circuit_id)
+            return
+
         if request.should_forward:
             forwarding_relay = RelayRoute(request.from_circuit_id, request.peer)
             self.send_cell([forwarding_relay.peer.address], u"relay-balance-request",
@@ -500,6 +540,9 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     def unload(self):
         for socks_server in self.socks_servers:
             yield socks_server.stop()
+
+        if self.exitnode_cache:
+            self.cache_exitnodes_to_disk()
 
         super(TriblerTunnelCommunity, self).unload()
 

@@ -36,6 +36,7 @@ class BaseDummyWallet(Wallet):
             'available': self.balance,
             'pending': 0,
             'currency': self.get_identifier(),
+            'precision': self.precision()
         })
 
     def transfer(self, quantity, candidate):

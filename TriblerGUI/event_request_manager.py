@@ -33,6 +33,7 @@ class EventRequestManager(QNetworkAccessManager):
     market_iom_input_required = pyqtSignal(object)
     events_started = pyqtSignal(object)
     low_storage_signal = pyqtSignal(object)
+    credit_mining_signal = pyqtSignal(object)
 
     def __init__(self, api_port):
         QNetworkAccessManager.__init__(self)
@@ -123,6 +124,8 @@ class EventRequestManager(QNetworkAccessManager):
                     self.market_iom_input_required.emit(json_dict["event"])
                 elif json_dict["type"] == "signal_low_space":
                     self.low_storage_signal.emit(json_dict["event"])
+                elif json_dict["type"] == "credit_mining_error":
+                    self.credit_mining_signal.emit(json_dict["event"])
                 elif json_dict["type"] == "tribler_exception":
                     raise RuntimeError(json_dict["event"]["text"])
             self.current_event_string = ""

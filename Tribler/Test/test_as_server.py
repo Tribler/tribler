@@ -7,8 +7,6 @@ Author(s): Arno Bakker, Jie Yang, Niels Zeilemaker
 """
 import functools
 import inspect
-import keyring
-from keyrings.alt.file import PlaintextKeyring
 import logging
 import os
 import re
@@ -209,13 +207,13 @@ class AbstractServer(BaseTestCase):
                 f = open(filename, 'a')
             else:
                 f = open(filename, 'w')
-                print >> f, "annotation start end"
+                f.write("annotation start end\n")
 
             AbstractServer._annotate_counter += 1
             _annotation = re.sub('[^a-zA-Z0-9_]', '_', annotation)
             _annotation = u"%d_" % AbstractServer._annotate_counter + _annotation
 
-            print >> f, _annotation, self.annotate_dict[annotation], time.time()
+            f.write("%s %s %s\n" % (_annotation, self.annotate_dict[annotation], time.time()))
             f.close()
 
     def get_bucket_range_port(self):
@@ -255,11 +253,6 @@ class TestAsServer(AbstractServer):
     def setUp(self, autoload_discovery=True):
         yield super(TestAsServer, self).setUp(annotate=False)
         self.setUpPreSession()
-
-        # We don't use the system keychain but a PlainText keyring for performance during tests
-        for new_keyring in keyring.backend.get_all_keyring():
-            if isinstance(new_keyring, PlaintextKeyring):
-                keyring.set_keyring(new_keyring)
 
         self.quitting = False
         self.seeding_deferred = Deferred()
@@ -301,6 +294,8 @@ class TestAsServer(AbstractServer):
         self.config.set_popularity_community_enabled(False)
         self.config.set_dht_enabled(False)
         self.config.set_version_checker_enabled(False)
+        self.config.set_libtorrent_dht_enabled(False)
+        self.config.set_bitcoinlib_enabled(False)
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -358,6 +353,8 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_market_community_enabled(False)
         self.seed_config.set_dht_enabled(False)
         self.seed_config.set_state_dir(self.getStateDir(2))
+        self.seed_config.set_version_checker_enabled(False)
+        self.seed_config.set_bitcoinlib_enabled(False)
 
         def start_seed_download(_):
             self.dscfg_seed = DownloadStartupConfig()
