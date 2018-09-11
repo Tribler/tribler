@@ -205,7 +205,7 @@ class TestMarketCommunity(TestMarketCommunityBase):
 
         self.nodes[0].overlay.cancel_order(ask_order.order_id)
 
-        yield self.deliver_messages()
+        yield self.sleep(0.5)
 
         self.assertTrue(self.nodes[0].overlay.order_manager.order_repository.find_by_id(ask_order.order_id).cancelled)
 
