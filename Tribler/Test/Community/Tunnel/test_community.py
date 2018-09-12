@@ -390,7 +390,6 @@ class TestTriblerTunnelCommunity(TestBase):
 
     @inlineCallbacks
     def test_payout_on_competition_kick(self):
-        #FIXME: this test fails when repeated 18-20 times in a single interpreter (trial -e -u)
         """
         Test whether a payout is initiated when an existing node is kicked out from a competing slot
         """

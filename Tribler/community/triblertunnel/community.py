@@ -445,7 +445,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         anon_seed = circuit.ctype == CIRCUIT_TYPE_RP
         self.dispatcher.on_incoming_from_tunnel(self, circuit, origin, data, anon_seed)
 
-    @blocking_call_on_reactor_thread
     def monitor_downloads(self, dslist):
         # Monitor downloads with anonymous flag set, and build rendezvous/introduction points when needed.
         new_states = {}

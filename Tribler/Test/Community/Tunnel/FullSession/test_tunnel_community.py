@@ -2,7 +2,6 @@ from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
-from twisted.internet.defer import inlineCallbacks
 from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
 
 
@@ -33,7 +32,6 @@ class TestTunnelCommunity(TestTunnelBase):
         download.set_state_callback(download_state_callback)
 
         yield self.test_deferred
-        yield self.sleep(4) # FIXME: workaround for slow Tribler Session shutdown
 
     @inlineCallbacks
     def test_anon_download_no_exitnodes(self):
@@ -52,9 +50,7 @@ class TestTunnelCommunity(TestTunnelBase):
         download = self.start_anon_download()
         download.set_state_callback(download_state_callback)
 
-        reactor.callLater(30, self.test_deferred.callback, None)
-
-        yield self.test_deferred
+        yield self.sleep(30.0)
 
     @inlineCallbacks
     def test_anon_download_no_relays(self):
@@ -73,6 +69,4 @@ class TestTunnelCommunity(TestTunnelBase):
         download = self.start_anon_download(hops=2)
         download.set_state_callback(download_state_callback)
 
-        reactor.callLater(30, self.test_deferred.callback, None)
-
-        yield self.test_deferred
+        yield self.sleep(30.0)
