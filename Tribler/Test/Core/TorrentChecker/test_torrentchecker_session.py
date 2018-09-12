@@ -1,6 +1,6 @@
 import struct
 from libtorrent import bencode
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.task import Clock
 from twisted.python.failure import Failure
 
@@ -10,6 +10,7 @@ from Tribler.Core.TorrentChecker.session import FakeDHTSession, DHT_TRACKER_MAX_
     UdpTrackerSession, HttpTrackerSession
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.tools import trial_timeout
+from Tribler.Test.test_as_server import TestAsServer
 
 
 class FakeUdpSocketManager(object):
@@ -22,10 +23,12 @@ class FakeUdpSocketManager(object):
         pass
 
 
-class TestTorrentCheckerSession(TriblerCoreTest):
+class TestTorrentCheckerSession(TestAsServer):
 
+    @inlineCallbacks
     def setUp(self):
-        super(TestTorrentCheckerSession, self).setUp()
+        self.timeout = 15
+        yield super(TestTorrentCheckerSession, self).setUp()
         self.mock_transport = MockObject()
         self.mock_transport.write = lambda *_: None
         self.socket_mgr = FakeUdpSocketManager()
