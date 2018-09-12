@@ -6,30 +6,28 @@ from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 from Tribler.Core.Category.Category import Category
-from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.tracker_manager import TrackerManager
-from Tribler.Core.Session import Session
 from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UdpSocketManager
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.simpledefs import NTFY_TORRENTS
-from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
+from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.popularity.repository import TYPE_TORRENT_HEALTH
 
 
-class TestTorrentChecker(TriblerCoreTest):
+class TestTorrentChecker(TestAsServer):
     """
     This class contains tests which test the torrent checker class.
     """
 
+    def setUpPreSession(self):
+        super(TestTorrentChecker, self).setUpPreSession()
+        self.config.set_megacache_enabled(True)
+
+    @inlineCallbacks
     def setUp(self):
-        super(TestTorrentChecker, self).setUp()
+        yield super(TestTorrentChecker, self).setUp()
 
-        config = TriblerConfig()
-        config.set_state_dir(self.getStateDir())
-        config.set_megacache_enabled(True)
-
-        self.session = Session(config)
-        self.session.start_database()
         self.session.lm.torrent_db = TorrentDBHandler(self.session)
         self.session.lm.torrent_checker = TorrentChecker(self.session)
         self.session.lm.tracker_manager = TrackerManager(self.session)
