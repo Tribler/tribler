@@ -1125,12 +1125,16 @@ class MarketCommunity(Community, BlockListener):
         # In this case, both nodes first send a proposed trade and then receive a proposed trade from the other
         # node. To counter this, we have the following check.
         outstanding_proposals = self.get_outstanding_proposals(order.order_id, proposed_trade.order_id)
-        if not order.is_ask() and outstanding_proposals:
+        if outstanding_proposals:
             # Discard current outstanding proposed trade and continue
-            self.logger.info("Discarding current outstanding proposals for order %s", proposed_trade.order_id)
             for proposal_id, _ in outstanding_proposals:
-                request = self.request_cache.pop(u"proposed-trade", int(proposal_id.split(':')[1]))
-                order.release_quantity_for_tick(proposed_trade.order_id, request.proposed_trade.assets.first.amount)
+                request = self.request_cache.get(u"proposed-trade", int(proposal_id.split(':')[1]))
+                eq_and_ask = order.assets.first.amount == request.proposed_trade.assets.first.amount and order.is_ask()
+                have_largest_order = order.assets.first.amount > request.proposed_trade.assets.first.amount
+                if eq_and_ask or have_largest_order:
+                    self.logger.info("Discarding current outstanding proposals for order %s", proposed_trade.order_id)
+                    self.request_cache.pop(u"proposed-trade", int(proposal_id.split(':')[1]))
+                    request.on_timeout()
 
         should_decline = True
         decline_reason = 0
