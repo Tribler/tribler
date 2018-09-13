@@ -345,8 +345,8 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         """
         yield self.introduce_nodes()
 
-        yield self.nodes[0].overlay.create_ask(AssetPair(AssetAmount(10, 'DUM1'), AssetAmount(13, 'DUM2')), 3600)
-        yield self.nodes[1].overlay.create_bid(AssetPair(AssetAmount(10, 'DUM1'), AssetAmount(13, 'DUM2')), 3600)
+        self.nodes[0].overlay.create_ask(AssetPair(AssetAmount(10, 'DUM1'), AssetAmount(13, 'DUM2')), 3600)
+        self.nodes[1].overlay.create_bid(AssetPair(AssetAmount(10, 'DUM1'), AssetAmount(13, 'DUM2')), 3600)
 
         yield self.sleep(0.5)
 
@@ -371,10 +371,8 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         """
         yield self.introduce_nodes()
 
-        ask_order = yield self.nodes[0].overlay.create_ask(
-            AssetPair(AssetAmount(10, 'DUM1'), AssetAmount(10, 'DUM2')), 3600)
-        yield self.nodes[1].overlay.create_bid(
-            AssetPair(AssetAmount(2, 'DUM1'), AssetAmount(2, 'DUM2')), 3600)
+        self.nodes[0].overlay.create_ask(AssetPair(AssetAmount(10, 'DUM1'), AssetAmount(10, 'DUM2')), 3600)
+        self.nodes[1].overlay.create_bid(AssetPair(AssetAmount(2, 'DUM1'), AssetAmount(2, 'DUM2')), 3600)
 
         yield self.sleep(0.5)
 
@@ -386,10 +384,12 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
         self.assertEqual(len(transactions2), 1)
         self.assertEqual(len(transactions2[0].payments), 2)
 
-        # There should be no reserved quantity for the bid tick
+        # There should be no reserved quantity in the orderbook
+        ask_order_id = self.nodes[0].overlay.order_manager.order_repository.find_all()[0].order_id
         for node_nr in [0, 1]:
-            ask_tick_entry = self.nodes[node_nr].overlay.order_book.get_tick(ask_order.order_id)
-            self.assertEqual(ask_tick_entry.reserved_for_matching, 0)
+            ask_tick_entry = self.nodes[node_nr].overlay.order_book.get_tick(ask_order_id)
+            if ask_tick_entry:
+                self.assertEqual(ask_tick_entry.reserved_for_matching, 0)
 
         yield self.nodes[1].overlay.create_bid(AssetPair(AssetAmount(8, 'DUM1'), AssetAmount(8, 'DUM2')), 3600)
 
