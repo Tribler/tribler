@@ -22,7 +22,7 @@ class TestBtcWallet(AbstractServer):
             return wallet.monitor_transaction("abc")
 
         def on_wallet_balance(balance):
-            self.assertDictEqual(balance, {'available': 0, 'pending': 0, 'currency': 'BTC', 'precision': 8})
+            self.assertDictEqual(balance, {'available': 3, 'pending': 0, 'currency': 'BTC', 'precision': 8})
             return wallet.get_transactions().addCallback(on_wallet_transactions)
 
         def on_wallet_created(_):
@@ -33,6 +33,7 @@ class TestBtcWallet(AbstractServer):
             self.assertRaises(Exception, BitcoinTestnetWallet, self.session_base_dir, testnet=True)
 
             wallet.wallet.utxos_update = lambda **_: None  # We don't want to do an actual HTTP request here
+            wallet.wallet.balance = lambda **_: 3
             return wallet.get_balance().addCallback(on_wallet_balance)
 
         return wallet.create_wallet().addCallback(on_wallet_created)
