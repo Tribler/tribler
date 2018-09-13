@@ -189,7 +189,7 @@ class TriblerLaunchMany(TaskManager):
                     community_file._DEFAULT_ADDRESSES = [self.session.config.get_ipv8_bootstrap_override()]
                     community_file._DNS_ADDRESSES = []
 
-                self.ipv8 = IPv8(ipv8_config)
+                self.ipv8 = IPv8(ipv8_config, enable_statistics=self.session.config.get_ipv8_statistics())
 
                 self.session.config.set_anon_proxy_settings(2, ("127.0.0.1",
                                                                 self.session.
