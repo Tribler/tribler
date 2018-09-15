@@ -25,6 +25,7 @@ class TestBtcWallet(AbstractServer):
 
         def on_wallet_balance(balance):
             self.assertDictEqual(balance, {'available': 3, 'pending': 0, 'currency': 'BTC', 'precision': 8})
+            wallet.wallet.transactions_update = lambda **_: None  # We don't want to do an actual HTTP request here
             return wallet.get_transactions().addCallback(on_wallet_transactions)
 
         def on_wallet_created(_):
