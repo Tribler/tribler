@@ -657,8 +657,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                         return
                     if self.get_state().get_progress() == 1.0:
                         self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
-                random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
-                self.register_task("reset_priorities_%s" % random_id, reactor.callLater(5, reset_priorities))
+                self.register_anonymous_task("reset_priorities", reactor.callLater(5, reset_priorities))
 
             if self.endbuffsize:
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
@@ -923,8 +922,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     if when > 0.0 and not self.session.lm.shutdownstarttime:
                         # Schedule next invocation, either on general or DL specific
                         dc = reactor.callLater(when, lambda: self.network_get_state(usercallback))
-                        random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
-                        self.register_task("downloads_cb_%s" % random_id, dc)
+                        self.register_anonymous_task("downloads_cb", dc)
             else:
                 return ds
 

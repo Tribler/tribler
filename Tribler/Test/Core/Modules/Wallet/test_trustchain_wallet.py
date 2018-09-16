@@ -98,7 +98,7 @@ class TestTrustchainWallet(TestBase):
 
         yield tx_deferred
 
-    @twisted_wrapper
+    @twisted_wrapper(2)
     def test_monitor_tx_existing(self):
         """
         Test monitoring a transaction that already exists
