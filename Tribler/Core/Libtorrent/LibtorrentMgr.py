@@ -425,10 +425,10 @@ class LibtorrentMgr(TaskManager):
             self._logger.info("DHT not ready, rescheduling get_metainfo")
 
             def schedule_call():
-                random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
-                self.register_task("schedule_metainfo_lookup_%s" % random_id,
-                                   reactor.callLater(5, lambda i=infohash_or_magnet, c=callback, t=timeout - 5,
-                                                  tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n)))
+                self.register_anonymous_task("schedule_metainfo_lookup",
+                                             reactor.callLater(5, lambda i=infohash_or_magnet, c=callback, t=timeout-5,
+                                                                         tcb=timeout_callback,
+                                                                         n=notify: self.get_metainfo(i, c, t, tcb, n)))
 
             reactor.callFromThread(schedule_call)
             return
@@ -480,8 +480,7 @@ class LibtorrentMgr(TaskManager):
                     return
 
                 def schedule_call():
-                    random_id = ''.join(random.choice('0123456789abcdef') for _ in xrange(30))
-                    self.register_task("schedule_got_metainfo_lookup_%s" % random_id,
+                    self.register_anonymous_task("schedule_got_metainfo_lookup",
                                        reactor.callLater(timeout, lambda: self.got_metainfo(infohash, timeout=True)))
 
                 reactor.callFromThread(schedule_call)
