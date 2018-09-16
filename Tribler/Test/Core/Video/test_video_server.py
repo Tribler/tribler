@@ -79,7 +79,7 @@ class VideoServerProtocol(Protocol):
 class TestVideoServer(TriblerCoreTest):
 
     def setUp(self):
-        TriblerCoreTest.setUp(self, )
+        TriblerCoreTest.setUp(self)
         self.mock_session = MockObject()
         self.video_server = VideoServer(get_random_port(), self.mock_session)
 

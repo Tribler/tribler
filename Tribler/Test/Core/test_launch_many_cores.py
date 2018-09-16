@@ -25,7 +25,7 @@ class TestLaunchManyCore(TriblerCoreTest):
     DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'data')
 
     def setUp(self):
-        TriblerCoreTest.setUp(self, )
+        TriblerCoreTest.setUp(self)
         self.lm = TriblerLaunchMany()
         self.lm.session_lock = NoDispersyRLock()
         self.lm.session = MockObject()

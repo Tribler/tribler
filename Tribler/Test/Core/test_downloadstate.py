@@ -10,7 +10,7 @@ class TestDownloadState(TriblerCoreTest):
     """
 
     def setUp(self):
-        TriblerCoreTest.setUp(self, )
+        TriblerCoreTest.setUp(self)
         self.mock_download = MockObject()
         self.mocked_tdef = MockObject()
         self.mocked_tdef.get_name = lambda: "test"

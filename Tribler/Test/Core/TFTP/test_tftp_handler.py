@@ -14,13 +14,13 @@ class TestTFTPHandler(TriblerCoreTest):
 
     @inlineCallbacks
     def setUp(self):
-        yield TriblerCoreTest.setUp(self, )
+        yield TriblerCoreTest.setUp(self)
         self.handler = TftpHandler(None, None, None)
 
     @inlineCallbacks
     def tearDown(self):
         self.handler.shutdown_task_manager()
-        yield TriblerCoreTest.tearDown(self, )
+        yield TriblerCoreTest.tearDown(self)
 
     def test_download_file_not_running(self):
         """
