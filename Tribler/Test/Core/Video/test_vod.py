@@ -24,7 +24,7 @@ class TestVideoOnDemand(TestAsServer):
 
     @inlineCallbacks
     def setUp(self):
-        yield TestAsServer.setUp(self, )
+        yield TestAsServer.setUp(self)
         self.content = None
         self.tdef = None
         self.test_deferred = Deferred()

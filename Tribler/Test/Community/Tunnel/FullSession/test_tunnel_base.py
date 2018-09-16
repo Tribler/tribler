@@ -76,7 +76,7 @@ class TestTunnelBase(TestAsServer):
         for session in self.sessions:
             yield session.shutdown()
 
-        yield TestAsServer.tearDown(self, )
+        yield TestAsServer.tearDown(self)
 
     @inlineCallbacks
     def setup_nodes(self, num_relays=1, num_exitnodes=1, seed_hops=0):

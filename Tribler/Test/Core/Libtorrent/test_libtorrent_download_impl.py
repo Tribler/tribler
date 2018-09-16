@@ -225,7 +225,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
 
     def setUp(self):
-        TriblerCoreTest.setUp(self, )
+        TriblerCoreTest.setUp(self)
         self.libtorrent_download_impl = LibtorrentDownloadImpl(None, None)
         mock_handle = MockObject()
         mock_status = MockObject()

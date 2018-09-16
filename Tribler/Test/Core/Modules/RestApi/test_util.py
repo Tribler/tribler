@@ -21,7 +21,7 @@ class TestRestApiUtil(TriblerCoreTest):
         self.session = Session(config)
 
     def tearDown(self):
-        TriblerCoreTest.tearDown(self, )
+        TriblerCoreTest.tearDown(self)
 
     def test_convert_torrent_to_json_dict(self):
         """
