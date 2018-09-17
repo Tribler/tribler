@@ -8,7 +8,7 @@ from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.Utilities.config_parser import CallbackConfigParser
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TESTS_DATA_DIR

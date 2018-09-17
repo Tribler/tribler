@@ -10,7 +10,7 @@ from ConfigParser import ParsingError, MissingSectionHeaderError
 
 from types import StringType
 
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.Utilities.config_parser import CallbackConfigParser
 from Tribler.Core.defaults import dldefaults
 from Tribler.Core.osutils import get_home_dir
 from Tribler.Core.simpledefs import DLMODE_VOD
