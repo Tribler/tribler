@@ -1,7 +1,6 @@
 import os
 
 from pony.orm import db_session
-from twisted.internet.defer import succeed
 
 from Tribler.Core.Modules.MetadataStore.channels import load_blob, download_channel
 from Tribler.Core.TorrentDef import TorrentDef
@@ -22,7 +21,7 @@ class TestDownloadChannel(TestAsServer):
 
     def test_download_channel(self):
         tdef = TorrentDef.load(os.path.join(self.TEST_FILES_DIR, self.CHANNEL_TORRENT_FILENAME))
-        start_seeding = self.setup_seeder(tdef, self.TEST_FILES_DIR, port=7000)
+        self.setup_seeder(tdef, self.TEST_FILES_DIR, port=7000)
         with db_session:
             channel = load_blob(
                 self.session.mds,

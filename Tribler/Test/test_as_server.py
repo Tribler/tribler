@@ -128,7 +128,7 @@ class AbstractServer(BaseTestCase):
         if delayed_calls:
             self._logger.error("The reactor was dirty during %s:", phase)
             for dc in delayed_calls:
-                self._logger.error(">     %s" % dc)
+                self._logger.error(">     %s", dc)
                 dc.cancel()
 
         from pony.orm.core import local

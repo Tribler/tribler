@@ -1,5 +1,3 @@
-import os
-
 from pony.orm import db_session
 from twisted.web import http
 
@@ -120,7 +118,6 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
             return BaseChannelsEndpoint.return_500(self, request, ex)
 
         return json.dumps({"added": channel_id})
-
 
 
 class ChannelsDiscoveredSpecificEndpoint(BaseChannelsEndpoint):

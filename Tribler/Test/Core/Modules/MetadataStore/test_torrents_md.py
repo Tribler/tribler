@@ -41,9 +41,9 @@ class TestTorrentMD(TestAsServer):
                 key, dict(self.template, title="foo bar 123", tags="video"))
             md2 = self.session.mds.TorrentMD.from_dict(
                 key, dict(self.template, title="eee 123", tags="video"))
-            md3 = self.session.mds.TorrentMD.from_dict(
+            self.session.mds.TorrentMD.from_dict(
                 key, dict(self.template, title="xoxoxo bar", tags="video"))
-            md4 = self.session.mds.TorrentMD.from_dict(
+            self.session.mds.TorrentMD.from_dict(
                 key, dict(self.template, title="xoxoxo bar", tags="audio"))
             self.assertEqual(
                 md1.rowid,
@@ -73,7 +73,7 @@ class TestTorrentMD(TestAsServer):
     def test_get_autocomplete_terms(self):
         with db_session:
             key = self.session.trustchain_keypair
-            md = self.session.mds.TorrentMD.from_dict(
+            self.session.mds.TorrentMD.from_dict(
                 key, dict(self.template, title="mountains sheep", tags="video"))
             md = self.session.mds.TorrentMD.from_dict(key, dict(
                 self.template, title="regular sheepherd guy", tags="video"))
