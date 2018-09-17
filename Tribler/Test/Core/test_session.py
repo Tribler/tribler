@@ -1,6 +1,7 @@
 from binascii import hexlify, unhexlify
 
 from nose.tools import raises
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
@@ -13,8 +14,6 @@ from Tribler.Core.simpledefs import NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON_
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.twisted_thread import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestSession(TriblerCoreTest):
@@ -89,10 +88,9 @@ class TestSessionAsServer(TestAsServer):
         self.config.set_channel_search_enabled(True)
         self.config.set_dispersy_enabled(True)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield super(TestSessionAsServer, self).setUp(autoload_discovery=autoload_discovery)
+    def setUp(self):
+        yield super(TestSessionAsServer, self).setUp()
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.called = None
 
@@ -146,7 +144,7 @@ class TestSessionAsServer(TestAsServer):
         self.session.unhandled_error_observer({'isError': True,
                                                'log_failure': 'exceptions.RuntimeError: invalid info-hash'})
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_def_to_channel(self):
         """
         Test whether adding a torrent def to a channel works
@@ -155,7 +153,6 @@ class TestSessionAsServer(TestAsServer):
 
         torrent_def = TorrentDef.load(TORRENT_UBUNTU_FILE)
 
-        @blocking_call_on_reactor_thread
         def on_channel_created(subject, change_type, object_id, channel_data):
             channel_id = self.channel_db_handler.getMyChannelId()
             self.session.add_torrent_def_to_channel(channel_id, torrent_def, {"description": "iso"}, forward=False)
@@ -167,7 +164,7 @@ class TestSessionAsServer(TestAsServer):
 
         return test_deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_def_to_channel_duplicate(self):
         """
         Test whether adding a torrent def twice to a channel raises an exception
@@ -176,7 +173,6 @@ class TestSessionAsServer(TestAsServer):
 
         torrent_def = TorrentDef.load(TORRENT_UBUNTU_FILE)
 
-        @blocking_call_on_reactor_thread
         def on_channel_created(subject, change_type, object_id, channel_data):
             channel_id = self.channel_db_handler.getMyChannelId()
             try:
@@ -369,7 +365,7 @@ class TestSessionWithLibTorrent(TestSessionAsServer):
         super(TestSessionWithLibTorrent, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_remove_torrent_id(self):
         """
         Test whether removing a torrent id works.

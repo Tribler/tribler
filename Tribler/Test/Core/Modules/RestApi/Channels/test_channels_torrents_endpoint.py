@@ -2,6 +2,8 @@ import base64
 import os
 import shutil
 import urllib
+
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentDef import TorrentDef
@@ -10,13 +12,12 @@ from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
-from Tribler.Test.twisted_thread import deferred
 from Tribler.dispersy.exception import CommunityNotFoundException
 
 
 class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_torrents_in_channel_invalid_cid(self):
         """
         Testing whether the API returns error 404 if a non-existent channel is queried for torrents
@@ -24,7 +25,7 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
         self.should_check_equality = False
         return self.do_request('channels/discovered/abcd/torrents', expected_code=404)
 
-    @deferred(timeout=15)
+    @trial_timeout(15)
     @inlineCallbacks
     def test_get_torrents_in_channel(self):
         """
@@ -53,7 +54,7 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
         yield self.do_request('channels/discovered/%s/torrents?disable_filter=1' % 'rand'.encode('hex'),
                               expected_code=200).addCallback(verify_torrents_no_filter)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_to_channel(self):
         """
         Testing whether adding a torrent to your channels works
@@ -79,7 +80,7 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered/%s/torrents' % 'fakedispersyid'.encode('hex'), 200,
                                expected_json, 'PUT', post_data)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_to_channel_with_description(self):
         """
         Testing whether adding a torrent with a description to a channel works
@@ -106,7 +107,7 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered/%s/torrents' % 'fakedispersyid'.encode('hex'),
                                200, expected_json, 'PUT', post_data)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_to_channel_404(self):
         """
         Testing whether adding a torrent to a non-existing channel returns error 404
@@ -114,7 +115,7 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered/%s/torrents' % 'fakedispersyid'.encode('hex'),
                                expected_code=404, request_type='PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_to_channel_missing_parameter(self):
         """
         Testing whether error 400 is returned when the torrent parameter is missing when adding a torrent to a channel
@@ -124,7 +125,7 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered/%s/torrents' % 'fakedispersyid'.encode('hex'), 400,
                                expected_json, 'PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_to_channel_500(self):
         """
         Testing whether the API returns a formatted 500 error if ValueError is raised
@@ -162,12 +163,14 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
 
 class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
 
-    def setUp(self, autoload_discovery=True):
-        super(TestModifyChannelTorrentEndpoint, self).setUp(autoload_discovery)
+
+    @inlineCallbacks
+    def setUp(self):
+        yield super(TestModifyChannelTorrentEndpoint, self).setUp()
         self.session.lm.ltmgr = MockObject()
         self.session.lm.ltmgr.shutdown = lambda: True
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_from_url_to_channel_with_description(self):
         """
         Testing whether a torrent can be added to a channel using the API
@@ -194,7 +197,7 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request(url, expected_code=200, expected_json={"added": torrent_url}, request_type='PUT',
                                post_data={"description": "test"})
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_from_magnet_to_channel(self):
         """
         Testing whether adding a torrent with a magnet link to a channel without description works
@@ -219,7 +222,7 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         url = 'channels/discovered/%s/torrents/%s' % ('fakedispersyid'.encode('hex'), urllib.quote_plus(magnet_url))
         return self.do_request(url, expected_code=200, expected_json={"added": magnet_url}, request_type='PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_to_channel_404(self):
         """
         Testing whether adding a torrent to a non-existing channel returns error code 404
@@ -228,7 +231,7 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered/abcd/torrents/fake_url',
                                expected_code=404, expected_json=None, request_type='PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_add_torrent_to_channel_500(self):
         """
         Testing whether the API returns a formatted 500 error if ValueError is raised
@@ -257,7 +260,7 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request(url, expected_code=500, expected_json=None, request_type='PUT')\
                    .addCallback(verify_error_message)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_timeout_on_add_torrent(self):
         """
         Testing timeout in adding torrent
@@ -286,14 +289,14 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request(url, expected_code=500, expected_json=None, request_type='PUT')\
                    .addCallback(verify_error_message)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_remove_tor_unknown_channel(self):
         """
         Testing whether the API returns an error 500 if a torrent is removed from an unknown channel
         """
         return self.do_request('channels/discovered/abcd/torrents/abcd', expected_code=404, request_type='DELETE')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_remove_tor_unknown_infohash(self):
         """
         Testing whether the API returns {"removed": False, "failed_torrents":[ infohash ]} if an unknown torrent is
@@ -320,7 +323,7 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         url = 'channels/discovered/%s/torrents/%s' % ('fakedispersyid'.encode('hex'), unknown_torrent_infohash)
         return self.do_request(url, expected_code=200, request_type='DELETE').addCallback(verify_delete_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_remove_tor_unknown_cmty(self):
         """
         Testing whether the API returns an error 500 if torrent is removed from a channel without community
@@ -340,7 +343,7 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         url = 'channels/discovered/%s/torrents/%s' % ('fakedispersyid'.encode('hex'), 'a' * 40)
         return self.do_request(url, expected_code=404, request_type='DELETE')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_remove_torrent(self):
         """
         Testing whether the API can remove a torrent from a channel
@@ -368,7 +371,7 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         url = 'channels/discovered/%s/torrents/%s' % ('fakedispersyid'.encode('hex'), 'a' * 40)
         return self.do_request(url, expected_code=200, request_type='DELETE').addCallback(verify_torrent_removed)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_remove_selected_torrents(self):
         """
         Testing whether the API can remove selected torrents from a channel

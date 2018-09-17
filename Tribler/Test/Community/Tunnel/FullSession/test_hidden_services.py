@@ -2,16 +2,15 @@ from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
-from Tribler.Test.twisted_thread import deferred
 
 
 class TestHiddenServices(TestTunnelBase):
 
-    def setUp(self, autoload_discovery=True):
-        TestTunnelBase.setUp(self, autoload_discovery=autoload_discovery)
+    @inlineCallbacks
+    def setUp(self):
+        yield TestTunnelBase.setUp(self)
         self.test_deferred = Deferred()
 
-    @deferred(timeout=180)
     @inlineCallbacks
     def test_hidden_services(self):
         """

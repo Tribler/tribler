@@ -3,16 +3,14 @@ from twisted.internet.defer import inlineCallbacks, Deferred
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_STARTED, NTFY_FINISHED
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.Test.twisted_thread import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
+from Tribler.Test.tools import trial_timeout
 
 
 class TriblerCoreTestNotifier(TriblerCoreTest):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TriblerCoreTestNotifier, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TriblerCoreTestNotifier, self).setUp()
         self.test_deferred = Deferred()
         self.called_callback = False
 
@@ -24,7 +22,7 @@ class TriblerCoreTestNotifier(TriblerCoreTest):
         self.called_callback = True
         self.test_deferred.callback(None)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_notifier(self):
         notifier = Notifier()
         notifier.add_observer(self.callback_func, NTFY_TORRENTS, [NTFY_STARTED])
@@ -49,14 +47,14 @@ class TriblerCoreTestNotifier(TriblerCoreTest):
         notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, None)
         self.assertFalse(self.called_callback)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_notifier_cache(self):
         notifier = Notifier()
         notifier.add_observer(self.cache_callback_func, NTFY_TORRENTS, [NTFY_STARTED], cache=0.1)
         notifier.notify(NTFY_TORRENTS, NTFY_STARTED, None)
         return self.test_deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_notifier_cache_notify_twice(self):
         notifier = Notifier()
         notifier.add_observer(self.cache_callback_func, NTFY_TORRENTS, [NTFY_STARTED], cache=0.1)

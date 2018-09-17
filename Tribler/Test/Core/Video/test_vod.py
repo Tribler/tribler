@@ -2,6 +2,7 @@ import os
 from tempfile import mkstemp
 
 from M2Crypto import Rand
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -9,8 +10,6 @@ from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings, UPLOAD, DOWNLOAD, DLMODE_VOD
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.twisted_thread import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestVideoOnDemand(TestAsServer):
@@ -23,10 +22,9 @@ class TestVideoOnDemand(TestAsServer):
     See BitTornado/BT1/Connecter.py
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
+    def setUp(self):
+        yield TestAsServer.setUp(self)
         self.content = None
         self.tdef = None
         self.test_deferred = Deferred()
@@ -112,7 +110,7 @@ class TestVideoOnDemand(TestAsServer):
         self.assertEquals(len(data), size)
         self.assertEquals(data, self.content[off:off + size])
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_99(self):
         self.contentlen = 99
         self.piecelen = 16
@@ -121,7 +119,7 @@ class TestVideoOnDemand(TestAsServer):
         self._logger.debug("Letting network thread create Download, sleeping")
         return self.test_deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_100(self):
         self.contentlen = 100
         self.piecelen = 16
@@ -130,7 +128,7 @@ class TestVideoOnDemand(TestAsServer):
         self._logger.debug("Letting network thread create Download, sleeping")
         return self.test_deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_101(self):
         self.contentlen = 101
         self.piecelen = 16

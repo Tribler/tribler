@@ -6,16 +6,14 @@ from Tribler.community.market.core.price import Price
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.Test.twisted_thread import deferred
+from Tribler.Test.tools import trial_timeout
 from Tribler.community.market.core.message import TraderId
 from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.orderbook import OrderBook, DatabaseOrderBook
+from Tribler.community.market.core.orderbook import OrderBook
 from Tribler.community.market.core.tick import Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import Trade
-from Tribler.community.market.database import MarketDB
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class AbstractTestOrderBook(AbstractServer):
@@ -23,10 +21,9 @@ class AbstractTestOrderBook(AbstractServer):
     Base class for the order book tests.
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(AbstractTestOrderBook, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(AbstractTestOrderBook, self).setUp()
         # Object creation
         self.ask = Ask(OrderId(TraderId('0'), OrderNumber(1)),
                        AssetPair(AssetAmount(100, 'BTC'), AssetAmount(30, 'MB')), Timeout(100), Timestamp.now())
@@ -47,9 +44,9 @@ class AbstractTestOrderBook(AbstractServer):
                                    Timestamp(1462224447.117))
         self.order_book = OrderBook()
 
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.order_book.shutdown_task_manager()
-        super(AbstractTestOrderBook, self).tearDown(annotate=annotate)
+        super(AbstractTestOrderBook, self).tearDown()
 
 
 class TestOrderBook(AbstractTestOrderBook):
@@ -84,14 +81,14 @@ class TestOrderBook(AbstractTestOrderBook):
         self.assertTrue(self.order_book.get_tick(self.ask.order_id))
         self.assertTrue(self.order_book.get_tick(self.bid.order_id))
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_ask_insertion_invalid(self):
         """
         Test whether we get an error when we add an invalid ask to the order book
         """
         return self.order_book.insert_ask(self.invalid_ask)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_bid_insertion_invalid(self):
         """
         Test whether we get an error when we add an invalid bid to the order book

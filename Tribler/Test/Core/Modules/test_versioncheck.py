@@ -1,3 +1,5 @@
+from Tribler.Test.tools import trial_timeout
+from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred, inlineCallbacks
 from twisted.web import server, resource
 
@@ -6,8 +8,6 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.twisted_thread import reactor, deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class VersionResource(resource.Resource):
@@ -26,7 +26,6 @@ class VersionResource(resource.Resource):
 
 class TestVersionCheck(TestAsServer):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self):
         self.port = get_random_port()
@@ -42,7 +41,6 @@ class TestVersionCheck(TestAsServer):
     def notifier_callback(self, subject, changeType, obj_id, *args):
         self.new_version_called = True
 
-    @blocking_call_on_reactor_thread
     def setup_version_server(self, response, response_code=200):
         site = server.Site(VersionResource(response, response_code))
         self.server = reactor.listenTCP(self.port, site)
@@ -54,23 +52,23 @@ class TestVersionCheck(TestAsServer):
     def check_version(self):
         return self.session.lm.version_check_manager.check_new_version().addCallback(self.assert_new_version_called)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_old_version(self):
         self.setup_version_server(json.dumps({'name': 'v1.0'}))
         return self.check_version()
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_new_version(self):
         self.should_call_new_version_callback = True
         self.setup_version_server(json.dumps({'name': 'v1337.0'}))
         return self.check_version()
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_bad_request(self):
         self.setup_version_server(json.dumps({'name': 'v1.0'}), response_code=500)
         return self.check_version()
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_connection_error(self):
         self.setup_version_server(json.dumps({'name': 'v1.0'}))
         versioncheck_manager.VERSION_CHECK_URL = "http://this.will.not.exist"

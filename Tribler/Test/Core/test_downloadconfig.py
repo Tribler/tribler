@@ -13,8 +13,8 @@ class TestConfigParser(TriblerCoreTest):
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     CONFIG_FILES_DIR = os.path.abspath(os.path.join(FILE_DIR, u"data/config_files/"))
 
-    def tearDown(self, annotate=True):
-        super(TestConfigParser, self).tearDown(annotate=annotate)
+    def tearDown(self):
+        super(TestConfigParser, self).tearDown()
 
         # Make sure we don't leave a DefaultDownloadStartupConfig instance behind
         DefaultDownloadStartupConfig.delInstance()

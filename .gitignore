@@ -41,6 +41,9 @@ htmlcov/
 
 # Ignore nosetest output logs
 Tribler/Test/logs/
+# Ignore trial temp dirs
+_trial_temp*/
+_trial_temp*.lock
 
 # Android
 *.apk

@@ -4,6 +4,7 @@ import shutil
 import tempfile
 
 from libtorrent import bencode
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet import reactor
 
@@ -13,8 +14,6 @@ from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.exceptions import TorrentFileException
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.Test.twisted_thread import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestLibtorrentMgr(AbstractServer):
@@ -22,10 +21,9 @@ class TestLibtorrentMgr(AbstractServer):
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     LIBTORRENT_FILES_DIR = os.path.abspath(os.path.join(FILE_DIR, u"../data/libtorrent/"))
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestLibtorrentMgr, self).setUp(annotate)
+    def setUp(self):
+        yield super(TestLibtorrentMgr, self).setUp()
 
         self.tribler_session = MockObject()
         self.tribler_session.lm = MockObject()
@@ -49,12 +47,11 @@ class TestLibtorrentMgr(AbstractServer):
 
         self.ltmgr = LibtorrentMgr(self.tribler_session)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         self.ltmgr.shutdown()
         self.assertTrue(os.path.exists(os.path.join(self.session_base_dir, 'lt.state')))
-        yield super(TestLibtorrentMgr, self).tearDown(annotate)
+        yield super(TestLibtorrentMgr, self).tearDown()
 
     def test_get_session_zero_hops(self):
         self.ltmgr.initialize()
@@ -89,7 +86,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.initialize()
         self.assertFalse(self.ltmgr.get_metainfo("a" * 20, None))
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_get_metainfo(self):
         """
         Testing the metainfo fetching method
@@ -125,7 +122,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         return test_deferred
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_get_metainfo_cache(self):
         """
         Testing metainfo caching
@@ -143,7 +140,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         return test_deferred
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_got_metainfo(self):
         """
         Testing whether the callback is correctly invoked when we received metainfo
@@ -175,7 +172,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         return test_deferred
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_got_metainfo_timeout(self):
         """
         Testing whether the callback is correctly invoked when we received metainfo after timeout
@@ -198,7 +195,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         return test_deferred
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_get_metainfo_with_already_added_torrent(self):
         """
         Testing metainfo fetching for a torrent which is already in session.
@@ -233,7 +230,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr.get_metainfo(magnet_link, lambda _: None)
         return test_deferred
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_add_torrent(self):
         """
         Testing the addition of a torrent to the libtorrent manager
@@ -273,7 +270,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         return test_deferred
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_add_torrent_desync(self):
         """
         Testing the addition of a torrent to the libtorrent manager, if it already exists in the session.
@@ -423,7 +420,7 @@ class TestLibtorrentMgr(AbstractServer):
 
         self.assertTrue(os.path.isfile(filename))
 
-    @deferred(timeout=5)
+    @trial_timeout(5)
     def test_callback_on_alert(self):
         """
         Test whether the alert callback is called when a libtorrent alert is posted

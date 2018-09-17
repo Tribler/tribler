@@ -1,35 +1,33 @@
 import socket
 import time
+
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 from Tribler.Core.Category.Category import Category
-from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.tracker_manager import TrackerManager
-from Tribler.Core.Session import Session
 from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UdpSocketManager
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.simpledefs import NTFY_TORRENTS
-from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.Test.twisted_thread import deferred
+from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.popularity.repository import TYPE_TORRENT_HEALTH
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
-class TestTorrentChecker(TriblerCoreTest):
+class TestTorrentChecker(TestAsServer):
     """
     This class contains tests which test the torrent checker class.
     """
 
-    def setUp(self, annotate=True):
-        super(TestTorrentChecker, self).setUp(annotate=annotate)
+    def setUpPreSession(self):
+        super(TestTorrentChecker, self).setUpPreSession()
+        self.config.set_megacache_enabled(True)
 
-        config = TriblerConfig()
-        config.set_state_dir(self.getStateDir())
-        config.set_megacache_enabled(True)
+    @inlineCallbacks
+    def setUp(self):
+        yield super(TestTorrentChecker, self).setUp()
 
-        self.session = Session(config)
-        self.session.start_database()
         self.session.lm.torrent_db = TorrentDBHandler(self.session)
         self.session.lm.torrent_checker = TorrentChecker(self.session)
         self.session.lm.tracker_manager = TrackerManager(self.session)
@@ -40,7 +38,6 @@ class TestTorrentChecker(TriblerCoreTest):
         self.torrent_checker._torrent_db.category = Category()
         self.torrent_checker.listen_on_udp = lambda: None
 
-    @blocking_call_on_reactor_thread
     def test_initialize(self):
         """
         Test the initialization of the torrent checker
@@ -49,7 +46,6 @@ class TestTorrentChecker(TriblerCoreTest):
         self.assertIsNotNone(self.torrent_checker._torrent_db)
         self.assertTrue(self.torrent_checker.is_pending_task_active("torrent_checker_tracker_selection"))
 
-    @blocking_call_on_reactor_thread
     def test_create_socket_or_schedule_fail(self):
         """
         Test creation of the UDP socket of the torrent checker when it fails
@@ -64,7 +60,6 @@ class TestTorrentChecker(TriblerCoreTest):
         self.assertIsNone(self.torrent_checker.udp_port)
         self.assertTrue(self.torrent_checker.is_pending_task_active("listen_udp_port"))
 
-    @blocking_call_on_reactor_thread
     def test_reschedule_tracker_select(self):
         """
         Test the rescheduling of the tracker select task
@@ -72,7 +67,6 @@ class TestTorrentChecker(TriblerCoreTest):
         self.torrent_checker._reschedule_tracker_select()
         self.assertTrue(self.torrent_checker.is_pending_task_active("torrent_checker_tracker_selection"))
 
-    @blocking_call_on_reactor_thread
     def test_add_gui_request_no_trackers(self):
         """
         Test whether adding a request to fetch health of a trackerless torrent fails
@@ -86,7 +80,6 @@ class TestTorrentChecker(TriblerCoreTest):
         self.torrent_checker.add_gui_request('a' * 20).addErrback(lambda _: test_deferred.callback(None))
         return test_deferred
 
-    @blocking_call_on_reactor_thread
     def test_add_gui_request_cached(self):
         """
         Test whether cached results of a torrent are returned when fetching the health of a torrent
@@ -102,7 +95,6 @@ class TestTorrentChecker(TriblerCoreTest):
 
         return self.torrent_checker.add_gui_request('a' * 20).addCallback(verify_response)
 
-    @blocking_call_on_reactor_thread
     def test_add_gui_request_no_tor(self):
         """
         Test whether a Failure is raised when we try to fetch info about a torrent unknown to the database
@@ -111,11 +103,10 @@ class TestTorrentChecker(TriblerCoreTest):
         self.torrent_checker.add_gui_request('a' * 20).addErrback(lambda _: test_deferred.callback(None))
         return test_deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_task_select_no_tracker(self):
         return self.torrent_checker._task_select_tracker()
 
-    @blocking_call_on_reactor_thread
     def test_task_select_tracker(self):
         self.torrent_checker._torrent_db.addExternalTorrentNoDef(
             'a' * 20, 'ubuntu.iso', [['a.test', 1234]], ['http://google.com/announce'], 5)
@@ -128,7 +119,7 @@ class TestTorrentChecker(TriblerCoreTest):
 
         self.assertEqual(len(controlled_session.infohash_list), 1)
 
-    @deferred(timeout=30)
+    @trial_timeout(30)
     def test_tracker_test_error_resolve(self):
         """
         Test whether we capture the error when a tracker check fails
@@ -141,7 +132,7 @@ class TestTorrentChecker(TriblerCoreTest):
             'a' * 20, 'ubuntu.iso', [['a.test', 1234]], ['udp://non123exiszzting456tracker89fle.abc:80/announce'], 5)
         return self.torrent_checker._task_select_tracker().addCallback(verify_cleanup)
 
-    @deferred(timeout=30)
+    @trial_timeout(30)
     def test_tracker_test_invalid_tracker(self):
         """
         Test whether we do nothing when tracker URL is invalid
@@ -162,7 +153,7 @@ class TestTorrentChecker(TriblerCoreTest):
 
         return self.torrent_checker._task_select_tracker().addCallback(verify_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_tracker_no_infohashes(self):
         """
         Test the check of a tracker without associated torrents
@@ -230,7 +221,6 @@ class TestTorrentChecker(TriblerCoreTest):
         self.torrent_checker._logger.info = original_logger_info
 
     @inlineCallbacks
-    @blocking_call_on_reactor_thread
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         yield self.torrent_checker.shutdown()
-        yield super(TestTorrentChecker, self).tearDown(annotate=annotate)
+        yield super(TestTorrentChecker, self).tearDown()

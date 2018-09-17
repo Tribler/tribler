@@ -1,5 +1,6 @@
 import time
-from twisted.internet.defer import succeed, fail
+
+from twisted.internet.defer import succeed, fail, inlineCallbacks
 from twisted.python.failure import Failure
 
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE, VOTE_UNSUBSCRIBE
@@ -7,19 +8,20 @@ from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN
 from Tribler.Core.Modules.restapi.channels.channels_subscription_endpoint import ALREADY_SUBSCRIBED_RESPONSE_MSG, \
     NOT_SUBSCRIBED_RESPONSE_MSG, ChannelsModifySubscriptionEndpoint
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
-from Tribler.Test.twisted_thread import deferred
+from Tribler.Test.tools import trial_timeout
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
 
 
 class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
 
-    def setUp(self, autoload_discovery=True):
+    @inlineCallbacks
+    def setUp(self):
         """
         The startup method of this class creates a fake Dispersy instance with a fake AllChannel community. It also
         inserts some random channels so we have some data to work with.
         """
-        super(TestChannelsSubscriptionEndpoint, self).setUp(autoload_discovery)
+        yield super(TestChannelsSubscriptionEndpoint, self).setUp()
         self.expected_votecast_cid = None
         self.expected_votecast_vote = None
         self.create_votecast_called = False
@@ -42,7 +44,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         return succeed(None)
 
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_subscribe_channel_already_subscribed(self):
         """
         Testing whether the API returns error 409 when subscribing to an already subscribed channel
@@ -54,7 +56,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'),
                                expected_code=409, expected_json=expected_json, request_type='PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_subscribe_channel(self):
         """
         Testing whether the API creates a request in the AllChannel community when subscribing to a channel
@@ -68,7 +70,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'), expected_code=200,
                                expected_json=expected_json, request_type='PUT').addCallback(verify_votecast_made)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_sub_channel_throw_error(self):
         """
         Testing whether an error is returned when we subscribe to a channel and an error pops up
@@ -84,7 +86,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         self.should_check_equality = False
         return self.do_request('channels/subscribed/', expected_code=500, request_type='PUT')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_unsubscribe_channel_not_exist(self):
         """
         Testing whether the API returns an error when unsubscribing if the channel with the specified CID does not exist
@@ -93,7 +95,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/subscribed/abcdef', expected_code=404, expected_json=expected_json,
                                request_type='DELETE')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_unsubscribe_channel_not_subscribed(self):
         """
         Testing whether the API returns error 404 when unsubscribing from an already unsubscribed channel
@@ -103,7 +105,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'),
                                expected_code=404, expected_json=expected_json, request_type='DELETE')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_subscribed_channels_no_subscriptions(self):
         """
         Testing whether the API returns no channels when you have not subscribed to any channel
@@ -111,7 +113,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         expected_json = {"subscribed": []}
         return self.do_request('channels/subscribed', expected_code=200, expected_json=expected_json)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_subscribed_channels_one_subscription(self):
         """
         Testing whether the API returns the right channel when subscribed to one channel
@@ -128,7 +130,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         self.vote_for_channel(cid, expected_json[u'subscribed'][0][u'modified'])
         return self.do_request('channels/subscribed', expected_code=200, expected_json=expected_json)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_unsubscribe_channel(self):
         """
         Testing whether the API creates a request in the AllChannel community when unsubscribing from a channel
@@ -145,7 +147,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'), expected_code=200,
                                expected_json=expected_json, request_type='DELETE').addCallback(verify_votecast_made)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_is_channel_subscribed(self):
         """
         Testing the subscription status of channel
@@ -157,7 +159,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'), expected_code=200,
                                expected_json=expected_json, request_type='GET')
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_subscribed_status_of_non_existing_channel(self):
         """
         Testing the subscription status of non-existing channel

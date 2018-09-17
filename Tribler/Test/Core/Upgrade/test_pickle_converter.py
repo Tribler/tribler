@@ -11,8 +11,8 @@ class TestPickleConverter(TriblerCoreTest):
     This file contains tests for the converter that converts older pickle files to the .state format.
     """
 
-    def setUp(self, annotate=True):
-        super(TestPickleConverter, self).setUp(annotate=annotate)
+    def setUp(self):
+        super(TestPickleConverter, self).setUp()
 
         self.mock_session = MockObject()
         self.mock_session.get_downloads_pstate_dir = lambda: self.session_base_dir

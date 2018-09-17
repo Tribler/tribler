@@ -1,6 +1,6 @@
 import struct
 from libtorrent import bencode
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.task import Clock
 from twisted.python.failure import Failure
 
@@ -9,7 +9,8 @@ from Tribler.Core.Session import Session
 from Tribler.Core.TorrentChecker.session import FakeDHTSession, DHT_TRACKER_MAX_RETRIES, DHT_TRACKER_RECHECK_INTERVAL, \
     UdpTrackerSession, HttpTrackerSession
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.Test.twisted_thread import deferred
+from Tribler.Test.tools import trial_timeout
+from Tribler.Test.test_as_server import TestAsServer
 
 
 class FakeUdpSocketManager(object):
@@ -22,10 +23,12 @@ class FakeUdpSocketManager(object):
         pass
 
 
-class TestTorrentCheckerSession(TriblerCoreTest):
+class TestTorrentCheckerSession(TestAsServer):
 
-    def setUp(self, annotate=True):
-        super(TestTorrentCheckerSession, self).setUp(annotate=annotate)
+    @inlineCallbacks
+    def setUp(self):
+        self.timeout = 15
+        yield super(TestTorrentCheckerSession, self).setUp()
         self.mock_transport = MockObject()
         self.mock_transport.write = lambda *_: None
         self.socket_mgr = FakeUdpSocketManager()
@@ -42,7 +45,7 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session._process_scrape_response("test")
         self.assertTrue(session.is_failed)
 
-    @deferred(timeout=5)
+    @trial_timeout(5)
     def test_httpsession_on_error(self):
         test_deferred = Deferred()
         session = HttpTrackerSession("localhost", ("localhost", 4782), "/announce", 5)
@@ -66,7 +69,7 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session._process_scrape_response(bencode({'failure reason': 'test'}))
         self.assertTrue(session.is_failed)
 
-    @deferred(timeout=5)
+    @trial_timeout(5)
     def test_httpsession_unicode_err(self):
         session = HttpTrackerSession("retracker.local", ("retracker.local", 80),
                                      u"/announce?comment=%26%23%3B%28%2C%29%5B%5D%E3%5B%D4%E8%EB%FC%EC%EE%E2", 5)
@@ -81,7 +84,7 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session.connect_to_tracker().addErrback(on_error)
         return test_deferred
 
-    @deferred(timeout=5)
+    @trial_timeout(5)
     def test_httpsession_timeout(self):
         test_deferred = Deferred()
 
@@ -109,7 +112,7 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session.connect_to_tracker().addErrback(on_error)
         return test_deferred
 
-    @deferred(timeout=5)
+    @trial_timeout(5)
     def test_udpsession_timeout(self):
         test_deferred = Deferred()
 
@@ -137,7 +140,7 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session.connect_to_tracker().addErrback(on_error)
         return test_deferred
 
-    @deferred(timeout=5)
+    @trial_timeout(5)
     def test_httpsession_cancel_operation(self):
         test_deferred = Deferred()
         session = HttpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 5)
@@ -239,7 +242,7 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session.handle_scrape_response(packet)
         self.assertTrue(session.is_failed)
 
-    @deferred(timeout=5)
+    @trial_timeout(5)
     def test_udpsession_correct_handle(self):
         session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5, self.socket_mgr)
         session.on_ip_address_resolved("127.0.0.1", start_scraper=False)
@@ -251,7 +254,7 @@ class TestTorrentCheckerSession(TriblerCoreTest):
 
         return session.result_deferred.addCallback(lambda *_: session.cleanup())
 
-    @deferred(timeout=5)
+    @trial_timeout(5)
     def test_udpsession_on_error(self):
         test_deferred = Deferred()
         session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, self.socket_mgr)
@@ -260,7 +263,7 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session.on_error(Failure(RuntimeError("test")))
         return test_deferred
 
-    @deferred(timeout=5)
+    @trial_timeout(5)
     def test_big_correct_run(self):
         session = UdpTrackerSession("localhost", ("192.168.1.1", 1234), "/announce", 0, self.socket_mgr)
         session.on_ip_address_resolved("192.168.1.1")
@@ -285,7 +288,7 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session._process_scrape_response(response)
         self.assertTrue(session.is_finished)
 
-    @deferred(timeout=5)
+    @trial_timeout(5)
     def test_failed_unicode(self):
         test_deferred = Deferred()
 
@@ -300,7 +303,7 @@ class TestTorrentCheckerSession(TriblerCoreTest):
 
         return test_deferred
 
-    @deferred(timeout=5)
+    @trial_timeout(5)
     def test_failed_unicode_udp(self):
         test_deferred = Deferred()
 
@@ -321,8 +324,8 @@ class TestDHTSession(TriblerCoreTest):
     Test the DHT session that we use to fetch the swarm status from the DHT.
     """
 
-    def setUp(self, annotate=True):
-        super(TestDHTSession, self).setUp(annotate=annotate)
+    def setUp(self):
+        super(TestDHTSession, self).setUp()
 
         config = TriblerConfig()
         config.set_state_dir(self.getStateDir())
@@ -331,14 +334,14 @@ class TestDHTSession(TriblerCoreTest):
 
         self.dht_session = FakeDHTSession(self.session, 'a' * 20, 10)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_cleanup(self):
         """
         Test the cleanup of a DHT session
         """
         return self.dht_session.cleanup()
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_connect_to_tracker(self):
         """
         Test the metainfo lookup of the DHT session
@@ -355,7 +358,7 @@ class TestDHTSession(TriblerCoreTest):
         self.session.lm.ltmgr.get_metainfo = get_metainfo
         return self.dht_session.connect_to_tracker().addCallback(verify_metainfo)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_metainfo_timeout(self):
         """
         Test the metainfo timeout of the DHT session

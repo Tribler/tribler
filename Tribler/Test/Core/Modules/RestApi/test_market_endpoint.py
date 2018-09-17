@@ -13,20 +13,18 @@ from Tribler.community.market.core.trade import Trade
 from Tribler.community.market.core.wallet_address import WalletAddress
 from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
 from Tribler.Core.Modules.wallet.dummy_wallet import DummyWallet1, DummyWallet2
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.twisted_thread import deferred
+from Tribler.Test.tools import trial_timeout
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 from twisted.internet.defer import inlineCallbacks, succeed
 
 
 class TestMarketEndpoint(AbstractApiTest):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
-        yield super(TestMarketEndpoint, self).setUp(autoload_discovery=autoload_discovery)
+    def setUp(self):
+        yield super(TestMarketEndpoint, self).setUp()
 
         dummy1_wallet = DummyWallet1()
         dummy2_wallet = DummyWallet2()
@@ -39,11 +37,10 @@ class TestMarketEndpoint(AbstractApiTest):
                                   working_directory=self.session.config.get_state_dir())
         self.session.lm.market_community = self.mock_ipv8.overlay
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         yield self.mock_ipv8.unload()
-        yield super(TestMarketEndpoint, self).tearDown(annotate=annotate)
+        yield super(TestMarketEndpoint, self).tearDown()
 
     def test_get_market_community(self):
         """
@@ -83,12 +80,7 @@ class TestMarketEndpoint(AbstractApiTest):
         block_b.hash = 'b'
         return block_a, block_b
 
-    @blocking_call_on_reactor_thread
-    def setUpPreSession(self):
-        super(TestMarketEndpoint, self).setUpPreSession()
-        self.config.set_dispersy_enabled(False)
-
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_asks(self):
         """
         Test whether the API returns the right asks in the order book when performing a request
@@ -107,7 +99,7 @@ class TestMarketEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('market/asks', expected_code=200).addCallback(on_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_ask(self):
         """
         Test whether we can create an ask using the API
@@ -123,7 +115,7 @@ class TestMarketEndpoint(AbstractApiTest):
         return self.do_request('market/asks', expected_code=200, request_type='PUT', post_data=post_data)\
             .addCallback(on_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_ask_no_amount(self):
         """
         Test for an error when we don't add an asset amount when creating an ask
@@ -132,7 +124,7 @@ class TestMarketEndpoint(AbstractApiTest):
         post_data = {'first_asset_amount': 10, 'first_asset_type': 'DUM1', 'second_asset_type': 'DUM2', 'timeout': 3400}
         return self.do_request('market/asks', expected_code=400, request_type='PUT', post_data=post_data)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_ask_no_type(self):
         """
         Test for an error when we don't add an asset type when creating an ask
@@ -141,7 +133,7 @@ class TestMarketEndpoint(AbstractApiTest):
         post_data = {'first_asset_amount': 10, 'second_asset_amount': 10, 'second_asset_type': 'DUM2', 'timeout': 3400}
         return self.do_request('market/asks', expected_code=400, request_type='PUT', post_data=post_data)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_bids(self):
         """
         Test whether the API returns the right bids in the order book when performing a request
@@ -159,7 +151,7 @@ class TestMarketEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('market/bids', expected_code=200).addCallback(on_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_bid(self):
         """
         Test whether we can create a bid using the API
@@ -175,7 +167,7 @@ class TestMarketEndpoint(AbstractApiTest):
         return self.do_request('market/bids', expected_code=200, request_type='PUT', post_data=post_data) \
             .addCallback(on_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_bid_no_amount(self):
         """
         Test for an error when we don't add an asset amount when creating a bid
@@ -184,7 +176,7 @@ class TestMarketEndpoint(AbstractApiTest):
         post_data = {'first_asset_amount': 10, 'first_asset_type': 'DUM1', 'second_asset_type': 'DUM2', 'timeout': 3400}
         return self.do_request('market/bids', expected_code=400, request_type='PUT', post_data=post_data)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_create_bid_no_type(self):
         """
         Test for an error when we don't add an asset type when creating a bid
@@ -193,7 +185,7 @@ class TestMarketEndpoint(AbstractApiTest):
         post_data = {'first_asset_amount': 10, 'second_asset_amount': 10, 'second_asset_type': 'DUM2', 'timeout': 3400}
         return self.do_request('market/bids', expected_code=400, request_type='PUT', post_data=post_data)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_transactions(self):
         """
         Test whether the API returns the right transactions in the order book when performing a request
@@ -207,7 +199,7 @@ class TestMarketEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('market/transactions', expected_code=200).addCallback(on_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_payment_not_found(self):
         """
         Test whether the API returns a 404 when a payment cannot be found
@@ -215,7 +207,7 @@ class TestMarketEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('market/transactions/abc/3/payments', expected_code=404)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_orders(self):
         """
         Test whether the API returns the right orders when we perform a request
@@ -231,7 +223,7 @@ class TestMarketEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('market/orders', expected_code=200).addCallback(on_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_payments(self):
         """
         Test whether the API returns the right payments when we perform a request
@@ -247,7 +239,7 @@ class TestMarketEndpoint(AbstractApiTest):
                                (transaction.transaction_id.trader_id, transaction.transaction_id.transaction_number),
                                expected_code=200).addCallback(on_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_cancel_order_not_found(self):
         """
         Test whether a 404 is returned when we try to cancel an order that does not exist
@@ -257,7 +249,7 @@ class TestMarketEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('market/orders/1234/cancel', request_type='POST', expected_code=404)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_cancel_order_invalid(self):
         """
         Test whether an error is returned when we try to cancel an order that has expired
@@ -269,7 +261,7 @@ class TestMarketEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('market/orders/1/cancel', request_type='POST', expected_code=400)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_cancel_order(self):
         """
         Test whether an error is returned when we try to cancel an order that has expired
@@ -287,7 +279,7 @@ class TestMarketEndpoint(AbstractApiTest):
         return self.do_request('market/orders/1/cancel', request_type='POST', expected_code=200)\
             .addCallback(on_response)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_matchmakers(self):
         """
         Test the request to fetch known matchmakers

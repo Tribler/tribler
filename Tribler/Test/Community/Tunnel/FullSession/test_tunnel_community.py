@@ -3,8 +3,6 @@ from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
-from Tribler.Test.twisted_thread import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestTunnelCommunity(TestTunnelBase):
@@ -12,13 +10,11 @@ class TestTunnelCommunity(TestTunnelBase):
     This class contains full session tests for the tunnel community.
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
+    def setUp(self):
         self.test_deferred = Deferred()
-        yield super(TestTunnelCommunity, self).setUp(autoload_discovery=autoload_discovery)
+        yield super(TestTunnelCommunity, self).setUp()
 
-    @deferred(timeout=60)
     @inlineCallbacks
     def test_anon_download(self):
         """
@@ -37,7 +33,6 @@ class TestTunnelCommunity(TestTunnelBase):
 
         yield self.test_deferred
 
-    @deferred(timeout=60)
     @inlineCallbacks
     def test_anon_download_no_exitnodes(self):
         """
@@ -55,11 +50,8 @@ class TestTunnelCommunity(TestTunnelBase):
         download = self.start_anon_download()
         download.set_state_callback(download_state_callback)
 
-        reactor.callLater(30, self.test_deferred.callback, None)
+        yield self.sleep(30.0)
 
-        yield self.test_deferred
-
-    @deferred(timeout=60)
     @inlineCallbacks
     def test_anon_download_no_relays(self):
         """
@@ -77,6 +69,4 @@ class TestTunnelCommunity(TestTunnelBase):
         download = self.start_anon_download(hops=2)
         download.set_state_callback(download_state_callback)
 
-        reactor.callLater(30, self.test_deferred.callback, None)
-
-        yield self.test_deferred
+        yield self.sleep(30.0)

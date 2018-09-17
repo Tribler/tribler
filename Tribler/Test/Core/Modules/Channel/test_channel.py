@@ -3,7 +3,6 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser
 from Tribler.Test.Core.base_test_channel import BaseTestChannel
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestChannel(BaseTestChannel):
@@ -11,13 +10,12 @@ class TestChannel(BaseTestChannel):
     This class contains some tests for the ChannelObject class.
     """
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True, autoload_discovery=True):
+    def setUp(self):
         """
         Setup the tests by creating the ChannelObject instance.
         """
-        yield super(TestChannel, self).setUp(annotate=annotate, autoload_discovery=autoload_discovery)
+        yield super(TestChannel, self).setUp()
         self.channel_object = ChannelObject(self.fake_session, self.fake_channel_community)
 
     def test_get_channel_id(self):

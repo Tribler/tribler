@@ -14,7 +14,6 @@ from twisted.web.client import Agent, readBody, RedirectAgent, HTTPConnectionPoo
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
 from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import add_url_params
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.
@@ -475,7 +474,10 @@ class UdpTrackerSession(TrackerSession):
         if self in UdpTrackerSession._active_session_dict:
             del UdpTrackerSession._active_session_dict[self]
 
-        if self.transaction_id in self.socket_mgr.tracker_sessions:
+        # Checking for socket_mgr is a workaround for race condition
+        # in Tribler Session startup/shutdown that sometimes causes
+        # unit tests to fail on teardown.
+        if self.socket_mgr and self.transaction_id in self.socket_mgr.tracker_sessions:
             self.socket_mgr.tracker_sessions.pop(self.transaction_id)
 
     @inlineCallbacks
@@ -687,12 +689,10 @@ class FakeDHTSession(TrackerSession):
         Fakely connects to a tracker.
         :return: A deferred with a callback containing an empty dictionary.
         """
-        @blocking_call_on_reactor_thread
         def on_metainfo_received(metainfo):
             self.result_deferred.callback({'DHT': [{'infohash': self.infohash.encode('hex'),
                                                     'seeders': metainfo['seeders'], 'leechers': metainfo['leechers']}]})
 
-        @blocking_call_on_reactor_thread
         def on_metainfo_timeout(_):
             self.result_deferred.errback(Failure(RuntimeError("DHT timeout")))
 

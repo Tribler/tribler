@@ -10,7 +10,6 @@ from Tribler.Core.Config.tribler_config import TriblerConfig, CONFIG_SPEC_PATH
 from Tribler.Core.Session import Session
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.common import TESTS_DATA_DIR
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 BUSYTIMEOUT = 5000
@@ -42,7 +41,6 @@ class AbstractDB(TriblerCoreTest):
         self.config.set_video_server_enabled(False)
         self.config.set_torrent_store_enabled(False)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self):
         yield super(AbstractDB, self).setUp()
@@ -59,22 +57,22 @@ class AbstractDB(TriblerCoreTest):
         self.sqlitedb.initialize()
         self.session.sqlite_db = self.sqlitedb
 
+    @inlineCallbacks
     def tearDown(self):
         self.sqlitedb.close()
         self.sqlitedb = None
         self.session = None
 
-        super(AbstractDB, self).tearDown(self)
+        yield super(AbstractDB, self).tearDown()
+
 
 class TestSqliteBasicDBHandler(AbstractDB):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self):
         yield super(TestSqliteBasicDBHandler, self).setUp()
         self.db = BasicDBHandler(self.session, u"Peer")
 
-    @blocking_call_on_reactor_thread
     def test_size(self):
         size = self.db.size()  # there are 3995 peers in the table, however the upgrade scripts remove 8 superpeers
         assert size == 3987, size

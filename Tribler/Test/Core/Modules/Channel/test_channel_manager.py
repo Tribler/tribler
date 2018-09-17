@@ -1,29 +1,26 @@
+from twisted.internet.defer import inlineCallbacks
+from twisted.python.log import removeObserver
+
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
 from Tribler.Core.Session import Session
 from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
-from twisted.internet.defer import inlineCallbacks
-from twisted.python.log import removeObserver
 
 
 class TestChannelManager(TriblerCoreTest):
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, annotate=True):
-        yield super(TestChannelManager, self).setUp(annotate=annotate)
+    def setUp(self):
+        yield super(TestChannelManager, self).setUp()
         self.session = None
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def tearDown(self, annotate=True):
+    def tearDown(self):
         removeObserver(self.session.unhandled_error_observer)
-        yield super(TestChannelManager, self).tearDown(annotate=annotate)
+        yield super(TestChannelManager, self).tearDown()
 
-    @blocking_call_on_reactor_thread
     def test_create_channel_duplicate_name_error(self):
         config = TriblerConfig()
         config.set_state_dir(self.getStateDir())

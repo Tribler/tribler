@@ -1,23 +1,21 @@
 import json
 
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import succeed, fail
 from twisted.python.failure import Failure
 
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from Tribler.Test.twisted_thread import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class TestWalletsEndpoint(AbstractApiTest):
 
-    @blocking_call_on_reactor_thread
     def setUpPreSession(self):
         super(TestWalletsEndpoint, self).setUpPreSession()
         self.config.set_ipv8_enabled(True)
         self.config.set_dummy_wallets_enabled(True)
         self.config.set_bitcoinlib_enabled(True)
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_get_wallets(self):
         """
         Testing whether the API returns wallets when we query for them
@@ -30,7 +28,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('wallets', expected_code=200).addCallback(on_response)
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_create_wallet_exists(self):
         """
         Testing whether creating a wallet that already exists throws an error
@@ -38,7 +36,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('wallets/DUM1', expected_code=400, request_type='PUT')
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_create_wallet_btc(self):
         """
         Test creating a BTC wallet
@@ -47,7 +45,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('wallets/BTC', expected_code=200, request_type='PUT')
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_create_wallet(self):
         """
         Testing whether we can create a wallet
@@ -56,7 +54,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('wallets/DUM1', expected_code=200, request_type='PUT')
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_get_wallet_balance(self):
         """
         Testing whether we can retrieve the balance of a wallet
@@ -69,7 +67,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('wallets/DUM1/balance', expected_code=200).addCallback(on_response)
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_get_wallet_transaction(self):
         """
         Testing whether we can receive the transactions of a wallet
@@ -81,7 +79,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('wallets/DUM1/transactions', expected_code=200).addCallback(on_response)
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_transfer_no_btc(self):
         """
         Test transferring assets from a non-BTC wallet
@@ -89,7 +87,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('wallets/DUM1/transfer', expected_code=400, request_type='POST')
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_transfer_not_created(self):
         """
         Test transferring assets from a non-created BTC wallet
@@ -97,7 +95,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('wallets/BTC/transfer', expected_code=400, request_type='POST')
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_transfer_bad_params(self):
         """
         Test transferring assets when providing wrong parameters
@@ -106,7 +104,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('wallets/BTC/transfer', expected_code=400, request_type='POST')
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_transfer_error(self):
         """
         Test whether we receive the right response when we try a transfer that errors
@@ -117,7 +115,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         post_data = {'amount': 3, 'destination': 'abc'}
         return self.do_request('wallets/BTC/transfer', expected_code=500, request_type='POST', post_data=post_data)
 
-    @deferred(timeout=20)
+    @trial_timeout(20)
     def test_transfer(self):
         """
         Test transferring assets

@@ -1,5 +1,6 @@
 import random
 
+from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Utilities.random_utils import random_infohash, random_string, random_utf8_string
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.popularity import constants
@@ -13,8 +14,7 @@ from Tribler.community.popularity.repository import TYPE_TORRENT_HEALTH
 from Tribler.community.popularity.request import ContentRequest
 from Tribler.pyipv8.ipv8.test.base import TestBase
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
-from Tribler.pyipv8.ipv8.test.util import twisted_wrapper
-
+from Tribler.Test.tools import trial_timeout
 
 class TestPopularityCommunityBase(TestBase):
     NUM_NODES = 2
@@ -100,7 +100,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
     __testing__ = False
     NUM_NODES = 2
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_subscribe_peers(self):
         """
         Tests subscribing to peers populate publishers and subscribers list.
@@ -115,7 +115,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         # Node 1 should have a subscriber added
         self.assertGreater(len(self.nodes[1].overlay.subscribers), 0, "Subscriber expected")
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_subscribe_unsubscribe_individual_peers(self):
         """
         Tests subscribing/subscribing an individual peer.
@@ -188,7 +188,8 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         self.assertEqual(len(self.nodes[0].overlay.subscribers), 5)
         self.assertEqual(len(self.nodes[0].overlay.publishers), 5)
 
-    @twisted_wrapper(6)
+    @trial_timeout(6)
+    @inlineCallbacks
     def test_start(self):
         """
         Tests starting of the community. Peer should start subscribing to other connected peers.
@@ -218,7 +219,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         self.assertTrue(self.nodes[0].called_refresh_peer_list)
         self.assertTrue(self.nodes[0].called_publish_next_content)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_content_publishing(self):
         """
         Tests publishing next available content.
@@ -245,7 +246,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
 
         self.assertTrue(self.nodes[0].torrent_health_response_received, "Expected to receive torrent response")
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_publish_no_content(self):
         """
         Tests publishing next content if no content is available.
@@ -269,7 +270,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         # Restore logger
         self.nodes[0].overlay.logger = original_logger
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_send_torrent_health_response(self):
         """
         Tests sending torrent health response.
@@ -313,7 +314,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         # Restore logger
         self.nodes[0].overlay.logger = original_logger
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_send_channel_health_response(self):
         """
         Tests sending torrent health response.
@@ -357,7 +358,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         # Restore logger
         self.nodes[0].overlay.logger = original_logger
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_send_torrent_info_request_response(self):
         """ Test if torrent info request response works as expected. """
         self.nodes[1].called_send_torrent_info_response = False
@@ -382,7 +383,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         self.assertTrue(self.nodes[1].called_send_torrent_info_response)
         self.nodes[1].overlay.send_torrent_info_response = original_send_torrent_info_response
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_send_content_info_request_response(self):
         """ Test if content info request response works as expected """
 
@@ -411,7 +412,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
 
         self.assertTrue(self.nodes[1].called_send_content_info_response)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_on_torrent_health_response_from_unknown_peer(self):
         """
         Tests receiving torrent health response from unknown peer
@@ -437,7 +438,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         # Restore logger
         self.nodes[0].overlay.logger = original_logger
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_on_torrent_health_response(self):
         """
         Tests receiving torrent health response from unknown peer
@@ -466,7 +467,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
 
         self.assertTrue(self.nodes[0].called_update_torrent)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_on_torrent_info_response(self):
         """
         Tests receiving torrent health response.
@@ -497,7 +498,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
 
         self.assertTrue(self.nodes[0].called_update_torrent)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_on_torrent_info_response_from_unknown_peer(self):
         """
         Tests receiving torrent health response from unknown peer.
@@ -528,7 +529,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
 
         self.assertFalse(self.nodes[0].called_update_torrent)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_on_subscription_status1(self):
         """
         Tests receiving subscription status.
@@ -548,7 +549,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
 
         self.assertEqual(len(self.nodes[0].overlay.publishers), 1)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_on_subscription_status_with_unsubscribe(self):
         """
         Tests receiving subscription status with unsubscribe status.
@@ -569,7 +570,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
 
         self.assertEqual(len(self.nodes[0].overlay.publishers), 0)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_search_request_response(self):
         self.nodes[0].overlay.content_repository = MockRepository()
         self.nodes[1].overlay.content_repository = MockRepository()
@@ -593,7 +594,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
 
         self.assertTrue(self.nodes[0].called_process_torrent_search_response)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_process_search_response(self):
         self.nodes[0].overlay.content_repository = MockRepository()
         self.nodes[1].overlay.content_repository = MockRepository()
@@ -622,7 +623,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
 
         self.assertTrue(self.nodes[0].called_search_result_notify)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_send_content_info_request(self):
         self.nodes[0].overlay.content_repository = MockRepository()
         self.nodes[1].overlay.content_repository = MockRepository()
@@ -650,7 +651,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         self.assertTrue(self.nodes[0].received_response)
         self.assertEqual(self.nodes[0].received_query, request_list)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_send_torrent_info_response(self):
         self.nodes[1].overlay.publish_latest_torrents = lambda *args, **kwargs: None
         self.nodes[0].overlay.content_repository = MockRepository()
@@ -673,7 +674,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         yield self.deliver_messages()
         self.assertTrue(self.nodes[0].called_on_torrent_info_response)
 
-    @twisted_wrapper
+    @inlineCallbacks
     def test_search_request_timeout(self):
         """
         Test whether the callback is called with an empty list when the search request times out

@@ -5,6 +5,7 @@ from tempfile import mkdtemp
 
 from libtorrent import bdecode
 from nose.tools import raises
+from Tribler.Test.tools import trial_timeout
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.web.server import Site
@@ -17,8 +18,6 @@ from Tribler.Core.exceptions import TorrentDefNotFinalizedException, HttpError
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import BaseTestCase
-from Tribler.Test.twisted_thread import deferred
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 TRACKER = 'http://www.tribler.org/announce'
 
@@ -35,7 +34,6 @@ class TestTorrentDef(BaseTestCase):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.file_server = None
 
-    @blocking_call_on_reactor_thread
     def setUpFileServer(self, port, path):
         # Create a local file server, can be used to serve local files. This is preferred over an external network
         # request in order to get files.
@@ -43,7 +41,6 @@ class TestTorrentDef(BaseTestCase):
         factory = Site(resource)
         self.file_server = reactor.listenTCP(port, factory)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self):
         super(TestTorrentDef, self).tearDown()
@@ -240,7 +237,7 @@ class TestTorrentDef(BaseTestCase):
         self.assertTrue(t1.is_private())
         self.assertFalse(t2.is_private())
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_load_from_url(self):
         # Setup file server to serve torrent file
         self.session_base_dir = mkdtemp(suffix="_tribler_test_load_from_url")
@@ -262,7 +259,7 @@ class TestTorrentDef(BaseTestCase):
         deferred.addCallback(_on_load)
         return deferred
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_load_from_url_404(self):
         # Setup file server to serve torrent file
         self.session_base_dir = mkdtemp(suffix="_tribler_test_load_from_url")

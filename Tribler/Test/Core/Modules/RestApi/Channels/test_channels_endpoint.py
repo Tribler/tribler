@@ -1,10 +1,12 @@
+from twisted.internet.defer import inlineCallbacks
+
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
 from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test_channel import BaseTestChannel
-from Tribler.Test.twisted_thread import deferred
+from Tribler.Test.tools import trial_timeout
 
 
 class ChannelCommunityMock(object):
@@ -31,8 +33,9 @@ class ChannelCommunityMock(object):
 
 class AbstractTestChannelsEndpoint(AbstractApiTest, BaseTestChannel):
 
-    def setUp(self, autoload_discovery=True):
-        super(AbstractTestChannelsEndpoint, self).setUp(autoload_discovery)
+    @inlineCallbacks
+    def setUp(self):
+        yield super(AbstractTestChannelsEndpoint, self).setUp()
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
 
     def vote_for_channel(self, cid, vote_time):
@@ -58,7 +61,7 @@ class AbstractTestChannelsEndpoint(AbstractApiTest, BaseTestChannel):
 
 class TestChannelsEndpoint(AbstractTestChannelsEndpoint):
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_channels_unknown_endpoint(self):
         """
         Testing whether the API returns an error if an unknown endpoint is queried
@@ -66,7 +69,7 @@ class TestChannelsEndpoint(AbstractTestChannelsEndpoint):
         self.should_check_equality = False
         return self.do_request('channels/thisendpointdoesnotexist123', expected_code=404)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_discovered_channels_no_channels(self):
         """
         Testing whether the API returns no channels when fetching discovered channels
@@ -75,7 +78,7 @@ class TestChannelsEndpoint(AbstractTestChannelsEndpoint):
         expected_json = {u'channels': []}
         return self.do_request('channels/discovered', expected_code=200, expected_json=expected_json)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_get_discovered_channels(self):
         """
         Testing whether the API returns inserted channels when fetching discovered channels

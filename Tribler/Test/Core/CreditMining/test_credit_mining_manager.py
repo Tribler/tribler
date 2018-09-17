@@ -10,10 +10,10 @@ from twisted.internet.defer import inlineCallbacks, succeed
 
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningTorrent
 from Tribler.Core.CreditMining.CreditMiningPolicy import BasePolicy
+from Tribler.Core.simpledefs import DLSTATUS_STOPPED
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED, NTFY_CREDIT_MINING, NTFY_ERROR
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class FakeTorrent(object):
@@ -67,9 +67,8 @@ class TestCreditMiningManager(TestAsServer):
         self.infohash_bin = '\00' * 20
         self.name = u'torrent'
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
+    def setUp(self):
         yield super(TestCreditMiningManager, self).setUp()
         self.credit_mining_manager = self.session.lm.credit_mining_manager
         self.credit_mining_manager.settings.max_torrents_active = 4

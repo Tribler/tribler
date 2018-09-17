@@ -6,8 +6,8 @@ from twisted.web.util import Redirect
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.utilities import parse_magnetlink, is_valid_url, http_get
 from Tribler.Test.test_as_server import BaseTestCase
-from Tribler.Test.twisted_thread import deferred
 from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
+from Tribler.Test.tools import trial_timeout
 
 
 class TestMakeTorrent(BaseTestCase):
@@ -57,7 +57,7 @@ class TestMakeTorrent(BaseTestCase):
         test_url4 = "udp://localhost:1264"
         self.assertTrue(is_valid_url(test_url4))
 
-    @deferred(timeout=5)
+    @trial_timeout(5)
     def test_http_get_with_redirect(self):
         """
         Test if http_get is working properly if url redirects to a magnet link.

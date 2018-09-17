@@ -1,21 +1,18 @@
 import os
 
-from Tribler.Core.Modules.payout_manager import PayoutManager
 from nose.tools import raises
-
+from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import Deferred
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
+from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.twisted_thread import deferred
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.search.community import SearchCommunity
 from Tribler.dispersy.discovery.community import DiscoveryCommunity
@@ -27,8 +24,8 @@ class TestLaunchManyCore(TriblerCoreTest):
     """
     DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'data')
 
-    def setUp(self, annotate=True):
-        TriblerCoreTest.setUp(self, annotate=annotate)
+    def setUp(self):
+        TriblerCoreTest.setUp(self)
         self.lm = TriblerLaunchMany()
         self.lm.session_lock = NoDispersyRLock()
         self.lm.session = MockObject()
@@ -79,7 +76,7 @@ class TestLaunchManyCore(TriblerCoreTest):
         self.assertIsInstance(config, CallbackConfigParser)
         self.assertEqual(config.get('general', 'version'), 11)
 
-    @deferred(timeout=10)
+    @trial_timeout(10)
     def test_dlstates_cb_error(self):
         """
         Testing whether a download is stopped on error in the download states callback in LaunchManyCore
