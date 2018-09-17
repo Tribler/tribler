@@ -53,11 +53,14 @@ class SubscriptionsWidget(QWidget):
 
         self.num_subs_label.setText(str(self.channel_info["votes"]))
 
-        self.credit_mining_button.setHidden(not self.window().tribler_settings["credit_mining"]["enabled"])
-        if self.channel_info["dispersy_cid"] in self.window().tribler_settings["credit_mining"]["sources"]:
-            self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path('credit_mining_yes.png'))))
+        if self.window().tribler_settings:  # It could be that the settings are not loaded yet
+            self.credit_mining_button.setHidden(not self.window().tribler_settings["credit_mining"]["enabled"])
+            if self.channel_info["dispersy_cid"] in self.window().tribler_settings["credit_mining"]["sources"]:
+                self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path('credit_mining_yes.png'))))
+            else:
+                self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path('credit_mining_not.png'))))
         else:
-            self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path('credit_mining_not.png'))))
+            self.credit_mining_button.hide()
 
     def on_subscribe_button_click(self):
         self.request_mgr = TriblerRequestManager()
