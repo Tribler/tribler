@@ -1,5 +1,4 @@
 import base64
-from datetime import datetime
 
 from twisted.internet.defer import Deferred
 from twisted.web import http

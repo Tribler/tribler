@@ -486,7 +486,8 @@ class Session(object):
         self.start_database()
 
         #FIXME: EXPERIMENTAL STUFF!!!
-        self.mds = start_orm(self.chant_db_filename, create_db=(False==os.path.isfile(self.chant_db_filename)))
+        self.mds = start_orm(self.chant_db_filename,
+                create_db=(os.path.isfile(self.chant_db_filename) is False))
 
         if self.upgrader_enabled:
             upgrader = TriblerUpgrader(self, self.sqlite_db)

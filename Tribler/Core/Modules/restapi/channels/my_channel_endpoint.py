@@ -1,4 +1,4 @@
-from pony.orm import db_session
+from pony.orm import db_session, RowNotFound
 from twisted.web import http
 
 import Tribler.Core.Utilities.json_util as json
@@ -45,7 +45,7 @@ class MyChannelEndpoint(BaseChannelsEndpoint):
             try:
                 with db_session:
                     my_channel = self.session.mds.ChannelMD.get(public_key=buffer(my_channel_id)).to_dict()
-            except:
+            except(RowNotFound):
                 request.setResponseCode(http.NOT_FOUND)
                 return json.dumps({"error": NO_CHANNEL_CREATED_RESPONSE_MSG})
 
@@ -105,7 +105,7 @@ class MyChannelEndpoint(BaseChannelsEndpoint):
                                                   "title": unicode(get_parameter(parameters, 'name'), 'utf-8')},
                                                  md_list=my_channel.newer_entries())
                     my_channel.garbage_collect()
-            except:
+            except(RowNotFound):
                 request.setResponseCode(http.NOT_FOUND)
                 return json.dumps({"error": NO_CHANNEL_CREATED_RESPONSE_MSG})
 

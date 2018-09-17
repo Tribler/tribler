@@ -17,7 +17,7 @@ public_key = key.pub().key_to_bin()
 
 def are_dir_trees_equal(dir1, dir2):
     """
-    Shameless copypaste from Stackexchange.
+    Shameless copypaste from https://stackoverflow.com/questions/4187564
     Compare two directories recursively. Files in each directory are
     assumed to be equal if their names and contents are equal.
 
@@ -132,6 +132,6 @@ def get_sample_torrent_dict(prkey):
 
 def get_sample_channel_dict(prkey):
     return dict(get_sample_torrent_dict(prkey),
-            votes=222,
-            subscribed=False,
-            version=1)
+                votes=222,
+                subscribed=False,
+                version=1)

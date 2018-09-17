@@ -34,14 +34,14 @@ def define_torrent_md(db):
                     "tc_pointer": 0})
 
         @classmethod
-        def search_keyword(cls, query, type=None, lim=100):
+        def search_keyword(cls, query, entry_type=None, lim=100):
             # TODO: Add BM25 relevance ranking. It is available in FTS5 by default.
             # Requires FTS4 table "FtsIndex" to be generated and populated.
             # FTS table is maintained automatically by SQL triggers.
             sql_search_fts = 'type = {type} AND rowid IN (SELECT rowid FROM FtsIndex WHERE \
-                    FtsIndex MATCH $query LIMIT $lim)'.format(type=type or cls._discriminator_)
+                    FtsIndex MATCH $query LIMIT $lim)'.format(type=entry_type or cls._discriminator_)
             q = cls.select(lambda x: orm.raw_sql(sql_search_fts))
-            return q[:]
+            return q[:lim]
 
         @classmethod
         def getAutoCompleteTerms(cls, keyword, max_terms, limit=100):
