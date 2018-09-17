@@ -3,6 +3,9 @@ Migration scripts for migrating to 6.5
 
 Author(s): Elric Milon
 """
+from __future__ import absolute_import
+from __future__ import division
+
 import os
 from binascii import hexlify
 from shutil import rmtree

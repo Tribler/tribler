@@ -3,6 +3,9 @@ Migration scripts for migrating to 6.4
 
 Author(s): Elric Milon
 """
+from __future__ import absolute_import
+from __future__ import division
+
 import logging
 import os
 from binascii import hexlify
@@ -49,7 +52,7 @@ class TorrentMigrator64(object):
         """
         # remove some previous left files
         useless_files = [u"upgradingdb.txt", u"upgradingdb2.txt", u"upgradingdb3.txt", u"upgradingdb4.txt"]
-        for i in xrange(len(useless_files)):
+        for i in range(len(useless_files)):
             useless_tmp_file = os.path.join(self.state_dir, useless_files[i])
             if os.path.exists(useless_tmp_file):
                 os.unlink(useless_tmp_file)
