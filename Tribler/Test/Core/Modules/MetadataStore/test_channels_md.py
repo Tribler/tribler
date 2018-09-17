@@ -163,11 +163,10 @@ class TestChannelMD(TestAsServer):
             self.assertEqual(chan.list_contents()[0].rowid, md2.rowid)
 
     def test_process_channel_dir(self):
+        sample_channel_dir = os.path.abspath(
+            os.path.join(self.TEST_FILES_DIR, TESTCHANNEL_DIR_NAME))
+
         with db_session:
-            sample_channel_dir = os.path.abspath(
-                os.path.join(
-                    self.TEST_FILES_DIR,
-                    TESTCHANNEL_DIR_NAME))
             process_channel_dir(self.session.mds, sample_channel_dir)
 
             buf_list = [e.serialized() for e in orm.select(
@@ -178,9 +177,28 @@ class TestChannelMD(TestAsServer):
                 buf_list,
                 0)
 
-            generated_channel_dir = os.path.abspath(os.path.join(
-                self.session.channels_dir, TESTCHANNEL_DIR_NAME))
-            self.assert_(
-                are_dir_trees_equal(
-                    sample_channel_dir,
-                    generated_channel_dir))
+        generated_channel_dir = os.path.abspath(os.path.join(
+            self.session.channels_dir, TESTCHANNEL_DIR_NAME))
+        self.assert_(
+            are_dir_trees_equal(
+                sample_channel_dir,
+                generated_channel_dir),
+                os.listdir(generated_channel_dir))
+
+    def test_process_channel_dir_wrong_filename_ext(self):
+        sample_channel_dir = os.path.abspath(
+            os.path.join( self.TEST_FILES_DIR, u"./bad_channel_ext"))
+
+        self.assertRaises(NameError, process_channel_dir, self.session.mds, sample_channel_dir)
+
+    def test_process_channel_dir_wrong_filename_num(self):
+        sample_channel_dir = os.path.abspath(
+            os.path.join( self.TEST_FILES_DIR, u"./bad_channel_num"))
+
+        self.assertRaises(NameError, process_channel_dir, self.session.mds, sample_channel_dir)
+
+    def test_process_channel_dir_wrong_filename_negnum(self):
+        sample_channel_dir = os.path.abspath(
+            os.path.join( self.TEST_FILES_DIR, u"./bad_channel_negnum"))
+
+        self.assertRaises(NameError, process_channel_dir, self.session.mds, sample_channel_dir)
