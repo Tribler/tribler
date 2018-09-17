@@ -12,6 +12,7 @@ from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 
 CHANNELS_DIR_RELATIVE_PATH = "channels"
 CHANNEL_DIR_NAME_LENGTH = 60  # Its not 40 to be distinct from infohash
+BLOB_EXTENSION = '.mdblob'
 
 
 def define_channel_md(db):
@@ -100,12 +101,11 @@ def create_channel_torrent(channels_store_dir, title, buf_list, version):
     if not os.path.isdir(channel_dir):
         os.makedirs(channel_dir)
 
-    # FIXME: maybe add check to avoid writing unsigned entries?
     # TODO: Smash together new metadata entries belonging to a single update into one giant file-blob
     # Write serialized and signed metadata into files
     for buf in buf_list:
         version += 1
-        with open(os.path.join(channel_dir, str(version).zfill(9)), 'wb') as f:
+        with open(os.path.join(channel_dir, str(version).zfill(9)+BLOB_EXTENSION), 'wb') as f:
             f.write(buf)
 
     # Make torrent out of dir with metadata files
@@ -116,11 +116,20 @@ def create_channel_torrent(channels_store_dir, title, buf_list, version):
 
 
 @db_session
-def process_channel_dir(db, dirname):
-    # TODO: add skip on file numbers for efficiency of updates.
-    # TODO: add error checking
+def process_channel_dir(db, dirname, start_num=0):
     for filename in sorted(os.listdir(dirname)):
-        load_blob(db, os.path.join(dirname, filename))
+        full_filename = os.path.join(dirname, filename)
+        try:
+            if filename.endswith(BLOB_EXTENSION):
+                num = int(filename[:-len(BLOB_EXTENSION)])
+                if num < 0:
+                    raise NameError
+            else:
+                raise NameError
+        except (ValueError, NameError):
+            raise NameError('Wrong blob filename in channel dir:', full_filename)
+        if num >= start_num:
+            load_blob(db, full_filename)
 
 
 # TODO: this should probably be moved to either the torrent manager, or ChannelMD method
@@ -146,7 +155,7 @@ def download_channel(session, infohash, title):
 def load_blob(db, filename):
     with open(filename, 'rb') as f:
         gsp = deserialize_metadata_gossip(f.read())
-        # TODO: add gossip blob checks here
+        # TODO: add various gossip blob checks here
         if db.SignedGossip.exists(signature=gsp["signature"]):
             # We already have this gossip.
             return db.SignedGossip.get(signature=gsp["signature"])
