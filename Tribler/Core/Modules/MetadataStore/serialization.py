@@ -48,14 +48,22 @@ def float2time(ts, epoch=EPOCH):
     return dt
 
 
+class SerializationError(Exception):
+    pass
+
+class DeserializationError(Exception):
+    pass
+
 # We don't split the de/serialization procedures into a bunch of smaller methods
 # bound to the classes hierarchy to simplify compatibility with future
 # versions.
-def serialize_metadata_gossip(md, key=None):
-    # TODO: add more safety checks for key/nokey cases?
+def serialize_metadata_gossip(md, key=None, check_signature=False):
     p = xdrlib.Packer()
     if key:
         md["public_key"] = key.pub().key_to_bin()
+    else:
+        if "signature" not in md:
+            raise SerializationError
 
     p.pack_int(md["type"])
     p.pack_opaque(md["public_key"])
@@ -77,13 +85,15 @@ def serialize_metadata_gossip(md, key=None):
         p.pack_opaque(md["delete_signature"])
 
     if key:
-        # Now we sign it
         signature = crypto.create_signature(key, p.get_buf())
-        p.pack_opaque(signature)
         md["signature"] = signature
-    else:
-        assert "signature" in md
-        p.pack_opaque(md["signature"])
+    p.pack_opaque(md["signature"])
+
+    if check_signature:
+        try:
+            deserialize_metadata_gossip(p.get_buf(), check_signature=True)
+        except DeserializationError:
+            raise SerializationError("Serialization with wrong pk/signature")
 
     return p.get_buf()
 
@@ -116,14 +126,13 @@ def deserialize_metadata_gossip(buf, check_signature=True):
     u.done()
 
     if check_signature:
-        # FIXME: should raise error or handle it on upper levels
         # Checking signature and PK correctness
         if not crypto.is_valid_public_bin(md["public_key"]):
-            return None
+            raise DeserializationError("Bad public key", md["public_key"])
         if not crypto.is_valid_signature(
                 crypto.key_from_public_bin(md["public_key"]),
                 buf[:contents_end],
                 md["signature"]):
-            return None
+            raise DeserializationError("Bad signature", md["signature"])
 
     return md

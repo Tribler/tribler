@@ -14,6 +14,9 @@ CHANNELS_DIR_RELATIVE_PATH = "channels"
 CHANNEL_DIR_NAME_LENGTH = 60  # Its not 40 to be distinct from infohash
 BLOB_EXTENSION = '.mdblob'
 
+class UnknownBlobTypeException(Exception):
+    pass
+
 
 def define_channel_md(db):
     class ChannelMD(db.TorrentMD):
@@ -83,7 +86,7 @@ def create_torrent_from_dir(directory, torrent_filename):
     fs = file_storage()
     add_files(fs, directory)
     t = create_torrent(fs)
-    # FIXME: for a torrent created with flags=19 with 200+ small files
+    # For a torrent created with flags=19 with 200+ small files
     # libtorrent client_test can't see its files on disk.
     # optimize_alignment + merke + mutable_torrent_support = 19
     # t = create_torrent(fs, flags=19) # BUG?
@@ -134,30 +137,22 @@ def process_channel_dir(db, dirname, start_num=0):
             load_blob(db, full_filename)
 
 
-# TODO: this should probably be moved to either the torrent manager, or ChannelMD method
+# TODO: this should probably be moved to a higher-level package
 def download_channel(session, infohash, title):
     dcfg = DownloadStartupConfig()
     dcfg.set_dest_dir(session.channels_dir)
     tdef = TorrentDefNoMetainfo(infohash=str(infohash), name=title)
     download = session.start_download_from_tdef(tdef, dcfg)
 
-    def err(f):
-        print ("we got an exception: %s" % (f.getTraceback(),))
-        f.trap(RuntimeError)
-
-    # FIXME! Twisted eats all error messages here!
-    download.deferred_finished.addErrback(err)
     download.deferred_finished.addCallback(
         lambda handle: process_channel_dir(
             session.mds, handle.get_content_dest()))
     return download.deferred_finished
 
-
 @db_session
 def load_blob(db, filename):
     with open(filename, 'rb') as f:
         gsp = deserialize_metadata_gossip(f.read())
-        # TODO: add various gossip blob checks here
         if db.SignedGossip.exists(signature=gsp["signature"]):
             # We already have this gossip.
             return db.SignedGossip.get(signature=gsp["signature"])
@@ -169,10 +164,9 @@ def load_blob(db, filename):
                 public_key=gsp["public_key"])
             if md:
                 md.delete()
-            # FIXME: return some temporary object here?
             return None
         elif gsp["type"] == MetadataTypes.REGULAR_TORRENT.value:
             return db.TorrentMD(**gsp)
         elif gsp["type"] == MetadataTypes.CHANNEL_TORRENT.value:
             return db.ChannelMD(**gsp)
-        return None
+        raise UnknownBlobTypeException
