@@ -77,48 +77,6 @@ def create_chan_serialized(results_dir, sz=10):
         chan.commit_to_torrent(key, results_dir, md_list=md_list)
         chan.to_file(os.path.join(results_dir, str(chan.title) + ".mdblob"))
 
-
-def background(f):
-    def bg(*a, **kw):
-        threading.Thread(target=f, args=a, kwargs=kw).start()
-
-    return bg
-
-
-@background
-def seed(
-        downloadFolder,
-        torrentFolder,
-        torrentName,
-        port=7000,
-        time_to_seed=20):
-    import libtorrent as lt
-
-    # Read the torrent file
-    torrent = open(os.path.join(torrentFolder, torrentName), 'rb')
-
-    # Start a libtorrent session
-    ses = lt.session()
-
-    settings = ses.get_settings()
-    ses.set_settings(settings)
-    ses.enable_lsd = False
-    ses.enable_upnp = False
-    ses.enable_natpmp = False
-    ses.listen_on(port, port, interface="127.0.0.1")
-
-    e = lt.bdecode(torrent.read())
-    info = lt.torrent_info(e)
-    # Add the torrent and start seeding
-    params = {
-        'save_path': downloadFolder,
-        'storage_mode': lt.storage_mode_t.storage_mode_sparse,
-        'ti': info}
-    ses.add_torrent(params)
-
-    # Seed indefinitely
-    time.sleep(time_to_seed)
-
 def get_sample_torrent_dict(prkey):
     return {"infohash": buffer("1" * 20),
             "size": 123,

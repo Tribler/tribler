@@ -10,7 +10,7 @@ from Tribler.Test.Core.Modules.MetadataStore import tools as tt
 from Tribler.Test.Core.Modules.MetadataStore.tools import are_dir_trees_equal
 from Tribler.Test.test_as_server import TestAsServer
 
-TESTCHANNEL_DIR_NAME = u"./8509092f891b352666a86673d98ff95c842aa8e6bc80918dca5701415e9e"
+TESTCHANNEL_DIR_NAME = u"b944df9bc5e7ae8f759960ac257eaa1f5ba499a7df5b38791fae5dc52ea7"
 
 
 class TestChannelMD(TestAsServer):
