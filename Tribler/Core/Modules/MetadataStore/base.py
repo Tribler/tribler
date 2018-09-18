@@ -19,9 +19,6 @@ def define_signed_gossip(db):
         public_key = orm.Optional(buffer)
         addition_timestamp = orm.Optional(datetime, default=datetime.utcnow)
 
-        # TODO: override __init__ to automatically create the signature
-        # TODO: use signature as PrimaryKey. Relevant bugfix is in Pony 0.7.6
-
         def serialized(self):
             md = self.to_dict()
             return serialize_metadata_gossip(md)
@@ -30,7 +27,6 @@ def define_signed_gossip(db):
             with open(filename, 'w') as f:
                 f.write(self.serialized())
 
-        # TODO: automate me with Pony's entity hooks
         def sign(self, key):
             md_dict = self.to_dict()
             serialize_metadata_gossip(md_dict, key)

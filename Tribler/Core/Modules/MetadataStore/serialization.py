@@ -20,6 +20,11 @@ class MetadataTypes(Enum):
     DELETED = 4
 
 
+TYPELESS = MetadataTypes.TYPELESS
+REGULAR_TORRENT = MetadataTypes.REGULAR_TORRENT
+CHANNEL_TORRENT = MetadataTypes.CHANNEL_TORRENT
+DELETED = MetadataTypes.DELETED
+
 # We have to write our own serialization procedure for timestamps, since
 # there is no standard for this, except Unix time, and that is
 # deprecated by 2038, that is very soon

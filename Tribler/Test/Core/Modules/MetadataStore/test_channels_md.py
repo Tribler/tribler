@@ -94,18 +94,16 @@ class TestChannelMD(TestAsServer):
             chan = self.session.mds.ChannelMD.from_dict(key1, d)
             self.assertDictContainsSubset(d, chan.to_dict())
 
-    def test_commit_to_torrent_update_dict(self):
+    def test_update_metadata(self):
         with db_session:
             key1 = self.session.trustchain_keypair
             d = tt.get_sample_channel_dict(key1)
             chan = self.session.mds.ChannelMD.from_dict(key1, d)
-            md = self.session.mds.TorrentMD.from_dict(key1, self.template)
-            chan.commit_to_torrent(key1, self.session.channels_dir, md_list=[md])
+            self.session.mds.TorrentMD.from_dict(key1, self.template)
             update_dict = {"tc_pointer": 222,
                            "tags": "eee",
                            "title": "qqq"}
-            chan.commit_to_torrent(key1, self.session.channels_dir,
-                                   update_dict=update_dict)
+            chan.update_metadata(key1, update_dict=update_dict)
             self.assertDictContainsSubset(update_dict, chan.to_dict())
 
     def test_commit_to_torrent_add_torrents(self):
@@ -129,8 +127,7 @@ class TestChannelMD(TestAsServer):
             md1.delete()
             md2.delete()
             process_channel_dir(self.session.mds,
-                                os.path.join(self.session.channels_dir,
-                                             chan.get_dirname))
+                                os.path.join(self.session.channels_dir, chan.get_dirname))
 
             self.assertDictContainsSubset(
                 md1_orig, chan.contents_list[0].to_dict())
