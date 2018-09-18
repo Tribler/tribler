@@ -5,7 +5,7 @@ from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.serialization import deserialize_metadata_gossip, DeserializationError, \
-    serialize_metadata_gossip, SerializationError
+    SerializationError
 from Tribler.Test.test_as_server import TestAsServer
 
 

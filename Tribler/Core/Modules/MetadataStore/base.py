@@ -74,9 +74,9 @@ def start_orm(db_filename, create_db=False):
 # It is created as a VIRTUAL table by raw SQL and
 # maintained by SQL triggers.
 sql_create_fts_table = """
-    CREATE VIRTUAL TABLE FtsIndex USING FTS4
+    CREATE VIRTUAL TABLE FtsIndex USING FTS5
         (title, tags, content='SignedGossip',
-         tokenize='porter' 'unicode61');"""
+         tokenize='porter unicode61 remove_diacritics 1');"""
 
 sql_add_fts_trigger_insert = """
     CREATE TRIGGER fts_ai AFTER INSERT ON SignedGossip
