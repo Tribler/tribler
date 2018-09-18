@@ -5,6 +5,7 @@ from pony.orm import db_session
 from Tribler.Core.Modules.MetadataStore.channels import load_blob, download_channel
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.tools import trial_timeout
 
 
 class TestDownloadChannel(TestAsServer):
@@ -19,6 +20,7 @@ class TestDownloadChannel(TestAsServer):
         self.config.set_libtorrent_enabled(True)
         self.config.set_megacache_enabled(True)
 
+    @trial_timeout(20)
     def test_download_channel(self):
         tdef = TorrentDef.load(os.path.join(self.TEST_FILES_DIR, self.CHANNEL_TORRENT_FILENAME))
         self.setup_seeder(tdef, self.TEST_FILES_DIR, port=7000)
