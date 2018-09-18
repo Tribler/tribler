@@ -30,27 +30,26 @@ def define_channel_md(db):
                 self,
                 key,
                 seeding_dir,
-                update_dict=None,
                 md_list=None,
                 buf_list=None):
-            # TODO: split this into update_metadata and commit_to_torrent?
             buf_list = buf_list or []
             buf_list.extend([e.serialized() for e in md_list or []])
 
             (infohash, version) = create_channel_torrent(
                 seeding_dir, self.get_dirname, buf_list, self.version)
-            # TODO: do not recreate the torrent when its contents don't change
+
+            self.update_metadata(key, update_dict={"infohash": infohash, "version": version})
+            self.garbage_collect()
+
+        def update_metadata(self, key, update_dict=None):
             now = datetime.utcnow()
             channel_dict = self.to_dict()
             channel_dict.update(update_dict or {})
-            channel_dict.update({"infohash": infohash,
-                                 "size": len(self.contents_list),
+            channel_dict.update({"size": len(self.contents_list),
                                  "timestamp": now,
-                                 "version": version,
-                                 "torrent_date": now})
+                                "torrent_date": now})
             serialize_metadata_gossip(channel_dict, key)
             self.set(**channel_dict)
-            self.garbage_collect()
 
         @property
         def contents_list(self):
