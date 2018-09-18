@@ -19,9 +19,9 @@ def define_signed_gossip(db):
         public_key = orm.Optional(buffer)
         addition_timestamp = orm.Optional(datetime, default=datetime.utcnow)
 
-        def serialized(self):
+        def serialized(self, check_signature = False):
             md = self.to_dict()
-            return serialize_metadata_gossip(md)
+            return serialize_metadata_gossip(md, check_signature=check_signature)
 
         def to_file(self, filename):
             with open(filename, 'w') as f:
