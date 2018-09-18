@@ -101,9 +101,11 @@ class MyChannelEndpoint(BaseChannelsEndpoint):
                 with db_session:
                     my_channel = self.session.mds.ChannelMD.get(public_key=buffer(my_channel_id))
                     my_channel.commit_to_torrent(key, self.session.channels_dir,
-                                                 {"tags": unicode(get_parameter(parameters, 'description'), 'utf-8'),
-                                                  "title": unicode(get_parameter(parameters, 'name'), 'utf-8')},
                                                  md_list=my_channel.newer_entries)
+                    my_channel.update_metadata(key, update_dict=
+                        {"tags": unicode(get_parameter(parameters, 'description'), 'utf-8'),
+                         "title": unicode(get_parameter(parameters, 'name'), 'utf-8')})
+
                     my_channel.garbage_collect()
             except(RowNotFound):
                 request.setResponseCode(http.NOT_FOUND)

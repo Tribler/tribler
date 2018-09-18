@@ -20,7 +20,6 @@ def define_torrent_md(db):
             return "magnet:?xt=urn:btih:%s&dn=%s" % (
                 str(self.infohash).encode('hex'), str(self.title).encode('utf8'))
 
-        # TODO: maybe move serialization to a method of SignedGossip?
         @staticmethod
         def from_tdef(key, tdef, extra_info=None):
             return TorrentMD.from_dict(
@@ -35,18 +34,16 @@ def define_torrent_md(db):
 
         @classmethod
         def search_keyword(cls, query, entry_type=None, lim=100):
-            # TODO: Add BM25 relevance ranking. It is available in FTS5 by default.
             # Requires FTS4 table "FtsIndex" to be generated and populated.
             # FTS table is maintained automatically by SQL triggers.
+            # BM25 ranking is embedded in FTS5.
             sql_search_fts = 'type = {type} AND rowid IN (SELECT rowid FROM FtsIndex WHERE \
-                    FtsIndex MATCH $query LIMIT $lim)'.format(type=entry_type or cls._discriminator_)
+                    FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT $lim)'.format(type=entry_type or cls._discriminator_)
             q = cls.select(lambda x: orm.raw_sql(sql_search_fts))
             return q[:lim]
 
         @classmethod
         def getAutoCompleteTerms(cls, keyword, max_terms, limit=100):
-            # FIXME: kinda works, but far from perfect
-            # FIXME: dumb copypaste of legacy code
             with db_session:
                 result = cls.search_keyword(keyword + "*", lim=limit)
                 titles = [g.title.lower() for g in result]
