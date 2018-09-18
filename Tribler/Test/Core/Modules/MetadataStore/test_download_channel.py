@@ -40,7 +40,7 @@ class TestDownloadChannel(TestAsServer):
 
         def check_channel_contents(_):
             with db_session:
-                md_list = channel.list_contents()
+                md_list = channel.contents_list
                 # TODO: add more sophisticated checks
                 self.assertEqual(len(md_list), channel.version)
         dl_finished.addCallback(check_channel_contents)

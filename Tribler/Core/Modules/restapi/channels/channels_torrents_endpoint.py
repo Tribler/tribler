@@ -78,7 +78,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
             with db_session:
                 channel = self.session.mds.ChannelMD.get(public_key=self.cid)
                 if channel:
-                    results_local_torrents_channel = map(md2rest, channel.list_contents())
+                    results_local_torrents_channel = map(md2rest, channel.contents_list)
                 else:
                     return ChannelsTorrentsEndpoint.return_404(request)
         else:

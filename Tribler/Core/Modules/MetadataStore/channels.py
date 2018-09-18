@@ -38,13 +38,13 @@ def define_channel_md(db):
             buf_list.extend([e.serialized() for e in md_list or []])
 
             (infohash, version) = create_channel_torrent(
-                seeding_dir, self.get_dirname(), buf_list, self.version)
+                seeding_dir, self.get_dirname, buf_list, self.version)
             # TODO: do not recreate the torrent when its contents don't change
             now = datetime.utcnow()
             channel_dict = self.to_dict()
             channel_dict.update(update_dict or {})
             channel_dict.update({"infohash": infohash,
-                                 "size": len(self.list_contents()),
+                                 "size": len(self.contents_list),
                                  "timestamp": now,
                                  "version": version,
                                  "torrent_date": now})
@@ -52,29 +52,32 @@ def define_channel_md(db):
             self.set(**channel_dict)
             self.garbage_collect()
 
-        def list_contents(self):
-            return db.TorrentMD.select(
-                lambda g: g.public_key == self.public_key and g != self)[:]
+        @property
+        def contents_list(self):
+            return self.contents[:]
 
-        # TODO: use some timer independent way to get determine newer entries?
-        # Could try do this based on entry id, since it is increase monotonically
+        @property
+        def contents(self):
+            return db.TorrentMD.select(
+                lambda g: g.public_key == self.public_key and g != self)
+
+        @property
         def newer_entries(self):
             return db.SignedGossip.select(
-                lambda g: g.timestamp > self.timestamp and g.public_key == self.public_key)[:]
+                lambda g: g.timestamp > self.timestamp and g.public_key == self.public_key)
 
+        @property
         def older_entries(self):
             return db.SignedGossip.select(
-                lambda g: g.timestamp < self.timestamp and g.public_key == self.public_key)[:]
+                lambda g: g.timestamp < self.timestamp and g.public_key == self.public_key)
 
+        @property
         def get_dirname(self):
             # Have to limit this to support Windows file path length limit
             return str(self.public_key).encode('hex')[-CHANNEL_DIR_NAME_LENGTH:]
 
-        # TODO: Pony ver. 0.7.4 introduces hybrid methods to optimize this
         def garbage_collect(self):
-            for g in self.older_entries():
-                if g.type == MetadataTypes.DELETED.value:
-                    g.delete()
+            orm.delete(g for g in self.older_entries if g.type == MetadataTypes.DELETED.value)
 
 
 def create_torrent_from_dir(directory, torrent_filename):

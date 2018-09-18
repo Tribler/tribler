@@ -44,8 +44,8 @@ class TestChannelMD(TestAsServer):
             self.session.mds.TorrentMD.from_dict(key2, self.template)
             self.session.mds.TorrentMD.from_dict(key2, self.template)
 
-            self.assertEqual(1, len(channel1.list_contents()))
-            self.assertEqual(2, len(channel2.list_contents()))
+            self.assertEqual(1, len(channel1.contents_list))
+            self.assertEqual(2, len(channel2.contents_list))
 
     def test_list_new_entries(self):
         with db_session:
@@ -62,8 +62,8 @@ class TestChannelMD(TestAsServer):
             md2 = self.session.mds.TorrentMD.from_dict(
                 key1, dict(self.template, timestamp=datetime.utcnow()))
 
-            self.assertIn(md2, channel1.newer_entries())
-            self.assertNotIn(md1, channel1.newer_entries())
+            self.assertIn(md2, channel1.newer_entries)
+            self.assertNotIn(md1, channel1.newer_entries)
 
     def test_garbage_collect(self):
         with db_session:
@@ -130,12 +130,12 @@ class TestChannelMD(TestAsServer):
             md2.delete()
             process_channel_dir(self.session.mds,
                                 os.path.join(self.session.channels_dir,
-                                             chan.get_dirname()))
+                                             chan.get_dirname))
 
             self.assertDictContainsSubset(
-                md1_orig, chan.list_contents()[0].to_dict())
+                md1_orig, chan.contents_list[0].to_dict())
             self.assertDictContainsSubset(
-                md2_orig, chan.list_contents()[1].to_dict())
+                md2_orig, chan.contents_list[1].to_dict())
 
     def test_commit_to_torrent_delete_torrents(self):
         with db_session:
@@ -158,9 +158,9 @@ class TestChannelMD(TestAsServer):
 
             process_channel_dir(self.session.mds,
                                 os.path.join(self.session.channels_dir,
-                                             chan.get_dirname()))
-            self.assertEqual(1, len(chan.list_contents()))
-            self.assertEqual(chan.list_contents()[0].rowid, md2.rowid)
+                                             chan.get_dirname))
+            self.assertEqual(1, len(chan.contents_list))
+            self.assertEqual(chan.contents_list[:][0].rowid, md2.rowid)
 
     def test_process_channel_dir(self):
         sample_channel_dir = os.path.abspath(
