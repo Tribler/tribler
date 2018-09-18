@@ -77,3 +77,6 @@ dist/
 
 # Annotation files
 annotations.txt
+
+# Screenshots taken by GUI tests
+TriblerGUI/screenshots
