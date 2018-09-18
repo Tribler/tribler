@@ -1050,7 +1050,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>7</number>
+         <number>13</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -8059,9 +8059,6 @@ padding-left: 2px;</string>
                    <property name="contextMenuPolicy">
                     <enum>Qt::CustomContextMenu</enum>
                    </property>
-                   <property name="selectionMode">
-                    <enum>QAbstractItemView::ExtendedSelection</enum>
-                   </property>
                    <property name="styleSheet">
                     <string notr="true">QTreeWidget {
     border: none;
@@ -8099,6 +8096,9 @@ padding-left: 2px;</string>
                    </property>
                    <property name="alternatingRowColors">
                     <bool>false</bool>
+                   </property>
+                   <property name="selectionMode">
+                    <enum>QAbstractItemView::ExtendedSelection</enum>
                    </property>
                    <property name="verticalScrollMode">
                     <enum>QAbstractItemView::ScrollPerPixel</enum>
@@ -10113,7 +10113,7 @@ font-size: 12px;
 </string>
             </property>
             <property name="text">
-             <string>Before trading, please create an asset wallet first. Click here to open wallet management.</string>
+             <string>Before trading, please make sure there are two available wallets. Click here to open wallet management.</string>
             </property>
            </widget>
           </item>

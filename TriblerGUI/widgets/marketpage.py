@@ -73,6 +73,8 @@ class MarketPage(QWidget):
 
             self.window().tick_detail_container.hide()
             self.window().market_create_wallet_button.hide()
+            self.window().create_ask_button.hide()
+            self.window().create_bid_button.hide()
 
             self.initialized = True
 
@@ -88,16 +90,12 @@ class MarketPage(QWidget):
         wallets = wallets["wallets"]
         self.received_wallets.emit(wallets)
 
-        currency_wallets = ['BTC']
-        total_currency_wallets = 0
-        for wallet_id in wallets.keys():
-            if wallet_id in currency_wallets:
-                total_currency_wallets += 1
-
-        if currency_wallets == 0:
+        created_wallets = [wallet_id for wallet_id, wallet_info in wallets.items() if wallet_info['created']]
+        if len(created_wallets) < 2:
             self.window().market_create_wallet_button.show()
-            self.window().create_ask_button.hide()
-            self.window().create_bid_button.hide()
+        else:
+            self.window().create_ask_button.show()
+            self.window().create_bid_button.show()
 
         self.wallets = wallets
         if self.chosen_wallets is None and len(self.wallets.keys()) >= 2:
@@ -341,6 +339,15 @@ class MarketPage(QWidget):
         self.update_filter_bids_list()
 
     def show_new_order_dialog(self, is_ask):
+        if not self.wallets[self.chosen_wallets[0]]['created']:
+            ConfirmationDialog.show_error(self.window(), "Wallet not available",
+                                          "%s wallet not available, please create it first." % self.chosen_wallets[0])
+            return
+        elif not self.wallets[self.chosen_wallets[1]]['created']:
+            ConfirmationDialog.show_error(self.window(), "Wallet not available",
+                                          "%s wallet not available, please create it first." % self.chosen_wallets[1])
+            return
+
         self.dialog = NewMarketOrderDialog(self.window().stackedWidget, is_ask, self.chosen_wallets[0], self.chosen_wallets[1])
         self.dialog.button_clicked.connect(self.on_new_order_action)
         self.dialog.show()
