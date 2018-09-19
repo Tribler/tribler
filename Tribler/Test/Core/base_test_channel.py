@@ -67,5 +67,8 @@ class BaseTestChannel(TestAsServer):
     @inlineCallbacks
     def tearDown(self):
         self.session.lm.dispersy.cancel_all_pending_tasks()
+        # Ugly way to check if database is open in Dispersy
+        if self.session.lm.dispersy._database._cursor:
+            yield self.session.lm.dispersy._database.close()
         self.session.lm.dispersy = None
         yield super(BaseTestChannel, self).tearDown()
