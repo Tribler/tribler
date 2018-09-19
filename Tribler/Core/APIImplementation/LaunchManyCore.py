@@ -24,7 +24,7 @@ from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Core.Modules.watch_folder import WatchFolder
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.Utilities.config_parser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,

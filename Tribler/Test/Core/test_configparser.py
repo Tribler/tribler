@@ -1,7 +1,7 @@
 import os
 from nose.tools import raises
 
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.Utilities.config_parser import CallbackConfigParser
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 from Tribler.Test.Core.base_test import TriblerCoreTest
 

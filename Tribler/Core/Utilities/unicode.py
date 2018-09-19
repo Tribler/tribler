@@ -3,7 +3,11 @@ Conversions to unicode.
 
 Author(s): Arno Bakker
 """
+from __future__ import absolute_import
+
 import sys
+
+from Tribler.pyipv8.ipv8.util import cast_to_unicode, is_unicode
 
 
 def bin2unicode(bin, possible_encoding='utf_8'):
@@ -32,19 +36,15 @@ def bin2unicode(bin, possible_encoding='utf_8'):
 
 def str2unicode(s):
     try:
-        return unicode(s)
+        return cast_to_unicode(s)
     except UnicodeDecodeError:
-        for encoding in [sys.getfilesystemencoding(), 'utf_8', 'iso-8859-1']:
-            try:
-                return unicode(s, encoding)
-            except UnicodeDecodeError:
-                pass
+        pass
     return None
 
 
 def dunno2unicode(dunno):
     newdunno = None
-    if isinstance(dunno, unicode):
+    if is_unicode(dunno):
         newdunno = dunno
     else:
         try:

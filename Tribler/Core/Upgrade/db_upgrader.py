@@ -3,6 +3,8 @@ Upgrades the database from one version to a newer version.
 
 Author(s): Elric Milon
 """
+from __future__ import absolute_import
+
 import logging
 import os
 from binascii import hexlify

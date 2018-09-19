@@ -3,6 +3,9 @@ instrumentation.
 
 Author(s): Elric Milon
 """
+from __future__ import absolute_import
+from __future__ import print_function
+
 import threading
 from decorator import decorator
 from os import sys
@@ -97,7 +100,7 @@ class WatchDog(Thread):
         self._registered_events.pop(name, None)
 
     def printe(self, line):
-            print >> sys.stderr, line
+        print(line, file=sys.stderr)
 
     def run(self):
         events_to_unregister = []
@@ -106,7 +109,7 @@ class WatchDog(Thread):
             with self._synchronized_lock:
                 if self.check_for_deadlocks:
                     self.look_for_deadlocks()
-                for name, event in self._registered_events.iteritems():
+                for name, event in self._registered_events.items():
                     if event.is_set():
                         event.clear()
                         self.event_timestamps[name] = time()

@@ -1,9 +1,13 @@
-from httplib import HTTP_PORT
-from urlparse import urlparse
+from __future__ import absolute_import
+
+from Tribler.pyipv8.ipv8.util import urlparse, cast_to_unicode
 
 
 class MalformedTrackerURLException(Exception):
     pass
+
+
+HTTP_PORT = 80
 
 
 def get_uniformed_tracker_url(tracker_url):
@@ -26,11 +30,11 @@ def get_uniformed_tracker_url(tracker_url):
     :param tracker_url: a basestring url for either a UDP or HTTP tracker
     :return: the tracker in a uniform format <type>://<host>:<port>/<page>
     """
-    assert isinstance(tracker_url, basestring), u"tracker_url is not a basestring: %s" % type(tracker_url)
+    assert isinstance(tracker_url, str), u"tracker_url is not a string: %s" % type(tracker_url)
 
     # check if the URL is valid unicode data
     try:
-        tracker_url = unicode(tracker_url)
+        tracker_url = cast_to_unicode(tracker_url)
     except UnicodeDecodeError:
         return None
 

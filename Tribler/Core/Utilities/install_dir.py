@@ -3,11 +3,14 @@ install_dir.
 
 Author(s): Elric Milon
 """
+from __future__ import absolute_import
+
 import os.path
 import sys
 
 import Tribler
 from Tribler.Core.osutils import is_android
+from Tribler.pyipv8.ipv8.util import cast_to_unicode
 
 
 def is_frozen():
@@ -54,7 +57,8 @@ def determine_install_dir():
     elif sys.platform == 'darwin':
         return get_base_path()
     elif is_android():
-        return os.path.abspath(os.path.join(unicode(os.environ['ANDROID_PRIVATE']), u'lib/python2.7/site-packages'))
+        return os.path.abspath(os.path.join(cast_to_unicode(os.environ['ANDROID_PRIVATE']),
+                                            u'lib/python2.7/site-packages'))
 
     this_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
     return '/usr/share/tribler' if this_dir.startswith('/usr/lib') else this_dir

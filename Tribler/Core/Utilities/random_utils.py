@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import random
 import string
 
@@ -16,7 +18,7 @@ def random_utf8_string(length=6):
     """ Generates a random utf8 string """
     try:
         get_char = unichr
-    except NameError:
+    except NameError:  # Will fail on Python 3
         get_char = chr
 
     # Update this to include code point ranges to be sampled
@@ -40,4 +42,4 @@ def random_utf8_string(length=6):
         get_char(code_point) for current_range in include_ranges
         for code_point in range(current_range[0], current_range[1] + 1)
     ]
-    return ''.join(random.choice(alphabet) for i in range(length))
+    return ''.join(random.choice(alphabet) for _ in range(length))

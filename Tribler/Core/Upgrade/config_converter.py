@@ -1,6 +1,8 @@
+from __future__ import absolute_import
+
 import ast
 import os
-from ConfigParser import RawConfigParser, DuplicateSectionError, NoSectionError, MissingSectionHeaderError
+from configparser import RawConfigParser, DuplicateSectionError, NoSectionError, MissingSectionHeaderError
 import logging
 from glob import iglob
 
