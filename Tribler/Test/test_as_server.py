@@ -69,7 +69,7 @@ class BaseTestCase(unittest.TestCase):
         while self._tempdirs:
             temp_dir = self._tempdirs.pop()
             os.chmod(temp_dir, 0700)
-            shutil.rmtree(temp_dir, ignore_errors=False)
+            shutil.rmtree(unicode(temp_dir), ignore_errors=False)
 
     def temporary_directory(self, suffix=''):
         random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
