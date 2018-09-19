@@ -3,14 +3,15 @@ A configparser.
 
 Author(s): Egbert Bouman
 """
+from __future__ import absolute_import
+
 import ast
 import codecs
-import StringIO
-
-from ConfigParser import DEFAULTSECT, RawConfigParser
 from threading import RLock
 
+from configparser import DEFAULTSECT, RawConfigParser
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
+from Tribler.pyipv8.ipv8.util import StringIO, cast_to_unicode
 
 
 class CallbackConfigParser(RawConfigParser):
@@ -69,13 +70,13 @@ class CallbackConfigParser(RawConfigParser):
             if self._defaults:
                 fp.write(u"[%s]\n" % DEFAULTSECT)
                 for (key, value) in self._defaults.items():
-                    fp.write(u"%s = %s\n" % (key, unicode(value).replace(u'\n', u'\n\t')))
+                    fp.write(u"%s = %s\n" % (key, cast_to_unicode(value).replace(u'\n', u'\n\t')))
                 fp.write(u"\n")
             for section in self._sections:
                 fp.write(u"[%s]\n" % section)
                 for (key, value) in self._sections[section].items():
                     if key != u"__name__":
-                        fp.write(u"%s = %s\n" % (key, unicode(value).replace(u'\n', u'\n\t')))
+                        fp.write(u"%s = %s\n" % (key, cast_to_unicode(value).replace(u'\n', u'\n\t')))
                 fp.write(u"\n")
 
     @staticmethod

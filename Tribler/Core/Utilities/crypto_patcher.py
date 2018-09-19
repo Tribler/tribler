@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import sys
 
 from Tribler.Core.Utilities.install_dir import is_frozen

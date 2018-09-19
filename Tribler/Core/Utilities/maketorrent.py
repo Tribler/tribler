@@ -3,6 +3,9 @@ Make torrent.
 
 Author(s): Arno Bakker, Bram Cohen
 """
+from __future__ import absolute_import
+from __future__ import division
+
 import logging
 import os
 from copy import copy
@@ -16,6 +19,7 @@ from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Core.Utilities.utilities import create_valid_metainfo
 from Tribler.Core.defaults import tdefdictdefaults
 from Tribler.Core.osutils import fix_filebasename
+from Tribler.pyipv8.ipv8.util import cast_to_long, is_unicode
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +35,7 @@ def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: 
     if info is None:
         return None, None
 
-    metainfo = {'info': info, 'encoding': input['encoding'], 'creation date': long(time())}
+    metainfo = {'info': info, 'encoding': input['encoding'], 'creation date': cast_to_long(time())}
     metainfo = create_valid_metainfo(metainfo)
 
     # http://www.bittorrent.org/beps/bep_0005.html says both announce and nodes
@@ -72,7 +76,7 @@ def uniconvert(s, enc):
     """ Convert 's' to a string containing a Unicode sequence encoded using
     encoding "enc". If 's' is not a Unicode object, we first try to convert
     it to one, guessing the encoding if necessary. """
-    if not isinstance(s, unicode):
+    if not is_unicode(s):
         try:
             s = bin2unicode(s, enc)
         except UnicodeError:
@@ -127,7 +131,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
         # We start with 32K pieces
         piece_length = 2 ** 15
 
-        while totalsize / piece_length > 2000:
+        while totalsize // piece_length > 2000:
             # too many piece, double piece_size
             piece_length *= 2
     else:
@@ -270,7 +274,7 @@ def get_length_from_metainfo(metainfo, selectedfiles):
         files = metainfo['info']['files']
 
         total = 0
-        for i in xrange(len(files)):
+        for i in range(len(files)):
             path = files[i]['path']
             length = files[i]['length']
             if length > 0 and (not selectedfiles or pathlist2filename(path) in selectedfiles):
@@ -291,7 +295,7 @@ def get_length_filepieceranges_from_metainfo(metainfo, selectedfiles):
         offset = 0
         total = 0
         filepieceranges = []
-        for i in xrange(len(files)):
+        for i in range(len(files)):
             path = files[i]['path']
             length = files[i]['length']
             filename = pathlist2filename(path)
@@ -306,7 +310,7 @@ def get_length_filepieceranges_from_metainfo(metainfo, selectedfiles):
 
 
 def offset_to_piece(offset, piece_size, endpoint=True):
-    p = offset / piece_size
+    p = offset // piece_size
     if endpoint and offset % piece_size > 0:
         p += 1
     return p

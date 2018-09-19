@@ -1,7 +1,11 @@
+from __future__ import absolute_import
+
 import logging
 import os
 
 import libtorrent
+
+from Tribler.pyipv8.ipv8.util import is_unicode, cast_to_unicode
 
 logger = logging.getLogger(__name__)
 
@@ -105,11 +109,11 @@ def create_torrent_file(file_path_list, params):
     postfix = u'.torrent'
 
     if params.get('name'):
-        if not isinstance(params['name'], unicode):
-            params['name'] = unicode(params['name'], 'utf-8')
+        if not is_unicode(params['name']):
+            params['name'] = cast_to_unicode(params['name'])
         torrent_file_name = os.path.join(base_path, params['name'] + postfix)
     else:
-        torrent_file_name = os.path.join(base_path, unicode(t1['info']['name'], 'utf-8') + postfix)
+        torrent_file_name = os.path.join(base_path, cast_to_unicode(t1['info']['name']) + postfix)
     with open(torrent_file_name, 'wb') as f:
         f.write(torrent)
 

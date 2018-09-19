@@ -3,12 +3,12 @@ This module mainly provides validation and correction for both metainfo and urls
 provides a method for HTTP GET requests as well as a function to translate peers into health.
 Author(s): Jie Yang
 """
+from __future__ import absolute_import
+
 import binascii
 import logging
-import urlparse
 from base64 import b32decode
 from types import StringType, LongType, IntType, ListType, DictType
-from urlparse import urlsplit, parse_qsl
 
 from libtorrent import bencode, bdecode
 from twisted.internet import reactor
@@ -21,6 +21,8 @@ from twisted.web.http_headers import Headers
 
 from Tribler.Core.exceptions import HttpError
 from Tribler.Core.version import version_id
+from Tribler.pyipv8.ipv8.util import urlparse, is_unicode
+from Tribler.pyipv8.ipv8.util.urlparse import urlsplit, parse_qsl
 
 logger = logging.getLogger(__name__)
 
@@ -407,7 +409,7 @@ def parse_magnetlink(url):
         for key, value in parse_qsl(query):
             if key == "dn":
                 # convert to unicode
-                dn = value.decode() if not isinstance(value, unicode) else value
+                dn = value.decode() if not is_unicode(value) else value
 
             elif key == "xt" and value.startswith("urn:btih:"):
                 # vliegendhart: Adding support for base32 in magnet links (BEP 0009)
