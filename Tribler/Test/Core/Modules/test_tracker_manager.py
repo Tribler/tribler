@@ -21,6 +21,14 @@ class TestTrackerManager(TriblerCoreTest):
         self.session.start_database()
         self.tracker_manager = TrackerManager(self.session)
 
+    @inlineCallbacks
+    def tearDown(self):
+        if self.session is not None:
+            yield self.session.shutdown()
+            assert self.session.has_shutdown()
+            self.session = None
+        yield super(TestTrackerManager, self).tearDown()
+
     def test_add_tracker(self):
         """
         Test whether adding a tracker works correctly
