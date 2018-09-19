@@ -39,12 +39,11 @@ class AbstractUpgrader(TriblerCoreTest):
         if self.torrent_store:
             self.torrent_store.close()
 
-        super(AbstractUpgrader, self).tearDown()
-
         if self.sqlitedb:
             self.sqlitedb.close()
         self.sqlitedb = None
-        self.session = None
+
+        super(AbstractUpgrader, self).tearDown()
 
     def copy_and_initialize_upgrade_database(self, db_name):
 
