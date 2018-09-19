@@ -75,8 +75,8 @@ def serialize_metadata_gossip(md, key=None, check_signature=False):
         p.pack_fopaque(INFOHASH_SIZE, md["infohash"])
         p.pack_uhyper(md["size"])
         p.pack_double(time2float(md["torrent_date"]))
-        p.pack_string(md["title"])
-        p.pack_string(md["tags"])
+        p.pack_string(md["title"].encode('utf-8'))
+        p.pack_string(md["tags"].encode('utf-8'))
 
     if md["type"] == MetadataTypes.CHANNEL_TORRENT.value:
         p.pack_hyper(md["version"])
@@ -112,8 +112,8 @@ def deserialize_metadata_gossip(buf, check_signature=True):
         md["infohash"] = u.unpack_fopaque(INFOHASH_SIZE)
         md["size"] = u.unpack_uhyper()
         md["torrent_date"] = float2time(u.unpack_double())
-        md["title"] = u.unpack_string()
-        md["tags"] = u.unpack_string()
+        md["title"] = u.unpack_string().decode('utf-8')
+        md["tags"] = u.unpack_string().decode('utf-8')
 
     if md["type"] == MetadataTypes.CHANNEL_TORRENT.value:
         md["version"] = u.unpack_hyper()

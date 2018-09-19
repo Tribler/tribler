@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from datetime import datetime
 
 from pony import orm
@@ -58,13 +59,20 @@ class TestTorrentMD(TestAsServer):
                 3, len(
                     self.session.mds.TorrentMD.search_keyword("video")))
 
+    def test_search_keyword_unicode(self):
+        with db_session:
+            key = self.session.trustchain_keypair
+            md1 = self.session.mds.TorrentMD.from_dict(
+                key, dict(self.template, title=u"я маленький апельсин"))
+            self.assertEqual(1, len(self.session.mds.TorrentMD.search_keyword(u"маленький")))
+
     def test_search_keyword_wildcard(self):
         with db_session:
             key = self.session.trustchain_keypair
             md1 = self.session.mds.TorrentMD.from_dict(
-                key, dict(self.template, title="foobar 123", tags="video"))
+                key, dict(self.template, title="foobar 123"))
             md2 = self.session.mds.TorrentMD.from_dict(
-                key, dict(self.template, title="foobla 123", tags="video"))
+                key, dict(self.template, title="foobla 123"))
             self.assertEqual(0, len(self.session.mds.TorrentMD.search_keyword("*")))
             self.assertEqual(1, len(self.session.mds.TorrentMD.search_keyword("foobl*")))
             self.assertEqual(2, len(self.session.mds.TorrentMD.search_keyword("foo*")))
@@ -73,7 +81,7 @@ class TestTorrentMD(TestAsServer):
         with db_session:
             key = self.session.trustchain_keypair
             md1 = self.session.mds.TorrentMD.from_dict(
-                key, dict(self.template, title="foobar 123", tags="video"))
+                key, dict(self.template, title="foobar 123"))
             self.assertEqual(0, len(self.session.mds.TorrentMD.search_keyword("**")))
             self.assertEqual(0, len(self.session.mds.TorrentMD.search_keyword("*.#@!%***$*.*")))
 
