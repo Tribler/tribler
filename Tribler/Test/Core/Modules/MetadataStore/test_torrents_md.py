@@ -58,6 +58,25 @@ class TestTorrentMD(TestAsServer):
                 3, len(
                     self.session.mds.TorrentMD.search_keyword("video")))
 
+    def test_search_keyword_wildcard(self):
+        with db_session:
+            key = self.session.trustchain_keypair
+            md1 = self.session.mds.TorrentMD.from_dict(
+                key, dict(self.template, title="foobar 123", tags="video"))
+            md2 = self.session.mds.TorrentMD.from_dict(
+                key, dict(self.template, title="foobla 123", tags="video"))
+            self.assertEqual(0, len(self.session.mds.TorrentMD.search_keyword("*")))
+            self.assertEqual(1, len(self.session.mds.TorrentMD.search_keyword("foobl*")))
+            self.assertEqual(2, len(self.session.mds.TorrentMD.search_keyword("foo*")))
+
+    def test_search_keyword_sanitize(self):
+        with db_session:
+            key = self.session.trustchain_keypair
+            md1 = self.session.mds.TorrentMD.from_dict(
+                key, dict(self.template, title="foobar 123", tags="video"))
+            self.assertEqual(0, len(self.session.mds.TorrentMD.search_keyword("**")))
+            self.assertEqual(0, len(self.session.mds.TorrentMD.search_keyword("*.#@!%***$*.*")))
+
     def test_search_keyword_stemmed(self):
         with db_session:
             key = self.session.trustchain_keypair
@@ -76,12 +95,12 @@ class TestTorrentMD(TestAsServer):
             self.session.mds.TorrentMD.from_dict(
                 key, dict(self.template, title="mountains sheep", tags="video"))
             md = self.session.mds.TorrentMD.from_dict(key, dict(
-                self.template, title="regular sheepherd guy", tags="video"))
+                self.template, title="regular sheepish guy", tags="video"))
             self.assertIn(
                 'sheep',
                 self.session.mds.TorrentMD.getAutoCompleteTerms("shee", 10))
             self.assertIn(
-                'sheepherd',
+                'sheepish',
                 self.session.mds.TorrentMD.getAutoCompleteTerms("shee", 10))
 
     def test_from_dict(self):

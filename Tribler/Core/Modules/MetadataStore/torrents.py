@@ -37,8 +37,16 @@ def define_torrent_md(db):
             # Requires FTS5 table "FtsIndex" to be generated and populated.
             # FTS table is maintained automatically by SQL triggers.
             # BM25 ranking is embedded in FTS5.
-            sql_search_fts = 'type = {type} AND rowid IN (SELECT rowid FROM FtsIndex WHERE \
-                    FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT $lim)'.format(type=entry_type or cls._discriminator_)
+
+            # Sanitize FTS query
+            if not query:
+                return []
+            if query.endswith("*"):
+                query = "\""+query[:-1]+"\""+"*"
+            else:
+                query = "\""+query+"\""
+            sql_search_fts = "type = {type} AND rowid IN (SELECT rowid FROM FtsIndex WHERE \
+                    FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT $lim)".format(type=entry_type or cls._discriminator_)
             q = cls.select(lambda x: orm.raw_sql(sql_search_fts))
             return q[:lim]
 
@@ -46,7 +54,7 @@ def define_torrent_md(db):
         def getAutoCompleteTerms(cls, keyword, max_terms, limit=100):
             with db_session:
                 result = cls.search_keyword(keyword + "*", lim=limit)
-                titles = [g.title.lower() for g in result]
+            titles = [g.title.lower() for g in result]
 
             # Copy-pasted from the old DBHandler (almost) completely
             all_terms = set()
