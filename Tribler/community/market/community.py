@@ -336,6 +336,7 @@ class MarketCommunity(Community, BlockListener):
         if self.is_matchmaker:
             self.order_book.save_to_database()
             self.order_book.shutdown_task_manager()
+        self.market_database.close()
         yield super(MarketCommunity, self).unload()
 
     def get_ipv8_address(self):
