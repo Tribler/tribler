@@ -47,8 +47,7 @@ def define_torrent_md(db):
                 query = "\""+query+"\""
             sql_search_fts = "type = {type} AND rowid IN (SELECT rowid FROM FtsIndex WHERE \
                     FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT $lim)".format(type=entry_type or cls._discriminator_)
-            q = cls.select(lambda x: orm.raw_sql(sql_search_fts))
-            return q[:lim]
+            return cls.select(lambda x: orm.raw_sql(sql_search_fts))[:]
 
         @classmethod
         def getAutoCompleteTerms(cls, keyword, max_terms, limit=100):
