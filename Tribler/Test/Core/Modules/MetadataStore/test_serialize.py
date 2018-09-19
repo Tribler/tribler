@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import datetime
 import unittest
 from copy import deepcopy
@@ -29,7 +30,7 @@ class TestSerialize(unittest.TestCase):
                 "infohash": str(0x1) * 20,
                 "torrent_date": datetime.datetime(2002, 7, 14, 12, 10),
                 "size": long(123),
-                "title": "bla bla",
+                "title": u'bla bla йух',
                 "tags": "la la"})
 
         self.md_dict["channel_torrent"] = deepcopy(
