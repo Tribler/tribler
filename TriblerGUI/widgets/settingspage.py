@@ -262,6 +262,9 @@ class SettingsPage(QWidget):
         self.window().credit_mining_enabled_checkbox.setChecked(settings['credit_mining']['enabled'])
         self.window().max_disk_space_input.setText(str(settings['credit_mining']['max_disk_space']))
 
+        # chant settings
+        self.window().chant_channel_edit.setChecked(settings['general']['chant_channel_edit'])
+
         # Debug
         self.window().developer_mode_enabled_checkbox.setChecked(get_gui_setting(gui_settings, "debug",
                                                                                  False, is_bool=True))
