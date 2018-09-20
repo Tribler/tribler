@@ -53,6 +53,9 @@ class BitcoinWallet(Wallet):
 
         self._logger.info("Creating wallet in %s", self.wallet_dir)
         try:
+            if self.wallet:
+                raise WalletError("Wallet with name '%s' already created" % self.wallet_name)
+
             self.wallet = HDWallet.create(self.wallet_name, network=self.network, databasefile=self.db_path)
             self.wallet.new_key('tribler_payments')
             self.wallet.new_key('tribler_change', change=1)
