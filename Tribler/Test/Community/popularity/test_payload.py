@@ -4,7 +4,7 @@ from unittest import TestCase
 
 from Tribler.community.popularity.payload import SearchResponsePayload, SearchResponseItemPayload, ContentInfoRequest, \
     Pagination, ContentInfoResponse, ContentSubscription, TorrentHealthPayload, ChannelHealthPayload, \
-    TorrentInfoResponsePayload
+    TorrentInfoResponsePayload, encode_values, decode_values
 from Tribler.pyipv8.ipv8.messaging.serialization import Serializer
 
 
@@ -18,6 +18,12 @@ class TestSerializer(TestCase):
 
     def random_infohash(self):
         return ''.join(random.choice('0123456789abcdef') for _ in range(20))
+
+    def test_encode_decode(self):
+        value_list = [u'\u0432\u0441\u0435\u043c', u'\u043f\u0440\u0438\u0432\u0435\u0442']
+        encoded_value = encode_values(value_list)
+        decoded_value = decode_values(encoded_value)
+        self.assertEqual(value_list, decoded_value)
 
     def test_content_subscription(self):
         """ Test serialization/deserialization of Content subscription """
