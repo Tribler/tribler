@@ -34,7 +34,7 @@ def define_torrent_md(db):
 
         @classmethod
         def search_keyword(cls, query, entry_type=None, lim=100):
-            # Requires FTS4 table "FtsIndex" to be generated and populated.
+            # Requires FTS5 table "FtsIndex" to be generated and populated.
             # FTS table is maintained automatically by SQL triggers.
             # BM25 ranking is embedded in FTS5.
             sql_search_fts = 'type = {type} AND rowid IN (SELECT rowid FROM FtsIndex WHERE \
