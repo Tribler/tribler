@@ -8,7 +8,6 @@ from twisted.internet.error import DNSLookupError, ConnectError, ConnectionLost
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
-from Tribler.Core.Modules.MetadataStore.channels import load_blob
 from Tribler.Core.exceptions import HttpError
 from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
@@ -123,7 +122,7 @@ class TorrentInfoEndpoint(resource.Resource):
             if uri.endswith('.mdblob'):
                 try:
                     # FIXME: add check for already added metadata/infohash
-                    md = load_blob(self.session.mds, filename)
+                    md = self.session.lm.mds.load_blob(filename)
                 except TypeError:
                     request.setResponseCode(http.INTERNAL_SERVER_ERROR)
                     return json.dumps({"error": "error while decoding metadata blob file"})

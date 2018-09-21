@@ -75,7 +75,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         """
         if self.chant_channel:
             with db_session:
-                channel = self.session.mds.ChannelMD.get(public_key=self.cid)
+                channel = self.session.lm.mds.ChannelMD.get(public_key=self.cid)
                 if channel:
                     results_local_torrents_channel = map(md2rest, channel.contents_list)
                 else:
@@ -137,7 +137,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         my_channel_id = key.pub().key_to_bin()
         if self.chant_channel:
             with db_session:
-                if not self.session.mds.ChannelMD.exists(public_key=buffer(my_channel_id)):
+                if not self.session.lm.mds.ChannelMD.exists(public_key=buffer(my_channel_id)):
                     return ChannelsTorrentsEndpoint.return_404(request)
         else:
             channel = self.get_channel_from_db(self.cid)
@@ -161,7 +161,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         if self.chant_channel:
             #FIXME: provide correct error handling
             with db_session:
-                self.session.mds.TorrentMD.from_tdef(key, torrent_def, extra_info)
+                self.session.lm.mds.TorrentMD.from_tdef(key, torrent_def, extra_info)
         else:
             try:
                 self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
@@ -232,7 +232,7 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
 
         def _on_torrent_def_loaded(torrent_def):
             if self.chant_channel:
-                self.session.mds.TorrentMD.from_tdef(self.session.trustchain_keypair, torrent_def, extra_info)
+                self.session.lm.mds.TorrentMD.from_tdef(self.session.trustchain_keypair, torrent_def, extra_info)
             else:
                 self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
             return self.path
@@ -301,16 +301,16 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
         if self.chant_channel:
             failed_torrents = []
             with db_session:
-                if not self.session.mds.ChannelMD.get(public_key=self.cid):
+                if not self.session.lm.mds.ChannelMD.get(public_key=self.cid):
                     return ChannelsTorrentsEndpoint.return_404(request)
                 for torrent_path in self.path.split(","):
-                    md = self.session.mds.TorrentMD.get(public_key=self.cid, infohash=torrent_path.decode('hex'))
+                    md = self.session.lm.mds.TorrentMD.get(public_key=self.cid, infohash=torrent_path.decode('hex'))
                     #TODO: add error handling for .get
                     if md is None:
                         failed_torrents.append(torrent_path)
                     else:
                         # Create the 'deleted' entry to put later in the torrent of the updated channel
-                        d = self.session.mds.DeletedMD(delete_signature=md.signature, public_key=md.public_key)
+                        d = self.session.lm.mds.DeletedMD(delete_signature=md.signature, public_key=md.public_key)
                         d.sign(self.session.trustchain_keypair)
                         md.delete()
 

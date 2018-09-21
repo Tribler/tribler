@@ -16,6 +16,7 @@ from traceback import print_exc
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DecentralizedTracking.dht_provider import MainlineDHTProvider
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
+from Tribler.Core.Modules.MetadataStore.base import MetadataStore
 from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.Modules.resource_monitor import ResourceMonitor
 from Tribler.Core.Modules.search_manager import SearchManager
@@ -114,6 +115,7 @@ class TriblerLaunchMany(TaskManager):
         self.market_community = None
         self.dht_community = None
         self.payout_manager = None
+        self.mds = None
 
     def register(self, session, session_lock):
         assert isInIOThread()
@@ -480,6 +482,11 @@ class TriblerLaunchMany(TaskManager):
         if self.session.config.get_version_checker_enabled():
             self.version_check_manager = VersionCheckManager(self.session)
             self.version_check_manager.start()
+
+        if self.session.config.get_chant_enabled():
+            self.mds = MetadataStore(
+                self.session.config.get_chant_db_filename(),
+                self.session.config.get_chant_channels_dir())
 
         self.session.set_download_states_callback(self.sesscb_states_callback)
 
