@@ -76,7 +76,7 @@ class SearchEndpoint(resource.Resource):
         results_local_channels = self.channel_db_handler.search_in_local_channels_db(query)
         #TODO: use direct results dict from ORM instead of list
         with db_session:
-            results_local_channels.extend(map(chan2rest, self.session.mds.ChannelMD.search_keyword(query)))
+            results_local_channels.extend(map(chan2rest, self.session.lm.mds.ChannelMD.search_keyword(query)))
 
         results_dict = {"keywords": keywords, "result_list": results_local_channels}
         self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
@@ -85,7 +85,7 @@ class SearchEndpoint(resource.Resource):
                               'num_seeders', 'num_leechers', 'last_tracker_check']
         results_local_torrents = self.torrent_db_handler.search_in_local_torrents_db(query, keys=torrent_db_columns)
         with db_session:
-            results_local_torrents.extend(map(md2rest, self.session.mds.TorrentMD.search_keyword(query)))
+            results_local_torrents.extend(map(md2rest, self.session.lm.mds.TorrentMD.search_keyword(query)))
         results_dict = {"keywords": keywords, "result_list": results_local_torrents}
         self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
 
@@ -147,5 +147,5 @@ class SearchCompletionsEndpoint(resource.Resource):
 
         keywords = unicode(request.args['q'][0], 'utf-8').lower()
         results = self.torrent_db_handler.getAutoCompleteTerms(keywords, max_terms=5)
-        results.extend(self.session.mds.TorrentMD.getAutoCompleteTerms(keywords, max_terms=5))
+        results.extend(self.session.lm.mds.TorrentMD.getAutoCompleteTerms(keywords, max_terms=5))
         return json.dumps({"completions": results})

@@ -6,7 +6,6 @@ from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE, VOTE_UNSUBSCRIBE
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Modules.MetadataStore.channels import download_channel
 
 ALREADY_SUBSCRIBED_RESPONSE_MSG = "you are already subscribed to this channel"
 NOT_SUBSCRIBED_RESPONSE_MSG = "you are not subscribed to this channel"
@@ -122,14 +121,14 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
 
         if self.session.config.get_chant_channel_edit():
             with db_session:
-                channel = self.session.mds.ChannelMD.get(public_key=buffer(self.cid))
+                channel = self.session.lm.mds.ChannelMD.get(public_key=buffer(self.cid))
                 if channel is not None and channel.subscribed:
                     request.setResponseCode(http.CONFLICT)
                     return json.dumps({"error": ALREADY_SUBSCRIBED_RESPONSE_MSG})
                 channel.subscribed = True # FIXME: this should only trigger after the channel download is finished
                 infohash, title = (channel.infohash, channel.title)
             # FIXME: do proper deferred errback here
-            download_channel(self.session, infohash, title)
+            self.session.lm.mds.download_channel(self.session, infohash, title)
 
             # request.processingFailed(failure)
             request.write(json.dumps({"subscribed": True}))

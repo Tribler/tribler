@@ -44,7 +44,7 @@ class MyChannelEndpoint(BaseChannelsEndpoint):
             my_channel_id = self.session.trustchain_keypair.pub().key_to_bin()
             try:
                 with db_session:
-                    my_channel = self.session.mds.ChannelMD.get(public_key=buffer(my_channel_id)).to_dict()
+                    my_channel = self.session.lm.mds.ChannelMD.get(public_key=buffer(my_channel_id)).to_dict()
             except(RowNotFound):
                 request.setResponseCode(http.NOT_FOUND)
                 return json.dumps({"error": NO_CHANNEL_CREATED_RESPONSE_MSG})
@@ -99,15 +99,16 @@ class MyChannelEndpoint(BaseChannelsEndpoint):
             my_channel_id = key.pub().key_to_bin()
             try:
                 with db_session:
-                    my_channel = self.session.mds.ChannelMD.get(public_key=buffer(my_channel_id))
-                    my_channel.commit_to_torrent(key, self.session.channels_dir,
+                    my_channel = self.session.lm.mds.ChannelMD.get(public_key=buffer(my_channel_id))
+                    my_channel.commit_to_torrent(key, self.session.lm.mds.channels_dir,
                                                  md_list=my_channel.newer_entries)
                     my_channel.update_metadata(key, update_dict=
                         {"tags": unicode(get_parameter(parameters, 'description'), 'utf-8'),
                          "title": unicode(get_parameter(parameters, 'name'), 'utf-8')})
 
                     my_channel.garbage_collect()
-            except(RowNotFound):
+                    my_channel.seed(self.session.lm.mds.channels_dir, self.session.lm)
+            except RowNotFound:
                 request.setResponseCode(http.NOT_FOUND)
                 return json.dumps({"error": NO_CHANNEL_CREATED_RESPONSE_MSG})
 

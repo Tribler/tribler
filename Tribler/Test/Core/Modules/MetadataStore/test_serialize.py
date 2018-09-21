@@ -7,6 +7,8 @@ import Tribler.Test.Core.Modules.MetadataStore.tools as tt
 from Tribler.Core.Modules.MetadataStore.serialization import float2time, time2float, serialize_metadata_gossip, \
     deserialize_metadata_gossip, MetadataTypes, EPOCH
 
+from Tribler.Core.Modules.MetadataStore.base import BLOB_EXTENSION
+
 
 class TestSerialize(unittest.TestCase):
 

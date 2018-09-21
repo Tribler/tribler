@@ -6,7 +6,7 @@ from datetime import datetime
 
 from pony.orm import db_session
 
-from Tribler.Core.Modules.MetadataStore.base import start_orm
+from Tribler.Core.Modules.MetadataStore.base import MetadataStore
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 
 # FIXME global vars! shadowing!
@@ -65,14 +65,13 @@ def generate_channel_md_dict(n=1, key_loc=None):
 
 
 def create_chan_serialized(results_dir, sz=10):
-    db_filename = ":memory:"
-    db = start_orm(db_filename, create_db=True)
+    mds = MetadataStore(":memory:", results_dir)
     with db_session:
-        chan = db.ChannelMD.from_dict(
+        chan = mds.ChannelMD.from_dict(
             key, generate_channel_md_dict(
                 n=1, key_loc=key))
         md_list = [
-            db.TorrentMD.from_dict(key, generate_torrent_md_dict(n, key))
+            mds.TorrentMD.from_dict(key, generate_torrent_md_dict(n, key))
             for n in range(0, sz)]
         chan.commit_to_torrent(key, results_dir, md_list=md_list)
         chan.to_file(os.path.join(results_dir, str(chan.title) + ".mdblob"))
