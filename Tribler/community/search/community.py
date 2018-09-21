@@ -514,7 +514,7 @@ class SearchCommunity(Community):
                 to_insert_list = to_insert_list[50:]
 
         infohashes_to_collect = [infohash for infohash in to_collect_dict
-                                 if infohash and self.tribler_session.has_collected_torrent(infohash)]
+                                 if infohash and not self.tribler_session.has_collected_torrent(infohash)]
         if infohashes_to_collect:
             for infohash in infohashes_to_collect[:5]:
                 for candidate in to_collect_dict[infohash]:
