@@ -258,7 +258,9 @@ class SettingsPage(QWidget):
 
         # Anonymity settings
         self.window().allow_exit_node_checkbox.setChecked(settings['tunnel_community']['exitnode_enabled'])
-        self.window().number_hops_slider.setValue(int(settings['download_defaults']['number_hops']) - 1)
+        self.window().number_hops_slider.setValue(int(settings['download_defaults']['number_hops']))
+        self.window().number_hops_slider.valueChanged.connect(self.update_anonymity_cost_label)
+        self.update_anonymity_cost_label(int(settings['download_defaults']['number_hops']))
         self.window().credit_mining_enabled_checkbox.setChecked(settings['credit_mining']['enabled'])
         self.window().max_disk_space_input.setText(str(settings['credit_mining']['max_disk_space']))
 
@@ -272,6 +274,13 @@ class SettingsPage(QWidget):
         self.window().slider_cpu_level.setValue(cpu_priority)
         self.window().cpu_priority_value.setText("Current Priority = %s" % cpu_priority)
         self.window().slider_cpu_level.valueChanged.connect(self.show_updated_cpu_priority)
+
+    def update_anonymity_cost_label(self, value):
+        html_text = """<html><head/><body><p>Download with <b>%d</b> hop(s) of anonymity. 
+        When you download a file of 200 Megabyte, you will pay roughly <b>%d</b>
+        Megabyte of bandwidth tokens.</p></body></html>
+        """ % (value, 400 * (value - 1) + 200)
+        self.window().anonymity_costs_label.setText(html_text)
 
     def show_updated_cpu_priority(self, value):
         self.window().cpu_priority_value.setText("Current Priority = %s" % value)
@@ -403,7 +412,7 @@ class SettingsPage(QWidget):
         settings_data['credit_mining']['enabled'] = self.window().credit_mining_enabled_checkbox.isChecked()
         settings_data['credit_mining']['max_disk_space'] = int(self.window().max_disk_space_input.text())
         settings_data['tunnel_community']['exitnode_enabled'] = self.window().allow_exit_node_checkbox.isChecked()
-        settings_data['download_defaults']['number_hops'] = self.window().number_hops_slider.value() + 1
+        settings_data['download_defaults']['number_hops'] = self.window().number_hops_slider.value()
         settings_data['download_defaults']['anonymity_enabled'] = \
             self.window().download_settings_anon_checkbox.isChecked()
         settings_data['download_defaults']['safeseeding_enabled'] = \
