@@ -44,7 +44,7 @@ class TrustPlotMplCanvas(MplCanvas):
         self.axes.set_xlabel("Date")
         self.axes.set_ylabel("Given/taken data (MBytes)")
 
-        self.axes.xaxis.set_major_formatter(DateFormatter('%d-%m-%y'))
+        self.axes.xaxis.set_major_formatter(DateFormatter('%y-%m-%d'))
 
         self.axes.plot(self.plot_data[1], self.plot_data[0][0], label="MBytes given", marker='o')
         self.axes.plot(self.plot_data[1], self.plot_data[0][1], label="MBytes taken", marker='o')
