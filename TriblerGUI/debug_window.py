@@ -275,6 +275,8 @@ class DebugWindow(QMainWindow):
             return
         self.window().ipv8_general_tree_widget.clear()
         for key, value in data["ipv8_statistics"].iteritems():
+            if key == 'total_up' or key == 'total_down':
+                value = "%.2f MB" % (value / (1024.0 * 1024.0))
             self.create_and_add_widget_item(key, value, self.window().ipv8_general_tree_widget)
 
     def load_ipv8_communities_tab(self):
