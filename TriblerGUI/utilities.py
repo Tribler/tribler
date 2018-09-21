@@ -217,13 +217,13 @@ def is_dir_writable(path):
         if not os.path.exists(path):
             os.makedirs(path)
         open(os.path.join(path, 'temp'), 'w')
-    except IOError:
-        return False
-    except OSError:
-        return False
+    except IOError as io_error:
+        return False, io_error
+    except OSError as os_error:
+        return False, os_error
     else:
         os.remove(os.path.join(path, 'temp'))
-        return True
+        return True, None
 
 
 def unicode_quoter(c):

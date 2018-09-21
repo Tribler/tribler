@@ -390,11 +390,12 @@ class TriblerWindow(QMainWindow):
     def perform_start_download_request(self, uri, anon_download, safe_seeding, destination, selected_files,
                                        total_files=0, callback=None):
         # Check if destination directory is writable
-        if not is_dir_writable(destination):
-            ConfirmationDialog.show_message(self.window(), "Download error <i>%s</i>" % uri,
-                                            "Insufficient write permissions to <i>%s</i> directory. "
-                                            "Please add proper write permissions on the directory and "
-                                            "add the torrent again." % destination, "OK")
+        is_writable, error = is_dir_writable(destination)
+        if not is_writable:
+            gui_error_message = "Insufficient write permissions to <i>%s</i> directory. Please add proper " \
+                                "write permissions on the directory and add the torrent again. %s" \
+                                % (destination, error)
+            ConfirmationDialog.show_message(self.window(), "Download error <i>%s</i>" % uri, gui_error_message, "OK")
             return
 
         selected_files_uri = ""
