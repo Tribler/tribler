@@ -5,7 +5,6 @@ ec_keypair_filename = string(default='')
 megacache = boolean(default=True)
 log_dir = string(default=None)
 testnet = boolean(default=False)
-chant_channel_edit = boolean(default=False)
 
 [allchannel_community]
 enabled = boolean(default=True)
@@ -41,6 +40,12 @@ live_edges_enabled = boolean(default=True)
 [wallets]
 bitcoinlib_enabled = boolean(default=True)
 dummy_wallets_enabled = boolean(default=False)
+
+[chant]
+enabled = boolean(default=True)
+channel_edit = boolean(default=False)
+db_filename = string(default='chant.db')
+channels_dir = string(default='channels')
 
 [metadata]
 enabled = boolean(default=True)

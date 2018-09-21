@@ -6,7 +6,7 @@ from pony.orm import db_session
 from Tribler.Core.Modules.MetadataStore.serialization import MetadataTypes
 
 
-def define_torrent_md(db):
+def define_binding(db):
     class TorrentMD(db.SignedGossip):
         _discriminator_ = MetadataTypes.REGULAR_TORRENT.value
         infohash = orm.Optional(buffer)
@@ -42,11 +42,12 @@ def define_torrent_md(db):
             if not query:
                 return []
             if query.endswith("*"):
-                query = "\""+query[:-1]+"\""+"*"
+                query = "\"" + query[:-1] + "\"" + "*"
             else:
-                query = "\""+query+"\""
+                query = "\"" + query + "\""
             sql_search_fts = "type = {type} AND rowid IN (SELECT rowid FROM FtsIndex WHERE \
-                    FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT $lim)".format(type=entry_type or cls._discriminator_)
+                    FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT $lim)".format(
+                type=entry_type or cls._discriminator_)
             return cls.select(lambda x: orm.raw_sql(sql_search_fts))[:]
 
         @classmethod
@@ -70,3 +71,5 @@ def define_torrent_md(db):
                 all_terms.remove('')
 
             return list(all_terms)
+
+    return TorrentMD

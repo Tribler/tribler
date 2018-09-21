@@ -17,7 +17,7 @@ class TestSignedGossip(TestAsServer):
         key = self.session.trustchain_keypair
         self.d = db_session()
         self.d.__enter__()
-        self.g = self.session.mds.SignedGossip.from_dict(key, {})
+        self.g = self.session.lm.mds.SignedGossip.from_dict(key, {})
 
     def tearDown(self):
         self.d.__exit__()
@@ -25,7 +25,7 @@ class TestSignedGossip(TestAsServer):
 
     def test_create_signed_gossip(self):
         self.assertEqual(
-            orm.select(g for g in self.session.mds.SignedGossip).count(), 1)
+            orm.select(g for g in self.session.lm.mds.SignedGossip).count(), 1)
 
     def test_from_dict_and_serialize(self):
         with db_session:

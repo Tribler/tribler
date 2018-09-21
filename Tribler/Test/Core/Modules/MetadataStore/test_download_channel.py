@@ -2,7 +2,6 @@ import os
 
 from pony.orm import db_session
 
-from Tribler.Core.Modules.MetadataStore.channels import load_blob, download_channel
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
@@ -25,15 +24,14 @@ class TestDownloadChannel(TestAsServer):
         tdef = TorrentDef.load(os.path.join(self.TEST_FILES_DIR, self.CHANNEL_TORRENT_FILENAME))
         self.setup_seeder(tdef, self.TEST_FILES_DIR, port=7000)
         with db_session:
-            channel = load_blob(
-                self.session.mds,
+            channel = self.session.lm.mds.load_blob(
                 os.path.join(
                     self.TEST_FILES_DIR,
                     self.CHANNEL_BLOB_FILENAME))
             channel_infohash = channel.infohash
             channel_title = channel.title
 
-        dl_finished = download_channel(self.session, channel_infohash, channel_title)
+        dl_finished = self.session.lm.mds.download_channel(self.session, channel_infohash, channel_title)
         # FIXME: possible race condition here?
         dl = self.session.get_downloads()[0]
         dl.add_peer(('127.0.0.1', 7000))  # Used for testing
