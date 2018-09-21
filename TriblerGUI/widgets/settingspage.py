@@ -199,9 +199,10 @@ class SettingsPage(QWidget):
         if not log_dir or log_dir == previous_log_dir:
             return
 
-        if not is_dir_writable(log_dir):
-            ConfirmationDialog.show_message(self.window(), "Insufficient Permissions",
-                                            "<i>%s</i> is not writable. " % log_dir, "OK")
+        is_writable, error = is_dir_writable(log_dir)
+        if not is_writable:
+            gui_error_message = "<i>%s</i> is not writable. [%s]" % (log_dir, error)
+            ConfirmationDialog.show_message(self.window(), "Insufficient Permissions", gui_error_message, "OK")
         else:
             self.window().log_location_input.setText(log_dir)
 
