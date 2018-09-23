@@ -6,4 +6,4 @@
 	url = https://github.com/devos50/pymdht.git
 [submodule "py-ipv8"]
 	path = Tribler/pyipv8
-	url = https://github.com/Tribler/py-ipv8.git
+	url = https://github.com/qstokkink/py-ipv8.git
