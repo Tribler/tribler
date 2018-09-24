@@ -24,12 +24,17 @@ class TriblerCategoryTest(AbstractServer):
 
     def test_calculate_category_single_file(self):
         torrent_info = {"info": {"name": "my_torrent", "length": 1234},
-                        "announce-list": ["http://tracker.org"], "comment": "lorem ipsum"}
+                        "announce-list": [["http://tracker.org"]], "comment": "lorem ipsum"}
         self.assertEquals(self.category.calculateCategory(torrent_info, "my torrent"), 'other')
 
     def test_calculate_category_xxx(self):
         torrent_info = {"info": {"name": "term1", "length": 1234},
-                        "announce-list": ["http://tracker.org"], "comment": "lorem ipsum"}
+                        "announce-list": [["http://tracker.org"]], "comment": "lorem ipsum"}
+        self.assertEquals(self.category.calculateCategory(torrent_info, "my torrent"), 'xxx')
+
+    def test_calculate_category_invalid_announce_list(self):
+        torrent_info = {"info": {"name": "term1", "length": 1234},
+                        "announce-list": [[]], "comment": "lorem ipsum"}
         self.assertEquals(self.category.calculateCategory(torrent_info, "my torrent"), 'xxx')
 
     def test_get_family_filter_sql(self):

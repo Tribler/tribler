@@ -48,13 +48,11 @@ class Category(object):
             keys.append((category['name'], category['displayname']))
         return keys
 
-    # calculate the category for a given torrent_dict of a torrent file
-    # return list
     def calculateCategory(self, torrent_dict, display_name):
-        # torrent_dict is the  dict of
-        # a torrent file
-        # return value: list of category the torrent belongs to
-
+        """
+        Calculate the category for a given torrent_dict of a torrent file.
+        :return a list of categories this torrent belongs to.
+        """
         files_list = []
         try:
             # the multi-files mode
@@ -67,7 +65,9 @@ class Category(object):
 
         tracker = torrent_dict.get('announce')
         if not tracker:
-            tracker = torrent_dict.get('announce-list', [['']])[0][0]
+            announce_list = torrent_dict.get('announce-list', [['']])
+            if announce_list and announce_list[0]:
+                tracker = announce_list[0][0]
 
         comment = torrent_dict.get('comment')
         return self.calculateCategoryNonDict(files_list, display_name, tracker, comment)
