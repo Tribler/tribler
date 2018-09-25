@@ -303,6 +303,7 @@ class TestAsServer(AbstractServer):
         self.config.set_version_checker_enabled(False)
         self.config.set_libtorrent_dht_enabled(False)
         self.config.set_bitcoinlib_enabled(False)
+        self.config.set_chant_enabled(False)
 
     @inlineCallbacks
     def tearDown(self):
@@ -361,8 +362,9 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_state_dir(self.getStateDir(2))
         self.seed_config.set_version_checker_enabled(False)
         self.seed_config.set_bitcoinlib_enabled(False)
+        self.seed_config.set_chant_enabled(False)
 
-        if port is not None:
+        if port:
             self.seed_config.set_libtorrent_port(port)
 
         def start_seed_download(_):

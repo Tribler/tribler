@@ -1,15 +1,16 @@
 from __future__ import division
 
-import xdrlib
 from datetime import datetime, timedelta
 
 from enum import Enum, unique
 
+from Tribler.pyipv8.ipv8.attestation.trustchain.block import EMPTY_SIG
+from Tribler.pyipv8.ipv8.deprecated.payload import Payload
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
+from Tribler.pyipv8.ipv8.messaging.serialization import Serializer
 
 EPOCH = datetime(1970, 1, 1)
 INFOHASH_SIZE = 20  # bytes
-crypto = ECCrypto()
 
 
 @unique
@@ -27,112 +28,154 @@ DELETED = MetadataTypes.DELETED
 
 # We have to write our own serialization procedure for timestamps, since
 # there is no standard for this, except Unix time, and that is
-# deprecated by 2038, that is very soon
-def time2float(dt, epoch=EPOCH):
-    # WARNING: TZ-aware timestamps are madhouse...
-    # For Python3 we could use a simpler method:
-    # timestamp = (dt - datetime(1970,1,1, tzinfo=timezone.utc)) / timedelta(seconds=1)
-    td = dt - epoch
-    # return td.total_seconds()
-    return float((td.microseconds + (td.seconds + td.days * 86400) * 10 ** 6) / 10 ** 6)
+# deprecated by 2038, that is very soon.
 
 
-def float2time(ts, epoch=EPOCH):
-    microseconds_total = int(ts * 10 ** 6)
+def time2float(date_time, epoch=EPOCH):
+    """
+    Convert a datetime object to a float.
+    :param date_time: The datetime object to convert.
+    :param epoch: The epoch time, defaults to Jan 1, 1970.
+    :return: The floating point representation of date_time.
+
+    WARNING: TZ-aware timestamps are madhouse...
+    For Python3 we could use a simpler method:
+    >>> timestamp = (dt - datetime(1970, 1, 1, tzinfo=timezone.utc)) / timedelta(seconds=1)
+    """
+    time_diff = date_time - epoch
+    return float((time_diff.microseconds + (time_diff.seconds + time_diff.days * 86400) * 10 ** 6) / 10 ** 6)
+
+
+def float2time(timestamp, epoch=EPOCH):
+    """
+    Convert a float into a datetime object.
+    :param timestamp: The timestamp to be converted.
+    :param epoch: The epoch time, defaults to Jan 1, 1970.
+    :return: The datetime representation of timestamp.
+    """
+    microseconds_total = int(timestamp * 10 ** 6)
     microseconds = microseconds_total % 10 ** 6
     seconds_total = (microseconds_total - microseconds) / 10 ** 6
     seconds = seconds_total % 86400
     days = (seconds_total - seconds) / 86400
-    dt = epoch + timedelta(days=days, seconds=seconds,
-                           microseconds=microseconds)
+    dt = epoch + timedelta(days=days, seconds=seconds, microseconds=microseconds)
     return dt
 
 
-class SerializationError(Exception):
-    pass
+class MetadataPayload(Payload):
+    """
+    Payload for metadata.
+    """
 
-class DeserializationError(Exception):
-    pass
+    format_list = ['I', '74s', 'f', 'I', '64s']
 
-# We don't split the de/serialization procedures into a bunch of smaller methods
-# bound to the classes hierarchy to simplify compatibility with future
-# versions.
-def serialize_metadata_gossip(md, key=None, check_signature=False):
-    p = xdrlib.Packer()
-    if key:
-        md["public_key"] = key.pub().key_to_bin()
-    else:
-        if "signature" not in md:
-            raise SerializationError
+    def __init__(self, metadata_type, public_key, timestamp, tc_pointer, signature):
+        super(MetadataPayload, self).__init__()
+        self.metadata_type = metadata_type
+        self.public_key = public_key
+        self.timestamp = timestamp
+        self.tc_pointer = tc_pointer
+        self.signature = signature
 
-    p.pack_int(md["type"])
-    p.pack_opaque(md["public_key"])
-    p.pack_double(time2float(md["timestamp"]))
-    p.pack_uhyper(md["tc_pointer"])  # TrustChain pointer
+    def has_valid_signature(self):
+        crypto = ECCrypto()
+        serializer = Serializer()
+        original_signature = self.signature
 
-    if md["type"] == MetadataTypes.REGULAR_TORRENT.value or \
-            md["type"] == MetadataTypes.CHANNEL_TORRENT.value:
-        p.pack_fopaque(INFOHASH_SIZE, md["infohash"])
-        p.pack_uhyper(md["size"])
-        p.pack_double(time2float(md["torrent_date"]))
-        p.pack_string(md["title"].encode('utf-8'))
-        p.pack_string(md["tags"].encode('utf-8'))
+        # Make a payload where the signature is zero
+        self.signature = EMPTY_SIG
+        sig_data = serializer.pack_multiple(self.to_pack_list())[0]
+        valid = crypto.is_valid_signature(crypto.key_from_public_bin(self.public_key), sig_data, original_signature)
+        self.signature = original_signature
+        return valid
 
-    if md["type"] == MetadataTypes.CHANNEL_TORRENT.value:
-        p.pack_hyper(md["version"])
+    def to_pack_list(self):
+        data = [('I', self.metadata_type),
+                ('74s', self.public_key),
+                ('f', self.timestamp),
+                ('I', self.tc_pointer),
+                ('64s', self.signature)]
 
-    if md["type"] == MetadataTypes.DELETED.value:
-        p.pack_opaque(md["delete_signature"])
+        return data
 
-    if key:
-        signature = crypto.create_signature(key, p.get_buf())
-        md["signature"] = signature
-    p.pack_opaque(md["signature"])
-
-    if check_signature:
-        try:
-            deserialize_metadata_gossip(p.get_buf(), check_signature=True)
-        except DeserializationError:
-            raise SerializationError("Serialization with wrong pk/signature")
-
-    return p.get_buf()
+    @classmethod
+    def from_unpack_list(cls, metadata_type, public_key, timestamp, tc_pointer, signature):
+        return MetadataPayload(metadata_type, public_key, timestamp, tc_pointer, signature)
 
 
-def deserialize_metadata_gossip(buf, check_signature=True):
-    u = xdrlib.Unpacker(buf)
+class TorrentMetadataPayload(MetadataPayload):
+    """
+    Payload for metadata that stores a torrent.
+    """
+    format_list = MetadataPayload.format_list + ['20s', 'I', 'varlenI', 'varlenI']
 
-    md = {}
-    md["type"] = u.unpack_int()
-    md["public_key"] = u.unpack_opaque()
-    md["timestamp"] = float2time(u.unpack_double())
-    md["tc_pointer"] = u.unpack_uhyper()
+    def __init__(self, metadata_type, public_key, timestamp, tc_pointer, signature, infohash, size, title, tags):
+        super(TorrentMetadataPayload, self).__init__(metadata_type, public_key, timestamp, tc_pointer, signature)
+        self.infohash = infohash
+        self.size = size
+        self.title = title
+        self.tags = tags
 
-    if md["type"] == MetadataTypes.REGULAR_TORRENT.value or \
-            md["type"] == MetadataTypes.CHANNEL_TORRENT.value:
-        md["infohash"] = u.unpack_fopaque(INFOHASH_SIZE)
-        md["size"] = u.unpack_uhyper()
-        md["torrent_date"] = float2time(u.unpack_double())
-        md["title"] = u.unpack_string().decode('utf-8')
-        md["tags"] = u.unpack_string().decode('utf-8')
+    def to_pack_list(self):
+        data = super(TorrentMetadataPayload, self).to_pack_list()
+        data.append(('20s', self.infohash))
+        data.append(('I', self.size))
+        data.append(('varlenI', self.title))
+        data.append(('varlenI', self.tags))
+        return data
 
-    if md["type"] == MetadataTypes.CHANNEL_TORRENT.value:
-        md["version"] = u.unpack_hyper()
+    @classmethod
+    def from_unpack_list(cls, metadata_type, public_key, timestamp, tc_pointer, signature, infohash, size, title, tags):
+        return TorrentMetadataPayload(metadata_type, public_key, timestamp, tc_pointer, signature, infohash, size,
+                                      title, tags)
 
-    if md["type"] == MetadataTypes.DELETED.value:
-        md["delete_signature"] = u.unpack_opaque()
 
-    contents_end = u.get_position()
-    md["signature"] = u.unpack_opaque()
-    u.done()
+class ChannelMetadataPayload(TorrentMetadataPayload):
+    """
+    Payload for metadata that stores a channel.
+    """
+    format_list = TorrentMetadataPayload.format_list + ['I']
 
-    if check_signature:
-        # Checking signature and PK correctness
-        if not crypto.is_valid_public_bin(md["public_key"]):
-            raise DeserializationError("Bad public key", md["public_key"])
-        if not crypto.is_valid_signature(
-                crypto.key_from_public_bin(md["public_key"]),
-                buf[:contents_end],
-                md["signature"]):
-            raise DeserializationError("Bad signature", md["signature"])
+    def __init__(self, metadata_type, public_key, timestamp, tc_pointer, signature, infohash, size, title, tags,
+                 version):
+        super(ChannelMetadataPayload, self).__init__(metadata_type, public_key, timestamp, tc_pointer, signature,
+                                                     infohash, size, title, tags)
+        self.version = version
 
-    return md
+    def to_pack_list(self):
+        data = super(ChannelMetadataPayload, self).to_pack_list()
+        data.append(('I', self.version))
+        return data
+
+    @classmethod
+    def from_file(cls, filepath):
+        with open(filepath, 'rb') as f:
+            serializer = Serializer()
+            serialized_data = f.read()
+            return serializer.unpack_to_serializables([cls, ], serialized_data)[0]
+
+    @classmethod
+    def from_unpack_list(cls, metadata_type, public_key, timestamp, tc_pointer, signature, infohash, size, title, tags,
+                         version):
+        return ChannelMetadataPayload(metadata_type, public_key, timestamp, tc_pointer, signature, infohash, size,
+                                      title, tags, version)
+
+
+class DeletedMetadataPayload(MetadataPayload):
+    """
+    Payload for metadata that stores deleted metadata.
+    """
+    format_list = MetadataPayload.format_list + ['64s']
+
+    def __init__(self, metadata_type, public_key, timestamp, tc_pointer, signature, delete_signature):
+        super(DeletedMetadataPayload, self).__init__(metadata_type, public_key, timestamp, tc_pointer, signature)
+        self.delete_signature = delete_signature
+
+    def to_pack_list(self):
+        data = super(DeletedMetadataPayload, self).to_pack_list()
+        data.append(('64s', self.delete_signature))
+        return data
+
+    @classmethod
+    def from_unpack_list(cls, metadata_type, public_key, timestamp, tc_pointer, signature, delete_signature):
+        return DeletedMetadataPayload(metadata_type, public_key, timestamp, tc_pointer, signature, delete_signature)

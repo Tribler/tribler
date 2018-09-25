@@ -1,3 +1,4 @@
+from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
@@ -7,6 +8,7 @@ from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test_channel import BaseTestChannel
 from Tribler.Test.tools import trial_timeout
+from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 
 
 class ChannelCommunityMock(object):
@@ -29,6 +31,58 @@ class ChannelCommunityMock(object):
 
     def get_channel_mode(self):
         return self._channel_mode
+
+
+class AbstractTestChantEndpoint(AbstractApiTest):
+
+    def setUpPreSession(self):
+        super(AbstractTestChantEndpoint, self).setUpPreSession()
+        self.config.set_libtorrent_enabled(True)
+        self.config.set_chant_enabled(True)
+        self.config.set_chant_channel_edit(True)
+
+    @db_session
+    def create_my_channel(self, name, description):
+        """
+        Create your channel, with a given name and description.
+        """
+        my_key = self.session.trustchain_keypair
+        return self.session.lm.mds.ChannelMetadata.create_channel(my_key, name, description)
+
+    @db_session
+    def add_random_torrent_to_my_channel(self, name=None):
+        """
+        Add a random torrent to your channel.
+        """
+        my_key = self.session.trustchain_keypair
+        my_channel_id = my_key.pub().key_to_bin()
+        my_channel = self.session.lm.mds.ChannelMetadata.get_channel_with_id(my_channel_id)
+        random_torrent = self.session.lm.mds.TorrentMetadata(public_key=buffer(my_channel_id),
+                                                             title='test' if not name else name,
+                                                             infohash='a' * 20)
+        random_torrent.sign(my_key)
+        my_channel.add_metadata_to_channel(my_key, self.session.lm.mds.channels_dir, [random_torrent])
+        return random_torrent
+
+    @db_session
+    def add_random_channel(self):
+        """
+        Add a random channel to the metadata store.
+        :return: The metadata of the added channel.
+        """
+        rand_key = ECCrypto().generate_key('low')
+        new_channel = self.session.lm.mds.ChannelMetadata(
+            public_key=buffer(rand_key.pub().key_to_bin()), title='test', tags='test')
+        new_channel.sign(rand_key)
+        return new_channel
+
+    @db_session
+    def get_my_channel(self):
+        """
+        Return the metadata object of your channel, or None if it does not exist yet.
+        """
+        my_channel_id = self.session.trustchain_keypair.pub().key_to_bin()
+        return self.session.lm.mds.ChannelMetadata.get_channel_with_id(my_channel_id)
 
 
 class AbstractTestChannelsEndpoint(AbstractApiTest, BaseTestChannel):

@@ -5,6 +5,7 @@ import math
 from struct import unpack_from
 from twisted.web import http
 
+from Tribler.Core.Modules.MetadataStore.serialization import time2float
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 import Tribler.Core.Utilities.json_util as json
@@ -24,6 +25,38 @@ def return_handled_exception(request, exception):
             u"message": exception.message
         }
     })
+
+
+def convert_channel_metadata_to_tuple(metadata):
+    """
+    Convert some given channel metadata to a tuple, similar to returned channels from the database.
+    :param metadata: The metadata to convert.
+    :return: A tuple with information about the torrent.
+    """
+    votes = 1
+    my_vote = 2
+    spam = 0
+    relevance = 0.9
+    unix_timestamp = time2float(metadata.timestamp)
+    return metadata.rowid, str(metadata.public_key), metadata.title, metadata.tags, int(metadata.size), votes, spam,\
+           my_vote, unix_timestamp, relevance
+
+
+def convert_torrent_metadata_to_tuple(metadata):
+    """
+    Convert some given torrent metadata to a tuple, similar to returned torrents from the database.
+    :param metadata: The metadata to convert.
+    :return: A tuple with information about the torrent.
+    """
+    seeders = 0
+    leechers = 0
+    last_tracker_check = 0
+    category = 'unknown'
+    infohash = str(metadata.infohash)
+    relevance = 0.9
+
+    return (metadata.rowid, infohash, metadata.title, int(metadata.size), category, seeders, leechers,
+            last_tracker_check, None, relevance)
 
 
 def convert_search_torrent_to_json(torrent):

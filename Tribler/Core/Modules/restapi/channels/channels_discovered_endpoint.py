@@ -1,3 +1,5 @@
+import os
+
 from pony.orm import db_session
 from twisted.web import http
 
@@ -6,7 +8,7 @@ from Tribler.Core.Modules.restapi.channels.channels_playlists_endpoint import Ch
 from Tribler.Core.Modules.restapi.channels.channels_rss_endpoint import ChannelsRssFeedsEndpoint, \
     ChannelsRecheckFeedsEndpoint
 from Tribler.Core.Modules.restapi.channels.channels_torrents_endpoint import ChannelsTorrentsEndpoint
-from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json
+from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_channel_metadata_to_tuple
 from Tribler.Core.exceptions import DuplicateChannelNameError
 import Tribler.Core.Utilities.json_util as json
 
@@ -18,6 +20,7 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
     def getChild(self, path, request):
         return ChannelsDiscoveredSpecificEndpoint(self.session, path)
 
+    @db_session
     def render_GET(self, _):
         """
         .. http:get:: /channels/discovered
@@ -50,6 +53,12 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
                 }
         """
         all_channels_db = self.channel_db_handler.getAllChannels()
+
+        if self.session.config.get_chant_enabled():
+            chant_channels = list(self.session.lm.mds.ChannelMetadata.select())
+            for chant_channel in chant_channels:
+                all_channels_db.append(convert_channel_metadata_to_tuple(chant_channel))
+
         results_json = []
         for channel in all_channels_db:
             channel_json = convert_db_channel_to_json(channel)
@@ -97,14 +106,19 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
             description = unicode(parameters['description'][0], 'utf-8')
 
         if self.session.config.get_chant_channel_edit():
-            title = unicode(parameters['name'][0], 'utf-8')
-            tags = description
-            key = self.session.trustchain_keypair
+            my_key = self.session.trustchain_keypair
+            my_channel_id = my_key.pub().key_to_bin()
 
-            my_channel_id = key.pub().key_to_bin()
-            with db_session:
-                self.session.lm.mds.ChannelMD(public_key=buffer(my_channel_id), title=title, tags=tags)
-            return json.dumps({"added": str(my_channel_id).encode("hex")})
+            # Do not allow to add a channel twice
+            if self.session.lm.mds.ChannelMetadata.get_channel_with_id(my_channel_id):
+                request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+                return json.dumps({"error": "channel already exists"})
+
+            title = unicode(parameters['name'][0], 'utf-8')
+            self.session.lm.mds.ChannelMetadata.create_channel(my_key, title, description)
+            return json.dumps({
+                "added": str(my_channel_id).encode("hex"),
+            })
 
         if 'mode' not in parameters or len(parameters['mode']) == 0:
             # By default, the mode of the new channel is closed.
