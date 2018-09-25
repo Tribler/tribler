@@ -1,9 +1,10 @@
 import os
+import time
 
 from Tribler.Core.CacheDB.sqlitecachedb import DB_FILE_RELATIVE_PATH
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_CHANNELCAST
-
+from Tribler.pyipv8.ipv8.messaging.interfaces.statistics_endpoint import StatisticsEndpoint
 
 DATA_NONE = u"None"
 
@@ -131,7 +132,8 @@ class TriblerStatistics(object):
 
         return {
             "total_up": ipv8.endpoint.bytes_up,
-            "total_down": ipv8.endpoint.bytes_down
+            "total_down": ipv8.endpoint.bytes_down,
+            "session_uptime": time.time() - self.session.lm.ipv8_start_time
         }
 
     def get_ipv8_overlays_statistics(self):
@@ -146,12 +148,15 @@ class TriblerStatistics(object):
 
         for overlay in ipv8.overlays:
             peers = overlay.get_peers()
+            statistics = ipv8.endpoint.get_aggregate_statistics(overlay.get_prefix()) \
+                if isinstance(ipv8.endpoint, StatisticsEndpoint) else {}
             communities_stats.append({
                 "master_peer": overlay.master_peer.public_key.key_to_bin().encode('hex'),
                 "my_peer": overlay.my_peer.public_key.key_to_bin().encode('hex'),
                 "global_time": overlay.global_time,
                 "peers": [str(peer) for peer in peers],
-                "overlay_name": overlay.__class__.__name__
+                "overlay_name": overlay.__class__.__name__,
+                "statistics": statistics
             })
 
         return communities_stats

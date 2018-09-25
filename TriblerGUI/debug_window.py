@@ -7,7 +7,7 @@ import matplotlib
 from PyQt5.QtCore import QTimer
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QTextCursor
-from PyQt5.QtWidgets import QFileDialog, QTextEdit, QDesktopWidget
+from PyQt5.QtWidgets import QFileDialog, QTextEdit, QDesktopWidget, QTreeWidget
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QSizePolicy
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
@@ -17,7 +17,7 @@ from twisted.internet.task import LoopingCall
 matplotlib.use('Qt5Agg')
 
 import psutil
-from PyQt5 import uic
+from PyQt5 import uic, QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QHeaderView
 from PyQt5.QtWidgets import QMainWindow, QTreeWidgetItem
@@ -187,6 +187,8 @@ class DebugWindow(QMainWindow):
             self.load_ipv8_general_tab()
         elif index == 1:
             self.load_ipv8_communities_tab()
+        elif index == 2:
+            self.load_ipv8_community_details_tab()
 
     def tunnel_tab_changed(self, index):
         if index == 0:
@@ -277,6 +279,8 @@ class DebugWindow(QMainWindow):
         for key, value in data["ipv8_statistics"].iteritems():
             if key == 'total_up' or key == 'total_down':
                 value = "%.2f MB" % (value / (1024.0 * 1024.0))
+            if key == 'session_uptime':
+                value = "%s" % str(datetime.timedelta(seconds=int(value)))
             self.create_and_add_widget_item(key, value, self.window().ipv8_general_tree_widget)
 
     def load_ipv8_communities_tab(self):
@@ -290,10 +294,47 @@ class DebugWindow(QMainWindow):
         for overlay in data["ipv8_overlay_statistics"]:
             item = QTreeWidgetItem(self.window().communities_tree_widget)
             item.setText(0, overlay["overlay_name"])
-            item.setText(1, overlay["master_peer"][-6:])
-            item.setText(2, overlay["my_peer"][-6:])
+            item.setText(1, overlay["master_peer"][-12:])
+            item.setText(2, overlay["my_peer"][-12:])
             item.setText(3, "%s" % len(overlay["peers"]))
+
+            if "statistics" in overlay and overlay["statistics"]:
+                statistics = overlay["statistics"]
+                item.setText(4, "%.3f" % (statistics["bytes_up"]/(1024.0 * 1024.0)))
+                item.setText(5, "%.3f" % (statistics["bytes_down"]/(1024.0 * 1024.0)))
+                item.setText(6, "%s" % statistics["num_up"])
+                item.setText(7, "%s" % statistics["num_down"])
+                item.setText(8, "%.3f" % statistics["diff_time"])
+
             self.window().communities_tree_widget.addTopLevelItem(item)
+
+    def load_ipv8_community_details_tab(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("ipv8/overlays/statistics", self.on_ipv8_community_detail_stats)
+
+    def on_ipv8_community_detail_stats(self, data):
+        if not data:
+            return
+
+        self.window().ipv8_communities_details_widget.clear()
+        for overlay in data["statistics"]:
+            self.window().ipv8_communities_details_widget.setColumnWidth(0, 250)
+
+            for key, stats in overlay.iteritems():
+                header_item = QTreeWidgetItem(self.window().ipv8_communities_details_widget)
+                header_item.setFirstColumnSpanned(True)
+                header_item.setBackground(0, QtGui.QColor('#CCCCCC'))
+                header_item.setText(0, key)
+                self.window().ipv8_communities_details_widget.addTopLevelItem(header_item)
+
+                for request_id, stat in stats.iteritems():
+                    stat_item = QTreeWidgetItem(self.window().ipv8_communities_details_widget)
+                    stat_item.setText(0, request_id)
+                    stat_item.setText(1, "%.3f" % (stat["bytes_up"] / (1024.0 * 1024.0)))
+                    stat_item.setText(2, "%.3f" % (stat["bytes_down"] / (1024.0 * 1024.0)))
+                    stat_item.setText(3, "%s" % stat["num_up"])
+                    stat_item.setText(4, "%s" % stat["num_down"])
+                    self.window().ipv8_communities_details_widget.addTopLevelItem(stat_item)
 
     def add_items_to_tree(self, tree, items, keys):
         tree.clear()

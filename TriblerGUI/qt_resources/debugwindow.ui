@@ -269,6 +269,88 @@
                 <string>Peers</string>
                </property>
               </column>
+              <column>
+               <property name="text">
+                <string>Upload(MB)</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Download(MB)</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Msg sent</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Msg received</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Diff(sec)</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="tab_8">
+           <attribute name="title">
+            <string>Details</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QTreeWidget" name="ipv8_communities_details_widget">
+              <property name="indentation">
+               <number>0</number>
+              </property>
+              <attribute name="headerDefaultSectionSize">
+               <number>200</number>
+              </attribute>
+              <column>
+               <property name="text">
+                <string>Name</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Upload(MB)</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Download(MB)</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Msg sent</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Msg received</string>
+               </property>
+              </column>
              </widget>
             </item>
            </layout>
@@ -362,7 +444,7 @@
                 <string>Down</string>
                </property>
               </column>
-			</widget>
+             </widget>
             </item>
            </layout>
           </widget>
@@ -416,7 +498,7 @@
                 <string>Up</string>
                </property>
               </column>
-			 </widget>
+             </widget>
             </item>
            </layout>
           </widget>
@@ -465,7 +547,7 @@
                 <string>Up</string>
                </property>
               </column>
-			 </widget>
+             </widget>
             </item>
            </layout>
           </widget>
