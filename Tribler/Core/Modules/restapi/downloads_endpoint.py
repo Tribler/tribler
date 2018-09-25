@@ -1,12 +1,14 @@
 import logging
 from urllib import unquote_plus, url2pathname
 
-from pony.orm import db_session
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
+from Tribler.Core.Modules.MetadataStore.store import UnknownBlobTypeException
 from Tribler.Core.Modules.restapi.util import return_handled_exception
+from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
 import Tribler.Core.Utilities.json_util as json
 
@@ -266,6 +268,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
         location, a magnet link or a HTTP(S) url.
         - anon_hops: the number of hops for the anonymous download. 0 hops is equivalent to a plain download
         - safe_seeding: whether the seeding of the download should be anonymous or not (0 = off, 1 = on)
+        - metadata_download: whether we are adding a mdblob file with metadata (optional)
         - destination: the download destination path of the torrent
         - torrent: the URI of the torrent file that should be downloaded. This parameter is required.
 
@@ -288,6 +291,11 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "uri parameter missing"})
 
+        metadata_download = False
+        if 'metadata_download' in parameters and parameters['metadata_download'] \
+                and parameters['metadata_download'][0] == "1":
+            metadata_download = True
+
         download_config, error = DownloadsEndpoint.create_dconfig_from_params(parameters)
         if error:
             request.setResponseCode(http.BAD_REQUEST)
@@ -305,14 +313,16 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
         uri = parameters['uri'][0]
         if uri.startswith("file:"):
-            if uri.endswith(".mdblob"):
+            if metadata_download and uri.endswith(".mdblob"):
                 filename = url2pathname(uri[5:].encode('utf-8') if isinstance(uri, unicode) else uri[5:])
-                # TODO: by passing around dicts instead of ORM objects, we could remove db_session lock here
-                with db_session:
-                    # FIXME: add error checks! Check for md type.
-                    channel = load_blob(self.session.mds, filename)
-                    download_channel(self.session, channel.infohash, channel.title)
-                return NOT_DONE_YET
+                try:
+                    payload = ChannelMetadataPayload.from_file(filename)
+                except IOError:
+                    request.setResponseCode(http.BAD_REQUEST)
+                    return json.dumps({"error": "file not found"})
+
+                download, _ = self.session.lm.update_channel(payload)
+                return json.dumps({"started": True, "infohash": str(download.get_def().get_infohash()).encode('hex')})
             else:
                 download_uri = u"file:%s" % url2pathname(unicode(uri[5:], 'utf-8'))
         else:

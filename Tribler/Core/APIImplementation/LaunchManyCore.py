@@ -16,7 +16,7 @@ from traceback import print_exc
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DecentralizedTracking.dht_provider import MainlineDHTProvider
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
-from Tribler.Core.Modules.MetadataStore.base import MetadataStore
+from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.Modules.resource_monitor import ResourceMonitor
 from Tribler.Core.Modules.search_manager import SearchManager
@@ -29,6 +29,7 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Video.VideoServer import VideoServer
+from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,
                                      NTFY_FINISHED, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
                                      DLSTATUS_SEEDING, NTFY_TORRENT, STATE_STARTING_DISPERSY, STATE_LOADING_COMMUNITIES,
@@ -484,9 +485,10 @@ class TriblerLaunchMany(TaskManager):
             self.version_check_manager.start()
 
         if self.session.config.get_chant_enabled():
-            self.mds = MetadataStore(
-                self.session.config.get_chant_db_filename(),
-                self.session.config.get_chant_channels_dir())
+            channels_dir = os.path.join(self.session.config.get_state_dir(),
+                                        self.session.config.get_chant_channels_dir())
+            database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
+            self.mds = MetadataStore(database_path, channels_dir)
 
         self.session.set_download_states_callback(self.sesscb_states_callback)
 
@@ -494,6 +496,60 @@ class TriblerLaunchMany(TaskManager):
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
 
         self.initComplete = True
+
+    def on_channel_download_finished(self, download, finished_deferred=None):
+        if download.get_channel_download():
+            channel_dirname = os.path.join(self.session.lm.mds.channels_dir, download.get_def().get_name())
+            self.mds.process_channel_dir(channel_dirname)
+            if finished_deferred:
+                finished_deferred.callback(download)
+
+    def update_channel(self, channel_metadata_payload):
+        """
+        We received some channel metadata, possibly over the network.
+        Validate the signature, update the local metadata store and start downloading this channel if needed.
+        :param channel_metadata_payload: The channel metadata, in serialized form.
+        """
+        if not channel_metadata_payload.has_valid_signature():
+            raise InvalidSignatureException("The signature of the channel metadata is invalid.")
+
+        channel_metadata = self.mds.ChannelMetadata.process_channel_metadata_payload(channel_metadata_payload)
+
+        if self.download_exists(channel_metadata_payload.infohash):
+            self.session.remove_download(self.get_download(channel_metadata_payload.infohash))
+        return self.download_channel(channel_metadata)
+
+    def download_channel(self, channel_metadata):
+        """
+        Download a channel with a given infohash and title.
+        :param channel_metadata: The metadata of the channel.
+        """
+        finished_deferred = Deferred()
+
+        dcfg = DownloadStartupConfig()
+        dcfg.set_dest_dir(self.mds.channels_dir)
+        dcfg.set_channel_download(True)
+        tdef = TorrentDefNoMetainfo(infohash=str(channel_metadata.infohash), name=channel_metadata.title)
+        download = self.session.start_download_from_tdef(tdef, dcfg)
+        download.finished_callback = lambda dl: self.on_channel_download_finished(dl, finished_deferred)
+        return download, finished_deferred
+
+    def updated_my_channel(self, old_infohash, _, new_torrent_path):
+        """
+        Notify the core that we updated our channel.
+        :param old_infohash: the infohash of the previous my channel download
+        :param new_torrent_path: path to the new torrent file
+        """
+        if old_infohash != '\x00' * 20 and self.download_exists(old_infohash):
+            # Remove the current download
+            self.session.remove_download(self.get_download(old_infohash))
+
+        # Start the new download
+        tdef = TorrentDef.load(new_torrent_path)
+        dcfg = DownloadStartupConfig()
+        dcfg.set_dest_dir(self.mds.channels_dir)
+        dcfg.set_channel_download(True)
+        self.add(tdef, dcfg)
 
     def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,
             share_mode=False, checkpoint_disabled=False):

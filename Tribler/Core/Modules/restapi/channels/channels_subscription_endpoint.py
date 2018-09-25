@@ -9,6 +9,7 @@ import Tribler.Core.Utilities.json_util as json
 
 ALREADY_SUBSCRIBED_RESPONSE_MSG = "you are already subscribed to this channel"
 NOT_SUBSCRIBED_RESPONSE_MSG = "you are not subscribed to this channel"
+CHANNEL_NOT_FOUND = "this channel is not found"
 
 
 class ChannelsSubscribedEndpoint(BaseChannelsEndpoint):
@@ -121,19 +122,17 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
 
         if self.session.config.get_chant_channel_edit():
             with db_session:
-                channel = self.session.lm.mds.ChannelMD.get(public_key=buffer(self.cid))
-                if channel is not None and channel.subscribed:
+                channel = self.session.lm.mds.ChannelMetadata.get(public_key=buffer(self.cid))
+                if not channel:
+                    request.setResponseCode(http.NOT_FOUND)
+                    return json.dumps({"error": CHANNEL_NOT_FOUND})
+
+                if channel.subscribed:
                     request.setResponseCode(http.CONFLICT)
                     return json.dumps({"error": ALREADY_SUBSCRIBED_RESPONSE_MSG})
-                channel.subscribed = True # FIXME: this should only trigger after the channel download is finished
-                infohash, title = (channel.infohash, channel.title)
-            # FIXME: do proper deferred errback here
-            self.session.lm.mds.download_channel(self.session, infohash, title)
+                channel.subscribed = True
 
-            # request.processingFailed(failure)
-            request.write(json.dumps({"subscribed": True}))
-            request.finish()
-            return NOT_DONE_YET
+            return json.dumps({"subscribed": True})
 
         channel_info = self.get_channel_from_db(self.cid)
 
@@ -151,8 +150,6 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
         self.vote_for_channel(self.cid, VOTE_SUBSCRIBE).addCallback(on_vote_done).addErrback(on_vote_error)
 
         return NOT_DONE_YET
-
-
 
     def render_DELETE(self, request):
         """

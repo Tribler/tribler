@@ -39,6 +39,13 @@ class HttpError(TriblerException):
         self.response = response
 
 
+class InvalidSignatureException(TriblerException):
+    """
+    Raised when encountering an invalid signature.
+    """
+    pass
+
+
 class DuplicateChannelNameError(TriblerException):
     """
     The Channel name already exists in the ChannelManager channel list,

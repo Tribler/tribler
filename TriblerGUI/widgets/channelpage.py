@@ -56,7 +56,6 @@ class ChannelPage(QWidget):
                                                                   channel_info['dispersy_cid'],
                                                                   self.received_playlists_in_channel)
 
-
         # initialize the page about a channel
         self.window().channel_name_label.setText(channel_info['name'])
         self.window().num_subs_label.setText(str(channel_info['votes']))

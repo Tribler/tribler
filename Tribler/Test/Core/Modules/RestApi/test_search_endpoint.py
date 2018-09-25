@@ -1,9 +1,10 @@
-from Tribler.Test.tools import trial_timeout
+from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, \
     SIGNAL_TORRENT
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.tools import trial_timeout
 
 
 class FakeSearchManager(object):
@@ -47,6 +48,10 @@ class TestSearchEndpoint(AbstractApiTest):
 
         self.search_results_list = [] # List of incoming torrent/channel results
         self.expected_num_results_list = [] # List of expected number of results for each item in search_results_list
+
+    def setUpPreSession(self):
+        super(TestSearchEndpoint, self).setUpPreSession()
+        self.config.set_chant_enabled(True)
 
     def on_search_results_torrents(self, subject, changetype, objectID, results):
         self.search_results_list.append(results['result_list'])
@@ -111,6 +116,22 @@ class TestSearchEndpoint(AbstractApiTest):
         expected_json = {"queried": True}
         return self.do_request('search?q=test', expected_code=200, expected_json=expected_json)\
             .addCallback(self.verify_search_results)
+
+    @trial_timeout(10)
+    def test_search_chant(self):
+        """
+        Test a search query that should return a few new type channels
+        """
+        def verify_search_results(_):
+            self.assertTrue(self.search_results_list)
+
+        with db_session:
+            my_channel_id = self.session.trustchain_keypair.pub().key_to_bin()
+            self.session.lm.mds.ChannelMetadata(public_key=buffer(my_channel_id), title='test', tags='test')
+
+        self.should_check_equality = False
+        self.expected_num_results_list = []
+        return self.do_request('search?q=test', expected_code=200).addCallback(verify_search_results)
 
     @trial_timeout(10)
     def test_completions_no_query(self):

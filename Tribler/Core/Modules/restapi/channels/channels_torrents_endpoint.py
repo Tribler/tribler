@@ -1,11 +1,12 @@
 import base64
+import os
 
 from twisted.internet.defer import Deferred
 from twisted.web import http
 from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
-from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json
+from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json, convert_torrent_metadata_to_tuple
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import DuplicateTorrentFileError, HttpError
 import Tribler.Core.Utilities.json_util as json
@@ -16,16 +17,6 @@ UNKNOWN_TORRENT_MSG = "this torrent is not found in the specified channel"
 UNKNOWN_COMMUNITY_MSG = "the community for the specified channel cannot be found"
 
 
-def md2rest(md):
-    relevance = 0.9
-    seeders = 0
-    leechers = 0
-    last_tracker_check = 0
-    category = md.tags.split(".")[0]
-    infohash = str(md.infohash)
-    return (md.rowid, infohash, md.title, int(md.size), category, seeders, leechers, last_tracker_check, None,
-            relevance)
-
 class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
     """
     This class is responsible for managing requests regarding torrents in a channel.
@@ -34,7 +25,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
     def __init__(self, session, cid):
         BaseChannelsEndpoint.__init__(self, session)
         self.cid = cid
-        self.chant_channel = (len(cid) == 74)
+        self.is_chant_channel = (len(cid) == 74)
 
     def getChild(self, path, request):
         return ChannelModifyTorrentEndpoint(self.session, self.cid, path)
@@ -73,11 +64,11 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
 
             :statuscode 404: if the specified channel cannot be found.
         """
-        if self.chant_channel:
+        if self.is_chant_channel:
             with db_session:
-                channel = self.session.lm.mds.ChannelMD.get(public_key=self.cid)
+                channel = self.session.lm.mds.ChannelMetadata.get(public_key=self.cid)
                 if channel:
-                    results_local_torrents_channel = map(md2rest, channel.contents_list)
+                    results_local_torrents_channel = map(convert_torrent_metadata_to_tuple, channel.contents_list)
                 else:
                     return ChannelsTorrentsEndpoint.return_404(request)
         else:
@@ -105,7 +96,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
 
         return json.dumps({"torrents": results_json})
 
-
+    @db_session
     def render_PUT(self, request):
         """
         .. http:put:: /channels/discovered/(string: channelid)/torrents
@@ -132,18 +123,22 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
             :statuscode 404: if your channel does not exist.
             :statuscode 500: if the passed torrent data is corrupt.
         """
-
         key = self.session.trustchain_keypair
         my_channel_id = key.pub().key_to_bin()
-        if self.chant_channel:
-            with db_session:
-                if not self.session.lm.mds.ChannelMD.exists(public_key=buffer(my_channel_id)):
-                    return ChannelsTorrentsEndpoint.return_404(request)
+
+        # First check whether the channel actually exists
+        if self.is_chant_channel:
+            if my_channel_id != self.cid:
+                request.setResponseCode(http.NOT_ALLOWED)
+                return json.dumps({"error": "you can only add torrents to your own chant channel"})
+
+            channel = self.session.lm.mds.ChannelMetadata.get_channel_with_id(my_channel_id)
+            if not channel:
+                return ChannelsTorrentsEndpoint.return_404(request)
         else:
             channel = self.get_channel_from_db(self.cid)
             if channel is None:
                 return ChannelsTorrentsEndpoint.return_404(request)
-
 
         parameters = http.parse_qs(request.content.read(), 1)
 
@@ -156,16 +151,25 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         else:
             extra_info = {'description': parameters['description'][0]}
 
-        torrent = base64.b64decode(parameters['torrent'][0])
-        torrent_def = TorrentDef.load_from_memory(torrent)
-        if self.chant_channel:
-            #FIXME: provide correct error handling
-            with db_session:
-                self.session.lm.mds.TorrentMD.from_tdef(key, torrent_def, extra_info)
+        # Try to parse the torrent data
+        try:
+            torrent = base64.b64decode(parameters['torrent'][0])
+            torrent_def = TorrentDef.load_from_memory(torrent)
+        except ValueError as exc:
+            return BaseChannelsEndpoint.return_500(self, request, exc)
+
+        if self.is_chant_channel:
+            try:
+                torrent_path = os.path.join(self.session.lm.mds.channels_dir, channel.dir_name + ".torrent")
+                old_infohash, new_infohash = channel.add_torrent_to_channel(
+                    key, torrent_def, extra_info, self.session.lm.mds.channels_dir)
+                self.session.lm.updated_my_channel(old_infohash, new_infohash, torrent_path)
+            except DuplicateTorrentFileError as exc:
+                return BaseChannelsEndpoint.return_500(self, request, exc)
         else:
             try:
                 self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
-            except (DuplicateTorrentFileError, ValueError, HttpError) as ex:
+            except (DuplicateTorrentFileError, HttpError) as ex:
                 return BaseChannelsEndpoint.return_500(self, request, ex)
 
         return json.dumps({"added": True})
@@ -181,8 +185,9 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
         self.cid = cid
         self.path = path
         self.deferred = Deferred()
-        self.chant_channel = (len(cid) == 74)
+        self.is_chant_channel = (len(cid) == 74)
 
+    @db_session
     def render_PUT(self, request):
         """
         .. http:put:: /channels/discovered/(string: channelid)/torrents/http%3A%2F%2Ftest.com%2Ftest.torrent
@@ -208,9 +213,14 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
             :statuscode 404: if your channel does not exist.
             :statuscode 500: if the specified torrent is already in your channel.
         """
-        #FIXME: make it work for any chant channel, not just our own
-        if self.chant_channel:
-            channel = self.session.trustchain_keypair.pub().key_to_bin() == self.cid
+        my_key = self.session.trustchain_keypair
+        my_channel_id = my_key.pub().key_to_bin()
+
+        if self.is_chant_channel:
+            if my_channel_id != self.cid:
+                request.setResponseCode(http.NOT_ALLOWED)
+                return json.dumps({"error": "you can only add torrents to your own chant channel"})
+            channel = self.session.lm.mds.ChannelMetadata.get_channel_with_id(my_channel_id)
         else:
             channel = self.get_channel_from_db(self.cid)
 
@@ -231,9 +241,16 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
             return TorrentDef.load_from_dict(meta_info)
 
         def _on_torrent_def_loaded(torrent_def):
-            if self.chant_channel:
-                self.session.lm.mds.TorrentMD.from_tdef(self.session.trustchain_keypair, torrent_def, extra_info)
+            if self.is_chant_channel:
+                # We have to get my channel again since we are in a different database session now
+                with db_session:
+                    channel = self.session.lm.mds.ChannelMetadata.get_channel_with_id(my_channel_id)
+                    torrent_path = os.path.join(self.session.lm.mds.channels_dir, channel.dir_name + ".torrent")
+                    old_infohash, new_infohash = channel.add_torrent_to_channel(
+                        my_key, torrent_def, extra_info, self.session.lm.mds.channels_dir)
+                    self.session.lm.updated_my_channel(old_infohash, new_infohash, torrent_path)
             else:
+                channel = self.get_channel_from_db(self.cid)
                 self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
             return self.path
 
@@ -269,6 +286,7 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
         self.deferred.addErrback(_on_add_failed)
         return NOT_DONE_YET
 
+    @db_session
     def render_DELETE(self, request):
         """
         .. http:delete:: /channels/discovered/(string: channelid)/torrents/(string: comma separated torrent infohashes)
@@ -298,49 +316,59 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
 
             :statuscode 404: if the channel is not found
         """
-        if self.chant_channel:
+        if self.is_chant_channel:
+            my_key = self.session.trustchain_keypair
+            my_channel_id = my_key.pub().key_to_bin()
             failed_torrents = []
+
+            if my_channel_id != self.cid:
+                request.setResponseCode(http.NOT_ALLOWED)
+                return json.dumps({"error": "you can only add torrents to your own chant channel"})
+
+            my_channel = self.session.lm.mds.ChannelMetadata.get_channel_with_id(my_channel_id)
+            if not my_channel:
+                return ChannelsTorrentsEndpoint.return_404(request)
+
             with db_session:
-                if not self.session.lm.mds.ChannelMD.get(public_key=self.cid):
-                    return ChannelsTorrentsEndpoint.return_404(request)
                 for torrent_path in self.path.split(","):
-                    md = self.session.lm.mds.TorrentMD.get(public_key=self.cid, infohash=torrent_path.decode('hex'))
-                    #TODO: add error handling for .get
-                    if md is None:
+                    torrent_metadata = self.session.lm.mds.TorrentMetadata.get(
+                        public_key=self.cid, infohash=torrent_path.decode('hex'))
+                    if torrent_metadata is None:
                         failed_torrents.append(torrent_path)
                     else:
-                        # Create the 'deleted' entry to put later in the torrent of the updated channel
-                        d = self.session.lm.mds.DeletedMD(delete_signature=md.signature, public_key=md.public_key)
-                        d.sign(self.session.trustchain_keypair)
-                        md.delete()
+                        old_infohash, new_infohash = my_channel.delete_torrent_from_channel(
+                            my_key, torrent_path.decode('hex'), self.session.lm.mds.channels_dir)
+                        new_torrent_path = os.path.join(self.session.lm.mds.channels_dir,
+                                                        my_channel.dir_name + ".torrent")
+                        self.session.lm.updated_my_channel(old_infohash, new_infohash, new_torrent_path)
 
             if failed_torrents:
                 return json.dumps({"removed": False, "failed_torrents": failed_torrents})
             return json.dumps({"removed": True})
+        else:
+            channel_info = self.get_channel_from_db(self.cid)
+            if channel_info is None:
+                return ChannelsTorrentsEndpoint.return_404(request)
 
-        channel_info = self.get_channel_from_db(self.cid)
-        if channel_info is None:
-            return ChannelsTorrentsEndpoint.return_404(request)
+            channel_community = self.get_community_for_channel_id(channel_info[0])
+            if channel_community is None:
+                return BaseChannelsEndpoint.return_404(request, message=UNKNOWN_COMMUNITY_MSG)
 
-        channel_community = self.get_community_for_channel_id(channel_info[0])
-        if channel_community is None:
-            return BaseChannelsEndpoint.return_404(request, message=UNKNOWN_COMMUNITY_MSG)
+            torrent_db_columns = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
+                                  'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.dispersy_id']
 
-        torrent_db_columns = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
-                              'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.dispersy_id']
+            failed_torrents = []
+            for torrent_path in self.path.split(","):
+                torrent_info = self.channel_db_handler.getTorrentFromChannelId(channel_info[0],
+                                                                               torrent_path.decode('hex'),
+                                                                               torrent_db_columns)
+                if torrent_info is None:
+                    failed_torrents.append(torrent_path)
+                else:
+                    # the 8th index is the dispersy id of the channel torrent
+                    channel_community.remove_torrents([torrent_info[8]])
 
-        failed_torrents = []
-        for torrent_path in self.path.split(","):
-            torrent_info = self.channel_db_handler.getTorrentFromChannelId(channel_info[0],
-                                                                           torrent_path.decode('hex'),
-                                                                           torrent_db_columns)
-            if torrent_info is None:
-                failed_torrents.append(torrent_path)
-            else:
-                # the 8th index is the dispersy id of the channel torrent
-                channel_community.remove_torrents([torrent_info[8]])
+            if failed_torrents:
+                return json.dumps({"removed": False, "failed_torrents": failed_torrents})
 
-        if failed_torrents:
-            return json.dumps({"removed": False, "failed_torrents": failed_torrents})
-
-        return json.dumps({"removed": True})
+            return json.dumps({"removed": True})

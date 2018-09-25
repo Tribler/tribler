@@ -125,27 +125,19 @@ class TriblerConfig(object):
         self.config['chant']['enabled'] = bool(value)
 
     def get_chant_enabled(self):
-        return self.config['chant'].as_bool('enabled')
-
-    def set_chant_db_filename(self, chant_db_filename):
-        self.config['chant']['db_filename'] = chant_db_filename
-
-    def get_chant_db_filename(self):
-        path = self.config['chant']['db_filename']
-        return path if os.path.isabs(path) else os.path.join(self.get_state_dir(), path)
+        return self.config['chant']['enabled']
 
     def set_chant_channels_dir(self, chant_db_filename):
         self.config['chant']['channels_dir'] = chant_db_filename
 
     def get_chant_channels_dir(self):
-        path = self.config['chant']['channels_dir']
-        return path if os.path.isabs(path) else os.path.join(self.get_state_dir(), path)
+        return self.config['chant']['channels_dir']
 
     def set_chant_channel_edit(self, value):
         self.config['chant']['channel_edit'] = bool(value)
 
     def get_chant_channel_edit(self):
-        return self.config['chant'].as_bool('channel_edit')
+        return self.config['chant']['channel_edit']
 
     # General
     def set_family_filter_enabled(self, value):
