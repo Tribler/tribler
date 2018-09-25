@@ -7,6 +7,7 @@ import binascii
 import logging
 import os
 import sys
+import time
 import time as timemod
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
@@ -59,6 +60,7 @@ class TriblerLaunchMany(TaskManager):
         self.registered = False
         self.dispersy = None
         self.ipv8 = None
+        self.ipv8_start_time = 0
         self.state_cb_count = 0
         self.previous_active_downloads = []
         self.download_states_lc = None
@@ -323,6 +325,11 @@ class TriblerLaunchMany(TaskManager):
 
             self.popularity_community.start()
 
+    def enable_ipv8_statistics(self):
+        if self.session.config.get_ipv8_statistics():
+            for overlay in self.ipv8.overlays:
+                self.ipv8.endpoint.enable_community_statistics(overlay.get_prefix(), True)
+
     @blocking_call_on_reactor_thread
     def load_dispersy_communities(self):
         self._logger.info("tribler: Preparing Dispersy communities...")
@@ -420,7 +427,9 @@ class TriblerLaunchMany(TaskManager):
             self.wallets[dummy_wallet2.get_identifier()] = dummy_wallet2
 
         if self.ipv8:
+            self.ipv8_start_time = time.time()
             self.load_ipv8_overlays()
+            self.enable_ipv8_statistics()
 
         if self.dispersy:
             self.load_dispersy_communities()
