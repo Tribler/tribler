@@ -1,8 +1,8 @@
-from datetime import datetime
 import hashlib
 import os
 import re
 import sys
+from datetime import datetime, timedelta
 from urllib import quote_plus
 
 import TriblerGUI
@@ -87,7 +87,7 @@ def pretty_date(time=False):
     elif isinstance(time, datetime):
         diff = now - time
     elif not time:
-        diff = now - now
+        diff = timedelta(0)
     second_diff = diff.seconds
     day_diff = diff.days
 
