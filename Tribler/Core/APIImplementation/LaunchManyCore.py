@@ -248,9 +248,9 @@ class TriblerLaunchMany(TaskManager):
             self.ipv8.strategies.append((RandomWalk(discovery_community), 20))
 
         if self.session.config.get_testnet():
-            peer = Peer(self.session.trustchain_keypair)
-        else:
             peer = Peer(self.session.trustchain_testnet_keypair)
+        else:
+            peer = Peer(self.session.trustchain_keypair)
 
         # TrustChain Community
         if self.session.config.get_trustchain_enabled():
@@ -271,8 +271,7 @@ class TriblerLaunchMany(TaskManager):
         if self.session.config.get_dht_enabled():
             from Tribler.pyipv8.ipv8.dht.discovery import DHTDiscoveryCommunity
 
-            dht_peer = Peer(self.session.trustchain_keypair)
-            self.dht_community = DHTDiscoveryCommunity(dht_peer, self.ipv8.endpoint, self.ipv8.network)
+            self.dht_community = DHTDiscoveryCommunity(peer, self.ipv8.endpoint, self.ipv8.network)
             self.ipv8.overlays.append(self.dht_community)
             self.ipv8.strategies.append((RandomWalk(self.dht_community), 20))
 
