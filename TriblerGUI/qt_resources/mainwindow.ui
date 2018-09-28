@@ -1050,7 +1050,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>7</number>
+         <number>4</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -5076,8 +5076,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>300</width>
-               <height>584</height>
+               <width>661</width>
+               <height>650</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -6328,11 +6328,17 @@ High anonymity</string>
                   </item>
                   <item>
                    <widget class="QSlider" name="number_hops_slider">
+                    <property name="styleSheet">
+                     <string notr="true"/>
+                    </property>
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
                     <property name="maximum">
-                     <number>2</number>
+                     <number>3</number>
                     </property>
                     <property name="value">
-                     <number>2</number>
+                     <number>1</number>
                     </property>
                     <property name="orientation">
                      <enum>Qt::Horizontal</enum>
@@ -6342,6 +6348,19 @@ High anonymity</string>
                     </property>
                     <property name="tickInterval">
                      <number>1</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="anonymity_costs_label">
+                    <property name="text">
+                     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download with &lt;span style=&quot; font-weight:600;&quot;&gt;1&lt;/span&gt; hop(s) of anonymity. When you download a file of 200 Megabyte, you will pay &lt;span style=&quot; font-weight:600;&quot;&gt;200&lt;/span&gt; Megabyte of bandwidth tokens.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                    </property>
+                    <property name="textFormat">
+                     <enum>Qt::RichText</enum>
+                    </property>
+                    <property name="wordWrap">
+                     <bool>true</bool>
                     </property>
                    </widget>
                   </item>
@@ -8059,9 +8078,6 @@ padding-left: 2px;</string>
                    <property name="contextMenuPolicy">
                     <enum>Qt::CustomContextMenu</enum>
                    </property>
-                   <property name="selectionMode">
-                    <enum>QAbstractItemView::ExtendedSelection</enum>
-                   </property>
                    <property name="styleSheet">
                     <string notr="true">QTreeWidget {
     border: none;
@@ -8099,6 +8115,9 @@ padding-left: 2px;</string>
                    </property>
                    <property name="alternatingRowColors">
                     <bool>false</bool>
+                   </property>
+                   <property name="selectionMode">
+                    <enum>QAbstractItemView::ExtendedSelection</enum>
                    </property>
                    <property name="verticalScrollMode">
                     <enum>QAbstractItemView::ScrollPerPixel</enum>
@@ -8237,8 +8256,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>673</width>
-                       <height>335</height>
+                       <width>131</width>
+                       <height>260</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -10113,7 +10132,7 @@ font-size: 12px;
 </string>
             </property>
             <property name="text">
-             <string>Before trading, please create an asset wallet first. Click here to open wallet management.</string>
+             <string>Before trading, please make sure there are two available wallets. Click here to open wallet management.</string>
             </property>
            </widget>
           </item>

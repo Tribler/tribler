@@ -158,12 +158,12 @@ class StartDownloadDialog(DialogContainer):
         if len(chosen_dir) != 0:
             self.dialog_widget.destination_input.setCurrentText(chosen_dir)
 
-        if not is_dir_writable(chosen_dir):
-            ConfirmationDialog.show_message(self.dialog_widget, "Insufficient Permissions",
-                                            "Tribler cannot download to <i>%s</i> directory. "
-                                            "Please add proper write permissions to the directory "
-                                            "or choose another download directory." % chosen_dir,
-                                            "OK")
+        is_writable, error = is_dir_writable(chosen_dir)
+        if not is_writable:
+            gui_error_message = "Tribler cannot download to <i>%s</i> directory. Please add proper write " \
+                                "permissions to the directory or choose another download directory. [%s]" \
+                                % (chosen_dir, error)
+            ConfirmationDialog.show_message(self.dialog_widget, "Insufficient Permissions", gui_error_message, "OK")
 
     def on_anon_download_state_changed(self, _):
         if self.dialog_widget.anon_download_checkbox.isChecked():
@@ -176,12 +176,12 @@ class StartDownloadDialog(DialogContainer):
                                           "Please select at least one file to download.")
         else:
             download_dir = self.dialog_widget.destination_input.currentText()
-            if not is_dir_writable(download_dir):
-                ConfirmationDialog.show_message(self.dialog_widget, "Insufficient Permissions",
-                                                "Tribler cannot download to <i>%s</i> directory. "
-                                                "Please add proper write permissions to the directory "
-                                                "or choose another download directory and try to download again." %
-                                                download_dir, "OK")
+            is_writable, error = is_dir_writable(download_dir)
+            if not is_writable:
+                gui_error_message = "Tribler cannot download to <i>%s</i> directory. Please add proper write " \
+                                    "permissions to the directory or choose another download directory and try " \
+                                    "to download again. [%s]" % (download_dir, error)
+                ConfirmationDialog.show_message(self.dialog_widget, "Insufficient Permissions", gui_error_message, "OK")
             else:
                 self.button_clicked.emit(1)
 

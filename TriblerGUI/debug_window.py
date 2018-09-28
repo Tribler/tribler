@@ -275,6 +275,8 @@ class DebugWindow(QMainWindow):
             return
         self.window().ipv8_general_tree_widget.clear()
         for key, value in data["ipv8_statistics"].iteritems():
+            if key == 'total_up' or key == 'total_down':
+                value = "%.2f MB" % (value / (1024.0 * 1024.0))
             self.create_and_add_widget_item(key, value, self.window().ipv8_general_tree_widget)
 
     def load_ipv8_communities_tab(self):
@@ -288,8 +290,8 @@ class DebugWindow(QMainWindow):
         for overlay in data["ipv8_overlay_statistics"]:
             item = QTreeWidgetItem(self.window().communities_tree_widget)
             item.setText(0, overlay["overlay_name"])
-            item.setText(1, overlay["master_peer"][:6])
-            item.setText(2, overlay["my_peer"][:6])
+            item.setText(1, overlay["master_peer"][-6:])
+            item.setText(2, overlay["my_peer"][-6:])
             item.setText(3, "%s" % len(overlay["peers"]))
             self.window().communities_tree_widget.addTopLevelItem(item)
 

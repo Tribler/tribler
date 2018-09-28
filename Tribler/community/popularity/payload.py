@@ -5,16 +5,17 @@ from Tribler.pyipv8.ipv8.deprecated.payload import Payload
 
 
 def encode_values(values):
-    return ''.join([pack('!H', len(value)) + str(value) for value in values])
+    encoded_list = [value.encode('utf-8') for value in values]
+    return ''.join([pack('!H', len(encoded)) + encoded for encoded in encoded_list])
 
 
 def decode_values(values_str):
     values = []
     index = 0
     while index < len(values_str):
-        length = unpack_from('!H', values_str)[0]
+        length = unpack_from('!H', values_str[index:])[0]
         index += calcsize('!H')
-        values.append(values_str[index:index + length])
+        values.append(values_str[index:index + length].decode('utf-8'))
         index += length
     return values
 

@@ -64,7 +64,6 @@ class TransactionIdTestSuite(unittest.TestCase):
     def test_equality(self):
         # Test for equality
         self.assertTrue(self.transaction_id == self.transaction_id2)
-        self.assertTrue(self.transaction_id == self.transaction_id)
         self.assertTrue(self.transaction_id != self.transaction_id3)
         self.assertFalse(self.transaction_id == 6)
 
