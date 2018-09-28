@@ -143,6 +143,7 @@ INSERT OR IGNORE INTO MetaDataTypes ('name') VALUES ('video-info');
 DROP INDEX IF EXISTS Torrent_swift_hash_idx;
 
 DROP VIEW IF EXISTS Friend;
+DROP VIEW IF EXISTS SuperPeer;
 
 ALTER TABLE Peer RENAME TO __Peer_tmp;
 CREATE TABLE IF NOT EXISTS Peer (
@@ -305,8 +306,10 @@ CREATE TABLE IF NOT EXISTS _tmp_Torrent (
                 self.status_update_func(u"All updated torrent entries inserted.")
 
                 self.db.execute(u"""
+DROP VIEW IF EXISTS CollectedTorrent;
 DROP TABLE IF EXISTS Torrent;
 ALTER TABLE _tmp_Torrent RENAME TO Torrent;
+CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE torrent_file_name IS NOT NULL;
 """)
 
         # cleanup metadata tables
@@ -418,10 +421,10 @@ SELECT torrent_id, infohash, name, length, creation_date, num_files, insert_time
 status_id, num_seeders, num_leechers, comment, dispersy_id, CAST(torrent_file_name AS INTEGER),
 last_tracker_check, tracker_check_retries, next_tracker_check FROM Torrent;
 
+DROP VIEW IF EXISTS CollectedTorrent;
 DROP TABLE Torrent;
 ALTER TABLE _tmp_Torrent RENAME TO Torrent;
 
-DROP VIEW IF EXISTS CollectedTorrent;
 CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE is_collected == 1;
 """)
 
@@ -464,8 +467,10 @@ FROM Torrent AS T
 LEFT JOIN Category AS C ON T.category_id == C.category_id
 LEFT JOIN TorrentStatus AS TS ON T.status_id == TS.status_id;
 
+DROP VIEW IF EXISTS CollectedTorrent;
 DROP TABLE Torrent;
 ALTER TABLE _tmp_Torrent RENAME TO Torrent;
+CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE is_collected == 1;
 
 DROP TABLE Category;
 DROP TABLE TorrentStatus;
