@@ -23,7 +23,7 @@ class PayoutPayload(HalfBlockPayload):
             block.previous_hash,
             block.signature,
             block.type,
-            block.transaction,
+            block._transaction,
             block.timestamp,
             circuit_id,
             base_amount
@@ -62,7 +62,7 @@ class BalanceResponsePayload(HalfBlockPayload):
             block.previous_hash,
             block.signature,
             block.type,
-            block.transaction,
+            block._transaction,
             block.timestamp
         )
 
