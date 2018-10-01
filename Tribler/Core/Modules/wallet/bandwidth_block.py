@@ -1,5 +1,6 @@
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock, EMPTY_SIG, ValidationResult,\
     GENESIS_SEQ, GENESIS_HASH
+from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode
 
 
 class TriblerBandwidthBlock(TrustChainBlock):
@@ -47,8 +48,10 @@ class TriblerBandwidthBlock(TrustChainBlock):
             ret.sequence_number = latest_block.sequence_number + 1
             ret.previous_hash = latest_block.hash
 
+        ret._transaction = encode(ret.transaction)
         ret.public_key = public_key
         ret.signature = EMPTY_SIG
+        ret.hash = ret.calculate_hash()
 
         return ret
 

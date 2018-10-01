@@ -6,6 +6,7 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
+from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 
@@ -46,9 +47,11 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         block.link_sequence_number = 21
         block.type = 'tribler_bandwidth'
         block.transaction = {"up": 42, "down": 8, "total_up": 1024, "total_down": 2048, "type": "tribler_bandwidth"}
+        block._transaction = encode(block.transaction)
         block.sequence_number = 3
         block.previous_hash = "babecafe".decode("HEX")
         block.signature = "babebeef".decode("HEX")
+        block.hash = block.calculate_hash()
         self.session.lm.trustchain_community.persistence.add_block(block)
 
         def verify_response(response):
@@ -118,7 +121,9 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         test_block = TrustChainBlock()
         test_block.type = 'tribler_bandwidth'
         test_block.transaction = transaction
+        test_block._transaction = encode(transaction)
         test_block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+        test_block.hash = test_block.calculate_hash()
         self.session.lm.trustchain_community.persistence.add_block(test_block)
 
         self.should_check_equality = False
@@ -139,7 +144,9 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         test_block = TrustChainBlock()
         test_block.type = 'tribler_bandwidth'
         test_block.transaction = transaction
+        test_block._transaction = encode(transaction)
         test_block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+        test_block.hash = test_block.calculate_hash()
         self.session.lm.trustchain_community.persistence.add_block(test_block)
 
         self.should_check_equality = False
@@ -154,7 +161,9 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         test_block = TrustChainBlock()
         test_block.type = 'tribler_bandwidth'
         test_block.transaction = transaction
+        test_block._transaction = encode(transaction)
         test_block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+        test_block.hash = test_block.calculate_hash()
         self.session.lm.trustchain_community.persistence.add_block(test_block)
 
         self.should_check_equality = False
@@ -169,7 +178,9 @@ class TestTrustchainStatsEndpoint(AbstractApiTest):
         test_block = TrustChainBlock()
         test_block.type = 'tribler_bandwidth'
         test_block.transaction = transaction
+        test_block._transaction = encode(transaction)
         test_block.public_key = self.session.lm.trustchain_community.my_peer.public_key.key_to_bin()
+        test_block.hash = test_block.calculate_hash()
         self.session.lm.trustchain_community.persistence.add_block(test_block)
 
         self.should_check_equality = False
