@@ -6,7 +6,6 @@ from Tribler.community.triblertunnel.caches import BalanceRequestCache
 from Tribler.community.triblertunnel.payload import PayoutPayload, BalanceRequestPayload, BalanceResponsePayload
 from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import EMPTY_PK
-from Tribler.pyipv8.ipv8.deprecated.payload_headers import GlobalTimeDistributionPayload
 from Tribler.pyipv8.ipv8.messaging.anonymization.caches import ExtendRequestCache
 from twisted.internet.defer import inlineCallbacks, succeed, Deferred
 
@@ -14,7 +13,6 @@ from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_IP_RECREATE, NTFY_REMOVE, NTFY_EXTENDED, NTFY_CREATED,\
     NTFY_JOINED, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED
 from Tribler.Core.Socks5.server import Socks5Server
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from Tribler.pyipv8.ipv8.messaging.anonymization.community import message_to_payload, SINGLE_HOP_ENC_PACKETS
 from Tribler.pyipv8.ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
 from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload
@@ -29,10 +27,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     This community is built upon the anonymous messaging layer in IPv8.
     It adds support for libtorrent anonymous downloads and bandwidth token payout when closing circuits.
     """
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000405d21a70973974a672d5141e9b17ae19b74bcd7c"
-                       "53202b6a8c10bf0e02d9db6ba991af9d9e45be95a647a446b60a3b429295cb25379b9c775c18da21a091197ef65d"
-                       "a894edad3ffc040b75c85e84a193cfd4ba547c9ae2b5b24945f2431cdbb3ce14a91db24733ec41171ab2a848a584"
-                       "ebd33ff78bc951f1866d72fe3d91691d870cb347b434fe7c98dbcb26559366d6".decode('hex'))
+    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000400965194026c987edad7c5c0364a95dfa4e961e"
+                       "ec6d1711678be182a31824363db3a54caa11e9b6f1d6051c2f33578b51c12eff3833b7c74c5a243b8705e4e032b"
+                       "14904f4d8855e2044c0408a5729cd4e5b286fec66866811d5439049448e5b8b818d8c29a84a074a13f5e7e414d4"
+                       "e5b1b115a221fe697b89bd3e63c7aecd7617f789a203a4eacf680279224b390e836".decode('hex'))
 
     def __init__(self, *args, **kwargs):
         self.tribler_session = kwargs.pop('tribler_session', None)
@@ -552,7 +550,7 @@ class TriblerTunnelTestnetCommunity(TriblerTunnelCommunity):
     """
     This community defines a testnet for the anonymous tunnels.
     """
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b810400270381920004002831990fc973aaf5a8f5bd401f8771fd411d763"
-                       "0ccc4a61c4147a1200135023a2397006e0acb215783cc0245bbc69ebe66abdd13f1fa3434c630604ef2c0d99e5f98"
-                       "727e75ae7901529ba5a2dd875bab582f3f508aa7b675c9d9bd7fd6c2e2684c7fc71b72f007e080634cecf007b718f"
-                       "5cf24d24821cd08feb30d3f3059c7702615ea6f8b23823415bd1673c406e1".decode('hex'))
+    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000401325e6f0a67a92a890344013914fcf9da9b0326"
+                       "bf6c845815ec8b537e356a56b2a8c27ac4918078202f60eb29ebf081436136c280316ac461daee2d04cf073d1200"
+                       "80d15628af1002b0c0273d9d94fdab08e718f568d83b9c4298117261b5647ca8295f1ba4b880a50fd2ef7041fef7"
+                       "edfbef5f02fc03827a2c09c5f9c701f87abacd022c780d76733c133363a5c46c".decode('hex'))
