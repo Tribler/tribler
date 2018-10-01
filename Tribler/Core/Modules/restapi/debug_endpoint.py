@@ -528,7 +528,9 @@ class DebugProfilerEndpoint(resource.Resource):
                     "state": "STARTED"
                 }
         """
-        return json.dumps({"state": "STARTED" if self.session.lm.resource_monitor.profiler_running else "STOPPED"})
+        monitor_enabled = self.session.config.get_resource_monitor_enabled()
+        state = "STARTED" if (monitor_enabled and self.session.lm.resource_monitor.profiler_running) else "STOPPED"
+        return json.dumps({"state": state})
 
     def render_PUT(self, request):
         """
