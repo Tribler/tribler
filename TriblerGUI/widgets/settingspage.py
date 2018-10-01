@@ -275,6 +275,7 @@ class SettingsPage(QWidget):
         self.window().slider_cpu_level.setValue(cpu_priority)
         self.window().cpu_priority_value.setText("Current Priority = %s" % cpu_priority)
         self.window().slider_cpu_level.valueChanged.connect(self.show_updated_cpu_priority)
+        self.window().checkbox_enable_network_statistics.setChecked(settings['ipv8']['statistics'])
 
     def update_anonymity_cost_label(self, value):
         html_text = """<html><head/><body><p>Download with <b>%d</b> hop(s) of anonymity. 
@@ -322,7 +323,8 @@ class SettingsPage(QWidget):
     def save_settings(self):
         # Create a dictionary with all available settings
         settings_data = {'general': {}, 'Tribler': {}, 'download_defaults': {}, 'libtorrent': {}, 'watch_folder': {},
-                         'tunnel_community': {}, 'trustchain': {}, 'credit_mining': {}, 'resource_monitor': {}}
+                         'tunnel_community': {}, 'trustchain': {}, 'credit_mining': {}, 'resource_monitor': {},
+                         'ipv8': {}}
         settings_data['general']['family_filter'] = self.window().family_filter_checkbox.isChecked()
         settings_data['download_defaults']['saveas'] = self.window().download_location_input.text().encode('utf-8')
         settings_data['general']['log_dir'] = self.window().log_location_input.text()
@@ -421,6 +423,9 @@ class SettingsPage(QWidget):
 
         settings_data['resource_monitor']['enabled'] = self.window().checkbox_enable_resource_log.isChecked()
         settings_data['resource_monitor']['cpu_priority'] = int(self.window().slider_cpu_level.value())
+
+        # network statistics
+        settings_data['ipv8']['statistics'] = self.window().checkbox_enable_network_statistics.isChecked()
 
         self.window().settings_save_button.setEnabled(False)
 

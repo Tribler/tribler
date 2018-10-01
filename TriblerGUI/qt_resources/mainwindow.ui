@@ -6742,6 +6742,30 @@ color: white;</string>
                     </property>
                    </widget>
                   </item>
+                  <item row="9" column="0">
+                   <widget class="QLabel" name="label_90">
+                    <property name="styleSheet">
+                     <string notr="true">font-weight: bold;color: white;</string>
+                    </property>
+                    <property name="text">
+                     <string>Network (IPv8) Statistics</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="10" column="0" colspan="2">
+                   <widget class="QCheckBox" name="checkbox_enable_network_statistics">
+                    <property name="text">
+                     <string>Enable network statistics (requires restart)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="11" column="0">
+                   <widget class="QLabel" name="network_statistics_warning">
+                    <property name="text">
+                     <string>Note: Enabling statistics slightly slows down Tribler</string>
+                    </property>
+                   </widget>
+                  </item>
                  </layout>
                 </widget>
                </widget>
