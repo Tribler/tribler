@@ -204,7 +204,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             relay = self.relay_from_to[payload.circuit_id]
             circuit_peer = self.get_peer_from_address(relay.peer.address)
             if not circuit_peer:
-                self.logger.warning("%s Unable to find next peer %s for payout!", self.my_peer, relay.mid.encode('hex'))
+                self.logger.warning("%s Unable to find next peer %s for payout!", self.my_peer, relay.peer)
                 return
 
             self.do_payout(circuit_peer, relay.circuit_id, block.transaction['down'] - payload.base_amount * 2,
