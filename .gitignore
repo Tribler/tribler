@@ -80,3 +80,6 @@ annotations.txt
 
 # Screenshots taken by GUI tests
 TriblerGUI/screenshots
+
+# Tests output directory
+Tribler/Test/temp
