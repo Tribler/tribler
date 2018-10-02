@@ -41,6 +41,11 @@ live_edges_enabled = boolean(default=True)
 bitcoinlib_enabled = boolean(default=True)
 dummy_wallets_enabled = boolean(default=False)
 
+[chant]
+enabled = boolean(default=True)
+channel_edit = boolean(default=False)
+channels_dir = string(default='channels')
+
 [metadata]
 enabled = boolean(default=True)
 store_dir = string(default=collected_metadata)
@@ -87,6 +92,7 @@ saveas = string(default=None)
 seeding_mode = string(default='ratio')
 seeding_ratio = float(default=2.0)
 seeding_time = float(default=60)
+channel_download = boolean(default=False)
 
 [dispersy]
 enabled = boolean(default=True)

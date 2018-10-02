@@ -2,11 +2,13 @@ import os
 from binascii import hexlify
 from urllib import pathname2url
 
+from pony.orm import db_session
 from twisted.internet.defer import fail
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.DownloadState import DownloadState
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import EMPTY_SIG
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.common import UBUNTU_1504_INFOHASH, TESTS_DATA_DIR
@@ -550,3 +552,52 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
         return self.do_request('downloads/%s' % infohash, post_data={"remove_data": True}, expected_code=500,
                                expected_json={u'error': {u'message': u'', u'code': u'RuntimeError', u'handled': True}},
                                request_type='DELETE')
+
+
+class TestMetadataDownloadEndpoint(AbstractApiTest):
+
+    def setUpPreSession(self):
+        super(TestMetadataDownloadEndpoint, self).setUpPreSession()
+        self.config.set_libtorrent_enabled(True)
+        self.config.set_chant_enabled(True)
+
+    @trial_timeout(10)
+    def test_add_metadata_download(self):
+        """
+        Test adding a metadata download to the Tribler core
+        """
+        def verify_download(_):
+            self.assertGreaterEqual(len(self.session.get_downloads()), 1)
+
+        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'sample.mdblob'), 'metadata_download': '1'}
+        expected_json = {'started': True, 'infohash': '31' * 20}
+        return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
+                               expected_json=expected_json).addCallback(verify_download)
+
+    @trial_timeout(10)
+    @db_session
+    def test_add_metadata_download_invalid_sig(self):
+        """
+        Test whether adding metadata with an invalid signature results in an error
+        """
+        my_key = self.session.trustchain_keypair
+        file_path = os.path.join(self.session_base_dir, "invalid.mdblob")
+        with open(file_path, "wb") as out_file:
+            my_channel = self.session.lm.mds.ChannelMetadata.create_channel(my_key, 'test', 'test')
+            my_channel.signature = EMPTY_SIG
+            out_file.write(my_channel.serialized())
+
+        post_data = {'uri': 'file:%s' % file_path, 'metadata_download': '1'}
+        expected_json = {'started': True, 'infohash': '31' * 20}
+        self.should_check_equality = False
+        return self.do_request('downloads', expected_code=500, request_type='PUT', post_data=post_data,
+                               expected_json=expected_json)
+
+    @trial_timeout(10)
+    def test_add_invalid_metadata_download(self):
+        """
+        Test adding an invalid metadata download to the Tribler core
+        """
+        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'notexisting.mdblob'), 'metadata_download': '1'}
+        self.should_check_equality = False
+        return self.do_request('downloads', expected_code=400, request_type='PUT', post_data=post_data)

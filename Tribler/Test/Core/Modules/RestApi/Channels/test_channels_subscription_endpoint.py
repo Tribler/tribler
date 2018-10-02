@@ -1,5 +1,6 @@
 import time
 
+from pony.orm import db_session
 from twisted.internet.defer import succeed, fail, inlineCallbacks
 from twisted.python.failure import Failure
 
@@ -7,7 +8,8 @@ from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE, VOTE_UNSUBSCRIBE
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN_CHANNEL_RESPONSE_MSG
 from Tribler.Core.Modules.restapi.channels.channels_subscription_endpoint import ALREADY_SUBSCRIBED_RESPONSE_MSG, \
     NOT_SUBSCRIBED_RESPONSE_MSG, ChannelsModifySubscriptionEndpoint
-from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
+from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint, \
+    AbstractTestChantEndpoint
 from Tribler.Test.tools import trial_timeout
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
@@ -166,3 +168,43 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         expected_json = {"error": UNKNOWN_CHANNEL_RESPONSE_MSG}
         return self.do_request('channels/subscribed/deadbeef', expected_code=404, expected_json=expected_json,
                                request_type='GET')
+
+
+class TestChannelsSubscriptionChantEndpoint(AbstractTestChantEndpoint):
+
+    @trial_timeout(10)
+    def test_subscribe(self):
+        """
+        Test subscribing to a (random) chant channel with the API
+        """
+        random_channel = self.add_random_channel()
+        random_channel_id = str(random_channel.public_key).encode('hex')
+
+        def verify_response(_):
+            updated_channel = self.session.lm.mds.ChannelMetadata.get_channel_with_id(random_channel.public_key)
+            self.assertTrue(updated_channel.subscribed)
+
+        self.should_check_equality = False
+        return self.do_request('channels/subscribed/%s' % random_channel_id, expected_code=200, request_type='PUT')\
+            .addCallback(verify_response)
+
+    @trial_timeout(10)
+    def test_subscribe_twice(self):
+        """
+        Test whether an error is raised when subscribing to a channel we are already subscribed to
+        """
+        with db_session:
+            random_channel = self.add_random_channel()
+            random_channel.subscribed = True
+            random_channel_id = str(random_channel.public_key).encode('hex')
+
+        self.should_check_equality = False
+        return self.do_request('channels/subscribed/%s' % random_channel_id, expected_code=409, request_type='PUT')
+
+    @trial_timeout(10)
+    def test_subscribe_unknown_channel(self):
+        """
+        Test whether an error is raised when subscribing to an unknown channel
+        """
+        self.should_check_equality = False
+        return self.do_request('channels/subscribed/aaaa', expected_code=404, request_type='PUT')

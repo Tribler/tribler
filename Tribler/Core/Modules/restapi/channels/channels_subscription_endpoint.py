@@ -1,5 +1,6 @@
 from twisted.web import http
 from twisted.web.server import NOT_DONE_YET
+from pony.orm import db_session
 
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE, VOTE_UNSUBSCRIBE
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
@@ -8,6 +9,7 @@ import Tribler.Core.Utilities.json_util as json
 
 ALREADY_SUBSCRIBED_RESPONSE_MSG = "you are already subscribed to this channel"
 NOT_SUBSCRIBED_RESPONSE_MSG = "you are not subscribed to this channel"
+CHANNEL_NOT_FOUND = "this channel is not found"
 
 
 class ChannelsSubscribedEndpoint(BaseChannelsEndpoint):
@@ -117,6 +119,21 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
             :statuscode 409: (conflict) if you are already subscribed to the specified channel.
         """
         request.setHeader('Content-Type', 'text/json')
+
+        if self.session.config.get_chant_channel_edit():
+            with db_session:
+                channel = self.session.lm.mds.ChannelMetadata.get(public_key=buffer(self.cid))
+                if not channel:
+                    request.setResponseCode(http.NOT_FOUND)
+                    return json.dumps({"error": CHANNEL_NOT_FOUND})
+
+                if channel.subscribed:
+                    request.setResponseCode(http.CONFLICT)
+                    return json.dumps({"error": ALREADY_SUBSCRIBED_RESPONSE_MSG})
+                channel.subscribed = True
+
+            return json.dumps({"subscribed": True})
+
         channel_info = self.get_channel_from_db(self.cid)
 
         if channel_info is not None and channel_info[7] == VOTE_SUBSCRIBE:

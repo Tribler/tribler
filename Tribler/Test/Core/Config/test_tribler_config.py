@@ -268,6 +268,17 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_bitcoinlib_enabled(False)
         self.assertFalse(self.tribler_config.get_bitcoinlib_enabled())
 
+    def test_get_set_chant_methods(self):
+        """
+        Check whether chant get and set methods are working as expected.
+        """
+        self.tribler_config.set_chant_enabled(False)
+        self.assertFalse(self.tribler_config.get_chant_enabled())
+        self.tribler_config.set_chant_channel_edit(True)
+        self.assertTrue(self.tribler_config.get_chant_channel_edit())
+        self.tribler_config.set_chant_channels_dir('test')
+        self.assertEqual(self.tribler_config.get_chant_channels_dir(), 'test')
+
     def test_get_set_is_matchmaker(self):
         """
         Check whether matchmaker get and set methods are working as expected.
