@@ -48,10 +48,14 @@ class ChannelPage(QWidget):
                                                             channel_info['dispersy_cid'],
                                                             self.received_torrents_in_channel)
 
-        self.get_playlists_in_channel_manager = TriblerRequestManager()
-        self.get_playlists_in_channel_manager.perform_request("channels/discovered/%s/playlists" %
-                                                              channel_info['dispersy_cid'],
-                                                              self.received_playlists_in_channel)
+        if len(channel_info['dispersy_cid']) == 148: # Check-hack for Channel2.0 style address
+            self.loaded_playlists = True
+        else:
+            self.get_playlists_in_channel_manager = TriblerRequestManager()
+            self.get_playlists_in_channel_manager.perform_request("channels/discovered/%s/playlists" %
+                                                                  channel_info['dispersy_cid'],
+                                                                  self.received_playlists_in_channel)
+
 
         # initialize the page about a channel
         self.window().channel_name_label.setText(channel_info['name'])

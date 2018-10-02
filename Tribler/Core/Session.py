@@ -513,6 +513,8 @@ class Session(object):
             yield self.checkpoint_downloads()
             self.lm.shutdown_downloads()
             self.lm.network_shutdown()
+            if self.lm.mds:
+                self.lm.mds.shutdown()
 
             if self.sqlite_db:
                 self.sqlite_db.close()
@@ -717,7 +719,7 @@ class Session(object):
         """
         return self.lm.channel_manager.create_channel(name, description, mode)
 
-    def add_torrent_def_to_channel(self, channel_id, torrent_def, extra_info={}, forward=True):
+    def add_torrent_def_to_channel(self, channel_id, torrent_def, extra_info=None, forward=True):
         """
         Adds a TorrentDef to a Channel.
 
@@ -728,6 +730,7 @@ class Session(object):
          destination policy) to other nodes in the community. This parameter should (almost always)
          be True, its inclusion is mostly to allow certain debugging scenarios
         """
+        extra_info = extra_info or {}
         # Make sure that this new torrent_def is also in collected torrents
         self.lm.rtorrent_handler.save_torrent(torrent_def)
 
