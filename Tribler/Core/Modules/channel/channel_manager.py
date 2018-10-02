@@ -27,7 +27,6 @@ class ChannelManager(TaskManager):
 
         self._channel_list = []
 
-    @blocking_call_on_reactor_thread
     def initialize(self):
         self.dispersy = self.session.get_dispersy_instance()
 
@@ -41,7 +40,6 @@ class ChannelManager(TaskManager):
 
                 self._logger.debug(u"loaded channel '%s', %s", channel_obj.name, hexlify(community.cid))
 
-    @blocking_call_on_reactor_thread
     def shutdown(self):
         self.shutdown_task_manager()
         self._channel_mode_map = None
@@ -53,7 +51,6 @@ class ChannelManager(TaskManager):
         self.dispersy = None
         self.session = None
 
-    @blocking_call_on_reactor_thread
     def create_channel(self, name, description, mode, rss_url=None):
         """
         Creates a new Channel.

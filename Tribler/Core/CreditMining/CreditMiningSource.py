@@ -56,7 +56,6 @@ class ChannelSource(BaseSource):
         self.community = None
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
 
-    @blocking_call_on_reactor_thread
     def start(self):
         super(ChannelSource, self).start()
 

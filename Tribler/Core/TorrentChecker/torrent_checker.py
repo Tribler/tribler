@@ -49,7 +49,6 @@ class TorrentChecker(TaskManager):
         self.socket_mgr = self.udp_port = None
         self.connection_pool = None
 
-    @blocking_call_on_reactor_thread
     def initialize(self):
         self._torrent_db = self.tribler_session.open_dbhandler(NTFY_TORRENTS)
         self._reschedule_tracker_select()
@@ -204,7 +203,6 @@ class TorrentChecker(TaskManager):
 
         return final_response
 
-    @blocking_call_on_reactor_thread
     def add_gui_request(self, infohash, timeout=20, scrape_now=False):
         """
         Public API for adding a GUI request.

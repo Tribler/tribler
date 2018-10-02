@@ -75,7 +75,6 @@ class SQLiteCacheDB(TaskManager):
         """
         return self._connection
 
-    @blocking_call_on_reactor_thread
     def initialize(self):
         """ Initializes the database. If the database doesn't exist, we create a new one. Otherwise, we check the
             version and upgrade to the latest version.
@@ -84,7 +83,6 @@ class SQLiteCacheDB(TaskManager):
         # open a connection to the database
         self._open_connection()
 
-    @blocking_call_on_reactor_thread
     def close(self):
         """
         Cancels all pending tasks and closes all cursors. Then, it closes the connection.
@@ -207,7 +205,6 @@ class SQLiteCacheDB(TaskManager):
                 self._cursor_table[thread_name] = self._connection.cursor()
             return self._cursor_table[thread_name]
 
-    @blocking_call_on_reactor_thread
     def initial_begin(self):
         try:
             self._logger.info(u"Beginning the first transaction...")
@@ -218,7 +215,6 @@ class SQLiteCacheDB(TaskManager):
             raise
         self._should_commit = False
 
-    @blocking_call_on_reactor_thread
     def write_version(self, version):
         assert isinstance(version, int), u"Invalid version type: %s is not int" % type(version)
         assert version <= LATEST_DB_VERSION, u"Invalid version value: %s > the latest %s" % (version, LATEST_DB_VERSION)
@@ -228,7 +224,6 @@ class SQLiteCacheDB(TaskManager):
         self.commit_now()
         self._version = version
 
-    @blocking_call_on_reactor_thread
     def commit_now(self, vacuum=False, exiting=False):
         if self._should_commit and isInIOThread():
             try:
@@ -269,7 +264,6 @@ class SQLiteCacheDB(TaskManager):
 
     # --------- generic functions -------------
 
-    @blocking_call_on_reactor_thread
     def execute(self, sql, args=None):
         cur = self.get_cursor()
 
@@ -294,7 +288,6 @@ class SQLiteCacheDB(TaskManager):
 
             raise msg
 
-    @blocking_call_on_reactor_thread
     def executemany(self, sql, args=None):
         self._should_commit = True
 
@@ -388,7 +381,6 @@ class SQLiteCacheDB(TaskManager):
         result = self.fetchone(num_rec_sql)
         return result
 
-    @blocking_call_on_reactor_thread
     def fetchone(self, sql, args=None):
         find = self.execute_read(sql, args)
         if not find:
@@ -407,7 +399,6 @@ class SQLiteCacheDB(TaskManager):
         else:
             return find[0]
 
-    @blocking_call_on_reactor_thread
     def fetchall(self, sql, args=None):
         res = self.execute_read(sql, args)
         if res is not None:

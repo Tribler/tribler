@@ -41,7 +41,6 @@ class ChannelRssParser(TaskManager):
 
         self.running = False
 
-    @blocking_call_on_reactor_thread
     def initialize(self):
         # initialize URL cache
         # use the SHA1 of channel cid + rss_url as key
@@ -70,7 +69,6 @@ class ChannelRssParser(TaskManager):
         self.session.notifier.notify(SIGNAL_RSS_FEED, SIGNAL_ON_UPDATED, None, rss_feed_data)
         self.running = True
 
-    @blocking_call_on_reactor_thread
     def shutdown(self):
         self._to_stop = True
         self.shutdown_task_manager()

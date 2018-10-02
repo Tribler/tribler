@@ -191,7 +191,6 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
         def _on_magnet_fetched(meta_info):
             return TorrentDef.load_from_dict(meta_info)
 
-        @blocking_call_on_reactor_thread
         def _on_torrent_def_loaded(torrent_def):
             self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
             return self.path

@@ -14,7 +14,6 @@ class TrackerManager(object):
         self._logger = logging.getLogger(self.__class__.__name__)
         self._session = session
 
-    @blocking_call_on_reactor_thread
     def get_tracker_info(self, tracker_url):
         """
         Gets the tracker information with the given tracker URL.
@@ -30,7 +29,6 @@ class TrackerManager(object):
 
         return {u'id': result[0], u'last_check': result[2], u'failures': result[3], u'is_alive': bool(result[4])}
 
-    @blocking_call_on_reactor_thread
     def add_tracker(self, tracker_url):
         """
         Adds a new tracker into the tracker info dict and the database.
@@ -100,7 +98,6 @@ class TrackerManager(object):
                        tracker_info[u'id'])
         self._session.sqlite_db.execute(sql_stmt, value_tuple)
 
-    @blocking_call_on_reactor_thread
     def get_next_tracker_for_auto_check(self):
         """
         Gets the next tracker for automatic tracker-checking.

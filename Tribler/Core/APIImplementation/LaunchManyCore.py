@@ -234,7 +234,6 @@ class TriblerLaunchMany(TaskManager):
     def on_tribler_started(self, subject, changetype, objectID, *args):
         reactor.callFromThread(self.startup_deferred.callback, None)
 
-    @blocking_call_on_reactor_thread
     def load_ipv8_overlays(self):
         # Discovery Community
         with open(self.session.config.get_permid_keypair_filename(), 'r') as key_file:
@@ -330,7 +329,6 @@ class TriblerLaunchMany(TaskManager):
             for overlay in self.ipv8.overlays:
                 self.ipv8.endpoint.enable_community_statistics(overlay.get_prefix(), True)
 
-    @blocking_call_on_reactor_thread
     def load_dispersy_communities(self):
         self._logger.info("tribler: Preparing Dispersy communities...")
         now_time = timemod.time()
@@ -596,7 +594,6 @@ class TriblerLaunchMany(TaskManager):
         with self.session_lock:
             return infohash in self.downloads
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def update_download_hops(self, download, new_hops):
         """

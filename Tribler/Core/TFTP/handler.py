@@ -75,7 +75,6 @@ class TftpHandler(TaskManager):
                            LoopingCall(self._task_check_timeout)).start(self._timeout_check_interval, now=True)
         self._is_running = True
 
-    @blocking_call_on_reactor_thread
     def shutdown(self):
         """ Shuts down the TFTP service.
         """

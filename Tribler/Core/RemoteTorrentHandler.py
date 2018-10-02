@@ -81,11 +81,9 @@ class RemoteTorrentHandler(TaskManager):
             requester.stop()
         self.shutdown_task_manager()
 
-    @blocking_call_on_reactor_thread
     def set_max_num_torrents(self, max_num_torrents):
         self.max_num_torrents = max_num_torrents
 
-    @blocking_call_on_reactor_thread
     def __check_overflow(self):
         def clean_until_done(num_delete, deletions_per_step):
             """
@@ -117,7 +115,6 @@ class RemoteTorrentHandler(TaskManager):
     def schedule_task(self, name, task, delay_time=0.0, *args, **kwargs):
         self.register_task(name, reactor.callLater(delay_time, task, *args, **kwargs))
 
-    @blocking_call_on_reactor_thread
     def download_torrent(self, candidate, infohash, user_callback=None, priority=1, timeout=None):
         assert isinstance(infohash, str), u"infohash has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, u"infohash has invalid length: %s" % len(infohash)
@@ -135,7 +132,6 @@ class RemoteTorrentHandler(TaskManager):
             callback = lambda ih = infohash: user_callback(ih)
             self.torrent_callbacks.setdefault(infohash, set()).add(callback)
 
-    @blocking_call_on_reactor_thread
     def save_torrent(self, tdef, callback=None):
         infohash = tdef.get_infohash()
         infohash_str = hexlify(infohash)
@@ -173,7 +169,6 @@ class RemoteTorrentHandler(TaskManager):
         # notify all
         self.notify_possible_torrent_infohash(infohash)
 
-    @blocking_call_on_reactor_thread
     def download_torrentmessage(self, candidate, infohash, user_callback=None, priority=1):
         assert isinstance(infohash, str), u"infohash has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, u"infohash has invalid length: %s" % len(infohash)
@@ -196,7 +191,6 @@ class RemoteTorrentHandler(TaskManager):
         thumb_hash_str = hexlify(thumb_hash)
         return self.session.lm.metadata_store[thumb_hash_str]
 
-    @blocking_call_on_reactor_thread
     def download_metadata(self, candidate, thumb_hash, usercallback=None, timeout=None):
         if self.has_metadata(thumb_hash):
             return
@@ -208,7 +202,6 @@ class RemoteTorrentHandler(TaskManager):
 
         self._logger.debug(u"added metadata request: %s %s", hexlify(thumb_hash), candidate)
 
-    @blocking_call_on_reactor_thread
     def save_metadata(self, thumb_hash, data):
         # save data to a temporary tarball and extract it to the torrent collecting directory
         thumb_hash_str = hexlify(thumb_hash)
@@ -461,7 +454,6 @@ class MagnetRequester(Requester):
                                                 timeout=self.TIMEOUT, timeout_callback=self._failure_callback)
             self._running_requests.append(infohash)
 
-    @blocking_call_on_reactor_thread
     def _success_callback(self, meta_info):
         """
         The callback that will be called by LibtorrentMgr when a download was successful.
@@ -480,7 +472,6 @@ class MagnetRequester(Requester):
 
         self._start_pending_requests()
 
-    @blocking_call_on_reactor_thread
     def _failure_callback(self, infohash):
         """
         The callback that will be called by LibtorrentMgr when a download failed.
@@ -578,7 +569,6 @@ class TftpRequester(Requester):
         del self._tried_sources[key]
         self._active_request_list.remove(key)
 
-    @blocking_call_on_reactor_thread
     def _on_download_successful(self, address, file_name, file_data, extra_info):
         self._logger.debug(u"successfully downloaded %s from %s:%s", file_name, address[0], address[1])
 
@@ -608,7 +598,6 @@ class TftpRequester(Requester):
             self._clear_active_request(key)
             self._start_pending_requests()
 
-    @blocking_call_on_reactor_thread
     def _on_download_failed(self, address, file_name, error_msg, extra_info):
         self._logger.debug(u"failed to download %s from %s:%s: %s", file_name, address[0], address[1], error_msg)
 

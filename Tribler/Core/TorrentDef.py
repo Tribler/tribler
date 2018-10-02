@@ -161,7 +161,6 @@ class TorrentDef(object):
     _create = staticmethod(_create)
 
     @staticmethod
-    @blocking_call_on_reactor_thread
     def load_from_url(url):
         """
         Load a BT .torrent or Tribler .tstream file from the URL and

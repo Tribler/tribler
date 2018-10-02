@@ -453,7 +453,6 @@ class Session(object):
         """
         self.lm.checkpoint_downloads()
 
-    @blocking_call_on_reactor_thread
     def start_database(self):
         """
         Start the SQLite database.
@@ -465,7 +464,6 @@ class Session(object):
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
 
-    @blocking_call_on_reactor_thread
     def start(self):
         """
         Start a Tribler session by initializing the LaunchManyCore class, opening the database and running the upgrader.
@@ -494,7 +492,6 @@ class Session(object):
 
         return startup_deferred.addCallback(load_checkpoint)
 
-    @blocking_call_on_reactor_thread
     def shutdown(self):
         """
         Checkpoints the session and closes it, stopping the download engine.

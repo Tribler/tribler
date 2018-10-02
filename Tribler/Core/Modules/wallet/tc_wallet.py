@@ -161,7 +161,6 @@ class TrustchainWallet(Wallet, BlockListener):
                 peers_helped_you.add(block.link_public_key)
         return len(peers_you_helped), len(peers_helped_you)
 
-    @blocking_call_on_reactor_thread
     def get_statistics(self, public_key=None):
         """
         Returns a dictionary with some statistics regarding the local trustchain database
