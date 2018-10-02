@@ -17,7 +17,6 @@ from Tribler.Core.Utilities.utilities import http_get
 from Tribler.Core.simpledefs import (SIGNAL_CHANNEL_COMMUNITY, SIGNAL_ON_TORRENT_UPDATED, SIGNAL_RSS_FEED,
                                      SIGNAL_ON_UPDATED)
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 DEFAULT_CHECK_INTERVAL = 1800  # half an hour
 

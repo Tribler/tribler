@@ -5,7 +5,6 @@ from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class ChannelManager(TaskManager):

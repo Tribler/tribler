@@ -18,7 +18,6 @@ from Tribler.Core.TFTP.handler import METADATA_PREFIX
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_TORRENTS
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 TORRENT_OVERFLOW_CHECKING_INTERVAL = 30 * 60
 LOW_PRIO_COLLECTING = 0

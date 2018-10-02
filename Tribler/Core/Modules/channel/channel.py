@@ -10,7 +10,6 @@ from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_CREATED, SIGNAL_RSS_FEED, SIGNAL_ON_UPDATED
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class ChannelObject(TaskManager):

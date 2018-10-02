@@ -41,7 +41,7 @@ from Tribler.pyipv8.ipv8.peerdiscovery.churn import RandomChurn
 from Tribler.pyipv8.ipv8.peerdiscovery.deprecated.discovery import DiscoveryCommunity
 from Tribler.pyipv8.ipv8.peerdiscovery.discovery import EdgeWalk, RandomWalk
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
-from Tribler.pyipv8.ipv8.util import blockingCallFromThread, blocking_call_on_reactor_thread
+from Tribler.pyipv8.ipv8.util import blockingCallFromThread
 from Tribler.pyipv8.ipv8_service import IPv8
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, succeed

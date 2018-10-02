@@ -9,7 +9,6 @@ from Tribler.Core.Upgrade.db_upgrader import DBUpgrader
 from Tribler.Core.Upgrade.pickle_converter import PickleConverter
 from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65
 from Tribler.Core.simpledefs import NTFY_UPGRADER, NTFY_FINISHED, NTFY_STARTED, NTFY_UPGRADER_TICK
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 # Database versions:

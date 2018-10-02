@@ -2,7 +2,6 @@ import logging
 import time
 
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 MAX_TRACKER_FAILURES = 5  # if a tracker fails this amount of times in a row, its 'is_alive' will be marked as 0 (dead).
 TRACKER_RETRY_INTERVAL = 60    # A "dead" tracker will be retired every 60 seconds
