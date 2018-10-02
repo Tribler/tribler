@@ -263,7 +263,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     if not self.ltmgr or not dht_ok or tunnels_ready < 1:
                         self._logger.info(u"LTMGR/DHT/session not ready, rescheduling create_engine_wrapper")
 
-                        if tunnels_ready < 1:
+                        if tunnel_community and tunnels_ready < 1:
                             tunnel_community.build_tunnels(self.get_hops())
 
                         # Schedule this function call to be called again in 5 seconds
