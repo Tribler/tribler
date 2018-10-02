@@ -26,7 +26,9 @@ class SearchResultsPage(QWidget):
     def perform_search(self, query):
         self.search_results = {'channels': [], 'torrents': []}
         self.window().num_search_results_label.setText("")
-        self.window().search_results_header_label.setText("Search results for '%s'" % query)
+
+        trimmed_query = query if len(query) < 50 else "%s..." % query[:50]
+        self.window().search_results_header_label.setText("Search results for: %s" % trimmed_query)
         self.window().search_results_list.set_data_items([])  # To clean the list
         self.window().search_results_tab.on_tab_button_click(self.window().search_results_all_button)
 
