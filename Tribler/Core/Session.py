@@ -32,7 +32,6 @@ from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT,
                                      STATEDIR_WALLET_DIR, STATE_OPEN_DB, STATE_START_API, STATE_UPGRADING_READABLE,
                                      STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED)
 from Tribler.Core.statistics import TriblerStatistics
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
@@ -453,7 +452,6 @@ class Session(object):
         """
         self.lm.checkpoint_downloads()
 
-    @blocking_call_on_reactor_thread
     def start_database(self):
         """
         Start the SQLite database.
@@ -465,7 +463,6 @@ class Session(object):
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
 
-    @blocking_call_on_reactor_thread
     def start(self):
         """
         Start a Tribler session by initializing the LaunchManyCore class, opening the database and running the upgrader.
@@ -494,7 +491,6 @@ class Session(object):
 
         return startup_deferred.addCallback(load_checkpoint)
 
-    @blocking_call_on_reactor_thread
     def shutdown(self):
         """
         Checkpoints the session and closes it, stopping the download engine.

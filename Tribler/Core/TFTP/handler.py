@@ -11,8 +11,7 @@ from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
 from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.util import (call_on_reactor_thread, blocking_call_on_reactor_thread, attach_runtime_statistics,
-                                   is_valid_address)
+from Tribler.dispersy.util import (call_on_reactor_thread, attach_runtime_statistics, is_valid_address)
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 from .exception import InvalidPacketException, FileNotFound
@@ -75,7 +74,6 @@ class TftpHandler(TaskManager):
                            LoopingCall(self._task_check_timeout)).start(self._timeout_check_interval, now=True)
         self._is_running = True
 
-    @blocking_call_on_reactor_thread
     def shutdown(self):
         """ Shuts down the TFTP service.
         """

@@ -2,7 +2,6 @@ import logging
 import time
 
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 MAX_TRACKER_FAILURES = 5  # if a tracker fails this amount of times in a row, its 'is_alive' will be marked as 0 (dead).
 TRACKER_RETRY_INTERVAL = 60    # A "dead" tracker will be retired every 60 seconds
@@ -14,7 +13,6 @@ class TrackerManager(object):
         self._logger = logging.getLogger(self.__class__.__name__)
         self._session = session
 
-    @blocking_call_on_reactor_thread
     def get_tracker_info(self, tracker_url):
         """
         Gets the tracker information with the given tracker URL.
@@ -30,7 +28,6 @@ class TrackerManager(object):
 
         return {u'id': result[0], u'last_check': result[2], u'failures': result[3], u'is_alive': bool(result[4])}
 
-    @blocking_call_on_reactor_thread
     def add_tracker(self, tracker_url):
         """
         Adds a new tracker into the tracker info dict and the database.
@@ -100,7 +97,6 @@ class TrackerManager(object):
                        tracker_info[u'id'])
         self._session.sqlite_db.execute(sql_stmt, value_tuple)
 
-    @blocking_call_on_reactor_thread
     def get_next_tracker_for_auto_check(self):
         """
         Gets the next tracker for automatic tracker-checking.

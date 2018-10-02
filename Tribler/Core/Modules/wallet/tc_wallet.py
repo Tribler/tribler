@@ -5,7 +5,6 @@ from Tribler.Core.Modules.wallet.wallet import Wallet, InsufficientFunds
 from Tribler.pyipv8.ipv8.attestation.trustchain.listener import BlockListener
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 from twisted.internet.defer import succeed, fail, Deferred
 from twisted.internet.task import LoopingCall
 
@@ -161,7 +160,6 @@ class TrustchainWallet(Wallet, BlockListener):
                 peers_helped_you.add(block.link_public_key)
         return len(peers_you_helped), len(peers_helped_you)
 
-    @blocking_call_on_reactor_thread
     def get_statistics(self, public_key=None):
         """
         Returns a dictionary with some statistics regarding the local trustchain database

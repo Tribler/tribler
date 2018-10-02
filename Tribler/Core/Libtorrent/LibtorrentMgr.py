@@ -31,7 +31,6 @@ from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET
                                      NTFY_REACHABLE, NTFY_TORRENTS)
 from Tribler.Core.version import version_id
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 LTSTATE_FILENAME = "lt.state"
 METAINFO_CACHE_PERIOD = 5 * 60
@@ -85,7 +84,6 @@ class LibtorrentMgr(TaskManager):
                                   lt.alert.category_t.tracker_notification | lt.alert.category_t.debug_notification
         self.alert_callback = None
 
-    @blocking_call_on_reactor_thread
     def initialize(self):
         # start upnp
         self.get_session().start_upnp()
@@ -103,7 +101,6 @@ class LibtorrentMgr(TaskManager):
         self.register_task(u'task_cleanup_metacache',
                            LoopingCall(self._task_cleanup_metainfo_cache)).start(60, now=True)
 
-    @blocking_call_on_reactor_thread
     def shutdown(self):
         self.shutdown_task_manager()
 
@@ -594,7 +591,6 @@ class LibtorrentMgr(TaskManager):
             self.notifier.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
             self.check_reachability_lc.stop()
 
-    @blocking_call_on_reactor_thread
     def _schedule_next_check(self, delay, retries_left):
         if not self.tribler_session.config.get_libtorrent_dht_enabled():
             self.dht_ready = True
@@ -637,7 +633,6 @@ class LibtorrentMgr(TaskManager):
 
         return fail(Failure(Exception("invalid uri")))
 
-    @blocking_call_on_reactor_thread
     def start_download_from_url(self, url, dconfig=None):
 
         def _on_loaded(tdef):

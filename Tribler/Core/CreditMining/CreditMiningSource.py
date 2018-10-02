@@ -7,7 +7,6 @@ from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Core.simpledefs import NTFY_DISCOVERED, NTFY_TORRENT, NTFY_CHANNELCAST
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 class BaseSource(TaskManager):
@@ -56,7 +55,6 @@ class ChannelSource(BaseSource):
         self.community = None
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
 
-    @blocking_call_on_reactor_thread
     def start(self):
         super(ChannelSource, self).start()
 

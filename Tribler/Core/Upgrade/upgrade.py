@@ -9,7 +9,6 @@ from Tribler.Core.Upgrade.db_upgrader import DBUpgrader
 from Tribler.Core.Upgrade.pickle_converter import PickleConverter
 from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65
 from Tribler.Core.simpledefs import NTFY_UPGRADER, NTFY_FINISHED, NTFY_STARTED, NTFY_UPGRADER_TICK
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
 
 
 # Database versions:
@@ -83,7 +82,6 @@ class TriblerUpgrader(object):
         """
         self.session.notifier.notify(NTFY_UPGRADER, NTFY_FINISHED, None)
 
-    @blocking_call_on_reactor_thread
     def check_should_upgrade_database(self):
         self.failed = True
         should_upgrade = False
@@ -105,7 +103,6 @@ class TriblerUpgrader(object):
 
         return (self.failed, should_upgrade)
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def upgrade_database_to_current_version(self):
         """ Checks the database version and upgrade if it is not the latest version.
@@ -136,7 +133,6 @@ class TriblerUpgrader(object):
         except Exception as e:
             self._logger.exception(u"failed to upgrade: %s", e)
 
-    @blocking_call_on_reactor_thread
     def stash_database(self):
         self.db.close()
         old_dir = os.path.dirname(self.db.sqlite_db_path)
