@@ -9770,6 +9770,18 @@ border: none;
                 </property>
                 <item>
                  <widget class="QWidget" name="plot_widget" native="true">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>250</height>
+                   </size>
+                  </property>
+                  <property name="baseSize">
+                   <size>
+                    <width>0</width>
+                    <height>250</height>
+                   </size>
+                  </property>
                   <property name="styleSheet">
                    <string notr="true">border: none;</string>
                   </property>
