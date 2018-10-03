@@ -485,8 +485,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
             time_elapsed = (time.time() - self.last_dht_lookup.get(info_hash, 0))
             force_dht_lookup = time_elapsed >= self.settings.dht_lookup_interval
-            if (state_changed or force_dht_lookup) and \
-                    (new_state == DLSTATUS_SEEDING or new_state == DLSTATUS_DOWNLOADING):
+            if (state_changed or force_dht_lookup) and (new_state == DLSTATUS_DOWNLOADING):
                 self.logger.info('Do dht lookup to find hidden services peers for %s', info_hash.encode('hex'))
                 self.do_raw_dht_lookup(info_hash)
 
