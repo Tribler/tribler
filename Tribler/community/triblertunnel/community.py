@@ -379,6 +379,9 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 self.do_payout(circuit_peer, circuit_id, circuit.bytes_down * (circuit.goal_hops * 2 - 1),
                                circuit.bytes_down)
 
+            # Reset the circuit byte counters so we do not payout again if we receive a destroy message.
+            circuit.bytes_up = circuit.bytes_down = 0
+
         def update_torrents(_):
             affected_peers = self.dispatcher.circuit_dead(circuit)
             ltmgr = self.tribler_session.lm.ltmgr \
