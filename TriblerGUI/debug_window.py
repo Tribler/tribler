@@ -155,6 +155,9 @@ class DebugWindow(QMainWindow):
         self.window().log_refresh_button.clicked.connect(lambda: self.load_logs_tab())
         self.window().log_tab_widget.currentChanged.connect(lambda index: self.load_logs_tab())
 
+        # IPv8 statistics enabled?
+        self.ipv8_statistics_enabled = settings['ipv8']['statistics']
+
         # Position to center
         frame_geometry = self.frameGeometry()
         screen = QDesktopWidget().screenNumber(QDesktopWidget().cursor().pos())
@@ -305,18 +308,30 @@ class DebugWindow(QMainWindow):
                 item.setText(6, "%s" % statistics["num_up"])
                 item.setText(7, "%s" % statistics["num_down"])
                 item.setText(8, "%.3f" % statistics["diff_time"])
+            else:
+                item.setText(4, "N/A")
+                item.setText(5, "N/A")
+                item.setText(6, "N/A")
+                item.setText(7, "N/A")
+                item.setText(8, "N/A")
 
             self.window().communities_tree_widget.addTopLevelItem(item)
             map(self.window().communities_tree_widget.resizeColumnToContents, xrange(10))
 
     def load_ipv8_community_details_tab(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("ipv8/overlays/statistics", self.on_ipv8_community_detail_stats)
+        if self.ipv8_statistics_enabled:
+            self.window().ipv8_statistics_error_label.setHidden(True)
+            self.request_mgr = TriblerRequestManager()
+            self.request_mgr.perform_request("ipv8/overlays/statistics", self.on_ipv8_community_detail_stats)
+        else:
+            self.window().ipv8_statistics_error_label.setHidden(False)
+            self.window().ipv8_communities_details_widget.setHidden(True)
 
     def on_ipv8_community_detail_stats(self, data):
         if not data:
             return
 
+        self.window().ipv8_communities_details_widget.setHidden(False)
         self.window().ipv8_communities_details_widget.clear()
         for overlay in data["statistics"]:
             self.window().ipv8_communities_details_widget.setColumnWidth(0, 250)
