@@ -307,6 +307,7 @@ class DebugWindow(QMainWindow):
                 item.setText(8, "%.3f" % statistics["diff_time"])
 
             self.window().communities_tree_widget.addTopLevelItem(item)
+            map(self.window().communities_tree_widget.resizeColumnToContents, xrange(10))
 
     def load_ipv8_community_details_tab(self):
         self.request_mgr = TriblerRequestManager()

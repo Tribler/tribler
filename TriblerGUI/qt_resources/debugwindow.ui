@@ -246,9 +246,6 @@
               <property name="indentation">
                <number>0</number>
               </property>
-              <attribute name="headerDefaultSectionSize">
-               <number>200</number>
-              </attribute>
               <column>
                <property name="text">
                 <string>Name</string>
@@ -324,7 +321,7 @@
                <number>0</number>
               </property>
               <attribute name="headerDefaultSectionSize">
-               <number>200</number>
+               <number>150</number>
               </attribute>
               <column>
                <property name="text">
