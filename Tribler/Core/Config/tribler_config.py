@@ -131,7 +131,8 @@ class TriblerConfig(object):
         self.config['chant']['channels_dir'] = chant_db_filename
 
     def get_chant_channels_dir(self):
-        return self.config['chant']['channels_dir']
+        path = self.config['chant']['channels_dir']
+        return path if os.path.isabs(path) else os.path.join(self.get_state_dir(), path)
 
     def set_chant_channel_edit(self, value):
         self.config['chant']['channel_edit'] = bool(value)

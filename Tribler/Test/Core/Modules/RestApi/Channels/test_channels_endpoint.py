@@ -8,7 +8,7 @@ from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test_channel import BaseTestChannel
 from Tribler.Test.tools import trial_timeout
-from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
+from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
 class ChannelCommunityMock(object):
@@ -46,23 +46,15 @@ class AbstractTestChantEndpoint(AbstractApiTest):
         """
         Create your channel, with a given name and description.
         """
-        my_key = self.session.trustchain_keypair
-        return self.session.lm.mds.ChannelMetadata.create_channel(my_key, name, description)
+        return self.session.lm.mds.ChannelMetadata.create_channel(name, description)
 
     @db_session
     def add_random_torrent_to_my_channel(self, name=None):
         """
         Add a random torrent to your channel.
         """
-        my_key = self.session.trustchain_keypair
-        my_channel_id = my_key.pub().key_to_bin()
-        my_channel = self.session.lm.mds.ChannelMetadata.get_channel_with_id(my_channel_id)
-        random_torrent = self.session.lm.mds.TorrentMetadata(public_key=buffer(my_channel_id),
-                                                             title='test' if not name else name,
-                                                             infohash='a' * 20)
-        random_torrent.sign(my_key)
-        my_channel.add_metadata_to_channel(my_key, self.session.lm.mds.channels_dir, [random_torrent])
-        return random_torrent
+        return self.session.lm.mds.TorrentMetadata(title='test' if not name else name,
+                                                   infohash='a' * 20)
 
     @db_session
     def add_random_channel(self):
@@ -70,7 +62,7 @@ class AbstractTestChantEndpoint(AbstractApiTest):
         Add a random channel to the metadata store.
         :return: The metadata of the added channel.
         """
-        rand_key = ECCrypto().generate_key('low')
+        rand_key = default_eccrypto.generate_key('low')
         new_channel = self.session.lm.mds.ChannelMetadata(
             public_key=buffer(rand_key.pub().key_to_bin()), title='test', tags='test')
         new_channel.sign(rand_key)

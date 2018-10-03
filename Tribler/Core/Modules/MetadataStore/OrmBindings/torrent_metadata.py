@@ -3,31 +3,24 @@ from datetime import datetime
 from pony import orm
 from pony.orm import db_session
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import EMPTY_SIG
-from Tribler.Core.Modules.MetadataStore.serialization import MetadataTypes, TorrentMetadataPayload, time2float, \
-    float2time
-from Tribler.pyipv8.ipv8.messaging.serialization import Serializer
+from Tribler.Core.Modules.MetadataStore.serialization import TorrentMetadataPayload, REGULAR_TORRENT
 
 
 def define_binding(db):
     class TorrentMetadata(db.Metadata):
-        _discriminator_ = MetadataTypes.REGULAR_TORRENT.value
+        _discriminator_ = REGULAR_TORRENT
         infohash = orm.Optional(buffer, default='\x00' * 20)
         title = orm.Optional(str, default='')
         size = orm.Optional(int, size=64, default=0)
         tags = orm.Optional(str, default='')
-        torrent_date = orm.Optional(datetime)
-
-        def serialized(self, signature=True):
-            serializer = Serializer()
-            payload = TorrentMetadataPayload(self.type, str(self.public_key), time2float(self.timestamp),
-                                             self.tc_pointer, str(self.signature) if signature else EMPTY_SIG,
-                                             str(self.infohash), self.size, str(self.title), str(self.tags))
-            return serializer.pack_multiple(payload.to_pack_list())[0]
+        tracker_info = orm.Optional(str, default='')
+        torrent_date = orm.Optional(datetime, default=datetime.utcnow)
+        _payload_class = TorrentMetadataPayload
 
         def get_magnet(self):
-            return "magnet:?xt=urn:btih:%s&dn=%s" % (
-                str(self.infohash).encode('hex'), str(self.title).encode('utf8'))
+            return ("magnet:?xt=urn:btih:%s&dn=%s" %
+                    (str(self.infohash).encode('hex'), str(self.title).encode('utf8'))) + \
+                   ("&tr=%s" % (str(self.tracker_info).encode('utf8')) if self.tracker_info else "")
 
         @classmethod
         def search_keyword(cls, query, entry_type=None, lim=100):
@@ -44,7 +37,7 @@ def define_binding(db):
                 query = "\"" + query + "\""
 
             metadata_type = entry_type or cls._discriminator_
-            sql_search_fts = "type = %d AND rowid IN (SELECT rowid FROM FtsIndex WHERE " \
+            sql_search_fts = "metadata_type = %d AND rowid IN (SELECT rowid FROM FtsIndex WHERE " \
                              "FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT %d)" % (metadata_type, lim)
             return cls.select(lambda x: orm.raw_sql(sql_search_fts))[:]
 
@@ -61,26 +54,9 @@ def define_binding(db):
                     break
                 i1 = line.find(keyword)
                 i2 = line.find(' ', i1 + len(keyword))
-                all_terms.add(line[i1:i2] if i2 >= 0 else line[i1:])
-
-            if keyword in all_terms:
-                all_terms.remove(keyword)
-
+                term = line[i1:i2] if i2 >= 0 else line[i1:]
+                if term != keyword:
+                    all_terms.add(term)
             return list(all_terms)
-
-        @classmethod
-        def from_payload(cls, payload):
-            metadata_dict = {
-                "type": payload.metadata_type,
-                "public_key": payload.public_key,
-                "timestamp": float2time(payload.timestamp),
-                "tc_pointer": payload.tc_pointer,
-                "signature": payload.signature,
-                "infohash": payload.infohash,
-                "size": payload.size,
-                "title": payload.title,
-                "tags": payload.tags
-            }
-            return cls(**metadata_dict)
 
     return TorrentMetadata

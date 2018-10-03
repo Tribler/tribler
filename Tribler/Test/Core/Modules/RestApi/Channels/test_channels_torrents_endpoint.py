@@ -17,6 +17,7 @@ from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import Ab
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.dispersy.exception import CommunityNotFoundException
+from Tribler.Test.Core.Modules.MetadataStore.test_channel_download import CHANNEL_DIR, CHANNEL_METADATA
 
 
 class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
@@ -418,9 +419,9 @@ class TestChannelTorrentsChantEndpoint(AbstractTestChantEndpoint):
         return self.do_request('channels/discovered/%s/torrents' % ('a' * (74 * 2)), expected_code=404)
 
     @trial_timeout(10)
-    def test_get_torrents_from_channel(self):
+    def test_get_torrents_from_my_channel(self):
         """
-        Test whether the API returns the correct torrents from a chant channel
+        Test whether the API returns the correct torrents from our chant channel
         """
         def verify_response(response):
             json_response = json.loads(response)
@@ -432,6 +433,27 @@ class TestChannelTorrentsChantEndpoint(AbstractTestChantEndpoint):
 
         self.should_check_equality = False
         return self.do_request('channels/discovered/%s/torrents' % str(my_channel.public_key).encode('hex'),
+                               expected_code=200).addCallback(verify_response)
+
+    @trial_timeout(10)
+    def test_get_torrents_from_channel(self):
+        """
+        Test whether the API returns the correct torrents from other's chant channel
+        """
+
+        with db_session:
+            channel = self.session.lm.mds.process_mdblob_file(CHANNEL_METADATA)[0]
+            public_key = channel.public_key
+            channel_dir = os.path.join(CHANNEL_DIR, channel.dir_name)
+            self.session.lm.mds.process_channel_dir(channel_dir, public_key)
+            channel_size = len(channel.contents_list)
+
+        def verify_response(response):
+            json_response = json.loads(response)
+            self.assertEqual(len(json_response['torrents']), channel_size)
+
+        self.should_check_equality = False
+        return self.do_request('channels/discovered/%s/torrents' % str(public_key).encode('hex'),
                                expected_code=200).addCallback(verify_response)
 
     @trial_timeout(10)
@@ -480,7 +502,7 @@ class TestChannelTorrentsChantEndpoint(AbstractTestChantEndpoint):
         """
         my_channel = self.create_my_channel('test', 'test')
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
-        my_channel.add_torrent_to_channel(self.session.trustchain_keypair, tdef, None, self.session.lm.mds.channels_dir)
+        my_channel.add_torrent_to_channel(tdef, None)
 
         with open(TORRENT_UBUNTU_FILE, mode='rb') as torrent_file:
             torrent_64 = base64.b64encode(torrent_file.read())
@@ -562,15 +584,14 @@ class TestModifyChantChannelTorrentEndpoint(AbstractTestChantEndpoint):
                                expected_code=404, request_type='DELETE')
 
     @trial_timeout(10)
-    def test_remove_torrent_from_my_channel(self):
+    def test_remove_single_torrent_from_my_channel(self):
         """
         Test whether we can remove a torrent from your channel using the API
         """
         with db_session:
             my_channel = self.create_my_channel('test', 'test123')
             random_torrent = self.add_random_torrent_to_my_channel(name='bla')
-            my_channel.update_channel_torrent(self.session.trustchain_keypair, self.session.lm.mds.channels_dir,
-                                              [random_torrent])
+            my_channel.commit_channel_torrent()
 
         self.should_check_equality = False
         return self.do_request('channels/discovered/%s/torrents/%s' %
@@ -578,7 +599,7 @@ class TestModifyChantChannelTorrentEndpoint(AbstractTestChantEndpoint):
                                expected_code=200, request_type='DELETE')
 
     @trial_timeout(10)
-    def test_remove_torrents_from_my_channel_fail(self):
+    def test_remove_multiple_torrents_from_my_channel_fail(self):
         """
         Test removing some torrents from your channel with the API, while that fails
         """

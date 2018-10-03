@@ -1,3 +1,4 @@
+from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.restapi.channels.my_channel_endpoint import NO_CHANNEL_CREATED_RESPONSE_MSG
@@ -97,7 +98,7 @@ class TestMyChannelChantEndpoints(AbstractTestChantEndpoint):
         """
         Testing whether the API returns the right JSON data if an existing chant channel overview is requested
         """
-        channel_json = {u'mychannel': {u'name': u'testname', u'description': u'testdescription',
+        channel_json = {u'mychannel': {u'chant':True, u'name': u'testname', u'description': u'testdescription',
                                        u'identifier': self.session.trustchain_keypair.pub().key_to_bin().encode('hex')}}
         self.create_my_channel(channel_json[u'mychannel'][u'name'], channel_json[u'mychannel'][u'description'])
 
@@ -119,13 +120,17 @@ class TestMyChannelChantEndpoints(AbstractTestChantEndpoint):
         """
         self.create_my_channel('my channel', 'fancy description')
         self.add_random_torrent_to_my_channel()
-        post_params = {'name': 'new channel', 'description': 'new description'}
+        post_params = {'name': 'new channel', 'description': 'new description', 'commit_changes': 1}
 
+        @db_session
         def verify_response(_):
             my_channel = self.get_my_channel()
             self.assertEqual(my_channel.title, 'new channel')
             self.assertEqual(my_channel.tags, 'new description')
+            self.assertEqual(len(my_channel.contents_list), 1)
+            self.assertEqual(len(my_channel.staged_entries_list), 0)
 
+        channel_json = {'modified': 1}
         self.should_check_equality = False
-        return self.do_request('mychannel', request_type='POST', post_data=post_params, expected_code=200)\
-            .addCallback(verify_response)
+        return self.do_request('mychannel', request_type='POST', post_data=post_params, expected_json=channel_json,
+                               expected_code=200).addCallback(verify_response)

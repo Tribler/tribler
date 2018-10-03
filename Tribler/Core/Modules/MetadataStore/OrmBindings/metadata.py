@@ -2,66 +2,90 @@ from datetime import datetime
 
 from pony import orm
 
-from Tribler.Core.Modules.MetadataStore.serialization import MetadataTypes, MetadataPayload, time2float, float2time
-from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
-from Tribler.pyipv8.ipv8.messaging.serialization import Serializer
-
-
-EMPTY_SIG = '0' * 64
+from Tribler.Core.Modules.MetadataStore.serialization import MetadataPayload, DeletedMetadataPayload, TYPELESS, DELETED
+from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
 def define_binding(db):
     class Metadata(db.Entity):
         rowid = orm.PrimaryKey(int, auto=True)
-        type = orm.Discriminator(int)
-        _discriminator_ = MetadataTypes.TYPELESS.value
-        signature = orm.Optional(buffer, default=EMPTY_SIG)
+        metadata_type = orm.Discriminator(int)
+        _discriminator_ = TYPELESS
+        # We want to make signature unique=True for safety, but can't do it in Python2 because of Pony bug #390
+        signature = orm.Optional(buffer)
         timestamp = orm.Optional(datetime, default=datetime.utcnow)
         tc_pointer = orm.Optional(int, size=64, default=0)
         public_key = orm.Optional(buffer, default='\x00' * 74)
         addition_timestamp = orm.Optional(datetime, default=datetime.utcnow)
+        deleted = orm.Optional(bool, default=False)
+        _payload_class = MetadataPayload
+        _my_key = None
+        _logger = None
 
-        def serialized(self, signature=True):
-            """
-            Encode this metadata for transport.
-            """
-            serializer = Serializer()
-            payload = MetadataPayload(self.type, str(self.public_key), time2float(self.timestamp),
-                                      self.tc_pointer, str(self.signature) if signature else EMPTY_SIG)
-            return serializer.pack_multiple(payload.to_pack_list())[0]
+        def __init__(self, *args, **kwargs):
+            super(Metadata, self).__init__(*args, **kwargs)
+            # If no key/signature given, sign with our own key.
+            if "public_key" not in kwargs or (kwargs["public_key"] == self._my_key and "signature" not in kwargs):
+                self.sign(self._my_key)
 
-        def to_file(self, filename):
+        def _serialized(self, key=None):
+            """
+            Serializes the object and returns the result with added signature (tuple output)
+            :param key: private key to sign object with
+            :return: (serialized_data, signature) tuple
+            """
+            return self._payload_class(**self.to_dict())._serialized(key)
+
+        def serialized(self, key=None):
+            """
+            Serializes the object and returns the result with added signature (blob output)
+            :param key: private key to sign object with
+            :return: serialized_data+signature binary string
+            """
+            return ''.join(self._serialized(key))
+
+        def _serialized_delete(self):
+            """
+            Create a special command to delete this metadata and encode it for transfer (tuple output).
+            :return: (serialized_data, signature) tuple
+            """
+            my_dict = Metadata.to_dict(self)
+            my_dict.update({"metadata_type": DELETED,
+                            "delete_signature": self.signature})
+            return DeletedMetadataPayload(**my_dict)._serialized(self._my_key)
+
+        def serialized_delete(self):
+            """
+            Create a special command to delete this metadata and encode it for transfer (blob output).
+            :return: serialized_data+signature binary string
+            """
+            return ''.join(self._serialized_delete())
+
+        def to_file(self, filename, key=None):
             with open(filename, 'wb') as output_file:
-                output_file.write(self.serialized())
+                output_file.write(self.serialized(key))
 
-        def sign(self, key):
+        def to_delete_file(self, filename):
+            with open(filename, 'wb') as output_file:
+                output_file.write(self.serialized_delete())
+
+        def sign(self, key=None):
+            if not key:
+                key = self._my_key
             self.public_key = buffer(key.pub().key_to_bin())
-            serialized_data = self.serialized(signature=False)
-            signature = ECCrypto().create_signature(key, serialized_data)
-            self.signature = signature
+            _, self.signature = self._serialized(key)
 
         def has_valid_signature(self):
-            crypto = ECCrypto()
-            if not crypto.is_valid_public_bin(str(self.public_key)):
-                return False
-            if not crypto.is_valid_signature(crypto.key_from_public_bin(str(self.public_key)),
-                                             self.serialized(signature=False), str(self.signature)):
-                return False
-            return True
-
-        @classmethod
-        def from_dict(cls, md_dict):
-            return cls(**md_dict)
+            crypto = default_eccrypto
+            return crypto.is_valid_public_bin(str(self.public_key)) \
+                   and self._payload_class(**self.to_dict()).has_valid_signature()
 
         @classmethod
         def from_payload(cls, payload):
-            metadata_dict = {
-                "type": payload.metadata_type,
-                "public_key": payload.public_key,
-                "timestamp": float2time(payload.timestamp),
-                "tc_pointer": payload.tc_pointer,
-                "signature": payload.signature
-            }
-            return cls(**metadata_dict)
+            return cls(**payload.to_dict())
+
+        @classmethod
+        def from_dict(cls, dct):
+            return cls(**dct)
 
     return Metadata

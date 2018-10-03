@@ -612,7 +612,8 @@ class TriblerWindow(QMainWindow):
                                                  QDir.homePath(),
                                                  "Tribler metadata files (*.mdblob)")
         if len(filenames[0]) > 0:
-            [self.pending_uri_requests.append(u"file:%s" % filename) for filename in filenames[0]]
+            for filename in filenames[0]:
+                self.pending_uri_requests.append(u"file:%s" % filename)
             self.process_uri_request()
 
     def start_download_from_uri(self, uri):

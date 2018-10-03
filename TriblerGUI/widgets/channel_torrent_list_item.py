@@ -3,7 +3,7 @@ from urllib import quote_plus
 import logging
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
-from TriblerGUI.defs import STATUS_GOOD, STATUS_DEAD
+from TriblerGUI.defs import STATUS_GOOD, STATUS_DEAD, COMMITTED, TODELETE, UNCOMMITTED
 from TriblerGUI.defs import STATUS_UNKNOWN
 
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -49,6 +49,11 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         if torrent["last_tracker_check"] > 0:
             self.has_health = True
             self.update_health(int(torrent["num_seeders"]), int(torrent["num_leechers"]))
+
+        if "commit_status" in torrent:
+            self.update_commit_status(torrent["commit_status"])
+        else:
+            self.commit_state_label.setHidden(True)
 
         self.torrent_play_button.clicked.connect(self.on_play_button_clicked)
         self.torrent_download_button.clicked.connect(self.on_download_clicked)
@@ -170,6 +175,15 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
                 self.set_health_indicator(STATUS_DEAD)
         except RuntimeError:
             self._logger.error("The underlying GUI widget has already been removed.")
+
+    def update_commit_status(self, status):
+        if status == COMMITTED:
+            self.commit_state_label.setText("Committed")
+        if status == TODELETE:
+            self.commit_state_label.setText("To delete")
+            self.remove_torrent_button.setHidden(True)
+        if status == UNCOMMITTED:
+            self.commit_state_label.setText("Uncommitted")
 
     def set_health_indicator(self, status):
         color = "orange"

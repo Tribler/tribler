@@ -90,6 +90,11 @@ STATUS_GOOD = 0
 STATUS_UNKNOWN = 1
 STATUS_DEAD = 2
 
+# Torrent channel commit status
+COMMITTED = 0
+UNCOMMITTED = 1
+TODELETE = 2
+
 # Tribler shutdown grace period in milliseconds
 SHUTDOWN_WAITING_PERIOD = 120000
 
