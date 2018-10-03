@@ -495,7 +495,7 @@
               </column>
               <column>
                <property name="text">
-                <string>Up</string>
+                <string>Down</string>
                </property>
               </column>
              </widget>
@@ -504,7 +504,7 @@
           </widget>
           <widget class="QWidget" name="tab_7">
            <attribute name="title">
-            <string>Exits</string>
+            <string>Exit sockets</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -544,7 +544,7 @@
               </column>
               <column>
                <property name="text">
-                <string>Up</string>
+                <string>Down</string>
                </property>
               </column>
              </widget>
