@@ -308,7 +308,8 @@ class DebugCPUHistoryEndpoint(resource.Resource):
                     }, ...]
                 }
         """
-        return json.dumps({"cpu_history": self.session.lm.resource_monitor.get_cpu_history_dict()})
+        history = self.session.lm.resource_monitor.get_cpu_history_dict() if self.session.lm.resource_monitor else {}
+        return json.dumps({"cpu_history": history})
 
 
 class DebugMemoryEndpoint(resource.Resource):
