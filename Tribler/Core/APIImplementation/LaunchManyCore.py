@@ -931,6 +931,10 @@ class TriblerLaunchMany(TaskManager):
 
         self.tracker_manager = None
 
+        if self.tftp_handler is not None:
+            yield self.tftp_handler.shutdown()
+        self.tftp_handler = None
+
         if self.tunnel_community and self.trustchain_community:
             # We unload these overlays manually since the TrustChain has to be unloaded after the tunnel overlay.
             tunnel_community = self.tunnel_community
@@ -961,10 +965,6 @@ class TriblerLaunchMany(TaskManager):
         if self.metadata_store is not None:
             yield self.metadata_store.close()
         self.metadata_store = None
-
-        if self.tftp_handler is not None:
-            yield self.tftp_handler.shutdown()
-        self.tftp_handler = None
 
         if self.channelcast_db is not None:
             yield self.channelcast_db.close()
