@@ -86,16 +86,11 @@ class TrustPage(QWidget):
         self.statistics = None
         self.blocks = None
         self.byte_scale = 1024 * 1024
-        self.refresh_timer = None
 
     def initialize_trust_page(self):
         vlayout = self.window().plot_widget.layout()
         self.trust_plot = TrustPlotMplCanvas(self.window().plot_widget, dpi=100)
         vlayout.addWidget(self.trust_plot)
-
-        self.refresh_timer = QTimer()
-        self.refresh_timer.timeout.connect(self.load_trust_statistics)
-        self.refresh_timer.start(60000)
 
         self.window().trade_button.clicked.connect(self.on_trade_button_clicked)
 
@@ -103,10 +98,6 @@ class TrustPage(QWidget):
         self.window().market_page.initialize_market_page()
         self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
         self.window().stackedWidget.setCurrentIndex(PAGE_MARKET)
-
-    def load_trust_statistics(self):
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("trustchain/statistics", self.received_trustchain_statistics)
 
     def received_trustchain_statistics(self, statistics):
         if not statistics:
