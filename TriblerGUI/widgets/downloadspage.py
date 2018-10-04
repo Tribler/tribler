@@ -185,6 +185,9 @@ class DownloadsPage(QWidget):
     def update_download_visibility(self):
         for i in range(self.window().downloads_list.topLevelItemCount()):
             item = self.window().downloads_list.topLevelItem(i)
+            if not isinstance(item, DownloadWidgetItem):
+                continue
+
             filter_match = self.window().downloads_filter_input.text().lower() in item.download_info["name"].lower()
             is_creditmining = item.download_info["credit_mining"]
             if self.filter == DOWNLOADS_FILTER_CREDITMINING:
