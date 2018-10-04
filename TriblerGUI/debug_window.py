@@ -623,6 +623,7 @@ class DebugWindow(QMainWindow):
                                           "An error occurred when exporting the torrent file: %s" % str(exc))
 
     def closeEvent(self, close_event):
+        self.request_mgr.cancel_request()
         if self.cpu_plot_timer:
             self.cpu_plot_timer.stop()
 
