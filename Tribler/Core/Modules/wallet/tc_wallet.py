@@ -9,7 +9,7 @@ from twisted.internet.defer import succeed, fail, Deferred
 from twisted.internet.task import LoopingCall
 
 
-MEGA_DIV = 1024 * 1024
+MEGA_DIV = 1024.0 * 1024.0
 MIN_TRANSACTION_SIZE = 1024 * 1024
 
 
@@ -71,7 +71,7 @@ class TrustchainWallet(Wallet, BlockListener):
 
     def get_balance(self):
         return succeed({
-            'available': self.get_bandwidth_tokens() / MEGA_DIV,
+            'available': int(self.get_bandwidth_tokens() / MEGA_DIV),
             'pending': 0,
             'currency': self.get_identifier(),
             'precision': self.precision()
