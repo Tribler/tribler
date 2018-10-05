@@ -1,11 +1,11 @@
 import matplotlib
 
 from TriblerGUI.defs import PAGE_MARKET
+from TriblerGUI.dialogs.trustexplanationdialog import TrustExplanationDialog
 
 matplotlib.use('Qt5Agg')
 
 import datetime
-from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QWidget
 from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -85,6 +85,7 @@ class TrustPage(QWidget):
         self.request_mgr = None
         self.blocks = None
         self.byte_scale = 1024 * 1024
+        self.dialog = None
 
     def initialize_trust_page(self):
         vlayout = self.window().plot_widget.layout()
@@ -92,11 +93,16 @@ class TrustPage(QWidget):
         vlayout.addWidget(self.trust_plot)
 
         self.window().trade_button.clicked.connect(self.on_trade_button_clicked)
+        self.window().trust_explain_button.clicked.connect(self.on_info_button_clicked)
 
     def on_trade_button_clicked(self):
         self.window().market_page.initialize_market_page()
         self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
         self.window().stackedWidget.setCurrentIndex(PAGE_MARKET)
+
+    def on_info_button_clicked(self):
+        self.dialog = TrustExplanationDialog(self.window())
+        self.dialog.show()
 
     def load_blocks(self):
         self.request_mgr = TriblerRequestManager()
