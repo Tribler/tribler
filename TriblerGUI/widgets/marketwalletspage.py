@@ -168,7 +168,7 @@ class MarketWalletsPage(QWidget):
             ConfirmationDialog.show_error(self.window(), "bitcoinlib not found",
                                           "bitcoinlib could not be located on your system. "
                                           "Please install it using the following command: "
-                                          "pip install bitcoinlib --user")
+                                          "sudo chown -R $(id -un) ~/.local && pip install bitcoinlib --user")
             return
 
         self.request_mgr = TriblerRequestManager()
