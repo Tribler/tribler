@@ -1050,7 +1050,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>2</number>
+         <number>12</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -5063,7 +5063,7 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>661</width>
+               <width>300</width>
                <height>610</height>
               </rect>
              </property>
@@ -9371,7 +9371,7 @@ border-top: 1px solid #555;
              <item>
               <widget class="QLabel" name="subscribed_channels_header_label">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -9393,10 +9393,45 @@ border-top: 1px solid #555;
                                             background-color: transparent;
                                             font-size: 20px;
                                             font-weight: bold;
-                                            margin: 10px;</string>
+                                            margin: 10px;
+margin-right: 4px;
+margin-top: 9px;</string>
                </property>
                <property name="text">
                 <string>Trust statistics</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QToolButton" name="trust_explain_button">
+               <property name="minimumSize">
+                <size>
+                 <width>20</width>
+                 <height>20</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>20</width>
+                 <height>20</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>14</pointsize>
+                </font>
+               </property>
+               <property name="cursor">
+                <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">border: 1px solid white;
+color: white;
+border-radius: 10px;
+</string>
+               </property>
+               <property name="text">
+                <string>i</string>
                </property>
               </widget>
              </item>
@@ -9406,7 +9441,7 @@ border-top: 1px solid #555;
                 <enum>Qt::Horizontal</enum>
                </property>
                <property name="sizeType">
-                <enum>QSizePolicy::Fixed</enum>
+                <enum>QSizePolicy::Expanding</enum>
                </property>
                <property name="sizeHint" stdset="0">
                 <size>
@@ -9479,7 +9514,7 @@ border-top: 1px solid #555;
              <string notr="true">padding-left: 10px; padding-right: 10px;</string>
             </property>
             <property name="text">
-             <string>You can build trust by contributing to the Tribler network. This is done by exchanging data anonymously or by letting Tribler run idle.</string>
+             <string>You can build trust by contributing bandwidth to the Tribler network. This is done by letting Tribler run idle, or by mining tokens.</string>
             </property>
             <property name="wordWrap">
              <bool>true</bool>
