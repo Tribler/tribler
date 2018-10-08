@@ -125,7 +125,7 @@ class MarketBlock(TrustChainBlock):
         """
         Verify whether an incoming block with the tick type is valid.
         """
-        if self.type != "tick":
+        if self.type != "ask" and self.type != "bid":
             return False
         if not MarketBlock.has_fields(['tick'], self.transaction):
             return False

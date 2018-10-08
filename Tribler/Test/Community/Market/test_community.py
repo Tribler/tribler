@@ -435,7 +435,7 @@ class TestMarketCommunitySingle(TestMarketCommunityBase):
         ask_tx = ask.to_block_dict()
         ask_tx["address"], ask_tx["port"] = "127.0.0.1", 1337
         tick_block = MarketBlock()
-        tick_block.type = 'tick'
+        tick_block.type = 'ask' if return_ask else 'bid'
         tick_block.transaction = {'tick': ask_tx, 'version': MarketCommunity.PROTOCOL_VERSION}
         return tick_block
 
