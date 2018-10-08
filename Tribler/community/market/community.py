@@ -125,7 +125,7 @@ class MarketCommunity(Community, BlockListener):
                        "f0f0f3a517b858d4ca093faa35cc92f6a152152312398e5ec87cb636818020812a04667d7c174d9b1303a6183dcd"
                        "2c8f72d98f9f04988c299e01ed65ef65d5f413c22ea836eade5d7c5762fb816043f9cf82166d5d8fe558afa4e7b2"
                        "c252374e589d6033908138c95c9145d603074aa81bff0055006f9ca430f28b82".decode('hex'))
-    PROTOCOL_VERSION = 1
+    PROTOCOL_VERSION = 2
     BLOCK_CLASS = MarketBlock
     DB_NAME = 'market'
 
