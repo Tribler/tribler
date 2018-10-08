@@ -81,6 +81,7 @@ class MarketServiceMaker(object):
         config.set_channel_search_enabled(False)
         config.set_credit_mining_enabled(False)
         config.set_dummy_wallets_enabled(True)
+        config.set_popularity_community_enabled(False)
 
         # Check if we are already running a Tribler instance
         self.process_checker = ProcessChecker()

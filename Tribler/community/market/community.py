@@ -141,7 +141,9 @@ class MarketCommunity(Community, BlockListener):
         use_database = kwargs.pop('use_database', True)
         db_working_dir = kwargs.pop('working_directory', '')
 
-        super(MarketCommunity, self).__init__(*args, **kwargs)
+        Community.__init__(self, *args, **kwargs)
+        BlockListener.__init__(self)
+
         self._use_main_thread = True  # Market community is unable to deal with thread pool message processing yet
         self.broadcast_block = False
         self.mid = self.my_peer.mid.encode('hex')
