@@ -135,7 +135,7 @@ class MarketCommunity(Community, BlockListener):
         self.wallets = kwargs.pop('wallets', {})
         self.trustchain = kwargs.pop('trustchain')
         self.trustchain.settings.broadcast_blocks = False
-        self.trustchain.add_listener(self, ['tick', 'cancel_order', 'tx_init', 'tx_payment', 'tx_done'])
+        self.trustchain.add_listener(self, ['ask', 'bid', 'cancel_order', 'tx_init', 'tx_payment', 'tx_done'])
         self.dht = kwargs.pop('dht')
 
         use_database = kwargs.pop('use_database', True)
@@ -425,7 +425,7 @@ class MarketCommunity(Community, BlockListener):
             self._logger.warning("Invalid tick block received!")
             return
 
-        tick = Ask.from_block(block) if block.transaction["tick"]["is_ask"] else Bid.from_block(block)
+        tick = Ask.from_block(block) if block.type == 'ask' else Bid.from_block(block)
         self.on_tick(tick)
 
     def process_tx_init_block(self, block):
@@ -643,7 +643,7 @@ class MarketCommunity(Community, BlockListener):
         if "version" not in block.transaction or block.transaction["version"] != self.PROTOCOL_VERSION:
             return
 
-        if block.type == "tick":
+        if block.type == "ask" or block.type == "bid":
             self.process_tick_block(block)
         elif block.type == "tx_init":
             self.process_tx_init_block(block)
@@ -675,7 +675,8 @@ class MarketCommunity(Community, BlockListener):
             "tick": tick.to_block_dict(),
             "version": self.PROTOCOL_VERSION
         }
-        return self.trustchain.create_source_block(block_type='tick', transaction=tx_dict)
+        block_type = 'ask' if tick.is_ask() else 'bid'
+        return self.trustchain.create_source_block(block_type=block_type, transaction=tx_dict)
 
     @synchronized
     def create_new_cancel_order_block(self, order):
