@@ -92,3 +92,6 @@ STATUS_DEAD = 2
 
 # Tribler shutdown grace period in milliseconds
 SHUTDOWN_WAITING_PERIOD = 120000
+
+# Garbage collection timer (in minutes)
+GC_TIMEOUT = 10
