@@ -551,6 +551,10 @@ class TriblerWindow(QMainWindow):
         else:
             self.token_balance_label.setText("0 MB")
 
+        # If trust page is currently visible, then load the graph as well
+        if self.stackedWidget.currentIndex() == PAGE_TRUST:
+            self.trust_page.load_blocks()
+
     def set_token_balance(self, balance):
         if abs(balance) > 1024 ** 4:    # Balance is over a TB
             balance /= 1024.0 ** 4

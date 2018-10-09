@@ -1,6 +1,7 @@
+import gc
 import matplotlib
 
-from TriblerGUI.defs import PAGE_MARKET
+from TriblerGUI.defs import PAGE_MARKET, GC_TIMEOUT
 from TriblerGUI.dialogs.trustexplanationdialog import TrustExplanationDialog
 
 matplotlib.use('Qt5Agg')
@@ -24,13 +25,14 @@ class MplCanvas(FigureCanvas):
 
         fig.set_tight_layout({"pad": 1})
         self.axes = fig.add_subplot(111)
-        self.plot_data = None
+        self.plot_data = [[[0], [0]], [datetime.datetime.now()]]
 
         FigureCanvas.__init__(self, fig)
         self.setParent(parent)
 
         FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
+        self.compute_initial_figure()
 
     def compute_initial_figure(self):
         pass
@@ -87,6 +89,9 @@ class TrustPage(QWidget):
         self.byte_scale = 1024 * 1024
         self.dialog = None
 
+        # Timer for garbage collection
+        self.gc_timer = 0
+
     def initialize_trust_page(self):
         vlayout = self.window().plot_widget.layout()
         self.trust_plot = TrustPlotMplCanvas(self.window().plot_widget, dpi=100)
@@ -130,6 +135,13 @@ class TrustPage(QWidget):
         if blocks:
             self.blocks = blocks["blocks"]
             self.plot_absolute_values()
+            # Matplotlib is leaking memory on re-plotting. Refer: https://github.com/matplotlib/matplotlib/issues/8528
+            # Note that gc is called every 10 minutes.
+            if self.gc_timer == GC_TIMEOUT:
+                gc.collect()
+                self.gc_timer = 0
+            else:
+                self.gc_timer += 1
 
     def plot_absolute_values(self):
         """
