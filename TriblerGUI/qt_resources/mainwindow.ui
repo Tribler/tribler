@@ -1050,7 +1050,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>12</number>
+         <number>3</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -4613,31 +4613,6 @@ background-color: transparent;
               </spacer>
              </item>
              <item>
-              <widget class="EllipseButton" name="edit_channel_button">
-               <property name="minimumSize">
-                <size>
-                 <width>45</width>
-                 <height>24</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>45</width>
-                 <height>24</height>
-                </size>
-               </property>
-               <property name="cursor">
-                <cursorShape>PointingHandCursor</cursorShape>
-               </property>
-               <property name="styleSheet">
-                <string notr="true"/>
-               </property>
-               <property name="text">
-                <string>EDIT</string>
-               </property>
-              </widget>
-             </item>
-             <item>
               <spacer name="horizontalSpacer_6">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
@@ -5064,7 +5039,7 @@ border-top: 1px solid #555;
                <x>0</x>
                <y>0</y>
                <width>300</width>
-               <height>610</height>
+               <height>646</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -8267,8 +8242,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>131</width>
-                       <height>260</height>
+                       <width>133</width>
+                       <height>246</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -12009,6 +11984,12 @@ color: #eee;</string>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
+   <class>SubscriptionsWidget</class>
+   <extends>QWidget</extends>
+   <header>TriblerGUI.widgets.subscriptionswidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
    <class>EllipseButton</class>
    <extends>QToolButton</extends>
    <header>TriblerGUI.widgets.ellipsebutton.h</header>
@@ -12121,12 +12102,6 @@ color: #eee;</string>
    <class>LoadingPage</class>
    <extends>QWidget</extends>
    <header>TriblerGUI.widgets.loadingpage.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>SubscriptionsWidget</class>
-   <extends>QWidget</extends>
-   <header>TriblerGUI.widgets.subscriptionswidget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
@@ -12380,22 +12355,6 @@ color: #eee;</string>
    <hints>
     <hint type="sourcelabel">
      <x>221</x>
-     <y>75</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>edit_channel_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_edit_channel_clicked()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>834</x>
      <y>75</y>
     </hint>
     <hint type="destinationlabel">

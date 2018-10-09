@@ -21,7 +21,7 @@ from TriblerGUI.utilities import get_image_path
 
 class EditChannelPage(QWidget):
     """
-    This class is responsible for managing lists and data on the your channel page, including torrents, playlists
+    This class is responsible for managing lists and data on your channel page, including torrents, playlists
     and rss feeds.
     """
     playlists_loaded = pyqtSignal(object)
@@ -34,7 +34,6 @@ class EditChannelPage(QWidget):
         self.playlists = None
         self.editing_playlist = None
         self.viewing_playlist = None
-        self.editing_own_channel = False
         self.dialog = None
         self.editchannel_request_mgr = None
 
@@ -86,34 +85,18 @@ class EditChannelPage(QWidget):
             return
         if 'error' in overview:
             self.window().edit_channel_stacked_widget.setCurrentIndex(0)
-        else:
-            if "mychannel" in overview:
-                self.channel_overview = overview["mychannel"]
-                self.set_editing_own_channel(True)
-                self.window().edit_channel_name_label.setText("My channel")
-            else:
-                self.channel_overview = overview["channel"]
-                self.set_editing_own_channel(False)
-                self.window().edit_channel_name_label.setText(self.channel_overview["name"])
 
-            self.window().edit_channel_overview_name_label.setText(self.channel_overview["name"])
-            self.window().edit_channel_description_label.setText(self.channel_overview["description"])
-            self.window().edit_channel_identifier_label.setText(self.channel_overview["identifier"])
+        self.channel_overview = overview["mychannel"]
+        self.window().edit_channel_name_label.setText("My channel")
 
-            self.window().edit_channel_name_edit.setText(self.channel_overview["name"])
-            self.window().edit_channel_description_edit.setText(self.channel_overview["description"])
+        self.window().edit_channel_overview_name_label.setText(self.channel_overview["name"])
+        self.window().edit_channel_description_label.setText(self.channel_overview["description"])
+        self.window().edit_channel_identifier_label.setText(self.channel_overview["identifier"])
 
-            self.window().edit_channel_stacked_widget.setCurrentIndex(1)
+        self.window().edit_channel_name_edit.setText(self.channel_overview["name"])
+        self.window().edit_channel_description_edit.setText(self.channel_overview["description"])
 
-    def set_editing_own_channel(self, edit_own):
-        self.editing_own_channel = edit_own
-
-        self.window().edit_channel_settings_button.setHidden(not edit_own)
-        self.window().edit_channel_rss_feeds_button.setHidden(not edit_own)
-        self.window().edit_channel_playlists_button.setHidden(not edit_own)
-
-        self.window().edit_channel_torrents_remove_all_button.setHidden(not edit_own)
-        self.window().edit_channel_torrents_remove_selected_button.setHidden(not edit_own)
+        self.window().edit_channel_stacked_widget.setCurrentIndex(1)
 
     def load_channel_torrents(self):
         self.window().edit_channel_torrents_list.set_data_items([(LoadingListItem, None)])
