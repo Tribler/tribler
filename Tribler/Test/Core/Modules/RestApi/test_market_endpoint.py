@@ -70,15 +70,13 @@ class TestMarketEndpoint(AbstractApiTest):
 
         return transaction
 
-    def create_fake_block_pair(self):
+    def create_fake_block(self):
         """
-        Create a dummy block pair and return it
+        Create a dummy block and return it
         """
-        block_a = MockObject()
-        block_a.hash = 'a'
-        block_b = MockObject()
-        block_b.hash = 'b'
-        return block_a, block_b
+        block = MockObject()
+        block.hash = 'a'
+        return block
 
     @trial_timeout(10)
     def test_get_asks(self):
@@ -92,9 +90,8 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertIn('ticks', json_response['asks'][0])
             self.assertEqual(len(json_response['asks'][0]['ticks']), 1)
 
-        self.session.lm.market_community.trustchain.send_block_pair = lambda *_: None
-        self.session.lm.market_community.create_new_tick_block = \
-            lambda _: succeed(self.create_fake_block_pair())
+        self.session.lm.market_community.trustchain.send_block = lambda *_, **__: None
+        self.session.lm.market_community.create_new_tick_block = lambda _: succeed((self.create_fake_block(), None))
         self.session.lm.market_community.create_ask(AssetPair(AssetAmount(10, 'DUM1'), AssetAmount(10, 'DUM2')), 3600)
         self.should_check_equality = False
         return self.do_request('market/asks', expected_code=200).addCallback(on_response)
@@ -108,8 +105,8 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertEqual(len(self.session.lm.market_community.order_book.asks), 1)
 
         self.should_check_equality = False
-        self.session.lm.market_community.trustchain.send_block_pair = lambda *_: None
-        self.session.lm.market_community.create_new_tick_block = lambda _: succeed(self.create_fake_block_pair())
+        self.session.lm.market_community.trustchain.send_block = lambda *_, **__: None
+        self.session.lm.market_community.create_new_tick_block = lambda _: succeed((self.create_fake_block(), None))
         post_data = {'first_asset_amount': 10, 'second_asset_amount': 10,
                      'first_asset_type': 'DUM1', 'second_asset_type': 'DUM2', 'timeout': 3400}
         return self.do_request('market/asks', expected_code=200, request_type='PUT', post_data=post_data)\
@@ -145,8 +142,8 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertIn('ticks', json_response['bids'][0])
             self.assertEqual(len(json_response['bids'][0]['ticks']), 1)
 
-        self.session.lm.market_community.trustchain.send_block_pair = lambda *_: None
-        self.session.lm.market_community.create_new_tick_block = lambda _: succeed(self.create_fake_block_pair())
+        self.session.lm.market_community.trustchain.send_block = lambda *_, **__: None
+        self.session.lm.market_community.create_new_tick_block = lambda _: succeed((self.create_fake_block(), None))
         self.session.lm.market_community.create_bid(AssetPair(AssetAmount(10, 'DUM1'), AssetAmount(10, 'DUM2')), 3600)
         self.should_check_equality = False
         return self.do_request('market/bids', expected_code=200).addCallback(on_response)
@@ -160,8 +157,8 @@ class TestMarketEndpoint(AbstractApiTest):
             self.assertEqual(len(self.session.lm.market_community.order_book.bids), 1)
 
         self.should_check_equality = False
-        self.session.lm.market_community.trustchain.send_block_pair = lambda *_: None
-        self.session.lm.market_community.create_new_tick_block = lambda _: succeed(self.create_fake_block_pair())
+        self.session.lm.market_community.trustchain.send_block = lambda *_, **__: None
+        self.session.lm.market_community.create_new_tick_block = lambda _: succeed((self.create_fake_block(), None))
         post_data = {'first_asset_amount': 10, 'second_asset_amount': 10,
                      'first_asset_type': 'DUM1', 'second_asset_type': 'DUM2', 'timeout': 3400}
         return self.do_request('market/bids', expected_code=200, request_type='PUT', post_data=post_data) \

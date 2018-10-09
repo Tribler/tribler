@@ -931,10 +931,18 @@ class TriblerLaunchMany(TaskManager):
 
         self.tracker_manager = None
 
+        if self.tftp_handler is not None:
+            yield self.tftp_handler.shutdown()
+        self.tftp_handler = None
+
         if self.tunnel_community and self.trustchain_community:
             # We unload these overlays manually since the TrustChain has to be unloaded after the tunnel overlay.
-            yield self.ipv8.unload_overlay(self.tunnel_community)
-            yield self.ipv8.unload_overlay(self.trustchain_community)
+            tunnel_community = self.tunnel_community
+            self.tunnel_community = None
+            yield self.ipv8.unload_overlay(tunnel_community)
+            trustchain_community = self.trustchain_community
+            self.trustchain_community = None
+            yield self.ipv8.unload_overlay(trustchain_community)
 
         if self.dispersy:
             self._logger.info("lmc: Shutting down Dispersy...")
@@ -957,10 +965,6 @@ class TriblerLaunchMany(TaskManager):
         if self.metadata_store is not None:
             yield self.metadata_store.close()
         self.metadata_store = None
-
-        if self.tftp_handler is not None:
-            yield self.tftp_handler.shutdown()
-        self.tftp_handler = None
 
         if self.channelcast_db is not None:
             yield self.channelcast_db.close()

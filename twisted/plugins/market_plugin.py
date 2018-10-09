@@ -28,6 +28,9 @@ class Options(usage.Options):
         ["restapi", "p", 8085, "Use an alternate port for the REST API", int],
         ["ipv8", "d", -1, "Use an alternate port for IPv8", int],
     ]
+    optFlags = [
+        ["testnet", "t", "Join the testnet"],
+    ]
 
 
 class MarketServiceMaker(object):
@@ -76,6 +79,9 @@ class MarketServiceMaker(object):
         config.set_video_server_enabled(False)
         config.set_torrent_search_enabled(False)
         config.set_channel_search_enabled(False)
+        config.set_credit_mining_enabled(False)
+        config.set_dummy_wallets_enabled(True)
+        config.set_popularity_community_enabled(False)
 
         # Check if we are already running a Tribler instance
         self.process_checker = ProcessChecker()
@@ -94,6 +100,9 @@ class MarketServiceMaker(object):
 
         if options["ipv8"] != -1 and options["ipv8"] > 0:
             config.set_dispersy_port(options["ipv8"])
+
+        if "testnet" in options and options["testnet"]:
+            config.set_testnet(True)
 
         self.session = Session(config)
         self.session.start().addErrback(lambda failure: self.shutdown_process(failure.getErrorMessage()))

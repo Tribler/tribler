@@ -527,17 +527,21 @@ class TriblerWindow(QMainWindow):
         self.raise_window()
         self.deselect_all_menu_buttons()
         self.stackedWidget.setCurrentIndex(PAGE_TRUST)
-        self.trust_page.load_trust_statistics()
+        self.load_token_balance()
+        self.trust_page.load_blocks()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
     def load_token_balance(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("trustchain/statistics", self.received_token_balance, capture_errors=False)
+        self.request_mgr.perform_request("trustchain/statistics", self.received_trustchain_statistics,
+                                         capture_errors=False)
 
-    def received_token_balance(self, statistics):
+    def received_trustchain_statistics(self, statistics):
         if not statistics or "statistics" not in statistics:
             return
+
+        self.trust_page.received_trustchain_statistics(statistics)
 
         statistics = statistics["statistics"]
         if 'latest_block' in statistics:
@@ -546,6 +550,10 @@ class TriblerWindow(QMainWindow):
             self.set_token_balance(balance)
         else:
             self.token_balance_label.setText("0 MB")
+
+        # If trust page is currently visible, then load the graph as well
+        if self.stackedWidget.currentIndex() == PAGE_TRUST:
+            self.trust_page.load_blocks()
 
     def set_token_balance(self, balance):
         if abs(balance) > 1024 ** 4:    # Balance is over a TB

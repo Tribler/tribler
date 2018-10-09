@@ -1,11 +1,12 @@
+import gc
 import matplotlib
 
-from TriblerGUI.defs import PAGE_MARKET
+from TriblerGUI.defs import PAGE_MARKET, GC_TIMEOUT
+from TriblerGUI.dialogs.trustexplanationdialog import TrustExplanationDialog
 
 matplotlib.use('Qt5Agg')
 
 import datetime
-from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QWidget
 from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -24,13 +25,14 @@ class MplCanvas(FigureCanvas):
 
         fig.set_tight_layout({"pad": 1})
         self.axes = fig.add_subplot(111)
-        self.plot_data = None
+        self.plot_data = [[[0], [0]], [datetime.datetime.now()]]
 
         FigureCanvas.__init__(self, fig)
         self.setParent(parent)
 
         FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
+        self.compute_initial_figure()
 
     def compute_initial_figure(self):
         pass
@@ -83,35 +85,40 @@ class TrustPage(QWidget):
         self.trust_plot = None
         self.public_key = None
         self.request_mgr = None
-        self.statistics = None
         self.blocks = None
         self.byte_scale = 1024 * 1024
-        self.refresh_timer = None
+        self.dialog = None
+
+        # Timer for garbage collection
+        self.gc_timer = 0
 
     def initialize_trust_page(self):
         vlayout = self.window().plot_widget.layout()
         self.trust_plot = TrustPlotMplCanvas(self.window().plot_widget, dpi=100)
         vlayout.addWidget(self.trust_plot)
 
-        self.refresh_timer = QTimer()
-        self.refresh_timer.timeout.connect(self.load_trust_statistics)
-        self.refresh_timer.start(60000)
-
         self.window().trade_button.clicked.connect(self.on_trade_button_clicked)
+        self.window().trust_explain_button.clicked.connect(self.on_info_button_clicked)
 
     def on_trade_button_clicked(self):
         self.window().market_page.initialize_market_page()
         self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
         self.window().stackedWidget.setCurrentIndex(PAGE_MARKET)
 
-    def load_trust_statistics(self):
+    def on_info_button_clicked(self):
+        self.dialog = TrustExplanationDialog(self.window())
+        self.dialog.show()
+
+    def load_blocks(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("trustchain/statistics", self.received_trustchain_statistics)
+        self.request_mgr.perform_request("ipv8/trustchain/users/%s/blocks" % self.public_key,
+                                         self.received_trustchain_blocks)
 
     def received_trustchain_statistics(self, statistics):
         if not statistics:
             return
         statistics = statistics["statistics"]
+        self.public_key = statistics["id"]
         total_up = 0
         total_down = 0
         if 'latest_block' in statistics:
@@ -124,16 +131,17 @@ class TrustPage(QWidget):
         self.window().trust_people_helped_label.setText("%d" % statistics["peers_that_pk_helped"])
         self.window().trust_people_helped_you_label.setText("%d" % statistics["peers_that_helped_pk"])
 
-        # Fetch the latest blocks of this user
-        self.public_key = statistics["id"]
-        self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("ipv8/trustchain/users/%s/blocks" % self.public_key,
-                                         self.received_trustchain_blocks)
-
     def received_trustchain_blocks(self, blocks):
         if blocks:
             self.blocks = blocks["blocks"]
             self.plot_absolute_values()
+            # Matplotlib is leaking memory on re-plotting. Refer: https://github.com/matplotlib/matplotlib/issues/8528
+            # Note that gc is called every 10 minutes.
+            if self.gc_timer == GC_TIMEOUT:
+                gc.collect()
+                self.gc_timer = 0
+            else:
+                self.gc_timer += 1
 
     def plot_absolute_values(self):
         """

@@ -125,7 +125,7 @@ class MarketCommunity(Community, BlockListener):
                        "f0f0f3a517b858d4ca093faa35cc92f6a152152312398e5ec87cb636818020812a04667d7c174d9b1303a6183dcd"
                        "2c8f72d98f9f04988c299e01ed65ef65d5f413c22ea836eade5d7c5762fb816043f9cf82166d5d8fe558afa4e7b2"
                        "c252374e589d6033908138c95c9145d603074aa81bff0055006f9ca430f28b82".decode('hex'))
-    PROTOCOL_VERSION = 1
+    PROTOCOL_VERSION = 2
     BLOCK_CLASS = MarketBlock
     DB_NAME = 'market'
 
@@ -134,16 +134,17 @@ class MarketCommunity(Community, BlockListener):
         self.tribler_session = kwargs.pop('tribler_session', None)
         self.wallets = kwargs.pop('wallets', {})
         self.trustchain = kwargs.pop('trustchain')
-        self.trustchain.broadcast_block = False
-        self.trustchain.add_listener(self, ['tick', 'cancel_order', 'tx_init', 'tx_payment', 'tx_done'])
+        self.trustchain.settings.broadcast_blocks = False
+        self.trustchain.add_listener(self, ['ask', 'bid', 'cancel_order', 'tx_init', 'tx_payment', 'tx_done'])
         self.dht = kwargs.pop('dht')
 
         use_database = kwargs.pop('use_database', True)
         db_working_dir = kwargs.pop('working_directory', '')
 
-        super(MarketCommunity, self).__init__(*args, **kwargs)
+        Community.__init__(self, *args, **kwargs)
+        BlockListener.__init__(self)
+
         self._use_main_thread = True  # Market community is unable to deal with thread pool message processing yet
-        self.broadcast_block = False
         self.mid = self.my_peer.mid.encode('hex')
         self.mid_register = {}
         self.order_book = None
@@ -156,10 +157,8 @@ class MarketCommunity(Community, BlockListener):
         self.matching_enabled = True
         self.use_incremental_payments = False
         self.matchmakers = set()
-        self.pending_matchmaker_deferreds = []
         self.request_cache = RequestCache()
         self.cancelled_orders = set()  # Keep track of cancelled orders so we don't add them again to the orderbook.
-        self.broadcast_block = False
 
         if use_database:
             order_repository = DatabaseOrderRepository(self.mid, self.market_database)
@@ -228,12 +227,7 @@ class MarketCommunity(Community, BlockListener):
         Check whether we should sign the incoming block.
         """
         tx = block.transaction
-        if block.type == "tick" or block.type == "cancel_order":
-            self.logger.info("Signing %s block as matchmaker!", block.type)
-            return block.is_valid_tick_block()
-        elif block.type == "cancel_order":
-            return True  # Just sign it
-        elif block.type == "tx_payment":
+        if block.type == "tx_payment":
             txid = TransactionId(TraderId(tx["payment"]["trader_id"]),
                                  TransactionNumber(tx["payment"]["transaction_number"]))
             transaction = self.transaction_manager.find_by_id(txid)
@@ -431,10 +425,8 @@ class MarketCommunity(Community, BlockListener):
             self._logger.warning("Invalid tick block received!")
             return
 
-        tick = Ask.from_block(block) if block.transaction["tick"]["is_ask"] else Bid.from_block(block)
-
-        if self.trustchain.persistence.get_linked(block):
-            self.on_tick(tick)
+        tick = Ask.from_block(block) if block.type == 'ask' else Bid.from_block(block)
+        self.on_tick(tick)
 
     def process_tx_init_block(self, block):
         """
@@ -503,9 +495,7 @@ class MarketCommunity(Community, BlockListener):
                 # Send the block pair associated with this tick
                 tick_block = self.trustchain.persistence.get_block_with_hash(entry.tick.block_hash)
                 if tick_block:
-                    other_tick_block = self.trustchain.persistence.get_linked(tick_block)
-                    if other_tick_block:
-                        self.trustchain.send_block_pair(tick_block, other_tick_block, address=peer.address)
+                    self.trustchain.send_block(tick_block, address=peer.address)
 
     def ping_peer(self, peer):
         """
@@ -592,28 +582,24 @@ class MarketCommunity(Community, BlockListener):
 
         # Create the order
         order = self.order_manager.create_ask_order(assets, Timeout(timeout))
+        order.set_verified()
+        self.order_manager.order_repository.update(order)
 
         # Create the tick
         tick = Tick.from_order(order)
 
-        def on_verified_ask(blocks):
-            self.logger.info("Ask verified with asset pair %s", assets)
-            order.set_verified()
-            self.order_manager.order_repository.update(order)
-            self.check_outstanding_matches(order)
-            self.trustchain.send_block_pair(*blocks)
-
+        def on_block_created(block):
+            self.trustchain.send_block(block, ttl=2)
             if self.is_matchmaker:
-                tick.block_hash = blocks[0].hash
+                tick.block_hash = block.hash
                 # Search for matches
                 self.order_book.insert_ask(tick).addCallback(self.on_ask_timeout)
                 self.match(tick)
 
+            self.logger.info("Ask created with asset pair %s", assets)
             return order
 
-        self.logger.info("Ask created with asset pair %s", assets)
-
-        return self.create_new_tick_block(tick).addCallback(on_verified_ask)
+        return self.create_new_tick_block(tick).addCallback(lambda (blk, _): on_block_created(blk))
 
     def create_bid(self, assets, timeout):
         """
@@ -630,39 +616,24 @@ class MarketCommunity(Community, BlockListener):
 
         # Create the order
         order = self.order_manager.create_bid_order(assets, Timeout(timeout))
+        order.set_verified()
+        self.order_manager.order_repository.update(order)
 
         # Create the tick
         tick = Tick.from_order(order)
 
-        def on_verified_bid(blocks):
-            self.logger.info("Bid verified with asset pair %s", assets)
-            order.set_verified()
-            self.order_manager.order_repository.update(order)
-            self.check_outstanding_matches(order)
-            self.trustchain.send_block_pair(*blocks)
-
+        def on_block_created(block):
+            self.trustchain.send_block(block, ttl=2)
             if self.is_matchmaker:
-                tick.block_hash = blocks[0].hash
+                tick.block_hash = block.hash
                 # Search for matches
                 self.order_book.insert_bid(tick).addCallback(self.on_bid_timeout)
                 self.match(tick)
 
+            self.logger.info("Bid created with asset pair %s", assets)
             return order
 
-        self.logger.info("Bid created with asset pair %s", assets)
-
-        return self.create_new_tick_block(tick).addCallback(on_verified_bid)
-
-    def check_outstanding_matches(self, order):
-        """
-        Since it could be that we received match messages while an order was still unverified, we check our cache
-        of incoming match messages.
-        """
-        for match_payload in self.incoming_match_messages.values():
-            order_id = OrderId(TraderId(self.mid), match_payload.recipient_order_number)
-            match_order = self.order_manager.order_repository.find_by_id(order_id)
-            if match_order.order_id == order.order_id:
-                self.process_match_payload(match_payload)
+        return self.create_new_tick_block(tick).addCallback(lambda (blk, _): on_block_created(blk))
 
     def received_block(self, block):
         """
@@ -672,7 +643,7 @@ class MarketCommunity(Community, BlockListener):
         if "version" not in block.transaction or block.transaction["version"] != self.PROTOCOL_VERSION:
             return
 
-        if block.type == "tick":
+        if block.type == "ask" or block.type == "bid":
             self.process_tick_block(block)
         elif block.type == "tx_init":
             self.process_tx_init_block(block)
@@ -690,75 +661,39 @@ class MarketCommunity(Community, BlockListener):
 
         self.matchmakers.add(matchmaker)
 
-        for matchmaker_deferred in self.pending_matchmaker_deferreds:
-            matchmaker_deferred.callback(random.sample(self.matchmakers, 1)[0])
-
-        self.pending_matchmaker_deferreds = []
-
-    @inlineCallbacks
-    def get_online_matchmaker(self):
-        """
-        Get an online matchmaker. If there is no matchmaker available, wait until there's one.
-        :return: A Deferred that fires with a matchmaker.
-        """
-        while True:
-            if not self.matchmakers:
-                break
-            random_matchmaker = random.sample(self.matchmakers, 1)[0]
-            online = yield self.ping_peer(random_matchmaker)
-            if not online:
-                self.matchmakers.remove(random_matchmaker)
-            else:
-                returnValue(random_matchmaker)
-
-        # We didn't find an online matchmaker; wait until we find one
-        self.logger.info("No matchmaker found, wait until there's one available")
-        matchmaker_deferred = Deferred()
-        self.pending_matchmaker_deferreds.append(matchmaker_deferred)
-        matchmaker = yield matchmaker_deferred
-        returnValue(matchmaker)
-
     @synchronized
     def create_new_tick_block(self, tick):
         """
-        Create a block on TradeChain defining a new tick (either ask or bid) by using a (matchmaker) witness node.
+        Create a block on TradeChain defining a new tick (either ask or bid).
 
         :param tick: The tick we want to persist to the TradeChain.
         :type tick: Tick
-        :return: A deferred that fires when the witness node has signed and returned the block.
-        :rtype: Deferred
+        :return: A MarketBlock with the order details.
+        :rtype: MarketBlock
         """
-        def create_send_block(matchmaker):
-            tx_dict = {
-                "tick": tick.to_block_dict(),
-                "version": self.PROTOCOL_VERSION
-            }
-            return self.trustchain.sign_block(matchmaker, matchmaker.public_key.key_to_bin(),
-                                              block_type='tick', transaction=tx_dict)
-
-        return self.get_online_matchmaker().addCallback(create_send_block)
+        tx_dict = {
+            "tick": tick.to_block_dict(),
+            "version": self.PROTOCOL_VERSION
+        }
+        block_type = 'ask' if tick.is_ask() else 'bid'
+        return self.trustchain.create_source_block(block_type=block_type, transaction=tx_dict)
 
     @synchronized
     def create_new_cancel_order_block(self, order):
         """
-        Create a block on TradeChain defining a cancellation of an order by using a (matchmaker) witness node.
+        Create a block on TradeChain defining a cancellation of an order.
 
         :param order: The tick order to cancel
         :type order: Order
-        :return: A deferred that fires when the witness node has signed and returned the block.
-        :rtype: Deferred
+        :return: A MarketBlock with the cancellation details.
+        :rtype: MarketBlock
         """
-        def create_send_block(matchmaker):
-            tx_dict = {
-                "trader_id": str(order.order_id.trader_id),
-                "order_number": int(order.order_id.order_number),
-                "version": self.PROTOCOL_VERSION
-            }
-            return self.trustchain.sign_block(matchmaker, matchmaker.public_key.key_to_bin(),
-                                              block_type='cancel_order', transaction=tx_dict)\
-                .addCallback(lambda (blk1, blk2): blk1)
-
-        return self.get_online_matchmaker().addCallback(create_send_block)
+        tx_dict = {
+            "trader_id": str(order.order_id.trader_id),
+            "order_number": int(order.order_id.order_number),
+            "version": self.PROTOCOL_VERSION
+        }
+        return self.trustchain.create_source_block(block_type='cancel_order', transaction=tx_dict)
 
     @synchronized
     def create_new_tx_init_block(self, peer, ask_order_dict, bid_order_dict, transaction):
@@ -1069,7 +1004,8 @@ class MarketCommunity(Community, BlockListener):
                 self.order_book.remove_tick(order_id)
 
             if order.verified:
-                return self.create_new_cancel_order_block(order).addCallback(self.trustchain.send_block)
+                return self.create_new_cancel_order_block(order)\
+                    .addCallback(lambda (blk, _): self.trustchain.send_block(blk, ttl=2))
 
         return succeed(None)
 

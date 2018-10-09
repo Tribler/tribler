@@ -379,6 +379,9 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 self.do_payout(circuit_peer, circuit_id, circuit.bytes_down * (circuit.goal_hops * 2 - 1),
                                circuit.bytes_down)
 
+            # Reset the circuit byte counters so we do not payout again if we receive a destroy message.
+            circuit.bytes_up = circuit.bytes_down = 0
+
         def update_torrents(_):
             affected_peers = self.dispatcher.circuit_dead(circuit)
             ltmgr = self.tribler_session.lm.ltmgr \
@@ -482,8 +485,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
             time_elapsed = (time.time() - self.last_dht_lookup.get(info_hash, 0))
             force_dht_lookup = time_elapsed >= self.settings.dht_lookup_interval
-            if (state_changed or force_dht_lookup) and \
-                    (new_state == DLSTATUS_SEEDING or new_state == DLSTATUS_DOWNLOADING):
+            if (state_changed or force_dht_lookup) and (new_state == DLSTATUS_DOWNLOADING):
                 self.logger.info('Do dht lookup to find hidden services peers for %s', info_hash.encode('hex'))
                 self.do_raw_dht_lookup(info_hash)
 
