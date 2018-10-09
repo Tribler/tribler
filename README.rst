@@ -2,7 +2,7 @@
 Tribler
 *******
 
-|jenkins_build| |contributors| |pr_closed| |issues_closed| |downloads_6_5| |downloads_7_0| |doi| |openhub|
+|jenkins_build| |contributors| |pr_closed| |issues_closed| |downloads_7_0| |downloads_7_1| |doi| |openhub|
 
 *Towards making Bittorrent anonymous and impossible to shut down.*
 
@@ -13,7 +13,7 @@ Tribler includes our own Tor-like onion routing network with hidden services bas
 
 The aim of Tribler is giving anonymous access to online (streaming) videos. We are trying to make privacy, strong cryptography and authentication the Internet norm.
 
-Tribler currently offers a Youtube-style service. For instance, Bittorrent-compatible streaming, fast search, thumbnail previews and comments. For the past 9 years we have been building a very robust Peer-to-Peer system. Today Tribler is robust: "the only way to take Tribler down is to take The Internet down" (but a single software bug could end everything).
+Tribler currently offers a Youtube-style service. For instance, Bittorrent-compatible streaming, fast search, thumbnail previews and comments. For the past 11 years we have been building a very robust Peer-to-Peer system. Today Tribler is robust: "the only way to take Tribler down is to take The Internet down" (but a single software bug could end everything).
 
 **We make use of submodules, so remember using the --recursive argument when cloning this repo.**
 
@@ -98,13 +98,13 @@ Submodule notes
 .. |openhub| image:: https://www.openhub.net/p/tribler/widgets/project_thin_badge.gif?style=flat
     :target: https://www.openhub.net/p/tribler
 
-.. |downloads_6_5| image:: https://img.shields.io/github/downloads/tribler/tribler/v6.5.2/total.svg?style=flat
-    :target: https://github.com/Tribler/tribler/releases
-    :alt: Downloads(6.5.2)
-
 .. |downloads_7_0| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.0.2/total.svg?style=flat
     :target: https://github.com/Tribler/tribler/releases
     :alt: Downloads(7.0.2)
+
+.. |downloads_7_1| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.1.0/total.svg?style=flat
+    :target: https://github.com/Tribler/tribler/releases
+    :alt: Downloads(7.1.0)
 
 .. |contributors| image:: https://img.shields.io/github/contributors/tribler/tribler.svg?style=flat
     :target: https://github.com/Tribler/tribler/graphs/contributors
