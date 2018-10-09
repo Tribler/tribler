@@ -180,7 +180,6 @@ class Tick(object):
             "assets": self.assets.to_dictionary(),
             "timeout": int(self.timeout),
             "timestamp": float(self.timestamp),
-            "is_ask": self.is_ask(),
             "traded": self.traded
         }
 

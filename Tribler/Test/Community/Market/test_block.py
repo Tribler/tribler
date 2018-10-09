@@ -34,7 +34,7 @@ class TestMarketBlock(AbstractServer):
         bid_tx = self.bid.to_block_dict()
 
         self.tick_block = MarketBlock()
-        self.tick_block.type = 'tick'
+        self.tick_block.type = 'ask'
         self.tick_block.transaction = {'tick': ask_tx}
 
         self.cancel_block = MarketBlock()
@@ -75,7 +75,7 @@ class TestMarketBlock(AbstractServer):
         self.tick_block.type = 'test'
         self.assertFalse(self.tick_block.is_valid_tick_block())
 
-        self.tick_block.type = 'tick'
+        self.tick_block.type = 'ask'
         self.tick_block.transaction['test'] = self.tick_block.transaction.pop('tick')
         self.assertFalse(self.tick_block.is_valid_tick_block())
 
