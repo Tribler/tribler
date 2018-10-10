@@ -85,6 +85,7 @@ class EditChannelPage(QWidget):
             return
         if 'error' in overview:
             self.window().edit_channel_stacked_widget.setCurrentIndex(0)
+            return
 
         self.channel_overview = overview["mychannel"]
         self.window().edit_channel_name_label.setText("My channel")
