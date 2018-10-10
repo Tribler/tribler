@@ -129,6 +129,9 @@ class SQLiteCacheDB(TaskManager):
         if os.path.exists(shm_file) or os.path.exists(wal_file):
             self.do_quick_integrity_check()
 
+        # Enable memory map in sqlite (256MB)
+        cursor.execute(u"PRAGMA mmap_size=268435456;")
+
         # apply pragma
         page_size, = next(cursor.execute(u"PRAGMA page_size"))
         if page_size < 8192:
