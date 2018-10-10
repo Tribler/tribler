@@ -58,8 +58,6 @@ class ChannelPage(QWidget):
         self.window().num_subs_label.setText(str(channel_info['votes']))
         self.window().subscription_widget.initialize_with_channel(channel_info)
 
-        self.window().edit_channel_button.setHidden(True)
-
     def clicked_item(self):
         if len(self.window().channel_torrents_list.selectedItems()) != 1:
             self.window().channel_torrents_detail_widget.hide()
@@ -110,10 +108,3 @@ class ChannelPage(QWidget):
             self.playlists.append((PlaylistListItem, result))
         self.loaded_playlists = True
         self.update_result_list()
-
-    def on_edit_channel_clicked(self):
-        self.window().edit_channel_page.initialize_with_channel_overview(
-            {"channel":
-                 {"name": self.channel_info["name"],
-                  "description": self.channel_info["description"],
-                  "identifier": self.channel_info["dispersy_cid"]}})
