@@ -1,7 +1,6 @@
 import logging.config
 import os
 import psutil
-import subprocess
 import sys
 import tempfile
 
@@ -10,6 +9,7 @@ from Tribler.Core.Modules.process_checker import ProcessChecker
 
 FORCE_RESTART_MESSAGE = "A Tribler instance is already running. Do you want to force restart? " \
                         "\n\nCaution: force restart could result in data corruption."
+
 
 def error_and_exit(title, main_text):
     """
@@ -81,7 +81,7 @@ def check_environment():
 def check_free_space():
     try:
         import psutil
-        free_space = psutil.disk_usage(".").free/(1024 * 1024.0)
+        free_space = psutil.disk_usage(".").free / (1024 * 1024.0)
         if free_space < 100:
             error_and_exit("Insufficient disk space",
                            "You have less than 100MB of usable disk space. " +
@@ -108,7 +108,7 @@ def setup_logging(gui=False):
     log_config = os.path.join(base_path, "logger.conf")
 
     if not os.path.exists(log_config):
-        print "Log configuration file not found at location '%s'" % log_config
+        print("Log configuration file not found at location '%s'" % log_config)
         return
 
     log_directory = TriblerConfig().get_log_dir()
@@ -130,6 +130,7 @@ def get_existing_tribler_pid():
     if process_checker.already_running:
         return process_checker.get_pid_from_lock_file()
     return -1
+
 
 def should_kill_other_tribler_instances():
     """ Asks user whether to force restart Tribler if there is more than one instance running.
