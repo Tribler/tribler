@@ -250,13 +250,13 @@ class TestMarketCommunity(TestMarketCommunityBase):
         bid_order = yield self.nodes[1].overlay.create_bid(
             AssetPair(AssetAmount(1, 'DUM1'), AssetAmount(1, 'DUM2')), 3600)
 
-        yield self.deliver_messages(timeout=.5)
+        yield self.sleep(0.5)
 
         outstanding = self.nodes[1].overlay.get_outstanding_proposals(bid_order.order_id, ask_order.order_id)
         self.assertTrue(outstanding)
         outstanding[0][1].on_timeout()
 
-        yield self.deliver_messages(timeout=.5)
+        yield self.sleep(0.5)
 
         ask_tick_entry = self.nodes[2].overlay.order_book.get_tick(ask_order.order_id)
         bid_tick_entry = self.nodes[2].overlay.order_book.get_tick(bid_order.order_id)
@@ -417,30 +417,6 @@ class TestMarketCommunityTwoNodes(TestMarketCommunityBase):
             self.assertEqual(len(self.nodes[node_nr].overlay.order_book.bids), 0)
 
     @inlineCallbacks
-    def test_churn_matchmaker(self):
-        """
-        Test whether we finish constructing a tick as soon as the first matchmaker comes online
-        """
-        deferred = self.nodes[0].overlay.create_ask(AssetPair(AssetAmount(1, 'DUM1'), AssetAmount(2, 'DUM2')), 3600)
-        yield self.introduce_nodes()
-        yield deferred
-
-    @trial_timeout(2)
-    @inlineCallbacks
-    def test_offline_matchmaker(self):
-        """
-        Test whether offline matchmakers are successfully removed
-        """
-        yield self.introduce_nodes()
-
-        PingRequestCache.TIMEOUT_DELAY = 0.1
-        self.nodes[1].overlay.decode_map[chr(20)] = lambda *_: None
-        self.assertTrue(self.nodes[0].overlay.matchmakers)
-        self.nodes[0].overlay.get_online_matchmaker()
-        yield self.sleep(0.2)
-        self.assertFalse(self.nodes[0].overlay.matchmakers)
-
-    @inlineCallbacks
     def test_ping_pong(self):
         """
         Test the ping/pong mechanism of the market
@@ -459,7 +435,7 @@ class TestMarketCommunitySingle(TestMarketCommunityBase):
         ask_tx = ask.to_block_dict()
         ask_tx["address"], ask_tx["port"] = "127.0.0.1", 1337
         tick_block = MarketBlock()
-        tick_block.type = 'tick'
+        tick_block.type = 'ask' if return_ask else 'bid'
         tick_block.transaction = {'tick': ask_tx, 'version': MarketCommunity.PROTOCOL_VERSION}
         return tick_block
 
