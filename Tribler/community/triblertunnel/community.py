@@ -38,8 +38,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         num_random_slots = kwargs.pop('random_slots', 5)
         self.bandwidth_wallet = kwargs.pop('bandwidth_wallet', None)
         socks_listen_ports = kwargs.pop('socks_listen_ports', None)
-        self.exitnode_cache = kwargs.pop('exitnode_cache', (self.tribler_session.config.get_state_dir()
-                                                            if self.tribler_session else '') + 'exitnode_cache.dat')
+        state_path = self.tribler_session.config.get_state_dir() if self.tribler_session else ''
+        self.exitnode_cache = kwargs.pop('exitnode_cache', os.path.join(state_path, 'exitnode_cache.dat'))
         super(TriblerTunnelCommunity, self).__init__(*args, **kwargs)
         self._use_main_thread = True
 

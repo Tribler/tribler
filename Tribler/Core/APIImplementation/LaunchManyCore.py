@@ -828,11 +828,12 @@ class TriblerLaunchMany(TaskManager):
         if tdef and dscfg:
             if dscfg.get_dest_dir() != '':  # removed torrent ignoring
                 try:
-                    if not self.download_exists(tdef.get_infohash()):
-                        self.add(tdef, dscfg, pstate, setupDelay=setupDelay)
-                    else:
+                    if self.download_exists(tdef.get_infohash()):
                         self._logger.info("tlm: not resuming checkpoint because download has already been added")
-
+                    elif dscfg.get_credit_mining() and not self.session.config.get_credit_mining_enabled():
+                        self._logger.info("tlm: not resuming checkpoint since token mining is disabled")
+                    else:
+                        self.add(tdef, dscfg, pstate, setupDelay=setupDelay)
                 except Exception as e:
                     self._logger.exception("tlm: load check_point: exception while adding download %s", tdef)
             else:
