@@ -36,6 +36,9 @@ class WalletsEndpoint(resource.Resource):
                     "wallets": [{
                         "created": True,
                         "name": "Bitcoin",
+                        "unlocked": True,
+                        "precision": 8,
+                        "min_unit": 100000,
                         "address": "17AVS7n3zgBjPq1JT4uVmEXdcX3vgB2wAh",
                         "balance": {
                             "available": 0.000126,
@@ -54,7 +57,8 @@ class WalletsEndpoint(resource.Resource):
                 'unlocked': wallet.unlocked,
                 'address': wallet.get_address(),
                 'name': wallet.get_name(),
-                'precision': wallet.precision()
+                'precision': wallet.precision(),
+                'min_unit': wallet.min_unit()
             }
             balance_deferreds.append(wallet.get_balance().addCallback(
                 lambda balance, wid=wallet_id: (wid, balance)))
