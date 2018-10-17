@@ -1,5 +1,8 @@
+from twisted.python.failure import Failure
+
 from Tribler.Core.Modules.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
+from Tribler.Test.Core.base_test import MockObject
 from Tribler.community.market.block import MarketBlock
 from Tribler.community.market.community import MarketCommunity, PingRequestCache
 from Tribler.community.market.core.assetamount import AssetAmount
@@ -271,7 +274,10 @@ class TestMarketCommunity(TestMarketCommunityBase):
         """
         yield self.introduce_nodes()
 
-        self.nodes[1].overlay.get_address_for_trader = lambda *_: succeed(None)
+        # Clean the mid register of node 1 and make sure DHT peer connection fails
+        self.nodes[1].overlay.mid_register = {}
+        self.nodes[1].overlay.dht = MockObject()
+        self.nodes[1].overlay.dht.connect_peer = lambda *_: fail(Failure(RuntimeError()))
 
         ask_order = yield self.nodes[0].overlay.create_ask(
             AssetPair(AssetAmount(1, 'DUM1'), AssetAmount(1, 'DUM2')), 3600)
