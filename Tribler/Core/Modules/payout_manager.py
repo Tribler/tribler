@@ -35,7 +35,7 @@ class PayoutManager(object):
 
         if total_bytes >= 1024 * 1024:  # Do at least 1MB payouts
             self.logger.info("Doing direct payout to %s (%d bytes)", mid.encode('hex'), total_bytes)
-            self.dht.connect_peer(mid).addCallback(on_nodes)
+            self.dht.connect_peer(mid).addCallbacks(on_nodes, lambda _: on_nodes([]))
 
         # Remove the outstanding bytes; otherwise we will payout again
         self.tribler_peers.pop(mid, None)

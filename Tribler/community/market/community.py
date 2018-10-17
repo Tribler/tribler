@@ -218,7 +218,11 @@ class MarketCommunity(Community, BlockListener):
                 self.update_ip(trader_id, peers[0].address)
                 deferred.callback(peers[0].address)
 
-        self.dht.connect_peer(str(trader_id).decode('hex')).addCallback(on_peers)
+        def on_dht_error(failure):
+            self._logger.warning("Unable to get address for trader %s", trader_id)
+            deferred.errback(failure)
+
+        self.dht.connect_peer(str(trader_id).decode('hex')).addCallbacks(on_peers, on_dht_error)
 
         return deferred
 
@@ -832,7 +836,8 @@ class MarketCommunity(Community, BlockListener):
             self.endpoint.send(address, packet)
 
         def get_address():
-            self.get_address_for_trader(recipient_order_id.trader_id).addCallback(on_peer_address)
+            err_handler = lambda _: on_peer_address(None)
+            self.get_address_for_trader(recipient_order_id.trader_id).addCallbacks(on_peer_address, err_handler)
 
         reactor.callFromThread(get_address)
 
@@ -902,7 +907,9 @@ class MarketCommunity(Community, BlockListener):
         # Fetch the address of the target peer (we are not guaranteed to know it at this point since we might have
         # received the order indirectly)
         def get_address():
-            self.get_address_for_trader(propose_trade.recipient_order_id.trader_id).addCallback(on_peer_address)
+            err_handler = lambda _: on_peer_address(None)
+            self.get_address_for_trader(propose_trade.recipient_order_id.trader_id)\
+                .addCallbacks(on_peer_address, err_handler)
 
         reactor.callFromThread(get_address)
 
