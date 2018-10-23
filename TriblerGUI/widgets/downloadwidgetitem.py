@@ -65,8 +65,8 @@ class DownloadWidgetItem(QTreeWidgetItem):
             self.setText(3, "Streaming")
         else:
             self.setText(3, DLSTATUS_STRINGS[eval(self.download_info["status"])])
-        self.setText(4, str(self.download_info["num_seeds"]))
-        self.setText(5, str(self.download_info["num_peers"]))
+        self.setText(4, "%s (%s)" % (self.download_info["num_connected_seeds"], self.download_info["num_seeds"]))
+        self.setText(5, "%s (%s)" % (self.download_info["num_connected_peers"], self.download_info["num_peers"]))
         self.setText(6, format_speed(self.download_info["speed_down"]))
         self.setText(7, format_speed(self.download_info["speed_up"]))
         self.setText(8, "%.3f" % float(self.download_info["ratio"]))
