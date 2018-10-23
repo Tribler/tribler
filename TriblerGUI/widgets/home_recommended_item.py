@@ -76,6 +76,8 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.window().start_download_from_uri(self.download_uri)
 
     def update_with_torrent(self, torrent):
+        if not torrent:
+            return
         self.show_torrent = True
         self.torrent_info = torrent
         self.thumbnail_widget.initialize(torrent["name"], HOME_ITEM_FONT_SIZE)
@@ -87,6 +89,8 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.detail_label.setText("Size: " + format_size(torrent["size"]))
 
     def update_with_channel(self, channel):
+        if not channel:
+            return
         self.show_torrent = False
         self.channel_info = channel
         self.thumbnail_widget.initialize(channel["name"], HOME_ITEM_FONT_SIZE)
