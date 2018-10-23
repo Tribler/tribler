@@ -413,7 +413,13 @@ class SettingsPage(QWidget):
             return
 
         settings_data['credit_mining']['enabled'] = self.window().credit_mining_enabled_checkbox.isChecked()
-        settings_data['credit_mining']['max_disk_space'] = int(self.window().max_disk_space_input.text())
+        try:
+            settings_data['credit_mining']['max_disk_space'] = int(self.window().max_disk_space_input.text())
+        except ValueError:
+            ConfirmationDialog.show_error(self.window(), "Invalid number",
+                                          "You've entered an invalid number for max disk space value")
+            return
+
         settings_data['tunnel_community']['exitnode_enabled'] = self.window().allow_exit_node_checkbox.isChecked()
         settings_data['download_defaults']['number_hops'] = self.window().number_hops_slider.value()
         settings_data['download_defaults']['anonymity_enabled'] = \
