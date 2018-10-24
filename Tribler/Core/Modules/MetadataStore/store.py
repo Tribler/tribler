@@ -94,12 +94,16 @@ class MetadataStore(object):
         :param dirname: The directory containing the metadata blobs.
         :param channel_id: public_key of the channel.
         """
+        # We use multiple separate db_sessions here to limit memory usage when reading big channels
 
         with db_session:
             channel = self.ChannelMetadata.get(public_key=channel_id)
             self._logger.debug("Starting processing channel dir %s. Channel %s local/max version %i/%i",
                                dirname, str(channel.public_key).encode("hex"), channel.local_version, channel.version)
-            for filename in sorted(os.listdir(dirname)):
+
+        for filename in sorted(os.listdir(dirname)):
+            with db_session:
+                channel = self.ChannelMetadata.get(public_key=channel_id)
                 full_filename = os.path.join(dirname, filename)
                 if filename.endswith(BLOB_EXTENSION):
                     blob_sequence_number = int(filename[:-len(BLOB_EXTENSION)])
@@ -113,8 +117,9 @@ class MetadataStore(object):
                         channel.local_version = blob_sequence_number
                     except InvalidSignatureException:
                         self._logger.error("Not processing metadata located at %s: invalid signature", full_filename)
-            self._logger.debug("Finished processing channel dir %s. Channel %s local/max version %i/%i",
-                               dirname, str(channel.public_key).encode("hex"), channel.local_version, channel.version)
+
+        self._logger.debug("Finished processing channel dir %s. Channel %s local/max version %i/%i",
+                           dirname, str(channel.public_key).encode("hex"), channel.local_version, channel.version)
 
     @db_session
     def process_mdblob_file(self, filepath):
