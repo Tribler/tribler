@@ -876,6 +876,20 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             peers.append(peer_dict)
         return peers
 
+    def get_num_connected_seeds_peers(self):
+        """ Returns number of connected seeders and leechers """
+        num_seeds = num_peers = 0
+        if not self.handle or not self.handle.is_valid():
+            return 0, 0
+
+        for peer_info in self.handle.get_peer_info():
+            if peer_info.flags & peer_info.seed:
+                num_seeds += 1
+            else:
+                num_peers += 1
+
+        return num_seeds, num_peers
+
     @checkHandleAndSynchronize(default={})
     def get_tracker_status(self):
         # Make sure all trackers are in the tracker_status dict
