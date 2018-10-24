@@ -71,6 +71,19 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         self.session.lm.ltmgr.shutdown = lambda: None
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)  # Cached
+        yield self.do_request('torrentinfo?uri=%s' % path, expected_code=200).addCallback(verify_valid_dict)  # Cached
+
+        # mdblob file
+        path_blob = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "channel.mdblob")).encode('utf-8')
+        yield self.do_request('torrentinfo?uri=%s' % path_blob, expected_code=200).addCallback(verify_valid_dict)
+
+        # invalid mdblob file
+        path_blob = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "bad.mdblob")).encode('utf-8')
+        yield self.do_request('torrentinfo?uri=%s' % path_blob, expected_code=500)
+
+        # non-torrent mdblob file
+        path_blob = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "delete.mdblob")).encode('utf-8')
+        yield self.do_request('torrentinfo?uri=%s' % path_blob, expected_code=500)
 
         self.session.get_collected_torrent = lambda _: 'a8fdsafsdjlfdsafs{}{{{[][]]['  # invalid torrent file
         yield self.do_request('torrentinfo?uri=%s' % path, expected_code=500)

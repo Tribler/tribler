@@ -5,7 +5,9 @@ from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.Modules.restapi.util import return_handled_exception
+from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
 import Tribler.Core.Utilities.json_util as json
 
@@ -306,7 +308,21 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
         uri = parameters['uri'][0]
         if uri.startswith("file:"):
-            download_uri = u"file:%s" % url2pathname(unicode(uri[5:], 'utf-8'))
+            if uri.endswith(".mdblob"):
+                filename = url2pathname(uri[5:].encode('utf-8') if isinstance(uri, unicode) else uri[5:])
+                try:
+                    payload = ChannelMetadataPayload.from_file(filename)
+                except IOError:
+                    request.setResponseCode(http.BAD_REQUEST)
+                    return json.dumps({"error": "file not found"})
+                except InvalidSignatureException:
+                    request.setResponseCode(http.BAD_REQUEST)
+                    return json.dumps({"error": "Metadata has invalid signature"})
+
+                download, _ = self.session.lm.update_channel(payload)
+                return json.dumps({"started": True, "infohash": str(download.get_def().get_infohash()).encode('hex')})
+            else:
+                download_uri = u"file:%s" % url2pathname(unicode(uri[5:], 'utf-8'))
         else:
             download_uri = unquote_plus(unicode(uri, 'utf-8'))
         download_deferred = self.session.start_download_from_uri(download_uri, download_config)

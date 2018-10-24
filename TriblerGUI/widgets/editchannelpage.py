@@ -1,7 +1,10 @@
 import base64
+import glob
+import os
 import urllib
+from urllib import pathname2url
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QDir
 from PyQt5.QtGui import QIcon, QCursor
 
 from PyQt5.QtWidgets import QWidget, QAction, QTreeWidgetItem, QFileDialog
@@ -19,6 +22,11 @@ from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_image_path
 
 
+chant_welcome_text = \
+"""Welcome to the management interface of your channel!
+
+Here, you can change settings of you channel and manage your shared torrents. 
+Note that this is a New-style channel, which is still experimental."""
 class EditChannelPage(QWidget):
     """
     This class is responsible for managing lists and data on your channel page, including torrents, playlists
@@ -72,6 +80,14 @@ class EditChannelPage(QWidget):
         self.window().channel_settings_tab.initialize()
         self.window().channel_settings_tab.clicked_tab_button.connect(self.clicked_tab_button)
 
+        # Chant publish widget is hidden by default and only shown when necessary
+        self.window().dirty_channel_widget.setHidden(True)
+        self.window().edit_channel_commit_button.clicked.connect(self.clicked_edit_channel_commit_button)
+
+        self.window().export_channel_button.clicked.connect(self.on_export_mdblob)
+        self.window().export_channel_button.setHidden(True)
+
+
     def load_my_channel_overview(self):
         if not self.channel_overview:
             self.window().edit_channel_stacked_widget.setCurrentIndex(2)
@@ -88,6 +104,11 @@ class EditChannelPage(QWidget):
             return
 
         self.channel_overview = overview["mychannel"]
+        if "chant" in self.channel_overview:
+            self.window().edit_channel_playlists_button.setHidden(True)
+            self.window().edit_channel_rss_feeds_button.setHidden(True)
+            self.window().label_7.setText(chant_welcome_text)
+            self.window().export_channel_button.setHidden(False)
         self.window().edit_channel_name_label.setText("My channel")
 
         self.window().edit_channel_overview_name_label.setText(self.channel_overview["name"])
@@ -110,6 +131,7 @@ class EditChannelPage(QWidget):
             return
         self.window().edit_channel_torrents_list.set_data_items([])
 
+        self.window().dirty_channel_widget.setHidden(not("chant_dirty" in torrents and torrents["chant_dirty"]))
         items = []
         for result in torrents['torrents']:
             items.append((ChannelTorrentListItem, result,
@@ -154,6 +176,9 @@ class EditChannelPage(QWidget):
             self.window().edit_channel_rss_feeds_list.addTopLevelItem(item)
 
     def on_torrent_remove_clicked(self, item):
+        if "chant" in self.channel_overview:
+            self.on_torrents_remove_selected_action(0, item)
+            return
         self.dialog = ConfirmationDialog(self, "Remove selected torrent",
                                          "Are you sure that you want to remove the selected torrent from this channel?",
                                          [('CONFIRM', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)])
@@ -191,6 +216,18 @@ class EditChannelPage(QWidget):
                                                                   (channel_name, channel_description)).encode('utf-8'),
                                                      method='POST')
 
+    def clicked_edit_channel_commit_button(self):
+        self.editchannel_request_mgr = TriblerRequestManager()
+        self.editchannel_request_mgr.perform_request("mychannel", self.on_channel_committed,
+                                                     data=unicode('commit_changes=1').encode('utf-8'),
+                                                     method='POST')
+
+    def on_channel_committed(self, result):
+        if not result:
+            return
+        if 'modified' in result:
+            self.load_channel_torrents()
+
     def on_channel_edited(self, result):
         if not result:
             return
@@ -227,32 +264,37 @@ class EditChannelPage(QWidget):
         menu = TriblerActionMenu(self)
 
         browse_files_action = QAction('Import torrent from file', self)
+        browse_dir_action = QAction('Import torrent(s) from dir', self)
         add_url_action = QAction('Add URL', self)
         create_torrent_action = QAction('Create torrent from file(s)', self)
 
         browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
+        browse_dir_action.triggered.connect(self.on_add_torrents_browse_dir)
         add_url_action.triggered.connect(self.on_add_torrent_from_url)
         create_torrent_action.triggered.connect(self.on_create_torrent_from_files)
 
         menu.addAction(browse_files_action)
+        menu.addAction(browse_dir_action)
         menu.addAction(add_url_action)
         menu.addAction(create_torrent_action)
 
         menu.exec_(QCursor.pos())
 
-    def on_add_torrent_browse_file(self):
-        filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
-
-        if len(filename[0]) == 0:
-            return
-
-        with open(filename[0], "rb") as torrent_file:
+    def add_torrent_to_channel(self, filename):
+        with open(filename, "rb") as torrent_file:
             torrent_content = urllib.quote_plus(base64.b64encode(torrent_file.read()))
-            self.editchannel_request_mgr = TriblerRequestManager()
-            self.editchannel_request_mgr.perform_request("channels/discovered/%s/torrents" %
+            editchannel_request_mgr = TriblerRequestManager()
+            editchannel_request_mgr.perform_request("channels/discovered/%s/torrents" %
                                                          self.channel_overview['identifier'],
                                                          self.on_torrent_to_channel_added, method='PUT',
                                                          data='torrent=%s' % torrent_content)
+
+    def on_add_torrent_browse_file(self):
+        filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
+        if len(filename[0]) == 0:
+            return
+        self.add_torrent_to_channel(filename[0])
+
 
     def on_add_torrent_from_url(self):
         self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link",
@@ -270,7 +312,6 @@ class EditChannelPage(QWidget):
             self.editchannel_request_mgr.perform_request("channels/discovered/%s/torrents/%s" %
                                                          (self.channel_overview['identifier'], url),
                                                          self.on_torrent_to_channel_added, method='PUT')
-
         self.dialog.close_dialog()
         self.dialog = None
 
@@ -455,7 +496,6 @@ class EditChannelPage(QWidget):
 
     def on_torrents_remove_selected_action(self, action, items):
         if action == 0:
-
             if isinstance(items, list):
                 infohash = ",".join([torrent_item.torrent_info['infohash'] for torrent_item in items])
             else:
@@ -465,9 +505,9 @@ class EditChannelPage(QWidget):
                                                          (self.channel_overview["identifier"],
                                                           infohash),
                                                          self.on_torrent_removed, method='DELETE')
-
-        self.dialog.close_dialog()
-        self.dialog = None
+        if self.dialog:
+            self.dialog.close_dialog()
+            self.dialog = None
 
     def on_torrent_removed(self, json_result):
         if not json_result:
@@ -486,6 +526,8 @@ class EditChannelPage(QWidget):
                 self.remove_torrent_requests.append(request_mgr)
 
             self.window().edit_channel_torrents_list.set_data_items([])
+            if "chant" in self.channel_overview:
+                self.load_channel_torrents()
 
         self.dialog.close_dialog()
         self.dialog = None
@@ -575,3 +617,73 @@ class EditChannelPage(QWidget):
             return
         if json_result["rechecked"]:
             self.window().edit_channel_details_rss_refresh_button.setEnabled(True)
+
+    def on_export_mdblob(self):
+
+        export_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory", "", QFileDialog.ShowDirsOnly)
+
+        if len(export_dir) == 0:
+            return
+
+        # Show confirmation dialog where we specify the name of the file
+        mdblob_name = self.channel_overview["identifier"]
+        dialog = ConfirmationDialog(self, "Export mdblob file",
+                                         "Please enter the name of the channel metadata file:",
+                                         [('SAVE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+                                         show_input=True)
+
+        def on_export_download_dialog_done(action):
+            if action == 0:
+                dest_path = os.path.join(export_dir, dialog.dialog_widget.dialog_input.text())
+                request_mgr = TriblerRequestManager()
+                request_mgr.download_file("channels/discovered/%s/mdblob" % mdblob_name,
+                                          lambda data: on_export_download_request_done(dest_path, data))
+
+            dialog.close_dialog()
+
+        def on_export_download_request_done(dest_path, data):
+            try:
+                torrent_file = open(dest_path, "wb")
+                torrent_file.write(data)
+                torrent_file.close()
+            except IOError as exc:
+                ConfirmationDialog.show_error(self.window(),
+                                              "Error when exporting file",
+                                              "An error occurred when exporting the torrent file: %s" % str(exc))
+            else:
+                self.window().tray_show_message("Torrent file exported", "Torrent file exported to %s" % dest_path)
+
+        dialog.dialog_widget.dialog_input.setPlaceholderText('Channel file name')
+        dialog.dialog_widget.dialog_input.setText("%s.mdblob" % mdblob_name)
+        dialog.dialog_widget.dialog_input.setFocus()
+        dialog.button_clicked.connect(on_export_download_dialog_done)
+        dialog.show()
+
+
+    def on_add_torrents_browse_dir(self):
+        chosen_dir = QFileDialog.getExistingDirectory(self,
+                                                      "Please select the directory containing the .torrent files",
+                                                      QDir.homePath(),
+                                                      QFileDialog.ShowDirsOnly)
+        if len(chosen_dir) == 0:
+            return
+
+        self.selected_torrent_files = [torrent_file for torrent_file in glob.glob(chosen_dir + "/*.torrent")]
+        self.dialog = ConfirmationDialog(self, "Add torrents from directory",
+                                         "Are you sure you want to add %d torrents to your Tribler channel?" %
+                                         len(self.selected_torrent_files),
+                                         [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)])
+        self.dialog.button_clicked.connect(self.on_confirm_add_directory_dialog)
+        self.dialog.show()
+
+    def on_confirm_add_directory_dialog(self, action):
+        if action == 0:
+            for filename in self.selected_torrent_files:
+                self.add_torrent_to_channel(filename)
+
+        if self.dialog:
+            self.dialog.close_dialog()
+            self.dialog = None
+
+
+

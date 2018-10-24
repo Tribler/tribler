@@ -265,6 +265,9 @@ class SettingsPage(QWidget):
         self.window().credit_mining_enabled_checkbox.setChecked(settings['credit_mining']['enabled'])
         self.window().max_disk_space_input.setText(str(settings['credit_mining']['max_disk_space']))
 
+        # chant settings
+        self.window().chant_channel_edit.setChecked(settings['chant']['channel_edit'])
+
         # Debug
         self.window().developer_mode_enabled_checkbox.setChecked(get_gui_setting(gui_settings, "debug",
                                                                                  False, is_bool=True))
@@ -324,10 +327,11 @@ class SettingsPage(QWidget):
         # Create a dictionary with all available settings
         settings_data = {'general': {}, 'Tribler': {}, 'download_defaults': {}, 'libtorrent': {}, 'watch_folder': {},
                          'tunnel_community': {}, 'trustchain': {}, 'credit_mining': {}, 'resource_monitor': {},
-                         'ipv8': {}}
+                         'ipv8': {}, 'chant': {}}
         settings_data['general']['family_filter'] = self.window().family_filter_checkbox.isChecked()
         settings_data['download_defaults']['saveas'] = self.window().download_location_input.text().encode('utf-8')
         settings_data['general']['log_dir'] = self.window().log_location_input.text()
+        settings_data['chant']['channel_edit'] = self.window().chant_channel_edit.isChecked()
 
         settings_data['watch_folder']['enabled'] = self.window().watchfolder_enabled_checkbox.isChecked()
         if settings_data['watch_folder']['enabled']:

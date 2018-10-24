@@ -1,6 +1,9 @@
 import logging
+
+from pony.orm import db_session
 from twisted.web import http, resource
 
+from Tribler.Core.Modules.restapi.util import convert_channel_metadata_to_tuple, convert_torrent_metadata_to_tuple
 from Tribler.Core.Utilities.search_utils import split_into_keywords
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, \
@@ -69,13 +72,21 @@ class SearchEndpoint(resource.Resource):
         # We first search the local database for torrents and channels
         query = unicode(request.args['q'][0], 'utf-8')
         keywords = split_into_keywords(query)
+
         results_local_channels = self.channel_db_handler.search_in_local_channels_db(query)
+        with db_session:
+            results_local_channels.extend(map(convert_channel_metadata_to_tuple,
+                                              self.session.lm.mds.ChannelMetadata.search_keyword(query)))
+
         results_dict = {"keywords": keywords, "result_list": results_local_channels}
         self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
 
         torrent_db_columns = ['T.torrent_id', 'infohash', 'T.name', 'length', 'category',
                               'num_seeders', 'num_leechers', 'last_tracker_check']
         results_local_torrents = self.torrent_db_handler.search_in_local_torrents_db(query, keys=torrent_db_columns)
+        with db_session:
+            results_local_torrents.extend(map(convert_torrent_metadata_to_tuple,
+                                              self.session.lm.mds.TorrentMetadata.search_keyword(query)))
         results_dict = {"keywords": keywords, "result_list": results_local_torrents}
         self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
 
@@ -127,4 +138,5 @@ class SearchCompletionsEndpoint(resource.Resource):
 
         keywords = unicode(request.args['q'][0], 'utf-8').lower()
         results = self.torrent_db_handler.getAutoCompleteTerms(keywords, max_terms=5)
+        results.extend(self.session.lm.mds.TorrentMetadata.get_auto_complete_terms(keywords, max_terms=5))
         return json.dumps({"completions": results})

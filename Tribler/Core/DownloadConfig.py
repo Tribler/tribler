@@ -167,6 +167,12 @@ class DownloadConfigInterface(object):
         @return A list of strings. """
         return self.dlconfig.get('download_defaults', 'selected_files')
 
+    def set_channel_download(self, value):
+        self.dlconfig.set('download_defaults', 'channel_download', value)
+
+    def get_channel_download(self):
+        return self.dlconfig.get('download_defaults', 'channel_download')
+
 
 class DownloadStartupConfig(DownloadConfigInterface):
 

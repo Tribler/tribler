@@ -1,3 +1,4 @@
+from pony.orm import db_session
 from twisted.web import http
 
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
@@ -5,7 +6,7 @@ from Tribler.Core.Modules.restapi.channels.channels_playlists_endpoint import Ch
 from Tribler.Core.Modules.restapi.channels.channels_rss_endpoint import ChannelsRssFeedsEndpoint, \
     ChannelsRecheckFeedsEndpoint
 from Tribler.Core.Modules.restapi.channels.channels_torrents_endpoint import ChannelsTorrentsEndpoint
-from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json
+from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_channel_metadata_to_tuple
 from Tribler.Core.exceptions import DuplicateChannelNameError
 import Tribler.Core.Utilities.json_util as json
 
@@ -17,6 +18,7 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
     def getChild(self, path, request):
         return ChannelsDiscoveredSpecificEndpoint(self.session, path)
 
+    @db_session
     def render_GET(self, _):
         """
         .. http:get:: /channels/discovered
@@ -49,6 +51,12 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
                 }
         """
         all_channels_db = self.channel_db_handler.getAllChannels()
+
+        if self.session.config.get_chant_enabled():
+            chant_channels = list(self.session.lm.mds.ChannelMetadata.select())
+            for chant_channel in chant_channels:
+                all_channels_db.append(convert_channel_metadata_to_tuple(chant_channel))
+
         results_json = []
         for channel in all_channels_db:
             channel_json = convert_db_channel_to_json(channel)
@@ -95,6 +103,21 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
         else:
             description = unicode(parameters['description'][0], 'utf-8')
 
+        if self.session.config.get_chant_channel_edit():
+            my_key = self.session.trustchain_keypair
+            my_channel_id = my_key.pub().key_to_bin()
+
+            # Do not allow to add a channel twice
+            if self.session.lm.mds.get_my_channel():
+                request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+                return json.dumps({"error": "channel already exists"})
+
+            title = unicode(parameters['name'][0], 'utf-8')
+            self.session.lm.mds.ChannelMetadata.create_channel(title, description)
+            return json.dumps({
+                "added": str(my_channel_id).encode("hex"),
+            })
+
         if 'mode' not in parameters or len(parameters['mode']) == 0:
             # By default, the mode of the new channel is closed.
             mode = u'closed'
@@ -119,7 +142,8 @@ class ChannelsDiscoveredSpecificEndpoint(BaseChannelsEndpoint):
         self.cid = bytes(cid.decode('hex'))
 
         child_handler_dict = {"torrents": ChannelsTorrentsEndpoint, "rssfeeds": ChannelsRssFeedsEndpoint,
-                              "playlists": ChannelsPlaylistsEndpoint, "recheckfeeds": ChannelsRecheckFeedsEndpoint}
+                              "playlists": ChannelsPlaylistsEndpoint, "recheckfeeds": ChannelsRecheckFeedsEndpoint,
+                              "mdblob": ChannelsDiscoveredExportEndpoint}
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session, self.cid))
 
@@ -155,3 +179,43 @@ class ChannelsDiscoveredSpecificEndpoint(BaseChannelsEndpoint):
 
         return json.dumps({'overview': {'identifier': channel_info[1].encode('hex'), 'name': channel_info[2],
                                         'description': channel_info[3]}})
+
+
+class ChannelsDiscoveredExportEndpoint(BaseChannelsEndpoint):
+    """
+    This class is responsible for serving .mdblob file export requests for a specific channel.
+    """
+
+    def __init__(self, session, cid):
+        BaseChannelsEndpoint.__init__(self, session)
+        self.cid = cid
+        self.is_chant_channel = (len(cid) == 74)
+
+    def render_GET(self, request):
+        """
+        .. http:get:: /channels/discovered/(string: channelid)/mdblob
+
+        Return the mdblob binary
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/channels/discovered/(string: channel_id)/mdblob
+
+            **Example response**:
+
+            The .mdblob file containing the serialized and signed metadata for the channelid.
+
+            :statuscode 404: if channel with given channeld is not found.
+        """
+        with db_session:
+            channel = self.session.lm.mds.ChannelMetadata.get_channel_with_id(self.cid)
+            if not channel:
+                return ChannelsDiscoveredSpecificEndpoint.return_404(request)
+            else:
+                mdblob = channel.serialized()
+
+        request.setHeader(b'content-type', 'application/octet-stream')
+        request.setHeader(b'Content-Disposition', 'attachment; filename=%s.mdblob' % self.cid.encode('hex'))
+        return mdblob

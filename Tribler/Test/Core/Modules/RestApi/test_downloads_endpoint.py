@@ -2,16 +2,17 @@ import os
 from binascii import hexlify
 from urllib import pathname2url
 
+from pony.orm import db_session
 from twisted.internet.defer import fail
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.DownloadState import DownloadState
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from Tribler.Test.common import UBUNTU_1504_INFOHASH, TESTS_DATA_DIR
-from Tribler.Test.tools import trial_timeout
 from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.common import UBUNTU_1504_INFOHASH, TESTS_DATA_DIR, TESTS_DIR
+from Tribler.Test.tools import trial_timeout
 
 
 class TestDownloadsEndpoint(AbstractApiTest):
@@ -35,6 +36,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns the right download when a download is added
         """
+
         def verify_download(downloads):
             downloads_json = json.loads(downloads)
             self.assertEqual(len(downloads_json['downloads']), 2)
@@ -53,6 +55,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns the right right filenames fpr each download
         """
+
         def verify_download(downloads):
             downloads_json = json.loads(downloads)
             self.assertEqual(len(downloads_json['downloads']), 2)
@@ -103,6 +106,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether we can start a download from a file
         """
+
         def verify_download(_):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
 
@@ -116,6 +120,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether we can start a download from a file with a unicode name
         """
+
         def verify_download(response):
             self.assertTrue(json.loads(response)['started'])
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
@@ -191,6 +196,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether illegal fields are stripped from the Libtorrent download info response.
         """
+
         def verify_download_list(response):
             response_dict = json.loads(response)
             self.assertIn("downloads", response_dict)
@@ -252,6 +258,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether we can start a download from a magnet
         """
+
         def verify_download(_):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
             self.assertEqual(self.session.get_downloads()[0].get_def().get_name(), 'Unknown name')
@@ -292,6 +299,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns 200 if a download is being removed
         """
+
         def verify_removed(_):
             self.assertEqual(len(self.session.get_downloads()), 0)
 
@@ -375,7 +383,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return self.do_request('downloads/%s' % infohash, post_data={"selected_files[]": 0},
                                expected_code=200, request_type='PATCH',
                                expected_json={"modified": True,
-                                              "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"})\
+                                              "infohash": "8bb88a02da691636a7ed929b87d467f24700e490"}) \
             .addCallback(verify_method_called)
 
     @trial_timeout(10)
@@ -541,6 +549,7 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
     def test_change_hops_fail(self):
         def on_remove_download(d, remove_content=False, remove_state=True, hidden=False):
             return fail(RuntimeError())
+
         self.session.remove_download = on_remove_download
 
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
@@ -550,3 +559,52 @@ class TestDownloadsDispersyEndpoint(AbstractApiTest):
         return self.do_request('downloads/%s' % infohash, post_data={"remove_data": True}, expected_code=500,
                                expected_json={u'error': {u'message': u'', u'code': u'RuntimeError', u'handled': True}},
                                request_type='DELETE')
+
+
+class TestMetadataDownloadEndpoint(AbstractApiTest):
+
+    def setUpPreSession(self):
+        super(TestMetadataDownloadEndpoint, self).setUpPreSession()
+        self.config.set_libtorrent_enabled(True)
+        self.config.set_chant_enabled(True)
+
+    @trial_timeout(10)
+    def test_add_metadata_download(self):
+        """
+        Test adding a channel metadata download to the Tribler core
+        """
+
+        def verify_download(_):
+            self.assertGreaterEqual(len(self.session.get_downloads()), 1)
+
+        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DIR, 'Core/data/sample_channel/channel.mdblob')}
+        expected_json = {'started': True, 'infohash': '24eb2ff24c3a738eb1257a2fb4575db064848e25'}
+        return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
+                               expected_json=expected_json).addCallback(verify_download)
+
+    @trial_timeout(10)
+    def test_add_metadata_download_invalid_sig(self):
+        """
+        Test whether adding metadata with an invalid signature results in an error
+        """
+        file_path = os.path.join(self.session_base_dir, "invalid.mdblob")
+        with open(file_path, "wb") as out_file:
+            with db_session:
+                my_channel = self.session.lm.mds.ChannelMetadata.create_channel('test', 'test')
+                my_channel.signature = "lalala"
+            out_file.write(my_channel.serialized())
+
+        post_data = {'uri': 'file:%s' % file_path, 'metadata_download': '1'}
+        expected_json = {'error': "Metadata has invalid signature"}
+        self.should_check_equality = True
+        return self.do_request('downloads', expected_code=400, request_type='PUT', post_data=post_data,
+                               expected_json=expected_json)
+
+    @trial_timeout(10)
+    def test_add_invalid_metadata_download(self):
+        """
+        Test adding an invalid metadata download to the Tribler core
+        """
+        post_data = {'uri': 'file:%s' % os.path.join(TESTS_DATA_DIR, 'notexisting.mdblob'), 'metadata_download': '1'}
+        self.should_check_equality = False
+        return self.do_request('downloads', expected_code=400, request_type='PUT', post_data=post_data)

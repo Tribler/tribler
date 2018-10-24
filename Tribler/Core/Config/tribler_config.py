@@ -120,8 +120,27 @@ class TriblerConfig(object):
             self._logger.debug(u"Get random port %d for [%s]", self.selected_ports[path], path)
         return self.selected_ports[path]
 
-    # General
+    # Chant
+    def set_chant_enabled(self, value):
+        self.config['chant']['enabled'] = bool(value)
 
+    def get_chant_enabled(self):
+        return self.config['chant']['enabled']
+
+    def set_chant_channels_dir(self, chant_db_filename):
+        self.config['chant']['channels_dir'] = chant_db_filename
+
+    def get_chant_channels_dir(self):
+        path = self.config['chant']['channels_dir']
+        return path if os.path.isabs(path) else os.path.join(self.get_state_dir(), path)
+
+    def set_chant_channel_edit(self, value):
+        self.config['chant']['channel_edit'] = bool(value)
+
+    def get_chant_channel_edit(self):
+        return self.config['chant']['channel_edit']
+
+    # General
     def set_family_filter_enabled(self, value):
         self.config['general']['family_filter'] = bool(value)
 

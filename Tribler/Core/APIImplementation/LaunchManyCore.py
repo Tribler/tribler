@@ -13,9 +13,18 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
+from pony.orm import db_session
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, succeed
+from twisted.internet.task import LoopingCall
+from twisted.internet.threads import deferToThread
+from twisted.python.threadable import isInIOThread
+
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DecentralizedTracking.dht_provider import MainlineDHTProvider
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
+from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, float2time
+from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.Modules.resource_monitor import ResourceMonitor
 from Tribler.Core.Modules.search_manager import SearchManager
@@ -28,6 +37,7 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Video.VideoServer import VideoServer
+from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,
                                      NTFY_FINISHED, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
                                      DLSTATUS_SEEDING, NTFY_TORRENT, STATE_STARTING_DISPERSY, STATE_LOADING_COMMUNITIES,
@@ -43,11 +53,6 @@ from Tribler.pyipv8.ipv8.peerdiscovery.discovery import EdgeWalk, RandomWalk
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 from Tribler.pyipv8.ipv8.util import blockingCallFromThread
 from Tribler.pyipv8.ipv8_service import IPv8
-from twisted.internet import reactor
-from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, succeed
-from twisted.internet.task import LoopingCall
-from twisted.internet.threads import deferToThread
-from twisted.python.threadable import isInIOThread
 
 
 class TriblerLaunchMany(TaskManager):
@@ -114,6 +119,7 @@ class TriblerLaunchMany(TaskManager):
         self.market_community = None
         self.dht_community = None
         self.payout_manager = None
+        self.mds = None
 
     def register(self, session, session_lock):
         assert isInIOThread()
@@ -481,12 +487,79 @@ class TriblerLaunchMany(TaskManager):
             self.version_check_manager = VersionCheckManager(self.session)
             self.version_check_manager.start()
 
+        if self.session.config.get_chant_enabled():
+            channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
+            database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
+            self.mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair)
+
         self.session.set_download_states_callback(self.sesscb_states_callback)
 
         if self.session.config.get_ipv8_enabled() and self.session.config.get_trustchain_enabled():
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
 
         self.initComplete = True
+
+    def on_channel_download_finished(self, download, channel_id, finished_deferred=None):
+        if download.get_channel_download():
+            channel_dirname = os.path.join(self.session.lm.mds.channels_dir, download.get_def().get_name())
+            self.mds.process_channel_dir(channel_dirname, channel_id)
+            if finished_deferred:
+                finished_deferred.callback(download)
+
+    @db_session
+    def update_channel(self, payload):
+        """
+        We received some channel metadata, possibly over the network.
+        Validate the signature, update the local metadata store and start downloading this channel if needed.
+        :param payload: The channel metadata, in serialized form.
+        """
+        if not payload.has_valid_signature():
+            raise InvalidSignatureException("The signature of the channel metadata is invalid.")
+
+        channel = self.mds.ChannelMetadata.get_channel_with_id(payload.public_key)
+        if channel:
+            if float2time(payload.timestamp) > channel.timestamp:
+                # Update the channel that is already there.
+                self._logger.info("Updating channel metadata %s ts %s->%s", str(channel.public_key).encode("hex"),
+                                  str(channel.timestamp), str(float2time(payload.timestamp)))
+                channel.set(**ChannelMetadataPayload.to_dict(payload))
+        else:
+            # Add new channel object to DB
+            channel = self.mds.ChannelMetadata.from_payload(payload)
+
+        if channel.version > channel.local_version:
+            self._logger.info("Downloading new channel version %s ver %i->%i", str(channel.public_key).encode("hex"),
+                              channel.local_version, channel.version)
+        #TODO: handle the case where the local version is the same as the new one and is not seeded
+        return self.download_channel(channel)
+
+    def download_channel(self, channel):
+        """
+        Download a channel with a given infohash and title.
+        :param channel: The channel metadata ORM object.
+        """
+        finished_deferred = Deferred()
+
+        dcfg = DownloadStartupConfig()
+        dcfg.set_dest_dir(self.mds.channels_dir)
+        dcfg.set_channel_download(True)
+        tdef = TorrentDefNoMetainfo(infohash=str(channel.infohash), name=channel.title)
+        download = self.session.start_download_from_tdef(tdef, dcfg)
+        channel_id = channel.public_key
+        download.finished_callback = lambda dl: self.on_channel_download_finished(dl, channel_id, finished_deferred)
+        return download, finished_deferred
+
+    def updated_my_channel(self, new_torrent_path):
+        """
+        Notify the core that we updated our channel.
+        :param new_torrent_path: path to the new torrent file
+        """
+        # Start the new download
+        tdef = TorrentDef.load(new_torrent_path)
+        dcfg = DownloadStartupConfig()
+        dcfg.set_dest_dir(self.mds.channels_dir)
+        dcfg.set_channel_download(True)
+        self.add(tdef, dcfg)
 
     def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,
             share_mode=False, checkpoint_disabled=False):

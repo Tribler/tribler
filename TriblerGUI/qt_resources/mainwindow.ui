@@ -1050,7 +1050,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>7</number>
+         <number>1</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1906,7 +1906,7 @@ font-size: 14px;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>5</number>
+                 <number>0</number>
                 </property>
                 <widget class="QWidget" name="edit_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -1946,8 +1946,56 @@ font-size: 14px;</string>
                     </property>
                     <property name="sizeHint" stdset="0">
                      <size>
-                      <width>20</width>
-                      <height>20</height>
+                      <width>10</width>
+                      <height>5</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <widget class="EllipseButton" name="export_channel_button">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>110</width>
+                      <height>26</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>54</width>
+                      <height>26</height>
+                     </size>
+                    </property>
+                    <property name="cursor">
+                     <cursorShape>PointingHandCursor</cursorShape>
+                    </property>
+                    <property name="styleSheet">
+                     <string notr="true">border-radius: 13px;
+font-size: 14px;</string>
+                    </property>
+                    <property name="text">
+                     <string>Export channel</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="verticalSpacer_22">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeType">
+                     <enum>QSizePolicy::Fixed</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>0</width>
+                      <height>5</height>
                      </size>
                     </property>
                    </spacer>
@@ -2054,6 +2102,27 @@ font-size: 14px;</string>
                      </widget>
                     </item>
                    </layout>
+                  </item>
+                  <item>
+                   <widget class="QWidget" name="export_mdblob_widget" native="true">
+                    <layout class="QHBoxLayout" name="horizontalLayout_22">
+                     <property name="spacing">
+                      <number>0</number>
+                     </property>
+                     <property name="leftMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>0</number>
+                     </property>
+                    </layout>
+                   </widget>
                   </item>
                   <item>
                    <spacer name="verticalSpacer_2">
@@ -2286,6 +2355,310 @@ font-size: 14px;</string>
                   <property name="bottomMargin">
                    <number>0</number>
                   </property>
+                  <item>
+                   <widget class="QWidget" name="dirty_channel_widget" native="true">
+                    <property name="palette">
+                     <palette>
+                      <active>
+                       <colorrole role="Button">
+                        <brush brushstyle="SolidPattern">
+                         <color alpha="255">
+                          <red>32</red>
+                          <green>32</green>
+                          <blue>32</blue>
+                         </color>
+                        </brush>
+                       </colorrole>
+                       <colorrole role="Base">
+                        <brush brushstyle="SolidPattern">
+                         <color alpha="255">
+                          <red>32</red>
+                          <green>32</green>
+                          <blue>32</blue>
+                         </color>
+                        </brush>
+                       </colorrole>
+                       <colorrole role="Window">
+                        <brush brushstyle="SolidPattern">
+                         <color alpha="255">
+                          <red>32</red>
+                          <green>32</green>
+                          <blue>32</blue>
+                         </color>
+                        </brush>
+                       </colorrole>
+                      </active>
+                      <inactive>
+                       <colorrole role="Button">
+                        <brush brushstyle="SolidPattern">
+                         <color alpha="255">
+                          <red>32</red>
+                          <green>32</green>
+                          <blue>32</blue>
+                         </color>
+                        </brush>
+                       </colorrole>
+                       <colorrole role="Base">
+                        <brush brushstyle="SolidPattern">
+                         <color alpha="255">
+                          <red>32</red>
+                          <green>32</green>
+                          <blue>32</blue>
+                         </color>
+                        </brush>
+                       </colorrole>
+                       <colorrole role="Window">
+                        <brush brushstyle="SolidPattern">
+                         <color alpha="255">
+                          <red>32</red>
+                          <green>32</green>
+                          <blue>32</blue>
+                         </color>
+                        </brush>
+                       </colorrole>
+                      </inactive>
+                      <disabled>
+                       <colorrole role="Button">
+                        <brush brushstyle="SolidPattern">
+                         <color alpha="255">
+                          <red>32</red>
+                          <green>32</green>
+                          <blue>32</blue>
+                         </color>
+                        </brush>
+                       </colorrole>
+                       <colorrole role="Base">
+                        <brush brushstyle="SolidPattern">
+                         <color alpha="255">
+                          <red>32</red>
+                          <green>32</green>
+                          <blue>32</blue>
+                         </color>
+                        </brush>
+                       </colorrole>
+                       <colorrole role="Window">
+                        <brush brushstyle="SolidPattern">
+                         <color alpha="255">
+                          <red>32</red>
+                          <green>32</green>
+                          <blue>32</blue>
+                         </color>
+                        </brush>
+                       </colorrole>
+                      </disabled>
+                     </palette>
+                    </property>
+                    <property name="styleSheet">
+                     <string notr="true"/>
+                    </property>
+                    <layout class="QHBoxLayout" name="dirty_channel_bar">
+                     <item>
+                      <spacer name="horizontalSpacer_88">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
+                      <widget class="QLabel" name="label_69">
+                       <property name="autoFillBackground">
+                        <bool>false</bool>
+                       </property>
+                       <property name="text">
+                        <string>Your channel has uncommitted and/or deleted torrents.</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_38">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="edit_channel_commit_button">
+                       <property name="enabled">
+                        <bool>true</bool>
+                       </property>
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>0</width>
+                         <height>35</height>
+                        </size>
+                       </property>
+                       <property name="palette">
+                        <palette>
+                         <active>
+                          <colorrole role="Button">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>32</red>
+                             <green>32</green>
+                             <blue>32</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                          <colorrole role="ButtonText">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>186</red>
+                             <green>189</green>
+                             <blue>182</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                          <colorrole role="Base">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>32</red>
+                             <green>32</green>
+                             <blue>32</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                          <colorrole role="Window">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>32</red>
+                             <green>32</green>
+                             <blue>32</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                         </active>
+                         <inactive>
+                          <colorrole role="Button">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>32</red>
+                             <green>32</green>
+                             <blue>32</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                          <colorrole role="ButtonText">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>186</red>
+                             <green>189</green>
+                             <blue>182</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                          <colorrole role="Base">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>32</red>
+                             <green>32</green>
+                             <blue>32</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                          <colorrole role="Window">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>32</red>
+                             <green>32</green>
+                             <blue>32</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                         </inactive>
+                         <disabled>
+                          <colorrole role="Button">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>32</red>
+                             <green>32</green>
+                             <blue>32</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                          <colorrole role="ButtonText">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>190</red>
+                             <green>190</green>
+                             <blue>190</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                          <colorrole role="Base">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>32</red>
+                             <green>32</green>
+                             <blue>32</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                          <colorrole role="Window">
+                           <brush brushstyle="SolidPattern">
+                            <color alpha="255">
+                             <red>32</red>
+                             <green>32</green>
+                             <blue>32</blue>
+                            </color>
+                           </brush>
+                          </colorrole>
+                         </disabled>
+                        </palette>
+                       </property>
+                       <property name="toolTip">
+                        <string>Apply changes to your channel and publish the new version</string>
+                       </property>
+                       <property name="autoFillBackground">
+                        <bool>false</bool>
+                       </property>
+                       <property name="text">
+                        <string>Apply changes</string>
+                       </property>
+                       <property name="checkable">
+                        <bool>false</bool>
+                       </property>
+                       <property name="checked">
+                        <bool>false</bool>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_36">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeType">
+                        <enum>QSizePolicy::Fixed</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>10</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
                   <item>
                    <widget class="LazyLoadList" name="edit_channel_torrents_list">
                     <property name="styleSheet">
@@ -5039,7 +5412,7 @@ border-top: 1px solid #555;
                <x>0</x>
                <y>0</y>
                <width>300</width>
-               <height>610</height>
+               <height>646</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -5451,6 +5824,34 @@ color: white;</string>
                   </item>
                   <item row="12" column="1">
                    <widget class="QCheckBox" name="use_monochrome_icon_checkbox">
+                    <property name="styleSheet">
+                     <string notr="true">margin-top: 2px;</string>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="13" column="0">
+                   <widget class="QLabel" name="label_33">
+                    <property name="styleSheet">
+                     <string notr="true">font-weight: bold;
+color: white;</string>
+                    </property>
+                    <property name="text">
+                     <string>Beta features</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="14" column="0">
+                   <widget class="QLabel" name="label_34">
+                    <property name="text">
+                     <string>Enable Channel 2.0 editing</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="14" column="1">
+                   <widget class="QCheckBox" name="chant_channel_edit">
                     <property name="styleSheet">
                      <string notr="true">margin-top: 2px;</string>
                     </property>
@@ -12534,6 +12935,7 @@ color: #eee;</string>
   <slot>clicked_menu_button_video_player()</slot>
   <slot>clicked_menu_button_downloads()</slot>
   <slot>clicked_menu_button_subscriptions()</slot>
+  <slot>clicked_edit_channel_commit_button()</slot>
   <slot>on_search_text_change()</slot>
   <slot>on_page_back_clicked()</slot>
   <slot>on_playlist_item_click(QListWidgetItem*)</slot>
