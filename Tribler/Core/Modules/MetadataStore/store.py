@@ -84,6 +84,7 @@ class MetadataStore(object):
                 self._db.execute(sql_add_fts_trigger_update)
                 self._db.execute(sql_add_signature_index)
                 self._db.execute(sql_add_public_key_index)
+                self._db.execute(sql_add_infohash_index)
 
     def shutdown(self):
         self._db.disconnect()
