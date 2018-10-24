@@ -212,6 +212,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                 tracker_info.append({"url": url, "peers": url_info[0], "status": url_info[1]})
 
             num_seeds, num_peers = state.get_num_seeds_peers()
+            num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
             download_json = {"name": tdef.get_name_utf8(), "progress": state.get_progress(),
                              "infohash": tdef.get_infohash().encode('hex'),
@@ -220,6 +221,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                              "status": dlstatus_strings[state.get_status()],
                              "size": tdef.get_length(), "eta": state.get_eta(),
                              "num_peers": num_peers, "num_seeds": num_seeds,
+                             "num_connected_peers": num_connected_peers, "num_connected_seeds": num_connected_seeds,
                              "total_up": state.get_total_transferred(UPLOAD),
                              "total_down": state.get_total_transferred(DOWNLOAD), "ratio": state.get_seeding_ratio(),
                              "trackers": tracker_info, "hops": download.get_hops(),
