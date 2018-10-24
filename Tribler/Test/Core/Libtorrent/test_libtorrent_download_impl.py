@@ -308,6 +308,32 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.set_share_mode(True)
         self.assertTrue(mocked_set_share_mode.called)
 
+    def test_get_num_connected_seeds_peers(self):
+        """
+        Test whether connected peers and seeds are correctly returned
+        """
+        def get_peer_info(seeders, leechers):
+            peer_info = []
+            for _ in xrange(seeders):
+                seeder = MockObject()
+                seeder.flags = 140347   # some value where seed flag(1024) is true
+                seeder.seed = 1024
+                peer_info.append(seeder)
+            for _ in xrange(leechers):
+                leecher = MockObject()
+                leecher.flags = 131242  # some value where seed flag(1024) is false
+                leecher.seed = 1024
+                peer_info.append(leecher)
+            return peer_info
+
+        mock_seeders = 15
+        mock_leechers = 6
+        self.libtorrent_download_impl.handle.get_peer_info = lambda: get_peer_info(mock_seeders, mock_leechers)
+
+        num_seeds, num_peers = self.libtorrent_download_impl.get_num_connected_seeds_peers()
+        self.assertEqual(num_seeds, mock_seeders, "Expected seeders differ")
+        self.assertEqual(num_peers, mock_leechers, "Expected peers differ")
+
     def test_set_priority(self):
         """
         Test whether setting the priority calls the right methods in LibtorrentDownloadImpl

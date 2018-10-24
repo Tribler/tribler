@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>538</width>
-    <height>232</height>
+    <height>248</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -166,6 +166,9 @@ margin-top: 4px;
         <property name="styleSheet">
          <string notr="true"/>
         </property>
+        <property name="placeholderText">
+         <string>Quantity</string>
+        </property>
        </widget>
       </item>
       <item>
@@ -192,7 +195,11 @@ margin-top: 4px;
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="order_price_input"/>
+       <widget class="QLineEdit" name="order_price_input">
+        <property name="placeholderText">
+         <string>Price</string>
+        </property>
+       </widget>
       </item>
       <item>
        <spacer name="verticalSpacer_2">

@@ -1,5 +1,3 @@
-from urllib import urlencode
-
 import datetime
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import pyqtSignal
@@ -12,7 +10,6 @@ from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.defs import PAGE_MARKET_TRANSACTIONS, PAGE_MARKET_WALLETS, PAGE_MARKET_ORDERS
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
-from TriblerGUI.dialogs.iom_input_dialog import IomInputDialog
 from TriblerGUI.dialogs.newmarketorderdialog import NewMarketOrderDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -243,20 +240,12 @@ class MarketPage(QWidget):
             self.load_asks()
             self.load_bids()
 
-    def create_order(self, is_ask, price, price_type, quantity, quantity_type):
+    def create_order(self, is_ask, asset1_amount, asset1_type, asset2_amount, asset2_type):
         """
         Create a new ask or bid order.
         """
-        asset1_amount = long(quantity * (10 ** self.wallets[quantity_type]["precision"]))
-
-        price_num = price * (10 ** self.wallets[price_type]["precision"])
-        price_denom = float(10 ** self.wallets[quantity_type]["precision"])
-        price = price_num / price_denom
-
-        asset2_amount = long(asset1_amount * price)
-
         post_data = str("first_asset_amount=%d&first_asset_type=%s&second_asset_amount=%d&second_asset_type=%s" %
-                        (asset1_amount, quantity_type, asset2_amount, price_type))
+                        (asset1_amount, asset1_type, asset2_amount, asset2_type))
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("market/%s" % ('asks' if is_ask else 'bids'),
                                          lambda response: self.on_order_created(response, is_ask),
@@ -318,15 +307,18 @@ class MarketPage(QWidget):
     def on_asset_type_clicked(self):
         menu = TriblerActionMenu(self)
 
+        asset_pairs = []
         for first_wallet_id in self.wallets.keys():
             for second_wallet_id in self.wallets.keys():
                 if first_wallet_id >= second_wallet_id:
                     continue
+                asset_pairs.append((first_wallet_id, second_wallet_id))
 
-                wallet_action = QAction('%s / %s' % (first_wallet_id, second_wallet_id), self)
-                wallet_action.triggered.connect(
-                    lambda _, id1=first_wallet_id, id2=second_wallet_id: self.on_asset_type_changed(id1, id2))
-                menu.addAction(wallet_action)
+        for asset_pair in sorted(asset_pairs):
+            wallet_action = QAction('%s / %s' % asset_pair, self)
+            wallet_action.triggered.connect(
+                lambda _, id1=asset_pair[0], id2=asset_pair[1]: self.on_asset_type_changed(id1, id2))
+            menu.addAction(wallet_action)
         menu.exec_(QCursor.pos())
 
     def on_asset_type_changed(self, asset1, asset2):
@@ -348,14 +340,15 @@ class MarketPage(QWidget):
                                           "%s wallet not available, please create it first." % self.chosen_wallets[1])
             return
 
-        self.dialog = NewMarketOrderDialog(self.window().stackedWidget, is_ask, self.chosen_wallets[0], self.chosen_wallets[1])
+        self.dialog = NewMarketOrderDialog(self.window().stackedWidget, is_ask, self.chosen_wallets[0],
+                                           self.chosen_wallets[1], self.wallets)
         self.dialog.button_clicked.connect(self.on_new_order_action)
         self.dialog.show()
 
     def on_new_order_action(self, action):
         if action == 1:
-            self.create_order(self.dialog.is_ask, self.dialog.price, self.dialog.price_type,
-                              self.dialog.quantity, self.dialog.quantity_type)
+            self.create_order(self.dialog.is_ask, self.dialog.asset1_amount, self.dialog.quantity_type,
+                              self.dialog.asset2_amount, self.dialog.price_type)
 
         self.dialog.close_dialog()
         self.dialog = None
