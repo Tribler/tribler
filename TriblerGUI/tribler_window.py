@@ -447,9 +447,9 @@ class TriblerWindow(QMainWindow):
         elif action == 2:  # ok
             import webbrowser
             webbrowser.open("https://tribler.org")
-
-        self.new_version_dialog.close_dialog()
-        self.new_version_dialog = None
+        if self.new_version_dialog:
+            self.new_version_dialog.close_dialog()
+            self.new_version_dialog = None
 
     def on_search_text_change(self, text):
         self.search_suggestion_mgr = TriblerRequestManager()
