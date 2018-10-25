@@ -3,6 +3,8 @@ import sys
 import logging.config
 
 import signal
+
+from Tribler.Core.exceptions import TriblerException
 from check_os import check_environment, check_free_space, error_and_exit, setup_gui_logging, \
     should_kill_other_tribler_instances, enable_fault_handler, set_process_priority
 
@@ -83,19 +85,19 @@ if __name__ == "__main__":
         api_port = os.environ['CORE_API_PORT']
         start_tribler_core(base_path, api_port)
     else:
-        enable_fault_handler()
-
-        # Exit if we cant read/write files, etc.
-        check_environment()
-
-        should_kill_other_tribler_instances()
-
-        check_free_space()
-
-        # Set up logging
-        setup_gui_logging()
-
         try:
+            enable_fault_handler()
+
+            # Exit if we cant read/write files, etc.
+            check_environment()
+
+            should_kill_other_tribler_instances()
+
+            check_free_space()
+
+            # Set up logging
+            setup_gui_logging()
+
             from TriblerGUI.tribler_app import TriblerApplication
             from TriblerGUI.tribler_window import TriblerWindow
 
@@ -117,6 +119,10 @@ if __name__ == "__main__":
         except ImportError as ie:
             logging.exception(ie)
             error_and_exit("Import Error", "Import error: {0}".format(ie))
+
+        except TriblerException as te:
+            logging.exception(te)
+            error_and_exit("Tribler Exception", "{0}".format(te))
 
         except SystemExit as se:
             logging.info("Shutting down Tribler")

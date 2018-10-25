@@ -58,19 +58,18 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         Setting and getting of libtorrent proxy settings.
         """
-        proxy_type, server, auth = 3, ("33.33.33.33", 22), 1
-        self.tribler_config.set_libtorrent_proxy_settings(proxy_type, server, auth)
-
+        proxy_type, server, auth = 3, ['33.33.33.33', '22'], ['user', 'pass']
+        self.tribler_config.set_libtorrent_proxy_settings(proxy_type, ':'.join(server), ':'.join(auth))
         self.assertEqual(self.tribler_config.get_libtorrent_proxy_settings()[0], proxy_type)
         self.assertEqual(self.tribler_config.get_libtorrent_proxy_settings()[1], server)
         self.assertEqual(self.tribler_config.get_libtorrent_proxy_settings()[2], auth)
 
         # if the proxy type doesn't support authentication, auth setting should be saved as None
         proxy_type = 1
-        self.tribler_config.set_libtorrent_proxy_settings(proxy_type, server, auth)
+        self.tribler_config.set_libtorrent_proxy_settings(proxy_type, ':'.join(server), ':'.join(auth))
         self.assertEqual(self.tribler_config.get_libtorrent_proxy_settings()[0], proxy_type)
         self.assertEqual(self.tribler_config.get_libtorrent_proxy_settings()[1], server)
-        self.assertIsNone(self.tribler_config.get_libtorrent_proxy_settings()[2])
+        self.assertEqual(self.tribler_config.get_libtorrent_proxy_settings()[2], ['', ''])
 
     def test_anon_proxy_settings(self):
         proxy_type, server, auth = 3, ("33.33.33.33", [2222, 2223, 4443, 58848]), 1
@@ -195,8 +194,9 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_libtorrent_port(), True)
         self.tribler_config.set_anon_listen_port(True)
         self.assertEqual(self.tribler_config.get_anon_listen_port(), True)
-        self.tribler_config.set_libtorrent_proxy_settings(3, True, False)
-        self.assertEqual(self.tribler_config.get_libtorrent_proxy_settings(), (3, True, False))
+        proxy_server, proxy_auth = ["localhost", "9090"], ["user", "pass"]
+        self.tribler_config.set_libtorrent_proxy_settings(3, ":".join(proxy_server), ":".join(proxy_auth))
+        self.assertEqual(self.tribler_config.get_libtorrent_proxy_settings(), (3, proxy_server, proxy_auth))
         self.tribler_config.set_anon_proxy_settings(0, None, None)
         self.assertEqual(self.tribler_config.get_anon_proxy_settings(), (0, (None, None), None))
         self.tribler_config.set_anon_proxy_settings(3, ("TEST", [5]), ("TUN", "TPW"))
