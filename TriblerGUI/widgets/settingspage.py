@@ -232,11 +232,13 @@ class SettingsPage(QWidget):
         # Connection settings
         self.window().lt_proxy_type_combobox.setCurrentIndex(settings['libtorrent']['proxy_type'])
         if settings['libtorrent']['proxy_server']:
-            self.window().lt_proxy_server_input.setText(settings['libtorrent']['proxy_server'][0])
-            self.window().lt_proxy_port_input.setText("%s" % settings['libtorrent']['proxy_server'][1])
+            proxy_server = settings['libtorrent']['proxy_server'].split(":")
+            self.window().lt_proxy_server_input.setText(proxy_server[0])
+            self.window().lt_proxy_port_input.setText(proxy_server[1])
         if settings['libtorrent']['proxy_auth']:
-            self.window().lt_proxy_username_input.setText(settings['libtorrent']['proxy_auth'][0])
-            self.window().lt_proxy_password_input.setText(settings['libtorrent']['proxy_auth'][1])
+            proxy_auth = settings['libtorrent']['proxy_auth'].split(":")
+            self.window().lt_proxy_username_input.setText(proxy_auth[0])
+            self.window().lt_proxy_password_input.setText(proxy_auth[1])
         self.window().lt_utp_checkbox.setChecked(settings['libtorrent']['utp'])
 
         max_conn_download = settings['libtorrent']['max_connections_download']
@@ -341,21 +343,24 @@ class SettingsPage(QWidget):
 
         if self.window().lt_proxy_server_input.text() and len(self.window().lt_proxy_server_input.text()) > 0 and len(
                 self.window().lt_proxy_port_input.text()) > 0:
-            settings_data['libtorrent']['proxy_server'] = [self.window().lt_proxy_server_input.text(), None]
-            settings_data['libtorrent']['proxy_server'][0] = self.window().lt_proxy_server_input.text()
             try:
-                settings_data['libtorrent']['proxy_server'][1] = int(self.window().lt_proxy_port_input.text())
+                settings_data['libtorrent']['proxy_server'] = "%s:%s" % (self.window().lt_proxy_server_input.text(),
+                                                                         int(self.window().lt_proxy_port_input.text()))
             except ValueError:
                 ConfirmationDialog.show_error(self.window(), "Invalid proxy port number",
                                               "You've entered an invalid format for the proxy port number. "
                                               "Please enter a whole number.")
                 return
+        else:
+            settings_data['libtorrent']['proxy_server'] = ":"
 
         if len(self.window().lt_proxy_username_input.text()) > 0 and \
                         len(self.window().lt_proxy_password_input.text()) > 0:
-            settings_data['libtorrent']['proxy_auth'] = [None, None]
-            settings_data['libtorrent']['proxy_auth'][0] = self.window().lt_proxy_username_input.text()
-            settings_data['libtorrent']['proxy_auth'][1] = self.window().lt_proxy_password_input.text()
+            settings_data['libtorrent']['proxy_auth'] = "%s:%s" % (self.window().lt_proxy_username_input.text(),
+                                                                   self.window().lt_proxy_password_input.text())
+        else:
+            settings_data['libtorrent']['proxy_auth'] = ":"
+
         settings_data['libtorrent']['utp'] = self.window().lt_utp_checkbox.isChecked()
 
         try:
