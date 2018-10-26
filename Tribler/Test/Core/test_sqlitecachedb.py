@@ -24,12 +24,11 @@ class TestSqliteCacheDB(TriblerCoreTest):
 
         self.sqlite_test = SQLiteCacheDB(db_path)
         self.sqlite_test.set_show_sql(True)
-        self.sqlite_test.initialize()
 
     def tearDown(self):
-        super(TestSqliteCacheDB, self).tearDown()
         self.sqlite_test.close()
         self.sqlite_test = None
+        super(TestSqliteCacheDB, self).tearDown()
 
     def test_create_db(self):
         sql = u"CREATE TABLE person(lastname, firstname);"
@@ -41,47 +40,32 @@ class TestSqliteCacheDB(TriblerCoreTest):
     def test_no_file_db_error(self):
         file_dir = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
         sqlite_test_2 = SQLiteCacheDB(file_dir)
-        sqlite_test_2.initialize()
 
     def test_open_db_new_file(self):
         db_path = os.path.join(self.session_base_dir, "test_db.db")
         sqlite_test_2 = SQLiteCacheDB(db_path)
-        sqlite_test_2.initialize()
         self.assertTrue(os.path.isfile(db_path))
 
     @raises(OSError)
     def test_open_db_script_file_invalid_location(self):
         sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"), u'myfakelocation')
-        sqlite_test_2.initialize()
 
     @raises(OSError)
     def test_open_db_script_file_directory(self):
         file_dir = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
         sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"), file_dir)
-        sqlite_test_2.initialize()
 
     def test_open_db_script_file(self):
         sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"), DB_SCRIPT_ABSOLUTE_PATH)
-        sqlite_test_2.initialize()
 
-        sqlite_test_2.initial_begin()
         sqlite_test_2.write_version(4)
         self.assertEqual(sqlite_test_2.version, 4)
-
-    def test_initial_begin(self):
-        self.sqlite_test.initial_begin()
 
     @raises(SQLError)
     def test_failed_commit(self):
         sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"), DB_SCRIPT_ABSOLUTE_PATH)
-        sqlite_test_2.initialize()
-        sqlite_test_2.write_version(4)
-
-    @raises(Exception)
-    def test_initial_begin_no_connection(self):
-        db_path = os.path.join(self.session_base_dir, "test_db.db")
-        sqlite_test_2 = SQLiteCacheDB(db_path)
         sqlite_test_2.initial_begin()
+        sqlite_test_2.write_version(4)
 
     @skipIf(sys.platform == "win32", "chmod does not work on Windows")
     @raises(IOError)
@@ -91,13 +75,11 @@ class TestSqliteCacheDB(TriblerCoreTest):
         shutil.copyfile(DB_SCRIPT_ABSOLUTE_PATH, new_script_path)
         os.chmod(new_script_path, 0)
         sqlite_test_2 = SQLiteCacheDB(db_path, new_script_path)
-        sqlite_test_2.initialize()
 
     @raises(CorruptedDatabaseError)
     def test_no_version_info_in_database(self):
         sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"),
                                       os.path.join(self.SQLITE_SCRIPTS_DIR, "script1.sql"))
-        sqlite_test_2.initialize()
 
     @raises(CorruptedDatabaseError)
     def test_integrity_check_failed(self):
@@ -111,42 +93,37 @@ class TestSqliteCacheDB(TriblerCoreTest):
                 return db_response
 
         sqlite_test_2.execute = execute
-        sqlite_test_2.initialize()
 
     def test_integrity_check_triggered(self):
         """ Tests if integrity check is triggered if temporary rollback files are present."""
-        def do_integrity_check():
+        def do_integrity_check(_):
             do_integrity_check.called = True
 
         db_path = os.path.join(self.session_base_dir, "test_db.db")
         sqlite_test = SQLiteCacheDB(db_path)
         sqlite_test.do_quick_integrity_check = do_integrity_check
         do_integrity_check.called = False
-        sqlite_test.initialize()
         self.assertFalse(do_integrity_check.called)
 
         db_path2 = os.path.join(self.session_base_dir, "test_db2.db")
         wal_file = open(os.path.join(self.session_base_dir, "test_db2.db-shm"), 'w')
         wal_file.close()
 
-        sqlite_test_2 = SQLiteCacheDB(db_path2)
-        sqlite_test_2.do_quick_integrity_check = do_integrity_check
         do_integrity_check.called = False
-        sqlite_test_2.initialize()
+        SQLiteCacheDB.do_quick_integrity_check = do_integrity_check
+        sqlite_test_2 = SQLiteCacheDB(db_path2)
         self.assertTrue(do_integrity_check.called)
 
     def test_clean_db(self):
         sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"), DB_SCRIPT_ABSOLUTE_PATH)
-        sqlite_test_2.initialize()
-        sqlite_test_2.initial_begin()
-        sqlite_test_2.clean_db(vacuum=True, exiting=True)
+        sqlite_test_2.clean_db(vacuum=True, exiting=False)
+        sqlite_test_2.close()
 
     @skipIf(sys.platform == "win32", "chmod does not work on Windows")
     @raises(CantOpenError)
     def test_open_db_connection_no_permission(self):
         os.chmod(os.path.join(self.session_base_dir), 0)
         sqlite_test_2 = SQLiteCacheDB(os.path.join(self.session_base_dir, "test_db.db"))
-        sqlite_test_2.initialize()
 
     def test_insert(self):
         self.test_create_db()
