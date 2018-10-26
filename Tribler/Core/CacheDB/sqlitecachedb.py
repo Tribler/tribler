@@ -10,6 +10,8 @@ import apsw
 from apsw import CantOpenError, SQLError
 from base64 import encodestring, decodestring
 from threading import currentThread, RLock
+
+from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
@@ -61,6 +63,8 @@ class SQLiteCacheDB(TaskManager):
 
         self._should_commit = False
         self._show_execute = False
+        self.initialize()
+        self.initial_begin()
 
     @property
     def version(self):
@@ -89,6 +93,7 @@ class SQLiteCacheDB(TaskManager):
         """
         self.shutdown_task_manager()
         with self._cursor_lock:
+            self.commit_now(exiting=True)
             for cursor in self._cursor_table.itervalues():
                 cursor.close()
             self._cursor_table = {}

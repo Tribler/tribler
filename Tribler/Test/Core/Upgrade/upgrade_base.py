@@ -59,6 +59,4 @@ class AbstractUpgrader(TriblerCoreTest):
                         os.path.join(self.session.config.get_state_dir(), 'sqlite', 'dispersy.db'))
         db_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'tribler.sdb')
         self.sqlitedb = SQLiteCacheDB(db_path)
-        self.sqlitedb.initialize()
-        self.sqlitedb.initial_begin()
         self.session.sqlite_db = self.sqlitedb

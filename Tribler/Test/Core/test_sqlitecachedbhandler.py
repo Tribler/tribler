@@ -54,7 +54,6 @@ class AbstractDB(TriblerCoreTest):
         db_path = os.path.join(self.session_base_dir, 'bak_new_tribler.sdb')
 
         self.sqlitedb = SQLiteCacheDB(db_path, busytimeout=BUSYTIMEOUT)
-        self.sqlitedb.initialize()
         self.session.sqlite_db = self.sqlitedb
 
     @inlineCallbacks
