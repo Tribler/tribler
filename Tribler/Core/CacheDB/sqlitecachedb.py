@@ -10,6 +10,8 @@ import apsw
 from apsw import CantOpenError, SQLError
 from base64 import encodestring, decodestring
 from threading import currentThread, RLock
+
+from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
@@ -25,6 +27,8 @@ DB_FILE_RELATIVE_PATH = os.path.join(DB_DIR_NAME, DB_FILE_NAME)
 DB_SCRIPT_ABSOLUTE_PATH = os.path.join(get_lib_path(), 'Core', 'CacheDB', DB_SCRIPT_NAME)
 
 DEFAULT_BUSY_TIMEOUT = 10000
+
+COMMIT_PERIOD = 10 # number of seconds between periodic commits
 
 forceDBThread = blocking_call_on_reactor_thread
 forceAndReturnDBThread = blocking_call_on_reactor_thread
@@ -62,6 +66,8 @@ class SQLiteCacheDB(TaskManager):
         self._should_commit = False
         self._show_execute = False
 
+        self.register_task("commit changes to DB", LoopingCall(self.commit_now)).start(COMMIT_PERIOD, True)
+
     @property
     def version(self):
         """The version of this database."""
@@ -88,6 +94,7 @@ class SQLiteCacheDB(TaskManager):
         Cancels all pending tasks and closes all cursors. Then, it closes the connection.
         """
         self.shutdown_task_manager()
+        self.commit_now(exiting=True)
         with self._cursor_lock:
             for cursor in self._cursor_table.itervalues():
                 cursor.close()
