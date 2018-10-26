@@ -310,4 +310,21 @@ def define_binding(db):
             """
             return cls.get(public_key=buffer(channel_id))
 
+        @classmethod
+        @db_session
+        def get_channel_with_infohash(cls, infohash):
+            return cls.get(infohash=buffer(infohash))
+
+        @classmethod
+        @db_session
+        def get_random_channels(cls, limit):
+            """
+            Fetch up to some limit of channels we are subscribed to.
+
+            :param limit: the maximum amount of channels to fetch
+            :return: the subset of random channels we are subscribed to
+            :rtype: list
+            """
+            return db.ChannelMetadata.select(lambda g: g.subscribed).random(limit)
+
     return ChannelMetadata
