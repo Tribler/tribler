@@ -517,7 +517,7 @@ class TorrentDBHandler(BasicDBHandler):
 
     def update_torrent_with_metainfo(self, infohash, metainfo):
         """ Updates name, length and num files from metainfo if record does not exist in the database. """
-        torrent_id = self.getTorrentID(infohash)
+        torrent_id = self.addOrGetTorrentID(infohash)
         name = self.getOne('name', torrent_id=torrent_id)
         if not name:
             num_files, length = 0, 0
