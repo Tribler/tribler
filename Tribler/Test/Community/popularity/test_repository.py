@@ -342,7 +342,6 @@ class TestContentRepositoryWithRealDatabase(TestBase):
         tar.extractall(session_base_dir)
         db_path = os.path.join(session_base_dir, 'bak_new_tribler.sdb')
         self.sqlitedb = SQLiteCacheDB(db_path, busytimeout=BUSYTIMEOUT)
-        self.sqlitedb.initialize()
 
         session = MockObject()
         session.sqlite_db = self.sqlitedb

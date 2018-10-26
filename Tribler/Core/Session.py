@@ -464,8 +464,6 @@ class Session(object):
 
         self.sqlite_db = SQLiteCacheDB(db_path)
         self.readable_status = STATE_OPEN_DB
-        self.sqlite_db.initialize()
-        self.sqlite_db.initial_begin()
 
     def start(self):
         """

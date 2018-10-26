@@ -28,8 +28,6 @@ DB_SCRIPT_ABSOLUTE_PATH = os.path.join(get_lib_path(), 'Core', 'CacheDB', DB_SCR
 
 DEFAULT_BUSY_TIMEOUT = 10000
 
-COMMIT_PERIOD = 10 # number of seconds between periodic commits
-
 forceDBThread = blocking_call_on_reactor_thread
 forceAndReturnDBThread = blocking_call_on_reactor_thread
 
@@ -65,8 +63,8 @@ class SQLiteCacheDB(TaskManager):
 
         self._should_commit = False
         self._show_execute = False
-
-        self.register_task("commit changes to DB", LoopingCall(self.commit_now)).start(COMMIT_PERIOD, True)
+        self.initialize()
+        self.initial_begin()
 
     @property
     def version(self):
@@ -94,8 +92,8 @@ class SQLiteCacheDB(TaskManager):
         Cancels all pending tasks and closes all cursors. Then, it closes the connection.
         """
         self.shutdown_task_manager()
-        self.commit_now(exiting=True)
         with self._cursor_lock:
+            self.commit_now(exiting=True)
             for cursor in self._cursor_table.itervalues():
                 cursor.close()
             self._cursor_table = {}
