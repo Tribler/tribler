@@ -162,6 +162,7 @@ class ContentRepository(object):
             else:
                 self.logger.debug("Adding new torrent from search results to database")
                 self.torrent_db.addOrGetTorrentID(infohash)
+                self.torrent_db._db.commit_now()
 
             # Update local database
             self.torrent_db.updateTorrent(infohash, notify=False, name=torrent_item.name,

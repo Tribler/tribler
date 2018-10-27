@@ -70,6 +70,7 @@ class TorrentInfoEndpoint(resource.Resource):
             # Update the torrent database with metainfo if it is an unnamed torrent
             if self.session.lm.torrent_db:
                 self.session.lm.torrent_db.update_torrent_with_metainfo(infohash, metainfo)
+                self.session.lm.torrent_db._db.commit_now()
 
             # Save the torrent to our store
             try:

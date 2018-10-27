@@ -313,6 +313,9 @@ class TestContentRepository(unittest.TestCase):
         self.content_repository.has_torrent = lambda infohash: False
         self.content_repository.get_torrent = lambda infohash: None
 
+        self.content_repository.torrent_db._db = MockObject()
+        self.content_repository.torrent_db._db.commit_now = lambda x=None: None
+
         self.content_repository.called_update_torrent = False
         self.content_repository.update_from_torrent_search_results(search_results.values())
         self.assertTrue(self.content_repository.called_update_torrent)

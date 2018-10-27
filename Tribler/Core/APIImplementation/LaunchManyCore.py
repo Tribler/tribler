@@ -610,6 +610,7 @@ class TriblerLaunchMany(TaskManager):
             if isinstance(tdef, TorrentDefNoMetainfo):
                 self.torrent_db.addOrGetTorrentID(tdef.get_infohash())
                 self.torrent_db.updateTorrent(tdef.get_infohash(), name=tdef.get_name_as_unicode())
+                self.torrent_db._db.commit_now()
                 write_my_pref()
             elif self.rtorrent_handler:
                 self.rtorrent_handler.save_torrent(tdef, write_my_pref)
