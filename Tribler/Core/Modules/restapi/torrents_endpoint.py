@@ -1,11 +1,13 @@
 import logging
 
+from pony.orm import db_session
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
-from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_CHANNELCAST
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_CHANNELCAST
 
 
 class TorrentsEndpoint(resource.Resource):
@@ -76,7 +78,7 @@ class TorrentsRandomEndpoint(resource.Resource):
         for popular_torrent in popular_torrents:
             torrent_json = convert_db_torrent_to_json(popular_torrent)
             if (self.session.config.get_family_filter_enabled() and
-                    self.session.lm.category.xxx_filter.isXXX(torrent_json['category'])) \
+                self.session.lm.category.xxx_filter.isXXX(torrent_json['category'])) \
                     or torrent_json['name'] is None \
                     or torrent_json['infohash'] in self.session.lm.downloads:
                 continue
@@ -134,6 +136,24 @@ class SpecificTorrentEndpoint(resource.Resource):
         torrent_db_columns = ['C.torrent_id', 'infohash', 'name', 'length', 'category',
                               'num_seeders', 'num_leechers', 'last_tracker_check']
         torrent_info = self.torrent_db_handler.getTorrent(self.infohash.decode('hex'), keys=torrent_db_columns)
+        if torrent_info is None:
+            # Maybe this is a chant torrent?
+            infohash = self.infohash.decode('hex')
+            with db_session:
+                md_list = list(self.session.lm.mds.TorrentMetadata.select(lambda g: g.infohash == buffer(infohash)))
+                if md_list:
+                    torrent_md = md_list[0]  # Any MD containing this infohash is fine
+                    # FIXME: replace these placeholder values when Dispersy is gone
+                    torrent_info = {
+                        "C.torrent_id": "",
+                        "name": torrent_md.title,
+                        "length": torrent_md.size,
+                        "category": torrent_md.tags.split(",")[0] or '',
+                        "last_tracker_check": 0,
+                        "num_seeders": 0,
+                        "num_leechers": 0
+                    }
+
         if torrent_info is None:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "Unknown torrent"})
@@ -265,10 +285,6 @@ class TorrentHealthEndpoint(resource.Resource):
         torrent_db_columns = ['C.torrent_id', 'num_seeders', 'num_leechers', 'next_tracker_check']
         torrent_info = self.torrent_db.getTorrent(self.infohash.decode('hex'), torrent_db_columns)
 
-        if torrent_info is None:
-            request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "torrent not found in database"})
-
         def on_health_result(result):
             request.write(json.dumps({'health': result}))
             self.finish_request(request)
@@ -281,7 +297,38 @@ class TorrentHealthEndpoint(resource.Resource):
             if not request.finished:
                 self.finish_request(request)
 
-        self.session.check_torrent_health(self.infohash.decode('hex'), timeout=timeout, scrape_now=refresh)\
-            .addCallback(on_health_result).addErrback(on_request_error)
+        def make_torrent_health_request():
+            self.session.check_torrent_health(self.infohash.decode('hex'), timeout=timeout, scrape_now=refresh) \
+                .addCallback(on_health_result).addErrback(on_request_error)
+
+        magnet = None
+        if torrent_info is None:
+            # Maybe this is a chant torrent?
+            infohash = self.infohash.decode('hex')
+            with db_session:
+                md_list = list(self.session.lm.mds.TorrentMetadata.select(lambda g: g.infohash == buffer(infohash)))
+                if md_list:
+                    torrent_md = md_list[0]  # Any MD containing this infohash is fine
+                    magnet = torrent_md.get_magnet()
+                    timeout = 50
+
+        def _add_torrent_and_check(metainfo):
+            tdef = TorrentDef.load_from_dict(metainfo)
+            assert (tdef.infohash == infohash), "DHT infohash does not match locally generated one"
+            self._logger.info("Chant-managed torrent fetched from DHT. Adding it to local cache, %s", self.infohash)
+            self.session.lm.torrent_db.addExternalTorrent(tdef)
+            self.session.lm.torrent_db._db.commit_now()
+            make_torrent_health_request()
+
+        if magnet:
+            # Try to get the torrent from DHT and add it to the local cache
+            self._logger.info("Chant-managed torrent not in cache. Going to fetch it from DHT, %s", self.infohash)
+            self.session.lm.ltmgr.get_metainfo(magnet, callback=_add_torrent_and_check,
+                                               timeout=30, timeout_callback=on_request_error, notify=False)
+        elif torrent_info is None:
+            request.setResponseCode(http.NOT_FOUND)
+            return json.dumps({"error": "torrent not found in database"})
+        else:
+            make_torrent_health_request()
 
         return NOT_DONE_YET
