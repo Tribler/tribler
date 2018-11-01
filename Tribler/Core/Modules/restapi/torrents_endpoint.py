@@ -289,6 +289,13 @@ class TorrentHealthEndpoint(resource.Resource):
             request.write(json.dumps({'health': result}))
             self.finish_request(request)
 
+        def on_magnet_timeout_error(_):
+            if not request.finished:
+                request.setResponseCode(http.NOT_FOUND)
+                request.write(json.dumps({"error": "torrent not found in database"}))
+            if not request.finished:
+                self.finish_request(request)
+
         def on_request_error(failure):
             if not request.finished:
                 request.setResponseCode(http.BAD_REQUEST)
@@ -310,7 +317,10 @@ class TorrentHealthEndpoint(resource.Resource):
                 if md_list:
                     torrent_md = md_list[0]  # Any MD containing this infohash is fine
                     magnet = torrent_md.get_magnet()
-                    timeout = 50
+                    if 'timeout' in request.args:
+                        timeout = int(request.args['timeout'][0])
+                    else:
+                        timeout = 50
 
         def _add_torrent_and_check(metainfo):
             tdef = TorrentDef.load_from_dict(metainfo)
@@ -324,7 +334,7 @@ class TorrentHealthEndpoint(resource.Resource):
             # Try to get the torrent from DHT and add it to the local cache
             self._logger.info("Chant-managed torrent not in cache. Going to fetch it from DHT, %s", self.infohash)
             self.session.lm.ltmgr.get_metainfo(magnet, callback=_add_torrent_and_check,
-                                               timeout=30, timeout_callback=on_request_error, notify=False)
+                                               timeout=timeout, timeout_callback=on_magnet_timeout_error, notify=False)
         elif torrent_info is None:
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "torrent not found in database"})

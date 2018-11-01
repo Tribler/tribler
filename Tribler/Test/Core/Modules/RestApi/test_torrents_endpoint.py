@@ -261,5 +261,5 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         # Left for compatibility with other tests in this object
         self.udp_tracker.start()
         self.http_tracker.start()
-
+        # TODO: add test for DHT timeout
         yield self.do_request(url, expected_code=200, request_type='GET').addCallback(verify_response_no_trackers)
