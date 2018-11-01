@@ -81,6 +81,18 @@ def convert_db_channel_to_json(channel, include_rel_score=False):
     return res_json
 
 
+def convert_chant_channel_to_json(channel):
+    """
+    This method converts a chant channel entry to a JSON dictionary.
+    """
+    # TODO: this stuff is mostly placeholder, especially 'modified' field. Should be changed when Dispersy is out.
+    res_json = {"id": 0, "dispersy_cid": str(channel.public_key).encode('hex'), "name": channel.title,
+                "description": channel.tags, "votes": channel.votes, "torrents": channel.size, "spam": 0,
+                "modified": channel.version, "subscribed": channel.subscribed}
+
+    return res_json
+
+
 def convert_db_torrent_to_json(torrent, include_rel_score=False):
     """
     This method converts a torrent in the database to a JSON dictionary.
