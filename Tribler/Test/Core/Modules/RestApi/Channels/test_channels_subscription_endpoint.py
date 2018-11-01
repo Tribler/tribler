@@ -11,8 +11,6 @@ from Tribler.Core.Modules.restapi.channels.channels_subscription_endpoint import
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint, \
     AbstractTestChantEndpoint
 from Tribler.Test.tools import trial_timeout
-from Tribler.dispersy.dispersy import Dispersy
-from Tribler.dispersy.endpoint import ManualEnpoint
 
 
 class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
@@ -44,7 +42,6 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         self.create_votecast_called = True
         return succeed(None)
 
-
     @trial_timeout(10)
     def test_subscribe_channel_already_subscribed(self):
         """
@@ -62,6 +59,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         """
         Testing whether the API creates a request in the AllChannel community when subscribing to a channel
         """
+
         def verify_votecast_made(_):
             self.assertTrue(self.create_votecast_called)
 
@@ -76,6 +74,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         """
         Testing whether an error is returned when we subscribe to a channel and an error pops up
         """
+
         def mocked_vote(*_):
             return fail(Failure(RuntimeError("error")))
 
@@ -136,6 +135,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         """
         Testing whether the API creates a request in the AllChannel community when unsubscribing from a channel
         """
+
         def verify_votecast_made(_):
             self.assertTrue(self.create_votecast_called)
 
@@ -185,7 +185,7 @@ class TestChannelsSubscriptionChantEndpoint(AbstractTestChantEndpoint):
             self.assertTrue(updated_channel.subscribed)
 
         self.should_check_equality = False
-        return self.do_request('channels/subscribed/%s' % random_channel_id, expected_code=200, request_type='PUT')\
+        return self.do_request('channels/subscribed/%s' % random_channel_id, expected_code=200, request_type='PUT') \
             .addCallback(verify_response)
 
     @trial_timeout(10)
@@ -208,3 +208,33 @@ class TestChannelsSubscriptionChantEndpoint(AbstractTestChantEndpoint):
         """
         self.should_check_equality = False
         return self.do_request('channels/subscribed/aaaa', expected_code=404, request_type='PUT')
+
+    @trial_timeout(10)
+    def test_get_subscribed_channels_no_subscriptions(self):
+        """
+        Testing whether the API returns no channels when you have not subscribed to any channel
+        """
+        expected_json = {"subscribed": []}
+        return self.do_request('channels/subscribed', expected_code=200, expected_json=expected_json)
+
+    @trial_timeout(10)
+    def test_get_subscribed_channels_one_subscription(self):
+        """
+        Testing whether the API returns the right channel when subscribed to one channel
+        """
+        with db_session:
+            md = self.session.lm.mds.ChannelMetadata(title="Test channel", subscribed=True)
+            title = md.title
+            cid = str(md.public_key).encode('hex')
+            version = md.version
+            subscribed = md.subscribed
+            torrents = md.size
+            votes = md.votes
+            tags = md.tags
+        expected_json = {u'subscribed': [{u'description': unicode(tags), u'id': 0,
+                                          u'dispersy_cid': unicode(cid),
+                                          u'modified': version,
+                                          u'name': unicode(title), u'spam': 0,
+                                          u'subscribed': subscribed, u'torrents': torrents, u'votes': votes}]}
+
+        return self.do_request('channels/subscribed', expected_code=200, expected_json=expected_json)

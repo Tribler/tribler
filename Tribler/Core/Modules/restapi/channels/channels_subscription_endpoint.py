@@ -1,11 +1,11 @@
+from pony.orm import db_session
 from twisted.web import http
 from twisted.web.server import NOT_DONE_YET
-from pony.orm import db_session
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE, VOTE_UNSUBSCRIBE
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
-from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_chant_channel_to_json
 
 ALREADY_SUBSCRIBED_RESPONSE_MSG = "you are already subscribed to this channel"
 NOT_SUBSCRIBED_RESPONSE_MSG = "you are not subscribed to this channel"
@@ -52,6 +52,10 @@ class ChannelsSubscribedEndpoint(BaseChannelsEndpoint):
         """
         subscribed_channels_db = self.channel_db_handler.getMySubscribedChannels(include_dispersy=True)
         results_json = [convert_db_channel_to_json(channel) for channel in subscribed_channels_db]
+        if self.session.config.get_chant_enabled():
+            with db_session:
+                channels_list = list(self.session.lm.mds.ChannelMetadata.select(lambda g: g.subscribed))
+            results_json.extend([convert_chant_channel_to_json(channel) for channel in channels_list])
         return json.dumps({"subscribed": results_json})
 
 
