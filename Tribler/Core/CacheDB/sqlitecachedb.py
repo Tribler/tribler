@@ -11,7 +11,6 @@ from apsw import CantOpenError, SQLError
 from base64 import encodestring, decodestring
 from threading import currentThread, RLock
 
-from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION

@@ -310,50 +310,55 @@ class TorrentDBHandler(BasicDBHandler):
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
         infohash = torrentdef.get_infohash()
         if not self.hasTorrent(infohash):
-            self._addTorrentToDB(torrentdef, extra_info)
+            torrent_id = self._addTorrentToDB(torrentdef, extra_info)
+            files = sorted(torrentdef.get_files_with_length(), key=lambda x: x[0])
+            insert_files = [(torrent_id, unicode(path), length) for path, length in files]
+            sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
+            self._db.executemany(sql_insert_files, insert_files)
             self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
 
     def addExternalTorrentNoDef(self, infohash, name, files, trackers, timestamp, extra_info={}):
-        if not self.hasTorrent(infohash):
-            metainfo = {'info': {}, 'encoding': 'utf_8'}
-            metainfo['info']['name'] = name.encode('utf_8')
-            metainfo['info']['piece length'] = -1
-            metainfo['info']['pieces'] = ''
+        if self.hasTorrent(infohash):
+            return
+        metainfo = {'info': {}, 'encoding': 'utf_8'}
+        metainfo['info']['name'] = name.encode('utf_8')
+        metainfo['info']['piece length'] = -1
+        metainfo['info']['pieces'] = ''
 
-            if len(files) > 1:
-                files_as_dict = []
-                for filename, file_length in files:
-                    filename = filename.encode('utf_8')
-                    files_as_dict.append({'path': [filename], 'length': file_length})
-                metainfo['info']['files'] = files_as_dict
+        if len(files) > 1:
+            files_as_dict = []
+            for filename, file_length in files:
+                filename = filename.encode('utf_8')
+                files_as_dict.append({'path': [filename], 'length': file_length})
+            metainfo['info']['files'] = files_as_dict
 
-            elif len(files) == 1:
-                metainfo['info']['length'] = files[0][1]
-            else:
-                return
+        elif len(files) == 1:
+            metainfo['info']['length'] = files[0][1]
+        else:
+            return
 
-            if len(trackers) > 0:
-                metainfo['announce'] = trackers[0]
-                metainfo['announce-list'] = [list(trackers)]
-            else:
-                metainfo['nodes'] = []
+        if len(trackers) > 0:
+            metainfo['announce'] = trackers[0]
+            metainfo['announce-list'] = [list(trackers)]
+        else:
+            metainfo['nodes'] = []
 
-            metainfo['creation date'] = timestamp
+        metainfo['creation date'] = timestamp
 
-            try:
-                torrentdef = TorrentDef.load_from_dict(metainfo)
-                torrentdef.infohash = infohash
+        try:
+            torrentdef = TorrentDef.load_from_dict(metainfo)
+            torrentdef.infohash = infohash
 
-                torrent_id = self._addTorrentToDB(torrentdef, extra_info)
-                if self._rtorrent_handler:
-                    self._rtorrent_handler.notify_possible_torrent_infohash(infohash)
+            torrent_id = self._addTorrentToDB(torrentdef, extra_info)
+            if self._rtorrent_handler:
+                self._rtorrent_handler.notify_possible_torrent_infohash(infohash)
 
-                insert_files = [(torrent_id, unicode(path), length) for path, length in files]
-                sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
-                self._db.executemany(sql_insert_files, insert_files)
-            except:
-                self._logger.error("Could not create a TorrentDef instance %r %r %r %r %r %r",
-                                   infohash, timestamp, name, files, trackers, extra_info)
+            insert_files = [(torrent_id, unicode(path), length) for path, length in files]
+            sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
+            self._db.executemany(sql_insert_files, insert_files)
+        except:
+            self._logger.error("Could not create a TorrentDef instance %r %r %r %r %r %r",
+                               infohash, timestamp, name, files, trackers, extra_info)
 
     def addOrGetTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)

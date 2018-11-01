@@ -1,19 +1,25 @@
 import time
 
-from Tribler.Test.tools import trial_timeout
+from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.tools import trial_timeout
 from Tribler.Test.util.Tracker.HTTPTracker import HTTPTracker
 from Tribler.Test.util.Tracker.UDPTracker import UDPTracker
 
 
 class TestTorrentsEndpoint(AbstractApiTest):
+
+    def setUpPreSession(self):
+        super(TestTorrentsEndpoint, self).setUpPreSession()
+        self.config.set_chant_enabled(True)
 
     @trial_timeout(10)
     def test_get_random_torrents(self):
@@ -55,6 +61,28 @@ class TestTorrentsEndpoint(AbstractApiTest):
         """
         self.should_check_equality = False
         return self.do_request('torrents/%s' % ('a' * 40), expected_code=404)
+
+    @trial_timeout(10)
+    def test_info_torrent_chant(self):
+        """
+        Testing whether the API returns the right information for a request of a specific chant-managed torrent
+        """
+        infohash_hex = unicode(('a' * 20).encode('hex'))
+        with db_session:
+            self.session.lm.mds.TorrentMetadata(infohash=infohash_hex.decode('hex'),
+                                                title=u'ubuntu-torrent.iso', size=42)
+        return self.do_request('torrents/%s' % ('a' * 20).encode('hex'), expected_json={
+            u"id": u'',
+            u"category": u"",
+            u"infohash": unicode(('a' * 20).encode('hex')),
+            u"name": u'ubuntu-torrent.iso',
+            u"size": 42,
+            u"trackers": [],
+            u"num_seeders": 0,
+            u"num_leechers": 0,
+            u"last_tracker_check": 0,
+            u'files': []
+        })
 
     @trial_timeout(10)
     def test_info_torrent(self):
@@ -111,6 +139,10 @@ class TestTorrentTrackersEndpoint(AbstractApiTest):
 
 class TestTorrentHealthEndpoint(AbstractApiTest):
 
+    def setUpPreSession(self):
+        super(TestTorrentHealthEndpoint, self).setUpPreSession()
+        self.config.set_chant_enabled(True)
+
     @inlineCallbacks
     def setUp(self):
         yield super(TestTorrentHealthEndpoint, self).setUp()
@@ -126,8 +158,10 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
     @inlineCallbacks
     def tearDown(self):
         self.session.lm.ltmgr = None
-        yield self.udp_tracker.stop()
-        yield self.http_tracker.stop()
+        if self.udp_tracker:
+            yield self.udp_tracker.stop()
+        if self.http_tracker:
+            yield self.http_tracker.stop()
         yield super(TestTorrentHealthEndpoint, self).tearDown()
 
     @trial_timeout(20)
@@ -181,3 +215,51 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
         self.http_tracker.tracker_info.add_info_about_infohash('a' * 20, 20, 30)
 
         yield self.do_request(url, expected_code=200, request_type='GET').addCallback(verify_response_with_trackers)
+
+    @trial_timeout(20)
+    @inlineCallbacks
+    def test_check_torrent_health_chant(self):
+        """
+        Test the endpoint to fetch the health of a chant-managed, infohash-only torrent
+        """
+        infohash = 'a' * 20
+        tracker_url = 'udp://localhost:%s/announce' % self.udp_port
+
+        meta_info = {"info": {"name": "my_torrent", "piece length": 42,
+                              "root hash": infohash, "files": [],
+                              "url-list": tracker_url}}
+        tdef = TorrentDef.load_from_dict(meta_info)
+
+        with db_session:
+            self.session.lm.mds.TorrentMetadata(infohash=tdef.infohash,
+                                                title='ubuntu-torrent.iso',
+                                                size=42,
+                                                tracker_info=tracker_url)
+        url = 'torrents/%s/health?timeout=10&refresh=1' % tdef.infohash.encode('hex')
+        self.should_check_equality = False
+
+        def fake_get_metainfo(_, callback, timeout=10, timeout_callback=None, notify=True):
+            meta_info_extended = meta_info.copy()
+            meta_info_extended['seeders'] = 12
+            meta_info_extended['leechers'] = 11
+            callback(meta_info_extended)
+
+        # Initialize the torrent checker
+        self.session.lm.torrent_checker = TorrentChecker(self.session)
+        self.session.lm.torrent_checker.initialize()
+        self.session.lm.ltmgr = MockObject()
+        self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
+
+        def verify_response_no_trackers(response):
+            json_response = json.loads(response)
+            expected_dict = {u"health":
+                                 {u"DHT":
+                                      {u"leechers": 11, u"seeders": 12,
+                                       u"infohash": unicode(tdef.infohash.encode('hex'))}}}
+            self.assertDictEqual(json_response, expected_dict)
+
+        # Left for compatibility with other tests in this object
+        self.udp_tracker.start()
+        self.http_tracker.start()
+
+        yield self.do_request(url, expected_code=200, request_type='GET').addCallback(verify_response_no_trackers)
