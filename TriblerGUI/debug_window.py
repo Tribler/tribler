@@ -158,12 +158,27 @@ class DebugWindow(QMainWindow):
         # IPv8 statistics enabled?
         self.ipv8_statistics_enabled = settings['ipv8']['statistics']
 
+        # Libtorrent tab
+        self.init_libtorrent_tab()
+
         # Position to center
         frame_geometry = self.frameGeometry()
         screen = QDesktopWidget().screenNumber(QDesktopWidget().cursor().pos())
         center_point = QDesktopWidget().screenGeometry(screen).center()
         frame_geometry.moveCenter(center_point)
         self.move(frame_geometry.topLeft())
+
+    def init_libtorrent_tab(self):
+        self.window().libtorrent_tab_widget.setCurrentIndex(0)
+        self.window().libtorrent_tab_widget.currentChanged.connect(lambda _: self.load_libtorrent_data(export=False))
+
+        self.window().lt_zero_hop_btn.clicked.connect(lambda _: self.load_libtorrent_data(export=False))
+        self.window().lt_one_hop_btn.clicked.connect(lambda _: self.load_libtorrent_data(export=False))
+        self.window().lt_two_hop_btn.clicked.connect(lambda _: self.load_libtorrent_data(export=False))
+        self.window().lt_three_hop_btn.clicked.connect(lambda _: self.load_libtorrent_data(export=False))
+        self.window().lt_export_btn.clicked.connect(lambda _: self.load_libtorrent_data(export=True))
+
+        self.window().lt_zero_hop_btn.setChecked(True)
 
     def tab_changed(self, index):
         if index == 0:
@@ -183,6 +198,8 @@ class DebugWindow(QMainWindow):
         elif index == 7:
             self.system_tab_changed(self.window().system_tab_widget.currentIndex())
         elif index == 8:
+            self.load_libtorrent_data()
+        elif index == 9:
             self.load_logs_tab()
 
     def ipv8_tab_changed(self, index):
@@ -673,3 +690,59 @@ class DebugWindow(QMainWindow):
         # and restore window with keeping maximized/normal state
         self.window().setWindowState(self.window().windowState() & ~Qt.WindowMinimized | Qt.WindowActive)
         self.window().activateWindow()
+
+    def load_libtorrent_data(self, export=False):
+        tab = self.window().libtorrent_tab_widget.currentIndex()
+        hop = 0 if self.window().lt_zero_hop_btn.isChecked() \
+            else 1 if self.window().lt_one_hop_btn.isChecked() \
+            else 2 if self.window().lt_two_hop_btn.isChecked() \
+            else 3
+        if tab == 0:
+            self.load_libtorrent_settings_tab(hop, export=export)
+        elif tab == 1:
+            self.load_libtorrent_sessions_tab(hop, export=export)
+
+    def load_libtorrent_settings_tab(self, hop, export=False):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("libtorrent/settings?hop=%d" % hop,
+                                         lambda data: self.on_libtorrent_settings_received(data, export=export))
+        self.window().libtorrent_settings_tree_widget.clear()
+
+    def on_libtorrent_settings_received(self, data, export=False):
+        if not data:
+            return
+        for key, value in data["settings"].iteritems():
+            item = QTreeWidgetItem(self.window().libtorrent_settings_tree_widget)
+            item.setText(0, key)
+            item.setText(1, str(value))
+            self.window().libtorrent_settings_tree_widget.addTopLevelItem(item)
+        if export:
+            self.save_to_file("libtorrent_settings.json", data)
+
+    def load_libtorrent_sessions_tab(self, hop, export=False):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("libtorrent/session?hop=%d" % hop,
+                                         lambda data: self.on_libtorrent_session_received(data, export=export))
+        self.window().libtorrent_session_tree_widget.clear()
+
+    def on_libtorrent_session_received(self, data, export=False):
+        if not data:
+            return
+        for key, value in data["session"].iteritems():
+            item = QTreeWidgetItem(self.window().libtorrent_session_tree_widget)
+            item.setText(0, key)
+            item.setText(1, str(value))
+            self.window().libtorrent_session_tree_widget.addTopLevelItem(item)
+        if export:
+            self.save_to_file("libtorrent_session.json", data)
+
+    def save_to_file(self, filename, data):
+        base_dir = QFileDialog.getExistingDirectory(self, "Select an export directory", "", QFileDialog.ShowDirsOnly)
+        if len(base_dir) > 0:
+            dest_path = os.path.join(base_dir, filename)
+            try:
+                torrent_file = open(dest_path, "wb")
+                torrent_file.write(json.dumps(data))
+                torrent_file.close()
+            except IOError as exc:
+                ConfirmationDialog.show_error(self.window(), "Error exporting file", str(exc))

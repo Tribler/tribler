@@ -584,7 +584,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window.debug_window, name="debug_panel_threads_tab")
 
         # Logs shown in ui and from the debug endpoint should be same
-        window.debug_window.debug_tab_widget.setCurrentIndex(8)
+        window.debug_window.debug_tab_widget.setCurrentIndex(9)
         # logs from FakeTriblerApi
         fake_logs = ''.join(["Sample log [%d]\n" % i for i in xrange(10)]).strip()
 
@@ -607,6 +607,14 @@ class TriblerGUITest(AbstractTriblerGUITest):
         window.debug_window.system_tab_widget.setCurrentIndex(4)
         QTest.qWait(1000)
         self.screenshot(window.debug_window, name="debug_panel_memory_tab")
+
+        # Libtorrent tab
+        window.debug_window.debug_tab_widget.setCurrentIndex(8)
+        self.wait_for_list_populated(window.debug_window.libtorrent_settings_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_libtorrent_settings_tab")
+        window.debug_window.libtorrent_tab_widget.setCurrentIndex(2)
+        self.wait_for_list_populated(window.debug_window.libtorrent_settings_tree_widget)
+        self.screenshot(window.debug_window, name="debug_panel_libtorrent_session_tab")
 
         window.debug_window.close()
 

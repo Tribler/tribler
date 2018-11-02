@@ -83,6 +83,7 @@ class LibtorrentMgr(TaskManager):
                                   lt.alert.category_t.storage_notification | lt.alert.category_t.performance_warning | \
                                   lt.alert.category_t.tracker_notification | lt.alert.category_t.debug_notification
         self.alert_callback = None
+        self.session_stats_callback = None
 
     def initialize(self):
         # start upnp
@@ -413,6 +414,9 @@ class LibtorrentMgr(TaskManager):
         elif alert_type == 'peer_disconnected_alert' and \
                 self.tribler_session and self.tribler_session.lm.payout_manager:
             self.tribler_session.lm.payout_manager.do_payout(alert.pid.to_string())
+
+        elif alert_type == 'session_stats_alert' and self.session_stats_callback:
+            self.session_stats_callback(alert)
 
         if self.alert_callback:
             self.alert_callback(alert)
