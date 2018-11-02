@@ -526,6 +526,7 @@ class TriblerLaunchMany(TaskManager):
         else:
             # Add new channel object to DB
             channel = self.mds.ChannelMetadata.from_payload(payload)
+            channel.subscribed = True
 
         if channel.version > channel.local_version:
             self._logger.info("Downloading new channel version %s ver %i->%i", str(channel.public_key).encode("hex"),
