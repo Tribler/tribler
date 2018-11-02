@@ -7,6 +7,7 @@ from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.Test.tools import trial_timeout
 
+
 class TestBtcWallet(AbstractServer):
 
     @trial_timeout(10)
