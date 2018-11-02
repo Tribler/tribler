@@ -4,12 +4,14 @@ The original main file has many side effects and creates all kinds of directorie
 This file makes sure that all these directories are created inside a designated (wallet) directory.
 It should be imported before any bitcoinlib imports.
 """
+import ast
 import imp
 import os
 import sys
 
 # Important import, do not remove! Files importing stuff from this file, rely on availability of the logger module.
 import logging
+from logging.handlers import RotatingFileHandler
 
 sys.modules["bitcoinlib.main"] = sys.modules[__name__]
 
@@ -54,9 +56,27 @@ def initialize_lib(wallet_dir):
             if os.path.isfile(full_file_name):
                 copyfile(full_file_name, os.path.join(DEFAULT_SETTINGSDIR, file_name))
 
+        # Extract all variable assignments from the original file and make sure these variables are initialized.
+        excluded_assignments = ['logfile', 'handler', 'logger', 'formatter']
+        with open(os.path.join(CURRENT_INSTALLDIR, 'main.py'), 'rb') as source_file:
+            file_contents = source_file.read()
+            ast_module_node = ast.parse(file_contents)
+            for node in ast.iter_child_nodes(ast_module_node):
+                if isinstance(node, ast.Assign):
+                    node_id, value = node.targets[0].id, node.value
+                    if not hasattr(sys.modules[__name__], node_id) and node_id not in excluded_assignments:
+                        output = eval(compile(ast.Expression(value), '<string>', 'eval'))
+                        setattr(sys.modules[__name__], node_id, output)
+
         # Clear everything related to bitcoinlib from sys.modules
         for module_name in sys.modules.keys():
             if module_name.startswith('bitcoinlib') and module_name != 'bitcoinlib.main':
                 del sys.modules[module_name]
+
+        # Make sure the OPCODES are known to the transaction files
+        import bitcoinlib
+        from bitcoinlib.config.opcodes import opcodes, opcodenames
+        bitcoinlib.transactions.opcodes = opcodes
+        bitcoinlib.transactions.opcodenames = opcodenames
     except ImportError:
         pass
