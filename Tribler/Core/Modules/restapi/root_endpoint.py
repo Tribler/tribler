@@ -6,6 +6,7 @@ from Tribler.Core.Modules.restapi.create_torrent_endpoint import CreateTorrentEn
 from Tribler.Core.Modules.restapi.debug_endpoint import DebugEndpoint
 from Tribler.Core.Modules.restapi.downloads_endpoint import DownloadsEndpoint
 from Tribler.Core.Modules.restapi.events_endpoint import EventsEndpoint
+from Tribler.Core.Modules.restapi.libtorrent_endpoint import LibTorrentEndpoint
 from Tribler.Core.Modules.restapi.market_endpoint import MarketEndpoint
 from Tribler.Core.Modules.restapi.search_endpoint import SearchEndpoint
 from Tribler.Core.Modules.restapi.settings_endpoint import SettingsEndpoint
@@ -48,7 +49,7 @@ class RootEndpoint(resource.Resource):
                               "createtorrent": CreateTorrentEndpoint, "torrents": TorrentsEndpoint,
                               "debug": DebugEndpoint, "shutdown": ShutdownEndpoint, "trustchain": TrustchainEndpoint,
                               "statistics": StatisticsEndpoint, "torrentinfo": TorrentInfoEndpoint,
-                              "market": MarketEndpoint, "wallets": WalletsEndpoint}
+                              "market": MarketEndpoint, "wallets": WalletsEndpoint, "libtorrent": LibTorrentEndpoint}
 
         if self.session.config.get_megacache_enabled():
             child_handler_dict["search"] = SearchEndpoint
