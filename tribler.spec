@@ -52,11 +52,14 @@ excluded_libs = ['wx', 'bitcoinlib', 'PyQt4']
 if sys.platform == 'win32':
     excluded_libs.append('leveldb')
 
+# Pony dependencies; each packages need to be added separatedly; added as hidden import
+pony_deps = ['pony', 'pony.orm', 'pony.orm.dbproviders', 'pony.orm.dbproviders.sqlite']
+
 a = Analysis(['run_tribler.py'],
              pathex=['/Users/martijndevos/Documents/tribler'],
              binaries=None,
              datas=data_to_copy,
-             hiddenimports=['csv', 'ecdsa', 'pyaes', 'scrypt', '_scrypt', 'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative', 'requests'] + widget_files,
+             hiddenimports=['csv', 'ecdsa', 'pyaes', 'scrypt', '_scrypt', 'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative', 'requests'] + widget_files + pony_deps,
              hookspath=[],
              runtime_hooks=[],
              excludes=excluded_libs,
