@@ -10,13 +10,20 @@ Branching model
 
 Tribler is developed mainly by university students (mostly MSC and PHDs) that will work on Tribler for a relatively short period of time. So pull requests usually require several review cycles and some of them take a long time to be completed and merged (development of new features are usually part of Master thesis subjects or papers and suchlike). This makes it rather hard to implement anything like traditional unsupervised `continuous integration <https://en.wikipedia.org/wiki/Continuous_integration>`_.
 
-Our branching model is similar to the one described at length in `Vincent Driessen's post <http://nvie.com/posts/a-successful-git-branching-model/>`_ with some small differences.
+Our branching model follows the GitFlow model described at length in `Vincent Driessen's post <http://nvie.com/posts/a-successful-git-branching-model/>`_.
 
-Our main repository contains 3 branches:
+Our main repository contains 2 permanent branches:
 
-- **devel**: The main development branch; all new features and fixes for them belong here. Every time a new release cycle is started, the **next** branch gets replaced with a fork of **devel**.
-- **next**: This is the stabilization branch where the **next** major release and subsequent maintenance releases will be tagged from. Only bug fixes for released code are merged here. As you may have guessed there's no bugfix releases while a feature release is stabilized (simply due to lack of manpower on the project). All the changes applied here here are regularly merged to **devel**.
-- **master**: Contains the code of the latest stable release. It gets updated from **next** after every release.
+- **devel**: The main development branch; all new features and fixes for them belong here. Every time a new release cycle is started, a new **release-X.Y.Z(-abc)** branch is forked from it. 
+- **master**: Contains the code of the latest stable release. It gets updated from **release-** after every release.
+
+Release lifecycle
+-----------------
+A release is started by forking from the top of **devel**. The first commit added to the release branch bumps the release version. From that moment, allthe bugfixes relevant to the current release must be merged only into the corresponding release branch. No new features could be added to it.
+
+When the release is ready, it is merged into **master** with the suitable release tag. Next it is merged into the current **devel** branch to integrate the bugfixes. If a bugfix from the current release branch is really, really necessary for the current **devel** branch, it could be cherry-picked onto **devel**. But be aware that each of these cherry-pickings eventually results in a merge conflict that should be resolved manually.
+
+The release branch lives in the Tribler repository for as long as we support the corresponding Trilber version. Eventually, the branch is removed.
 
 Tags
 ----
@@ -58,7 +65,7 @@ For bug fixes:
 
 .. code-block:: none
 
-   git fetch --all && git checkout upstream/next -b fix_2344_my_new_bugfix
+   git fetch --all && git checkout upstream/release-X.Y.Z -b fix_2344_my_new_bugfix
 
 2344 would be the issue number this branch is dealing with. This makes it trivial to identify the purpose of a branch if one hasn't had been able to work on it for a while and can't remember right away.
 
@@ -70,11 +77,11 @@ When creating a PR, always prepend the PR title with **WIP** until it's ready fo
 
 **Notes:**
 
-- Always fork directly from upstream's remote branches as opposed to your own (remote or local) **devel** or **next** branches. Those are useless as they will quickly get out of date, so kill them with fire:
+- Always fork directly from upstream's remote branches as opposed to your own (remote or local) **devel** or **release-** branches. Those are useless as they will quickly get out of date, so kill them with fire:
 
 .. code-block:: none
 
-  git branch -d next
+  git branch -d release-X.Y.Z 
   git branch -d devel
 
 - Once one of your branches has been merged upstream try to always delete them from your remote to avoid cluttering other people's remote listings (I've got around 15 remotes on my local Tribler repos and it can become annoying to look for a particular branch among dozens and dozens of other people's stale branches). This can be done either from github's PR web interface by clicking on the "delete branch" button after the merge has been done or with:

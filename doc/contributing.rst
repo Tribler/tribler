@@ -7,12 +7,12 @@ How to contribute to the Tribler project?
 Checking out the Stabilization Branch
 =====================================
 
-The stabilization branch ``next`` contains the most up to date bugfixes. If your issue cannot be reproduced there, it is most likely already fixed.
+The stabilization branch ``release-X.Y.Z`` contains the most up to date bugfixes. If your issue cannot be reproduced there, it is most likely already fixed.
 
 To backup your Tribler installation and checkout the latest version of the stabilization branch, please perform the following steps.
 * Copy the ``.Tribler`` folder to a safe location on your system (for instance the desktop) Make sure to leave the original folder on its original location. This folder is located at ``~/.Tribler/`` (Linux/OS X) or ``%APPDATA\.Tribler`` (Windows).
 * Remove the ``tribler`` installation folder.
-* Go to `the latest tested version of Tribler <https://jenkins-ci.tribler.org/job/Build_Tribler_next/lastStableBuild/>`_ and under 'Build Artifacts', download the package appropriate to your operating system.
+* Go to `the latest tested version of Tribler <https://jenkins-ci.tribler.org/job/Build-Tribler_release/job/Build/lastStableBuild/>`_ and under 'Build Artifacts', download the package appropriate to your operating system.
 * Install/unzip this package.
 
 To revert back to your original version of Tribler, `download the installer again <https://github.com/Tribler/tribler/releases>`_ and install it. Afterwards you can restore your backed up Tribler data folder.
@@ -35,7 +35,9 @@ Pull requests
 =============
 
 When creating a new Pull request, please observe the following:
-  * Fixes go to ``next``, features go to ``devel``.
+  * New features always go to ``devel``.
+  * If there is an unreleased ``release-X.Y.Z`` branch, fixes go there.
+  * Otherwise, fixes go to ``devel``.
   * Before starting to work on a feature or fix, check that nobody else is
     working on it by assigning yourself the corresponding issue. Create one if it
     doesn't exist. This is also useful to get feedback about if a given feature
