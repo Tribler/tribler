@@ -1,0 +1,4 @@
+# Remove pony orm from pip
+pip uninstall pony
+# Remove lz4 from pip
+pip uninstall lz4
