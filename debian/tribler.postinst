@@ -1,0 +1,2 @@
+# Install pony orm with pip since it is not available in Debian repository
+pip install --user pony
