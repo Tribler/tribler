@@ -357,7 +357,7 @@ class TestContentRepositoryWithRealDatabase(TestBase):
     def tearDown(self):
         self.torrent_db.close()
         self.sqlitedb.close()
-        super(TestContentRepositoryWithRealDatabase, self).tearDown()
+        return super(TestContentRepositoryWithRealDatabase, self).tearDown()
 
     def test_update_db_from_search_results(self):
         """
