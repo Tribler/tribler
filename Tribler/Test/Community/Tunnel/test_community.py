@@ -38,9 +38,6 @@ class TestTriblerTunnelCommunity(TestBase):
         super(TestTriblerTunnelCommunity, self).setUp()
         self.initialize(TriblerTunnelCommunity, 1)
 
-    def tearDown(self):
-        super(TestTriblerTunnelCommunity, self).tearDown()
-
     def create_node(self):
         mock_ipv8 = MockIPv8(u"curve25519", TriblerTunnelCommunity, socks_listen_ports=[],
                              exitnode_cache=join(mkdtemp(suffix="_tribler_test_cache"), 'cache.dat'))

@@ -6,7 +6,7 @@ from twisted.internet.task import deferLater
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.peerdiscovery.deprecated.discovery import DiscoveryCommunity
+from Tribler.pyipv8.ipv8.peerdiscovery.community import DiscoveryCommunity
 from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
 from twisted.internet.defer import returnValue, inlineCallbacks
 
