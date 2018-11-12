@@ -43,7 +43,8 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
                                      DLSTATUS_SEEDING, NTFY_TORRENT, STATE_STARTING_DISPERSY, STATE_LOADING_COMMUNITIES,
                                      STATE_INITIALIZE_CHANNEL_MGR, STATE_START_MAINLINE_DHT, STATE_START_LIBTORRENT,
                                      STATE_START_TORRENT_CHECKER, STATE_START_REMOTE_TORRENT_HANDLER,
-                                     STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING)
+                                     STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING,
+                                     STATE_SHUTDOWN)
 from Tribler.pyipv8.ipv8.dht.provider import DHTCommunityProvider
 from Tribler.pyipv8.ipv8.keyvault.private.m2crypto import M2CryptoSK
 from Tribler.pyipv8.ipv8.peer import Peer
@@ -974,40 +975,49 @@ class TriblerLaunchMany(TaskManager):
         # Note: session_lock not held
         self.shutdownstarttime = timemod.time()
         if self.credit_mining_manager:
+            self.session.notify_shutdown_state("Shutting down Credit Mining...")
             yield self.credit_mining_manager.shutdown()
         self.credit_mining_manager = None
 
         if self.torrent_checker:
+            self.session.notify_shutdown_state("Shutting down Torrent Checker...")
             yield self.torrent_checker.shutdown()
         self.torrent_checker = None
 
         if self.channel_manager:
+            self.session.notify_shutdown_state("Shutting down Channel Manager...")
             yield self.channel_manager.shutdown()
         self.channel_manager = None
 
         if self.search_manager:
+            self.session.notify_shutdown_state("Shutting down Search Manager...")
             yield self.search_manager.shutdown()
         self.search_manager = None
 
         if self.rtorrent_handler:
+            self.session.notify_shutdown_state("Shutting down Remote Torrent Handler...")
             yield self.rtorrent_handler.shutdown()
         self.rtorrent_handler = None
 
         if self.video_server:
+            self.session.notify_shutdown_state("Shutting down Video Server...")
             yield self.video_server.shutdown_server()
         self.video_server = None
 
         if self.version_check_manager:
+            self.session.notify_shutdown_state("Shutting down Version Checker...")
             self.version_check_manager.stop()
         self.version_check_manager = None
 
         if self.resource_monitor:
+            self.session.notify_shutdown_state("Shutting down Resource Monitor...")
             self.resource_monitor.stop()
         self.resource_monitor = None
 
         self.tracker_manager = None
 
         if self.tftp_handler is not None:
+            self.session.notify_shutdown_state("Shutting down TFTP Handler...")
             yield self.tftp_handler.shutdown()
         self.tftp_handler = None
 
@@ -1015,13 +1025,16 @@ class TriblerLaunchMany(TaskManager):
             # We unload these overlays manually since the TrustChain has to be unloaded after the tunnel overlay.
             tunnel_community = self.tunnel_community
             self.tunnel_community = None
+            self.session.notify_shutdown_state("Unloading Tunnel Community...")
             yield self.ipv8.unload_overlay(tunnel_community)
             trustchain_community = self.trustchain_community
             self.trustchain_community = None
+            self.session.notify_shutdown_state("Shutting down TrustChain Community...")
             yield self.ipv8.unload_overlay(trustchain_community)
 
         if self.dispersy:
             self._logger.info("lmc: Shutting down Dispersy...")
+            self.session.notify_shutdown_state("Shutting down Dispersy...")
             now = timemod.time()
             try:
                 success = yield self.dispersy.stop()
@@ -1036,49 +1049,54 @@ class TriblerLaunchMany(TaskManager):
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
 
         if self.ipv8:
+            self.session.notify_shutdown_state("Shutting down IPv8...")
             yield self.ipv8.stop(stop_reactor=False)
 
         if self.metadata_store is not None:
+            self.session.notify_shutdown_state("Shutting down Metadata Store...")
             yield self.metadata_store.close()
         self.metadata_store = None
 
         if self.channelcast_db is not None:
+            self.session.notify_shutdown_state("Shutting down ChannelCast DB...")
             yield self.channelcast_db.close()
         self.channelcast_db = None
 
         if self.votecast_db is not None:
+            self.session.notify_shutdown_state("Shutting down VoteCast DB...")
             yield self.votecast_db.close()
         self.votecast_db = None
 
         if self.mypref_db is not None:
+            self.session.notify_shutdown_state("Shutting down Preference DB...")
             yield self.mypref_db.close()
         self.mypref_db = None
 
         if self.torrent_db is not None:
+            self.session.notify_shutdown_state("Shutting down Torrent DB...")
             yield self.torrent_db.close()
         self.torrent_db = None
 
         if self.peer_db is not None:
+            self.session.notify_shutdown_state("Shutting down Peer DB...")
             yield self.peer_db.close()
         self.peer_db = None
 
         if self.mainline_dht is not None:
             from Tribler.Core.DecentralizedTracking import mainlineDHT
+            self.session.notify_shutdown_state("Shutting down Mainline DHT...")
             yield mainlineDHT.deinit(self.mainline_dht)
         self.mainline_dht = None
 
         if self.torrent_store is not None:
+            self.session.notify_shutdown_state("Shutting down Torrent Store...")
             yield self.torrent_store.close()
         self.torrent_store = None
 
         if self.watch_folder is not None:
+            self.session.notify_shutdown_state("Shutting down Watch Folder...")
             yield self.watch_folder.stop()
         self.watch_folder = None
-
-        # We close the API manager as late as possible during shutdown.
-        if self.api_manager is not None:
-            yield self.api_manager.stop()
-        self.api_manager = None
 
     def network_shutdown(self):
         try:

@@ -311,6 +311,8 @@ class TestAsServer(AbstractServer):
 
         """ unittest test tear down code """
         if self.session is not None:
+            if self.session.lm.ltmgr:
+                self.session.lm.ltmgr.is_shutdown_ready = lambda: True
             yield self.session.shutdown()
             assert self.session.has_shutdown()
             self.session = None
@@ -384,6 +386,8 @@ class TestAsServer(AbstractServer):
 
     def stop_seeder(self):
         if self.seeder_session is not None:
+            if self.seeder_session.lm.ltmgr:
+                self.seeder_session.lm.ltmgr.is_shutdown_ready = lambda: True
             return self.seeder_session.shutdown()
         return succeed(None)
 

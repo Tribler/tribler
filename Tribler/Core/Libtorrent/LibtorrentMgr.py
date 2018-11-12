@@ -18,7 +18,7 @@ from urllib import url2pathname
 
 import libtorrent as lt
 from twisted.internet import reactor, threads
-from twisted.internet.defer import succeed, fail
+from twisted.internet.defer import succeed, fail, Deferred
 from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
 
@@ -28,7 +28,7 @@ from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
 from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
-                                     NTFY_REACHABLE, NTFY_TORRENTS)
+                                     NTFY_REACHABLE, NTFY_TORRENTS, NTFY_TRIBLER, STATE_SHUTDOWN)
 from Tribler.Core.version import version_id
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
@@ -85,6 +85,9 @@ class LibtorrentMgr(TaskManager):
         self.alert_callback = None
         self.session_stats_callback = None
 
+        # Status of libtorrent session to indicate if it can safely close and no pending writes to disk exists.
+        self.lt_session_shutdown_ready = [True, True, True, True]
+
     def initialize(self):
         # start upnp
         self.get_session().start_upnp()
@@ -102,7 +105,17 @@ class LibtorrentMgr(TaskManager):
         self.register_task(u'task_cleanup_metacache',
                            LoopingCall(self._task_cleanup_metainfo_cache)).start(60, now=True)
 
-    def shutdown(self):
+    def shutdown(self, timeout=30):
+        self.tribler_session.notify_shutdown_state("Shutting down Libtorrent Manager...")
+        # If libtorrent session has pending disk io, wait until timeout (default: 30 seconds) to let it finish.
+        # In between ask for session stats to check if state is clean for shutdown.
+        if not self.is_shutdown_ready() and timeout > 5:
+            self.tribler_session.notify_shutdown_state("Waiting for Libtorrent to finish...")
+            self.post_session_stats()
+            later = Deferred().addCallbacks(lambda _: self.shutdown(timeout-5), lambda _: None)
+            self.register_anonymous_task("reschedule_shutdown", later, delay=5.0)
+            return
+
         self.shutdown_task_manager()
 
         # remove all upnp mapping
@@ -127,6 +140,9 @@ class LibtorrentMgr(TaskManager):
         self.metadata_tmpdir = None
 
         self.tribler_session = None
+
+    def is_shutdown_ready(self):
+        return all(self.lt_session_shutdown_ready)
 
     def create_session(self, hops=0, store_listen_port=True):
         settings = {}
@@ -220,6 +236,7 @@ class LibtorrentMgr(TaskManager):
                 ltsession.add_dht_router(*router)
 
         self._logger.debug("Started libtorrent session for %d hops on port %d", hops, ltsession.listen_port())
+        self.lt_session_shutdown_ready[hops] = False
 
         return ltsession
 
@@ -368,7 +385,7 @@ class LibtorrentMgr(TaskManager):
         else:
             self._logger.warning("port mapping method not exposed in libtorrent")
 
-    def process_alert(self, alert):
+    def process_alert(self, alert, hops=0):
         alert_type = str(type(alert)).split("'")[1].split(".")[-1]
 
         # Periodically, libtorrent will send us a state_update_alert, which contains the torrent status of
@@ -415,8 +432,16 @@ class LibtorrentMgr(TaskManager):
                 self.tribler_session and self.tribler_session.lm.payout_manager:
             self.tribler_session.lm.payout_manager.do_payout(alert.pid.to_string())
 
-        elif alert_type == 'session_stats_alert' and self.session_stats_callback:
-            self.session_stats_callback(alert)
+        elif alert_type == 'session_stats_alert':
+            queued_disk_jobs = alert.values['disk.queued_disk_jobs']
+            queued_write_bytes = alert.values['disk.queued_write_bytes']
+            num_write_jobs = alert.values['disk.num_write_jobs']
+
+            if queued_disk_jobs == queued_write_bytes == num_write_jobs == 0:
+                self.lt_session_shutdown_ready[hops] = True
+
+            if self.session_stats_callback:
+                self.session_stats_callback(alert)
 
         if self.alert_callback:
             self.alert_callback(alert)
@@ -578,10 +603,10 @@ class LibtorrentMgr(TaskManager):
                     ltsession.post_torrent_updates()
 
     def _task_process_alerts(self):
-        for ltsession in self.ltsessions.itervalues():
+        for hops, ltsession in self.ltsessions.iteritems():
             if ltsession:
                 for alert in ltsession.pop_alerts():
-                    self.process_alert(alert)
+                    self.process_alert(alert, hops=hops)
 
         # We have a separate session for metainfo requests.
         # For this session we are only interested in the metadata_received_alert.
@@ -732,6 +757,14 @@ class LibtorrentMgr(TaskManager):
             ltsession_settings['download_rate_limit'] = self.tribler_session.config.get_libtorrent_max_download_rate()
             ltsession_settings['upload_rate_limit'] = self.tribler_session.config.get_libtorrent_max_upload_rate()
             lt_session.set_settings(ltsession_settings)
+
+    def post_session_stats(self, hops=None):
+        if hops is None:
+            for lt_session in self.ltsessions.itervalues():
+                lt_session.post_session_stats()
+        else:
+            self.ltsessions[hops].post_session_stats()
+
 
 def encode_atp(atp):
     for k, v in atp.iteritems():

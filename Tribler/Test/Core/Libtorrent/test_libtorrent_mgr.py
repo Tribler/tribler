@@ -4,6 +4,9 @@ import shutil
 import tempfile
 
 from libtorrent import bencode
+
+from twisted.internet.task import deferLater
+
 from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet import reactor
@@ -31,6 +34,7 @@ class TestLibtorrentMgr(AbstractServer):
         self.tribler_session.state_dir = self.session_base_dir
         self.tribler_session.trustchain_keypair = MockObject()
         self.tribler_session.trustchain_keypair.key_to_hash = lambda: 'a' * 20
+        self.tribler_session.notify_shutdown_state = lambda _: None
 
         self.tribler_session.config = MockObject()
         self.tribler_session.config.get_libtorrent_utp = lambda: True
@@ -49,7 +53,7 @@ class TestLibtorrentMgr(AbstractServer):
 
     @inlineCallbacks
     def tearDown(self):
-        self.ltmgr.shutdown()
+        self.ltmgr.shutdown(timeout=0)
         self.assertTrue(os.path.exists(os.path.join(self.session_base_dir, 'lt.state')))
         yield super(TestLibtorrentMgr, self).tearDown()
 
@@ -460,3 +464,23 @@ class TestLibtorrentMgr(AbstractServer):
         self.ltmgr._task_process_alerts()
 
         self.assertTrue(mocked_do_payout.called)
+
+    def test_post_session_stats(self):
+        """
+        Test whether post_session_stats actually updates the state of libtorrent readiness for clean shutdown.
+        """
+        def check_if_session_shutdown_is_ready():
+            self.ltmgr._task_process_alerts()
+            self.assertTrue(self.ltmgr.lt_session_shutdown_ready[0])
+
+        self.ltmgr.default_alert_mask = 0xffffffff
+        self.ltmgr.initialize()
+
+        # Zero hop session should be initialized
+        self.assertFalse(self.ltmgr.lt_session_shutdown_ready[0])
+
+        # Check for status with session stats alert
+        self.ltmgr.post_session_stats(hops=0)
+
+        # Wait sometime to get the alert and check the status
+        return deferLater(reactor, 0.01, check_if_session_shutdown_is_ready)
