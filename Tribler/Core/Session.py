@@ -30,7 +30,7 @@ from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnab
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_MYPREFERENCES, NTFY_PEERS,
                                      NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
                                      STATEDIR_WALLET_DIR, STATE_OPEN_DB, STATE_START_API, STATE_UPGRADING_READABLE,
-                                     STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED)
+                                     STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED, NTFY_TRIBLER, STATE_SHUTDOWN)
 from Tribler.Core.statistics import TriblerStatistics
 
 if sys.platform == 'win32':
@@ -507,16 +507,32 @@ class Session(object):
             Continues the shutdown procedure that is dependant on the early shutdown.
             :param _: ignored parameter of the Deferred
             """
+            self.notify_shutdown_state("Saving configuration...")
             self.config.write()
+
+            self.notify_shutdown_state("Checkpointing Downloads...")
             yield self.checkpoint_downloads()
+
+            self.notify_shutdown_state("Shutting down Downloads...")
             self.lm.shutdown_downloads()
+
+            self.notify_shutdown_state("Shutting down Network...")
             self.lm.network_shutdown()
+
             if self.lm.mds:
+                self.notify_shutdown_state("Shutting down Metadata Store...")
                 self.lm.mds.shutdown()
 
             if self.sqlite_db:
+                self.notify_shutdown_state("Shutting down SQLite Database...")
                 self.sqlite_db.close()
             self.sqlite_db = None
+
+            # We close the API manager as late as possible during shutdown.
+            if self.lm.api_manager is not None:
+                self.notify_shutdown_state("Shutting down API Manager...")
+                yield self.lm.api_manager.stop()
+            self.lm.api_manager = None
 
         return self.lm.early_shutdown().addCallback(on_early_shutdown_complete)
 
@@ -775,3 +791,7 @@ class Session(object):
         if not self.lm.metadata_store:
             raise OperationNotEnabledByConfigurationException("libtorrent is not enabled")
         return self.lm.rtorrent_handler.get_metadata(thumb_hash)
+
+    def notify_shutdown_state(self, state):
+        self._logger.info("Tribler shutdown state notification:%s", state)
+        self.notifier.notify(NTFY_TRIBLER, STATE_SHUTDOWN, None, state)

@@ -250,6 +250,7 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.events_started.connect(self.on_events_started)
         self.core_manager.events_manager.low_storage_signal.connect(self.on_low_storage)
         self.core_manager.events_manager.credit_mining_signal.connect(self.on_credit_mining_error)
+        self.core_manager.events_manager.tribler_shutdown_signal.connect(self.on_tribler_shutdown_state_update)
 
         # Install signal handler for ctrl+c events
         def sigint_handler(*_):
@@ -878,9 +879,6 @@ class TriblerWindow(QMainWindow):
     def close_tribler(self):
         if not self.core_manager.shutting_down:
             def show_force_shutdown():
-                self.loading_text_label.setText("Tribler is taking longer than expected to shut down. You can force "
-                                                "Tribler to shutdown by pressing the button below. This might lead "
-                                                "to data loss.")
                 self.window().force_shutdown_btn.show()
 
             self.delete_tray_icon()
@@ -943,6 +941,9 @@ class TriblerWindow(QMainWindow):
             os.kill(int(core_pid), 9)
         # Stop the Qt application
         QApplication.quit()
+
+    def on_tribler_shutdown_state_update(self, state):
+        self.loading_text_label.setText(state)
 
 
 def _qurl_to_path(qurl):
