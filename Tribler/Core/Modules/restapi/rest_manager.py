@@ -1,8 +1,10 @@
 import logging
+import os
 from traceback import format_tb
 from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred
 from twisted.python.compat import intToBytes
+from twisted.python.failure import Failure
 from twisted.web import server, http
 
 from Tribler.Core.Modules.restapi.root_endpoint import RootEndpoint
@@ -31,6 +33,13 @@ class RESTManager(TaskManager):
         site.requestFactory = RESTRequest
         self.site = reactor.listenTCP(self.session.config.get_http_api_port(), site, interface="127.0.0.1")
 
+        # REST Manager does not accept any new requests if Tribler is shutting down.
+        # Note that environment variable 'TRIBLER_SHUTTING_DOWN' is set to 'TRUE' (string)
+        # when shutdown has started. Also see RESTRequest.process() method below.
+        # Therefore, here while starting the REST Manager we make sure that this
+        # variable is set to 'FALSE' (string).
+        os.environ['TRIBLER_SHUTTING_DOWN'] = "FALSE"
+
     def stop(self):
         """
         Stop the HTTP API and return a deferred that fires when the server has shut down.
@@ -58,7 +67,7 @@ class RESTRequest(server.Request):
                 u"message": failure.value.message
             }
         }
-        if self.site.displayTracebacks:
+        if self.site and self.site.displayTracebacks:
             response[u"error"][u"trace"] = format_tb(failure.getTracebackObject())
 
         body = json.dumps(response)
@@ -75,3 +84,13 @@ class RESTRequest(server.Request):
         """
         if not self.finished and self.channel:
             server.Request.write(self, data)
+
+    def process(self):
+        """
+        Reject all requests if the shutdown sequence has already started.
+        """
+        if os.environ.get('TRIBLER_SHUTTING_DOWN', "FALSE") == "TRUE":
+            self._logger.error("Tribler shutdown in process. Not accepting any more request - %s", self)
+            self.processingFailed(Failure(Exception("Tribler is shutting down")))
+        else:
+            server.Request.process(self)

@@ -1,3 +1,5 @@
+import os
+
 from Tribler.Core.exceptions import TriblerException
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.tools import trial_timeout
@@ -35,3 +37,26 @@ class RestRequestTest(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('channels/discovered', expected_code=500, expected_json=None, request_type='PUT',
                                post_data=post_data).addCallback(verify_error_message)
+
+    @trial_timeout(10)
+    def test_tribler_shutting_down(self):
+        """
+        Testing whether the API returns a formatted 500 error for any request if tribler is shutting down.
+        """
+
+        def verify_error_message(body):
+            error_response = json.loads(body)
+            expected_response = {
+                u"error": {
+                    u"handled": False,
+                    u"code": u"Exception",
+                    u"message": u"Tribler is shutting down"
+                }
+            }
+            self.assertDictContainsSubset(expected_response[u"error"], error_response[u"error"])
+
+        # Indicates tribler is shutting down
+        os.environ['TRIBLER_SHUTTING_DOWN'] = 'TRUE'
+
+        self.should_check_equality = False
+        return self.do_request('state', expected_code=500).addCallback(verify_error_message)

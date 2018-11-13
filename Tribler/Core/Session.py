@@ -534,6 +534,10 @@ class Session(object):
                 yield self.lm.api_manager.stop()
             self.lm.api_manager = None
 
+        # Indicates we are shutting down core. With this environment variable set
+        # to 'TRUE', RESTManager will no longer accepts any new requests.
+        os.environ['TRIBLER_SHUTTING_DOWN'] = "TRUE"
+
         return self.lm.early_shutdown().addCallback(on_early_shutdown_complete)
 
     def has_shutdown(self):
