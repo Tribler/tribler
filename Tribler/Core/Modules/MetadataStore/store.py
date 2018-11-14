@@ -1,18 +1,20 @@
+from __future__ import absolute_import
+
 import logging
 import os
 
 from pony import orm
 from pony.orm import db_session
 
+from Tribler.Core.Category.Category import Category
 from Tribler.Core.Modules.MetadataStore.OrmBindings import metadata, torrent_metadata, channel_metadata
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import read_payload_with_offset, REGULAR_TORRENT, \
-    CHANNEL_TORRENT, DELETED
+    CHANNEL_TORRENT, DELETED, float2time, ChannelMetadataPayload
 # This table should never be used from ORM directly.
 # It is created as a VIRTUAL table by raw SQL and
 # maintained by SQL triggers.
 from Tribler.Core.exceptions import InvalidSignatureException
-from Tribler.pyipv8.ipv8.messaging.serialization import Serializer
 
 sql_create_fts_table = """
     CREATE VIRTUAL TABLE IF NOT EXISTS FtsIndex USING FTS5
@@ -70,6 +72,9 @@ class MetadataStore(object):
         self.Metadata._my_key = my_key
         self.ChannelMetadata._channels_dir = channels_dir
         self.Metadata._logger = self._logger  # Use Store-level logger for every ORM-based class
+
+        # TODO: move Category Filter into a module-level global stateless object (i.e. make it a singleton)
+        self.ChannelMetadata._category_filter = Category()
 
         self._db.bind(provider='sqlite', filename=db_filename, create_db=create_db)
         if create_db:
@@ -158,7 +163,33 @@ class MetadataStore(object):
             elif payload.metadata_type == REGULAR_TORRENT:
                 return self.TorrentMetadata.from_payload(payload)
             elif payload.metadata_type == CHANNEL_TORRENT:
-                return self.ChannelMetadata.from_payload(payload)
+                return self.update_channel_info(payload)
+
+    @db_session
+    def update_channel_info(self, payload):
+        """
+        We received some channel metadata, possibly over the network.
+        Validate the signature, update the local metadata store and put in at the beginning of the download queue
+        if necessary.
+        :param payload: The channel metadata, in serialized form.
+        """
+
+        channel = self.ChannelMetadata.get_channel_with_id(payload.public_key)
+        if channel:
+            if float2time(payload.timestamp) > channel.timestamp:
+                # Update the channel that is already there.
+                self._logger.info("Updating channel metadata %s ts %s->%s", str(channel.public_key).encode("hex"),
+                                  str(channel.timestamp), str(float2time(payload.timestamp)))
+                channel.set(**ChannelMetadataPayload.to_dict(payload))
+        else:
+            # Add new channel object to DB
+            channel = self.ChannelMetadata.from_payload(payload)
+
+        """
+        if channel.version > channel.local_version:
+        #TODO: handle the case where the local version is the same as the new one and is not seeded
+        """
+        return channel
 
     @db_session
     def get_my_channel(self):

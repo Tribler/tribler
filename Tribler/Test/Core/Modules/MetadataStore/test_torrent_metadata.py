@@ -27,6 +27,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         self.my_key = default_eccrypto.generate_key(u"curve25519")
         self.mds = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir,
                                  self.my_key)
+
     @inlineCallbacks
     def tearDown(self):
         self.mds.shutdown()
@@ -47,7 +48,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         torrent_metadata = self.mds.TorrentMetadata.from_dict({})
         self.assertTrue(torrent_metadata.get_magnet())
-        torrent_metadata2 = self.mds.TorrentMetadata.from_dict({'title':u'\U0001f4a9'})
+        torrent_metadata2 = self.mds.TorrentMetadata.from_dict({'title': u'\U0001f4a9'})
         self.assertTrue(torrent_metadata2.get_magnet())
 
     @db_session
@@ -65,28 +66,28 @@ class TestTorrentMetadata(TriblerCoreTest):
             dict(self.torrent_template, title="xoxoxo bar", tags="audio"))
 
         # Search for torrents with the keyword 'foo', it should return one result
-        results = self.mds.TorrentMetadata.search_keyword("foo")
+        results = self.mds.TorrentMetadata.search_keyword("foo")[:]
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].rowid, torrent1.rowid)
 
         # Search for torrents with the keyword 'eee', it should return one result
-        results = self.mds.TorrentMetadata.search_keyword("eee")
+        results = self.mds.TorrentMetadata.search_keyword("eee")[:]
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].rowid, torrent2.rowid)
 
         # Search for torrents with the keyword '123', it should return two results
-        results = self.mds.TorrentMetadata.search_keyword("123")
+        results = self.mds.TorrentMetadata.search_keyword("123")[:]
         self.assertEqual(len(results), 2)
 
         # Search for torrents with the keyword 'video', it should return three results
-        results = self.mds.TorrentMetadata.search_keyword("video")
+        results = self.mds.TorrentMetadata.search_keyword("video")[:]
         self.assertEqual(len(results), 3)
 
     def test_search_empty_query(self):
         """
         Test whether an empty query returns nothing
         """
-        self.assertFalse(self.mds.TorrentMetadata.search_keyword(None))
+        self.assertFalse(self.mds.TorrentMetadata.search_keyword(None)[:])
 
     @db_session
     def test_unicode_search(self):
@@ -94,7 +95,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         Test searching in the database with unicode characters
         """
         self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, title=u"я маленький апельсин"))
-        results = self.mds.TorrentMetadata.search_keyword(u"маленький")
+        results = self.mds.TorrentMetadata.search_keyword(u"маленький")[:]
         self.assertEqual(1, len(results))
 
     @db_session
@@ -104,9 +105,9 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, title="foobar 123"))
         self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, title="foobla 123"))
-        self.assertEqual(0, len(self.mds.TorrentMetadata.search_keyword("*")))
-        self.assertEqual(1, len(self.mds.TorrentMetadata.search_keyword("foobl*")))
-        self.assertEqual(2, len(self.mds.TorrentMetadata.search_keyword("foo*")))
+        self.assertEqual(0, len(self.mds.TorrentMetadata.search_keyword("*")[:]))
+        self.assertEqual(1, len(self.mds.TorrentMetadata.search_keyword("foobl*")[:]))
+        self.assertEqual(2, len(self.mds.TorrentMetadata.search_keyword("foo*")[:]))
 
     @db_session
     def test_stemming_search(self):
@@ -117,11 +118,11 @@ class TestTorrentMetadata(TriblerCoreTest):
             dict(self.torrent_template, title="mountains sheep", tags="video"))
 
         # Search with the word 'mountain' should return the torrent with 'mountains' in the title
-        results = self.mds.TorrentMetadata.search_keyword("mountain")
+        results = self.mds.TorrentMetadata.search_keyword("mountain")[:]
         self.assertEqual(torrent.rowid, results[0].rowid)
 
         # Search with the word 'sheeps' should return the torrent with 'sheep' in the title
-        results = self.mds.TorrentMetadata.search_keyword("sheeps")
+        results = self.mds.TorrentMetadata.search_keyword("sheeps")[:]
         self.assertEqual(torrent.rowid, results[0].rowid)
 
     @db_session

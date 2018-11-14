@@ -80,11 +80,7 @@ class EventRequestManager(QNetworkAccessManager):
                 if len(received_events) > 100:  # Only buffer the last 100 events
                     received_events.pop()
 
-                if json_dict["type"] == "search_result_channel":
-                    self.received_search_result_channel.emit(json_dict["event"]["result"])
-                elif json_dict["type"] == "search_result_torrent":
-                    self.received_search_result_torrent.emit(json_dict["event"]["result"])
-                elif json_dict["type"] == "tribler_started" and not self.emitted_tribler_started:
+                if json_dict["type"] == "tribler_started" and not self.emitted_tribler_started:
                     self.tribler_started.emit()
                     self.emitted_tribler_started = True
                 elif json_dict["type"] == "new_version_available":

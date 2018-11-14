@@ -1,15 +1,18 @@
 from __future__ import absolute_import
 
-from six import unichr
+import json
+import random
+
 from pony.orm import db_session
+from six import unichr
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_CHANNEL,
                                      SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT)
-from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.tools import trial_timeout
+from Tribler.pyipv8.ipv8.database import database_blob
 
 
 class FakeSearchManager(object):
@@ -45,26 +48,9 @@ class TestSearchEndpoint(AbstractApiTest):
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
         self.torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)
 
-        self.session.add_observer(self.on_search_results_channels, SIGNAL_CHANNEL, [SIGNAL_ON_SEARCH_RESULTS])
-        self.session.add_observer(self.on_search_results_torrents, SIGNAL_TORRENT, [SIGNAL_ON_SEARCH_RESULTS])
-
-        self.results_torrents_called = False
-        self.results_channels_called = False
-
-        self.search_results_list = [] # List of incoming torrent/channel results
-        self.expected_num_results_list = [] # List of expected number of results for each item in search_results_list
-
     def setUpPreSession(self):
         super(TestSearchEndpoint, self).setUpPreSession()
         self.config.set_chant_enabled(True)
-
-    def on_search_results_torrents(self, subject, changetype, objectID, results):
-        self.search_results_list.append(results['result_list'])
-        self.results_torrents_called = True
-
-    def on_search_results_channels(self, subject, changetype, objectID, results):
-        self.search_results_list.append(results['result_list'])
-        self.results_channels_called = True
 
     def insert_channels_in_db(self, num):
         for i in xrange(0, num):
@@ -73,70 +59,86 @@ class TestSearchEndpoint(AbstractApiTest):
 
     def insert_torrents_in_db(self, num):
         for i in xrange(0, num):
-            self.torrent_db_handler.addExternalTorrentNoDef(str(unichr(97 + i)) * 20,
-                                                            'Test %d' % i, [('Test.txt', 1337)], [], 1337)
+            ih = "".join(unichr(97 + random.randint(0, 15)) for _ in range(0, 20))
+            self.torrent_db_handler.addExternalTorrentNoDef(ih.encode('utf-8'), 'hay %d' % i, [('Test.txt', 1337)], [],
+                                                            1337)
 
     @trial_timeout(10)
-    def test_search_no_parameter(self):
+    @inlineCallbacks
+    def test_search_legacy(self):
         """
-        Testing whether the API returns an error 400 if no search query is passed with the request
+        Test a search query that should return a few new type channels
         """
-        expected_json = {"error": "query parameter missing"}
-        return self.do_request('search', expected_code=400, expected_json=expected_json)
 
-    def verify_search_results(self, _):
-        self.assertTrue(self.results_channels_called)
-        self.assertTrue(self.results_torrents_called)
-        self.assertEqual(len(self.search_results_list), len(self.expected_num_results_list))
+        self.insert_channels_in_db(1)
+        self.insert_torrents_in_db(100)
+        self.torrent_db_handler.addExternalTorrentNoDef(str(unichr(98)) * 20, 'Needle', [('Test.txt', 1337)], [], 1337)
+        self.should_check_equality = False
 
-        for ind in xrange(len(self.search_results_list)):
-            self.assertEqual(len(self.search_results_list[ind]), self.expected_num_results_list[ind])
+        result = yield self.do_request('search?txt=needle', expected_code=200)
+        parsed = json.loads(result)
+        self.assertEqual(len(parsed["torrents"]), 1)
+
+        result = yield self.do_request('search?txt=hay&first=10&last=20', expected_code=200)
+        parsed = json.loads(result)
+        self.assertEqual(len(parsed["torrents"]), 10)
+
+        """
+        torrent_list = [
+            [channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso", [['file1.txt', 42]], []],
+            [channel_id, 1, 1, ('b' * 40).decode('hex'), 1460000000, "badterm", [['file1.txt', 42]], []]
+        ]
+        self.insert_torrents_into_channel(torrent_list)
+        """
 
     @trial_timeout(10)
-    def test_search_no_matches(self):
-        """
-        Testing whether the API finds no channels/torrents when searching if they are not in the database
-        """
-        self.insert_channels_in_db(5)
-        self.insert_torrents_in_db(6)
-        self.expected_num_results_list = [0, 0]
-
-        expected_json = {"queried": True}
-        return self.do_request('search?q=tribler', expected_code=200, expected_json=expected_json)\
-            .addCallback(self.verify_search_results)
-
-    @trial_timeout(10)
-    def test_search(self):
-        """
-        Testing whether the API finds channels/torrents when searching if there is some inserted data in the database
-        """
-        self.insert_channels_in_db(5)
-        self.insert_torrents_in_db(6)
-        self.expected_num_results_list = [5, 6, 0, 0]
-
-        self.session.config.get_torrent_search_enabled = lambda: True
-        self.session.config.get_channel_search_enabled = lambda: True
-        self.session.lm.search_manager = FakeSearchManager(self.session.notifier)
-
-        expected_json = {"queried": True}
-        return self.do_request('search?q=test', expected_code=200, expected_json=expected_json)\
-            .addCallback(self.verify_search_results)
-
-    @trial_timeout(10)
+    @inlineCallbacks
     def test_search_chant(self):
         """
         Test a search query that should return a few new type channels
         """
-        def verify_search_results(_):
-            self.assertTrue(self.search_results_list)
 
+        num_hay = 100
         with db_session:
             my_channel_id = self.session.trustchain_keypair.pub().key_to_bin()
-            self.session.lm.mds.ChannelMetadata(public_key=database_blob(my_channel_id), title='test', tags='test')
+            channel = self.session.lm.mds.ChannelMetadata(public_key=database_blob(my_channel_id), title='test',
+                                                          tags='test', subscribed=True)
+            for x in xrange(0, num_hay):
+                self.session.lm.mds.TorrentMetadata(title='hay ' + str(x), infohash=database_blob(
+                    bytearray(random.getrandbits(8) for _ in xrange(20))))
+            self.session.lm.mds.TorrentMetadata(title='needle',
+                                                infohash=database_blob(
+                                                    bytearray(random.getrandbits(8) for _ in xrange(20))))
 
         self.should_check_equality = False
-        self.expected_num_results_list = []
-        return self.do_request('search?q=test', expected_code=200).addCallback(verify_search_results)
+
+        result = yield self.do_request('search?txt=needle', expected_code=200)
+        parsed = json.loads(result)
+        self.assertEqual(len(parsed["torrents"]), 1)
+
+        result = yield self.do_request('search?txt=hay', expected_code=200)
+        parsed = json.loads(result)
+        self.assertEqual(len(parsed["torrents"]), num_hay)
+
+        result = yield self.do_request('search?first=10&last=20', expected_code=200)
+        parsed = json.loads(result)
+        self.assertEqual(len(parsed["torrents"]), 10)
+
+        result = yield self.do_request('search?type=channel', expected_code=200)
+        parsed = json.loads(result)
+        self.assertEqual(len(parsed["torrents"]), 1)
+
+        result = yield self.do_request('search?sort_by=-name&type=torrent', expected_code=200)
+        parsed = json.loads(result)
+        self.assertEqual(parsed["torrents"][0][u'name'], 'needle')
+
+        result = yield self.do_request('search?type=channel&subscribed=0', expected_code=200)
+        parsed = json.loads(result)
+        self.assertEqual(len(parsed["torrents"]), 0)
+
+        result = yield self.do_request('search?channel=%s' % str(channel.public_key).encode('hex'), expected_code=200)
+        parsed = json.loads(result)
+        self.assertEqual(len(parsed["torrents"]), num_hay + 1)
 
     @trial_timeout(10)
     def test_completions_no_query(self):

@@ -15,6 +15,7 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
+from six import text_type
 from pony.orm import db_session
 
 from six import text_type
@@ -26,9 +27,9 @@ from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig, DownloadStartupConfig
-from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, float2time
+from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
+from Tribler.Core.Modules.gigachannel_manager import GigaChannelManager
 from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.Modules.resource_monitor import ResourceMonitor
 from Tribler.Core.Modules.search_manager import SearchManager
@@ -121,6 +122,7 @@ class TriblerLaunchMany(TaskManager):
 
         self.search_manager = None
         self.channel_manager = None
+        self.gigachannel_manager = None
 
         self.video_server = None
 
@@ -358,7 +360,7 @@ class TriblerLaunchMany(TaskManager):
             from Tribler.community.gigachannel.sync_strategy import SyncChannels
 
             community_cls = GigaChannelTestnetCommunity if self.session.config.get_testnet() else GigaChannelCommunity
-            self.gigachannel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network, self.session)
+            self.gigachannel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network, self.mds)
 
             self.ipv8.overlays.append(self.gigachannel_community)
 
@@ -518,6 +520,8 @@ class TriblerLaunchMany(TaskManager):
             channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
             database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
             self.mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair)
+            self.gigachannel_manager = GigaChannelManager(self.session)
+            self.gigachannel_manager.start()
 
         self.session.set_download_states_callback(self.sesscb_states_callback)
 
@@ -525,72 +529,6 @@ class TriblerLaunchMany(TaskManager):
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
 
         self.initComplete = True
-
-    def on_channel_download_finished(self, download, channel_id, finished_deferred=None):
-        if download.get_channel_download():
-            channel_dirname = os.path.join(self.session.lm.mds.channels_dir, download.get_def().get_name())
-            self.mds.process_channel_dir(channel_dirname, channel_id)
-            if finished_deferred:
-                finished_deferred.callback(download)
-
-    @db_session
-    def update_channel(self, payload):
-        """
-        We received some channel metadata, possibly over the network.
-        Validate the signature, update the local metadata store and start downloading this channel if needed.
-        :param payload: The channel metadata, in serialized form.
-        """
-        if not payload.has_valid_signature():
-            raise InvalidSignatureException("The signature of the channel metadata is invalid.")
-
-        channel = self.mds.ChannelMetadata.get_channel_with_id(payload.public_key)
-        if channel:
-            if float2time(payload.timestamp) > channel.timestamp:
-                # Update the channel that is already there.
-                self._logger.info("Updating channel metadata %s ts %s->%s", str(channel.public_key).encode("hex"),
-                                  str(channel.timestamp), str(float2time(payload.timestamp)))
-                channel.set(**ChannelMetadataPayload.to_dict(payload))
-        else:
-            # Add new channel object to DB
-            channel = self.mds.ChannelMetadata.from_payload(payload)
-            channel.subscribed = True
-
-        if channel.version > channel.local_version:
-            self._logger.info("Downloading new channel version %s ver %i->%i", str(channel.public_key).encode("hex"),
-                              channel.local_version, channel.version)
-        #TODO: handle the case where the local version is the same as the new one and is not seeded
-        return self.download_channel(channel)
-
-    def download_channel(self, channel):
-        """
-        Download a channel with a given infohash and title.
-        :param channel: The channel metadata ORM object.
-        """
-        finished_deferred = Deferred()
-
-        dcfg = DownloadStartupConfig()
-        dcfg.set_dest_dir(self.mds.channels_dir)
-        dcfg.set_channel_download(True)
-        tdef = TorrentDefNoMetainfo(infohash=str(channel.infohash), name=channel.title)
-        download = self.session.start_download_from_tdef(tdef, dcfg)
-        channel_id = channel.public_key
-        download.finished_callback = lambda dl: self.on_channel_download_finished(dl, channel_id, finished_deferred)
-        if download.get_state().get_status() == DLSTATUS_SEEDING and not download.finished_callback_already_called:
-            download.finished_callback_already_called = True
-            download.finished_callback(download)
-        return download, finished_deferred
-
-    def updated_my_channel(self, new_torrent_path):
-        """
-        Notify the core that we updated our channel.
-        :param new_torrent_path: path to the new torrent file
-        """
-        # Start the new download
-        tdef = TorrentDef.load(new_torrent_path)
-        dcfg = DownloadStartupConfig()
-        dcfg.set_dest_dir(self.mds.channels_dir)
-        dcfg.set_channel_download(True)
-        self.add(tdef, dcfg)
 
     def add(self, tdef, dscfg, pstate=None, setupDelay=0, hidden=False,
             share_mode=False, checkpoint_disabled=False):
@@ -686,6 +624,10 @@ class TriblerLaunchMany(TaskManager):
         """ Called by any thread """
         with self.session_lock:
             return self.downloads.values()  # copy, is mutable
+
+    def get_channel_downloads(self):
+        with self.session_lock:
+            return [download for download in self.downloads.values() if download.get_channel_download()]
 
     def get_download(self, infohash):
         """ Called by any thread """
@@ -852,9 +794,6 @@ class TriblerLaunchMany(TaskManager):
             if self.credit_mining_manager:
                 self.credit_mining_manager.monitor_downloads(states_list)
 
-        if self.gigachannel_community:
-            self.gigachannel_community.update_states(states_list)
-
         return []
 
     #
@@ -1017,6 +956,11 @@ class TriblerLaunchMany(TaskManager):
             self.session.notify_shutdown_state("Shutting down Channel Manager...")
             yield self.channel_manager.shutdown()
         self.channel_manager = None
+
+        if self.gigachannel_manager:
+            self.session.notify_shutdown_state("Shutting down Gigachannel Manager...")
+            yield self.gigachannel_manager.shutdown()
+        self.gigachannel_manager = None
 
         if self.search_manager:
             self.session.notify_shutdown_state("Shutting down Search Manager...")

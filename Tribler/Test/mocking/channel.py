@@ -7,3 +7,11 @@ class MockChannel(object):
         self.version = version
         self.votes = votes
         self.local_version = local_version
+
+        self.random_torrents = None
+
+    def set_random_torrents(self, torrents_list):
+        self.random_torrents = torrents_list
+
+    def get_random_torrents(self, limit):
+        return self.random_torrents

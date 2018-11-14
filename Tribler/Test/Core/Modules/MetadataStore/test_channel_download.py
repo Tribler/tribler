@@ -45,19 +45,14 @@ class TestChannelDownload(TestAsServer):
         payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA_UPDATED)
 
         # Download the channel in our session
-        download, finished_deferred = self.session.lm.update_channel(payload)
+        with db_session:
+            channel = self.session.lm.mds.process_payload(payload)
+        download, finished_deferred = self.session.lm.gigachannel_manager.download_channel(channel)
         download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
         yield finished_deferred
 
         with db_session:
             # There should be 4 torrents + 1 channel torrent
-            channel = self.session.lm.mds.ChannelMetadata.get_channel_with_id(payload.public_key)
+            channel2 = self.session.lm.mds.ChannelMetadata.get_channel_with_id(payload.public_key)
             self.assertEqual(5, len(list(self.session.lm.mds.TorrentMetadata.select())))
-            self.assertEqual(4, channel.local_version)
-
-    def test_wrong_signature_exception_on_channel_update(self):
-        # Test wrong signature exception
-        old_payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA)
-        payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA_UPDATED)
-        payload.signature = old_payload.signature
-        self.assertRaises(InvalidSignatureException, self.session.lm.update_channel, payload)
+            self.assertEqual(6, channel2.local_version)

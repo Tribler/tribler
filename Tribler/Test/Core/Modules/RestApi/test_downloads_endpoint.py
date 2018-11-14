@@ -1,5 +1,5 @@
 import os
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 from urllib import pathname2url
 
 from pony.orm import db_session
@@ -578,7 +578,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
 
         post_data = {'uri': 'file:%s' % os.path.join(TESTS_DIR, 'Core/data/sample_channel/channel.mdblob')}
-        expected_json = {'started': True, 'infohash': '24eb2ff24c3a738eb1257a2fb4575db064848e25'}
+        expected_json = {'started': True, 'infohash': '02c146a1a3ffd96856a0319d1832cf70989e5a47'}
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
 
@@ -591,8 +591,9 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         with open(file_path, "wb") as out_file:
             with db_session:
                 my_channel = self.session.lm.mds.ChannelMetadata.create_channel('test', 'test')
-                my_channel.signature = "lalala"
-            out_file.write(my_channel.serialized())
+
+            hexed = hexlify(my_channel.serialized())[:-5] + "aaaaa"
+            out_file.write(unhexlify(hexed))
 
         post_data = {'uri': 'file:%s' % file_path, 'metadata_download': '1'}
         expected_json = {'error': "Metadata has invalid signature"}

@@ -1,9 +1,8 @@
 from __future__ import absolute_import
-
 from datetime import datetime
 
 from pony import orm
-from pony.orm import db_session
+from pony.orm import db_session, raw_sql
 
 from Tribler.Core.Modules.MetadataStore.serialization import TorrentMetadataPayload, REGULAR_TORRENT
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -39,15 +38,15 @@ def define_binding(db):
             else:
                 query = "\"" + query + "\""
 
-            metadata_type = entry_type or cls._discriminator_
-            sql_search_fts = "metadata_type = %d AND rowid IN (SELECT rowid FROM FtsIndex WHERE " \
-                             "FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT %d)" % (metadata_type, lim)
-            return cls.select(lambda x: orm.raw_sql(sql_search_fts))[:]
+            fts_ids = raw_sql(
+                "SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT %d" % lim)
+            return cls.select(lambda g: g.rowid in fts_ids)
+
 
         @classmethod
         def get_auto_complete_terms(cls, keyword, max_terms, limit=100):
             with db_session:
-                result = cls.search_keyword(keyword + "*", lim=limit)
+                result = cls.search_keyword(keyword + "*", lim=limit)[:]
             titles = [g.title.lower() for g in result]
 
             # Copy-pasted from the old DBHandler (almost) completely

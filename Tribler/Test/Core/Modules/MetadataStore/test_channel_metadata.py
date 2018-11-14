@@ -8,6 +8,7 @@ from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
+from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
@@ -79,20 +80,18 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         Test whether a correct list with channel content is returned from the database
         """
-        pub_key1 = default_eccrypto.generate_key('low').pub().key_to_bin()
-        pub_key2 = default_eccrypto.generate_key('low').pub().key_to_bin()
+        self.mds.Metadata._my_key = default_eccrypto.generate_key('low')
+        channel1 = self.mds.ChannelMetadata()
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template))
 
-        channel1 = self.mds.ChannelMetadata(public_key=pub_key1)
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, public_key=pub_key1))
-
-        channel2 = self.mds.ChannelMetadata(public_key=pub_key2)
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, public_key=pub_key2))
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, public_key=pub_key2))
+        self.mds.Metadata._my_key = default_eccrypto.generate_key('low')
+        channel2 = self.mds.ChannelMetadata()
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template))
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template))
 
         self.assertEqual(1, len(channel1.contents_list))
         self.assertEqual(2, len(channel2.contents_list))
         self.assertEqual(2, channel2.contents_len)
-
 
     @db_session
     def test_create_channel(self):
@@ -136,9 +135,9 @@ class TestChannelMetadata(TriblerCoreTest):
 
         # Check that we always take the latest version
         channel_metadata.version -= 1
-        self.assertEqual(channel_metadata.version, 2)
+        self.assertEqual(channel_metadata.version, 4)
         channel_metadata = self.mds.ChannelMetadata.process_channel_metadata_payload(payload)
-        self.assertEqual(channel_metadata.version, 3)
+        self.assertEqual(channel_metadata.version, 5)
         self.assertEqual(len(self.mds.ChannelMetadata.select()), 1)
 
     @db_session
@@ -150,6 +149,14 @@ class TestChannelMetadata(TriblerCoreTest):
         channel_metadata = self.mds.ChannelMetadata.from_dict(sample_channel_dict)
 
         self.assertEqual(len(channel_metadata.dir_name), 60)
+
+    @db_session
+    def test_get_channel_with_dirname(self):
+        sample_channel_dict = TestChannelMetadata.get_sample_channel_dict(self.my_key)
+        channel_metadata = self.mds.ChannelMetadata.from_dict(sample_channel_dict)
+        dirname = channel_metadata.dir_name
+        channel_result = self.mds.ChannelMetadata.get_channel_with_dirname(dirname)
+        self.assertEqual(channel_metadata, channel_result)
 
     @db_session
     def test_get_channel_with_id(self):
@@ -167,7 +174,7 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         channel_metadata = self.mds.ChannelMetadata.create_channel('test', 'test')
         self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, public_key=channel_metadata.public_key))
+            dict(self.torrent_template, public_key=channel_metadata.public_key, status=NEW))
         channel_metadata.commit_channel_torrent()
 
         self.assertEqual(channel_metadata.version, 1)
@@ -219,8 +226,8 @@ class TestChannelMetadata(TriblerCoreTest):
         channel.commit_channel_torrent()
 
         # 2nd torrent
-        self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, public_key=channel.public_key))
+        md = self.mds.TorrentMetadata.from_dict(
+            dict(self.torrent_template, public_key=channel.public_key, status=NEW))
         channel.commit_channel_torrent()
 
         # Delete entry
