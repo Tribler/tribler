@@ -68,7 +68,7 @@
       <string notr="true">QSplitter::handle { background-color: #555; }</string>
      </property>
      <property name="orientation">
-      <enum>Qt::Vertical</enum>
+      <enum>Qt::Horizontal</enum>
      </property>
      <widget class="LazyLoadList" name="items_list">
       <property name="styleSheet">
@@ -435,6 +435,11 @@ background-color: transparent;
    <class>LazyLoadList</class>
    <extends>QListWidget</extends>
    <header>TriblerGUI.widgets.lazyloadlist.h</header>
+  </customwidget>
+  <customwidget>
+   <class>LazyTableView</class>
+   <extends>QTableView</extends>
+   <header>TriblerGUI.widgets.lazytableview.h</header>
   </customwidget>
   <customwidget>
    <class>TorrentDetailsTabWidget</class>

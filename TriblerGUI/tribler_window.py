@@ -130,18 +130,22 @@ class TriblerWindow(QMainWindow):
         self.tribler_status_bar.hide()
 
         # Load dynamic widgets
-        uic.loadUi(get_ui_file_path('torrent_channel_list_container.ui'), self.channel_page_container)
-        self.channel_torrents_list = self.channel_page_container.items_list
-        self.channel_torrents_detail_widget = self.channel_page_container.details_tab_widget
-        self.channel_torrents_detail_widget.initialize_details_widget()
-        self.channel_torrents_list.itemSelectionChanged.connect(self.channel_page.clicked_item)
+        #uic.loadUi(get_ui_file_path('torrent_channel_list_container.ui'), self.channel_page_container)
+        #self.channel_torrents_list = self.channel_page_container.items_list
+        #self.channel_torrents_detail_widget = self.channel_page_container.details_tab_widget
+        #self.channel_torrents_detail_widget.initialize_details_widget()
+        #self.channel_torrents_list.itemSelectionChanged.connect(self.channel_page.clicked_item)
 
-        uic.loadUi(get_ui_file_path('torrent_channel_list_container.ui'), self.search_page_container)
-        self.search_results_list = self.search_page_container.items_list
-        self.search_torrents_detail_widget = self.search_page_container.details_tab_widget
-        self.search_torrents_detail_widget.initialize_details_widget()
-        self.search_results_list.itemClicked.connect(self.on_channel_item_click)
-        self.search_results_list.itemSelectionChanged.connect(self.search_results_page.clicked_item)
+
+
+
+        #uic.loadUi(get_ui_file_path('torrent_channel_list_container.ui'), self.search_page_container)
+        #self.search_results_list = self.search_page_container.items_list
+        #self.search_torrents_detail_widget = self.search_page_container.details_tab_widget
+        #self.search_torrents_detail_widget.initialize_details_widget()
+        #self.search_results_list.itemClicked.connect(self.on_channel_item_click)
+        #self.search_results_list.itemSelectionChanged.connect(self.search_results_page.clicked_item)
+
         self.token_balance_widget.mouseReleaseEvent = self.on_token_balance_click
 
         def on_state_update(new_state):
@@ -242,10 +246,6 @@ class TriblerWindow(QMainWindow):
         # Start Tribler
         self.core_manager.start(core_args=core_args, core_env=core_env)
 
-        self.core_manager.events_manager.received_search_result_channel.connect(
-            self.search_results_page.received_search_result_channel)
-        self.core_manager.events_manager.received_search_result_torrent.connect(
-            self.search_results_page.received_search_result_torrent)
         self.core_manager.events_manager.torrent_finished.connect(self.on_torrent_finished)
         self.core_manager.events_manager.new_version_available.connect(self.on_new_version_available)
         self.core_manager.events_manager.tribler_started.connect(self.on_tribler_started)
@@ -514,8 +514,6 @@ class TriblerWindow(QMainWindow):
         self.has_search_results = True
         self.clicked_menu_button_search()
         self.search_results_page.perform_search(current_search_query)
-        self.search_request_mgr = TriblerRequestManager()
-        self.search_request_mgr.perform_request("search?q=%s" % current_search_query, None)
         self.last_search_query = current_search_query
         self.last_search_time = current_ts
 
@@ -794,9 +792,9 @@ class TriblerWindow(QMainWindow):
         self.show_left_menu_playlist()
 
     def clicked_menu_button_downloads(self):
+        self.deselect_all_menu_buttons(self.left_menu_button_downloads)
         self.raise_window()
         self.left_menu_button_downloads.setChecked(True)
-        self.deselect_all_menu_buttons(self.left_menu_button_downloads)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
         self.navigation_stack = []
         self.hide_left_menu_playlist()
@@ -823,14 +821,10 @@ class TriblerWindow(QMainWindow):
         self.left_menu_playlist_label.setHidden(False)
         self.left_menu_playlist.setHidden(False)
 
-    def on_channel_item_click(self, channel_list_item):
-        list_widget = channel_list_item.listWidget()
-        from TriblerGUI.widgets.channel_list_item import ChannelListItem
-        if isinstance(list_widget.itemWidget(channel_list_item), ChannelListItem):
-            channel_info = channel_list_item.data(Qt.UserRole)
-            self.channel_page.initialize_with_channel(channel_info)
-            self.navigation_stack.append(self.stackedWidget.currentIndex())
-            self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
+    def on_channel_clicked(self, public_key):
+        self.channel_page.initialize_with_channel(public_key)
+        self.navigation_stack.append(self.stackedWidget.currentIndex())
+        self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
 
     def on_playlist_item_click(self, playlist_list_item):
         list_widget = playlist_list_item.listWidget()
@@ -845,12 +839,14 @@ class TriblerWindow(QMainWindow):
         try:
             prev_page = self.navigation_stack.pop()
             self.stackedWidget.setCurrentIndex(prev_page)
+            """
             if prev_page == PAGE_SEARCH_RESULTS:
                 self.stackedWidget.widget(prev_page).load_search_results_in_list()
             if prev_page == PAGE_SUBSCRIBED_CHANNELS:
                 self.stackedWidget.widget(prev_page).load_subscribed_channels()
             if prev_page == PAGE_DISCOVERED:
                 self.stackedWidget.widget(prev_page).load_discovered_channels()
+            """
         except IndexError:
             logging.exception("Unknown page found in stack")
 
