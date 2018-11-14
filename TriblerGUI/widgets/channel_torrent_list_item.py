@@ -1,9 +1,9 @@
-from urllib import quote_plus
-
 import logging
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
-from TriblerGUI.defs import STATUS_GOOD, STATUS_DEAD, COMMITTED, TODELETE, UNCOMMITTED
+
+from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW, TODELETE, COMMITTED
+from TriblerGUI.defs import STATUS_GOOD, STATUS_DEAD
 from TriblerGUI.defs import STATUS_UNKNOWN
 
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -182,7 +182,7 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         if status == TODELETE:
             self.commit_state_label.setText("To delete")
             self.remove_torrent_button.setHidden(True)
-        if status == UNCOMMITTED:
+        if status == NEW:
             self.commit_state_label.setText("Uncommitted")
 
     def set_health_indicator(self, status):

@@ -9,9 +9,13 @@ from six.moves import xrange
 from twisted.web import http
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Modules.MetadataStore.serialization import time2float
+from Tribler.Core.Modules.MetadataStore.serialization import time2float, CHANNEL_TORRENT, float2time
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE
+from TriblerGUI.widgets.torrentdetailstabwidget import HEALTH_UNCHECKED, HEALTH_GOOD
 
+CATEGORY_OLD_CHANNEL = u'Old channel'
+CATEGORY_CHANNEL = u'Channel'
+CATEGORY_UNKNOWN = u'Unknown'
 
 def return_handled_exception(request, exception):
     """
@@ -41,11 +45,11 @@ def convert_channel_metadata_to_tuple(metadata):
     spam = 0
     relevance = 0.9
     unix_timestamp = time2float(metadata.timestamp)
-    return (metadata.rowid, str(metadata.public_key), metadata.title, metadata.tags, int(metadata.size), votes, spam,
-            my_vote, unix_timestamp, relevance)
+    return metadata.rowid, str(metadata.public_key), metadata.title, metadata.tags, int(metadata.size), votes, spam, \
+           my_vote, unix_timestamp, relevance, metadata.status, metadata.torrent_date, metadata.metadata_type
 
 
-def convert_torrent_metadata_to_tuple(metadata, commit_status=None):
+def convert_torrent_metadata_to_tuple(metadata):
     """
     Convert some given torrent metadata to a tuple, similar to returned torrents from the database.
     :param metadata: The metadata to convert.
@@ -54,13 +58,16 @@ def convert_torrent_metadata_to_tuple(metadata, commit_status=None):
     seeders = 0
     leechers = 0
     last_tracker_check = 0
-    category = 'unknown'
+    original_category = metadata.tags.split(' ', 1)[0] if metadata.tags else CATEGORY_UNKNOWN
+    category = CATEGORY_CHANNEL if metadata._discriminator_ == CHANNEL_TORRENT else original_category
     infohash = str(metadata.infohash)
     relevance = 0.9
-
+    subscribed = ''
+    if metadata._discriminator_ == CHANNEL_TORRENT:
+        subscribed = 1 if metadata.subscribed else 0
     return (metadata.rowid, infohash, metadata.title, int(metadata.size), category, seeders, leechers,
-            last_tracker_check, None, relevance, commit_status)
-
+            last_tracker_check, None, relevance, metadata.status, metadata.torrent_date, metadata.metadata_type,
+            str(metadata.public_key).encode('hex'), subscribed)
 
 def convert_search_torrent_to_json(torrent):
     """
@@ -85,6 +92,17 @@ def convert_db_channel_to_json(channel, include_rel_score=False):
 
     return res_json
 
+def channel_to_torrent_adapter(channel):
+    return (channel[0], '', channel[2], channel[4],
+            CATEGORY_OLD_CHANNEL, 0, 0,
+            0,
+            0,
+            0,
+            0,
+            float2time(0),
+            CHANNEL_TORRENT,
+            str(channel[1]).encode('hex'),
+            int(channel[7] == VOTE_SUBSCRIBE))
 
 def convert_chant_channel_to_json(channel):
     """
@@ -106,16 +124,19 @@ def convert_db_torrent_to_json(torrent, include_rel_score=False):
     if torrent_name is None or len(torrent_name.strip()) == 0:
         torrent_name = "Unnamed torrent"
 
-    res_json = {"id": torrent[0], "infohash": torrent[1].encode('hex'), "name": torrent_name, "size": torrent[3],
-                "category": torrent[4], "num_seeders": torrent[5] or 0, "num_leechers": torrent[6] or 0,
-                "last_tracker_check": torrent[7] or 0}
-
-    if len(torrent) >= 11:
-        res_json["commit_status"] = torrent[10]
-
-    if include_rel_score:
-        res_json["relevance_score"] = torrent[9]
-
+    res_json = {"id": torrent[0], "infohash": torrent[1].encode('hex'), "name": torrent_name, "size": torrent[3] or 0,
+                "category": torrent[4] if torrent[4] else "unknown", "num_seeders": torrent[5] or 0, "num_leechers": torrent[6] or 0,
+                "last_tracker_check": torrent[7] or 0,
+                "commit_status": torrent[10] if len(torrent)>=11 else 0,
+                "date": str(time2float(torrent[11])) if len(torrent) >= 12 else 0,
+                "type": str('channel' if len(torrent) >= 13 and torrent[12] == CHANNEL_TORRENT else 'torrent'),
+                "public_key": str(torrent[13]) if len(torrent)>=14 else '',
+                "relevance_score": torrent[9] if include_rel_score else 0,
+                "subscribed": str(torrent[14]) if len(torrent)>=15 else '',
+                "health": HEALTH_GOOD if torrent[5] else HEALTH_UNCHECKED,
+                "dispersy_cid": str(torrent[13]) if len(torrent)>=14 else '',
+                "votes" : 0
+                }
     return res_json
 
 

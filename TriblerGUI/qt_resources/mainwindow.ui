@@ -1050,7 +1050,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>7</number>
+         <number>6</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1906,7 +1906,7 @@ font-size: 14px;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>7</number>
                 </property>
                 <widget class="QWidget" name="edit_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -2356,468 +2356,7 @@ font-size: 14px;</string>
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QWidget" name="dirty_channel_widget" native="true">
-                    <property name="palette">
-                     <palette>
-                      <active>
-                       <colorrole role="Button">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                       <colorrole role="Base">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                       <colorrole role="Window">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                      </active>
-                      <inactive>
-                       <colorrole role="Button">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                       <colorrole role="Base">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                       <colorrole role="Window">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                      </inactive>
-                      <disabled>
-                       <colorrole role="Button">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                       <colorrole role="Base">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                       <colorrole role="Window">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                      </disabled>
-                     </palette>
-                    </property>
-                    <property name="styleSheet">
-                     <string notr="true"/>
-                    </property>
-                    <layout class="QHBoxLayout" name="dirty_channel_bar">
-                     <item>
-                      <spacer name="horizontalSpacer_88">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>40</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_69">
-                       <property name="autoFillBackground">
-                        <bool>false</bool>
-                       </property>
-                       <property name="text">
-                        <string>Your channel has uncommitted and/or deleted torrents.</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <spacer name="horizontalSpacer_38">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>40</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item>
-                      <widget class="QPushButton" name="edit_channel_commit_button">
-                       <property name="enabled">
-                        <bool>true</bool>
-                       </property>
-                       <property name="sizePolicy">
-                        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                         <horstretch>0</horstretch>
-                         <verstretch>0</verstretch>
-                        </sizepolicy>
-                       </property>
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>35</height>
-                        </size>
-                       </property>
-                       <property name="palette">
-                        <palette>
-                         <active>
-                          <colorrole role="Button">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="ButtonText">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>186</red>
-                             <green>189</green>
-                             <blue>182</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="Base">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="Window">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                         </active>
-                         <inactive>
-                          <colorrole role="Button">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="ButtonText">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>186</red>
-                             <green>189</green>
-                             <blue>182</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="Base">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="Window">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                         </inactive>
-                         <disabled>
-                          <colorrole role="Button">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="ButtonText">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>190</red>
-                             <green>190</green>
-                             <blue>190</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="Base">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="Window">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                         </disabled>
-                        </palette>
-                       </property>
-                       <property name="toolTip">
-                        <string>Apply changes to your channel and publish the new version</string>
-                       </property>
-                       <property name="autoFillBackground">
-                        <bool>false</bool>
-                       </property>
-                       <property name="text">
-                        <string>Apply changes</string>
-                       </property>
-                       <property name="checkable">
-                        <bool>false</bool>
-                       </property>
-                       <property name="checked">
-                        <bool>false</bool>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <spacer name="horizontalSpacer_36">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeType">
-                        <enum>QSizePolicy::Fixed</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>10</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="LazyLoadList" name="edit_channel_torrents_list">
-                    <property name="styleSheet">
-                     <string notr="true">QListWidget::item:hover {
-background-color: #303030;
-}
-QListWidget::item:selected {
-background-color: #404040;
-}
-QListWidget::item {
-border-bottom: 1px solid #303030;
-}
-QListWidget {
-border: none;
-}</string>
-                    </property>
-                    <property name="selectionMode">
-                     <enum>QAbstractItemView::ContiguousSelection</enum>
-                    </property>
-                    <property name="verticalScrollMode">
-                     <enum>QAbstractItemView::ScrollPerPixel</enum>
-                    </property>
-                    <property name="selectionRectVisible">
-                     <bool>false</bool>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QWidget" name="edit_channel_torrents_buttons_container" native="true">
-                    <layout class="QHBoxLayout" name="horizontalLayout_15">
-                     <property name="spacing">
-                      <number>8</number>
-                     </property>
-                     <property name="leftMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="topMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="rightMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="bottomMargin">
-                      <number>8</number>
-                     </property>
-                     <item>
-                      <spacer name="horizontalSpacer_22">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>40</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item>
-                      <widget class="EllipseButton" name="edit_channel_torrents_remove_selected_button">
-                       <property name="sizePolicy">
-                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                         <horstretch>0</horstretch>
-                         <verstretch>0</verstretch>
-                        </sizepolicy>
-                       </property>
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border-radius: 12px;
-padding-left: 4px;
-padding-right: 4px;</string>
-                       </property>
-                       <property name="text">
-                        <string>REMOVE SELECTED</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="EllipseButton" name="edit_channel_torrents_remove_all_button">
-                       <property name="sizePolicy">
-                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                         <horstretch>0</horstretch>
-                         <verstretch>0</verstretch>
-                        </sizepolicy>
-                       </property>
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border-radius: 12px;
-padding-left: 4px;
-padding-right: 4px;</string>
-                       </property>
-                       <property name="text">
-                        <string>REMOVE ALL</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="EllipseButton" name="edit_channel_torrents_add_button">
-                       <property name="sizePolicy">
-                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                         <horstretch>0</horstretch>
-                         <verstretch>0</verstretch>
-                        </sizepolicy>
-                       </property>
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border-radius: 12px;
-padding-left: 4px;
-padding-right: 4px;</string>
-                       </property>
-                       <property name="text">
-                        <string>ADD</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </widget>
+                   <widget class="ChannelViewWidget" name="edit_channel_torrents_list" native="true"/>
                   </item>
                  </layout>
                 </widget>
@@ -4611,7 +4150,7 @@ color: #B5B5B5;</string>
            </widget>
           </item>
           <item>
-           <widget class="QWidget" name="search_page_container" native="true">
+           <widget class="ChannelViewWidget" name="search_page_container" native="true">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
               <horstretch>0</horstretch>
@@ -5005,7 +4544,7 @@ background-color: transparent;
            </widget>
           </item>
           <item>
-           <widget class="QWidget" name="channel_page_container" native="true">
+           <widget class="ChannelViewWidget" name="channel_page_container" native="true">
             <property name="styleSheet">
              <string notr="true"/>
             </property>
@@ -7661,6 +7200,12 @@ font-size: 12px;</string>
           </property>
           <item>
            <widget class="QWidget" name="subscribed_channels_header" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <layout class="QHBoxLayout" name="horizontalLayout_13">
              <property name="spacing">
               <number>0</number>
@@ -7770,7 +7315,7 @@ margin: 10px;</string>
            </widget>
           </item>
           <item>
-           <widget class="LazyLoadList" name="subscribed_channels_list">
+           <widget class="ChannelViewWidget" name="subscribed_channels_container" native="true">
             <property name="styleSheet">
              <string notr="true">QListWidget::item:hover {
 background-color: #303030;
@@ -7782,9 +7327,6 @@ QListWidget {
 border: none;
 border-top: 1px solid #555;
 }</string>
-            </property>
-            <property name="verticalScrollMode">
-             <enum>QAbstractItemView::ScrollPerPixel</enum>
             </property>
            </widget>
           </item>
@@ -8669,7 +8211,7 @@ QTabBar::tab:selected {
                        <x>0</x>
                        <y>0</y>
                        <width>673</width>
-                       <height>335</height>
+                       <height>320</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -9610,6 +9152,12 @@ font-weight:bold;</string>
           </property>
           <item>
            <widget class="QWidget" name="widget_22" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <layout class="QHBoxLayout" name="horizontalLayout_35">
              <property name="spacing">
               <number>0</number>
@@ -9711,23 +9259,7 @@ color: #B5B5B5;</string>
            </widget>
           </item>
           <item>
-           <widget class="LazyLoadList" name="discovered_channels_list">
-            <property name="styleSheet">
-             <string notr="true">QListWidget::item:hover {
-background-color: #303030;
-}
-QListWidget::item {
-border-bottom: 1px solid #303030;
-}
-QListWidget {
-border: none;
-border-top: 1px solid #555;
-}</string>
-            </property>
-            <property name="verticalScrollMode">
-             <enum>QAbstractItemView::ScrollPerPixel</enum>
-            </property>
-           </widget>
+           <widget class="ChannelViewWidget" name="discovered_channels_container" native="true"/>
           </item>
          </layout>
         </widget>
@@ -12000,7 +11532,7 @@ QTabBar::tab:selected {
 }</string>
             </property>
             <property name="currentIndex">
-             <number>1</number>
+             <number>0</number>
             </property>
             <widget class="QWidget" name="tab_4">
              <attribute name="title">
@@ -12410,15 +11942,15 @@ color: #eee;</string>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
+   <class>EllipseButton</class>
+   <extends>QToolButton</extends>
+   <header>TriblerGUI.widgets.ellipsebutton.h</header>
+  </customwidget>
+  <customwidget>
    <class>SubscriptionsWidget</class>
    <extends>QWidget</extends>
    <header>TriblerGUI.widgets.subscriptionswidget.h</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>EllipseButton</class>
-   <extends>QToolButton</extends>
-   <header>TriblerGUI.widgets.ellipsebutton.h</header>
   </customwidget>
   <customwidget>
    <class>VideoPlayerPage</class>
@@ -12594,283 +12126,16 @@ color: #eee;</string>
    <header>TriblerGUI.widgets.marketorderspage.h</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>ChannelViewWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">TriblerGUI.widgets.channelview.h</header>
+  </customwidget>
  </customwidgets>
  <resources/>
  <connections>
   <connection>
-   <sender>top_search_bar</sender>
-   <signal>returnPressed()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_top_search_button_click()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>308</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>add_torrent_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_add_torrent_button_click()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>826</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>top_menu_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_top_menu_button_click()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>17</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>subscribed_channels_list</sender>
-   <signal>itemClicked(QListWidgetItem*)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_channel_item_click(QListWidgetItem*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>250</x>
-     <y>65</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_home</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_home()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>100</x>
-     <y>77</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_my_channel</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_my_channel()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>100</x>
-     <y>121</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_video_player</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_video_player()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>100</x>
-     <y>237</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_downloads</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_downloads()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>100</x>
-     <y>197</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_subscriptions</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_subscriptions()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>100</x>
-     <y>157</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>top_search_bar</sender>
-   <signal>textChanged(QString)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_search_text_change()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>308</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>channel_back_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_page_back_clicked()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>218</x>
-     <y>75</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>playlist_back_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_page_back_clicked()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>221</x>
-     <y>75</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_discovered</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_discovered()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>100</x>
-     <y>117</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>discovered_channels_list</sender>
-   <signal>itemClicked(QListWidgetItem*)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_channel_item_click(QListWidgetItem*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>527</x>
-     <y>366</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_debug</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_debug()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>94</x>
-     <y>327</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>settings_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_settings_button_click()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>789</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_search</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_search()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>94</x>
-     <y>111</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>market_back_button</sender>
+   <sender>wallets_back_button</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
    <slot>on_page_back_clicked()</slot>
@@ -12902,18 +12167,82 @@ color: #eee;</string>
    </hints>
   </connection>
   <connection>
-   <sender>wallets_back_button</sender>
+   <sender>top_search_bar</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_search_text_change()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>308</x>
+     <y>24</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>top_search_bar</sender>
+   <signal>returnPressed()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_top_search_button_click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>308</x>
+     <y>24</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>top_menu_button</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_top_menu_button_click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>17</x>
+     <y>24</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>settings_button</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_settings_button_click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>789</x>
+     <y>24</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>playlist_back_button</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
    <slot>on_page_back_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>218</x>
+     <x>221</x>
      <y>75</y>
     </hint>
     <hint type="destinationlabel">
      <x>427</x>
-     <y>327</y>
+     <y>317</y>
     </hint>
    </hints>
   </connection>
@@ -12934,6 +12263,150 @@ color: #eee;</string>
    </hints>
   </connection>
   <connection>
+   <sender>market_back_button</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_page_back_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>218</x>
+     <y>75</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_video_player</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_video_player()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>237</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_subscriptions</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_subscriptions()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>157</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_search</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_search()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>94</x>
+     <y>111</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_my_channel</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_my_channel()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>121</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_home</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_home()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>77</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_downloads</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_downloads()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>197</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_discovered</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_discovered()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>117</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_debug</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_debug()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>94</x>
+     <y>327</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
    <sender>force_shutdown_btn</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
@@ -12946,6 +12419,38 @@ color: #eee;</string>
     <hint type="destinationlabel">
      <x>20</x>
      <y>20</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>channel_back_button</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_page_back_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>218</x>
+     <y>75</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>add_torrent_button</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_add_torrent_button_click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>826</x>
+     <y>24</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
     </hint>
    </hints>
   </connection>

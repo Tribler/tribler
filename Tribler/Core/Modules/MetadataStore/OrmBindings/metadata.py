@@ -9,6 +9,10 @@ from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
+NEW = 0
+TODELETE = 1
+COMMITTED = 2
+
 def define_binding(db):
     class Metadata(db.Entity):
         rowid = orm.PrimaryKey(int, auto=True)
@@ -20,7 +24,7 @@ def define_binding(db):
         tc_pointer = orm.Optional(int, size=64, default=0)
         public_key = orm.Optional(database_blob, default='\x00' * 74)
         addition_timestamp = orm.Optional(datetime, default=datetime.utcnow)
-        deleted = orm.Optional(bool, default=False)
+        status = orm.Optional(int, default=NEW)
         _payload_class = MetadataPayload
         _my_key = None
         _logger = None
