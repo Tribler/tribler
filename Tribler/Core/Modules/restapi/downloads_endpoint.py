@@ -2,20 +2,22 @@ from __future__ import absolute_import
 
 import logging
 
-from six import text_type, unichr  # pylint: disable=redefined-builtin
+from pony.orm import db_session
+from six import text_type
+from six import unichr  # pylint: disable=redefined-builtin
 from six.moves.urllib.parse import unquote_plus
 from six.moves.urllib.request import url2pathname
-
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.Utilities.utilities import unichar_string
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
-import Tribler.Core.Utilities.json_util as json
+from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.util import cast_to_unicode_utf8
 
 
@@ -223,15 +225,23 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             num_seeds, num_peers = state.get_num_seeds_peers()
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
-            def get_chant_name(download):
-                infohash = download.tdef.get_infohash()
-                channel = self.session.lm.mds.ChannelMetadata.get_channel_with_infohash(infohash)
-                if channel:
+            @db_session
+            def get_chant_name(name, infohash):
+                channel = None
+                try:
+                    channel = self.session.lm.mds.ChannelMetadata.get_channel_with_dirname(name)
+                except UnicodeEncodeError:
+                    channel = self.session.lm.mds.ChannelMetadata.get_channel_with_infohash(infohash)
+
+                if not channel:
+                    return name
+                if channel.infohash == database_blob(infohash):
                     return channel.title
                 else:
-                    return u"<old version of your channel>"
+                    return u'OLD:' + channel.title
 
-            download_json = {"name": get_chant_name(download) if download.get_channel_download() else tdef.get_name_utf8(),
+            download_json = {"name": get_chant_name(tdef.get_name_utf8(),
+                                                    tdef.get_infohash()) if download.get_channel_download() else tdef.get_name_utf8(),
                              "progress": state.get_progress(),
                              "infohash": tdef.get_infohash().encode('hex'),
                              "speed_down": state.get_current_payload_speed(DOWNLOAD),
@@ -336,7 +346,14 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     request.setResponseCode(http.BAD_REQUEST)
                     return json.dumps({"error": "Metadata has invalid signature"})
 
-                download, _ = self.session.lm.update_channel(payload)
+                with db_session:
+                    channel = self.session.lm.mds.process_payload(payload)
+                    if channel and not channel.subscribed and channel.local_version < channel.version:
+                        channel.subscribed = True
+                        download, _ = self.session.lm.gigachannel_manager.download_channel(channel)
+                    else:
+                        return json.dumps({"error": "Already subscribed"})
+
                 return json.dumps({"started": True, "infohash": str(download.get_def().get_infohash()).encode('hex')})
             else:
                 download_uri = u"file:%s" % url2pathname(uri[5:]).decode('utf-8')

@@ -1,22 +1,25 @@
+from __future__ import absolute_import
 import logging
-import time
 
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QTabWidget
 from PyQt5.QtWidgets import QTreeWidget
 from PyQt5.QtWidgets import QTreeWidgetItem
 
+from Tribler.Core.Modules.restapi.util import HEALTH_CHECKING
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size
 from TriblerGUI.widgets.ellipsebutton import EllipseButton
 
-
 class TorrentDetailsTabWidget(QTabWidget):
+    health_check_clicked = pyqtSignal(dict)
     """
     The TorrentDetailsTabWidget is the tab that provides details about a specific selected torrent. This information
     includes the generic info about the torrent, files and trackers.
     """
 
+    #TODO: rewrite this as a view into ChannelContentsModel
     def __init__(self, parent):
         QTabWidget.__init__(self, parent)
         self.torrent_info = None
@@ -75,12 +78,13 @@ class TorrentDetailsTabWidget(QTabWidget):
                                                                                 torrent_info["num_leechers"]))
         elif torrent_info["num_leechers"] > 0:
             self.torrent_detail_health_label.setText("unknown health (found peers)")
+        elif self.is_health_checking or (u'health' in torrent_info and torrent_info[u'health'] == HEALTH_CHECKING):
+            self.torrent_detail_health_label.setText("Checking...")
         else:
             self.torrent_detail_health_label.setText("no peers found")
 
     def update_with_torrent(self, torrent_info):
         self.torrent_info = torrent_info
-        self.is_health_checking = False
         self.torrent_detail_name_label.setText(self.torrent_info["name"])
         if self.torrent_info["category"]:
             self.torrent_detail_category_label.setText(self.torrent_info["category"].lower())
@@ -97,6 +101,8 @@ class TorrentDetailsTabWidget(QTabWidget):
                                                                                 self.torrent_info["num_leechers"]))
         elif self.torrent_info["num_leechers"] > 0:
             self.torrent_detail_health_label.setText("unknown health (found peers)")
+        elif self.is_health_checking or (u'health' in torrent_info and torrent_info[u'health'] == HEALTH_CHECKING):
+            self.torrent_detail_health_label.setText("Checking...")
         else:
             self.torrent_detail_health_label.setText("no peers found")
 
@@ -108,44 +114,17 @@ class TorrentDetailsTabWidget(QTabWidget):
         self.request_mgr.perform_request("torrents/%s" % self.torrent_info["infohash"], self.on_torrent_info)
 
     def on_check_health_clicked(self, timeout=15):
-        if self.is_health_checking and (time.time() - self.last_health_check_ts < timeout):
-            return
+        self.health_check_clicked.emit(self.torrent_info)
 
-        self.is_health_checking = True
-        self.torrent_detail_health_label.setText("Checking...")
-        self.last_health_check_ts = time.time()
-        self.health_request_mgr = TriblerRequestManager()
-        self.health_request_mgr.perform_request("torrents/%s/health?timeout=%s&refresh=%d" %
-                                                (self.torrent_info["infohash"], timeout, 1),
-                                                self.on_health_response, capture_errors=False, priority="LOW",
-                                                on_cancel=self.on_cancel_health_check)
 
-    def on_health_response(self, response):
-        if not response:
-            return
-        total_seeders = 0
-        total_leechers = 0
-
-        if not response or 'error' in response:
-            self.update_health(0, 0)  # Just set the health to 0 seeders, 0 leechers
-            return
-
-        for _, status in response['health'].iteritems():
-            if 'error' in status:
-                continue  # Timeout or invalid status
-
-            total_seeders += int(status['seeders'])
-            total_leechers += int(status['leechers'])
-
-        self.is_health_checking = False
-        self.update_health(total_seeders, total_leechers)
-
-    def update_health(self, seeders, leechers):
+    def update_health(self, seeders, leechers, health=None):
         try:
             if seeders > 0:
                 self.torrent_detail_health_label.setText("good health (S%d L%d)" % (seeders, leechers))
             elif leechers > 0:
                 self.torrent_detail_health_label.setText("unknown health (found peers)")
+            elif health == HEALTH_CHECKING:
+                self.torrent_detail_health_label.setText("Checking...")
             else:
                 self.torrent_detail_health_label.setText("no peers found")
         except RuntimeError:
@@ -153,3 +132,15 @@ class TorrentDetailsTabWidget(QTabWidget):
 
     def on_cancel_health_check(self):
         self.is_health_checking = False
+
+    def update_from_model(self, i1, i2, role):
+        if not self.torrent_info:
+            return
+
+        # We only react to very specific update type that was generated by our actions
+        if i1.row() == i2.row():
+            torrent_info = i1.model().data_items[i1.row()]
+            if self.torrent_info[u'infohash'] == torrent_info[u'infohash']:
+                self.is_health_checking = torrent_info[u'health'] == HEALTH_CHECKING
+                self.update_health(torrent_info[u'num_seeders'], torrent_info[u'num_leechers'],
+                                   health=torrent_info[u'health'])

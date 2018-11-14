@@ -7,9 +7,7 @@ class SyncChannels(DiscoveryStrategy):
     """
     Synchronization strategy for gigachannels.
 
-    On each tick we:
-     1. Send a random peer some of our random subscribed channels.
-     2. Check if we have any pending channels to download.
+    On each tick we send a random peer some of our random subscribed channels.
     """
 
     def take_step(self, service_id=None):
@@ -19,5 +17,3 @@ class SyncChannels(DiscoveryStrategy):
             if peers:
                 peer = choice(peers)
                 self.overlay.send_random_to(peer)
-            # Try to fetch pending channels
-            self.overlay.fetch_next()

@@ -1,59 +1,18 @@
 from __future__ import absolute_import
 
 from binascii import hexlify
+
 import six
 from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.restapi.channels.my_channel_endpoint import NO_CHANNEL_CREATED_RESPONSE_MSG
-from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint, \
-    AbstractTestChantEndpoint
+from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChantEndpoint
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.tools import trial_timeout
 
 
-class TestMyChannelEndpoints(AbstractTestChannelsEndpoint):
-
-    @trial_timeout(10)
-    def test_my_channel_overview_endpoint_no_my_channel(self):
-        """
-        Testing whether the API returns response code 404 if no channel has been created
-        """
-        expected_json = {"error": NO_CHANNEL_CREATED_RESPONSE_MSG}
-        return self.do_request('mychannel', expected_json=expected_json, expected_code=404)
-
-    @trial_timeout(10)
-    def test_my_channel_overview_endpoint_with_channel(self):
-        """
-        Testing whether the API returns the right JSON data if a channel overview is requested
-        """
-        channel_json = {u'mychannel': {u'name': u'testname', u'description': u'testdescription',
-                                       u'identifier': six.text_type(hexlify(b'fakedispersyid'))}}
-        self.create_my_channel(channel_json[u'mychannel'][u'name'], channel_json[u'mychannel'][u'description'])
-
-        return self.do_request('mychannel', expected_code=200, expected_json=channel_json)
-
-    @trial_timeout(10)
-    def test_edit_my_channel_no_channel(self):
-        """
-        Testing whether an error 404 is returned when trying to edit your non-existing channel
-        """
-        post_params = {'name': 'test'}
-        return self.do_request('mychannel', expected_code=404, request_type='POST', post_data=post_params)
-
-    @trial_timeout(10)
-    def test_edit_my_channel_no_cmty(self):
-        """
-        Testing whether an error 404 is returned when trying to edit your channel without community
-        """
-        mock_dispersy = MockObject()
-        mock_dispersy.get_community = lambda _: None
-        self.session.get_dispersy_instance = lambda: mock_dispersy
-
-        self.create_my_channel('test', 'test')
-
-        post_params = {'name': 'test'}
-        return self.do_request('mychannel', expected_code=404, request_type='POST', post_data=post_params)
+class TestMyChannelChantEndpoints(AbstractTestChantEndpoint):
 
     @inlineCallbacks
     def test_edit_channel(self):
@@ -86,9 +45,6 @@ class TestMyChannelEndpoints(AbstractTestChannelsEndpoint):
         yield self.do_request('mychannel', expected_code=200, expected_json={"modified": True}, post_data=post_params,
                               request_type='POST').addCallback(verify_channel_modified)
 
-
-class TestMyChannelChantEndpoints(AbstractTestChantEndpoint):
-
     @trial_timeout(10)
     def test_my_channel_overview_endpoint_no_my_channel(self):
         """
@@ -102,8 +58,9 @@ class TestMyChannelChantEndpoints(AbstractTestChantEndpoint):
         """
         Testing whether the API returns the right JSON data if an existing chant channel overview is requested
         """
-        channel_json = {u'mychannel': {u'chant': True, u'name': u'testname', u'description': u'testdescription',
-                                       u'identifier': hexlify(self.session.trustchain_keypair.pub().key_to_bin())}}
+        channel_json = {u'mychannel': {u'name': u'testname', u'description': u'testdescription',
+                                       u'identifier': six.text_type(
+                                           hexlify(self.session.trustchain_keypair.pub().key_to_bin()))}}
         self.create_my_channel(channel_json[u'mychannel'][u'name'], channel_json[u'mychannel'][u'description'])
 
         return self.do_request('mychannel', expected_code=200, expected_json=channel_json)

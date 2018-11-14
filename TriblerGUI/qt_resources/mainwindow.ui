@@ -1050,7 +1050,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>12</number>
+         <number>14</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1817,62 +1817,6 @@ padding-bottom: 4px;</string>
                   </widget>
                  </item>
                  <item>
-                  <widget class="UnderlineTabButton" name="edit_channel_playlists_button">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>36</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>16777215</width>
-                     <height>36</height>
-                    </size>
-                   </property>
-                   <property name="cursor">
-                    <cursorShape>PointingHandCursor</cursorShape>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true"/>
-                   </property>
-                   <property name="text">
-                    <string>PLAYLISTS</string>
-                   </property>
-                   <property name="checkable">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="UnderlineTabButton" name="edit_channel_rss_feeds_button">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>36</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>16777215</width>
-                     <height>36</height>
-                    </size>
-                   </property>
-                   <property name="cursor">
-                    <cursorShape>PointingHandCursor</cursorShape>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true"/>
-                   </property>
-                   <property name="text">
-                    <string>RSS FEEDS</string>
-                   </property>
-                   <property name="checkable">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
                   <spacer name="horizontalSpacer_24">
                    <property name="orientation">
                     <enum>Qt::Horizontal</enum>
@@ -1906,7 +1850,7 @@ font-size: 14px;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>3</number>
                 </property>
                 <widget class="QWidget" name="edit_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -1929,7 +1873,7 @@ font-size: 14px;
 font-size: 14px;</string>
                     </property>
                     <property name="text">
-                     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Welcome to the management interface of your channel!&lt;/p&gt;&lt;p&gt;Here, you can change settings of you channel, manage your shared torrents, manage your playlists and add rss feeds which are periodically polled.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Welcome to the management interface of your channel!&lt;/p&gt;&lt;p&gt;Here, you can change settings of you channel and manage your shared torrents.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                     </property>
                     <property name="wordWrap">
                      <bool>true</bool>
@@ -2356,1510 +2300,7 @@ font-size: 14px;</string>
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QWidget" name="dirty_channel_widget" native="true">
-                    <property name="palette">
-                     <palette>
-                      <active>
-                       <colorrole role="Button">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                       <colorrole role="Base">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                       <colorrole role="Window">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                      </active>
-                      <inactive>
-                       <colorrole role="Button">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                       <colorrole role="Base">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                       <colorrole role="Window">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                      </inactive>
-                      <disabled>
-                       <colorrole role="Button">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                       <colorrole role="Base">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                       <colorrole role="Window">
-                        <brush brushstyle="SolidPattern">
-                         <color alpha="255">
-                          <red>32</red>
-                          <green>32</green>
-                          <blue>32</blue>
-                         </color>
-                        </brush>
-                       </colorrole>
-                      </disabled>
-                     </palette>
-                    </property>
-                    <property name="styleSheet">
-                     <string notr="true"/>
-                    </property>
-                    <layout class="QHBoxLayout" name="dirty_channel_bar">
-                     <item>
-                      <spacer name="horizontalSpacer_88">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>40</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_69">
-                       <property name="autoFillBackground">
-                        <bool>false</bool>
-                       </property>
-                       <property name="text">
-                        <string>Your channel has uncommitted and/or deleted torrents.</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <spacer name="horizontalSpacer_38">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>40</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item>
-                      <widget class="QPushButton" name="edit_channel_commit_button">
-                       <property name="enabled">
-                        <bool>true</bool>
-                       </property>
-                       <property name="sizePolicy">
-                        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                         <horstretch>0</horstretch>
-                         <verstretch>0</verstretch>
-                        </sizepolicy>
-                       </property>
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>35</height>
-                        </size>
-                       </property>
-                       <property name="palette">
-                        <palette>
-                         <active>
-                          <colorrole role="Button">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="ButtonText">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>186</red>
-                             <green>189</green>
-                             <blue>182</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="Base">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="Window">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                         </active>
-                         <inactive>
-                          <colorrole role="Button">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="ButtonText">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>186</red>
-                             <green>189</green>
-                             <blue>182</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="Base">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="Window">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                         </inactive>
-                         <disabled>
-                          <colorrole role="Button">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="ButtonText">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>190</red>
-                             <green>190</green>
-                             <blue>190</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="Base">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                          <colorrole role="Window">
-                           <brush brushstyle="SolidPattern">
-                            <color alpha="255">
-                             <red>32</red>
-                             <green>32</green>
-                             <blue>32</blue>
-                            </color>
-                           </brush>
-                          </colorrole>
-                         </disabled>
-                        </palette>
-                       </property>
-                       <property name="toolTip">
-                        <string>Apply changes to your channel and publish the new version</string>
-                       </property>
-                       <property name="autoFillBackground">
-                        <bool>false</bool>
-                       </property>
-                       <property name="text">
-                        <string>Apply changes</string>
-                       </property>
-                       <property name="checkable">
-                        <bool>false</bool>
-                       </property>
-                       <property name="checked">
-                        <bool>false</bool>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <spacer name="horizontalSpacer_36">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeType">
-                        <enum>QSizePolicy::Fixed</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>10</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="LazyLoadList" name="edit_channel_torrents_list">
-                    <property name="styleSheet">
-                     <string notr="true">QListWidget::item:hover {
-background-color: #303030;
-}
-QListWidget::item:selected {
-background-color: #404040;
-}
-QListWidget::item {
-border-bottom: 1px solid #303030;
-}
-QListWidget {
-border: none;
-}</string>
-                    </property>
-                    <property name="selectionMode">
-                     <enum>QAbstractItemView::ContiguousSelection</enum>
-                    </property>
-                    <property name="verticalScrollMode">
-                     <enum>QAbstractItemView::ScrollPerPixel</enum>
-                    </property>
-                    <property name="selectionRectVisible">
-                     <bool>false</bool>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QWidget" name="edit_channel_torrents_buttons_container" native="true">
-                    <layout class="QHBoxLayout" name="horizontalLayout_15">
-                     <property name="spacing">
-                      <number>8</number>
-                     </property>
-                     <property name="leftMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="topMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="rightMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="bottomMargin">
-                      <number>8</number>
-                     </property>
-                     <item>
-                      <spacer name="horizontalSpacer_22">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>40</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item>
-                      <widget class="EllipseButton" name="edit_channel_torrents_remove_selected_button">
-                       <property name="sizePolicy">
-                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                         <horstretch>0</horstretch>
-                         <verstretch>0</verstretch>
-                        </sizepolicy>
-                       </property>
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border-radius: 12px;
-padding-left: 4px;
-padding-right: 4px;</string>
-                       </property>
-                       <property name="text">
-                        <string>REMOVE SELECTED</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="EllipseButton" name="edit_channel_torrents_remove_all_button">
-                       <property name="sizePolicy">
-                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                         <horstretch>0</horstretch>
-                         <verstretch>0</verstretch>
-                        </sizepolicy>
-                       </property>
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border-radius: 12px;
-padding-left: 4px;
-padding-right: 4px;</string>
-                       </property>
-                       <property name="text">
-                        <string>REMOVE ALL</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="EllipseButton" name="edit_channel_torrents_add_button">
-                       <property name="sizePolicy">
-                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                         <horstretch>0</horstretch>
-                         <verstretch>0</verstretch>
-                        </sizepolicy>
-                       </property>
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border-radius: 12px;
-padding-left: 4px;
-padding-right: 4px;</string>
-                       </property>
-                       <property name="text">
-                        <string>ADD</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
-                <widget class="QWidget" name="edit_channel_details_playlists_page">
-                 <layout class="QVBoxLayout" name="verticalLayout">
-                  <property name="spacing">
-                   <number>0</number>
-                  </property>
-                  <property name="leftMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="topMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="rightMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="bottomMargin">
-                   <number>0</number>
-                  </property>
-                  <item>
-                   <widget class="LazyLoadList" name="edit_channel_playlists_list">
-                    <property name="styleSheet">
-                     <string notr="true">QListWidget::item:hover {
-background-color: #303030;
-}
-QListWidget::item:selected {
-background-color: #404040;
-}
-QListWidget::item {
-border-bottom: 1px solid #303030;
-}
-QListWidget {
-border: none;
-}</string>
-                    </property>
-                    <property name="selectionMode">
-                     <enum>QAbstractItemView::NoSelection</enum>
-                    </property>
-                    <property name="verticalScrollMode">
-                     <enum>QAbstractItemView::ScrollPerPixel</enum>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QWidget" name="widget_8" native="true">
-                    <layout class="QHBoxLayout" name="horizontalLayout_4">
-                     <property name="leftMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="topMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="rightMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="bottomMargin">
-                      <number>8</number>
-                     </property>
-                     <item>
-                      <spacer name="horizontalSpacer_43">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>40</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item>
-                      <widget class="EllipseButton" name="edit_channel_create_playlist_button">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border-radius: 12px;
-padding-left: 4px;
-padding-right: 4px;</string>
-                       </property>
-                       <property name="text">
-                        <string>NEW PLAYLIST</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
-                <widget class="QWidget" name="edit_channel_details_rss_feeds_page">
-                 <layout class="QVBoxLayout" name="verticalLayout">
-                  <property name="spacing">
-                   <number>0</number>
-                  </property>
-                  <property name="leftMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="topMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="rightMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="bottomMargin">
-                   <number>0</number>
-                  </property>
-                  <item>
-                   <widget class="QTreeWidget" name="edit_channel_rss_feeds_list">
-                    <property name="styleSheet">
-                     <string notr="true">QTreeWidget {
-border: none;
-font-size: 14px;
-}
-QTreeWidget::item {
-color: white;
-border-bottom: 1px solid #303030;
-padding-left: 14px;
-height: 40px;
-}
-QTreeWidget::item::selected {
-background-color: #404040;;
-}
-QTreeWidget::item:hover {
-background-color: #303030;
-}
-QHeaderView {
-background-color: transparent;
-}
-QHeaderView::section {
-background-color: transparent;
-border: none;
-color: #B5B5B5;
-padding: 10px;
-padding-left: 20px;
-font-size: 14px;
-border-bottom: 1px solid #303030;
-}
-QTableCornerButton::section {
-background-color: transparent;
-}</string>
-                    </property>
-                    <property name="alternatingRowColors">
-                     <bool>false</bool>
-                    </property>
-                    <property name="selectionMode">
-                     <enum>QAbstractItemView::ContiguousSelection</enum>
-                    </property>
-                    <property name="verticalScrollMode">
-                     <enum>QAbstractItemView::ScrollPerPixel</enum>
-                    </property>
-                    <property name="indentation">
-                     <number>0</number>
-                    </property>
-                    <column>
-                     <property name="text">
-                      <string>RSS FEED URL</string>
-                     </property>
-                    </column>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QWidget" name="edit_channel_rss_feeds_buttons_container" native="true">
-                    <layout class="QHBoxLayout" name="horizontalLayout_23">
-                     <property name="leftMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="topMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="rightMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="bottomMargin">
-                      <number>8</number>
-                     </property>
-                     <item>
-                      <spacer name="horizontalSpacer_32">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>40</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item>
-                      <widget class="EllipseButton" name="edit_channel_details_rss_feeds_remove_selected_button">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border-radius: 12px;
-padding-left: 4px;
-padding-right: 4px;</string>
-                       </property>
-                       <property name="text">
-                        <string>REMOVE SELECTED</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="EllipseButton" name="edit_channel_details_rss_add_button">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border-radius: 12px;
-padding-left: 4px;
-padding-right: 4px;</string>
-                       </property>
-                       <property name="text">
-                        <string>ADD</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="EllipseButton" name="edit_channel_details_rss_refresh_button">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border-radius: 12px;
-padding-left: 4px;
-padding-right: 4px;</string>
-                       </property>
-                       <property name="text">
-                        <string>REFRESH ALL</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
-                <widget class="QWidget" name="edit_channel_details_playlist_edit_page">
-                 <layout class="QVBoxLayout" name="verticalLayout">
-                  <property name="spacing">
-                   <number>0</number>
-                  </property>
-                  <property name="leftMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="topMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="rightMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="bottomMargin">
-                   <number>0</number>
-                  </property>
-                  <item>
-                   <widget class="QLabel" name="label_27">
-                    <property name="styleSheet">
-                     <string notr="true">margin: 10px;</string>
-                    </property>
-                    <property name="text">
-                     <string>Please enter the details of your playlist below.</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QWidget" name="playlist_edit_form" native="true">
-                    <layout class="QFormLayout" name="formLayout_5">
-                     <property name="fieldGrowthPolicy">
-                      <enum>QFormLayout::ExpandingFieldsGrow</enum>
-                     </property>
-                     <item row="0" column="0">
-                      <widget class="QLabel" name="playlist_edit_name_label">
-                       <property name="styleSheet">
-                        <string notr="true">color: #B5B5B5;</string>
-                       </property>
-                       <property name="text">
-                        <string>Playlist name</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item row="0" column="1">
-                      <widget class="QLineEdit" name="playlist_edit_name">
-                       <property name="styleSheet">
-                        <string notr="true"/>
-                       </property>
-                       <property name="placeholderText">
-                        <string>Playlist name</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item row="2" column="0">
-                      <widget class="QLabel" name="playlist_edit_description_label">
-                       <property name="styleSheet">
-                        <string notr="true">color: #B5B5B5;</string>
-                       </property>
-                       <property name="text">
-                        <string>Playlist description</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item row="2" column="1">
-                      <widget class="QTextEdit" name="playlist_edit_description">
-                       <property name="styleSheet">
-                        <string notr="true"/>
-                       </property>
-                       <property name="placeholderText">
-                        <string>Playlist description</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item row="4" column="1">
-                      <widget class="QWidget" name="widget_12" native="true">
-                       <layout class="QHBoxLayout" name="horizontalLayout_30">
-                        <property name="spacing">
-                         <number>0</number>
-                        </property>
-                        <property name="leftMargin">
-                         <number>0</number>
-                        </property>
-                        <property name="topMargin">
-                         <number>0</number>
-                        </property>
-                        <property name="rightMargin">
-                         <number>0</number>
-                        </property>
-                        <property name="bottomMargin">
-                         <number>0</number>
-                        </property>
-                        <item>
-                         <spacer name="horizontalSpacer_30">
-                          <property name="orientation">
-                           <enum>Qt::Horizontal</enum>
-                          </property>
-                          <property name="sizeHint" stdset="0">
-                           <size>
-                            <width>40</width>
-                            <height>20</height>
-                           </size>
-                          </property>
-                         </spacer>
-                        </item>
-                        <item>
-                         <widget class="EllipseButton" name="playlist_edit_cancel_button">
-                          <property name="minimumSize">
-                           <size>
-                            <width>0</width>
-                            <height>26</height>
-                           </size>
-                          </property>
-                          <property name="maximumSize">
-                           <size>
-                            <width>16777215</width>
-                            <height>26</height>
-                           </size>
-                          </property>
-                          <property name="cursor">
-                           <cursorShape>PointingHandCursor</cursorShape>
-                          </property>
-                          <property name="styleSheet">
-                           <string notr="true">border-radius: 13px;
-font-size: 14px;</string>
-                          </property>
-                          <property name="text">
-                           <string>CANCEL</string>
-                          </property>
-                         </widget>
-                        </item>
-                        <item>
-                         <spacer name="horizontalSpacer_50">
-                          <property name="orientation">
-                           <enum>Qt::Horizontal</enum>
-                          </property>
-                          <property name="sizeType">
-                           <enum>QSizePolicy::Fixed</enum>
-                          </property>
-                          <property name="sizeHint" stdset="0">
-                           <size>
-                            <width>10</width>
-                            <height>20</height>
-                           </size>
-                          </property>
-                         </spacer>
-                        </item>
-                        <item>
-                         <widget class="EllipseButton" name="playlist_edit_save_button">
-                          <property name="sizePolicy">
-                           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                            <horstretch>0</horstretch>
-                            <verstretch>0</verstretch>
-                           </sizepolicy>
-                          </property>
-                          <property name="minimumSize">
-                           <size>
-                            <width>0</width>
-                            <height>26</height>
-                           </size>
-                          </property>
-                          <property name="maximumSize">
-                           <size>
-                            <width>6000</width>
-                            <height>26</height>
-                           </size>
-                          </property>
-                          <property name="cursor">
-                           <cursorShape>PointingHandCursor</cursorShape>
-                          </property>
-                          <property name="styleSheet">
-                           <string notr="true">border-radius: 13px;
-font-size: 14px;
-padding-left: 4px;
-padding-right: 4px;</string>
-                          </property>
-                          <property name="text">
-                           <string>SAVE</string>
-                          </property>
-                         </widget>
-                        </item>
-                        <item>
-                         <spacer name="horizontalSpacer_31">
-                          <property name="orientation">
-                           <enum>Qt::Horizontal</enum>
-                          </property>
-                          <property name="sizeHint" stdset="0">
-                           <size>
-                            <width>40</width>
-                            <height>20</height>
-                           </size>
-                          </property>
-                         </spacer>
-                        </item>
-                       </layout>
-                      </widget>
-                     </item>
-                     <item row="1" column="0">
-                      <spacer name="verticalSpacer_11">
-                       <property name="orientation">
-                        <enum>Qt::Vertical</enum>
-                       </property>
-                       <property name="sizeType">
-                        <enum>QSizePolicy::Minimum</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>20</width>
-                         <height>2</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item row="3" column="1">
-                      <spacer name="verticalSpacer_12">
-                       <property name="orientation">
-                        <enum>Qt::Vertical</enum>
-                       </property>
-                       <property name="sizeType">
-                        <enum>QSizePolicy::Fixed</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>20</width>
-                         <height>10</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                  <item>
-                   <spacer name="verticalSpacer_2">
-                    <property name="orientation">
-                     <enum>Qt::Vertical</enum>
-                    </property>
-                    <property name="sizeHint" stdset="0">
-                     <size>
-                      <width>20</width>
-                      <height>40</height>
-                     </size>
-                    </property>
-                   </spacer>
-                  </item>
-                 </layout>
-                </widget>
-                <widget class="QWidget" name="edit_channel_details_playlist_torrents_page">
-                 <layout class="QVBoxLayout" name="verticalLayout">
-                  <property name="spacing">
-                   <number>0</number>
-                  </property>
-                  <property name="leftMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="topMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="rightMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="bottomMargin">
-                   <number>0</number>
-                  </property>
-                  <item>
-                   <widget class="QWidget" name="widget_13" native="true">
-                    <layout class="QHBoxLayout" name="horizontalLayout_11">
-                     <property name="spacing">
-                      <number>0</number>
-                     </property>
-                     <property name="leftMargin">
-                      <number>0</number>
-                     </property>
-                     <property name="topMargin">
-                      <number>0</number>
-                     </property>
-                     <property name="rightMargin">
-                      <number>0</number>
-                     </property>
-                     <property name="bottomMargin">
-                      <number>0</number>
-                     </property>
-                     <item>
-                      <spacer name="horizontalSpacer_52">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeType">
-                        <enum>QSizePolicy::Fixed</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>10</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item>
-                      <widget class="QToolButton" name="edit_channel_playlist_torrents_back">
-                       <property name="minimumSize">
-                        <size>
-                         <width>16</width>
-                         <height>18</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16</width>
-                         <height>18</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border: none; 
-border-image: url(images/page_back.png) 0 0 0 0 stretch stretch;
-background: none;</string>
-                       </property>
-                       <property name="text">
-                        <string/>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="edit_channel_details_playlist_torrents_header">
-                       <property name="styleSheet">
-                        <string notr="true">margin: 10px;
-font-size: 15px;
-font-weight: bold;
-margin-left: 5px;
-color: white;</string>
-                       </property>
-                       <property name="text">
-                        <string>Torrents in playlist 'bla'</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="LazyLoadList" name="edit_channel_playlist_torrents_list">
-                    <property name="styleSheet">
-                     <string notr="true">QListWidget::item:hover {
-background-color: #303030;
-}
-QListWidget::item:selected {
-background-color: #404040;
-}
-QListWidget::item {
-border-bottom: 1px solid #303030;
-}
-QListWidget {
-border: none;
-}</string>
-                    </property>
-                    <property name="selectionMode">
-                     <enum>QAbstractItemView::NoSelection</enum>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QWidget" name="widget_11" native="true">
-                    <layout class="QHBoxLayout" name="horizontalLayout_8">
-                     <property name="leftMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="topMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="rightMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="bottomMargin">
-                      <number>8</number>
-                     </property>
-                     <item>
-                      <spacer name="horizontalSpacer_51">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>506</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item>
-                      <widget class="EllipseButton" name="edit_channel_playlist_manage_torrents_button">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border-radius: 12px;
-padding-left: 4px;
-padding-right: 4px;</string>
-                       </property>
-                       <property name="text">
-                        <string>MANAGE TORRENTS</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
-                <widget class="ManagePlaylistPage" name="edit_channel_details_playlist_manage">
-                 <layout class="QVBoxLayout" name="verticalLayout">
-                  <property name="spacing">
-                   <number>0</number>
-                  </property>
-                  <property name="leftMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="topMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="rightMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="bottomMargin">
-                   <number>0</number>
-                  </property>
-                  <item>
-                   <widget class="QWidget" name="widget_14" native="true">
-                    <layout class="QHBoxLayout" name="horizontalLayout_18">
-                     <property name="spacing">
-                      <number>0</number>
-                     </property>
-                     <property name="leftMargin">
-                      <number>0</number>
-                     </property>
-                     <property name="topMargin">
-                      <number>0</number>
-                     </property>
-                     <property name="rightMargin">
-                      <number>0</number>
-                     </property>
-                     <property name="bottomMargin">
-                      <number>0</number>
-                     </property>
-                     <item>
-                      <spacer name="horizontalSpacer_53">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeType">
-                        <enum>QSizePolicy::Fixed</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>10</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item>
-                      <widget class="QToolButton" name="manage_channel_playlist_torrents_back">
-                       <property name="minimumSize">
-                        <size>
-                         <width>16</width>
-                         <height>18</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16</width>
-                         <height>18</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border: none; 
-border-image: url(images/page_back.png) 0 0 0 0 stretch stretch;
-background: none;</string>
-                       </property>
-                       <property name="text">
-                        <string/>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="edit_channel_details_manage_playlist_header">
-                       <property name="styleSheet">
-                        <string notr="true">margin: 10px;
-font-size: 15px;
-font-weight: bold;
-margin-left: 5px;
-color: white;</string>
-                       </property>
-                       <property name="text">
-                        <string>Manage torrents in playlist 'bla'</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QWidget" name="widget_15" native="true">
-                    <property name="styleSheet">
-                     <string notr="true">QListWidget {
-background-color: #303030;
-border: none;
-}
-QListWidget::item {
-color: white;
-}
-QToolButton {
-font-size: 16px;
-border-radius: 13px;
-color: white;
-}</string>
-                    </property>
-                    <layout class="QGridLayout" name="gridLayout_4">
-                     <item row="1" column="1">
-                      <widget class="QWidget" name="widget_16" native="true">
-                       <layout class="QVBoxLayout" name="verticalLayout_11">
-                        <property name="spacing">
-                         <number>6</number>
-                        </property>
-                        <property name="leftMargin">
-                         <number>0</number>
-                        </property>
-                        <property name="topMargin">
-                         <number>0</number>
-                        </property>
-                        <property name="rightMargin">
-                         <number>0</number>
-                        </property>
-                        <property name="bottomMargin">
-                         <number>0</number>
-                        </property>
-                        <item>
-                         <spacer name="verticalSpacer">
-                          <property name="orientation">
-                           <enum>Qt::Vertical</enum>
-                          </property>
-                          <property name="sizeHint" stdset="0">
-                           <size>
-                            <width>20</width>
-                            <height>40</height>
-                           </size>
-                          </property>
-                         </spacer>
-                        </item>
-                        <item>
-                         <widget class="CircleButton" name="playlist_manage_add_to_playlist">
-                          <property name="minimumSize">
-                           <size>
-                            <width>26</width>
-                            <height>26</height>
-                           </size>
-                          </property>
-                          <property name="maximumSize">
-                           <size>
-                            <width>26</width>
-                            <height>26</height>
-                           </size>
-                          </property>
-                          <property name="cursor">
-                           <cursorShape>PointingHandCursor</cursorShape>
-                          </property>
-                          <property name="styleSheet">
-                           <string notr="true"/>
-                          </property>
-                          <property name="text">
-                           <string>&lt;</string>
-                          </property>
-                         </widget>
-                        </item>
-                        <item>
-                         <spacer name="verticalSpacer_13">
-                          <property name="orientation">
-                           <enum>Qt::Vertical</enum>
-                          </property>
-                          <property name="sizeType">
-                           <enum>QSizePolicy::Fixed</enum>
-                          </property>
-                          <property name="sizeHint" stdset="0">
-                           <size>
-                            <width>20</width>
-                            <height>10</height>
-                           </size>
-                          </property>
-                         </spacer>
-                        </item>
-                        <item>
-                         <widget class="CircleButton" name="playlist_manage_remove_from_playlist">
-                          <property name="minimumSize">
-                           <size>
-                            <width>26</width>
-                            <height>26</height>
-                           </size>
-                          </property>
-                          <property name="maximumSize">
-                           <size>
-                            <width>26</width>
-                            <height>26</height>
-                           </size>
-                          </property>
-                          <property name="cursor">
-                           <cursorShape>PointingHandCursor</cursorShape>
-                          </property>
-                          <property name="styleSheet">
-                           <string notr="true"/>
-                          </property>
-                          <property name="text">
-                           <string>&gt;</string>
-                          </property>
-                         </widget>
-                        </item>
-                        <item>
-                         <spacer name="verticalSpacer_3">
-                          <property name="orientation">
-                           <enum>Qt::Vertical</enum>
-                          </property>
-                          <property name="sizeHint" stdset="0">
-                           <size>
-                            <width>20</width>
-                            <height>40</height>
-                           </size>
-                          </property>
-                         </spacer>
-                        </item>
-                       </layout>
-                      </widget>
-                     </item>
-                     <item row="1" column="0">
-                      <widget class="QListWidget" name="playlist_manage_in_playlist_list">
-                       <property name="selectionMode">
-                        <enum>QAbstractItemView::ExtendedSelection</enum>
-                       </property>
-                       <property name="verticalScrollMode">
-                        <enum>QAbstractItemView::ScrollPerPixel</enum>
-                       </property>
-                       <property name="horizontalScrollMode">
-                        <enum>QAbstractItemView::ScrollPerPixel</enum>
-                       </property>
-                      </widget>
-                     </item>
-                     <item row="1" column="2">
-                      <widget class="QListWidget" name="playlist_manage_in_channel_list">
-                       <property name="selectionMode">
-                        <enum>QAbstractItemView::ExtendedSelection</enum>
-                       </property>
-                       <property name="verticalScrollMode">
-                        <enum>QAbstractItemView::ScrollPerPixel</enum>
-                       </property>
-                       <property name="horizontalScrollMode">
-                        <enum>QAbstractItemView::ScrollPerPixel</enum>
-                       </property>
-                      </widget>
-                     </item>
-                     <item row="0" column="0">
-                      <widget class="QLabel" name="label_29">
-                       <property name="text">
-                        <string>Torrents in playlist</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item row="0" column="2">
-                      <widget class="QLabel" name="label_42">
-                       <property name="text">
-                        <string>Torrents in channel but not in playlist</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QWidget" name="widget_17" native="true">
-                    <layout class="QHBoxLayout" name="horizontalLayout_19">
-                     <property name="leftMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="topMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="rightMargin">
-                      <number>8</number>
-                     </property>
-                     <property name="bottomMargin">
-                      <number>8</number>
-                     </property>
-                     <item>
-                      <spacer name="horizontalSpacer_54">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>581</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item>
-                      <widget class="EllipseButton" name="edit_channel_manage_playlist_save_button">
-                       <property name="sizePolicy">
-                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                         <horstretch>0</horstretch>
-                         <verstretch>0</verstretch>
-                        </sizepolicy>
-                       </property>
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border-radius: 12px;
-padding-left: 4px;
-padding-right: 4px;</string>
-                       </property>
-                       <property name="text">
-                        <string>SAVE</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </widget>
+                   <widget class="ChannelViewWidget" name="edit_channel_torrents_list" native="true"/>
                   </item>
                  </layout>
                 </widget>
@@ -4611,7 +3052,7 @@ color: #B5B5B5;</string>
            </widget>
           </item>
           <item>
-           <widget class="QWidget" name="search_page_container" native="true">
+           <widget class="ChannelViewWidget" name="search_page_container" native="true">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
               <horstretch>0</horstretch>
@@ -5005,7 +3446,7 @@ background-color: transparent;
            </widget>
           </item>
           <item>
-           <widget class="QWidget" name="channel_page_container" native="true">
+           <widget class="ChannelViewWidget" name="channel_page_container" native="true">
             <property name="styleSheet">
              <string notr="true"/>
             </property>
@@ -5832,25 +4273,7 @@ color: white;</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="13" column="0">
-                   <widget class="QLabel" name="label_33">
-                    <property name="styleSheet">
-                     <string notr="true">font-weight: bold;
-color: white;</string>
-                    </property>
-                    <property name="text">
-                     <string>Beta features</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="14" column="0">
-                   <widget class="QLabel" name="label_34">
-                    <property name="text">
-                     <string>Enable Channel 2.0 editing</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="14" column="1">
+                  <item row="13" column="1">
                    <widget class="QCheckBox" name="chant_channel_edit">
                     <property name="styleSheet">
                      <string notr="true">margin-top: 2px;</string>
@@ -7661,6 +6084,12 @@ font-size: 12px;</string>
           </property>
           <item>
            <widget class="QWidget" name="subscribed_channels_header" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <layout class="QHBoxLayout" name="horizontalLayout_13">
              <property name="spacing">
               <number>0</number>
@@ -7770,7 +6199,7 @@ margin: 10px;</string>
            </widget>
           </item>
           <item>
-           <widget class="LazyLoadList" name="subscribed_channels_list">
+           <widget class="ChannelViewWidget" name="subscribed_channels_container" native="true">
             <property name="styleSheet">
              <string notr="true">QListWidget::item:hover {
 background-color: #303030;
@@ -7782,9 +6211,6 @@ QListWidget {
 border: none;
 border-top: 1px solid #555;
 }</string>
-            </property>
-            <property name="verticalScrollMode">
-             <enum>QAbstractItemView::ScrollPerPixel</enum>
             </property>
            </widget>
           </item>
@@ -9184,206 +7610,6 @@ background-color: #303030;
           </item>
          </layout>
         </widget>
-        <widget class="PlaylistPage" name="playlist_page">
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <property name="spacing">
-           <number>0</number>
-          </property>
-          <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <property name="rightMargin">
-           <number>0</number>
-          </property>
-          <property name="bottomMargin">
-           <number>0</number>
-          </property>
-          <item>
-           <widget class="QWidget" name="playlist_page_header" native="true">
-            <layout class="QHBoxLayout" name="horizontalLayout_6">
-             <property name="spacing">
-              <number>0</number>
-             </property>
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <property name="rightMargin">
-              <number>0</number>
-             </property>
-             <property name="bottomMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <spacer name="horizontalSpacer_46">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>10</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="QToolButton" name="playlist_back_button">
-               <property name="minimumSize">
-                <size>
-                 <width>16</width>
-                 <height>18</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16</width>
-                 <height>18</height>
-                </size>
-               </property>
-               <property name="cursor">
-                <cursorShape>PointingHandCursor</cursorShape>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">border: none; 
-border-image: url(images/page_back.png) 0 0 0 0 stretch stretch;</string>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="horizontalSpacer_48">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>10</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="QLabel" name="playlist_name_label">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>50</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>50</height>
-                </size>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">color: #eee;
-background-color: transparent;
-font-size: 20px;
-font-weight: bold;</string>
-               </property>
-               <property name="text">
-                <string>My Playlist</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="horizontalSpacer_45">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>10</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="QLabel" name="playlist_num_items_label">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">font-size: 14px;
-color: #B5B5B5;</string>
-               </property>
-               <property name="text">
-                <string>23 items</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="horizontalSpacer_47">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>10</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item>
-           <widget class="LazyLoadList" name="playlist_torrents_list">
-            <property name="styleSheet">
-             <string notr="true">QListWidget::item:hover {
-background-color: #303030;
-}
-QListWidget::item:selected {
-background-color: #404040;
-}
-QListWidget::item {
-border-bottom: 1px solid #303030;
-}
-QListWidget {
-border: none;
-border-top: 1px solid #555;
-}</string>
-            </property>
-            <property name="verticalScrollMode">
-             <enum>QAbstractItemView::ScrollPerPixel</enum>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
         <widget class="LoadingPage" name="loading_page">
          <layout class="QVBoxLayout" name="verticalLayout">
           <property name="spacing">
@@ -9610,6 +7836,12 @@ font-weight:bold;</string>
           </property>
           <item>
            <widget class="QWidget" name="widget_22" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <layout class="QHBoxLayout" name="horizontalLayout_35">
              <property name="spacing">
               <number>0</number>
@@ -9711,23 +7943,7 @@ color: #B5B5B5;</string>
            </widget>
           </item>
           <item>
-           <widget class="LazyLoadList" name="discovered_channels_list">
-            <property name="styleSheet">
-             <string notr="true">QListWidget::item:hover {
-background-color: #303030;
-}
-QListWidget::item {
-border-bottom: 1px solid #303030;
-}
-QListWidget {
-border: none;
-border-top: 1px solid #555;
-}</string>
-            </property>
-            <property name="verticalScrollMode">
-             <enum>QAbstractItemView::ScrollPerPixel</enum>
-            </property>
-           </widget>
+           <widget class="ChannelViewWidget" name="discovered_channels_container" native="true"/>
           </item>
          </layout>
         </widget>
@@ -12038,7 +10254,7 @@ QTabBar::tab:selected {
 }</string>
             </property>
             <property name="currentIndex">
-             <number>1</number>
+             <number>0</number>
             </property>
             <widget class="QWidget" name="tab_4">
              <attribute name="title">
@@ -12618,7 +10834,7 @@ margin-top: 9px;</string>
               <widget class="QWidget" name="trust_interactions_upload_stats_box" native="true">
                <property name="styleSheet">
                 <string notr="true">QWidget {
-background-color: #383838; 
+background-color: #383838;
 }
 QLabel {
 border: none;
@@ -12702,7 +10918,7 @@ border: none;
                </property>
                <property name="styleSheet">
                 <string notr="true">QWidget {
-background-color: #383838; 
+background-color: #383838;
 }
 QLabel {
 border: none;
@@ -12775,7 +10991,7 @@ border: none;
                </property>
                <property name="styleSheet">
                 <string notr="true">QWidget {
-background-color: #383838; 
+background-color: #383838;
 }
 QLabel {
 border: none;
@@ -12999,15 +11215,15 @@ color: #eee;</string>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
+   <class>EllipseButton</class>
+   <extends>QToolButton</extends>
+   <header>TriblerGUI.widgets.ellipsebutton.h</header>
+  </customwidget>
+  <customwidget>
    <class>SubscriptionsWidget</class>
    <extends>QWidget</extends>
    <header>TriblerGUI.widgets.subscriptionswidget.h</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>EllipseButton</class>
-   <extends>QToolButton</extends>
-   <header>TriblerGUI.widgets.ellipsebutton.h</header>
   </customwidget>
   <customwidget>
    <class>VideoPlayerPage</class>
@@ -13062,11 +11278,6 @@ color: #eee;</string>
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>LazyLoadList</class>
-   <extends>QListWidget</extends>
-   <header>TriblerGUI.widgets.lazyloadlist.h</header>
-  </customwidget>
-  <customwidget>
    <class>SubscribedChannelsPage</class>
    <extends>QWidget</extends>
    <header>TriblerGUI.widgets.subscribedchannelspage.h</header>
@@ -13090,21 +11301,9 @@ color: #eee;</string>
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>PlaylistPage</class>
-   <extends>QWidget</extends>
-   <header>TriblerGUI.widgets.playlistpage.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>DownloadsDetailsTabWidget</class>
    <extends>QTabWidget</extends>
    <header>TriblerGUI.widgets.downloadsdetailstabwidget.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>ManagePlaylistPage</class>
-   <extends>QWidget</extends>
-   <header>TriblerGUI.widgets.manageplaylistpage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
@@ -13184,6 +11383,11 @@ color: #eee;</string>
    <container>1</container>
   </customwidget>
   <customwidget>
+   <class>ChannelViewWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">TriblerGUI.widgets.channelview.h</header>
+  </customwidget>
+  <customwidget>
    <class>TokenMiningPage</class>
    <extends>QWidget</extends>
    <header>TriblerGUI.widgets.tokenminingpage.h</header>
@@ -13193,279 +11397,7 @@ color: #eee;</string>
  <resources/>
  <connections>
   <connection>
-   <sender>top_search_bar</sender>
-   <signal>returnPressed()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_top_search_button_click()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>308</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>add_torrent_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_add_torrent_button_click()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>826</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>top_menu_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_top_menu_button_click()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>17</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>subscribed_channels_list</sender>
-   <signal>itemClicked(QListWidgetItem*)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_channel_item_click(QListWidgetItem*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>250</x>
-     <y>65</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_home</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_home()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>100</x>
-     <y>77</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_my_channel</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_my_channel()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>100</x>
-     <y>121</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_video_player</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_video_player()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>100</x>
-     <y>237</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_downloads</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_downloads()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>100</x>
-     <y>197</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_subscriptions</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_subscriptions()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>100</x>
-     <y>157</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>top_search_bar</sender>
-   <signal>textChanged(QString)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_search_text_change()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>308</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>channel_back_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_page_back_clicked()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>218</x>
-     <y>75</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>playlist_back_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_page_back_clicked()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>221</x>
-     <y>75</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_discovered</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_discovered()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>100</x>
-     <y>117</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>discovered_channels_list</sender>
-   <signal>itemClicked(QListWidgetItem*)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_channel_item_click(QListWidgetItem*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>527</x>
-     <y>366</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_debug</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_debug()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>94</x>
-     <y>327</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>settings_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_settings_button_click()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>789</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>left_menu_button_search</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>clicked_menu_button_search()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>94</x>
-     <y>111</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>327</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>market_back_button</sender>
+   <sender>wallets_back_button</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
    <slot>on_page_back_clicked()</slot>
@@ -13497,14 +11429,62 @@ color: #eee;</string>
    </hints>
   </connection>
   <connection>
-   <sender>wallets_back_button</sender>
-   <signal>clicked()</signal>
+   <sender>top_search_bar</sender>
+   <signal>textChanged(QString)</signal>
    <receiver>MainWindow</receiver>
-   <slot>on_page_back_clicked()</slot>
+   <slot>on_search_text_change()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>218</x>
-     <y>75</y>
+     <x>308</x>
+     <y>24</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>top_search_bar</sender>
+   <signal>returnPressed()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_top_search_button_click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>308</x>
+     <y>24</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>top_menu_button</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_top_menu_button_click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>17</x>
+     <y>24</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>settings_button</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_settings_button_click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>789</x>
+     <y>24</y>
     </hint>
     <hint type="destinationlabel">
      <x>427</x>
@@ -13529,6 +11509,150 @@ color: #eee;</string>
    </hints>
   </connection>
   <connection>
+   <sender>market_back_button</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_page_back_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>218</x>
+     <y>75</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_video_player</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_video_player()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>237</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_subscriptions</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_subscriptions()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>157</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_search</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_search()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>94</x>
+     <y>111</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_my_channel</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_my_channel()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>121</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_home</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_home()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>77</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_downloads</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_downloads()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>197</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_discovered</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_discovered()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>117</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>left_menu_button_debug</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_debug()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>94</x>
+     <y>327</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
    <sender>force_shutdown_btn</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
@@ -13541,6 +11665,38 @@ color: #eee;</string>
     <hint type="destinationlabel">
      <x>20</x>
      <y>20</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>channel_back_button</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_page_back_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>218</x>
+     <y>75</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>add_torrent_button</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_add_torrent_button_click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>826</x>
+     <y>24</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
     </hint>
    </hints>
   </connection>

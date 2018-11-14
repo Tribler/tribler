@@ -151,7 +151,7 @@ class TestTorrentDBHandler(AbstractDB):
         infohash_str = 'AA8cTG7ZuPsyblbRE7CyxsrKUCg='
         infohash = str2bin(infohash_str)
         self.assertTrue(self.tdb.hasTorrent(infohash))
-        self.assertTrue(self.tdb.hasTorrent(infohash)) # cache will trigger
+        self.assertTrue(self.tdb.hasTorrent(infohash))  # cache will trigger
         fake_infohash = 'fake_infohash_100000'
         self.assertFalse(self.tdb.hasTorrent(fake_infohash))
 
@@ -244,7 +244,7 @@ class TestTorrentDBHandler(AbstractDB):
         self.tdb.freeSpace(20)
         res = self.tdb.getNumberCollectedTorrents()
         self.session.lm.torrent_store.close()
-        self.assertEqual(res, old_res-20)
+        self.assertEqual(res, old_res - 20)
 
     def test_get_search_suggestions(self):
         self.assertEqual(self.tdb.getSearchSuggestion(["content", "cont"]), ["content 1"])
@@ -292,7 +292,8 @@ class TestTorrentDBHandler(AbstractDB):
         """
         Test the search procedure in the local database when searching for torrents
         """
-        results = self.tdb.search_in_local_torrents_db('content', ['infohash', 'num_seeders'])
+        results = self.tdb.search_in_local_torrents_db('content', ['infohash', 'num_seeders'], family_filter=False,
+                                                       last=5000)
         self.assertEqual(len(results), 4849)
         self.assertNotEqual(results[0][-1], 0.0)  # Relevance score of result should not be zero
         results = self.tdb.search_in_local_torrents_db('fdsafasfds', ['infohash'])

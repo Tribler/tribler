@@ -1,12 +1,24 @@
 from __future__ import absolute_import
 
+from binascii import hexlify
 from datetime import datetime
 
 from pony import orm
 
 from Tribler.Core.Modules.MetadataStore.serialization import MetadataPayload, DeletedMetadataPayload, TYPELESS, DELETED
+from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
+
+# Metadata, torrents and channel statuses
+NEW = 0
+TODELETE = 1
+COMMITTED = 2
+JUST_RECEIVED = 3
+UPDATE_AVAILABLE = 4
+PREVIEW_UPDATE_AVAILABLE = 5
+
+PUBLIC_KEY_LEN = 74
 
 
 def define_binding(db):
@@ -18,18 +30,56 @@ def define_binding(db):
         signature = orm.Optional(database_blob)
         timestamp = orm.Optional(datetime, default=datetime.utcnow)
         tc_pointer = orm.Optional(int, size=64, default=0)
-        public_key = orm.Optional(database_blob, default='\x00' * 74)
+        public_key = orm.Optional(database_blob, default='\x00' * PUBLIC_KEY_LEN)
         addition_timestamp = orm.Optional(datetime, default=datetime.utcnow)
-        deleted = orm.Optional(bool, default=False)
+        status = orm.Optional(int, default=COMMITTED)
         _payload_class = MetadataPayload
         _my_key = None
         _logger = None
 
         def __init__(self, *args, **kwargs):
+
+            # Special "sign_with" argument given, sign with it
+            private_key_override = None
+            if "sign_with" in kwargs:
+                kwargs["public_key"] = database_blob(kwargs["sign_with"].pub().key_to_bin())
+                private_key_override = kwargs["sign_with"]
+                kwargs.pop("sign_with")
+
+            # FIXME: potential race condition here? To avoid it, generate the signature _before_ calling "super"
             super(Metadata, self).__init__(*args, **kwargs)
-            # If no key/signature given, sign with our own key.
-            if "public_key" not in kwargs or (kwargs["public_key"] == self._my_key and "signature" not in kwargs):
+
+            if private_key_override:
+                self.sign(private_key_override)
+                return
+            # No key/signature given, sign with our own key.
+            elif ("signature" not in kwargs) and \
+                    (("public_key" not in kwargs) or (
+                            kwargs["public_key"] == database_blob(self._my_key.pub().key_to_bin()))):
                 self.sign(self._my_key)
+                return
+
+            # Key/signature given, check them for correctness
+            elif ("public_key" in kwargs) and ("signature" in kwargs) and self.has_valid_signature():
+                return
+
+            # Otherwise, something is wrong
+            raise InvalidSignatureException(
+                ("Attempted to create %s object with invalid signature/PK: " % str(self.__class__.__name__)) +
+                (hexlify(self.signature) if self.signature else "empty signature ") + " / " +
+                (hexlify(self.public_key) if self.public_key else " empty PK"))
+
+            """
+            # This is a way to manually define Pony entity default attributes in case we really
+            have to generate the signature before creating the object 
+            from pony.orm.core import DEFAULT
+            def generate_dict_from_pony_args(cls, **kwargs):
+                d = {}
+                for attr in cls._attrs_:
+                    val = kwargs.get(attr.name, DEFAULT)
+                    d[attr.name] = attr.validate(val, entity=cls)
+                return d
+            """
 
         def _serialized(self, key=None):
             """

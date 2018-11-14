@@ -1,9 +1,12 @@
 from __future__ import absolute_import
+
+import random
+
 from pony.orm import db_session
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
-import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
 from Tribler.Core.exceptions import DuplicateChannelNameError
@@ -42,7 +45,6 @@ class AbstractTestChantEndpoint(AbstractApiTest):
         super(AbstractTestChantEndpoint, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
         self.config.set_chant_enabled(True)
-        self.config.set_chant_channel_edit(True)
 
     @db_session
     def create_my_channel(self, name, description):
@@ -56,8 +58,9 @@ class AbstractTestChantEndpoint(AbstractApiTest):
         """
         Add a random torrent to your channel.
         """
-        return self.session.lm.mds.TorrentMetadata(title='test' if not name else name,
-                                                   infohash='a' * 20)
+        return self.session.lm.mds.TorrentMetadata(status=NEW, title='test' if not name else name,
+                                                   infohash=database_blob(
+                                                       bytearray(random.getrandbits(8) for _ in xrange(20))))
 
     @db_session
     def add_random_channel(self):
@@ -67,6 +70,7 @@ class AbstractTestChantEndpoint(AbstractApiTest):
         """
         rand_key = default_eccrypto.generate_key('low')
         new_channel = self.session.lm.mds.ChannelMetadata(
+            sign_with=rand_key,
             public_key=database_blob(rand_key.pub().key_to_bin()), title='test', tags='test')
         new_channel.sign(rand_key)
         return new_channel
@@ -117,31 +121,3 @@ class TestChannelsEndpoint(AbstractTestChannelsEndpoint):
         """
         self.should_check_equality = False
         return self.do_request('channels/thisendpointdoesnotexist123', expected_code=404)
-
-    @trial_timeout(10)
-    def test_get_discovered_channels_no_channels(self):
-        """
-        Testing whether the API returns no channels when fetching discovered channels
-        and there are no channels in the database
-        """
-        expected_json = {u'channels': []}
-        return self.do_request('channels/discovered', expected_code=200, expected_json=expected_json)
-
-    @trial_timeout(10)
-    def test_get_discovered_channels(self):
-        """
-        Testing whether the API returns inserted channels when fetching discovered channels
-        """
-        self.should_check_equality = False
-        for i in xrange(0, 10):
-            self.insert_channel_in_db('rand%d' % i, 42 + i, 'Test channel %d' % i, 'Test description %d' % i)
-        self.insert_channel_in_db('randbad', 100, 'badterm', 'Test description bad')
-
-        def verify_channels(channels):
-            channels_json = json.loads(channels)['channels']
-            self.assertEqual(len(channels_json), 10)
-            channels_json = sorted(channels_json, key=lambda channel: channel['name'])
-            for ind in xrange(len(channels_json)):
-                self.assertEqual(channels_json[ind]['name'], 'Test channel %d' % ind)
-
-        return self.do_request('channels/discovered', expected_code=200).addCallback(verify_channels)
