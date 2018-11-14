@@ -166,7 +166,7 @@ class PopularityCommunity(PubSubCommunity):
         peer is specified then only that peer receives this message.
         """
         if peer and peer not in self.get_peers():
-            self.logger.error(ERROR_UNKNOWN_PEER)
+            self.logger.debug(ERROR_UNKNOWN_PEER)
             return
 
         packet = self.create_message_packet(MSG_TORRENT_HEALTH_RESPONSE, payload)
@@ -178,7 +178,7 @@ class PopularityCommunity(PubSubCommunity):
         peer is specified then only that peer receives this message.
         """
         if peer and peer not in self.get_peers():
-            self.logger.error(ERROR_UNKNOWN_PEER)
+            self.logger.debug(ERROR_UNKNOWN_PEER)
             return
 
         packet = self.create_message_packet(MSG_CHANNEL_HEALTH_RESPONSE, payload)
@@ -189,7 +189,7 @@ class PopularityCommunity(PubSubCommunity):
         Method to request information about a torrent with given infohash to a peer.
         """
         if peer not in self.get_peers():
-            self.logger.error(ERROR_UNKNOWN_PEER)
+            self.logger.debug(ERROR_UNKNOWN_PEER)
             return
 
         info_request = TorrentInfoRequestPayload(infohash)
@@ -201,7 +201,7 @@ class PopularityCommunity(PubSubCommunity):
         Method to send information about a torrent with given infohash to the requesting peer.
         """
         if peer not in self.get_peers():
-            self.logger.error(ERROR_UNKNOWN_PEER)
+            self.logger.debug(ERROR_UNKNOWN_PEER)
             return
 
         db_torrent = self.content_repository.get_torrent(infohash)
@@ -285,7 +285,7 @@ class PopularityCommunity(PubSubCommunity):
 
         content_type, content = self.content_repository.pop_content()
         if content_type is None:
-            self.logger.error(ERROR_NO_CONTENT)
+            self.logger.debug(ERROR_NO_CONTENT)
             return
 
         self.logger.info("Publishing content[type:%d]", content_type)
