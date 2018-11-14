@@ -7,6 +7,7 @@ from libtorrent import file_storage, add_files, create_torrent, set_piece_hashes
 from pony import orm
 from pony.orm import db_session
 
+from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import TODELETE, NEW, COMMITTED
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, CHANNEL_TORRENT
 from Tribler.Core.exceptions import DuplicateTorrentFileError, DuplicateChannelNameError
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -46,7 +47,7 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
     offset = 0
     last_entry_index = None
     for index, metadata in enumerate(metadata_list[start_index:], start_index):
-        blob = ''.join(metadata.serialized_delete() if metadata.deleted else metadata.serialized())
+        blob = ''.join(metadata.serialized_delete() if metadata.status == TODELETE else metadata.serialized())
         # Chunk size limit reached?
         if offset + len(blob) > chunk_size:
             break
@@ -133,7 +134,9 @@ def define_binding(db):
                 # We only remove mdblobs and leave the rest as it is
                 if filename.endswith(BLOB_EXTENSION):
                     os.unlink(file_path)
-            self.update_channel_torrent(self.contents_list)
+            for g in self.contents:
+                g.status = NEW
+            self.commit_channel_torrent()
 
         def update_channel_torrent(self, metadata_list):
             """
@@ -147,8 +150,8 @@ def define_binding(db):
             if not os.path.isdir(channel_dir):
                 os.makedirs(channel_dir)
 
-            # Basically, a channel's version represents the count of unique entries it ever had.
-            # For a channel that never had deleted anything, it's version = len(contents)
+            # Basically, a channel's version number is the size of the set of all unique entries that were ever put
+            # into the channel. For a channel that never had anything deleted, version = len(contents)
             old_version = self.version
             index = 0
             while index < len(metadata_list):
@@ -170,21 +173,11 @@ def define_binding(db):
             # a new metadata entry, the latter would still be listened as a staged entry. To account for this,
             # we store torrent_date with higher resolution. As libtorrent uses the moment of beginning of the torrent
             # creation as a source for 'creation date' for torrent, we sample it just before calling it. Then we select
-            # the larger of two timestamps.
+            # the larger of the two timestamps.
             torrent_date = datetime.utcfromtimestamp(torrent['creation date'])
             torrent_date_corrected = start_ts if start_ts > torrent_date else torrent_date
 
-            self.update_metadata(update_dict={"infohash": infohash, "version": new_version,
-                                              "torrent_date": torrent_date_corrected})
-
-            self.local_version = new_version
-            # Write the channel mdblob away
-            with open(os.path.join(self._channels_dir, self.dir_name + BLOB_EXTENSION), 'wb') as out_file:
-                out_file.write(''.join(self.serialized()))
-
-            self._logger.info("Channel %s committed with %i new entries. New version is %i",
-                              str(self.public_key).encode("hex"), len(metadata_list), new_version)
-            return infohash
+            return {"infohash": infohash, "version": new_version, "torrent_date": torrent_date_corrected}
 
         def commit_channel_torrent(self):
             """
@@ -193,15 +186,29 @@ def define_binding(db):
             :return The new infohash, should be used to update the downloads
             """
             new_infohash = None
+            md_list = self.staged_entries_list
             try:
-                new_infohash = self.update_channel_torrent(self.staged_entries_list)
+                update_dict = self.update_channel_torrent(md_list)
             except IOError:
                 self._logger.error(
                     "Error during channel torrent commit, not going to garbage collect the channel. Channel %s",
                     str(self.public_key).encode("hex"))
             else:
-                # Clean up obsolete entries
-                self.garbage_collect()
+                self.update_metadata(update_dict)
+                self.local_version = self.version
+                # Change status of committed metadata and clean up obsolete TODELETE entries
+                for g in md_list:
+                    if g.status == NEW:
+                        g.status = COMMITTED
+                    elif g.status == TODELETE:
+                        g.delete()
+
+                # Write the channel mdblob to disk
+                with open(os.path.join(self._channels_dir, self.dir_name + BLOB_EXTENSION), 'wb') as out_file:
+                    out_file.write(''.join(self.serialized()))
+
+                self._logger.info("Channel %s committed with %i new entries. New version is %i",
+                                  str(self.public_key).encode("hex"), len(md_list), update_dict['version'])
             return new_infohash
 
         @db_session
@@ -236,20 +243,21 @@ def define_binding(db):
             torrent_metadata.sign()
 
         @property
+        def dirty(self):
+            return self.contents.where(lambda g: g.status == NEW or g.status == TODELETE).exists()
+
+
+        @property
         def contents(self):
             return db.TorrentMetadata.select(lambda g: g.public_key == self.public_key and g != self)
 
         @property
         def uncommitted_contents(self):
-            return (g for g in self.newer_entries if not g.deleted)
-
-        @property
-        def committed_contents(self):
-            return (g for g in self.older_entries if not g.deleted)
+            return self.contents.where(lambda g: g.status == NEW)
 
         @property
         def deleted_contents(self):
-            return (g for g in self.contents if g.deleted)
+            return self.contents.where(lambda g: g.status == TODELETE)
 
         @property
         def dir_name(self):
@@ -257,23 +265,9 @@ def define_binding(db):
             return str(self.public_key).encode('hex')[-CHANNEL_DIR_NAME_LENGTH:]
 
         @property
-        def newer_entries(self):
-            return db.Metadata.select(
-                lambda g: g.timestamp > self.torrent_date and g.public_key == self.public_key and g != self)
-
-        @property
-        def older_entries(self):
-            return db.Metadata.select(
-                lambda g: g.timestamp < self.torrent_date and g.public_key == self.public_key and g != self)
-
-        @db_session
-        def garbage_collect(self):
-            orm.delete(g for g in self.older_entries if g.deleted)
-
-        @property
         @db_session
         def staged_entries_list(self):
-            return list(self.deleted_contents) + list(self.newer_entries)
+            return list(self.deleted_contents) + list(self.uncommitted_contents)
 
         @property
         @db_session
@@ -283,6 +277,7 @@ def define_binding(db):
         @property
         def contents_len(self):
             return orm.count(self.contents)
+
 
         @db_session
         def delete_torrent_from_channel(self, infohash):
@@ -296,11 +291,29 @@ def define_binding(db):
                 torrent_metadata = db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash)
             else:
                 return False
-            if torrent_metadata.timestamp > self.torrent_date:
+            if torrent_metadata.status == NEW:
                 # Uncommited metadata. Delete immediately
                 torrent_metadata.delete()
             else:
-                torrent_metadata.deleted = True
+                torrent_metadata.status = TODELETE
+            return True
+
+        @db_session
+        def cancel_torrent_deletion(self, infohash):
+            """
+            Cancel pending removal of torrent marked for deletion.
+            :param infohash: The infohash of the torrent to act upon
+            :return True if deleteion cancelled, False if no MD with the given infohash found
+            """
+            if self.has_torrent(infohash):
+                torrent_metadata = db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash)
+            else:
+                return False
+
+            # As any NEW metadata is deleted immediately, only COMMITTED -> TODELETE
+            # Therefore we restore the entry's status to COMMITTED
+            if torrent_metadata.status == TODELETE:
+                torrent_metadata.status = COMMITTED
             return True
 
         @classmethod
@@ -312,6 +325,17 @@ def define_binding(db):
             :return: the ChannelMetadata object, or None if it is not available.
             """
             return cls.get(public_key=database_blob(channel_id))
+
+        @db_session
+        def drop_channel_contents(self):
+            """
+            Remove all torrents from the channel
+            """
+            # Immediately delete uncommitted metadata
+            self.uncommitted_contents.delete()
+            # Mark the rest as deleted
+            for g in self.contents:
+                g.status = TODELETE
 
         @classmethod
         @db_session
