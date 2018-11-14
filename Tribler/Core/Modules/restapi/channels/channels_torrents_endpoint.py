@@ -1,9 +1,9 @@
 import base64
-from twisted.web.error import SchemeNotSupported
 
-from pony.orm import db_session
+from pony.orm import db_session, desc
 from twisted.internet.defer import Deferred
 from twisted.web import http
+from twisted.web.error import SchemeNotSupported
 from twisted.web.server import NOT_DONE_YET
 
 import Tribler.Core.Utilities.json_util as json
@@ -12,7 +12,6 @@ from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json, conver
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import http_get
 from Tribler.Core.exceptions import DuplicateTorrentFileError, HttpError
-from TriblerGUI.defs import UNCOMMITTED, TODELETE, COMMITTED
 
 UNKNOWN_TORRENT_MSG = "this torrent is not found in the specified channel"
 UNKNOWN_COMMUNITY_MSG = "the community for the specified channel cannot be found"
@@ -38,7 +37,10 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         A GET request to this endpoint returns all discovered torrents in a specific channel. The size of the torrent is
         in number of bytes. The last_tracker_check value will be 0 if we did not check the tracker state of the torrent
         yet. Optionally, we can disable the family filter for this particular request by passing the following flag:
-        - disable_filter: whether the family filter should be disabled for this request (1 = disabled)
+        - disable_filter: whether the family filter should be disabled for this request (1 = disabled).
+        firstitem and lastitem options limit the range of a query.
+        sort_by option defines sorting in Pony notation: <column_name> for direct order, -<column_name> for reversed.
+
 
             **Example request**:
 
@@ -65,26 +67,56 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
 
             :statuscode 404: if the specified channel cannot be found.
         """
+
+        firstitem = 0
+        lastitem = None
         chant_dirty = False
+        sort_direction = True
+        sort_column = u'id'
+        txt_filter = None
+
+        should_filter = self.session.config.get_family_filter_enabled()
+        if 'disable_filter' in request.args and len(request.args['disable_filter']) > 0 \
+                and request.args['disable_filter'][0] == "1":
+            should_filter = False
+
+        if 'firstitem' in request.args and len(request.args['firstitem']) > 0:
+            firstitem = int(request.args['firstitem'][0])
+
+        if 'lastitem' in request.args and len(request.args['lastitem']) > 0:
+            lastitem = int(request.args['lastitem'][0])
+
+        if 'sort_by' in request.args and len(request.args['sort_by']) > 0:
+            sort_by = request.args['sort_by'][0]
+            if sort_by.startswith(u'-'):
+                sort_direction = False
+                sort_column = sort_by[1:]
+            else:
+                sort_direction = True
+                sort_column = sort_by
+
+        if 'txt_filter' in request.args and len(request.args['txt_filter']) > 0:
+            txt_filter = request.args['txt_filter'][0]
+
         if self.is_chant_channel:
             with db_session:
                 channel = self.session.lm.mds.ChannelMetadata.get(public_key=self.cid)
-                if channel:
-                    if channel == self.session.lm.mds.get_my_channel():
-                        # That's our channel, it gets special treatment
-                        uncommitted = [convert_torrent_metadata_to_tuple(x, UNCOMMITTED) for x in
-                                       list(channel.uncommitted_contents)]
-                        deleted = [convert_torrent_metadata_to_tuple(x, TODELETE) for x in
-                                   list(channel.deleted_contents)]
-                        committed = [convert_torrent_metadata_to_tuple(x, COMMITTED) for x in
-                                     list(channel.committed_contents)]
-                        results_local_torrents_channel = uncommitted + deleted + committed
-                        chant_dirty = bool(uncommitted + deleted)
-                    else:
-                        results_local_torrents_channel = map(convert_torrent_metadata_to_tuple,
-                                                             list(channel.contents))
-                else:
+                if not channel:
                     return ChannelsTorrentsEndpoint.return_404(request)
+                chant_dirty = channel.dirty
+                pony_sort = "g." + ({u'category': "tags",
+                                     u'id': "rowid",
+                                     u'name': "title",
+                                     u'size': "size",
+                                     u'infohash': "infohash",
+                                     u'date': "torrent_date",
+                                     u'commit_status': 'status'}[sort_column])
+                pony_sort = pony_sort if sort_direction else desc(pony_sort)
+
+                pony_query = self.session.lm.mds.TorrentMetadata.search_keyword(txt_filter + "*", lim=1000).filter(
+                    public_key=channel.public_key) if txt_filter else channel.contents
+                results_local_torrents_channel = [convert_torrent_metadata_to_tuple(md) for md in
+                                                  pony_query.sort_by(pony_sort)[firstitem:lastitem]]
         else:
             channel_info = self.get_channel_from_db(self.cid)
             if channel_info is None:
@@ -94,11 +126,6 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
                                   'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.inserted']
             results_local_torrents_channel = self.channel_db_handler\
                 .getTorrentsFromChannelId(channel_info[0], True, torrent_db_columns)
-
-        should_filter = self.session.config.get_family_filter_enabled()
-        if 'disable_filter' in request.args and len(request.args['disable_filter']) > 0 \
-                and request.args['disable_filter'][0] == "1":
-            should_filter = False
 
         results_json = []
         for torrent_result in results_local_torrents_channel:
@@ -296,7 +323,9 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
 
     def render_DELETE(self, request):
         """
-        .. http:delete:: /channels/discovered/(string: channelid)/torrents/(string: comma separated torrent infohashes)
+        .. http:delete:: /channels/discovered/(string: channelid)/torrents/(string: comma separated torrent infohashes
+            or * for all torrents in the channel)
+
 
         Remove a single or multiple torrents with the given comma separated infohashes from a given channel.
 
@@ -323,52 +352,36 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
 
             :statuscode 404: if the channel is not found
         """
-        if self.is_chant_channel:
-            with db_session:
-                my_key = self.session.trustchain_keypair
-                my_channel_id = my_key.pub().key_to_bin()
-                failed_torrents = []
+        restore = 'restore' in request.args and request.args['restore'][0] == "1"
 
-                if my_channel_id != self.cid:
-                    request.setResponseCode(http.NOT_ALLOWED)
-                    return json.dumps({"error": "you can only remove torrents from your own chant channel"})
+        with db_session:
+            my_key = self.session.trustchain_keypair
+            my_channel_id = my_key.pub().key_to_bin()
+            failed_torrents = []
 
-                my_channel = self.session.lm.mds.get_my_channel()
-                if not my_channel:
-                    return ChannelsTorrentsEndpoint.return_404(request)
+            if my_channel_id != self.cid:
+                request.setResponseCode(http.NOT_ALLOWED)
+                return json.dumps({"error": "you can only remove torrents from your own chant channel"})
 
-                for torrent_path in self.path.split(","):
-                    infohash = torrent_path.decode('hex')
-                    if not my_channel.delete_torrent_from_channel(infohash):
-                        failed_torrents.append(torrent_path)
-
-                if failed_torrents:
-                    return json.dumps({"removed": False, "failed_torrents": failed_torrents})
-                return json.dumps({"removed": True})
-        else:
-            channel_info = self.get_channel_from_db(self.cid)
-            if channel_info is None:
+            my_channel = self.session.lm.mds.get_my_channel()
+            if not my_channel:
                 return ChannelsTorrentsEndpoint.return_404(request)
 
-            channel_community = self.get_community_for_channel_id(channel_info[0])
-            if channel_community is None:
-                return BaseChannelsEndpoint.return_404(request, message=UNKNOWN_COMMUNITY_MSG)
+            if self.path == u'*':
+                if restore:
+                    return json.dumps({"error": "trying to mass restore channel contents: not implemented"})
 
-            torrent_db_columns = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
-                                  'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.dispersy_id']
+                my_channel.drop_channel_contents()
+                return json.dumps({"removed": True})
 
-            failed_torrents = []
             for torrent_path in self.path.split(","):
-                torrent_info = self.channel_db_handler.getTorrentFromChannelId(channel_info[0],
-                                                                               torrent_path.decode('hex'),
-                                                                               torrent_db_columns)
-                if torrent_info is None:
+                infohash = torrent_path.decode('hex')
+                if restore:
+                    if not my_channel.cancel_torrent_deletion(infohash):
+                        failed_torrents.append(torrent_path)
+                elif not my_channel.delete_torrent_from_channel(infohash):
                     failed_torrents.append(torrent_path)
-                else:
-                    # the 8th index is the dispersy id of the channel torrent
-                    channel_community.remove_torrents([torrent_info[8]])
 
             if failed_torrents:
                 return json.dumps({"removed": False, "failed_torrents": failed_torrents})
-
             return json.dumps({"removed": True})

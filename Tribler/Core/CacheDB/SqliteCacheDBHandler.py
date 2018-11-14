@@ -15,11 +15,12 @@ from pprint import pformat
 from struct import unpack_from
 from time import time
 from traceback import print_exc
+
 from twisted.internet.task import LoopingCall
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.TorrentDef import TorrentDef
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.search_utils import split_into_keywords, filter_keywords
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.Utilities.unicode import dunno2unicode
@@ -927,7 +928,7 @@ class TorrentDBHandler(BasicDBHandler):
             score += inv_doc_freq * right_side
         return score
 
-    def search_in_local_torrents_db(self, query, keys=None):
+    def search_in_local_torrents_db(self, query, keys=None, first = 0, last = None, family_filter=True):
         """
         Search in the local database for torrents matching a specific query. This method also assigns a relevance
         score to each torrent, based on the name, files and file extensions.
@@ -946,8 +947,11 @@ class TorrentDBHandler(BasicDBHandler):
                                     "FROM Torrent T, FullTextIndex "
                                     "LEFT OUTER JOIN _ChannelTorrents C ON T.torrent_id = C.torrent_id "
                                     "WHERE t.name IS NOT NULL AND t.torrent_id = FullTextIndex.rowid "
-                                    "AND C.deleted_at IS NULL AND FullTextIndex MATCH ?"
-                                    % keys_str, (" OR ".join(keywords),))
+                                    "AND C.deleted_at IS NULL AND FullTextIndex MATCH ? "
+                                    "%s"
+                                    "LIMIT %i, %i"
+                                    % (keys_str,("AND t.category != 'xxx' " if family_filter else ""), first, last - first if last else first+1000),
+                                    (" OR ".join(keywords),))
 
         for result in results:
             result = list(result)  # We convert the result to a mutable list since we have to decode the infohash
@@ -2025,7 +2029,8 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         else:
             return self.__fixTorrent(keys, result)
 
-    def getTorrentsFromChannelId(self, channel_id, isDispersy, keys, limit=None):
+    def getTorrentsFromChannelId(self, channel_id, isDispersy, keys, limit=None, first=0, last=None):
+        last = last or limit
         if isDispersy:
             sql = "SELECT " + ", ".join(keys) + """ FROM Torrent, ChannelTorrents
                   WHERE Torrent.torrent_id = ChannelTorrents.torrent_id"""
@@ -2033,12 +2038,14 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
             sql = "SELECT " + ", ".join(keys) + """ FROM CollectedTorrent as Torrent, ChannelTorrents
                   WHERE Torrent.torrent_id = ChannelTorrents.torrent_id"""
 
+        sql += " AND Torrent.name IS NOT NULL "
+
         if channel_id:
             sql += " AND channel_id = ?"
         sql += " ORDER BY time_stamp DESC"
 
-        if limit:
-            sql += " LIMIT %d" % limit
+        if limit or last or first:
+            sql = sql + " LIMIT %i, %i" % (first, last - first if last else first+1000)
 
         if channel_id:
             results = self._db.fetchall(sql, (channel_id,))
@@ -2358,20 +2365,28 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         # and 20% on the matching in the channel description.
         return 0.8 * scores[0] + 0.2 * scores[1]
 
-    def search_in_local_channels_db(self, query):
+    def search_in_local_channels_db(self, query, first=0, last=None, count=False):
         """
         Searches for matching channels against a given query in the database.
         """
         search_results = []
         keywords = split_into_keywords(query, to_filter_stopwords=True)
-        sql = "SELECT id, dispersy_cid, name, description, nr_torrents, nr_favorite, nr_spam, modified " \
-              "FROM Channels WHERE "
+        if count:
+            sql = "SELECT COUNT (id) "
+        else:
+            sql = "SELECT id, dispersy_cid, name, description, nr_torrents, nr_favorite, nr_spam, modified "
+
+        sql +="FROM Channels WHERE nr_torrents > 2 and ("
         for _ in xrange(len(keywords)):
             sql += " name LIKE ? OR description LIKE ? OR "
-        sql = sql[:-4]
+        sql = sql[:-4] + " )"
+        sql = sql + " LIMIT %i, %i" % (first, last - first if last else first+1000)
 
         bindings = list(chain.from_iterable(['%%%s%%' % keyword] * 2 for keyword in keywords))
         results = self._db.fetchall(sql, bindings)
+
+        if count:
+            return results
 
         my_votes = self.votecast_db.getMyVotes()
 
@@ -2420,9 +2435,16 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
             ")"
         return self._getChannels(sql, channel_cids)
 
-    def getAllChannels(self):
+    def getAllChannelsCount(self):
+        sql = "SELECT COUNT (id) FROM CHANNELS"
+        return self._db.fetchall(sql)
+
+    def getAllChannels(self, first=0, last=None):
         """ Returns all the channels """
-        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam FROM Channels"
+        sql = ("Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam ") \
+              + "FROM Channels " \
+              + "WHERE nr_torrents >= 3 " \
+              + "LIMIT %i, %i" % (first, last - first if last else first + 1000)
         return self._getChannels(sql)
 
     def getNewChannels(self, updated_since=0):
@@ -2456,12 +2478,15 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
               "FROM Channels ORDER BY nr_favorite DESC, modified DESC LIMIT ?"
         return self._getChannels(sql, (max_nr,), includeSpam=False)
 
-    def getMySubscribedChannels(self, include_dispersy=False):
-        sql = "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
+    def getMySubscribedChannels(self, include_dispersy=False, first=0, last=None, count = False):
+        sql = "SELECT (id) " if count else "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
               "FROM Channels, ChannelVotes " + \
               "WHERE Channels.id = ChannelVotes.channel_id AND voter_id ISNULL AND vote == 2"
         if not include_dispersy:
-            sql += " AND dispersy_cid == -1"
+            sql += " AND dispersy_cid == -1 "
+
+        sql = sql + " LIMIT %i, %i" % (first, last - first if last else first+1000)
+
 
         return self._getChannels(sql)
 
