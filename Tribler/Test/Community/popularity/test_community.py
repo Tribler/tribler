@@ -252,7 +252,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         Tests publishing next content if no content is available.
         """
         original_logger = self.nodes[0].overlay.logger
-        self.nodes[0].overlay.logger.error = lambda *args, **kw: self.fake_logger_error(self.nodes[0], *args)
+        self.nodes[0].overlay.logger.debug = lambda *args, **kw: self.fake_logger_error(self.nodes[0], *args)
 
         # Assume a subscribers exist
         self.nodes[0].overlay.subscribers = [self.create_node()]
@@ -276,7 +276,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         Tests sending torrent health response.
         """
         original_logger = self.nodes[0].overlay.logger
-        self.nodes[0].overlay.logger.error = lambda *args, **kw: self.fake_logger_error(self.nodes[0], *args)
+        self.nodes[0].overlay.logger.debug = lambda *args, **kw: self.fake_logger_error(self.nodes[0], *args)
 
         self.nodes[0].overlay.create_message_packet = lambda _type, _payload: \
             self.fake_create_message_packet(self.nodes[0], _type, _payload)
@@ -320,7 +320,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         Tests sending torrent health response.
         """
         original_logger = self.nodes[0].overlay.logger
-        self.nodes[0].overlay.logger.error = lambda *args, **kw: self.fake_logger_error(self.nodes[0], *args)
+        self.nodes[0].overlay.logger.debug = lambda *args, **kw: self.fake_logger_error(self.nodes[0], *args)
 
         self.nodes[0].overlay.create_message_packet = lambda _type, _payload: \
             self.fake_create_message_packet(self.nodes[0], _type, _payload)
