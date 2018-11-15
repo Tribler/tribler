@@ -52,7 +52,6 @@ class MetadataStore(object):
     def __init__(self, db_filename, channels_dir, my_key):
         self.db_filename = db_filename
         self.channels_dir = channels_dir
-        self.serializer = Serializer()
         self.my_key = my_key
         self._logger = logging.getLogger(self.__class__.__name__)
 

@@ -234,6 +234,7 @@ class LibtorrentMgr(TaskManager):
             ltsession.start_dht()
             for router in DEFAULT_DHT_ROUTERS:
                 ltsession.add_dht_router(*router)
+            ltsession.start_lsd()
 
         self._logger.debug("Started libtorrent session for %d hops on port %d", hops, ltsession.listen_port())
         self.lt_session_shutdown_ready[hops] = False

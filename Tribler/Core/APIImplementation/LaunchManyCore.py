@@ -113,6 +113,7 @@ class TriblerLaunchMany(TaskManager):
         self.trustchain_community = None
         self.wallets = {}
         self.popularity_community = None
+        self.gigachannel_community = None
 
         self.startup_deferred = Deferred()
 
@@ -330,6 +331,18 @@ class TriblerLaunchMany(TaskManager):
             self.ipv8.strategies.append((RandomWalk(self.popularity_community), 20))
 
             self.popularity_community.start()
+
+        # Gigachannel Community
+        if self.session.config.get_chant_enabled():
+            from Tribler.community.gigachannel.community import GigaChannelCommunity
+            from Tribler.community.gigachannel.sync_strategy import SyncChannels
+
+            self.gigachannel_community = GigaChannelCommunity(peer, self.ipv8.endpoint, self.ipv8.network, self.session)
+
+            self.ipv8.overlays.append(self.gigachannel_community)
+
+            self.ipv8.strategies.append((RandomWalk(self.gigachannel_community), 20))
+            self.ipv8.strategies.append((SyncChannels(self.gigachannel_community), 20))
 
     def enable_ipv8_statistics(self):
         if self.session.config.get_ipv8_statistics():
@@ -549,6 +562,9 @@ class TriblerLaunchMany(TaskManager):
         download = self.session.start_download_from_tdef(tdef, dcfg)
         channel_id = channel.public_key
         download.finished_callback = lambda dl: self.on_channel_download_finished(dl, channel_id, finished_deferred)
+        if download.get_state().get_status() == DLSTATUS_SEEDING and not download.finished_callback_already_called:
+            download.finished_callback_already_called = True
+            download.finished_callback(download)
         return download, finished_deferred
 
     def updated_my_channel(self, new_torrent_path):
@@ -825,6 +841,9 @@ class TriblerLaunchMany(TaskManager):
                 self.tunnel_community.monitor_downloads(states_list)
             if self.credit_mining_manager:
                 self.credit_mining_manager.monitor_downloads(states_list)
+
+        if self.gigachannel_community:
+            self.gigachannel_community.update_states(states_list)
 
         return []
 
