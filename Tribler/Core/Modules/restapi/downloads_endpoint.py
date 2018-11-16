@@ -7,6 +7,7 @@ from twisted.web.server import NOT_DONE_YET
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.Modules.restapi.util import return_handled_exception
+from Tribler.Core.Utilities.utilities import unichar_string
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
 import Tribler.Core.Utilities.json_util as json
@@ -303,7 +304,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
         def on_error(error):
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-            request.write(json.dumps({"error": error.getErrorMessage()}))
+            request.write(json.dumps({"error": unichar_string(error.getErrorMessage())}))
             request.finish()
 
         uri = parameters['uri'][0]
