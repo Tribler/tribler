@@ -269,6 +269,8 @@ class CreditMiningManager(TaskManager):
 
             started = stopped = 0
             for infohash, torrent in self.torrents.items():
+                if not torrent.download:
+                    continue
                 status = torrent.download.get_state().get_status()
                 if torrent in to_start and status == DLSTATUS_STOPPED:
                     self._logger.info('Starting torrent %s', torrent.infohash)

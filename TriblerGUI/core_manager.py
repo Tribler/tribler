@@ -98,7 +98,7 @@ class CoreManager(QObject):
                                          priority=QueuePriorityEnum.CRITICAL)
 
     def on_received_state(self, state):
-        if not state or state['state'] not in ['STARTED', 'EXCEPTION']:
+        if not state or 'state' not in state or state['state'] not in ['STARTED', 'EXCEPTION']:
             self.check_state_timer = QTimer()
             self.check_state_timer.setSingleShot(True)
             self.check_state_timer.timeout.connect(self.check_core_ready)

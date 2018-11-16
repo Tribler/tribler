@@ -80,8 +80,8 @@ class DownloadWidgetItem(QTreeWidgetItem):
         self.setText(11, eta_text)
 
     def __lt__(self, other):
-        # The download info might not be available yet
-        if not self.download_info:
+        # The download info might not be available yet or there could still be loading QTreeWidgetItem
+        if not self.download_info or not isinstance(other, DownloadWidgetItem):
             return True
         elif not other.download_info:
             return False

@@ -306,7 +306,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
         uri = parameters['uri'][0]
         if uri.startswith("file:"):
-            download_uri = u"file:%s" % url2pathname(unicode(uri[5:], 'utf-8'))
+            download_uri = u"file:%s" % url2pathname(uri[5:]).decode('utf-8')
         else:
             download_uri = unquote_plus(unicode(uri, 'utf-8'))
         download_deferred = self.session.start_download_from_uri(download_uri, download_config)

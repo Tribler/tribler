@@ -330,9 +330,9 @@ class DownloadsPage(QWidget):
                 self.request_mgr = TriblerRequestManager()
                 self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_removed,
                                                  method='DELETE', data="remove_data=%d" % action)
-
-        self.dialog.close_dialog()
-        self.dialog = None
+        if self.dialog:
+            self.dialog.close_dialog()
+            self.dialog = None
 
     def on_download_removed(self, json_result):
         if json_result and "removed" in json_result:
