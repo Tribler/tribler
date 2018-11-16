@@ -118,7 +118,10 @@ class GigaChannelCommunity(Community):
         infohash = download.tdef.get_infohash()
         with db_session:
             channel = self.tribler_session.lm.mds.ChannelMetadata.get_channel_with_infohash(infohash)
-            channel.votes = download.get_num_connected_seeds_peers()[0]
+            if channel:
+                channel.votes = download.get_num_connected_seeds_peers()[0]
+            else:
+                self.logger.error("We are downloading channel %s, but no database entry exists!", infohash)
 
     def download_completed(self, download):
         """
