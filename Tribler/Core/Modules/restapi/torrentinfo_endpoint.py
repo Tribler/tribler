@@ -13,7 +13,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, \
     REGULAR_TORRENT, read_payload
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink
+from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink, unichar_string
 from Tribler.Core.exceptions import HttpError, InvalidSignatureException
 
 
@@ -93,7 +93,7 @@ class TorrentInfoEndpoint(resource.Resource):
         def on_lookup_error(failure):
             failure.trap(ConnectError, DNSLookupError, HttpError, ConnectionLost)
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-            request.write(json.dumps({"error": failure.getErrorMessage()}))
+            request.write(json.dumps({"error": unichar_string(failure.getErrorMessage())}))
             self.finish_request(request)
 
         def _on_loaded(response):
