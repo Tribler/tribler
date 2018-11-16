@@ -667,7 +667,6 @@ class TriblerWindow(QMainWindow):
                 logging.exception("Error while trying to download. Either dialog or dialog.dialog_widget is None")
 
         if self.dialog:
-            self.dialog.request_mgr.cancel_request()  # To abort the torrent info request
             self.dialog.close_dialog()
             self.dialog = None
             self.start_download_dialog_active = False

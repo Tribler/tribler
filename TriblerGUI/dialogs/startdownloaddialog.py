@@ -92,8 +92,16 @@ class StartDownloadDialog(DialogContainer):
         self.dialog_widget.download_files_container.setHidden(True)
         self.dialog_widget.adjustSize()
         self.on_anon_download_state_changed(None)
+        self.request_mgr = None
 
         self.on_main_window_resize()
+
+    def close_dialog(self):
+        if self.request_mgr:
+            self.request_mgr.cancel_request()
+            self.request_mgr = None
+
+        super(StartDownloadDialog, self).close_dialog()
 
     def get_selected_files(self):
         included_files = []
