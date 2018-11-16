@@ -285,6 +285,32 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         mocked_set_file_prios.called = False
         self.assertFalse(mocked_set_file_prios.called)
 
+    def test_selected_files_no_files(self):
+        """
+        Test that no files are selected if torrent info is not available.
+        """
+        def mocked_set_file_prios(_):
+            mocked_set_file_prios.called = True
+
+        mocked_set_file_prios.called = False
+
+        mocked_file = MockObject()
+        mocked_file.path = 'my/path'
+        mock_torrent_info = MockObject()
+        self.libtorrent_download_impl.handle.prioritize_files = mocked_set_file_prios
+        self.libtorrent_download_impl.handle.get_torrent_info = lambda: mock_torrent_info
+        self.libtorrent_download_impl.handle.rename_file = lambda *_: None
+        self.libtorrent_download_impl.tdef.get_infohash = lambda: 'a' * 20
+        self.libtorrent_download_impl.orig_files = ['a', 'b']
+        self.libtorrent_download_impl.get_save_path = lambda: 'my/path'
+
+        # If share mode is not enabled and everything else is fine, file priority should be set
+        # when set_selected_files() is called. But in this test, no files attribute is set in torrent info
+        # in order to test AttributeError, therfore, no call to set file priority is expected.
+        self.libtorrent_download_impl.get_share_mode = lambda: False
+        self.libtorrent_download_impl.set_selected_files(['a'])
+        self.assertFalse(mocked_set_file_prios.called)
+
     def test_get_share_mode(self):
         """
         Test whether we return the right share mode when requested in the LibtorrentDownloadImpl
