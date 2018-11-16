@@ -1,5 +1,6 @@
 from urllib import quote_plus
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem, QAction
 
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
@@ -25,6 +26,10 @@ class DownloadsDetailsTabWidget(QTabWidget):
         self.window().download_files_list.customContextMenuRequested.connect(self.on_right_click_file_item)
         self.window().download_files_list.header().resizeSection(0, 220)
         self.setCurrentIndex(0)
+        # make name, infohash and download destination selectable to copy
+        self.window().download_detail_infohash_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.window().download_detail_name_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.window().download_detail_destination_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
     def update_with_download(self, download):
         did_change = self.current_download != download
