@@ -82,7 +82,7 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.torrent_info = torrent
         self.thumbnail_widget.initialize(torrent["name"], HOME_ITEM_FONT_SIZE)
         self.main_label.setText(torrent["name"])
-        self.category_label.setText(torrent["category"].lower())
+        self.category_label.setText(torrent["category"].lower() if "category" in torrent else 'other')
         self.category_label.adjustSize()
         self.category_label.setHidden(False)
         self.setCursor(Qt.ArrowCursor)

@@ -42,10 +42,10 @@ class MarketOrdersPage(QWidget):
         self.request_mgr.perform_request("market/orders", self.on_received_orders)
 
     def on_received_orders(self, orders):
-        if not orders:
+        if not orders or not self.wallets:
             return
         for order in orders["orders"]:
-            if self.wallets:
+            if self.has_valid_order_amount(order):
                 asset1_prec = self.wallets[order["assets"]["first"]["type"]]["precision"]
                 asset2_prec = self.wallets[order["assets"]["second"]["type"]]["precision"]
                 item = OrderWidgetItem(self.window().market_orders_list, order, asset1_prec, asset2_prec)
@@ -86,3 +86,6 @@ class MarketOrdersPage(QWidget):
         if not response:
             return
         self.load_orders()
+
+    def has_valid_order_amount(self, order):
+        return order["assets"]["first"]["amount"] > 0 and order["assets"]["second"]["amount"] > 0

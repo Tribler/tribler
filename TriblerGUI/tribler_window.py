@@ -271,7 +271,7 @@ class TriblerWindow(QMainWindow):
         self.show()
 
     def update_tray_icon(self, use_monochrome_icon):
-        if not QSystemTrayIcon.isSystemTrayAvailable():
+        if not QSystemTrayIcon.isSystemTrayAvailable() or not self.tray_icon:
             return
 
         if use_monochrome_icon:
@@ -666,10 +666,10 @@ class TriblerWindow(QMainWindow):
                 ConfirmationDialog.show_error(self, "Tribler UI Error", "Something went wrong. Please try again.")
                 logging.exception("Error while trying to download. Either dialog or dialog.dialog_widget is None")
 
-        self.dialog.request_mgr.cancel_request()  # To abort the torrent info request
-        self.dialog.close_dialog()
-        self.dialog = None
-        self.start_download_dialog_active = False
+        if self.dialog:
+            self.dialog.close_dialog()
+            self.dialog = None
+            self.start_download_dialog_active = False
 
         if action == 0:  # We do this after removing the dialog since process_uri_request is blocking
             self.process_uri_request()
@@ -692,7 +692,7 @@ class TriblerWindow(QMainWindow):
     def on_confirm_add_directory_dialog(self, action):
         if action == 0:
             for torrent_file in self.selected_torrent_files:
-                escaped_uri = u"file:%s" % pathname2url(torrent_file)
+                escaped_uri = u"file:%s" % pathname2url(torrent_file.encode('utf-8'))
                 self.perform_start_download_request(escaped_uri,
                                                     self.window().tribler_settings['download_defaults'][
                                                          'anonymity_enabled'],
