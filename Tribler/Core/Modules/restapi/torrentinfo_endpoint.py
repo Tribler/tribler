@@ -11,7 +11,8 @@ from twisted.web.server import NOT_DONE_YET
 from Tribler.Core.exceptions import HttpError
 from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink
+from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink, unichar_string
+from Tribler.Core.exceptions import HttpError, InvalidSignatureException
 
 
 class TorrentInfoEndpoint(resource.Resource):
@@ -91,7 +92,7 @@ class TorrentInfoEndpoint(resource.Resource):
         def on_lookup_error(failure):
             failure.trap(ConnectError, DNSLookupError, HttpError, ConnectionLost)
             request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-            request.write(json.dumps({"error": failure.getErrorMessage()}))
+            request.write(json.dumps({"error": unichar_string(failure.getErrorMessage())}))
             self.finish_request(request)
 
         if 'uri' not in request.args or len(request.args['uri']) == 0:

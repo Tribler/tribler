@@ -482,3 +482,8 @@ def translate_peers_into_health(peer_info_dicts):
     num_seeders = max(upload_only, finished)
     num_leech = max(interest_in_us, min(unfinished_able_dl, len(peer_info_dicts) - finished))
     return num_seeders, num_leech
+
+
+def unichar_string(text):
+    """ Unicode character interpretation of text for Python 2.7 """
+    return u''.join(unichr(ord(t)) for t in text)
