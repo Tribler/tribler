@@ -1,6 +1,9 @@
+from time import time
+
 from pony.orm import db_session
 
 from Tribler.community.gigachannel.payload import TruncatedChannelPayload, TruncatedChannelPlayloadBlob
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from Tribler.pyipv8.ipv8.deprecated.community import Community
 from Tribler.pyipv8.ipv8.deprecated.lazy_community import lazy_wrapper
 from Tribler.pyipv8.ipv8.deprecated.payload_headers import BinMemberAuthenticationPayload
@@ -121,7 +124,13 @@ class GigaChannelCommunity(Community):
             if channel:
                 channel.votes = download.get_num_connected_seeds_peers()[0]
             else:
-                self.logger.error("We are downloading channel %s, but no database entry exists!", infohash)
+                # We have an older version in our list, decide what to do with it
+                my_key_hex = str(self.tribler_session.lm.mds.my_key.pub().key_to_bin()).encode('hex')
+                dirname = my_key_hex[-CHANNEL_DIR_NAME_LENGTH:]
+                if download.tdef.get_name() != dirname or time() - download.tdef.get_creation_date() > 604800:
+                    # This is not our channel or more than a week old version of our channel: delete it
+                    self.logger.debug("Removing old channel version %s", infohash.encode('hex'))
+                    self.tribler_session.remove_download(download)
 
     def download_completed(self, download):
         """
