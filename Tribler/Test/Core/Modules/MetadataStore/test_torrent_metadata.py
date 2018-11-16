@@ -47,6 +47,8 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         torrent_metadata = self.mds.TorrentMetadata.from_dict({})
         self.assertTrue(torrent_metadata.get_magnet())
+        torrent_metadata2 = self.mds.TorrentMetadata.from_dict({'title':u'\U0001f4a9'})
+        self.assertTrue(torrent_metadata2.get_magnet())
 
     @db_session
     def test_search_keyword(self):
