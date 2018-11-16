@@ -707,8 +707,13 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             unwanteddir = os.path.join(swarmname, u'.unwanted')
             unwanteddir_abs = os.path.join(self.get_save_path().decode('utf-8'), unwanteddir)
 
+            torrent_info = get_info_from_handle(self.handle)
+            if not torrent_info or not hasattr(torrent_info, 'files'):
+                self._logger.error("File info not available for torrent [%s]", self.correctedinfoname)
+                return
+
             filepriorities = []
-            torrent_storage = get_info_from_handle(self.handle).files()
+            torrent_storage = torrent_info.files()
 
             for index, orig_path in enumerate(self.orig_files):
                 filename = orig_path[len(swarmname) + 1:] if swarmname else orig_path

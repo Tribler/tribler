@@ -127,6 +127,9 @@ def get_info_from_handle(handle):
         if hasattr(handle, 'torrent_file'):
             return handle.torrent_file()
         return handle.get_torrent_info()
+    except AttributeError as ae:
+        logger.warning("No torrent info found from handle: %s", str(ae))
+        return None
     except RuntimeError as e:  # This can happen when the torrent handle is invalid.
         logger.warning("Got exception when fetching info from handle: %s", str(e))
         return None
