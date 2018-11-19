@@ -170,9 +170,9 @@ class PubSubCommunity(Community):
         auth, _, payload = self._ez_unpack_auth(ContentSubscription, data)
         peer = self.get_peer_from_auth(auth, source_address)
 
-        cache = self.request_cache.pop(u'request', payload.identifier)
-        if not cache:
+        if not self.request_cache.has(u'request', payload.identifier):
             return
+        self.request_cache.pop(u'request', payload.identifier)
 
         if payload.subscribe:
             self.publishers.add(peer)
