@@ -44,7 +44,7 @@ class TestSettingsEndpoint(AbstractApiTest):
             return getter_deferred.addCallback(check_settings)
 
         return self.do_request('settings', expected_code=200, request_type='POST',
-                               post_data=post_data.encode('latin_1'), raw_data=True).addCallback(verify_response)
+                               post_data=post_data.encode('utf-8'), raw_data=True).addCallback(verify_response)
 
     @trial_timeout(10)
     def test_get_settings(self):
