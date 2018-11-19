@@ -530,7 +530,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         self.assertFalse(self.nodes[0].called_update_torrent)
 
     @inlineCallbacks
-    def test_on_subscription_status1(self):
+    def test_on_subscription_status(self):
         """
         Tests receiving subscription status.
         """
@@ -540,6 +540,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         data = self.nodes[1].overlay.create_message_packet(MSG_SUBSCRIPTION, payload)
         # Set the cache request
         self.nodes[0].overlay.request_cache.pop = lambda prefix, identifer: MockObject()
+        self.nodes[0].overlay.request_cache.has = lambda prefix, identifer: True
 
         yield self.introduce_nodes()
         self.assertEqual(len(self.nodes[0].overlay.publishers), 0)
@@ -548,6 +549,27 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         yield self.deliver_messages()
 
         self.assertEqual(len(self.nodes[0].overlay.publishers), 1)
+
+    @inlineCallbacks
+    def test_on_subscription_status_no_cache(self):
+        """
+        Tests receiving subscription status when request is not available in cache.
+        """
+        subscribe = True
+        identifier = 123123123
+        payload = ContentSubscription(identifier, subscribe)
+        data = self.nodes[1].overlay.create_message_packet(MSG_SUBSCRIPTION, payload)
+
+        # Assume cache request is present
+        self.nodes[0].overlay.request_cache.has = lambda prefix, identifer: False
+
+        yield self.introduce_nodes()
+        self.assertEqual(len(self.nodes[0].overlay.publishers), 0)
+
+        self.nodes[0].overlay.on_subscription_status(self.nodes[1].my_peer.address, data)
+        yield self.deliver_messages()
+
+        self.assertEqual(len(self.nodes[0].overlay.publishers), 0)
 
     @inlineCallbacks
     def test_on_subscription_status_with_unsubscribe(self):
@@ -559,6 +581,7 @@ class TestPopularityCommunity(TestPopularityCommunityBase):
         self.assertEqual(len(self.nodes[0].overlay.publishers), 1)
         # Set the cache request
         self.nodes[0].overlay.request_cache.pop = lambda prefix, identifer: MockObject()
+        self.nodes[0].overlay.request_cache.has = lambda prefix, identifer: True
 
         subscribe = False
         identifier = 123123123
