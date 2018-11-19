@@ -125,7 +125,7 @@ class DownloadConfigInterface(object):
         self.dlconfig.set('download_defaults', 'credit_mining', value)
 
     def get_credit_mining(self):
-        return self.dlconfig.get('download_defaults', 'credit_mining')
+        return bool(self.dlconfig.get('download_defaults', 'credit_mining'))
 
     def set_user_stopped(self, value):
         self.dlconfig.set('download_defaults', 'user_stopped', value)
@@ -171,7 +171,7 @@ class DownloadConfigInterface(object):
         self.dlconfig.set('download_defaults', 'channel_download', value)
 
     def get_channel_download(self):
-        return self.dlconfig.get('download_defaults', 'channel_download')
+        return bool(self.dlconfig.get('download_defaults', 'channel_download'))
 
 
 class DownloadStartupConfig(DownloadConfigInterface):
