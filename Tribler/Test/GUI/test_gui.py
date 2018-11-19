@@ -331,6 +331,10 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window, name="downloads_active")
         QTest.mouseClick(window.downloads_inactive_button, Qt.LeftButton)
         self.screenshot(window, name="downloads_inactive")
+        QTest.mouseClick(window.downloads_creditmining_button, Qt.LeftButton)
+        self.screenshot(window, name="downloads_creditmining")
+        QTest.mouseClick(window.downloads_channels_button, Qt.LeftButton)
+        self.screenshot(window, name="downloads_channels")
 
     def test_download_start_stop_remove_recheck(self):
         self.go_to_and_wait_for_downloads()

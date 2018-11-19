@@ -10,7 +10,7 @@ from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.defs import DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_COMPLETED, \
     DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_INACTIVE, DOWNLOADS_FILTER_CREDITMINING, DOWNLOADS_FILTER_DEFINITION, \
     DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, DLSTATUS_METADATA, \
-    DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_CIRCUITS
+    DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_CIRCUITS, DOWNLOADS_FILTER_CHANNELS
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.widgets.downloadwidgetitem import DownloadWidgetItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -190,11 +190,14 @@ class DownloadsPage(QWidget):
 
             filter_match = self.window().downloads_filter_input.text().lower() in item.download_info["name"].lower()
             is_creditmining = item.download_info["credit_mining"]
+            is_channel = item.download_info["channel_download"]
             if self.filter == DOWNLOADS_FILTER_CREDITMINING:
                 item.setHidden(not is_creditmining or not filter_match)
+            elif self.filter == DOWNLOADS_FILTER_CHANNELS:
+                item.setHidden(not is_channel or not filter_match)
             else:
                 item.setHidden(not item.get_raw_download_status() in DOWNLOADS_FILTER_DEFINITION[self.filter] or \
-                               not filter_match or is_creditmining)
+                               not filter_match or is_creditmining or is_channel)
 
     def on_downloads_tab_button_clicked(self, button_name):
         if button_name == "downloads_all_button":
@@ -209,6 +212,8 @@ class DownloadsPage(QWidget):
             self.filter = DOWNLOADS_FILTER_INACTIVE
         elif button_name == "downloads_creditmining_button":
             self.filter = DOWNLOADS_FILTER_CREDITMINING
+        elif button_name == "downloads_channels_button":
+            self.filter = DOWNLOADS_FILTER_CHANNELS
 
         self.window().downloads_list.clearSelection()
         self.window().download_details_widget.hide()

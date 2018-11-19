@@ -238,7 +238,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                              "vod_prebuffering_progress_consec": state.get_vod_prebuffering_progress_consec(),
                              "error": repr(state.get_error()) if state.get_error() else "",
                              "time_added": download.get_time_added(),
-                             "credit_mining": download.get_credit_mining()}
+                             "credit_mining": download.get_credit_mining(),
+                             "channel_download": download.get_channel_download()}
 
             # Add peers information if requested
             if get_peers:
