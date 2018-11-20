@@ -11,6 +11,7 @@ from tempfile import mkdtemp
 from twisted.internet.task import Clock
 
 from Tribler.Core.leveldbstore import LevelDbStore, WRITEBACK_PERIOD, get_write_batch_leveldb
+from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import BaseTestCase
 
 
@@ -125,3 +126,25 @@ class TestLevelDBStore(AbstractTestLevelDBStore):
 
         self.openStore(self.store_dir)
         self.assertFalse(os.path.exists(os.path.join(self.store_dir, 'test.txt')))
+
+    def test_flush(self):
+        """ Tests if flush() does multiple retries incase of failure. """
+        def mock_db_write(store, _):
+            store.write_retry += 1
+            raise Exception("SomeLevelDBError")
+
+        self.store._db = MockObject()
+        self.store._db.Write = lambda batch: mock_db_write(self.store, batch)
+
+        self.store.write_retry = 0
+
+        # No store operation yet, no write should be called on flush
+        self.store.flush()
+        self.assertEqual(self.store.write_retry, 0)
+
+        # Store something and check if it is in cache
+        self.store[K] = V
+        self.assertIsNotNone(self.store._pending_torrents)
+        # Now flush; Mock DB write through an exception so flush() should be tried 3 times
+        self.store.flush()
+        self.assertEqual(self.store.write_retry, 3, "Three retry to flush was expected incase of error")
