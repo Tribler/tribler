@@ -1,5 +1,6 @@
 import plyvel
 
+
 class LevelDB(object):
 
     def __init__(self, store_dir, create_if_missing=True):
@@ -31,7 +32,8 @@ class LevelDB(object):
 class WriteBatch(object):
 
     def __init__(self, db):
-        self._batch = db._db.write_batch()
+        # Using transaction and sync in Windows to prevent CorruptionError
+        self._batch = db._db.write_batch(transaction=True, sync=True)
 
     def Put(self, key, value):
         self._batch.put(key, value)
