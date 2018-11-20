@@ -514,11 +514,12 @@ class TriblerLaunchMany(TaskManager):
         self.initComplete = True
 
     def on_channel_download_finished(self, download, channel_id, finished_deferred=None):
-        if download.get_channel_download():
-            channel_dirname = os.path.join(self.session.lm.mds.channels_dir, download.get_def().get_name())
-            self.mds.process_channel_dir(channel_dirname, channel_id)
-            if finished_deferred:
-                finished_deferred.callback(download)
+        if download.finished_callback_already_called:
+            return
+        channel_dirname = os.path.join(self.session.lm.mds.channels_dir, download.get_def().get_name())
+        self.mds.process_channel_dir(channel_dirname, channel_id)
+        if finished_deferred:
+            finished_deferred.callback(download)
 
     @db_session
     def update_channel(self, payload):
@@ -562,6 +563,7 @@ class TriblerLaunchMany(TaskManager):
         download = self.session.start_download_from_tdef(tdef, dcfg)
         channel_id = channel.public_key
         download.finished_callback = lambda dl: self.on_channel_download_finished(dl, channel_id, finished_deferred)
+        # Invoke the callback manually, just in case the download was already there
         if download.get_state().get_status() == DLSTATUS_SEEDING and not download.finished_callback_already_called:
             download.finished_callback_already_called = True
             download.finished_callback(download)
