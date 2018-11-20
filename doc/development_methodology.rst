@@ -19,11 +19,11 @@ Our main repository contains 2 permanent branches:
 
 Release lifecycle
 -----------------
-A release is started by forking from the top of **devel**. The first commit added to the release branch bumps the release version. From that moment, allthe bugfixes relevant to the current release must be merged only into the corresponding release branch. No new features could be added to it.
+A release is started by forking from the top of **devel**. The first commit added to the release branch bumps the release version. From that moment, all the bugfixes relevant to the current release must be merged only into the corresponding release branch. No new features could be added to it.
 
 When the release is ready, it is merged into **master** with the suitable release tag. Next it is merged into the current **devel** branch to integrate the bugfixes. If a bugfix from the current release branch is really, really necessary for the current **devel** branch, it could be cherry-picked onto **devel**. But be aware that each of these cherry-pickings eventually results in a merge conflict that should be resolved manually.
 
-The release branch lives in the Tribler repository for as long as we support the corresponding Trilber version. Eventually, the branch is removed.
+The release branch lives in the Tribler repository for as long as we support the corresponding Tribler version. Eventually, the branch is removed.
 
 Tags
 ----
