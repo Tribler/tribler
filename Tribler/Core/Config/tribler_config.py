@@ -488,6 +488,18 @@ class TriblerConfig(object):
     def get_tunnel_community_exitnode_enabled(self):
         return self.config['tunnel_community']['exitnode_enabled']
 
+    def set_tunnel_community_random_slots(self, value):
+        self.config['tunnel_community']['random_slots'] = value
+
+    def get_tunnel_community_random_slots(self):
+        return self.config['tunnel_community']['random_slots']
+
+    def set_tunnel_community_competing_slots(self, value):
+        self.config['tunnel_community']['competing_slots'] = value
+
+    def get_tunnel_community_competing_slots(self):
+        return self.config['tunnel_community']['competing_slots']
+
     def set_default_number_hops(self, value):
         self.config['download_defaults']['number_hops'] = value
 
