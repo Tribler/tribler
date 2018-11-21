@@ -22,6 +22,8 @@ enabled = boolean(default=True)
 enabled = boolean(default=True)
 socks5_listen_ports = string_list(default=list('-1', '-1', '-1', '-1', '-1'))
 exitnode_enabled = boolean(default=False)
+random_slots = integer(default=5)
+competing_slots = integer(default=15)
 
 [market_community]
 enabled = boolean(default=True)

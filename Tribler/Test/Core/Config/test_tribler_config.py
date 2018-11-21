@@ -248,6 +248,10 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_default_safeseeding_enabled(), True)
         self.tribler_config.set_default_destination_dir(True)
         self.assertEqual(self.tribler_config.get_default_destination_dir(), True)
+        self.tribler_config.set_tunnel_community_random_slots(10)
+        self.assertEqual(self.tribler_config.get_tunnel_community_random_slots(), 10)
+        self.tribler_config.set_tunnel_community_competing_slots(20)
+        self.assertEqual(self.tribler_config.get_tunnel_community_competing_slots(), 20)
 
     def test_get_set_methods_torrent_store(self):
         """
