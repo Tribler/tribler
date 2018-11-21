@@ -85,7 +85,10 @@ class Options(usage.Options):
         ["ipv8_address", "i", "0.0.0.0", 'IPv8 listening address', check_ipv8_address],
         ["ipv8_bootstrap_override", "b", None, "Force the usage of specific IPv8 bootstrap server (ip:port)", check_ipv8_bootstrap_override],
         ["restapi", "p", 8085, "Use an alternate port for the REST API", check_api_port],
+        ["random_slots", "r", 10, "Specifies the number of random slots", int],
+        ["competing_slots", "c", 10, "Specifies the number of competing slots", int],
     ]
+
 
 if not os.path.exists("logger.conf"):
     print "Unable to find logger.conf"
@@ -147,6 +150,8 @@ class Tunnel(object):
         config = TriblerConfig()
         config.set_state_dir(os.path.join(config.get_state_dir(), "tunnel-%d") % ipv8_port)
         config.set_tunnel_community_socks5_listen_ports([])
+        config.set_tunnel_community_random_slots(self.options["random_slots"])
+        config.set_tunnel_community_competing_slots(self.options["competing_slots"])
         config.set_torrent_checking_enabled(False)
         config.set_megacache_enabled(False)
         config.set_dispersy_enabled(False)
@@ -166,6 +171,7 @@ class Tunnel(object):
         config.set_tunnel_community_exitnode_enabled(bool(self.options["exit"]))
         config.set_popularity_community_enabled(False)
         config.set_testnet(bool(self.options["testnet"]))
+        config.set_chant_enabled(False)
 
         if not self.options['no-rest-api']:
             config.set_http_api_enabled(True)
