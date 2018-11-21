@@ -4,10 +4,11 @@ import logging.config
 
 import signal
 
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.exceptions import TriblerException
 from check_os import check_environment, check_free_space, error_and_exit, setup_gui_logging, \
-    should_kill_other_tribler_instances, enable_fault_handler, set_process_priority
-
+    should_kill_other_tribler_instances, enable_fault_handler, set_process_priority, \
+    check_and_enable_code_tracing
 
 # https://github.com/Tribler/tribler/issues/3702
 # We need to make sure that anyone running cp65001 can print to the stdout before we print anything.
@@ -40,12 +41,15 @@ def start_tribler_core(base_path, api_port):
     from check_os import setup_core_logging
     setup_core_logging()
 
-    from Tribler.Core.Config.tribler_config import TriblerConfig
     from Tribler.Core.Modules.process_checker import ProcessChecker
     from Tribler.Core.Session import Session
 
+    trace_logger = None
+
     def on_tribler_shutdown(_):
         reactor.stop()
+        if trace_logger:
+            trace_logger.close()
 
     def shutdown(session, *_):
         logging.info("Stopping Tribler core")
@@ -55,6 +59,10 @@ def start_tribler_core(base_path, api_port):
 
     def start_tribler():
         config = TriblerConfig()
+        global trace_logger
+
+        # Enable tracer if --trace-debug or --trace-exceptions flag is present in sys.argv
+        trace_logger = check_and_enable_code_tracing('core')
 
         priority_order = config.get_cpu_priority_order()
         set_process_priority(pid=os.getpid(), priority_order=priority_order)
@@ -86,6 +94,9 @@ if __name__ == "__main__":
         start_tribler_core(base_path, api_port)
     else:
         try:
+            # Enable tracer using commandline args: --trace-debug or --trace-exceptions
+            trace_logger = check_and_enable_code_tracing('gui')
+
             enable_fault_handler()
 
             # Exit if we cant read/write files, etc.
@@ -126,6 +137,8 @@ if __name__ == "__main__":
 
         except SystemExit as se:
             logging.info("Shutting down Tribler")
+            if trace_logger:
+                trace_logger.close()
             # Flush all the logs to make sure it is written to file before it exits
             for handler in logging.getLogger().handlers:
                 handler.flush()
