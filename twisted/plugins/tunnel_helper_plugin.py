@@ -82,7 +82,7 @@ class Options(usage.Options):
         ["ipv8_bootstrap_override", "b", None, "Force the usage of specific IPv8 bootstrap server (ip:port)", check_ipv8_bootstrap_override],
         ["restapi", "p", 8085, "Use an alternate port for the REST API", check_api_port],
         ["random_slots", "r", 10, "Specifies the number of random slots", int],
-        ["competing_slots", "c", 10, "Specifies the number of competing slots", int],
+        ["competing_slots", "c", 20, "Specifies the number of competing slots", int],
     ]
 
 
