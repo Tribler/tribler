@@ -286,10 +286,12 @@ class TriblerLaunchMany(TaskManager):
 
         # Tunnel Community
         if self.session.config.get_tunnel_community_enabled():
-
             from Tribler.community.triblertunnel.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
             community_cls = TriblerTunnelTestnetCommunity if self.session.config.get_testnet() else \
                 TriblerTunnelCommunity
+
+            random_slots = self.session.config.get_tunnel_community_random_slots()
+            competing_slots = self.session.config.get_tunnel_community_competing_slots()
 
             if self.mainline_dht:
                 dht_provider = MainlineDHTProvider(self.mainline_dht, self.session.config.get_dispersy_port())
@@ -299,7 +301,9 @@ class TriblerLaunchMany(TaskManager):
             self.tunnel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
                                                   tribler_session=self.session,
                                                   dht_provider=dht_provider,
-                                                  bandwidth_wallet=self.wallets["MB"])
+                                                  bandwidth_wallet=self.wallets["MB"],
+                                                  random_slots=random_slots,
+                                                  competing_slots=competing_slots)
             self.ipv8.overlays.append(self.tunnel_community)
             self.ipv8.strategies.append((RandomWalk(self.tunnel_community), 20))
 
