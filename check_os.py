@@ -1,9 +1,11 @@
 import logging.config
 import os
-import psutil
-import subprocess
 import sys
 import tempfile
+import time
+import traceback
+
+import psutil
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.process_checker import ProcessChecker
@@ -232,3 +234,87 @@ def enable_fault_handler():
         faulthandler.enable(file=open(crash_file, "w"), all_threads=True)
     except ImportError:
         logging.error("Fault Handler module not found.")
+
+
+def check_and_enable_code_tracing(process_name):
+    """
+    Checks and enable trace logging if --trace-exception or --trace-debug system flag is present.
+    :param process_name: used as prefix for log file
+    :return: Log file handler
+    """
+    trace_logger = None
+    log_dir = TriblerConfig().get_log_dir()
+    if '--trace-exception' in sys.argv[1:]:
+        trace_logger = open(os.path.join(log_dir, '%s-exceptions.log' % process_name), 'w')
+        sys.settrace(lambda frame, event, args: trace_calls(trace_logger, frame, event, args,
+                                                            filter_exceptions_only=True))
+    elif '--trace-debug' in sys.argv[1:]:
+        trace_logger = open(os.path.join(log_dir, '%s-debug.log' % process_name), 'w')
+        sys.settrace(lambda frame, event, args: trace_calls(trace_logger, frame, event, args))
+    return trace_logger
+
+
+def trace_calls(file_handler, frame, event, args, filter_exceptions_only=False):
+    """
+    Trace all Tribler calls as it runs. Useful for debugging.
+    Checkout: https://pymotw.com/2/sys/tracing.html
+    :param file_handler: File handler where logs will be written to.
+    :param frame: Current frame
+    :param event: Call event
+    :param args: None
+    :return: next trace handler
+    """
+    if event != 'call' or file_handler.closed:
+        return
+
+    if not filter_exceptions_only:
+        co = frame.f_code
+        func_name = co.co_name
+
+        # Ignore write() calls from print statements
+        if func_name == 'write':
+            return
+
+        func_line_no = frame.f_lineno
+        func_filename = co.co_filename
+
+        caller = frame.f_back
+        caller_line_no = caller.f_lineno
+        caller_filename = caller.f_code.co_filename
+
+        # Only write if callee or caller is Tribler code
+        if "tribler" in caller_filename.lower() or "tribler" in func_filename.lower():
+            trace_line = "[%s] %s:%s, line %s called from %s, line %s\n" % (
+                time.time(), func_filename, func_name, func_line_no,
+                caller_filename, caller_line_no)
+            file_handler.write(trace_line)
+            file_handler.flush()
+
+    return lambda _frame, _event, _args: trace_exceptions(file_handler, _frame, _event, _args)
+
+
+def trace_exceptions(file_handler, frame, event, args):
+    """
+    Trace all Tribler exceptions as it runs. Useful for debugging.
+    Checkout: https://pymotw.com/2/sys/tracing.html
+    :param file_handler: File handler where logs will be written to.
+    :param frame: Current frame
+    :param event: Exception event
+    :param args: exc_type, exc_value, exc_traceback
+    :return: None
+    """
+    if event != 'exception' or file_handler.closed:
+        return
+
+    co = frame.f_code
+    func_line_no = frame.f_lineno
+    func_filename = co.co_filename
+
+    # Only write if exception is originated from Tribler code
+    if "tribler" in func_filename.lower():
+        exc_type, exc_value, exc_traceback = args
+        trace_line = "[%s] Exception: %s, line %s \n%s %s \n%s" % (
+            time.time(), func_filename, func_line_no,
+            exc_type.__name__, exc_value, "".join(traceback.format_tb(exc_traceback)))
+        file_handler.write(trace_line)
+        file_handler.flush()
