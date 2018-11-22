@@ -1,6 +1,7 @@
 import logging
 
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
+from Tribler.pyipv8.ipv8.util import addCallback
 
 
 class PayoutManager(object):
@@ -28,10 +29,11 @@ class PayoutManager(object):
         def on_nodes(nodes):
             self.logger.debug("Received %d nodes for DHT lookup", len(nodes))
             if nodes:
-                self.bandwidth_wallet.trustchain.sign_block(nodes[0],
-                                                            public_key=nodes[0].public_key.key_to_bin(),
-                                                            block_type='tribler_bandwidth',
-                                                            transaction={'up': 0, 'down': total_bytes})
+                deferred = self.bandwidth_wallet.trustchain.sign_block(nodes[0],
+                                                                       public_key=nodes[0].public_key.key_to_bin(),
+                                                                       block_type='tribler_bandwidth',
+                                                                       transaction={'up': 0, 'down': total_bytes})
+                addCallback(deferred, lambda _: None)
 
         if total_bytes >= 1024 * 1024:  # Do at least 1MB payouts
             self.logger.info("Doing direct payout to %s (%d bytes)", mid.encode('hex'), total_bytes)
