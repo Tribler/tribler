@@ -126,12 +126,21 @@ class TestDownloadState(TriblerCoreTest):
         """
         Testing whether the right availability of a file is returned
         """
-        download_state = DownloadState(self.mock_download, DLSTATUS_DOWNLOADING, None, 0.6)
+        mock_ltstate = MockObject()
+        mock_ltstate.pieces = [True]
+        download_state = DownloadState(self.mock_download, mock_ltstate, None, 0.6)
         download_state.get_peerlist = lambda: []
+
         self.assertEqual(download_state.get_availability(), 0)
         download_state.get_peerlist = lambda: [{'completed': 1.0}]
         self.assertEqual(download_state.get_availability(), 1.0)
         download_state.get_peerlist = lambda: [{'completed': 0.6}]
         self.assertEqual(download_state.get_availability(), 0.0)
+        download_state.lt_status.pieces = [0, 0, 0, 0, 0]
         download_state.get_peerlist = lambda: [{'completed': 0}, {'have': [1, 1, 1, 1, 0]}]
         self.assertEqual(download_state.get_availability(), 0.8)
+
+        # Test whether inaccurate piece information from other peers is ignored
+        download_state.get_peerlist = lambda: [{'completed': 0.5, 'have': [1, 0]},
+                                               {'completed': 0.9, 'have': [1, 0, 1]}]
+        self.assertEqual(download_state.get_availability(), 0.0)

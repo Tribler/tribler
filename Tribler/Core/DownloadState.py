@@ -20,6 +20,7 @@ DLSTATUS_MAP = [DLSTATUS_WAITING4HASHCHECK,
                 DLSTATUS_ALLOCATING_DISKSPACE,
                 DLSTATUS_HASHCHECKING]
 
+
 class DownloadState(object):
     """
     Contains a snapshot of the state of the Download at a specific
@@ -177,8 +178,11 @@ class DownloadState(object):
         overall availability of all pieces provided by the connected peers and use the minimum
         of this + the average of all additional pieces.
         """
+        if not self.lt_status:
+            return 0  # We do not have any info for this download so we cannot accurately get its availability
+
         nr_seeders_complete = 0
-        merged_bitfields = None
+        merged_bitfields = [0] * len(self.lt_status.pieces)
 
         peers = self.get_peerlist()
         for peer in peers:
@@ -187,10 +191,7 @@ class DownloadState(object):
 
             if completed == 1 or have and all(have):
                 nr_seeders_complete += 1
-            elif have:
-                if merged_bitfields is None:
-                    merged_bitfields = [0] * len(have)
-
+            elif have and len(have) == len(merged_bitfields):
                 for i in range(len(have)):
                     if have[i]:
                         merged_bitfields[i] += 1
