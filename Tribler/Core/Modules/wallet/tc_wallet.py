@@ -1,13 +1,14 @@
 from base64 import b64encode
 
+from twisted.internet.defer import succeed, fail, Deferred
+from twisted.internet.task import LoopingCall
+
 from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
 from Tribler.Core.Modules.wallet.wallet import Wallet, InsufficientFunds
 from Tribler.pyipv8.ipv8.attestation.trustchain.listener import BlockListener
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
 from Tribler.pyipv8.ipv8.peer import Peer
-from twisted.internet.defer import succeed, fail, Deferred
-from twisted.internet.task import LoopingCall
-
+from Tribler.pyipv8.ipv8.util import addCallback
 
 MEGA_DIV = 1024.0 * 1024.0
 MIN_TRANSACTION_SIZE = 1024 * 1024
@@ -88,8 +89,9 @@ class TrustchainWallet(Wallet, BlockListener):
 
     def create_transfer_block(self, peer, quantity):
         transaction = {"up": 0, "down": int(quantity * MEGA_DIV)}
-        self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
-                                   block_type='tribler_bandwidth', transaction=transaction)
+        deferred = self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
+                                              block_type='tribler_bandwidth', transaction=transaction)
+        addCallback(deferred, lambda _: None)
         latest_block = self.trustchain.persistence.get_latest(self.trustchain.my_peer.public_key.key_to_bin(),
                                                               block_type='tribler_bandwidth')
         txid = "%s.%s.%d.%d" % (latest_block.public_key.encode('hex'),

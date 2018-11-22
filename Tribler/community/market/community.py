@@ -1,5 +1,7 @@
-import random
 from base64 import b64decode
+
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, succeed, Deferred
 
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Core.simpledefs import NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_TRANSACTION_COMPLETE, \
@@ -39,8 +41,7 @@ from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticatio
 from Tribler.pyipv8.ipv8.messaging.payload_headers import GlobalTimeDistributionPayload
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
-from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, succeed, Deferred, returnValue
+from Tribler.pyipv8.ipv8.util import addCallback
 
 
 # Message definitions
@@ -721,9 +722,9 @@ class MarketCommunity(Community, BlockListener):
             "tx": transaction.to_dictionary(),
             "version": self.PROTOCOL_VERSION
         }
-        return self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
-                                          block_type='tx_init', transaction=tx_dict)\
-            .addCallback(lambda (blk1, blk2): blk1)
+        deferred = self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
+                                              block_type='tx_init', transaction=tx_dict)
+        return addCallback(deferred, lambda (blk1, blk2): blk1)
 
     @synchronized
     def create_new_tx_payment_block(self, peer, payment):
@@ -741,9 +742,9 @@ class MarketCommunity(Community, BlockListener):
             "payment": payment.to_dictionary(),
             "version": self.PROTOCOL_VERSION
         }
-        return self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
-                                          block_type='tx_payment', transaction=tx_dict)\
-            .addCallback(lambda (blk1, blk2): blk1)
+        deferred = self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
+                                              block_type='tx_payment', transaction=tx_dict)
+        return addCallback(deferred, lambda (blk1, blk2): blk1)
 
     @synchronized
     def create_new_tx_done_block(self, peer, ask_order_dict, bid_order_dict, transaction):
@@ -767,9 +768,9 @@ class MarketCommunity(Community, BlockListener):
             "tx": transaction.to_dictionary(),
             "version": self.PROTOCOL_VERSION
         }
-        return self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
-                                          block_type='tx_done', transaction=tx_dict)\
-            .addCallback(lambda (blk1, blk2): blk1)
+        deferred = self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
+                                              block_type='tx_done', transaction=tx_dict)
+        return addCallback(deferred, lambda (blk1, blk2): blk1)
 
     def on_tick(self, tick):
         """
