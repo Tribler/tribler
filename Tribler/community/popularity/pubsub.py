@@ -8,8 +8,8 @@ from Tribler.community.popularity.constants import MSG_SUBSCRIPTION, ERROR_UNKNO
     MSG_SUBSCRIBE, MAX_PUBLISHERS, PUBLISH_INTERVAL
 from Tribler.community.popularity.payload import ContentSubscription
 from Tribler.community.popularity.request import ContentRequest
-from Tribler.pyipv8.ipv8.deprecated.community import Community
-from Tribler.pyipv8.ipv8.deprecated.payload_headers import BinMemberAuthenticationPayload, GlobalTimeDistributionPayload
+from Tribler.pyipv8.ipv8.community import Community
+from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload, GlobalTimeDistributionPayload
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.requestcache import RequestCache
 

@@ -7,8 +7,8 @@ from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.transaction import TransactionId, TransactionNumber
 from Tribler.community.market.core.wallet_address import WalletAddress
-from Tribler.pyipv8.ipv8.deprecated.bloomfilter import BloomFilter
-from Tribler.pyipv8.ipv8.deprecated.payload import Payload
+from Tribler.pyipv8.ipv8.messaging.bloomfilter import BloomFilter
+from Tribler.pyipv8.ipv8.messaging.payload import Payload
 
 
 class MessagePayload(Payload):

@@ -1,4 +1,4 @@
-from Tribler.pyipv8.ipv8.deprecated.payload import Payload
+from Tribler.pyipv8.ipv8.messaging.payload import Payload
 
 
 class TruncatedChannelPayload(Payload):

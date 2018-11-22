@@ -195,7 +195,7 @@ class TriblerLaunchMany(TaskManager):
                 ipv8_config['keys'] = []  # We load the keys ourselves
 
                 if self.session.config.get_ipv8_bootstrap_override():
-                    import Tribler.pyipv8.ipv8.deprecated.community as community_file
+                    import Tribler.pyipv8.ipv8.community as community_file
                     community_file._DEFAULT_ADDRESSES = [self.session.config.get_ipv8_bootstrap_override()]
                     community_file._DNS_ADDRESSES = []
 
