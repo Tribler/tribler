@@ -1,7 +1,7 @@
 import struct
 from struct import pack, unpack_from, calcsize
 
-from Tribler.pyipv8.ipv8.deprecated.payload import Payload
+from Tribler.pyipv8.ipv8.messaging.payload import Payload
 
 
 def encode_values(values):

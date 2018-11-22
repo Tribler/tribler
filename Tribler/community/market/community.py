@@ -32,11 +32,11 @@ from Tribler.community.market.reputation.temporal_pagerank_manager import Tempor
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import synchronized
 from Tribler.pyipv8.ipv8.attestation.trustchain.listener import BlockListener
 from Tribler.pyipv8.ipv8.attestation.trustchain.payload import HalfBlockPairPayload
-from Tribler.pyipv8.ipv8.deprecated.bloomfilter import BloomFilter
-from Tribler.pyipv8.ipv8.deprecated.community import Community, lazy_wrapper
-from Tribler.pyipv8.ipv8.deprecated.payload import IntroductionRequestPayload, IntroductionResponsePayload
-from Tribler.pyipv8.ipv8.deprecated.payload_headers import BinMemberAuthenticationPayload
-from Tribler.pyipv8.ipv8.deprecated.payload_headers import GlobalTimeDistributionPayload
+from Tribler.pyipv8.ipv8.community import Community, lazy_wrapper
+from Tribler.pyipv8.ipv8.messaging.bloomfilter import BloomFilter
+from Tribler.pyipv8.ipv8.messaging.payload import IntroductionRequestPayload, IntroductionResponsePayload
+from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
+from Tribler.pyipv8.ipv8.messaging.payload_headers import GlobalTimeDistributionPayload
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
 from twisted.internet import reactor
