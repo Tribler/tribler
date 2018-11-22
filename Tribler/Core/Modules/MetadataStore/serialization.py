@@ -4,8 +4,8 @@ import struct
 from datetime import datetime, timedelta
 
 from Tribler.Core.exceptions import InvalidSignatureException
-from Tribler.pyipv8.ipv8.deprecated.payload import Payload
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
+from Tribler.pyipv8.ipv8.messaging.payload import Payload
 from Tribler.pyipv8.ipv8.messaging.serialization import default_serializer
 
 EPOCH = datetime(1970, 1, 1)

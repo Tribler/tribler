@@ -4,9 +4,9 @@ from pony.orm import db_session
 
 from Tribler.community.gigachannel.payload import TruncatedChannelPayload, TruncatedChannelPlayloadBlob
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
-from Tribler.pyipv8.ipv8.deprecated.community import Community
-from Tribler.pyipv8.ipv8.deprecated.lazy_community import lazy_wrapper
-from Tribler.pyipv8.ipv8.deprecated.payload_headers import BinMemberAuthenticationPayload
+from Tribler.pyipv8.ipv8.community import Community
+from Tribler.pyipv8.ipv8.lazy_community import lazy_wrapper
+from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.requestcache import NumberCache, RequestCache
 

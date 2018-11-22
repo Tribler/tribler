@@ -1,5 +1,5 @@
 from Tribler.pyipv8.ipv8.attestation.trustchain.payload import HalfBlockPayload
-from Tribler.pyipv8.ipv8.deprecated.payload import Payload
+from Tribler.pyipv8.ipv8.messaging.payload import Payload
 
 
 class PayoutPayload(HalfBlockPayload):
