@@ -131,6 +131,7 @@ def get_existing_tribler_pid():
         return process_checker.get_pid_from_lock_file()
     return -1
 
+
 def should_kill_other_tribler_instances():
     """ Asks user whether to force restart Tribler if there is more than one instance running.
         This will help user to kill any zombie instances which might have been left behind from
