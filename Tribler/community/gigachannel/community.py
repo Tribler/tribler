@@ -176,3 +176,13 @@ class GigaChannelCommunity(Community):
                     channel = self.tribler_session.lm.mds.ChannelMetadata.get_channel_with_infohash(infohash)
                 finished_deferred = self.tribler_session.lm.download_channel(channel)[1]
                 finished_deferred.addCallback(self.download_completed)
+
+
+class GigaChannelTestnetCommunity(GigaChannelCommunity):
+    """
+    This community defines a testnet for the giga channels, used for testing purposes.
+    """
+    master_peer = Peer("3081a7301006072a8648ce3d020106052b8104002703819200040726f5b6558151e1b82c3d30c08175c446f5f696b"
+                       "e9b005ee23050fe55f7e4f73c1b84bf30eb0a254c350705f89369ba2c6b6795a50f0aa562b3095bfa8aa069747221"
+                       "c0fb92e207052b7d03fa8a76e0b236d74ac650de37e5dfa02cbd6b9fe2146147f3555bfa7410b9c499a8ec49a80ac"
+                       "84b433fb2bf1740a15e96a5bad2b90b0488bdc791633ee7d829dcd583ee5f".decode('hex'))

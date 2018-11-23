@@ -338,10 +338,11 @@ class TriblerLaunchMany(TaskManager):
 
         # Gigachannel Community
         if self.session.config.get_chant_enabled():
-            from Tribler.community.gigachannel.community import GigaChannelCommunity
+            from Tribler.community.gigachannel.community import GigaChannelCommunity, GigaChannelTestnetCommunity
             from Tribler.community.gigachannel.sync_strategy import SyncChannels
 
-            self.gigachannel_community = GigaChannelCommunity(peer, self.ipv8.endpoint, self.ipv8.network, self.session)
+            community_cls = GigaChannelTestnetCommunity if self.session.config.get_testnet() else GigaChannelCommunity
+            self.gigachannel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network, self.session)
 
             self.ipv8.overlays.append(self.gigachannel_community)
 
