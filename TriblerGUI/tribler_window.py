@@ -54,6 +54,7 @@ class MagnetHandler(QObject):
 class TriblerWindow(QMainWindow):
     resize_event = pyqtSignal()
     escape_pressed = pyqtSignal()
+    tribler_crashed = pyqtSignal(str)
     received_search_completions = pyqtSignal(object)
 
     def on_exception(self, *exc_info):
@@ -62,6 +63,10 @@ class TriblerWindow(QMainWindow):
             return
 
         self.exception_handler_called = True
+
+        exception_text = "".join(traceback.format_exception(*exc_info))
+        logging.error(exception_text)
+        self.tribler_crashed.emit(exception_text)
 
         self.delete_tray_icon()
 
@@ -78,9 +83,6 @@ class TriblerWindow(QMainWindow):
 
         if self.debug_window:
             self.debug_window.setHidden(True)
-
-        exception_text = "".join(traceback.format_exception(*exc_info))
-        logging.error(exception_text)
 
         dialog = FeedbackDialog(self, exception_text, self.core_manager.events_manager.tribler_version,
                                 self.start_time)

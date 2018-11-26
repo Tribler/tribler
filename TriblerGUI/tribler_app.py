@@ -1,6 +1,9 @@
 import os
+import sys
 
 from PyQt5.QtCore import QEvent
+
+from TriblerGUI.code_executor import CodeExecutor
 from TriblerGUI.single_application import QtSingleApplication
 
 
@@ -10,6 +13,7 @@ class TriblerApplication(QtSingleApplication):
     """
     def __init__(self, app_name, args):
         QtSingleApplication.__init__(self, app_name, args)
+        self.code_executor = None
         self.messageReceived.connect(self.on_app_message)
 
     def on_app_message(self, msg):
@@ -27,6 +31,16 @@ class TriblerApplication(QtSingleApplication):
                 self.handle_uri('file:%s' % arg)
             elif arg.startswith('magnet'):
                 self.handle_uri(arg)
+
+        if '--allow-code-injection' in sys.argv[1:]:
+            variables = globals().copy()
+            variables.update(locals())
+            variables['window'] = self.activation_window()
+            self.code_executor = CodeExecutor(5500, shell_variables=variables)
+            self.activation_window().tribler_crashed.connect(self.code_executor.on_crash)
+
+        if '--testnet' in sys.argv[1:]:
+            os.environ['TESTNET'] = "YES"
 
     def event(self, event):
         if event.type() == QEvent.FileOpen and event.file().endswith(".torrent"):
