@@ -865,7 +865,8 @@ class TriblerWindow(QMainWindow):
     def resizeEvent(self, _):
         # Resize home page cells
         cell_width = self.home_page_table_view.width() / 3 - 3  # We have some padding to the right
-        cell_height = cell_width / 2 + 60
+        max_height = self.home_page_table_view.height() / 3 - 4
+        cell_height = min(cell_width / 2 + 60, max_height)
 
         for i in range(0, 3):
             self.home_page_table_view.setColumnWidth(i, cell_width)
