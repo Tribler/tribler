@@ -12,7 +12,6 @@ from Tribler.Core.exceptions import HttpError
 from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink, unichar_string
-from Tribler.Core.exceptions import HttpError, InvalidSignatureException
 
 
 class TorrentInfoEndpoint(resource.Resource):

@@ -7,7 +7,6 @@ from twisted.web.server import NOT_DONE_YET
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.restapi.util import return_handled_exception
 from Tribler.Core.Utilities.utilities import unichar_string
-from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
 import Tribler.Core.Utilities.json_util as json
 
