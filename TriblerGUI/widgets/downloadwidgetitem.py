@@ -1,4 +1,6 @@
 import logging
+
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QTreeWidgetItem, QProgressBar
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QWidget
@@ -54,6 +56,12 @@ class DownloadWidgetItem(QTreeWidgetItem):
 
     def update_item(self):
         self.setText(0, self.download_info["name"])
+        if self.download_info["name"] == u"<old version of your channel>":
+            itfont = QFont(self.font(0))
+            itfont.setItalic(True)
+            self.setFont(0, itfont)
+        else:
+            self.font(0).setItalic(False)
         self.setText(1, format_size(float(self.download_info["size"])))
 
         try:

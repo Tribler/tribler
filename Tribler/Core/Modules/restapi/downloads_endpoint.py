@@ -217,7 +217,16 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             num_seeds, num_peers = state.get_num_seeds_peers()
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
-            download_json = {"name": tdef.get_name_utf8(), "progress": state.get_progress(),
+            def get_chant_name(download):
+                infohash = download.tdef.get_infohash()
+                channel = self.session.lm.mds.ChannelMetadata.get_channel_with_infohash(infohash)
+                if channel:
+                    return channel.title
+                else:
+                    return u"<old version of your channel>"
+
+            download_json = {"name": get_chant_name(download) if download.get_channel_download() else tdef.get_name_utf8(),
+                             "progress": state.get_progress(),
                              "infohash": tdef.get_infohash().encode('hex'),
                              "speed_down": state.get_current_payload_speed(DOWNLOAD),
                              "speed_up": state.get_current_payload_speed(UPLOAD),
