@@ -326,6 +326,9 @@ background-color: transparent;
           <property name="selectionMode">
            <enum>QAbstractItemView::NoSelection</enum>
           </property>
+          <property name="sortingEnabled">
+           <bool>true</bool>
+          </property>
           <property name="indentation">
            <number>0</number>
           </property>
