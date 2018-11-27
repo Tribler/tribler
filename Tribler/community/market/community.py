@@ -273,22 +273,6 @@ class MarketCommunity(Community, BlockListener):
         return super(MarketCommunity, self).create_introduction_response(lan_socket_address, socket_address,
                                                                          identifier, introduction, extra_bytes)
 
-    def on_introduction_request(self, source_address, data):
-        super(MarketCommunity, self).on_introduction_request(source_address, data)
-        auth, _, _ = self._ez_unpack_auth(IntroductionRequestPayload, data)
-        peer = Peer(auth.public_key_bin, source_address)
-
-        if self.is_matchmaker:
-            self.send_orderbook_sync(peer)
-
-    def on_introduction_response(self, source_address, data):
-        super(MarketCommunity, self).on_introduction_response(source_address, data)
-        auth, _, _ = self._ez_unpack_auth(IntroductionResponsePayload, data)
-        peer = Peer(auth.public_key_bin, source_address)
-
-        if self.is_matchmaker:
-            self.send_orderbook_sync(peer)
-
     def parse_extra_bytes(self, extra_bytes, peer):
         if not extra_bytes:
             return False
@@ -300,9 +284,13 @@ class MarketCommunity(Community, BlockListener):
             self.add_matchmaker(peer)
 
     def introduction_request_callback(self, peer, dist, payload):
+        if self.is_matchmaker and peer.address not in self.network.blacklist:
+            self.send_orderbook_sync(peer)
         self.parse_extra_bytes(payload.extra_bytes, peer)
 
     def introduction_response_callback(self, peer, dist, payload):
+        if self.is_matchmaker and peer.address not in self.network.blacklist:
+            self.send_orderbook_sync(peer)
         self.parse_extra_bytes(payload.extra_bytes, peer)
 
     def send_orderbook_sync(self, peer):
