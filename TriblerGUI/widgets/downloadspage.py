@@ -34,7 +34,7 @@ class DownloadsPage(QWidget):
         self.downloads_timer = QTimer()
         self.downloads_timeout_timer = QTimer()
         self.downloads_last_update = 0
-        self.selected_items = None
+        self.selected_items = []
         self.dialog = None
         self.downloads_request_mgr = TriblerRequestManager()
         self.request_mgr = None
