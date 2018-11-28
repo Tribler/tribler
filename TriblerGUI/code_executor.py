@@ -24,6 +24,7 @@ class CodeExecutor(object):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.tcp_server = QTcpServer()
         self.sockets = []
+        self.stack_trace = None
         if not self.tcp_server.listen(port=port):
             self.logger.error("Unable to start code execution socket! Error: %s", self.tcp_server.errorString())
         else:
@@ -38,6 +39,10 @@ class CodeExecutor(object):
             socket.disconnected.connect(lambda dc_socket=socket: self._on_socket_disconnect(dc_socket))
             self.sockets.append(socket)
 
+            # If Tribler has crashed, notify the other side immediately
+            if self.stack_trace:
+                self.on_crash(self.stack_trace)
+
     def run_code(self, code, task_id):
         self.shell.runcode(code)
         stdout = self.shell.stdout.read()
@@ -45,7 +50,7 @@ class CodeExecutor(object):
 
         self.logger.info("Code execution with task %s finished:", task_id)
         self.logger.info("Stdout of task %s: %s", task_id, stdout)
-        if ('Traceback' in stderr or 'SyntaxError' in stderr) and not 'SystemExit' in stderr:
+        if ('Traceback' in stderr or 'SyntaxError' in stderr) and 'SystemExit' not in stderr:
             raise RuntimeError("Error during remote code execution! %s" % stderr)
 
         # Determine the return value
@@ -58,6 +63,7 @@ class CodeExecutor(object):
             socket.write("result %s %s\n" % (return_value, task_id))
 
     def on_crash(self, exception_text):
+        self.stack_trace = exception_text
         for socket in self.sockets:
             socket.write("crash %s\n" % exception_text.encode('base64'))
 
