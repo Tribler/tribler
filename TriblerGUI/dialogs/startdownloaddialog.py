@@ -118,7 +118,7 @@ class StartDownloadDialog(DialogContainer):
                                          self.on_received_metainfo, capture_errors=False)
 
     def on_received_metainfo(self, metainfo):
-        if not metainfo:
+        if not metainfo or not self:
             return
 
         if 'error' in metainfo:
