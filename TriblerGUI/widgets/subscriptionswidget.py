@@ -83,7 +83,7 @@ class SubscriptionsWidget(QWidget):
             self.update_subscribe_button()
 
     def on_channel_subscribed(self, json_result):
-        if not json_result:
+        if not json_result or not self:
             return
         if json_result["subscribed"]:
             self.subscribed_channel.emit(self.channel_info)
