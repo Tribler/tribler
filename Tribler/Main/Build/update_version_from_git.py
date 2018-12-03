@@ -11,19 +11,20 @@ logger = logging.getLogger(__name__)
 # We aren't using python-git because we don't want to install the dependency on all the builders.
 
 
-def runCommand(cmd):
+def run_command(cmd):
     p = Popen(cmd, stdout=PIPE, stderr=PIPE)
     p.wait()
     assert(p.returncode == 0)
     stdout = p.communicate()[0]
-    return stdout.strip()
+    return str(stdout.strip())
+
 
 if __name__ == '__main__':
     cmd = ['git', 'describe', '--tags', 'HEAD']
-    version_id = runCommand(cmd).strip()[1:]
+    version_id = run_command(cmd).strip()[1:].replace("'", "")
     logger.info("Version: %s", version_id)
     cmd = ['git', 'rev-parse', 'HEAD']
-    commit_id = runCommand(cmd).strip()[1:]
+    commit_id = run_command(cmd).strip()[1:].replace("'", "")
     logger.info("Commit: %s", commit_id)
 
     build_date = ctime()
@@ -40,7 +41,7 @@ if __name__ == '__main__':
     f.close()
 
     if sys.platform == 'linux2':
-        runCommand('dch -v {} New upstream release.'.format(version_id).split())
+        run_command('dch -v {} New upstream release.'.format(version_id).split())
     elif sys.platform == 'win32':
         logger.info('Replacing NSI string.')
         f = open(path.join('Tribler', 'Main', 'Build', 'Win', 'tribler.nsi'), 'r+')
