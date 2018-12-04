@@ -209,3 +209,23 @@ class TestSqliteCacheDB(TriblerCoreTest):
         self.sqlite_test.delete("person", lastname=("LIKE", "a"))
         one = self.sqlite_test.fetchone(u"SELECT * FROM person")
         self.assertEqual(one, ('x', 'z'))
+
+    def test_commit_now_error_non_exit(self):
+        """
+        Test if commit_now raises an error when we are not exiting.
+        """
+        self.test_insert()
+        self.sqlite_test.insert('person', lastname='x', firstname='z')
+        self.sqlite_test.execute(u"COMMIT;")
+        self.assertRaises(SQLError, self.sqlite_test.commit_now)
+
+    def test_commit_now_error_on_exit(self):
+        """
+        Test if commit_now does not raise an error when we are exiting.
+
+        See also test_commit_now_error_non_exit.
+        """
+        self.test_insert()
+        self.sqlite_test.insert('person', lastname='x', firstname='z')
+        self.sqlite_test.execute(u"COMMIT;")
+        self.assertIsNone(self.sqlite_test.commit_now(exiting=True))
