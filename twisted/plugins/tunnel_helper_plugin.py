@@ -211,7 +211,7 @@ class TunnelHelperServiceMaker(object):
                 self._stopping = True
                 msg("Setting the tunnel should_run variable to False")
                 tunnel.should_run = False
-                tunnel.stop().addCallback(lambda _: reactor.stop())
+                tunnel.stop().addBoth(lambda _: reactor.stop())
 
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
