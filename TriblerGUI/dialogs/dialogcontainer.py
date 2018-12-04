@@ -28,10 +28,13 @@ class DialogContainer(QWidget):
             pass
 
     def on_main_window_resize(self):
-        if not self or not self.parentWidget():
-            return
+        try:
+            if not self or not self.parentWidget():
+                return
 
-        self.setFixedSize(self.parentWidget().size())
-        self.dialog_widget.setFixedWidth(self.width() - 100)
-        self.dialog_widget.move(QPoint(self.geometry().center().x() - self.dialog_widget.geometry().width() / 2,
-                                       self.geometry().center().y() - self.dialog_widget.geometry().height() / 2))
+            self.setFixedSize(self.parentWidget().size())
+            self.dialog_widget.setFixedWidth(self.width() - 100)
+            self.dialog_widget.move(QPoint(self.geometry().center().x() - self.dialog_widget.geometry().width() / 2,
+                                           self.geometry().center().y() - self.dialog_widget.geometry().height() / 2))
+        except RuntimeError:
+            pass
