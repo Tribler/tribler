@@ -238,7 +238,13 @@ class SQLiteCacheDB(TaskManager):
                 self.execute(u"COMMIT;")
             except:
                 self._logger.exception(u"COMMIT FAILED")
-                raise
+                if exiting:
+                    # If we are exiting we don't propagate the error.
+                    # The reason for the exit may be the reason this exception occurred.
+                    self._logger.exception(u"Not propagating commit error, as we are exiting")
+                    return
+                else:
+                    raise
             self._should_commit = False
 
             if vacuum:
