@@ -222,11 +222,15 @@ def find_lib():
                 dll = ctypes.CDLL(p)
         ctypes.windll.kernel32.SetDllDirectoryW(dll_directory)
     elif sys.platform.startswith('darwin'):
-        # FIXME: should find a means to configure path
-        d = '/Applications/VLC.app/Contents/MacOS/'
+        # We need the location where vlc libs are present. For Tribler, they are bundled inside
+        # {INSTALLATION_DIR}/{Tribler.App}/Contents/MacOS
+        # This location can be obtained from sys.exec_path which returns the location from where
+        # tribler executable is running.
+        d = sys.exec_prefix + '/vlc/'
         c = d + 'lib/libvlccore.dylib'
         p = d + 'lib/libvlc.dylib'
         if os.path.exists(p) and os.path.exists(c):
+            logger.info("Loading VLC dylibs from %s", d)
             # pre-load libvlccore VLC 2.2.8+
             ctypes.CDLL(c)
             dll = ctypes.CDLL(p)
@@ -237,6 +241,7 @@ def find_lib():
                     break
         else:  # hope, some [DY]LD_LIBRARY_PATH is set...
             # pre-load libvlccore VLC 2.2.8+
+            logger.info("VLC libs not found/bundled. Trying from system library path.")
             ctypes.CDLL('libvlccore.dylib')
             dll = ctypes.CDLL('libvlc.dylib')
 
