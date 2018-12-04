@@ -104,8 +104,7 @@ class AbstractTriblerGUITest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if window:
-            window.close_tribler()
+        QApplication.quit()
 
     def go_to_and_wait_for_downloads(self):
         QTest.mouseClick(window.left_menu_button_downloads, Qt.LeftButton)
