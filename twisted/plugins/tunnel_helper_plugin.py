@@ -123,7 +123,6 @@ class Tunnel(object):
 
     def circuit_removed(self, _, __, ___, address):
         self.session.lm.ipv8.network.remove_by_address(address)
-        self.session.lm.tunnel_community.bootstrap()
 
     def start(self):
         # Determine ipv8 port
@@ -212,7 +211,7 @@ class TunnelHelperServiceMaker(object):
                 self._stopping = True
                 msg("Setting the tunnel should_run variable to False")
                 tunnel.should_run = False
-                tunnel.stop().addCallback(lambda _: reactor.stop())
+                tunnel.stop().addBoth(lambda _: reactor.stop())
 
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)

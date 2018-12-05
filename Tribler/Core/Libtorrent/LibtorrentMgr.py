@@ -86,7 +86,7 @@ class LibtorrentMgr(TaskManager):
         self.session_stats_callback = None
 
         # Status of libtorrent session to indicate if it can safely close and no pending writes to disk exists.
-        self.lt_session_shutdown_ready = [True, True, True, True]
+        self.lt_session_shutdown_ready = {}
 
     def initialize(self):
         # start upnp

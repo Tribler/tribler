@@ -1,7 +1,7 @@
 import json
 
 from Tribler.Test.tools import trial_timeout
-from twisted.internet.defer import succeed, fail
+from twisted.internet.defer import succeed, fail, inlineCallbacks
 from twisted.python.failure import Failure
 
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
@@ -14,6 +14,13 @@ class TestWalletsEndpoint(AbstractApiTest):
         self.config.set_ipv8_enabled(True)
         self.config.set_dummy_wallets_enabled(True)
         self.config.set_bitcoinlib_enabled(True)
+
+    @inlineCallbacks
+    def tearDown(self):
+        if self.session.lm.wallets['BTC'].wallet:
+            # Close the database session so the wallet file can be removed
+            del self.session.lm.wallets['BTC'].wallet
+        yield super(TestWalletsEndpoint, self).tearDown()
 
     @trial_timeout(20)
     def test_get_wallets(self):
@@ -41,7 +48,7 @@ class TestWalletsEndpoint(AbstractApiTest):
         """
         Test creating a BTC wallet
         """
-        self.session.lm.wallets['BTC'].create_wallet = lambda password='': succeed(None)
+        self.session.lm.wallets['BTC'].create_wallet = lambda: succeed(None)
         self.should_check_equality = False
         return self.do_request('wallets/BTC', expected_code=200, request_type='PUT')
 
@@ -53,6 +60,19 @@ class TestWalletsEndpoint(AbstractApiTest):
         self.session.lm.wallets['DUM1'].created = False
         self.should_check_equality = False
         return self.do_request('wallets/DUM1', expected_code=200, request_type='PUT')
+
+    @trial_timeout(20)
+    def test_create_wallet_btc_error(self):
+        """
+        Testing whether an error during the creation of a BTC wallet is correctly handled
+        """
+        self.should_check_equality = False
+
+        def on_wallet_created(_):
+            self.session.lm.wallets['BTC'].created = False
+            return self.do_request('wallets/BTC', expected_code=500, request_type='PUT')
+
+        return self.do_request('wallets/BTC', expected_code=200, request_type='PUT').addCallback(on_wallet_created)
 
     @trial_timeout(20)
     def test_get_wallet_balance(self):

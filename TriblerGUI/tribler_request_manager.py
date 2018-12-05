@@ -385,7 +385,7 @@ class TriblerRequestWorker(QNetworkAccessManager):
         log = [endpoint, method, data, time(), 0]
         performed_requests.append(log)
         network_reply = self.dispatch_map.get(method, lambda x, y, z: None)(endpoint, data, url)
-        network_reply.finished.connect(lambda: reply_callback(network_reply, log))
+        network_reply.finished.connect(lambda cb=reply_callback, nr=network_reply: cb(nr, log))
 
         return network_reply
 

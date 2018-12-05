@@ -121,7 +121,12 @@ class WalletEndpoint(resource.Resource):
             request.write(json.dumps({"created": True}))
             request.finish()
 
-        self.session.lm.wallets[self.identifier].create_wallet().addCallback(on_wallet_created)
+        def on_create_error(error):
+            request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+            request.write(json.dumps({"error": error.getErrorMessage()}))
+            request.finish()
+
+        self.session.lm.wallets[self.identifier].create_wallet().addCallbacks(on_wallet_created, on_create_error)
 
         return NOT_DONE_YET
 

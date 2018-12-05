@@ -49,13 +49,13 @@ class BitcoinWallet(Wallet):
         """
         Create a new bitcoin wallet.
         """
-        from bitcoinlib.wallets import HDWallet, WalletError
+        from bitcoinlib.wallets import wallet_exists, HDWallet, WalletError
+
+        if wallet_exists(self.wallet_name, databasefile=self.db_path):
+            return fail(RuntimeError("Bitcoin wallet with name %s already exists." % self.wallet_name))
 
         self._logger.info("Creating wallet in %s", self.wallet_dir)
         try:
-            if self.wallet:
-                raise WalletError("Wallet with name '%s' already created" % self.wallet_name)
-
             self.wallet = HDWallet.create(self.wallet_name, network=self.network, databasefile=self.db_path)
             self.wallet.new_key('tribler_payments')
             self.wallet.new_key('tribler_change', change=1)
