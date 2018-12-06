@@ -57,6 +57,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.download_states = {}
         self.competing_slots = [(0, None)] * num_competing_slots  # 1st tuple item = token balance, 2nd = circuit id
         self.random_slots = [None] * num_random_slots
+        self.reject_callback = None  # This callback is invoked with a tuple (time, balance) when we reject a circuit
 
         # Start the SOCKS5 servers
         self.socks_servers = []
@@ -154,6 +155,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             cache.balance_deferred.callback(True)
         else:
             # We can't compete with the balances in the existing slots
+            if self.reject_callback:
+                self.reject_callback(time.time(), balance)
             cache.balance_deferred.callback(False)
 
     def should_join_circuit(self, create_payload, previous_node_address):

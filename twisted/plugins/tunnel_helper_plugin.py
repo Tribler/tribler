@@ -5,7 +5,7 @@ import logging
 import os
 import signal
 import re
-
+import time
 
 from twisted.application.service import MultiService, IServiceMaker
 from twisted.conch import manhole_tap
@@ -73,6 +73,8 @@ class Options(usage.Options):
         ["exit", "x", "Allow being an exit-node"],
         ["testnet", "t", "Join the testnet"],
         ["no-rest-api", "a", "Disable the REST api"],
+        ["log-rejects", "", "Log rejects"],
+        ["log-circuits", "", "Log information about circuits"]
     ]
 
     optParameters = [
@@ -104,6 +106,11 @@ class Tunnel(object):
     def periodic_bootstrap(self):
         self.session.lm.tunnel_community.bootstrap()
 
+    def on_circuit_reject(self, reject_time, balance):
+        with open(os.path.join(self.session.config.get_state_dir(), "circuit_rejects.log"), 'a') as out_file:
+            time_millis = int(round(reject_time * 1000))
+            out_file.write("%d,%d\n" % (time_millis, balance))
+
     def tribler_started(self, _):
         # Remove all logging handlers
         root_logger = logging.getLogger()
@@ -121,8 +128,16 @@ class Tunnel(object):
                     new_strategies.append((strategy, target_peers))
             self.session.lm.ipv8.strategies = new_strategies
 
-    def circuit_removed(self, _, __, ___, address):
+        # Register reject event handler if set
+        if self.options["log-rejects"]:
+            self.session.lm.tunnel_community.reject_callback = self.on_circuit_reject
+
+    def circuit_removed(self, _, __, circuit, address):
         self.session.lm.ipv8.network.remove_by_address(address)
+        if self.options["log-circuits"]:
+            with open(os.path.join(self.session.config.get_state_dir(), "circuits.log"), 'a') as out_file:
+                duration = time.time() - circuit.creation_time
+                out_file.write("%d,%f,%d,%d\n" % (circuit.circuit_id, duration, circuit.bytes_up, circuit.bytes_down))
 
     def start(self):
         # Determine ipv8 port
