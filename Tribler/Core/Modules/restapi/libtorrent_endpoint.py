@@ -117,7 +117,8 @@ class LibTorrentSessionEndpoint(resource.Resource):
         if 'hop' in request.args and request.args['hop']:
             hop = int(request.args['hop'][0])
 
-        if hop not in self.session.lm.ltmgr.ltsessions:
+        if hop not in self.session.lm.ltmgr.ltsessions or \
+                not hasattr(self.session.lm.ltmgr.ltsessions[hop], "post_session_stats"):
             return json.dumps({'hop': hop, 'session': {}})
 
         self.session.lm.ltmgr.session_stats_callback = on_session_stats_alert_received
