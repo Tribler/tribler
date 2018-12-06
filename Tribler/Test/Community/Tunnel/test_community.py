@@ -1,6 +1,6 @@
 from os.path import join
 from tempfile import mkdtemp
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
@@ -439,3 +439,37 @@ class TestTriblerTunnelCommunity(TestBase):
         yield self.deliver_messages()
 
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 0.0)
+
+    @inlineCallbacks
+    def test_reject_callback(self):
+        """
+        Test whether the rejection callback is correctly invoked when a circuit request is rejected
+        """
+        reject_deferred = Deferred()
+        self.add_node_to_experiment(self.create_node())
+        self.nodes[1].overlay.settings.become_exitnode = True
+        yield self.introduce_nodes()
+
+        # Make sure that there's a token disbalance between node 0 and 1
+        his_pubkey = self.nodes[1].overlay.my_peer.public_key.key_to_bin()
+        yield self.nodes[0].overlay.bandwidth_wallet.trustchain.sign_block(
+            self.nodes[1].overlay.my_peer, public_key=his_pubkey,
+            block_type='tribler_bandwidth', transaction={'up': 0, 'down': 1024 * 1024})
+
+        def on_reject(_, balance):
+            self.assertEqual(balance, -1024 * 1024)
+            reject_deferred.callback(None)
+
+        self.nodes[1].overlay.reject_callback = on_reject
+
+        # Initialize the slots
+        self.nodes[1].overlay.random_slots = []
+        self.nodes[1].overlay.competing_slots = [(100000000, 12345)]
+
+        self.nodes[0].overlay.build_tunnels(1)
+        yield self.deliver_messages()
+
+        self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 0.0)
+
+        # Node 0 should be rejected and the reject callback should be invoked by node 1
+        yield reject_deferred
