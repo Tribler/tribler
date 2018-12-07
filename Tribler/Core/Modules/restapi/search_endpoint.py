@@ -103,23 +103,23 @@ class SearchEndpoint(resource.Resource):
         channel = None
 
         xxx_filter = self.session.config.get_family_filter_enabled()
-        if 'xxx_filter' in request.args and len(request.args['xxx_filter']) > 0 \
+        if 'xxx_filter' in request.args and request.args['xxx_filter'] > 0 \
                 and request.args['xxx_filter'][0] == "1":
             xxx_filter = False
 
-        if 'first' in request.args and len(request.args['first']) > 0:
+        if 'first' in request.args and request.args['first'] > 0:
             first = int(request.args['first'][0])
 
-        if 'last' in request.args and len(request.args['last']) > 0:
+        if 'last' in request.args and request.args['last'] > 0:
             last = int(request.args['last'][0])
 
-        if 'type' in request.args and len(request.args['type']) > 0:
+        if 'type' in request.args and request.args['type'] > 0:
             item_type = str(request.args['type'][0])
 
-        if 'channel' in request.args and len(request.args['channel']) > 0:
+        if 'channel' in request.args and request.args['channel'] > 0:
             channel_id = request.args['channel'][0].decode('hex')
 
-        if 'sort_by' in request.args and len(request.args['sort_by']) > 0:
+        if 'sort_by' in request.args and request.args['sort_by'] > 0:
             sort_by = request.args['sort_by'][0]
             if sort_by.startswith(u'-'):
                 sort_forward = False
@@ -128,10 +128,10 @@ class SearchEndpoint(resource.Resource):
                 sort_forward = True
                 sort_column = sort_by
 
-        if 'txt' in request.args and len(request.args['txt']) > 0:
+        if 'txt' in request.args and request.args['txt'] > 0:
             txt_search_query = request.args['txt'][0]
 
-        if 'subscribed' in request.args and len(request.args['subscribed']) > 0:
+        if 'subscribed' in request.args and request.args['subscribed'] > 0:
             subscribed = int(request.args['subscribed'][0])
 
         results = []
