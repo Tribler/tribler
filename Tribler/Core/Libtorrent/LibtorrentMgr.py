@@ -762,8 +762,9 @@ class LibtorrentMgr(TaskManager):
     def post_session_stats(self, hops=None):
         if hops is None:
             for lt_session in self.ltsessions.itervalues():
-                lt_session.post_session_stats()
-        else:
+                if hasattr(lt_session, "post_session_stats"):
+                    lt_session.post_session_stats()
+        elif hasattr(self.ltsessions[hops], "post_session_stats"):
             self.ltsessions[hops].post_session_stats()
 
 

@@ -353,7 +353,7 @@ color: black;
              <string notr="true">color: #ddd; font-weight: bold; font-size: 14px; border: none;</string>
             </property>
             <property name="text">
-             <string>0 MB</string>
+             <string>-</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
