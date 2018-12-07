@@ -1,11 +1,14 @@
+from __future__ import absolute_import
+
 from hashlib import sha256
 import random
 
 from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.pyipv8.ipv8.attestation.trustchain.block import GENESIS_SEQ, GENESIS_HASH, ValidationResult
+from Tribler.pyipv8.ipv8.attestation.trustchain.block import GENESIS_SEQ, GENESIS_HASH, ValidationResult, EMPTY_SIG
 from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode
 from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
+from Tribler.pyipv8.ipv8.util import cast_to_bin
 
 
 class TriblerBandwidthTestBlock(TriblerBandwidthBlock):
@@ -18,22 +21,22 @@ class TriblerBandwidthTestBlock(TriblerBandwidthBlock):
         crypto = ECCrypto()
         other = crypto.generate_key(u"curve25519").pub().key_to_bin()
 
-        transaction = {'up': random.randint(201, 220), 'down': random.randint(221, 240), 'total_up': 0,
-                       'total_down': 0, 'type': 'tribler_bandwidth'}
+        transaction = {'up': random.randint(201, 220), 'down': random.randint(221, 240), 'total_up': 0, 'total_down': 0}
 
         if previous:
             self.key = previous.key
             transaction['total_up'] = previous.transaction['total_up'] + transaction['up']
             transaction['total_down'] = previous.transaction['total_down'] + transaction['down']
-            TriblerBandwidthBlock.__init__(self, ('tribler_bandwidth', encode(transaction), previous.public_key,
-                                                  previous.sequence_number + 1, other, 0, previous.hash, 0, 0, 0))
+            TriblerBandwidthBlock.__init__(self, (b'tribler_bandwidth', encode(transaction), previous.public_key,
+                                                  previous.sequence_number + 1, other, 0,
+                                                  previous.hash, EMPTY_SIG, 0, 0))
         else:
             transaction['total_up'] = random.randint(241, 260)
             transaction['total_down'] = random.randint(261, 280)
             self.key = crypto.generate_key(u"curve25519")
             TriblerBandwidthBlock.__init__(self, (
-                'tribler_bandwidth', encode(transaction), self.key.pub().key_to_bin(), random.randint(50, 100), other,
-                0, sha256(str(random.randint(0, 100000))).digest(), 0, 0, 0))
+                b'tribler_bandwidth', encode(transaction), self.key.pub().key_to_bin(), random.randint(50, 100), other,
+                0, sha256(cast_to_bin(str(random.randint(0, 100000)))).digest(), EMPTY_SIG, 0, 0))
         self.sign(self.key)
 
 

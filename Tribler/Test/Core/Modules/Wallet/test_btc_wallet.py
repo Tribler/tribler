@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import datetime
 
 from twisted.internet.defer import succeed, Deferred

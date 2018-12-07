@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock, EMPTY_SIG, ValidationResult,\
     GENESIS_SEQ, GENESIS_HASH
 from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode
@@ -22,7 +24,7 @@ class TriblerBandwidthBlock(TrustChainBlock):
                transaction when link exists
         :return: A newly created block
         """
-        latest_bw_block = database.get_latest(public_key, block_type='tribler_bandwidth')
+        latest_bw_block = database.get_latest(public_key, block_type=b'tribler_bandwidth')
         latest_block = database.get_latest(public_key)
         ret = cls()
         if link:
