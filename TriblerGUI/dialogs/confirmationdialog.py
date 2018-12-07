@@ -12,7 +12,7 @@ class ConfirmationDialog(DialogContainer):
 
     button_clicked = pyqtSignal(int)
 
-    def __init__(self, parent, title, main_text, buttons, show_input=False):
+    def __init__(self, parent, title, main_text, buttons, show_input=False, checkbox_text = None):
         DialogContainer.__init__(self, parent)
 
         uic.loadUi(get_ui_file_path('buttonsdialog.ui'), self.dialog_widget)
@@ -23,11 +23,17 @@ class ConfirmationDialog(DialogContainer):
 
         self.dialog_widget.dialog_main_text_label.setText(main_text)
         self.dialog_widget.dialog_main_text_label.adjustSize()
+        self.checkbox = self.dialog_widget.checkbox
 
         if not show_input:
             self.dialog_widget.dialog_input.setHidden(True)
         else:
             self.dialog_widget.dialog_input.returnPressed.connect(lambda: self.button_clicked.emit(0))
+
+        if not checkbox_text:
+            self.dialog_widget.checkbox.setHidden(True)
+        else:
+            self.dialog_widget.checkbox.setText(checkbox_text)
 
         hspacer_left = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.dialog_widget.dialog_button_container.layout().addSpacerItem(hspacer_left)
