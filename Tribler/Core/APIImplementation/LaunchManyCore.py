@@ -23,7 +23,6 @@ from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.DecentralizedTracking.dht_provider import MainlineDHTProvider
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, float2time
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
@@ -296,6 +295,7 @@ class TriblerLaunchMany(TaskManager):
             competing_slots = self.session.config.get_tunnel_community_competing_slots()
 
             if self.mainline_dht:
+                from Tribler.Core.DecentralizedTracking.dht_provider import MainlineDHTProvider
                 dht_provider = MainlineDHTProvider(self.mainline_dht, self.session.config.get_dispersy_port())
             else:
                 dht_provider = DHTCommunityProvider(self.dht_community, self.session.config.get_dispersy_port())
