@@ -219,7 +219,7 @@ class LibtorrentMgr(TaskManager):
                     ltsession.load_state(lt_state)
                 else:
                     self._logger.warning("the lt.state appears to be corrupt, writing new data on shutdown")
-            except Exception, exc:
+            except Exception as exc:
                 self._logger.info("could not load libtorrent state, got exception: %r. starting from scratch" % exc)
         else:
             ltsession.listen_on(self.tribler_session.config.get_anon_listen_port(),

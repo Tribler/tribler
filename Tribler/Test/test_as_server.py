@@ -68,7 +68,7 @@ class BaseTestCase(unittest.TestCase):
     def tearDown(self):
         while self._tempdirs:
             temp_dir = self._tempdirs.pop()
-            os.chmod(temp_dir, 0700)
+            os.chmod(temp_dir, 0o700)
             shutil.rmtree(unicode(temp_dir), ignore_errors=False)
 
     def temporary_directory(self, suffix=''):

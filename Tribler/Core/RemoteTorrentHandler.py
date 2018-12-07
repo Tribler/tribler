@@ -232,9 +232,9 @@ class RemoteTorrentHandler(TaskManager):
             items.sort()
             return {"type": qname, "size_stats": [{"priority": prio, "size": size} for prio, size in items]}
 
-        return [stats_dict for stats_dict in get_queue_size_stats("TFTP", self.torrent_requesters),
-                get_queue_size_stats("DHT", self.magnet_requesters),
-                get_queue_size_stats("Msg", self.torrent_message_requesters)]
+        return [stats_dict for stats_dict in (get_queue_size_stats("TFTP", self.torrent_requesters),
+                                              get_queue_size_stats("DHT", self.magnet_requesters),
+                                              get_queue_size_stats("Msg", self.torrent_message_requesters))]
 
     def get_queue_stats(self):
         def get_queue_stats(qname, requesters):

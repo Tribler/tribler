@@ -23,10 +23,11 @@ class UDPTrackerProtocol(DatagramProtocol):
         self.connection_id = -1
         self.tracker_session = tracker_session
 
-    def datagramReceived(self, response, (host, port)):
+    def datagramReceived(self, response, host_and_port):
         """
         Parse an incoming datagram. Check the action and based on that, send a response.
         """
+        (host, port) = host_and_port
         connection_id, action, transaction_id = struct.unpack_from('!qii', response, 0)
         if action == 0 and connection_id != UDP_TRACKER_INIT_CONNECTION_ID:
             self.send_error(host, port, "invalid protocol")

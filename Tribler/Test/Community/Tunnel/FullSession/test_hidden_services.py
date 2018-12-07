@@ -1,3 +1,4 @@
+from __future__ import print_function
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
@@ -28,7 +29,7 @@ class TestHiddenServices(TestTunnelBase):
             self.tunnel_community.monitor_downloads([ds])
             download = ds.get_download()
             import time
-            print time.time(), ds.get_status(), ds.get_progress()
+            print(time.time(), ds.get_status(), ds.get_progress())
             if ds.get_progress() == 1.0 and ds.get_status() == DLSTATUS_SEEDING:
                 self.test_deferred.callback(None)
                 return 0.0

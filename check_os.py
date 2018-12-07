@@ -1,3 +1,4 @@
+from __future__ import print_function
 import logging.config
 import os
 import sys
@@ -110,7 +111,7 @@ def setup_logging(gui=False):
     log_config = os.path.join(base_path, "logger.conf")
 
     if not os.path.exists(log_config):
-        print "Log configuration file not found at location '%s'" % log_config
+        print("Log configuration file not found at location '%s'" % log_config)
         return
 
     log_directory = TriblerConfig().get_log_dir()
