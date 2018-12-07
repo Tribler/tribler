@@ -1,4 +1,6 @@
 import base64
+import os
+import sys
 
 from pony.orm import db_session, desc
 from twisted.internet.defer import Deferred
@@ -15,6 +17,11 @@ from Tribler.Core.exceptions import DuplicateTorrentFileError, HttpError
 
 UNKNOWN_TORRENT_MSG = "this torrent is not found in the specified channel"
 UNKNOWN_COMMUNITY_MSG = "the community for the specified channel cannot be found"
+
+def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
 
 
 class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
@@ -146,6 +153,9 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         and DuplicateTorrentFileError if already added to your channel. The torrent data is passed as base-64 encoded
         string. The description is optional.
 
+        Option torrents_dir adds all .torrent files from a chosen directory
+        Option recursive enables recursive scanning of the chosen directory for .torrent files
+
             **Example request**:
 
             .. sourcecode:: none
@@ -159,6 +169,22 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
 
                 {
                     "added": True
+                }
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X PUT http://localhost:8085/channels/discovered/abcd/torrents?torrents_dir=some_dir&recursive=1
+                --data ""
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "added": True
+                    "num_added_torrents": 13
                 }
 
             :statuscode 404: if your channel does not exist.
@@ -182,6 +208,63 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
                 return ChannelsTorrentsEndpoint.return_404(request)
 
         parameters = http.parse_qs(request.content.read(), 1)
+
+
+        torrents_dir = None
+        if 'torrents_dir' in parameters and parameters['torrents_dir'] > 0:
+                torrents_dir = parameters['torrents_dir'][0]
+                if not os.path.isabs(torrents_dir):
+                    request.setResponseCode(http.BAD_REQUEST)
+
+
+        recursive = False
+        if 'recursive' in parameters and parameters['recursive'] > 0:
+            recursive = parameters['recursive'][0]
+            if not torrents_dir:
+                request.setResponseCode(http.BAD_REQUEST)
+
+        if torrents_dir:
+            torrents_list = []
+            errors_list = []
+
+            filename_generator = None
+
+            if recursive:
+                def rec_gen():
+                    for root, dirnames, filenames in os.walk(torrents_dir):
+                        for f in filenames:
+                            yield os.path.join(root, f)
+
+                filename_generator = rec_gen()
+            else:
+                filename_generator = os.listdir(torrents_dir)
+
+            # Build list of .torrents to process
+            for f in filename_generator:
+                filepath = os.path.join(torrents_dir, f)
+                # TODO: add support for arbitrary encodings
+                filename = str(filepath) if sys.platform == 'win32' else filepath.decode('utf-8')
+                if os.path.isfile(filepath) and filename.endswith(u'.torrent'):
+                    torrents_list.append(filepath)
+
+            for chunk in chunks(torrents_list, 100): # 100 is a reasonable chunk size for commits
+                with db_session:
+                    for f in chunk:
+                        try:
+                            channel.add_torrent_to_channel(TorrentDef.load(f), {})
+                        except DuplicateTorrentFileError as exc:
+                                pass
+                        except:
+                            errors_list.append(f)
+
+            return json.dumps({"added": len(torrents_list), "errors":errors_list})
+
+
+
+
+
+
+
 
         if 'torrent' not in parameters or len(parameters['torrent']) == 0:
             request.setResponseCode(http.BAD_REQUEST)
