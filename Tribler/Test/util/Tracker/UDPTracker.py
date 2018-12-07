@@ -23,7 +23,7 @@ class UDPTrackerProtocol(DatagramProtocol):
         self.connection_id = -1
         self.tracker_session = tracker_session
 
-    def datagramReceived(self, response, host_and_port):  # pylint: disable=arguments-differ
+    def datagramReceived(self, response, host_and_port):
         """
         Parse an incoming datagram. Check the action and based on that, send a response.
         """
