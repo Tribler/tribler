@@ -6,12 +6,17 @@ import sys
 
 import datetime
 import psutil
-from meliae import scanner
 from six import StringIO
 from twisted.web import http, resource
 
 from Tribler.Core.Utilities.instrumentation import WatchDog
 import Tribler.Core.Utilities.json_util as json
+
+HAS_MELIAE = True
+try:
+    from meliae import scanner
+except ImportError:
+    HAS_MELIAE = False
 
 
 class MemoryDumpBuffer(StringIO):
@@ -322,7 +327,8 @@ class DebugMemoryEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.putChild("history", DebugMemoryHistoryEndpoint(session))
-        self.putChild("dump", DebugMemoryDumpEndpoint(session))
+        if HAS_MELIAE:
+            self.putChild("dump", DebugMemoryDumpEndpoint(session))
 
 
 class DebugMemoryHistoryEndpoint(resource.Resource):
