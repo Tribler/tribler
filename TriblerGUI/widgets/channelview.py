@@ -1,5 +1,4 @@
 import base64
-import glob
 import time
 import urllib
 from PyQt5 import uic, QtCore
@@ -147,6 +146,14 @@ class ChannelContentsModel(RemoteTableModel):
                                         self.channel_id,
                                         self.on_torrent_to_channel_added, method='PUT',
                                         data='torrent=%s' % torrent_content)
+
+    def add_dir_to_channel(self, dirname, recursive=False):
+        request_mgr = TriblerRequestManager()
+        request_mgr.perform_request("channels/discovered/%s/torrents" %
+                                    self.channel_id,
+                                    self.on_torrent_to_channel_added, method='PUT',
+                                    data=str(('torrents_dir=%s' % dirname) +
+                                         ('&recursive=1' if recursive else '')))
 
     def add_torrent_url_to_channel(self, url):
         request_mgr = TriblerRequestManager()
@@ -363,22 +370,23 @@ class ChannelViewWidget(QWidget):
         if len(chosen_dir) == 0:
             return
 
-        self.selected_torrent_files = [torrent_file for torrent_file in glob.glob(chosen_dir + "/*.torrent")]
+        self.chosen_dir = chosen_dir
         self.dialog = ConfirmationDialog(self, "Add torrents from directory",
-                                         "Are you sure you want to add %d torrents to your Tribler channel?" %
-                                         len(self.selected_torrent_files),
-                                         [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)])
+                                         "Add all torrent files from the following directory to your Tribler channel:\n\n%s" %
+                                         chosen_dir,
+                                         [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+                                         checkbox_text="Include subdirectories (recursive mode)")
         self.dialog.button_clicked.connect(self.on_confirm_add_directory_dialog)
         self.dialog.show()
 
     def on_confirm_add_directory_dialog(self, action):
         if action == 0:
-            for filename in self.selected_torrent_files:
-                self.model.add_torrent_to_channel(filename)
+            self.model.add_dir_to_channel(self.chosen_dir, recursive=self.dialog.checkbox.isChecked())
 
         if self.dialog:
             self.dialog.close_dialog()
             self.dialog = None
+            self.chosen_dir = None
 
     def on_torrents_add_clicked(self):
         menu = TriblerActionMenu(self)

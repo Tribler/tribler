@@ -2478,8 +2478,8 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
               "FROM Channels ORDER BY nr_favorite DESC, modified DESC LIMIT ?"
         return self._getChannels(sql, (max_nr,), includeSpam=False)
 
-    def getMySubscribedChannels(self, include_dispersy=False, first=0, last=None, count = False):
-        sql = "SELECT (id) " if count else "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
+    def getMySubscribedChannels(self, include_dispersy=False, first=0, last=None, count=False):
+        sql = "SELECT COUNT(id) " if count else "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
               "FROM Channels, ChannelVotes " + \
               "WHERE Channels.id = ChannelVotes.channel_id AND voter_id ISNULL AND vote == 2"
         if not include_dispersy:

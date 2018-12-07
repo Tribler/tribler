@@ -71,7 +71,8 @@ class LazyTableView(QTableView):
         self.setSortingEnabled(True)
 
     def _on_list_scroll(self, event):
-        if self.verticalScrollBar().value() == self.verticalScrollBar().maximum():
+        if self.verticalScrollBar().value() == self.verticalScrollBar().maximum() and\
+                self.model().data_items: # workaround for duplicate calls to _on_list_scroll on view creation
             self.model().load_next_items()
 
 
