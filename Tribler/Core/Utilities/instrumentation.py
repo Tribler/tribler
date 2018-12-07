@@ -106,7 +106,7 @@ class WatchDog(Thread):
             with self._synchronized_lock:
                 if self.check_for_deadlocks:
                     self.look_for_deadlocks()
-                for name, event in self._registered_events.iteritems():
+                for name, event in self._registered_events.items():
                     if event.is_set():
                         event.clear()
                         self.event_timestamps[name] = time()
