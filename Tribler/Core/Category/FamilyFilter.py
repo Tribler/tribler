@@ -3,9 +3,12 @@ The FamilyFilter filters out nsfw content if enabled.
 
 Author(s): Jelle Roozenburg
 """
+from __future__ import absolute_import
+
 import logging
 import os
 import re
+from six.moves import xrange
 
 from Tribler.Core.Utilities.install_dir import get_lib_path
 
@@ -26,7 +29,7 @@ class XXXFilter(object):
         searchterms = set()
 
         try:
-            f = file(filename, 'r')
+            f = open(filename, 'r')
             lines = f.read().lower().splitlines()
 
             for line in lines:
