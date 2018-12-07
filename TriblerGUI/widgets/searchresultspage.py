@@ -64,23 +64,25 @@ class SearchResultsPage(QWidget):
 
     def switch_model(self):
         # Hide all columns that are hidden by at least one view
-        self.set_columns_visibility([u'subscribed', u'health', u'commit_status', ACTION_BUTTONS], False)
         self.window().search_page_container.buttons_container.setHidden(True)
         self.window().search_page_container.top_bar_container.setHidden(True)
 
         if self.tab_state == 'all':
             self.window().search_page_container.set_model(self.model_mixed)
-            self.set_columns_visibility([u'subscribed', ACTION_BUTTONS], True)
+            self.set_columns_visibility([u'subscribed', u'health', u'commit_status', ACTION_BUTTONS], False)
+            self.set_columns_visibility([u'subscribed', u'health', ACTION_BUTTONS], True)
             self.window().search_page_container.details_tab_widget.setHidden(False)
 
         elif self.tab_state == 'channels':
             self.window().search_page_container.set_model(self.model_channels)
-            self.set_columns_visibility([u'subscribed', u'health'], True)
+            self.set_columns_visibility([u'subscribed', u'health', u'commit_status', ACTION_BUTTONS], False)
+            self.set_columns_visibility([u'subscribed'], True)
             self.window().search_page_container.details_tab_widget.setHidden(True)
 
         elif self.tab_state == 'torrents':
             self.window().search_page_container.set_model(self.model_torrents)
-            self.set_columns_visibility([ACTION_BUTTONS], True)
+            self.set_columns_visibility([u'subscribed', u'health', u'commit_status', ACTION_BUTTONS], False)
+            self.set_columns_visibility([u'health', ACTION_BUTTONS], True)
             self.window().search_page_container.details_tab_widget.setHidden(False)
 
     def clicked_tab_button(self, tab_button_name):
