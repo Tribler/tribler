@@ -3,11 +3,13 @@ A configparser.
 
 Author(s): Egbert Bouman
 """
+from __future__ import absolute_import
+
 import ast
 import codecs
-import StringIO
 
-from ConfigParser import DEFAULTSECT, RawConfigParser
+from six import StringIO
+from six.moves.configparser import DEFAULTSECT, RawConfigParser
 from threading import RLock
 
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
@@ -31,7 +33,7 @@ class CallbackConfigParser(RawConfigParser):
         # (e.g. when loading resumedata). Please do not remove.
         with codecs.open(filename, 'rb', encoding) as fp:
             buff = fp.read()
-        self.readfp(StringIO.StringIO(buff))
+        self.readfp(StringIO(buff))
 
     def set(self, section, option, new_value):
         with self.lock:
@@ -42,8 +44,8 @@ class CallbackConfigParser(RawConfigParser):
             RawConfigParser.set(self, section, option, new_value)
 
     def get(self, section, option, literal_eval=True):
-        value = RawConfigParser.get(self, section, option) if RawConfigParser.has_option(
-            self, section, option) else None
+        value = RawConfigParser.get(self, section, option) if \
+            RawConfigParser.has_option(self, section, option) else None
         if literal_eval:
             return CallbackConfigParser.get_literal_value(value)
         return value

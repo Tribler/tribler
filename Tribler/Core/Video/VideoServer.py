@@ -3,16 +3,18 @@ Video server.
 
 Author(s): Jan David Mol, Arno Bakker, Egbert Bouman
 """
+from __future__ import absolute_import
+
 import logging
 import mimetypes
 import os
 import socket
 import time
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from SocketServer import ThreadingMixIn
 from binascii import unhexlify
 from cherrypy.lib.httputil import get_ranges
 from collections import defaultdict
+from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from six.moves.socketserver import ThreadingMixIn
 from threading import Event, Thread, RLock
 from traceback import print_exc
 

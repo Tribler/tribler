@@ -1,4 +1,7 @@
+from __future__ import absolute_import
+
 from base64 import b64decode
+from binascii import unhexlify
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, succeed, Deferred
@@ -122,10 +125,11 @@ class MarketCommunity(Community, BlockListener):
     """
     Community for general asset trading.
     """
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000403225c5011b442e40d36c3918d1ee12729f95e11"
-                       "f0f0f3a517b858d4ca093faa35cc92f6a152152312398e5ec87cb636818020812a04667d7c174d9b1303a6183dcd"
-                       "2c8f72d98f9f04988c299e01ed65ef65d5f413c22ea836eade5d7c5762fb816043f9cf82166d5d8fe558afa4e7b2"
-                       "c252374e589d6033908138c95c9145d603074aa81bff0055006f9ca430f28b82".decode('hex'))
+    master_peer = Peer(unhexlify("3081a7301006072a8648ce3d020106052b81040027038192000403225c5011b442e40d36c3918d1ee12"
+                                 "729f95e11f0f0f3a517b858d4ca093faa35cc92f6a152152312398e5ec87cb636818020812a04667d7c"
+                                 "174d9b1303a6183dcd2c8f72d98f9f04988c299e01ed65ef65d5f413c22ea836eade5d7c5762fb81604"
+                                 "3f9cf82166d5d8fe558afa4e7b2c252374e589d6033908138c95c9145d603074aa81bff0055006f9ca4"
+                                 "30f28b82"))
     PROTOCOL_VERSION = 2
     BLOCK_CLASS = MarketBlock
     DB_NAME = 'market'
@@ -1556,8 +1560,9 @@ class MarketTestnetCommunity(MarketCommunity):
     """
     This community defines a testnet for the market.
     """
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000401c7bdfc0069db5849a1fa3b3ef09e26828ae4a34"
-                       "4cfd8d042533988d50a4860edfdf4f71bccdc6dc1e76df1741a22546774d9a24162fd8e06e41a6fb3fc730fbc49c4"
-                       "502b4416b407fd2216f5a25efb87307dd83225c76cea762b098e51788cb42d4baa5c00487627bb9617bf40eea9ccb"
-                       "b16dfa88d2d3944c202e024d34ddd4e5b21ae7390622260f5551ef7cf99c9".decode('hex'))
+    master_peer = Peer(unhexlify("3081a7301006072a8648ce3d020106052b81040027038192000401c7bdfc0069db5849a1fa3b3ef09e2"
+                                 "6828ae4a344cfd8d042533988d50a4860edfdf4f71bccdc6dc1e76df1741a22546774d9a24162fd8e06"
+                                 "e41a6fb3fc730fbc49c4502b4416b407fd2216f5a25efb87307dd83225c76cea762b098e51788cb42d4"
+                                 "baa5c00487627bb9617bf40eea9ccbb16dfa88d2d3944c202e024d34ddd4e5b21ae7390622260f5551e"
+                                 "f7cf99c9"))
     DB_NAME = 'market_testnet'

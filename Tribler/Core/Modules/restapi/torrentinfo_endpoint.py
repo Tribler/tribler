@@ -1,8 +1,10 @@
+from __future__ import absolute_import
+
 import hashlib
 import logging
 from libtorrent import bdecode, bencode
-from urllib import url2pathname
 
+from six.moves.urllib.request import url2pathname
 from twisted.internet.defer import Deferred
 from twisted.internet.error import DNSLookupError, ConnectError, ConnectionLost
 from twisted.web import http, resource
@@ -15,6 +17,7 @@ from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, \
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import fix_torrent, http_get, parse_magnetlink, unichar_string
 from Tribler.Core.exceptions import HttpError, InvalidSignatureException
+from Tribler.pyipv8.ipv8.util import is_unicode
 
 
 class TorrentInfoEndpoint(resource.Resource):
@@ -122,7 +125,7 @@ class TorrentInfoEndpoint(resource.Resource):
 
         def on_file():
             try:
-                filename = url2pathname(uri[5:].encode('utf-8') if isinstance(uri, unicode) else uri[5:])
+                filename = url2pathname(uri[5:].encode('utf-8') if is_unicode(uri) else uri[5:])
                 if filename.endswith(BLOB_EXTENSION):
                     return on_mdblob(filename)
                 metainfo_deferred.callback(bdecode(fix_torrent(filename)))

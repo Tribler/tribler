@@ -3,6 +3,8 @@ LaunchManyCore
 
 Author(s): Arno Bakker, Niels Zeilemaker
 """
+from __future__ import absolute_import
+
 import binascii
 import logging
 import os

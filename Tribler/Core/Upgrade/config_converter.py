@@ -1,13 +1,16 @@
+from __future__ import absolute_import
+
 import ast
 import os
-from ConfigParser import RawConfigParser, DuplicateSectionError, NoSectionError, MissingSectionHeaderError
 import logging
 from glob import iglob
-
-from Tribler.Core.simpledefs import STATEDIR_DLPSTATE_DIR
+from six.moves.configparser import DuplicateSectionError, MissingSectionHeaderError, NoSectionError, ParsingError, \
+    RawConfigParser
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.exceptions import InvalidConfigException
+from Tribler.Core.simpledefs import STATEDIR_DLPSTATE_DIR
+
 logger = logging.getLogger(__name__)
 
 

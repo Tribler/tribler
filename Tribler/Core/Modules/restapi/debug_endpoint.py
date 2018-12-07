@@ -1,11 +1,13 @@
+from __future__ import absolute_import
+
 import logging
 import os
-from StringIO import StringIO
 import sys
 
 import datetime
 import psutil
 from meliae import scanner
+from six import StringIO
 from twisted.web import http, resource
 
 from Tribler.Core.Utilities.instrumentation import WatchDog
