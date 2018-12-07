@@ -12,6 +12,8 @@ from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget, QTextEdit
 
+from six.moves import xrange
+
 import TriblerGUI.core_manager as core_manager
 import TriblerGUI.defs
 from Tribler.Core.Utilities.network_utils import get_random_port

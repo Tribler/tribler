@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 
 from pony.orm import db_session
+from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk

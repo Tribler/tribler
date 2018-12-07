@@ -1,4 +1,5 @@
 from pony.orm import db_session
+from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, \

@@ -1,3 +1,4 @@
+from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json

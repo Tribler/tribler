@@ -1,6 +1,7 @@
 import os
 
 from pony.orm import db_session
+from six.moves import xrange
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import deferLater

@@ -1,6 +1,7 @@
 import binascii
 import os
 
+from six.moves import xrange
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, succeed
 

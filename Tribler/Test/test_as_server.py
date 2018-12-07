@@ -16,6 +16,7 @@ from threading import enumerate as enumerate_threads
 
 import twisted
 from configobj import ConfigObj
+from six.moves import xrange
 from twisted.internet import interfaces
 from twisted.internet import reactor
 from twisted.internet.base import BasePort

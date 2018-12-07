@@ -1,5 +1,7 @@
 import os
 
+from six.moves import xrange
+
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
