@@ -585,7 +585,8 @@ class MarketCommunity(Community, BlockListener):
         # Create the tick
         tick = Tick.from_order(order)
 
-        def on_block_created(block):
+        def on_block_created(blocks):
+            block, _ = blocks
             self.trustchain.send_block(block, ttl=2)
             if self.is_matchmaker:
                 tick.block_hash = block.hash
@@ -596,7 +597,7 @@ class MarketCommunity(Community, BlockListener):
             self.logger.info("Ask created with asset pair %s", assets)
             return order
 
-        return self.create_new_tick_block(tick).addCallback(lambda (blk, _): on_block_created(blk))
+        return self.create_new_tick_block(tick).addCallback(on_block_created)
 
     def create_bid(self, assets, timeout):
         """
@@ -619,7 +620,8 @@ class MarketCommunity(Community, BlockListener):
         # Create the tick
         tick = Tick.from_order(order)
 
-        def on_block_created(block):
+        def on_block_created(blocks):
+            block, _ = blocks
             self.trustchain.send_block(block, ttl=2)
             if self.is_matchmaker:
                 tick.block_hash = block.hash
@@ -630,7 +632,7 @@ class MarketCommunity(Community, BlockListener):
             self.logger.info("Bid created with asset pair %s", assets)
             return order
 
-        return self.create_new_tick_block(tick).addCallback(lambda (blk, _): on_block_created(blk))
+        return self.create_new_tick_block(tick).addCallback(on_block_created)
 
     def received_block(self, block):
         """
@@ -716,7 +718,7 @@ class MarketCommunity(Community, BlockListener):
         }
         deferred = self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
                                               block_type='tx_init', transaction=tx_dict)
-        return addCallback(deferred, lambda (blk1, blk2): blk1)
+        return addCallback(deferred, lambda blocks: blocks[0])
 
     @synchronized
     def create_new_tx_payment_block(self, peer, payment):
@@ -736,7 +738,7 @@ class MarketCommunity(Community, BlockListener):
         }
         deferred = self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
                                               block_type='tx_payment', transaction=tx_dict)
-        return addCallback(deferred, lambda (blk1, blk2): blk1)
+        return addCallback(deferred, lambda blocks: blocks[0])
 
     @synchronized
     def create_new_tx_done_block(self, peer, ask_order_dict, bid_order_dict, transaction):
@@ -762,7 +764,7 @@ class MarketCommunity(Community, BlockListener):
         }
         deferred = self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
                                               block_type='tx_done', transaction=tx_dict)
-        return addCallback(deferred, lambda (blk1, blk2): blk1)
+        return addCallback(deferred, lambda blocks: blocks[0])
 
     def on_tick(self, tick):
         """
@@ -1005,7 +1007,7 @@ class MarketCommunity(Community, BlockListener):
 
             if order.verified:
                 return self.create_new_cancel_order_block(order)\
-                    .addCallback(lambda (blk, _): self.trustchain.send_block(blk, ttl=2))
+                    .addCallback(lambda blocks: self.trustchain.send_block(blocks[0], ttl=2))
 
         return succeed(None)
 
