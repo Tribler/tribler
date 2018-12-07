@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from six import unichr
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json

@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+
+from six import string_types
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
@@ -65,7 +68,7 @@ class TestMyPreferenceDBHandler(AbstractDB):
         self.assertEqual(len(res), 12)
         for k in res:
             data = res[k]
-            self.assertIsInstance(data, basestring, "data is not destination_path: %s" % type(data))
+            self.assertIsInstance(data, string_types, "data is not destination_path: %s" % type(data))
 
         res = self.mdb.getMyPrefStats(torrent_id=126)
         self.assertEqual(len(res), 1)
