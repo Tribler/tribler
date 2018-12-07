@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QWidget
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.widgets.lazytableview import ACTION_BUTTONS
 
 
 class SubscribedChannelsPage(QWidget):
@@ -18,8 +19,17 @@ class SubscribedChannelsPage(QWidget):
 
     def initialize(self):
         self.window().add_subscription_button.clicked.connect(self.on_add_subscription_clicked)
-        self.window().subscribed_channels_container.initialize_model(subscribed=True)
-        self.window().subscribed_channels_container.channel_entry_clicked.connect(self.window().on_channel_clicked)
+
+
+        container = self.window().subscribed_channels_container
+        container.initialize_model(subscribed=True)
+        container.channel_entry_clicked.connect(self.window().on_channel_clicked)
+        container.torrents_table.setColumnHidden(container.model.column_position[u'commit_status'], True)
+        container.torrents_table.setColumnHidden(container.model.column_position[u'health'], True)
+        container.torrents_table.setColumnHidden(container.model.column_position[ACTION_BUTTONS], True)
+        container.buttons_container.setHidden(True)
+        container.top_bar_container.setHidden(True)
+        container.details_tab_widget.setHidden(True)
 
     def load_subscribed_channels(self):
         self.window().subscribed_channels_container.model.refresh()
