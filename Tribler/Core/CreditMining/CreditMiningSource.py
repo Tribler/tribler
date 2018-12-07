@@ -5,8 +5,6 @@ import logging
 from binascii import hexlify, unhexlify
 
 from Tribler.dispersy.exception import CommunityNotFoundException
-from Tribler.community.allchannel.community import AllChannelCommunity
-from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Core.simpledefs import NTFY_DISCOVERED, NTFY_TORRENT, NTFY_CHANNELCAST
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
@@ -65,6 +63,9 @@ class ChannelSource(BaseSource):
         try:
             self.community = dispersy.get_community(unhexlify(self.source), True)
         except CommunityNotFoundException:
+            from Tribler.community.allchannel.community import AllChannelCommunity
+            from Tribler.community.channel.community import ChannelCommunity
+
             allchannelcommunity = None
             for community in dispersy.get_communities():
                 if isinstance(community, AllChannelCommunity):
