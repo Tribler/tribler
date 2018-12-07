@@ -2,8 +2,8 @@ from PyQt5 import QtCore
 from abc import abstractmethod
 
 from PyQt5.QtCore import QModelIndex, pyqtSignal, QPoint, QRect, Qt, QObject, QSize
-from PyQt5.QtGui import QIcon, QPen, QColor, QPainter, QBrush, QFont
-from PyQt5.QtWidgets import QTableView, QStyledItemDelegate
+from PyQt5.QtGui import QIcon, QPen, QColor, QPainter, QBrush
+from PyQt5.QtWidgets import QTableView, QStyledItemDelegate, QStyle
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import TODELETE, COMMITTED, NEW
 from Tribler.Core.Modules.restapi.util import CATEGORY_CHANNEL, CATEGORY_OLD_CHANNEL
@@ -227,44 +227,22 @@ class ChannelsButtonsDelegate(QStyledItemDelegate):
             # TODO: optimize me to only redraw the rows that actually changed!
             self.redraw_required.emit()
 
-    def draw_highlight_rectangle(self, painter, option, index):
-        # Save and restore the painter state
-        painter.save()
-
-        rect = QRect(option.rect)
-        lines = QPen(QColor("#dddddd"), 2, Qt.SolidLine, Qt.FlatCap, Qt.RoundJoin)
-        painter.setPen(lines)
-        #   a---b
-        #   |   |
-        #   d---c
-        a = QPoint(rect.x(), rect.y())
-        b = QPoint(rect.x() + rect.width(), rect.y())
-        c = QPoint(rect.x() + rect.width(), rect.y() + rect.height())
-        d = QPoint(rect.x(), rect.y() + rect.height())
-
-        painter.drawLine(a, b)
-        painter.drawLine(d, c)
-
-        # Draw the left edge of the leftmost cell
-        if index.column() == 0:
-            painter.drawLine(a, d)
-
-        # Draw the right edge of the rightmost cell
-        if index.column() == index.model().columnCount() - 1:
-            painter.drawLine(b, c)
-
-        painter.restore()
-
     def paint(self, painter, option, index):
         # Draw empty cell as the background
-        super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
+        # Draw a highlighting rectangle around the current row
+        # super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
+        if index.row() == self.hoverrow:
+            # painter.fillRect(option.rect, option.palette.highlight())
+            option.state |= QStyle.State_MouseOver
 
         # Draw 'health' column
         if index.column() == index.model().column_position[u'health']:
+            super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
             self.health_status.paint(painter, option.rect, index)
 
         # Draw 'commit_status' column
         elif index.column() == index.model().column_position[u'commit_status']:
+            super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
             if index == self.hover_index:
                 self.commit_control.paint_hover(painter, option.rect, index)
             else:
@@ -272,6 +250,7 @@ class ChannelsButtonsDelegate(QStyledItemDelegate):
 
         # Draw 'category' column
         elif index.column() == index.model().column_position[u'category']:
+            super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
             painter.save()
 
             lines = QPen(QColor("#B5B5B5"), 1, Qt.SolidLine, Qt.RoundCap)
@@ -295,6 +274,7 @@ class ChannelsButtonsDelegate(QStyledItemDelegate):
 
         # Draw 'subscribed' column
         elif index.column() == index.model().column_position[u'subscribed']:
+            super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
             if index == self.hover_index:
                 self.subscribe_control.paint_hover(painter, option.rect, index)
             else:
@@ -302,8 +282,9 @@ class ChannelsButtonsDelegate(QStyledItemDelegate):
 
         # Draw buttons in the ACTION_BUTTONS column
         elif index.column() == index.model().column_position[ACTION_BUTTONS]:
+            super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
             # Draw empty cell as the background
-            super(ChannelsButtonsDelegate, self).paint(painter, option, QModelIndex())
+            #super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
             # When the cursor leaves the table, we must "forget" about the button_box
             if self.hoverrow == -1:
                 self.button_box = QRect()
@@ -320,15 +301,6 @@ class ChannelsButtonsDelegate(QStyledItemDelegate):
         else:
             # Draw the rest of the columns
             super(ChannelsButtonsDelegate, self).paint(painter, option, index)
-
-        # if option.state & QStyle.State_Selected:
-        # Keep the background consistent in case of selection ???
-        #    painter.fillRect(option.rect, painter.brush())
-
-        # Draw a highlighting rectangle around the current row
-        if index.row() == self.hoverrow:
-            self.draw_highlight_rectangle(painter, option, index)
-
     def sizeHint(self, option, index):
         if index.column() == index.model().column_position[u'subscribed']:
             return self.subscribe_control.size_hint(option, index)
