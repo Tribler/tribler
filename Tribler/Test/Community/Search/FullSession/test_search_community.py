@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from six import unichr
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, Deferred
 
