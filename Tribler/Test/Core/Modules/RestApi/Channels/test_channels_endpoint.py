@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from pony.orm import db_session
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks

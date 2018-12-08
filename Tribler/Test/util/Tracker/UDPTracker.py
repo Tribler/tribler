@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import random
 import struct
 from six.moves import xrange

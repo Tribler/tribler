@@ -3,6 +3,7 @@ Testing as server.
 
 Author(s): Arno Bakker, Jie Yang, Niels Zeilemaker
 """
+from __future__ import absolute_import
 import functools
 import inspect
 import logging
