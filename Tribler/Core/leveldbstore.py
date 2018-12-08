@@ -3,6 +3,7 @@ LevelDBStore.
 
 Author(s): Elric Milon
 """
+from __future__ import absolute_import
 import logging
 import os
 from shutil import rmtree
@@ -22,7 +23,7 @@ def get_write_batch_leveldb(self, _):
 
 
 def get_write_batch_plyvel(self, db):
-    from plyveladapter import WriteBatch
+    from Tribler.Core.plyveladapter import WriteBatch
     return WriteBatch(db)
 
 try:
@@ -32,7 +33,7 @@ try:
     get_write_batch = get_write_batch_leveldb
 
 except ImportError:
-    from plyveladapter import LevelDB
+    from Tribler.Core.plyveladapter import LevelDB  # pylint: disable=ungrouped-imports
 
     use_leveldb = False
     get_write_batch = get_write_batch_plyvel
