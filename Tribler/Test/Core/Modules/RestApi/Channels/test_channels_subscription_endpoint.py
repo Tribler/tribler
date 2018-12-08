@@ -1,6 +1,8 @@
+from __future__ import absolute_import
 import time
 
 from pony.orm import db_session
+from six.moves import xrange
 from twisted.internet.defer import succeed, fail, inlineCallbacks
 from twisted.python.failure import Failure
 

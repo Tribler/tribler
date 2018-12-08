@@ -1,5 +1,7 @@
+from __future__ import absolute_import
 import os
 
+from six.moves import xrange
 from twisted.internet import reactor
 from twisted.internet.task import deferLater
 

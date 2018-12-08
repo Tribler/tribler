@@ -1,7 +1,9 @@
+from __future__ import absolute_import
 import random
 import string
 from unittest import TestCase
 
+from six.moves import xrange
 from Tribler.community.popularity.payload import SearchResponsePayload, SearchResponseItemPayload, ContentInfoRequest, \
     Pagination, ContentInfoResponse, ContentSubscription, TorrentHealthPayload, ChannelHealthPayload, \
     TorrentInfoResponsePayload, encode_values, decode_values

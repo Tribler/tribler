@@ -1,4 +1,7 @@
+from __future__ import absolute_import
 import os
+
+from six.moves import xrange
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import logging
 import os
 import sys
@@ -11,6 +12,8 @@ from PyQt5.QtCore import QPoint, Qt, QTimer
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget, QTextEdit
+
+from six.moves import xrange
 
 import TriblerGUI.core_manager as core_manager
 import TriblerGUI.defs
