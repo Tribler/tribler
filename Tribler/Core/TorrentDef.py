@@ -3,6 +3,7 @@ Definition of a torrent, that is, a collection of files or a live stream
 
 Author(s): Arno Bakker
 """
+from __future__ import absolute_import
 import logging
 import os
 import sys

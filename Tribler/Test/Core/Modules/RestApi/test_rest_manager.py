@@ -1,9 +1,10 @@
+from __future__ import absolute_import
 import os
 
 from Tribler.Core.exceptions import TriblerException
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.tools import trial_timeout
-from base_api_test import AbstractApiTest
+from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 
 
 class RestRequestTest(AbstractApiTest):
