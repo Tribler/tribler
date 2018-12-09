@@ -5,8 +5,9 @@ from pony.orm import db_session
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, \
-    SIGNAL_TORRENT
+from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_CHANNEL,
+                                     SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT)
+from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.tools import trial_timeout
 
@@ -131,7 +132,7 @@ class TestSearchEndpoint(AbstractApiTest):
 
         with db_session:
             my_channel_id = self.session.trustchain_keypair.pub().key_to_bin()
-            self.session.lm.mds.ChannelMetadata(public_key=buffer(my_channel_id), title='test', tags='test')
+            self.session.lm.mds.ChannelMetadata(public_key=database_blob(my_channel_id), title='test', tags='test')
 
         self.should_check_equality = False
         self.expected_num_results_list = []
