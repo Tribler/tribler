@@ -409,7 +409,7 @@ class LibtorrentMgr(TaskManager):
 
         if alert_type == 'add_torrent_alert':
             infohash = str(handle.info_hash())
-            if infohash in self.torrents:
+            if infohash in self.torrents and not self.torrents[infohash][0].deferred_added.called:
                 if alert.error.value():
                     self.torrents[infohash][0].deferred_added.errback(alert.error.message())
                     self._logger.debug("Failed to add torrent (%s)", alert.error.message())
@@ -417,7 +417,7 @@ class LibtorrentMgr(TaskManager):
                     self.torrents[infohash][0].deferred_added.callback(handle)
                     self._logger.debug("Added torrent %s", str(handle.info_hash()))
             else:
-                self._logger.debug("Added alert for unknown torrent")
+                self._logger.debug("Added alert for unknown torrent or Deferred already called")
 
         elif alert_type == 'torrent_removed_alert':
             infohash = str(alert.info_hash)
