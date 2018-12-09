@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 import os
 from datetime import datetime
 
@@ -13,6 +14,7 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import DuplicateTorrentFileError, DuplicateChannelNameError
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
+from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
@@ -47,13 +49,13 @@ class TestChannelMetadata(TriblerCoreTest):
         Utility method to return a dictionary with torrent information.
         """
         return {
-            "infohash": buffer("1" * 20),
+            "infohash": database_blob("1" * 20),
             "size": 123,
             "timestamp": datetime.utcnow(),
             "torrent_date": datetime.utcnow(),
             "tags": "bla",
             "tc_pointer": 123,
-            "public_key": buffer(my_key.pub().key_to_bin()),
+            "public_key": database_blob(my_key.pub().key_to_bin()),
             "title": "lalala"
         }
 

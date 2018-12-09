@@ -10,6 +10,7 @@ from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test_channel import BaseTestChannel
 from Tribler.Test.tools import trial_timeout
+from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
@@ -66,7 +67,7 @@ class AbstractTestChantEndpoint(AbstractApiTest):
         """
         rand_key = default_eccrypto.generate_key('low')
         new_channel = self.session.lm.mds.ChannelMetadata(
-            public_key=buffer(rand_key.pub().key_to_bin()), title='test', tags='test')
+            public_key=database_blob(rand_key.pub().key_to_bin()), title='test', tags='test')
         new_channel.sign(rand_key)
         return new_channel
 
