@@ -17,7 +17,10 @@ if sys.platform == "win32":
     def get_environment_variable(name):
         """Get the unicode version of the value of an environment variable
         """
-        name = unicode(name)
+        try:
+            name = unicode(name)
+        except NameError:
+            name = str(name)
         n = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
         if n == 0:
             return None
