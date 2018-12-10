@@ -1,7 +1,10 @@
 from __future__ import absolute_import
+
+from binascii import hexlify
 import time
 
 from pony.orm import db_session
+import six
 from six.moves import xrange
 from twisted.internet.defer import succeed, fail, inlineCallbacks
 from twisted.python.failure import Failure
@@ -53,7 +56,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         self.vote_for_channel(cid, int(time.time()))
         expected_json = {"error": ALREADY_SUBSCRIBED_RESPONSE_MSG}
 
-        return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'),
+        return self.do_request('channels/subscribed/%s' % hexlify(b'rand1'),
                                expected_code=409, expected_json=expected_json, request_type='PUT')
 
     @trial_timeout(10)
@@ -68,7 +71,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         expected_json = {"subscribed": True}
         self.expected_votecast_cid = 'rand1'
         self.expected_votecast_vote = VOTE_SUBSCRIBE
-        return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'), expected_code=200,
+        return self.do_request('channels/subscribed/%s' % hexlify(b'rand1'), expected_code=200,
                                expected_json=expected_json, request_type='PUT').addCallback(verify_votecast_made)
 
     @trial_timeout(10)
@@ -104,7 +107,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         """
         expected_json = {"error": NOT_SUBSCRIBED_RESPONSE_MSG}
         self.insert_channel_in_db('rand1', 42, 'Test channel', 'Test description')
-        return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'),
+        return self.do_request('channels/subscribed/%s' % hexlify(b'rand1'),
                                expected_code=404, expected_json=expected_json, request_type='DELETE')
 
     @trial_timeout(10)
@@ -121,7 +124,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         Testing whether the API returns the right channel when subscribed to one channel
         """
         expected_json = {u'subscribed': [{u'description': u'This is a description', u'id': -1,
-                                          u'dispersy_cid': unicode('rand'.encode('hex')),
+                                          u'dispersy_cid': six.text_type(hexlify(b'rand')),
                                           u'modified': int(time.time()),
                                           u'name': u'Test Channel', u'spam': 0,
                                           u'subscribed': True, u'torrents': 0, u'votes': 0}]}
@@ -147,7 +150,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         expected_json = {"unsubscribed": True}
         self.expected_votecast_cid = 'rand1'
         self.expected_votecast_vote = VOTE_UNSUBSCRIBE
-        return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'), expected_code=200,
+        return self.do_request('channels/subscribed/%s' % hexlify(b'rand1'), expected_code=200,
                                expected_json=expected_json, request_type='DELETE').addCallback(verify_votecast_made)
 
     @trial_timeout(10)
@@ -159,7 +162,7 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         self.vote_for_channel(cid, int(time.time()))
 
         expected_json = {"subscribed": True, "votes": 0}  # here votes represent previous dispersy votes which is zero
-        return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'), expected_code=200,
+        return self.do_request('channels/subscribed/%s' % hexlify(b'rand1'), expected_code=200,
                                expected_json=expected_json, request_type='GET')
 
     @trial_timeout(10)
@@ -180,7 +183,7 @@ class TestChannelsSubscriptionChantEndpoint(AbstractTestChantEndpoint):
         Test subscribing to a (random) chant channel with the API
         """
         random_channel = self.add_random_channel()
-        random_channel_id = str(random_channel.public_key).encode('hex')
+        random_channel_id = hexlify(random_channel.public_key)
 
         def verify_response(_):
             updated_channel = self.session.lm.mds.ChannelMetadata.get_channel_with_id(random_channel.public_key)
@@ -198,7 +201,7 @@ class TestChannelsSubscriptionChantEndpoint(AbstractTestChantEndpoint):
         with db_session:
             random_channel = self.add_random_channel()
             random_channel.subscribed = True
-            random_channel_id = str(random_channel.public_key).encode('hex')
+            random_channel_id = hexlify(random_channel.public_key)
 
         self.should_check_equality = False
         return self.do_request('channels/subscribed/%s' % random_channel_id, expected_code=409, request_type='PUT')
@@ -227,16 +230,16 @@ class TestChannelsSubscriptionChantEndpoint(AbstractTestChantEndpoint):
         with db_session:
             md = self.session.lm.mds.ChannelMetadata(title="Test channel", subscribed=True)
             title = md.title
-            cid = str(md.public_key).encode('hex')
+            cid = hexlify(md.public_key)
             version = md.version
             subscribed = md.subscribed
             torrents = md.size
             votes = md.votes
             tags = md.tags
-        expected_json = {u'subscribed': [{u'description': unicode(tags), u'id': 0,
-                                          u'dispersy_cid': unicode(cid),
+        expected_json = {u'subscribed': [{u'description': six.text_type(tags), u'id': 0,
+                                          u'dispersy_cid': six.text_type(cid),
                                           u'modified': version,
-                                          u'name': unicode(title), u'spam': 0,
+                                          u'name': six.text_type(title), u'spam': 0,
                                           u'subscribed': subscribed, u'torrents': torrents, u'votes': votes}]}
 
         return self.do_request('channels/subscribed', expected_code=200, expected_json=expected_json)

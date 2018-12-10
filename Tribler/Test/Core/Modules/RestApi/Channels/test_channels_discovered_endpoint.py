@@ -1,6 +1,10 @@
+from __future__ import absolute_import
+
+from binascii import hexlify
 import json
 import os
 
+import six
 from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
@@ -28,11 +32,11 @@ class TestChannelsDiscoveredEndpoints(AbstractTestChannelsEndpoint):
         Testing whether the API returns the right JSON data if a channel overview is requested
         """
         channel_json = {u'overview': {u'name': u'testname', u'description': u'testdescription',
-                                      u'identifier': unicode('fake'.encode('hex'))}}
+                                      u'identifier': six.text_type(hexlify(b'fake'))}}
         self.insert_channel_in_db('fake', 3, channel_json[u'overview'][u'name'],
                                   channel_json[u'overview'][u'description'])
 
-        return self.do_request('channels/discovered/%s' % 'fake'.encode('hex'), expected_code=200,
+        return self.do_request('channels/discovered/%s' % hexlify(b'fake'), expected_code=200,
                                expected_json=channel_json)
 
 
@@ -93,7 +97,7 @@ class TestChannelsDiscoveredChantEndpoints(AbstractTestChantEndpoint):
             self.assertEqual(mdblob, result)
 
         self.should_check_equality = False
-        return self.do_request('channels/discovered/%s/mdblob' % str(payload.public_key).encode('hex'),
+        return self.do_request('channels/discovered/%s/mdblob' % hexlify(payload.public_key),
                                expected_code=200, request_type='GET').addCallback(verify_exported_data)
 
     @trial_timeout(10)
@@ -106,5 +110,5 @@ class TestChannelsDiscoveredChantEndpoints(AbstractTestChantEndpoint):
         payload = ChannelMetadataPayload.from_signed_blob(mdblob)
 
         self.should_check_equality = False
-        return self.do_request('channels/discovered/%s/mdblob' % str(payload.public_key).encode('hex'),
+        return self.do_request('channels/discovered/%s/mdblob' % hexlify(payload.public_key),
                                expected_code=404, request_type='GET')

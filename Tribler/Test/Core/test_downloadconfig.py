@@ -1,9 +1,12 @@
-import os
-from ConfigParser import MissingSectionHeaderError
-from nose.tools import raises
+from __future__ import absolute_import
 
-from Tribler.Core.DownloadConfig import DownloadConfigInterface, DownloadStartupConfig, get_default_dest_dir, \
-    DefaultDownloadStartupConfig
+import os
+from nose.tools import raises
+import six
+from six.moves.configparser import MissingSectionHeaderError
+
+from Tribler.Core.DownloadConfig import (DownloadConfigInterface, DownloadStartupConfig, get_default_dest_dir,
+                                         DefaultDownloadStartupConfig)
 from Tribler.Core.simpledefs import DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
@@ -22,7 +25,7 @@ class TestConfigParser(TriblerCoreTest):
     def test_downloadconfig(self):
         dlcfg = DownloadConfigInterface()
 
-        self.assertIsInstance(dlcfg.get_dest_dir(), unicode)
+        self.assertIsInstance(dlcfg.get_dest_dir(), six.text_type)
         dlcfg.set_dest_dir(self.session_base_dir)
         self.assertEqual(dlcfg.get_dest_dir(), self.session_base_dir)
 
@@ -77,7 +80,7 @@ class TestConfigParser(TriblerCoreTest):
         dlcfg.load(os.path.join(self.CONFIG_FILES_DIR, "corrupt_download_config.conf"))
 
     def test_get_default_dest_dir(self):
-        self.assertIsInstance(get_default_dest_dir(), unicode)
+        self.assertIsInstance(get_default_dest_dir(), six.text_type)
 
 
     @raises(RuntimeError)
