@@ -1,8 +1,12 @@
 """
 Configuration object for the Tribler Core.
 """
+from __future__ import absolute_import
+
 import logging
 import os
+
+from six import text_type
 
 from configobj import ConfigObj
 from validate import Validator
@@ -479,7 +483,7 @@ class TriblerConfig(object):
     def get_tunnel_community_socks5_listen_ports(self):
         ports = self.config['tunnel_community']['socks5_listen_ports']
         path = u'tunnel_community~socks5_listen_ports~'
-        return [self._get_random_port(path + unicode(index))
+        return [self._get_random_port(path + text_type(index))
                 if int(port) < 0 else int(port) for index, port in enumerate(ports)]
 
     def set_tunnel_community_exitnode_enabled(self, value):

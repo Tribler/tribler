@@ -15,6 +15,7 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
+from six import text_type
 from pony.orm import db_session
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, succeed
@@ -218,7 +219,7 @@ class TriblerLaunchMany(TaskManager):
                 else:
                     dispersy_endpoint = MIMEndpoint(self.session.config.get_dispersy_port())
 
-                working_directory = unicode(self.session.config.get_state_dir())
+                working_directory = text_type(self.session.config.get_state_dir())
                 self.dispersy = Dispersy(dispersy_endpoint, working_directory)
                 self.dispersy.statistics.enable_debug_statistics(False)
 

@@ -3,12 +3,15 @@ Migration scripts for migrating to 6.4
 
 Author(s): Elric Milon
 """
+from __future__ import absolute_import
+
 import logging
 import os
 from binascii import hexlify
 from shutil import rmtree, move
 from sqlite3 import Connection
 
+from six.moves import xrange
 from Tribler.Core.TorrentDef import TorrentDef
 
 

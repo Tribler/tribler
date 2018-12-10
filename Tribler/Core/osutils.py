@@ -6,10 +6,14 @@ The function get_home_dir returns CSIDL_APPDATA i.e. App data directory on win32
 Author(s): Arno Bakker
 """
 
+from __future__ import absolute_import
+
 import logging
 import os
 import subprocess
 import sys
+
+from six import text_type
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +58,7 @@ if sys.platform == "win32":
 
     except ImportError:
         def get_home_dir():
+            unicode_error = None  # forward declare for Python 3 scoping rules
             try:
                 # when there are special unicode characters in the username,
                 # the following will fail on python 2.4, 2.5, 2.x this will
@@ -62,12 +67,12 @@ if sys.platform == "win32":
             except Exception as unicode_error:
                 pass
 
-            # non-unicode home
+            # non-Unicode home
             home = os.path.expanduser("~")
             head, tail = os.path.split(home)
 
             dirs = os.listdir(head)
-            udirs = os.listdir(unicode(head))
+            udirs = os.listdir(text_type(head))
 
             # the character set may be different, but the string length is
             # still the same
@@ -77,7 +82,7 @@ if sys.platform == "win32":
             if len(dirs) == 1 and len(udirs) == 1:
                 return os.path.join(head, udirs[0])
 
-            # remove all dirs that are equal in unicode and non-unicode. we
+            # remove all dirs that are equal in Unicode and non-Unicode. we
             # know that we don't need these dirs because the initial
             # expandusers would not have failed on them
             for dir in dirs[:]:
@@ -126,10 +131,10 @@ if sys.platform == "win32":
 elif is_android():
 
     def get_home_dir():
-        return os.path.realpath(unicode(os.environ['EXTERNAL_STORAGE']))
+        return os.path.realpath(text_type(os.environ['EXTERNAL_STORAGE']))
 
     def get_appstate_dir():
-        return os.path.realpath(os.path.join(unicode(os.environ['ANDROID_PRIVATE']), u'../.Tribler'))
+        return os.path.realpath(os.path.join(text_type(os.environ['ANDROID_PRIVATE']), u'../.Tribler'))
 
     def get_picture_dir():
         return os.path.join(get_home_dir(), u'DCIM')

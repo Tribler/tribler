@@ -1,5 +1,9 @@
+from __future__ import absolute_import
+
 import os
 import time
+
+from six import text_type
 
 from Tribler.Core.CacheDB.sqlitecachedb import DB_FILE_RELATIVE_PATH
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
@@ -56,7 +60,7 @@ class TriblerStatistics(object):
         return {
             "wan_address": "%s:%d" % stats.wan_address,
             "lan_address": "%s:%d" % stats.lan_address,
-            "connection": unicode(stats.connection_type),
+            "connection": text_type(stats.connection_type),
             "runtime": stats.timestamp - stats.start,
             "total_downloaded": stats.total_down,
             "total_uploaded": stats.total_up,

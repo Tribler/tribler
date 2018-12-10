@@ -8,6 +8,8 @@ from __future__ import absolute_import
 import copy
 import logging
 import os
+
+from six import string_types
 from six.moves.configparser import MissingSectionHeaderError, ParsingError
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
@@ -56,7 +58,7 @@ class DownloadConfigInterface(object):
         """ Sets the directory where to save this Download.
         @param path A path of a directory.
         """
-        assert isinstance(path, basestring), path
+        assert isinstance(path, string_types), path
         self.dlconfig.set('download_defaults', 'saveas', path)
 
     def get_dest_dir(self):
