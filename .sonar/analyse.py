@@ -3,11 +3,13 @@ This script takes a Jenkins workspace and automatically fetches the Sonarqube ta
 Next, it queries the Sonarqube API to get the status of the task. When the task is done, it fetches the status
 of the quality gate from Sonarqube and exits with a non-zero exit code if the quality gate failed.
 """
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 import json
 import os
 import time
 import requests
+
+from six.moves import xrange
 
 SERVER_URL = os.environ.get('SONAR_SERVER_URL', "https://sonarcloud.io")
 PROJECT_KEY = os.environ.get('PROJECT_KEY', "org.sonarqube:tribler")
