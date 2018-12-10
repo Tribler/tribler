@@ -1,5 +1,9 @@
+from __future__ import absolute_import
+
+from binascii import hexlify, unhexlify
 import time
 
+import six
 from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
@@ -35,11 +39,11 @@ class TestTorrentsEndpoint(AbstractApiTest):
         channel_id = channel_db_handler.on_channel_from_dispersy('rand', 42, 'Fancy channel', 'Fancy description')
 
         torrent_list = [
-            [channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso", [['file1.txt', 42]], []],
-            [channel_id, 2, 2, ('b' * 40).decode('hex'), 1470000000, "ubuntu2-torrent.iso", [['file2.txt', 42]], []],
-            [channel_id, 3, 3, ('c' * 40).decode('hex'), 1480000000, "badterm", [['file1.txt', 42]], []],
-            [channel_id, 4, 4, ('d' * 40).decode('hex'), 1490000000, "badterm", [['file2.txt', 42]], []],
-            [channel_id, 5, 5, ('e' * 40).decode('hex'), 1500000000, "badterm", [['file3.txt', 42]], []],
+            [channel_id, 1, 1, unhexlify('a' * 40), 1460000000, "ubuntu-torrent.iso", [['file1.txt', 42]], []],
+            [channel_id, 2, 2, unhexlify('b' * 40), 1470000000, "ubuntu2-torrent.iso", [['file2.txt', 42]], []],
+            [channel_id, 3, 3, unhexlify('c' * 40), 1480000000, "badterm", [['file1.txt', 42]], []],
+            [channel_id, 4, 4, unhexlify('d' * 40), 1490000000, "badterm", [['file2.txt', 42]], []],
+            [channel_id, 5, 5, unhexlify('e' * 40), 1500000000, "badterm", [['file3.txt', 42]], []],
         ]
         channel_db_handler.on_torrents_from_dispersy(torrent_list)
 
@@ -67,14 +71,14 @@ class TestTorrentsEndpoint(AbstractApiTest):
         """
         Testing whether the API returns the right information for a request of a specific chant-managed torrent
         """
-        infohash_hex = unicode(('a' * 20).encode('hex'))
+        infohash_hex = six.text_type(hexlify(b'a' * 20))
         with db_session:
             self.session.lm.mds.TorrentMetadata(infohash=infohash_hex.decode('hex'),
                                                 title=u'ubuntu-torrent.iso', size=42)
-        return self.do_request('torrents/%s' % ('a' * 20).encode('hex'), expected_json={
+        return self.do_request('torrents/%s' % hexlify(b'a' * 20), expected_json={
             u"id": u'',
             u"category": u"",
-            u"infohash": unicode(('a' * 20).encode('hex')),
+            u"infohash": six.text_type(hexlify(b'a' * 20)),
             u"name": u'ubuntu-torrent.iso',
             u"size": 42,
             u"trackers": [],
@@ -93,9 +97,9 @@ class TestTorrentsEndpoint(AbstractApiTest):
         torrent_db.addExternalTorrentNoDef('a' * 20, 'ubuntu-torrent.iso', [['file1.txt', 42]],
                                            ('udp://trackerurl.com:1234/announce',), time.time())
 
-        return self.do_request('torrents/%s' % ('a' * 20).encode('hex'), expected_json={
+        return self.do_request('torrents/%s' % hexlify(b'a' * 20), expected_json={
             u"id": 1,
-            u"infohash": unicode(('a' * 20).encode('hex')),
+            u"infohash": six.text_type(hexlify(b'a' * 20)),
             u"name": u'ubuntu-torrent.iso',
             u"size": 42,
             u"category": u"Compressed",
@@ -133,8 +137,8 @@ class TestTorrentTrackersEndpoint(AbstractApiTest):
             self.assertIn('http://trackerurl.com:4567/announce', trackers)
 
         self.should_check_equality = False
-        return self.do_request('torrents/%s/trackers' % ('a' * 20).encode('hex'), expected_code=200)\
-            .addCallback(verify_trackers)
+        return self.do_request('torrents/%s/trackers' % hexlify(b'a' * 20),
+                               expected_code=200).addCallback(verify_trackers)
 
 
 class TestTorrentHealthEndpoint(AbstractApiTest):
@@ -175,7 +179,7 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
                                            ('udp://localhost:%s/announce' % self.udp_port,
                                             'http://localhost:%s/announce' % self.http_port), time.time())
 
-        url = 'torrents/%s/health?timeout=10&refresh=1' % ('a' * 20).encode('hex')
+        url = 'torrents/%s/health?timeout=10&refresh=1' % hexlify(b'a' * 20)
 
         self.should_check_equality = False
         yield self.do_request(url, expected_code=400, request_type='GET')  # No torrent checker
@@ -196,14 +200,15 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
             self.assertTrue('DHT' in json_response['health'])
 
         def verify_response_with_trackers(response):
+            hex_as = hexlify(b'a' * 20)
             json_response = json.loads(response)
             expected_dict = {u"health":
-                                 {u"DHT":
-                                      {u"leechers": 2, u"seeders": 1, u"infohash": (u'a' * 20).encode('hex')},
-                                  u"udp://localhost:%s" % self.udp_port:
-                                      {u"leechers": 20, u"seeders": 10, u"infohash": (u'a' * 20).encode('hex')},
-                                  u"http://localhost:%s/announce" % self.http_port:
-                                      {u"leechers": 30, u"seeders": 20, u"infohash": (u'a' * 20).encode('hex')}}}
+                             {u"DHT":
+                                  {u"leechers": 2, u"seeders": 1, u"infohash": hex_as},
+                              u"udp://localhost:%s" % self.udp_port:
+                                  {u"leechers": 20, u"seeders": 10, u"infohash": hex_as},
+                              u"http://localhost:%s/announce" % self.http_port:
+                                  {u"leechers": 30, u"seeders": 20, u"infohash": hex_as}}}
             self.assertDictEqual(json_response, expected_dict)
 
         yield self.do_request(url, expected_code=200, request_type='GET').addCallback(verify_response_no_trackers)
@@ -255,7 +260,7 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
             expected_dict = {u"health":
                                  {u"DHT":
                                       {u"leechers": 11, u"seeders": 12,
-                                       u"infohash": unicode(tdef.infohash.encode('hex'))}}}
+                                       u"infohash": six.text_type(tdef.infohash.encode('hex'))}}}
             self.assertDictEqual(json_response, expected_dict)
 
         # Left for compatibility with other tests in this object
