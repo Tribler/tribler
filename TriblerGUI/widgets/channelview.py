@@ -1,4 +1,5 @@
 import base64
+import sys
 import time
 import urllib
 from PyQt5 import uic, QtCore
@@ -149,8 +150,8 @@ class ChannelContentsModel(RemoteTableModel):
         request_mgr.perform_request("channels/discovered/%s/torrents" %
                                     self.channel_id,
                                     self.on_torrent_to_channel_added, method='PUT',
-                                    data=str(('torrents_dir=%s' % dirname) +
-                                             ('&recursive=1' if recursive else '')))
+                                    data=((u'torrents_dir=%s' % dirname) +
+                                             (u'&recursive=1' if recursive else u'')).encode('utf-8'))
 
     def add_torrent_url_to_channel(self, url):
         request_mgr = TriblerRequestManager()

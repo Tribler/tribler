@@ -152,6 +152,14 @@ class TestChannelMetadata(TriblerCoreTest):
         self.assertEqual(len(channel_metadata.dir_name), 60)
 
     @db_session
+    def test_get_channel_with_dirname(self):
+        sample_channel_dict = TestChannelMetadata.get_sample_channel_dict(self.my_key)
+        channel_metadata = self.mds.ChannelMetadata.from_dict(sample_channel_dict)
+        dirname = channel_metadata.dir_name
+        channels_list = list(self.mds.ChannelMetadata.get_channel_with_dirname(dirname))
+        self.assertEqual(len(channels_list), 1)
+
+    @db_session
     def test_get_channel_with_id(self):
         """
         Test retrieving a channel with a specific ID

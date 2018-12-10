@@ -466,10 +466,7 @@ class ToggleControl(QObject):
     def on_mouse_moved(self, pos, index):
         if self.last_index != index:
             # Handle the case when the cursor leaves the table
-            if not index.model():
-                self.last_index = index
-                return True
-            elif index.model().column_position[self.column_name] == index.column():
+            if not index.model() or (index.model().column_position[self.column_name] == index.column()):
                 self.last_index = index
                 return True
         return False

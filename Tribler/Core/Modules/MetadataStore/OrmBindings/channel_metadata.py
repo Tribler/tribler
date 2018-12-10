@@ -5,9 +5,9 @@ from datetime import datetime
 from libtorrent import file_storage, add_files, create_torrent, set_piece_hashes, bencode, torrent_info
 
 from pony import orm
-from pony.orm import db_session
+from pony.orm import db_session, raw_sql
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import TODELETE, NEW, COMMITTED
+from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import TODELETE, NEW, COMMITTED, PUBLIC_KEY_LEN
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, CHANNEL_TORRENT
 from Tribler.Core.exceptions import DuplicateTorrentFileError, DuplicateChannelNameError
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -262,7 +262,7 @@ def define_binding(db):
         @property
         def dir_name(self):
             # Have to limit this to support Windows file path length limit
-            return str(self.public_key).encode('hex')[-CHANNEL_DIR_NAME_LENGTH:]
+            return str(self.public_key).encode('hex')[:CHANNEL_DIR_NAME_LENGTH]
 
         @property
         @db_session
@@ -344,6 +344,20 @@ def define_binding(db):
 
         @classmethod
         @db_session
+        def get_channel_with_dirname(cls, dirname):
+            # It is impossible to use LIKE queries on BLOBs, so we have to use comparisons
+            def extend_to_bitmask(h):
+                return h + "0"*(PUBLIC_KEY_LEN*2-CHANNEL_DIR_NAME_LENGTH)
+            dirname_binmask_start= "x'"+ extend_to_bitmask(dirname) + "'"
+
+            binmask_plus_one = "%X"%(int(dirname, 16)+1)
+            dirname_binmask_end = "x'"+ extend_to_bitmask(binmask_plus_one) + "'"
+
+            sql = "g.public_key >= " + dirname_binmask_start + " AND g.public_key < " + dirname_binmask_end
+            return orm.get(g for g in cls if raw_sql(sql))
+
+        @classmethod
+        @db_session
         def get_random_channels(cls, limit):
             """
             Fetch up to some limit of channels we are subscribed to.
@@ -353,5 +367,10 @@ def define_binding(db):
             :rtype: list
             """
             return db.ChannelMetadata.select(lambda g: g.subscribed).random(limit)
+
+        @db_session
+        def remove_contents(self):
+            self.contents.delete()
+
 
     return ChannelMetadata

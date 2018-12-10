@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import logging
 
 from six import text_type, unichr  # pylint: disable=redefined-builtin
+from pony.orm import db_session
+from six import text_type
 from six.moves.urllib.parse import unquote_plus
 from six.moves.urllib.request import url2pathname
 
@@ -223,15 +225,22 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             num_seeds, num_peers = state.get_num_seeds_peers()
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
-            def get_chant_name(download):
-                infohash = download.tdef.get_infohash()
-                channel = self.session.lm.mds.ChannelMetadata.get_channel_with_infohash(infohash)
-                if channel:
+            @db_session
+            def get_chant_name(name, infohash):
+                channel = None
+                try:
+                    channel = self.session.lm.mds.ChannelMetadata.get_channel_with_dirname(name)
+                except UnicodeEncodeError:
+                    channel = self.session.lm.mds.ChannelMetadata.get_channel_with_infohash(infohash)
+
+                if not channel:
+                    return name
+                elif channel.infohash == buffer(infohash):
                     return channel.title
                 else:
-                    return u"<old version of your channel>"
+                    return u'OLD:' + channel.title
 
-            download_json = {"name": get_chant_name(download) if download.get_channel_download() else tdef.get_name_utf8(),
+            download_json = {"name": get_chant_name(tdef.get_name_utf8(), tdef.get_infohash()) if download.get_channel_download() else tdef.get_name_utf8(),
                              "progress": state.get_progress(),
                              "infohash": tdef.get_infohash().encode('hex'),
                              "speed_down": state.get_current_payload_speed(DOWNLOAD),
