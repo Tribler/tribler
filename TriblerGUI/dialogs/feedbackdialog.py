@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import json
 import os
 from urllib import quote_plus
@@ -8,6 +10,7 @@ import sys
 import platform
 import time
 
+from six.moves import xrange
 from PyQt5.QtWidgets import QMessageBox
 from TriblerGUI.event_request_manager import received_events
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
