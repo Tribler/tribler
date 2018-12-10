@@ -9,6 +9,8 @@ import os
 import time
 import requests
 
+from six.moves import xrange
+
 SERVER_URL = os.environ.get('SONAR_SERVER_URL', "https://sonarcloud.io")
 PROJECT_KEY = os.environ.get('PROJECT_KEY', "org.sonarqube:tribler")
 TASK_PATH = os.path.join(os.environ.get('WORKSPACE', os.getcwd()), '.scannerwork', 'report-task.txt')
