@@ -13,6 +13,8 @@ NEW = 0
 TODELETE = 1
 COMMITTED = 2
 
+PUBLIC_KEY_LEN = 74
+
 def define_binding(db):
     class Metadata(db.Entity):
         rowid = orm.PrimaryKey(int, auto=True)
@@ -22,7 +24,7 @@ def define_binding(db):
         signature = orm.Optional(database_blob)
         timestamp = orm.Optional(datetime, default=datetime.utcnow)
         tc_pointer = orm.Optional(int, size=64, default=0)
-        public_key = orm.Optional(database_blob, default='\x00' * 74)
+        public_key = orm.Optional(database_blob, default='\x00' * PUBLIC_KEY_LEN)
         addition_timestamp = orm.Optional(datetime, default=datetime.utcnow)
         status = orm.Optional(int, default=NEW)
         _payload_class = MetadataPayload
