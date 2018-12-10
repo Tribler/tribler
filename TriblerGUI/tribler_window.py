@@ -129,23 +129,6 @@ class TriblerWindow(QMainWindow):
         TriblerRequestManager.window = self
         self.tribler_status_bar.hide()
 
-        # Load dynamic widgets
-        #uic.loadUi(get_ui_file_path('torrent_channel_list_container.ui'), self.channel_page_container)
-        #self.channel_torrents_list = self.channel_page_container.items_list
-        #self.channel_torrents_detail_widget = self.channel_page_container.details_tab_widget
-        #self.channel_torrents_detail_widget.initialize_details_widget()
-        #self.channel_torrents_list.itemSelectionChanged.connect(self.channel_page.clicked_item)
-
-
-
-
-        #uic.loadUi(get_ui_file_path('torrent_channel_list_container.ui'), self.search_page_container)
-        #self.search_results_list = self.search_page_container.items_list
-        #self.search_torrents_detail_widget = self.search_page_container.details_tab_widget
-        #self.search_torrents_detail_widget.initialize_details_widget()
-        #self.search_results_list.itemClicked.connect(self.on_channel_item_click)
-        #self.search_results_list.itemSelectionChanged.connect(self.search_results_page.clicked_item)
-
         self.token_balance_widget.mouseReleaseEvent = self.on_token_balance_click
 
         def on_state_update(new_state):
@@ -839,14 +822,6 @@ class TriblerWindow(QMainWindow):
         try:
             prev_page = self.navigation_stack.pop()
             self.stackedWidget.setCurrentIndex(prev_page)
-            """
-            if prev_page == PAGE_SEARCH_RESULTS:
-                self.stackedWidget.widget(prev_page).load_search_results_in_list()
-            if prev_page == PAGE_SUBSCRIBED_CHANNELS:
-                self.stackedWidget.widget(prev_page).load_subscribed_channels()
-            if prev_page == PAGE_DISCOVERED:
-                self.stackedWidget.widget(prev_page).load_discovered_channels()
-            """
         except IndexError:
             logging.exception("Unknown page found in stack")
 
