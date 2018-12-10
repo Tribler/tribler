@@ -1,5 +1,7 @@
-from httplib import HTTP_PORT
-from urlparse import urlparse
+from __future__ import absolute_import
+
+from six.moves.http_client import HTTP_PORT
+from six.moves.urllib.parse import urlparse
 
 
 class MalformedTrackerURLException(Exception):

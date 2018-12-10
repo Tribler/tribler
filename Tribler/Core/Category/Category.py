@@ -3,10 +3,12 @@ Category.
 
 Author(s):  Yuan Yuan, Jelle Roozenburg
 """
+from __future__ import absolute_import
+
 import logging
 import os
 import re
-from ConfigParser import MissingSectionHeaderError, ParsingError
+from six.moves.configparser import MissingSectionHeaderError, ParsingError
 
 from Tribler.Core.Category.FamilyFilter import XXXFilter
 from Tribler.Core.Category.init_category import getCategoryInfo

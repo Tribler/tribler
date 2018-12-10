@@ -3,12 +3,12 @@ Controls how a TorrentDef is downloaded (rate, where on disk, etc.).
 
 Author(s): Arno Bakker, Egbert Bouman
 """
+from __future__ import absolute_import
+
 import copy
 import logging
 import os
-from ConfigParser import ParsingError, MissingSectionHeaderError
-
-from types import StringType
+from six.moves.configparser import MissingSectionHeaderError, ParsingError
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.defaults import dldefaults
@@ -154,7 +154,7 @@ class DownloadConfigInterface(object):
         ['harry.avi','sjaak.avi']). Not Unicode strings!
         """
         # TODO: can't check if files exists, don't have tdef here.... bugger
-        if isinstance(files, StringType):  # convenience
+        if isinstance(files, str):  # convenience
             files = [files]
 
         if self.get_mode() == DLMODE_VOD and len(files) > 1:
@@ -203,7 +203,7 @@ class DownloadStartupConfig(DownloadConfigInterface):
         dlconfig = CallbackConfigParser()
         try:
             dlconfig.read_file(filename)
-        except (ParsingError, IOError, MissingSectionHeaderError):
+        except (ParsingError, MissingSectionHeaderError, IOError):
             logger.error("Failed to open download config file: %s", filename)
             raise
 

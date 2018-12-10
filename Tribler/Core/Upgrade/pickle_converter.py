@@ -1,8 +1,9 @@
-import cPickle
+from __future__ import absolute_import
+
 import glob
 import os
 import pickle
-from ConfigParser import RawConfigParser
+from six.moves.configparser import RawConfigParser
 
 from Tribler.Core.simpledefs import PERSISTENTSTATE_CURRENTVERSION
 
@@ -71,7 +72,7 @@ class PickleConverter(object):
         udcfilename = os.path.join(self.session.config.get_state_dir(), 'user_download_choice.pickle')
         if os.path.exists(udcfilename):
             with open(udcfilename, "r") as udc_file:
-                choices = cPickle.Unpickler(udc_file).load()
+                choices = pickle.Unpickler(udc_file).load()
                 choices = dict([(k.encode('hex'), v) for k, v in choices["download_state"].iteritems()])
                 new_config.config['user_download_states'] = choices
                 new_config.write()

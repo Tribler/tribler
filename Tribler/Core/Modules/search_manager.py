@@ -1,11 +1,11 @@
+from __future__ import absolute_import
+
 import logging
 import os
 
 from Tribler.Core.Utilities.search_utils import split_into_keywords
 from Tribler.Core.simpledefs import (SIGNAL_SEARCH_COMMUNITY, SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS,
                                      NTFY_CHANNELCAST, SIGNAL_TORRENT, SIGNAL_CHANNEL)
-from Tribler.community.allchannel.community import AllChannelCommunity
-from Tribler.community.search.community import SearchCommunity
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
@@ -44,6 +44,8 @@ class SearchManager(TaskManager):
         if self.dispersy is None:
             return nr_requests_made
 
+        # TODO remove when we remove Dispersy
+        from Tribler.community.search.community import SearchCommunity
         for community in self.dispersy.get_communities():
             if isinstance(community, SearchCommunity):
                 self._current_keywords = keywords
@@ -177,6 +179,8 @@ class SearchManager(TaskManager):
         if self.dispersy is None:
             return
 
+        #TODO remove when we remove Dispersy
+        from Tribler.community.allchannel.community import AllChannelCommunity
         for community in self.dispersy.get_communities():
             if isinstance(community, AllChannelCommunity):
                 self._current_keywords = keywords

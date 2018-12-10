@@ -15,9 +15,10 @@ import string
 import time
 from threading import enumerate as enumerate_threads
 
-import twisted
 from configobj import ConfigObj
+import six
 from six.moves import xrange
+import twisted
 from twisted.internet import interfaces
 from twisted.internet import reactor
 from twisted.internet.base import BasePort
@@ -71,7 +72,7 @@ class BaseTestCase(unittest.TestCase):
         while self._tempdirs:
             temp_dir = self._tempdirs.pop()
             os.chmod(temp_dir, 0o700)
-            shutil.rmtree(unicode(temp_dir), ignore_errors=False)
+            shutil.rmtree(six.text_type(temp_dir), ignore_errors=False)
 
     def temporary_directory(self, suffix=''):
         random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
