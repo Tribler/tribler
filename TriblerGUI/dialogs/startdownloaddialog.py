@@ -1,4 +1,8 @@
+from __future__ import absolute_import
+
 from urllib import unquote_plus
+
+from six.moves import xrange
 
 from PyQt5 import uic
 from PyQt5.QtCore import pyqtSignal, Qt
