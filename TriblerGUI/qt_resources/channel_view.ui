@@ -612,6 +612,9 @@ color: black;
                <property name="autoFillBackground">
                 <bool>false</bool>
                </property>
+               <property name="styleSheet">
+                <string notr="true">color: #B5B5B5;</string>
+               </property>
                <property name="text">
                 <string>Your channel has uncommitted changes.</string>
                </property>

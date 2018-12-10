@@ -16,7 +16,6 @@ ACTION_BUTTONS = u'action_buttons'
 
 
 class RemoteTableModel(QtCore.QAbstractTableModel):
-    #data_changed = pyqtSignal(QModelIndex, QModelIndex)
 
     def __init__(self, parent=None):
         super(RemoteTableModel, self).__init__()
@@ -53,10 +52,9 @@ class RemoteTableModel(QtCore.QAbstractTableModel):
                               sort_order=self.sort_order)
 
     def _on_new_items_received(self, new_data_items):
-        # _ = QSignalBlocker(self) # Block signals like itemChanged while updating the table
+        # If we want to block the signal like itemChanged, we must use QSignalBlocker object
         old_end = self.rowCount()
         new_end = self.rowCount() + len(new_data_items)
-        # self.data_changed.emit(self.index(old_end,0), self.index(new_end,2))
         if old_end == new_end:
             return
         self.beginInsertRows(QModelIndex(), old_end, new_end - 1)
@@ -71,13 +69,14 @@ class LazyTableView(QTableView):
         self.setSortingEnabled(True)
 
     def _on_list_scroll(self, event):
-        if self.verticalScrollBar().value() == self.verticalScrollBar().maximum() and\
-                self.model().data_items: # workaround for duplicate calls to _on_list_scroll on view creation
+        if self.verticalScrollBar().value() == self.verticalScrollBar().maximum() and \
+                self.model().data_items:  # workaround for duplicate calls to _on_list_scroll on view creation
             self.model().load_next_items()
 
 
 class ChannelsTableView(LazyTableView):
     # TODO: add redraw when the mouse leaves the view through the header
+    # overloading leaveEvent method could be used for that
     mouse_moved = pyqtSignal(QPoint, QModelIndex)
 
     def __init__(self, parent=None):
@@ -94,9 +93,6 @@ class ChannelsTableView(LazyTableView):
         delegate.download_button.clicked.connect(self.on_download_button_clicked)
         delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
         delegate.commit_control.clicked.connect(self.on_commit_control_clicked)
-
-    #def leaveEvent(self, QEvent):
-    #    self.redraw()
 
     def on_subscribe_control_clicked(self, index):
         status = int(index.model().data_items[index.row()][u'subscribed'])
@@ -116,7 +112,7 @@ class ChannelsTableView(LazyTableView):
     def on_play_button_clicked(self, index):
         infohash = index.model().data_items[index.row()][u'infohash']
 
-        def on_play_request_done(result):
+        def on_play_request_done(_):
             if not self:
                 return
             self.window().left_menu_button_video_player.click()
@@ -152,7 +148,7 @@ class ChannelsTableView(LazyTableView):
 
         request_mgr = TriblerRequestManager()
         request_mgr.perform_request("channels/discovered/%s/torrents/%s" %
-                                    (channel_id, infohash) +\
+                                    (channel_id, infohash) + \
                                     ("?restore=1" if status == TODELETE else ''),
                                     self.on_torrent_removed, method='DELETE')
 
@@ -213,9 +209,6 @@ class ChannelsButtonsDelegate(QStyledItemDelegate):
             self.hoverrow = index.row()
             if not self.button_box.contains(pos):
                 redraw = True
-            #if index.row() != -1:
-            #    redraw = True
-        #and not self.button_box.contains(pos)
         # Redraw when the mouse leaves the table
         if index.row() == -1 and self.hoverrow != -1:
             self.hoverrow = -1
@@ -229,21 +222,22 @@ class ChannelsButtonsDelegate(QStyledItemDelegate):
             self.redraw_required.emit()
 
     def paint(self, painter, option, index):
-        # Draw empty cell as the background
-        # Draw a highlighting rectangle around the current row
-        # super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
+        # Draw 'hover' state highlight for every cell of a row
         if index.row() == self.hoverrow:
-            # painter.fillRect(option.rect, option.palette.highlight())
             option.state |= QStyle.State_MouseOver
 
         # Draw 'health' column
         if index.column() == index.model().column_position[u'health']:
+            # Draw empty cell as the background
             super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
+
             self.health_status.paint(painter, option.rect, index)
 
         # Draw 'commit_status' column
         elif index.column() == index.model().column_position[u'commit_status']:
+            # Draw empty cell as the background
             super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
+
             if index == self.hover_index:
                 self.commit_control.paint_hover(painter, option.rect, index)
             else:
@@ -251,7 +245,9 @@ class ChannelsButtonsDelegate(QStyledItemDelegate):
 
         # Draw 'category' column
         elif index.column() == index.model().column_position[u'category']:
+            # Draw empty cell as the background
             super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
+
             painter.save()
 
             lines = QPen(QColor("#B5B5B5"), 1, Qt.SolidLine, Qt.RoundCap)
@@ -275,7 +271,9 @@ class ChannelsButtonsDelegate(QStyledItemDelegate):
 
         # Draw 'subscribed' column
         elif index.column() == index.model().column_position[u'subscribed']:
+            # Draw empty cell as the background
             super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
+
             if index == self.hover_index:
                 self.subscribe_control.paint_hover(painter, option.rect, index)
             else:
@@ -283,9 +281,9 @@ class ChannelsButtonsDelegate(QStyledItemDelegate):
 
         # Draw buttons in the ACTION_BUTTONS column
         elif index.column() == index.model().column_position[ACTION_BUTTONS]:
-            super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
             # Draw empty cell as the background
-            #super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
+            super(ChannelsButtonsDelegate, self).paint(painter, option, self.no_index)
+
             # When the cursor leaves the table, we must "forget" about the button_box
             if self.hoverrow == -1:
                 self.button_box = QRect()
@@ -302,6 +300,7 @@ class ChannelsButtonsDelegate(QStyledItemDelegate):
         else:
             # Draw the rest of the columns
             super(ChannelsButtonsDelegate, self).paint(painter, option, index)
+
     def sizeHint(self, option, index):
         if index.column() == index.model().column_position[u'subscribed']:
             return self.subscribe_control.size_hint(option, index)
@@ -445,7 +444,6 @@ class ToggleControl(QObject):
         data_item = index.model().data_items[index.row()]
         if self.column_name not in data_item or data_item[self.column_name] == '':
             return
-        state = 1 == int(data_item[self.column_name])
         icon = self.hover_icon
         x = rect.left() + (rect.width() - self.w) / 2
         y = rect.top() + (rect.height() - self.h) / 2
@@ -602,11 +600,11 @@ class HealthStatusDisplay(QObject):
         r = rect
 
         # Indicator ellipse rectangle
-        y = r.top() + (r.height() - self.indicator_side)/2
+        y = r.top() + (r.height() - self.indicator_side) / 2
         x = r.left() + self.indicator_border
         w = self.indicator_side
         h = self.indicator_side
-        indicator_rect = QRect(x,y,w,h)
+        indicator_rect = QRect(x, y, w, h)
 
         # Paint indicator
         painter.save()
@@ -615,11 +613,11 @@ class HealthStatusDisplay(QObject):
         painter.drawEllipse(indicator_rect)
         painter.restore()
 
-        x = indicator_rect.left() + indicator_rect.width() + 2*self.indicator_border
+        x = indicator_rect.left() + indicator_rect.width() + 2 * self.indicator_border
         y = r.top()
-        w = r.width() - indicator_rect.width() - 2*self.indicator_border
+        w = r.width() - indicator_rect.width() - 2 * self.indicator_border
         h = r.height()
-        text_box = QRect(x,y,w,h)
+        text_box = QRect(x, y, w, h)
 
         # Paint status text, if necessary
         if health in [HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_ERROR]:
@@ -628,13 +626,6 @@ class HealthStatusDisplay(QObject):
             seeders = int(data_item[u'num_seeders'])
             leechers = int(data_item[u'num_leechers'])
 
-            txt = u'S'+ str(seeders)  + u' L' + str(leechers)
+            txt = u'S' + str(seeders) + u' L' + str(leechers)
 
             self.draw_text(painter, text_box, txt)
-
-
-
-
-
-
-

@@ -26,7 +26,6 @@ commit_status_labels = {
 }
 
 
-
 class ChannelContentsModel(RemoteTableModel):
     columns = [u'category', u'name', u'size', u'date', u'health', u'subscribed', u'commit_status', ACTION_BUTTONS]
     column_headers = [u'Category', u'Title', u'Size', u'Date', u'Health', u'S', u'Status', u'']
@@ -44,7 +43,7 @@ class ChannelContentsModel(RemoteTableModel):
     column_flags = {
         u'subscribed': Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable,
         u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
-        u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable ,
+        u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable,
         u'size': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'date': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'commit_status': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
@@ -55,7 +54,6 @@ class ChannelContentsModel(RemoteTableModel):
     column_display_filters = {
         u'size': lambda data: format_size(float(data)),
         u'date': lambda data: str((float2time(float(data)).strftime("%Y-%m-%d")))
-        # u'date': lambda data: unicode(float2time(float(data)).replace(microsecond=0))
     }
 
     def __init__(self, parent=None, channel_id=None, search_query=None, search_type=None, subscribed=None,
@@ -66,7 +64,6 @@ class ChannelContentsModel(RemoteTableModel):
         self.search_type = search_type
         self.data_items = []
         self.subscribed = subscribed
-
 
         # This dict keeps the mapping of infohashes in data_items to indexes
         # It is used by Health Checker to track the health status updates across model refreshes
@@ -108,7 +105,7 @@ class ChannelContentsModel(RemoteTableModel):
             # Health checker related
             # Update infohashes -> data_items mapping
             for n, item in enumerate(response['torrents']):
-                self.infohashes[item[u'infohash']] = len(self.data_items)+n
+                self.infohashes[item[u'infohash']] = len(self.data_items) + n
             self._on_new_items_received(response['torrents'])
 
     def data(self, index, role):
@@ -153,7 +150,7 @@ class ChannelContentsModel(RemoteTableModel):
                                     self.channel_id,
                                     self.on_torrent_to_channel_added, method='PUT',
                                     data=str(('torrents_dir=%s' % dirname) +
-                                         ('&recursive=1' if recursive else '')))
+                                             ('&recursive=1' if recursive else '')))
 
     def add_torrent_url_to_channel(self, url):
         request_mgr = TriblerRequestManager()
@@ -205,7 +202,6 @@ class ChannelContentsModel(RemoteTableModel):
                 total_seeders += int(status['seeders'])
                 total_leechers += int(status['leechers'])
 
-            health = HEALTH_ERROR
             if total_seeders > 0:
                 health = HEALTH_GOOD
             elif total_leechers > 0:
@@ -220,9 +216,9 @@ class ChannelContentsModel(RemoteTableModel):
         self.dataChanged.emit(index_upd, index_upd, [])
         health_request_mgr = TriblerRequestManager()
         health_request_mgr.perform_request("torrents/%s/health?timeout=%s&refresh=%d" %
-                                                (infohash, timeout, 1),
-                                                on_health_response, capture_errors=False, priority="LOW",
-                                                on_cancel=on_cancel_health_check)
+                                           (infohash, timeout, 1),
+                                           on_health_response, capture_errors=False, priority="LOW",
+                                           on_cancel=on_cancel_health_check)
 
 
 class ChannelViewWidget(QWidget):
@@ -262,7 +258,6 @@ class ChannelViewWidget(QWidget):
         if infohash in self.model.infohashes:
             self.model.check_torrent_health(self.model.index(self.model.infohashes[infohash], 0))
 
-
     def on_table_item_clicked(self, item):
         if item.column() == self.model.column_position[ACTION_BUTTONS] or \
                 item.column() == self.model.column_position[u'subscribed'] or \
@@ -271,6 +266,7 @@ class ChannelViewWidget(QWidget):
         table_entry = self.model.data_items[item.row()]
         if table_entry['type'] == u'torrent':
             self.details_tab_widget.update_with_torrent(table_entry)
+            self.details_tab_widget.setHidden(False)
             self.model.check_torrent_health(item)
         elif table_entry['type'] == u'channel':
             self.channel_entry_clicked.emit(table_entry)
@@ -279,7 +275,7 @@ class ChannelViewWidget(QWidget):
         self.model = model
         self.torrents_table.setModel(self.model)
         self.reset_column_width()
-
+        self.details_tab_widget.setHidden(True)
 
         # TODO: instead, refactor Details Widget into a View
         # This ensures that when the Health Checker updates the state of some rows in the model,
@@ -341,7 +337,6 @@ class ChannelViewWidget(QWidget):
         if self.dialog:
             self.dialog.close_dialog()
             self.dialog = None
-
 
     def on_torrents_remove_all_action(self, action):
         if action == 0:

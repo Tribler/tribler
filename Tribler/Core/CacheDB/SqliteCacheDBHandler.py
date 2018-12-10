@@ -2372,7 +2372,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         search_results = []
         keywords = split_into_keywords(query, to_filter_stopwords=True)
         if count:
-            sql = "SELECT COUNT (id) "
+            sql = "SELECT COUNT (*) FROM (SELECT null "
         else:
             sql = "SELECT id, dispersy_cid, name, description, nr_torrents, nr_favorite, nr_spam, modified "
 
@@ -2380,7 +2380,9 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         for _ in xrange(len(keywords)):
             sql += " name LIKE ? OR description LIKE ? OR "
         sql = sql[:-4] + " )"
-        sql = sql + " LIMIT %i, %i" % (first, last - first if last else first+1000)
+        sql += " LIMIT %i, %i" % (first, last - first if last else first+1000)
+        if count:
+            sql += ")"
 
         bindings = list(chain.from_iterable(['%%%s%%' % keyword] * 2 for keyword in keywords))
         results = self._db.fetchall(sql, bindings)
@@ -2479,14 +2481,15 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         return self._getChannels(sql, (max_nr,), includeSpam=False)
 
     def getMySubscribedChannels(self, include_dispersy=False, first=0, last=None, count=False):
-        sql = "SELECT COUNT(id) " if count else "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
+        sql = "SELECT COUNT(*) FROM (SELECT null " if count else "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
               "FROM Channels, ChannelVotes " + \
               "WHERE Channels.id = ChannelVotes.channel_id AND voter_id ISNULL AND vote == 2"
         if not include_dispersy:
             sql += " AND dispersy_cid == -1 "
 
         sql = sql + " LIMIT %i, %i" % (first, last - first if last else first+1000)
-
+        if count:
+            sql += " )"
 
         return self._getChannels(sql)
 
