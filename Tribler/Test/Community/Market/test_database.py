@@ -1,5 +1,8 @@
+from __future__ import absolute_import
+
 import os
 
+import six
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
 from twisted.internet.defer import inlineCallbacks
@@ -163,7 +166,7 @@ class TestDatabase(AbstractServer):
         """
         Test the check of the database
         """
-        self.assertEqual(self.database.check_database(unicode(LATEST_DB_VERSION)), LATEST_DB_VERSION)
+        self.assertEqual(self.database.check_database(six.text_type(LATEST_DB_VERSION)), LATEST_DB_VERSION)
 
     def test_get_upgrade_script(self):
         """

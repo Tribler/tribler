@@ -4,6 +4,7 @@ import os
 import shutil
 from tempfile import mkdtemp
 
+import six
 from libtorrent import bdecode
 from nose.tools import raises
 from Tribler.Test.tools import trial_timeout
@@ -76,9 +77,9 @@ class TestTorrentDef(BaseTestCase):
         # test removing content
         nt.remove_content("/test123")
         self.assertEqual(len(nt.input['files']), 1)
-        nt.remove_content(unicode(fn))
+        nt.remove_content(six.text_type(fn))
         self.assertEqual(len(nt.input['files']), 0)
-        nt.remove_content(unicode(fn))
+        nt.remove_content(six.text_type(fn))
 
     def test_add_content_dir(self):
         """ Add a single dir to a TorrentDef """
@@ -424,7 +425,7 @@ class TestTorrentDef(BaseTestCase):
         self.assertFalse(torrent.get_metainfo())
         self.assertEqual(torrent.get_url(), "http://google.com")
         self.assertFalse(torrent.is_multifile_torrent())
-        self.assertEqual(torrent.get_name_as_unicode(), unicode(self.VIDEO_FILE_NAME))
+        self.assertEqual(torrent.get_name_as_unicode(), six.text_type(self.VIDEO_FILE_NAME))
         self.assertFalse(torrent.get_files())
         self.assertFalse(torrent.get_files_with_length())
         self.assertFalse(torrent.get_trackers_as_single_tuple())

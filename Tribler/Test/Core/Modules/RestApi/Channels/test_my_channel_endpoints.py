@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+
+from binascii import hexlify
+import six
 from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
@@ -24,7 +28,7 @@ class TestMyChannelEndpoints(AbstractTestChannelsEndpoint):
         Testing whether the API returns the right JSON data if a channel overview is requested
         """
         channel_json = {u'mychannel': {u'name': u'testname', u'description': u'testdescription',
-                                       u'identifier': unicode('fakedispersyid'.encode('hex'))}}
+                                       u'identifier': six.text_type(hexlify(b'fakedispersyid'))}}
         self.create_my_channel(channel_json[u'mychannel'][u'name'], channel_json[u'mychannel'][u'description'])
 
         return self.do_request('mychannel', expected_code=200, expected_json=channel_json)
@@ -98,8 +102,8 @@ class TestMyChannelChantEndpoints(AbstractTestChantEndpoint):
         """
         Testing whether the API returns the right JSON data if an existing chant channel overview is requested
         """
-        channel_json = {u'mychannel': {u'chant':True, u'name': u'testname', u'description': u'testdescription',
-                                       u'identifier': self.session.trustchain_keypair.pub().key_to_bin().encode('hex')}}
+        channel_json = {u'mychannel': {u'chant': True, u'name': u'testname', u'description': u'testdescription',
+                                       u'identifier': hexlify(self.session.trustchain_keypair.pub().key_to_bin())}}
         self.create_my_channel(channel_json[u'mychannel'][u'name'], channel_json[u'mychannel'][u'description'])
 
         return self.do_request('mychannel', expected_code=200, expected_json=channel_json)
