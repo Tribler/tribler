@@ -411,6 +411,7 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
 
 
         Remove a single or multiple torrents with the given comma separated infohashes from a given channel.
+        restore option will revert the selected torrent from 'TODELETE' state to 'COMMITTED' state
 
             **Example request**:
 
@@ -418,6 +419,9 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
 
                 curl -X DELETE http://localhost:8085/channels/discovered/abcdefg/torrents/
                 97d2d8f5d37e56cfaeaae151d55f05b077074779,971d55f05b077074779d2d8f5d37e56cfaeaae15
+
+                curl -X DELETE http://localhost:8085/channels/discovered/abcdefg/torrents/
+                97d2d8f5d37e56cfaeaae151d55f05b077074779,971d55f05b077074779d2d8f5d37e56cfaeaae15?restore=1
 
             **Example response**:
 
