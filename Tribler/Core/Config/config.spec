@@ -117,6 +117,7 @@ directory = string(default='')
 [http_api]
 enabled = boolean(default=False)
 port = integer(min=-1, max=65536, default=-1)
+retry_port = boolean(default=False)
 
 [resource_monitor]
 enabled = boolean(default=True)

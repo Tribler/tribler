@@ -248,6 +248,12 @@ class TriblerConfig(object):
     def get_http_api_port(self):
         return self._obtain_port('http_api', 'port')
 
+    def set_http_api_retry_port(self, retry_port):
+        self.config['http_api']['retry_port'] = retry_port
+
+    def get_http_api_retry_port(self):
+        return self.config['http_api']['retry_port']
+
     # Dispersy
 
     def set_dispersy_enabled(self, value):
