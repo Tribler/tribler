@@ -45,8 +45,7 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
                                      DLSTATUS_SEEDING, NTFY_TORRENT, STATE_STARTING_DISPERSY, STATE_LOADING_COMMUNITIES,
                                      STATE_INITIALIZE_CHANNEL_MGR, STATE_START_MAINLINE_DHT, STATE_START_LIBTORRENT,
                                      STATE_START_TORRENT_CHECKER, STATE_START_REMOTE_TORRENT_HANDLER,
-                                     STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING,
-                                     STATE_SHUTDOWN)
+                                     STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING)
 from Tribler.pyipv8.ipv8.dht.provider import DHTCommunityProvider
 from Tribler.pyipv8.ipv8.keyvault.private.m2crypto import M2CryptoSK
 from Tribler.pyipv8.ipv8.peer import Peer
@@ -557,6 +556,24 @@ class TriblerLaunchMany(TaskManager):
         #TODO: handle the case where the local version is the same as the new one and is not seeded
         return self.download_channel(channel)
 
+    @db_session
+    def remove_channel(self, channel):
+        channel.subscribed = False
+        channel.remove_contents()
+
+        # Remove all stuff matching the channel dir name / public key / torrent title
+        remove_list = [d for d in self.get_channel_downloads() if (d.tdef.get_name_utf8() == channel.dir_name)]
+
+        def _on_remove_failure(failure):
+            self._logger.exception(failure)
+
+        for i, d in enumerate(remove_list):
+            deferred = self.session.remove_download(d, remove_content=True)
+            deferred.addErrback(_on_remove_failure)
+            self.register_task(
+                u'Remove_channel' + d.tdef.get_name_utf8() + u'-' + d.tdef.get_infohash().encode('hex') + u'-' + str(i),
+                deferred)
+
     def download_channel(self, channel):
         """
         Download a channel with a given infohash and title.
@@ -567,7 +584,7 @@ class TriblerLaunchMany(TaskManager):
         dcfg = DownloadStartupConfig()
         dcfg.set_dest_dir(self.mds.channels_dir)
         dcfg.set_channel_download(True)
-        tdef = TorrentDefNoMetainfo(infohash=str(channel.infohash), name=channel.title)
+        tdef = TorrentDefNoMetainfo(infohash=str(channel.infohash), name=channel.dir_name)
         download = self.session.start_download_from_tdef(tdef, dcfg)
         channel_id = channel.public_key
         download.finished_callback = lambda dl: self.on_channel_download_finished(dl, channel_id, finished_deferred)
@@ -685,6 +702,10 @@ class TriblerLaunchMany(TaskManager):
         """ Called by any thread """
         with self.session_lock:
             return self.downloads.values()  # copy, is mutable
+
+    def get_channel_downloads(self):
+        with self.session_lock:
+            return [d for d in self.downloads.values() if d.get_channel_download()]
 
     def get_download(self, infohash):
         """ Called by any thread """
