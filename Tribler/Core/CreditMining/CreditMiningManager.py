@@ -1,9 +1,12 @@
+from __future__ import absolute_import
+
 import os
 import psutil
 import logging
 
 from glob import glob
 from binascii import unhexlify, hexlify
+from six import string_types
 from twisted.internet.task import LoopingCall
 from twisted.internet.defer import Deferred, DeferredList, succeed
 
@@ -139,7 +142,7 @@ class CreditMiningManager(TaskManager):
         if source_str not in self.sources:
             num_torrents = len(self.torrents)
 
-            if isinstance(source_str, basestring) and len(source_str) == 40:
+            if isinstance(source_str, string_types) and len(source_str) == 40:
                 source = ChannelSource(self.session, source_str, self.on_torrent_insert)
             else:
                 self._logger.error('Cannot add unknown source %s', source_str)

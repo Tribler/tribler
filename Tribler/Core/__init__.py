@@ -6,6 +6,11 @@ Author(s): Arno Bakker
 import logging
 from threading import RLock
 
+try:
+    long        # pylint: disable=long-builtin
+except NameError:
+    long = int  # pylint: disable=redefined-builtin
+
 logger = logging.getLogger(__name__)
 
 

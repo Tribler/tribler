@@ -33,6 +33,11 @@ from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT,
                                      STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED, NTFY_TRIBLER, STATE_SHUTDOWN)
 from Tribler.Core.statistics import TriblerStatistics
 
+try:
+    long        # pylint: disable=long-builtin
+except NameError:
+    long = int  # pylint: disable=redefined-builtin
+
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
 else:
