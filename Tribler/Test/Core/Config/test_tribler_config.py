@@ -159,6 +159,8 @@ class TestTriblerConfig(TriblerCoreTest):
         self.assertEqual(self.tribler_config.get_http_api_enabled(), True)
         self.tribler_config.set_http_api_port(True)
         self.assertEqual(self.tribler_config.get_http_api_port(), True)
+        self.tribler_config.set_http_api_retry_port(True)
+        self.assertTrue(self.tribler_config.get_http_api_retry_port())
 
     def test_get_set_methods_dispersy(self):
         """

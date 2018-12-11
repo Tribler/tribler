@@ -59,6 +59,7 @@ class AbstractBaseApiTest(TestAsServer):
     def setUpPreSession(self):
         super(AbstractBaseApiTest, self).setUpPreSession()
         self.config.set_http_api_enabled(True)
+        self.config.set_http_api_retry_port(True)
         self.config.set_megacache_enabled(True)
         self.config.set_tunnel_community_enabled(False)
 
