@@ -127,7 +127,7 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
         """
         request.setHeader('Content-Type', 'text/json')
 
-        if (len(self.cid) == 74):
+        if len(self.cid) == 74:
             with db_session:
                 channel = self.session.lm.mds.ChannelMetadata.get(public_key=database_blob(self.cid))
                 if not channel:
@@ -181,6 +181,17 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
             :statuscode 404: if you are not subscribed to the specified channel.
         """
         request.setHeader('Content-Type', 'text/json')
+
+        if len(self.cid) == 74:
+            with db_session:
+                channel = self.session.lm.mds.ChannelMetadata.get(public_key=buffer(self.cid))
+                if not channel:
+                    return ChannelsModifySubscriptionEndpoint.return_404(request)
+                elif not channel.subscribed:
+                    return ChannelsModifySubscriptionEndpoint.return_404(request, message=NOT_SUBSCRIBED_RESPONSE_MSG)
+                self.session.lm.remove_channel(channel)
+            return json.dumps({"unsubscribed": True})
+
         channel_info = self.get_channel_from_db(self.cid)
         if channel_info is None:
             return ChannelsModifySubscriptionEndpoint.return_404(request)

@@ -18,6 +18,7 @@ from Tribler.Core.exceptions import DuplicateTorrentFileError, HttpError
 UNKNOWN_TORRENT_MSG = "this torrent is not found in the specified channel"
 UNKNOWN_COMMUNITY_MSG = "the community for the specified channel cannot be found"
 
+
 def chunks(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
@@ -131,7 +132,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
 
             torrent_db_columns = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
                                   'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.inserted']
-            results_local_torrents_channel = self.channel_db_handler\
+            results_local_torrents_channel = self.channel_db_handler \
                 .getTorrentsFromChannelId(channel_info[0], True, torrent_db_columns)
 
         results_json = []
@@ -209,13 +210,11 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
 
         parameters = http.parse_qs(request.content.read(), 1)
 
-
         torrents_dir = None
         if 'torrents_dir' in parameters and parameters['torrents_dir'] > 0:
-                torrents_dir = parameters['torrents_dir'][0]
-                if not os.path.isabs(torrents_dir):
-                    request.setResponseCode(http.BAD_REQUEST)
-
+            torrents_dir = parameters['torrents_dir'][0]
+            if not os.path.isabs(torrents_dir):
+                request.setResponseCode(http.BAD_REQUEST)
 
         recursive = False
         if 'recursive' in parameters and parameters['recursive'] > 0:
@@ -226,7 +225,6 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         if torrents_dir:
             torrents_list = []
             errors_list = []
-
             filename_generator = None
 
             if recursive:
@@ -247,24 +245,17 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
                 if os.path.isfile(filepath) and filename.endswith(u'.torrent'):
                     torrents_list.append(filepath)
 
-            for chunk in chunks(torrents_list, 100): # 100 is a reasonable chunk size for commits
+            for chunk in chunks(torrents_list, 100):  # 100 is a reasonable chunk size for commits
                 with db_session:
                     for f in chunk:
                         try:
                             channel.add_torrent_to_channel(TorrentDef.load(f), {})
-                        except DuplicateTorrentFileError as exc:
-                                pass
+                        except DuplicateTorrentFileError:
+                            pass
                         except:
                             errors_list.append(f)
 
-            return json.dumps({"added": len(torrents_list), "errors":errors_list})
-
-
-
-
-
-
-
+            return json.dumps({"added": len(torrents_list), "errors": errors_list})
 
         if 'torrent' not in parameters or len(parameters['torrent']) == 0:
             request.setResponseCode(http.BAD_REQUEST)
