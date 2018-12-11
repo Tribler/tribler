@@ -46,7 +46,7 @@ class SubscriptionsWidget(QWidget):
         if remote_response and 'votes' in remote_response:
             self.channel_info["votes"] = remote_response['votes']
 
-        if self.channel_info["subscribed"]:
+        if int(self.channel_info["subscribed"]):
             self.subscribe_button.setIcon(QIcon(QPixmap(get_image_path('subscribed_yes.png'))))
         else:
             self.subscribe_button.setIcon(QIcon(QPixmap(get_image_path('subscribed_not.png'))))
@@ -61,10 +61,12 @@ class SubscriptionsWidget(QWidget):
                 self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path('credit_mining_not.png'))))
         else:
             self.credit_mining_button.hide()
+        # Hide credit mining button until everything else works
+        self.credit_mining_button.hide()
 
     def on_subscribe_button_click(self):
         self.request_mgr = TriblerRequestManager()
-        if self.channel_info["subscribed"]:
+        if int(self.channel_info["subscribed"]):
             self.request_mgr.perform_request("channels/subscribed/%s" %
                                              self.channel_info['dispersy_cid'],
                                              self.on_channel_unsubscribed, method='DELETE')
