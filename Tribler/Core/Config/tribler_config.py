@@ -89,8 +89,8 @@ class TriblerConfig(object):
         """
         if not os.path.exists(self.get_state_dir()):
             os.makedirs(self.get_state_dir())
-        with open(os.path.join(self.get_state_dir(), FILENAME), 'w') as outfile:
-            self.config.write(outfile=outfile)
+        self.config.filename = os.path.join(self.get_state_dir(), FILENAME)
+        self.config.write()
 
     @staticmethod
     def get_default_state_dir(home_dir_postfix=u'.Tribler'):
