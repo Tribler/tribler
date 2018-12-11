@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+
+from binascii import hexlify
+
 from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
@@ -51,7 +55,7 @@ class TestTrustchainWallet(TestBase):
             'total_down': 5 * 1024 * 1024
         }
         self.nodes[0].overlay.sign_block(self.nodes[0].network.verified_peers[0], public_key=his_pubkey,
-                                         block_type='tribler_bandwidth', transaction=tx)
+                                         block_type=b'tribler_bandwidth', transaction=tx)
 
         yield self.deliver_messages()
 
@@ -85,7 +89,7 @@ class TestTrustchainWallet(TestBase):
         """
         his_pubkey = self.nodes[0].overlay.my_peer.public_key.key_to_bin()
 
-        tx_deferred = self.tc_wallet.monitor_transaction('%s.1' % his_pubkey.encode('hex'))
+        tx_deferred = self.tc_wallet.monitor_transaction(b'%s.1' % hexlify(his_pubkey))
 
         # Now create the transaction
         transaction = {
@@ -95,7 +99,7 @@ class TestTrustchainWallet(TestBase):
             'total_down': 5 * 1024 * 1024
         }
         self.nodes[1].overlay.sign_block(self.nodes[1].network.verified_peers[0], public_key=his_pubkey,
-                                         block_type='tribler_bandwidth', transaction=transaction)
+                                         block_type=b'tribler_bandwidth', transaction=transaction)
 
         yield tx_deferred
 
@@ -113,14 +117,14 @@ class TestTrustchainWallet(TestBase):
         }
         his_pubkey = self.nodes[0].overlay.my_peer.public_key.key_to_bin()
         yield self.nodes[1].overlay.sign_block(self.nodes[1].network.verified_peers[0], public_key=his_pubkey,
-                                               block_type='tribler_bandwidth', transaction=transaction)
-        yield self.tc_wallet.monitor_transaction('%s.1' % his_pubkey.encode('hex'))
+                                               block_type=b'tribler_bandwidth', transaction=transaction)
+        yield self.tc_wallet.monitor_transaction(b'%s.1' % hexlify(his_pubkey))
 
     def test_address(self):
         """
         Test the address of a Trustchain wallet
         """
-        self.assertIsInstance(self.tc_wallet.get_address(), str)
+        self.assertTrue(self.tc_wallet.get_address())
 
     @inlineCallbacks
     def test_get_transaction(self):

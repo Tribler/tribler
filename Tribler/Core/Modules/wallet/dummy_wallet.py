@@ -1,10 +1,14 @@
+from __future__ import absolute_import
+
+from six.moves import xrange
 import string
 from random import choice
 
-from Tribler.Core.Modules.wallet.wallet import Wallet, InsufficientFunds
 from twisted.internet import reactor
 from twisted.internet.defer import succeed
 from twisted.internet.task import deferLater
+
+from Tribler.Core.Modules.wallet.wallet import Wallet, InsufficientFunds
 
 
 class BaseDummyWallet(Wallet):
@@ -19,7 +23,7 @@ class BaseDummyWallet(Wallet):
         self.balance = 1000
         self.created = True
         self.unlocked = True
-        self.address = ''.join([choice(string.lowercase) for _ in xrange(10)])
+        self.address = ''.join([choice(string.ascii_lowercase) for _ in xrange(10)])
         self.transaction_history = []
 
     def get_name(self):

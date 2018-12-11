@@ -1,8 +1,12 @@
+from __future__ import absolute_import
+
 import os
 
 import time
 
 # Important import, do not remove
+from binascii import hexlify
+
 import Tribler.Core.Modules.bitcoinlib_main as bitcoinlib_main
 
 from Tribler.Core.Modules.wallet.wallet import Wallet, InsufficientFunds
@@ -155,7 +159,7 @@ class BitcoinWallet(Wallet):
                 if tx_input.address in my_keys:
                     # At this point, we do not have the value of the input so we should do a database query for it
                     db_res = self.wallet._session.query(DbTransactionInput.value).filter(
-                        tx_input.prev_hash.encode('hex') == DbTransactionInput.prev_hash,
+                        hexlify(tx_input.prev_hash) == DbTransactionInput.prev_hash,
                         tx_input.output_n_int == DbTransactionInput.output_n).all()
                     if db_res:
                         value -= db_res[0][0]

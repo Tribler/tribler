@@ -1,8 +1,11 @@
+from __future__ import absolute_import
+
+import abc
 import logging
 import random
 import string
-import sys
-from abc import ABCMeta, abstractmethod
+
+import six
 
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
@@ -14,13 +17,11 @@ class InsufficientFunds(Exception):
     pass
 
 
-class Wallet(TaskManager):
+class Wallet(six.with_metaclass(abc.ABCMeta, TaskManager)):
     """
     This is the base class of a wallet and contains various methods that every wallet should implement.
     To create your own wallet, subclass this class and implement the required methods.
     """
-    __metaclass__ = ABCMeta
-
     def __init__(self):
         super(Wallet, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -33,39 +34,39 @@ class Wallet(TaskManager):
         """
         return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(length))
 
-    @abstractmethod
+    @abc.abstractmethod
     def get_identifier(self):
         return
 
-    @abstractmethod
+    @abc.abstractmethod
     def get_name(self):
         return
 
-    @abstractmethod
+    @abc.abstractmethod
     def create_wallet(self, *args, **kwargs):
         return
 
-    @abstractmethod
+    @abc.abstractmethod
     def get_balance(self):
         return
 
-    @abstractmethod
+    @abc.abstractmethod
     def transfer(self, *args, **kwargs):
         return
 
-    @abstractmethod
+    @abc.abstractmethod
     def get_address(self):
         return
 
-    @abstractmethod
+    @abc.abstractmethod
     def get_transactions(self):
         return
 
-    @abstractmethod
+    @abc.abstractmethod
     def min_unit(self):
         return
 
-    @abstractmethod
+    @abc.abstractmethod
     def precision(self):
         """
         The precision of an asset inside a wallet represents the number of digits after the decimal.

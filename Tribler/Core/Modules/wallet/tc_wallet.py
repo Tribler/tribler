@@ -1,4 +1,7 @@
+from __future__ import absolute_import, division
+
 from base64 import b64encode
+from binascii import hexlify, unhexlify
 
 from twisted.internet.defer import succeed, fail, Deferred
 from twisted.internet.task import LoopingCall
@@ -25,7 +28,7 @@ class TrustchainWallet(Wallet, BlockListener):
         super(TrustchainWallet, self).__init__()
 
         self.trustchain = trustchain
-        self.trustchain.add_listener(self, ['tribler_bandwidth'])
+        self.trustchain.add_listener(self, [b'tribler_bandwidth'])
         self.created = True
         self.unlocked = True
         self.check_negative_balance = False
@@ -64,7 +67,7 @@ class TrustchainWallet(Wallet, BlockListener):
         if peer is None:
             peer = self.trustchain.my_peer
 
-        block = self.trustchain.persistence.get_latest(peer.public_key.key_to_bin(), block_type='tribler_bandwidth')
+        block = self.trustchain.persistence.get_latest(peer.public_key.key_to_bin(), block_type=b'tribler_bandwidth')
         if block:
             return block.transaction['total_up'] - block.transaction['total_down']
 
@@ -90,11 +93,11 @@ class TrustchainWallet(Wallet, BlockListener):
     def create_transfer_block(self, peer, quantity):
         transaction = {"up": 0, "down": int(quantity * MEGA_DIV)}
         deferred = self.trustchain.sign_block(peer, peer.public_key.key_to_bin(),
-                                              block_type='tribler_bandwidth', transaction=transaction)
+                                              block_type=b'tribler_bandwidth', transaction=transaction)
         addCallback(deferred, lambda _: None)
         latest_block = self.trustchain.persistence.get_latest(self.trustchain.my_peer.public_key.key_to_bin(),
-                                                              block_type='tribler_bandwidth')
-        txid = "%s.%s.%d.%d" % (latest_block.public_key.encode('hex'),
+                                                              block_type=b'tribler_bandwidth')
+        txid = "%s.%s.%d.%d" % (hexlify(latest_block.public_key),
                                 latest_block.sequence_number, 0, int(quantity * MEGA_DIV))
 
         self.transaction_history.append({
@@ -115,8 +118,8 @@ class TrustchainWallet(Wallet, BlockListener):
         """
         Monitor an incoming transaction with a specific id.
         """
-        pub_key, sequence_number = payment_id.split('.')[:2]
-        pub_key = pub_key.decode('hex')
+        pub_key, sequence_number = payment_id.split(b'.')[:2]
+        pub_key = unhexlify(pub_key)
         sequence_number = int(sequence_number)
 
         block = self.trustchain.persistence.get(pub_key, sequence_number)
@@ -124,7 +127,7 @@ class TrustchainWallet(Wallet, BlockListener):
         monitor_deferred = Deferred()
 
         def check_has_block():
-            self._logger.info("Checking for block with id %s and num %d", pub_key.encode('hex'), sequence_number)
+            self._logger.info("Checking for block with id %s and num %d", hexlify(pub_key), sequence_number)
             db_block = self.trustchain.persistence.get(pub_key, sequence_number)
             if db_block:
                 monitor_lc.stop()
@@ -155,7 +158,7 @@ class TrustchainWallet(Wallet, BlockListener):
         peers_you_helped = set()
         peers_helped_you = set()
         for block in self.trustchain.persistence.get_latest_blocks(public_key, limit=-1,
-                                                                   block_type='tribler_bandwidth'):
+                                                                   block_type=b'tribler_bandwidth'):
             if int(block.transaction["up"]) > 0:
                 peers_you_helped.add(block.link_public_key)
             if int(block.transaction["down"]) > 0:
@@ -169,9 +172,9 @@ class TrustchainWallet(Wallet, BlockListener):
         """
         if public_key is None:
             public_key = self.trustchain.my_peer.public_key.key_to_bin()
-        latest_block = self.trustchain.persistence.get_latest(public_key, block_type='tribler_bandwidth')
+        latest_block = self.trustchain.persistence.get_latest(public_key, block_type=b'tribler_bandwidth')
         statistics = dict()
-        statistics["id"] = public_key.encode("hex")
+        statistics["id"] = hexlify(public_key)
         interacts = self.get_num_unique_interactors(public_key)
         statistics["peers_that_pk_helped"] = interacts[0] if interacts[0] is not None else 0
         statistics["peers_that_helped_pk"] = interacts[1] if interacts[1] is not None else 0
@@ -223,10 +226,10 @@ class TrustchainWallet(Wallet, BlockListener):
         self.trustchain.persistence.add_block(tmp_half_block)
 
         # Create the bootstrapped identity format
-        block = {'block_hash': tmp_half_block.hash.encode('base64'),
+        block = {'block_hash': b64encode(tmp_half_block.hash),
                  'sequence_number': tmp_half_block.sequence_number}
 
-        result = {'private_key': tmp_peer.key.key_to_bin().encode('base64'),
+        result = {'private_key': b64encode(tmp_peer.key.key_to_bin()),
                   'transaction': {'up': amount, 'down': 0}, 'block': block}
         return result
 

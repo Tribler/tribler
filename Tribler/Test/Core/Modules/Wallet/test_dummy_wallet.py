@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks, Deferred
 
