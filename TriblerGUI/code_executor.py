@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+
+from base64 import b64encode
 import binascii
 import code
 import io
@@ -51,6 +54,7 @@ class CodeExecutor(object):
         self.logger.info("Code execution with task %s finished:", task_id)
         self.logger.info("Stdout of task %s: %s", task_id, stdout)
         if ('Traceback' in stderr or 'SyntaxError' in stderr) and 'SystemExit' not in stderr:
+            self.logger.info("Executed code with failure: %s", b64encode(code))
             raise RuntimeError("Error during remote code execution! %s" % stderr)
 
         # Determine the return value
