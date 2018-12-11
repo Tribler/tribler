@@ -1,7 +1,11 @@
+from __future__ import absolute_import
+
 import logging
 import random
 from abc import ABCMeta, abstractmethod
 from time import time
+
+from six.moves import xrange
 
 from Tribler.community.market.core.order import OrderId
 from Tribler.community.market.core.orderbook import OrderBook

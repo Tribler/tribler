@@ -1,5 +1,9 @@
+from __future__ import absolute_import
+
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
+
+from six.moves import xrange
 
 from TriblerGUI.widgets.channel_torrent_list_item import ChannelTorrentListItem
 

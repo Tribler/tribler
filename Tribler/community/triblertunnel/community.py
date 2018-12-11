@@ -1,6 +1,10 @@
+from __future__ import absolute_import
+
 import os
 import time
 import sys
+
+from six.moves import xrange
 
 from Tribler.community.triblertunnel.caches import BalanceRequestCache
 from Tribler.community.triblertunnel.payload import PayoutPayload, BalanceRequestPayload, BalanceResponsePayload

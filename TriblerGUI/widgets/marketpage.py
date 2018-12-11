@@ -1,4 +1,7 @@
+from __future__ import absolute_import
+
 import datetime
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QCursor
@@ -7,6 +10,8 @@ from PyQt5.QtWidgets import QAction
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QSpacerItem
 from PyQt5.QtWidgets import QWidget
+
+from six.moves import xrange
 
 from TriblerGUI.defs import PAGE_MARKET_TRANSACTIONS, PAGE_MARKET_WALLETS, PAGE_MARKET_ORDERS
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog

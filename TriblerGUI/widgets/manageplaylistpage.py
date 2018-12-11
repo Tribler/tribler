@@ -1,6 +1,11 @@
+from __future__ import absolute_import
+
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QListWidgetItem
+
+from six.moves import xrange
+
 from TriblerGUI.defs import PAGE_EDIT_CHANNEL_PLAYLIST_TORRENTS
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_image_path

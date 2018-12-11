@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from collections import deque, namedtuple
 import logging
 from threading import RLock
@@ -5,6 +7,8 @@ from time import time
 
 from PyQt5.QtCore import QUrl, pyqtSignal, QIODevice, QBuffer, QObject
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
+
+from six.moves import xrange
 
 import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL, DEFAULT_API_HOST

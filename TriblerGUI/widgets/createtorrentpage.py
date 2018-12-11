@@ -1,10 +1,13 @@
+from __future__ import absolute_import
+
 import os
 import urllib
 
 from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QIcon
-
 from PyQt5.QtWidgets import QWidget, QFileDialog, QAction
+
+from six.moves import xrange
 
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.defs import PAGE_EDIT_CHANNEL_TORRENTS, BUTTON_TYPE_NORMAL

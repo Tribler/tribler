@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import base64
 import glob
 import os
@@ -8,6 +10,8 @@ from PyQt5.QtCore import Qt, pyqtSignal, QDir
 from PyQt5.QtGui import QIcon, QCursor
 
 from PyQt5.QtWidgets import QWidget, QAction, QTreeWidgetItem, QFileDialog
+
+from six.moves import xrange
 
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.widgets.channel_torrent_list_item import ChannelTorrentListItem
@@ -684,6 +688,3 @@ class EditChannelPage(QWidget):
         if self.dialog:
             self.dialog.close_dialog()
             self.dialog = None
-
-
-

@@ -11,8 +11,10 @@ from copy import copy
 from hashlib import sha1
 from time import time
 
-from libtorrent import bencode
 import chardet
+
+from libtorrent import bencode
+
 from six import text_type
 from six.moves import xrange
 

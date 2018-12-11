@@ -1,4 +1,8 @@
+from __future__ import absolute_import
+
 from PyQt5.QtWidgets import QWidget
+
+from six.moves import xrange
 
 from TriblerGUI.defs import PAGE_CHANNEL_DETAILS
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem

@@ -5,26 +5,29 @@ import os
 import socket
 from time import localtime, strftime
 
-import matplotlib
-import psutil
 from meliae import scanner
 
-matplotlib.use('Qt5Agg')
-from matplotlib.backends.backend_qt5agg import FigureCanvas
-from matplotlib.dates import DateFormatter
-from matplotlib.figure import Figure
+import psutil
+
+from six.moves import xrange
 
 from PyQt5 import uic, QtGui
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QTextCursor
-from PyQt5.QtWidgets import QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QTreeWidgetItem, \
-    QSizePolicy
+from PyQt5.QtWidgets import (QDesktopWidget, QFileDialog, QHeaderView, QMainWindow,
+                             QMessageBox, QSizePolicy, QTreeWidgetItem)
 
 import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
-from TriblerGUI.utilities import get_ui_file_path, format_size
-from TriblerGUI.tribler_request_manager import performed_requests as tribler_performed_requests, TriblerRequestManager
 from TriblerGUI.event_request_manager import received_events as tribler_received_events
+from TriblerGUI.tribler_request_manager import TriblerRequestManager, performed_requests as tribler_performed_requests
+from TriblerGUI.utilities import format_size, get_ui_file_path
+
+import matplotlib  # pylint: disable=wrong-import-position
+matplotlib.use('Qt5Agg')
+from matplotlib.backends.backend_qt5agg import FigureCanvas  # pylint: disable=wrong-import-position
+from matplotlib.dates import DateFormatter  # pylint: disable=wrong-import-position
+from matplotlib.figure import Figure  # pylint: disable=wrong-import-position
 
 
 class MplCanvas(FigureCanvas):

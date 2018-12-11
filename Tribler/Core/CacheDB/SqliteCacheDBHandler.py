@@ -3,6 +3,8 @@ SqlitecacheDBHanler.
 
 Author(s): Jie Yang
 """
+from __future__ import absolute_import
+
 import logging
 import math
 import os
@@ -15,6 +17,8 @@ from pprint import pformat
 from struct import unpack_from
 from time import time
 from traceback import print_exc
+
+from six.moves import xrange
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
