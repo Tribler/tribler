@@ -1,5 +1,4 @@
 # -*- coding:utf-8 -*-
-import struct
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.restapi.util import convert_search_torrent_to_json, convert_db_channel_to_json,\
@@ -46,8 +45,23 @@ class TestRestApiUtil(TriblerCoreTest):
         Test whether the conversion from db torrent tuple to json works
         """
         input_tuple = (1, '2', 'abc', 4, 5, 6, 7, 8, 0, 0.123)
-        output = {'id': 1, 'infohash': '2'.encode('hex'), 'name': 'abc', 'size': 4, 'category': 5,
-                  'num_seeders': 6, 'num_leechers': 7, 'last_tracker_check': 8, 'relevance_score': 0.123}
+        output = {'category': 5,
+                  'commit_status': 0,
+                  'date': 0,
+                  'dispersy_cid': '',
+                  'health': u'Seeds found',
+                  'id': 1,
+                  'infohash': '32',
+                  'last_tracker_check': 8,
+                  'name': 'abc',
+                  'num_leechers': 7,
+                  'num_seeders': 6,
+                  'public_key': '',
+                  'relevance_score': 0.123,
+                  'size': 4,
+                  'subscribed': '',
+                  'type': 'torrent',
+                  'votes': 0}
         self.assertEqual(convert_search_torrent_to_json(input_tuple), output)
 
         input_tuple = (1, '2', None, 4, 5, 6, 7, 8, 0, 0.123)

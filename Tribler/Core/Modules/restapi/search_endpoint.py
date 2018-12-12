@@ -191,15 +191,15 @@ class SearchEndpoint(resource.Resource):
                 results.extend(pony_query_results)
 
             # Legacy query for subscribed channels
-            skip_dispersy = channel and not is_dispersy_channel
+            skip_dispersy = not txt_search_query or (channel and not is_dispersy_channel)
             if subscribed:
                 skip_dispersy = True
                 subscribed_channels_db = self.channel_db_handler.getMySubscribedChannels(include_dispersy=True)
                 results.extend([channel_to_torrent_adapter(c) for c in subscribed_channels_db])
 
-            # Legacy query for channels
             previous_query_size = pony_query_size
             if not skip_dispersy:
+                # Legacy query for channels
                 if item_type not in metadata_type_conversion_dict or item_type == u'channel':
                     first2 = shift_and_clamp(first, previous_query_size)
                     last2 = shift_and_clamp(last, previous_query_size)
