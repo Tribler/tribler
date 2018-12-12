@@ -72,6 +72,8 @@ class Session(object):
         self.session_lock = NoDispersyRLock()
 
         self.config = config or TriblerConfig()
+        self._logger.info("Session is using state directory: %s", self.config.get_state_dir())
+
         self.get_ports_in_config()
         self.create_state_directory_structure()
 
