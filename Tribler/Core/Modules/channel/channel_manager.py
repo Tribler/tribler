@@ -1,5 +1,9 @@
+from __future__ import absolute_import
+
 import logging
 from binascii import hexlify
+
+from six import string_types
 
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.exceptions import DuplicateChannelNameError
@@ -60,10 +64,11 @@ class ChannelManager(TaskManager):
         :return: Channel ID
         :raises DuplicateChannelNameError if name already exists
         """
-        assert isinstance(name, basestring), u"name is not a basestring: %s" % type(name)
-        assert isinstance(description, basestring), u"description is not a basestring: %s" % type(description)
+        assert isinstance(name, string_types), u"name is not a string_types: %s" % type(name)
+        assert isinstance(description, string_types), u"description is not a string_types: %s" % type(description)
         assert mode in self._channel_mode_map, u"invalid mode: %s" % mode
-        assert isinstance(rss_url, basestring) or rss_url is None, u"rss_url is not a basestring or None: %s" % type(rss_url)
+        assert isinstance(rss_url, string_types) or rss_url is None, (u"rss_url is not a string_types or None: %s"
+                                                                      % type(rss_url))
 
         # if two channels have the same name, this will not work
         for channel_object in self._channel_list:
