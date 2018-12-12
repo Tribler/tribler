@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 
+from six import text_type
 from six.moves.urllib.parse import unquote_plus
 from six.moves.urllib.request import url2pathname
 from twisted.web import http, resource
@@ -14,7 +15,6 @@ from Tribler.Core.Utilities.utilities import unichar_string
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
 import Tribler.Core.Utilities.json_util as json
-from Tribler.pyipv8.ipv8.util import is_unicode
 from Tribler.util import cast_to_unicode_utf8
 
 
@@ -325,7 +325,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
         uri = parameters['uri'][0]
         if uri.startswith("file:"):
             if uri.endswith(".mdblob"):
-                filename = url2pathname(uri[5:].encode('utf-8') if is_unicode(uri) else uri[5:])
+                filename = url2pathname(uri[5:].encode('utf-8') if isinstance(uri, text_type) else uri[5:])
                 try:
                     payload = ChannelMetadataPayload.from_file(filename)
                 except IOError:
