@@ -6,6 +6,7 @@ from datetime import datetime
 from pony.orm import db_session
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
+from typing import Optional, Any
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
@@ -93,7 +94,6 @@ class TestChannelMetadata(TriblerCoreTest):
         self.assertEqual(2, len(channel2.contents_list))
         self.assertEqual(2, channel2.contents_len)
 
-
     @db_session
     def test_create_channel(self):
         """
@@ -136,9 +136,9 @@ class TestChannelMetadata(TriblerCoreTest):
 
         # Check that we always take the latest version
         channel_metadata.version -= 1
-        self.assertEqual(channel_metadata.version, 2)
+        self.assertEqual(channel_metadata.version, 4)
         channel_metadata = self.mds.ChannelMetadata.process_channel_metadata_payload(payload)
-        self.assertEqual(channel_metadata.version, 3)
+        self.assertEqual(channel_metadata.version, 5)
         self.assertEqual(len(self.mds.ChannelMetadata.select()), 1)
 
     @db_session
@@ -156,8 +156,8 @@ class TestChannelMetadata(TriblerCoreTest):
         sample_channel_dict = TestChannelMetadata.get_sample_channel_dict(self.my_key)
         channel_metadata = self.mds.ChannelMetadata.from_dict(sample_channel_dict)
         dirname = channel_metadata.dir_name
-        channels_list = list(self.mds.ChannelMetadata.get_channel_with_dirname(dirname))
-        self.assertEqual(len(channels_list), 1)
+        channel_result = self.mds.ChannelMetadata.get_channel_with_dirname(dirname)  # type: Optional[Any]
+        self.assertEqual(channel_metadata, channel_result)
 
     @db_session
     def test_get_channel_with_id(self):

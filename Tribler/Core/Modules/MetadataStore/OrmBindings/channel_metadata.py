@@ -163,7 +163,6 @@ def define_binding(db):
 
             new_version = self.version + len(metadata_list)
 
-
             # Make torrent out of dir with metadata files
             start_ts = datetime.utcnow()
             torrent, infohash = create_torrent_from_dir(channel_dir,
@@ -246,7 +245,6 @@ def define_binding(db):
         def dirty(self):
             return self.contents.where(lambda g: g.status == NEW or g.status == TODELETE).exists()
 
-
         @property
         def contents(self):
             return db.TorrentMetadata.select(lambda g: g.public_key == self.public_key and g != self)
@@ -277,7 +275,6 @@ def define_binding(db):
         @property
         def contents_len(self):
             return orm.count(self.contents)
-
 
         @db_session
         def delete_torrent_from_channel(self, infohash):
@@ -347,11 +344,12 @@ def define_binding(db):
         def get_channel_with_dirname(cls, dirname):
             # It is impossible to use LIKE queries on BLOBs, so we have to use comparisons
             def extend_to_bitmask(h):
-                return h + "0"*(PUBLIC_KEY_LEN*2-CHANNEL_DIR_NAME_LENGTH)
-            dirname_binmask_start= "x'"+ extend_to_bitmask(dirname) + "'"
+                return h + "0" * (PUBLIC_KEY_LEN * 2 - CHANNEL_DIR_NAME_LENGTH)
 
-            binmask_plus_one = "%X"%(int(dirname, 16)+1)
-            dirname_binmask_end = "x'"+ extend_to_bitmask(binmask_plus_one) + "'"
+            dirname_binmask_start = "x'" + extend_to_bitmask(dirname) + "'"
+
+            binmask_plus_one = "%X" % (int(dirname, 16) + 1)
+            dirname_binmask_end = "x'" + extend_to_bitmask(binmask_plus_one) + "'"
 
             sql = "g.public_key >= " + dirname_binmask_start + " AND g.public_key < " + dirname_binmask_end
             return orm.get(g for g in cls if raw_sql(sql))
@@ -371,6 +369,5 @@ def define_binding(db):
         @db_session
         def remove_contents(self):
             self.contents.delete()
-
 
     return ChannelMetadata

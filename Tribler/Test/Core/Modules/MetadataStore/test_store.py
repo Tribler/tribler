@@ -28,7 +28,7 @@ class TestMetadataStore(TriblerCoreTest):
     """
     DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', '..', 'data')
     CHANNEL_DIR = os.path.join(DATA_DIR, 'sample_channel',
-                               'd24941643ff471e40d7761c71f4e3a4c21a4a5e89b0281430d01e78a4e46')
+                               '4c69624e61434c504b3a6268ef448cf1476392eaf8856b89008e70af5eb6')
     CHANNEL_METADATA = os.path.join(DATA_DIR, 'sample_channel', 'channel.mdblob')
 
     @inlineCallbacks
@@ -114,4 +114,4 @@ class TestMetadataStore(TriblerCoreTest):
         self.assertFalse(channel.contents_list)
         self.mds.process_channel_dir(self.CHANNEL_DIR, channel.public_key)
         self.assertEqual(len(channel.contents_list), 3)
-        self.assertEqual(channel.local_version, 3)
+        self.assertEqual(channel.local_version, 5)

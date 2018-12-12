@@ -74,8 +74,10 @@ class BasicDBHandler(TaskManager):
     def getOne(self, value_name, where=None, conj=u"AND", **kw):
         return self._db.getOne(self.table_name, value_name, where=where, conj=conj, **kw)
 
-    def getAll(self, value_name, where=None, group_by=None, having=None, order_by=None, limit=None, offset=None, conj=u"AND", **kw):
-        return self._db.getAll(self.table_name, value_name, where=where, group_by=group_by, having=having, order_by=order_by, limit=limit, offset=offset, conj=conj, **kw)
+    def getAll(self, value_name, where=None, group_by=None, having=None, order_by=None, limit=None, offset=None,
+               conj=u"AND", **kw):
+        return self._db.getAll(self.table_name, value_name, where=where, group_by=group_by, having=having,
+                               order_by=order_by, limit=limit, offset=offset, conj=conj, **kw)
 
 
 class PeerDBHandler(BasicDBHandler):
@@ -457,6 +459,7 @@ class TorrentDBHandler(BasicDBHandler):
         if len(filenames) > 1000:
             def popSort(a, b):
                 return filedict[a] - filedict[b]
+
             filenames.sort(cmp=popSort, reverse=True)
             filenames = filenames[:1000]
 
@@ -593,7 +596,8 @@ class TorrentDBHandler(BasicDBHandler):
             tid = infohash_tid.get(infohash, None)
 
             if tid:  # we know this torrent
-                if tid not in tid_collected and swarmname != tid_name.get(tid, ''):  # if not collected and name not equal then do fullupdate
+                if tid not in tid_collected and swarmname != tid_name.get(tid,
+                                                                          ''):  # if not collected and name not equal then do fullupdate
                     update.append((swarmname, length, nrfiles, category, creation_date, infohash, status, tid))
                     to_be_indexed.append((tid, swarmname))
 
@@ -665,8 +669,8 @@ class TorrentDBHandler(BasicDBHandler):
                 self.session.lm.tracker_manager.add_tracker(tracker)
 
         # update torrent-tracker mapping
-        sql = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
-            + ' VALUES(?, (SELECT tracker_id FROM TrackerInfo WHERE tracker = ?))'
+        sql = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)' \
+              + ' VALUES(?, (SELECT tracker_id FROM TrackerInfo WHERE tracker = ?))'
         new_mapping_list = [(torrent_id, tracker) for tracker in tracker_list]
         if new_mapping_list:
             self._db.executemany(sql, new_mapping_list)
@@ -717,9 +721,9 @@ class TorrentDBHandler(BasicDBHandler):
         return [str2bin(tinfo[0]) for tinfo in self._db.fetchall(sql, (tracker, current_time, limit))]
 
     def getTrackerListByTorrentID(self, torrent_id):
-        sql = 'SELECT TR.tracker FROM TrackerInfo TR, TorrentTrackerMapping MP'\
-            + ' WHERE MP.torrent_id = ?'\
-            + ' AND TR.tracker_id = MP.tracker_id'
+        sql = 'SELECT TR.tracker FROM TrackerInfo TR, TorrentTrackerMapping MP' \
+              + ' WHERE MP.torrent_id = ?' \
+              + ' AND TR.tracker_id = MP.tracker_id'
         tracker_list = self._db.fetchall(sql, (torrent_id,))
         return [tracker[0] for tracker in tracker_list]
 
@@ -743,9 +747,9 @@ class TorrentDBHandler(BasicDBHandler):
         return tracker_info_list
 
     def updateTrackerInfo(self, args):
-        sql = 'UPDATE TrackerInfo SET'\
-            + ' last_check = ?, failures = ?, is_alive = ?'\
-            + ' WHERE tracker = ?'
+        sql = 'UPDATE TrackerInfo SET' \
+              + ' last_check = ?, failures = ?, is_alive = ?' \
+              + ' WHERE tracker = ?'
         self._db.executemany(sql, args)
 
     def getRecentlyAliveTrackers(self, limit=10):
@@ -805,6 +809,7 @@ class TorrentDBHandler(BasicDBHandler):
                     if result[key_index]:
                         result[key_index] = str2bin(result[key_index])
                         results[i] = result
+
         fix_value('infohash')
         return results
 
@@ -928,7 +933,7 @@ class TorrentDBHandler(BasicDBHandler):
             score += inv_doc_freq * right_side
         return score
 
-    def search_in_local_torrents_db(self, query, keys=None, first = 0, last = None, family_filter=True):
+    def search_in_local_torrents_db(self, query, keys=None, first=0, last=None, family_filter=True):
         """
         Search in the local database for torrents matching a specific query. This method also assigns a relevance
         score to each torrent, based on the name, files and file extensions.
@@ -950,7 +955,8 @@ class TorrentDBHandler(BasicDBHandler):
                                     "AND C.deleted_at IS NULL AND FullTextIndex MATCH ? "
                                     "%s"
                                     "LIMIT %i, %i"
-                                    % (keys_str,("AND t.category != 'xxx' " if family_filter else ""), first, last - first if last else first+1000),
+                                    % (keys_str, ("AND t.category != 'xxx' " if family_filter else ""), first,
+                                       last - first if last else first + 1000),
                                     (" OR ".join(keywords),))
 
         for result in results:
@@ -1075,7 +1081,6 @@ class TorrentDBHandler(BasicDBHandler):
             elif infohash not in result_dict:
                 result_dict[infohash] = result
 
-
         # step 2, fix all dict fields
         dont_sort_list = []
         results = [list(result) for result in result_dict.values()]
@@ -1120,6 +1125,7 @@ class TorrentDBHandler(BasicDBHandler):
 
             def compare(a, b):
                 return cmp(a[num_seeders_index], b[num_seeders_index])
+
             results.sort(compare, reverse=True)
 
             for index, result in dont_sort_list:
@@ -1474,7 +1480,8 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
             from Tribler.community.channel.community import ChannelCommunity
 
             for community in self.session.lm.dispersy.get_communities():
-                if isinstance(community, ChannelCommunity) and community.master_member and community.master_member.private_key:
+                if isinstance(community,
+                              ChannelCommunity) and community.master_member and community.master_member.private_key:
                     self.my_dispersy_cid = community.cid
                     break
 
@@ -2045,7 +2052,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         sql += " ORDER BY time_stamp DESC"
 
         if limit or last or first:
-            sql = sql + " LIMIT %i, %i" % (first, last - first if last else first+1000)
+            sql = sql + " LIMIT %i, %i" % (first, last - first if last else first + 1000)
 
         if channel_id:
             results = self._db.fetchall(sql, (channel_id,))
@@ -2208,7 +2215,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         sql = "SELECT channeltorrent_id, " + ", ".join(keys) + \
               ", count(DISTINCT channeltorrent_id) FROM Playlists, PlaylistTorrents " + \
               "WHERE Playlists.id = PlaylistTorrents.playlist_id AND channeltorrent_id IN (" + \
-            torrent_ids + ") GROUP BY Playlists.id"
+              torrent_ids + ") GROUP BY Playlists.id"
         return self._db.fetchall(sql)
 
     def __fixTorrent(self, keys, torrent):
@@ -2222,6 +2229,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
                 key_index = keys.index(key)
                 if torrent[key_index]:
                     torrent[key_index] = str2bin(torrent[key_index])
+
         if torrent:
             torrent = list(torrent)
             fix_value('infohash', torrent)
@@ -2236,6 +2244,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
                     if result[key_index]:
                         result[key_index] = str2bin(result[key_index])
                         results[i] = result
+
         fix_value('infohash')
         return results
 
@@ -2365,7 +2374,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         # and 20% on the matching in the channel description.
         return 0.8 * scores[0] + 0.2 * scores[1]
 
-    def search_in_local_channels_db(self, query, first=0, last=None, count=False):
+    def search_in_local_channels_db(self, query, first=0, last=None, count=False, chan_size_limit=3):
         """
         Searches for matching channels against a given query in the database.
         """
@@ -2376,11 +2385,14 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         else:
             sql = "SELECT id, dispersy_cid, name, description, nr_torrents, nr_favorite, nr_spam, modified "
 
-        sql +="FROM Channels WHERE nr_torrents > 2 and ("
+        sql += "FROM Channels WHERE"
+        if chan_size_limit:
+            sql += " nr_torrents >= %i and " % chan_size_limit
+        sql += " ("
         for _ in xrange(len(keywords)):
             sql += " name LIKE ? OR description LIKE ? OR "
         sql = sql[:-4] + " )"
-        sql += " LIMIT %i, %i" % (first, last - first if last else first+1000)
+        sql += " LIMIT %i, %i" % (first, last - first if last else first + 1000)
         if count:
             sql += ")"
 
@@ -2422,8 +2434,8 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         sql = "Select id, name, description, dispersy_cid, modified, " + \
               "nr_torrents, nr_favorite, nr_spam FROM Channels " + \
               "WHERE id IN ('" + \
-            channel_ids + \
-            "')"
+              channel_ids + \
+              "')"
         return self._getChannels(sql)
 
     def getChannelsByCID(self, channel_cids):
@@ -2433,8 +2445,8 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         channel_cids = map(buffer, channel_cids)
         sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
               "FROM Channels WHERE dispersy_cid IN (" + \
-            parameters + \
-            ")"
+              parameters + \
+              ")"
         return self._getChannels(sql, channel_cids)
 
     def getAllChannelsCount(self):
@@ -2482,12 +2494,12 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
 
     def getMySubscribedChannels(self, include_dispersy=False, first=0, last=None, count=False):
         sql = "SELECT COUNT(*) FROM (SELECT null " if count else "SELECT id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
-              "FROM Channels, ChannelVotes " + \
-              "WHERE Channels.id = ChannelVotes.channel_id AND voter_id ISNULL AND vote == 2"
+                                                                 "FROM Channels, ChannelVotes " + \
+                                                                 "WHERE Channels.id = ChannelVotes.channel_id AND voter_id ISNULL AND vote == 2"
         if not include_dispersy:
             sql += " AND dispersy_cid == -1 "
 
-        sql = sql + " LIMIT %i, %i" % (first, last - first if last else first+1000)
+        sql = sql + " LIMIT %i, %i" % (first, last - first if last else first + 1000)
         if count:
             sql += " )"
 
@@ -2511,7 +2523,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
                 name = "Unnamed channel"
 
             channels.append((id, str(dispersy_cid), name, description, nr_torrents,
-                            nr_favorites, nr_spam, my_vote, modified, id == self._channel_id))
+                             nr_favorites, nr_spam, my_vote, modified, id == self._channel_id))
 
         def channel_sort(a, b):
             # first compare local vote, spam -> return -1

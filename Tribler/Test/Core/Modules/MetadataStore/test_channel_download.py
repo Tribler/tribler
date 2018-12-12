@@ -53,7 +53,7 @@ class TestChannelDownload(TestAsServer):
             # There should be 4 torrents + 1 channel torrent
             channel = self.session.lm.mds.ChannelMetadata.get_channel_with_id(payload.public_key)
             self.assertEqual(5, len(list(self.session.lm.mds.TorrentMetadata.select())))
-            self.assertEqual(4, channel.local_version)
+            self.assertEqual(6, channel.local_version)
 
     def test_wrong_signature_exception_on_channel_update(self):
         # Test wrong signature exception

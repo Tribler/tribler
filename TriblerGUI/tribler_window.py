@@ -25,7 +25,7 @@ from TriblerGUI.core_manager import CoreManager
 from TriblerGUI.debug_window import DebugWindow
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
     PAGE_HOME, PAGE_EDIT_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
-    PAGE_CHANNEL_DETAILS, PAGE_PLAYLIST_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, PAGE_LOADING, \
+    PAGE_CHANNEL_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, PAGE_LOADING, \
     PAGE_DISCOVERING, PAGE_DISCOVERED, PAGE_TRUST, SHUTDOWN_WAITING_PERIOD, DEFAULT_API_PORT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
@@ -34,9 +34,6 @@ from TriblerGUI.tribler_request_manager import request_queue, TriblerRequestMana
 from TriblerGUI.utilities import get_ui_file_path, get_image_path, get_gui_setting, is_dir_writable, quote_plus_unicode
 
 # Pre-load form UI classes
-fc_channel_torrent_list_item, _ = uic.loadUiType(get_ui_file_path('channel_torrent_list_item.ui'))
-fc_channel_list_item, _ = uic.loadUiType(get_ui_file_path('channel_list_item.ui'))
-fc_playlist_list_item, _ = uic.loadUiType(get_ui_file_path('playlist_list_item.ui'))
 fc_home_recommended_item, _ = uic.loadUiType(get_ui_file_path('home_recommended_item.ui'))
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
 
@@ -187,7 +184,6 @@ class TriblerWindow(QMainWindow):
         else:
             self.tray_icon = None
 
-        self.hide_left_menu_playlist()
         self.left_menu_button_debug.setHidden(True)
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
@@ -505,7 +501,6 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
         self.settings_page.load_settings()
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
 
     def on_token_balance_click(self, _):
         self.raise_window()
@@ -514,7 +509,6 @@ class TriblerWindow(QMainWindow):
         self.load_token_balance()
         self.trust_page.load_blocks()
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
 
     def load_token_balance(self):
         self.request_mgr = TriblerRequestManager()
@@ -746,33 +740,28 @@ class TriblerWindow(QMainWindow):
         self.deselect_all_menu_buttons(self.left_menu_button_home)
         self.stackedWidget.setCurrentIndex(PAGE_HOME)
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
 
     def clicked_menu_button_search(self):
         self.deselect_all_menu_buttons(self.left_menu_button_search)
         self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
 
     def clicked_menu_button_discovered(self):
         self.deselect_all_menu_buttons(self.left_menu_button_discovered)
         self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
         self.discovered_page.load_discovered_channels()
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
 
     def clicked_menu_button_my_channel(self):
         self.deselect_all_menu_buttons(self.left_menu_button_my_channel)
         self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
         self.edit_channel_page.load_my_channel_overview()
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
 
     def clicked_menu_button_video_player(self):
         self.deselect_all_menu_buttons(self.left_menu_button_video_player)
         self.stackedWidget.setCurrentIndex(PAGE_VIDEO_PLAYER)
         self.navigation_stack = []
-        self.show_left_menu_playlist()
 
     def clicked_menu_button_downloads(self):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
@@ -780,7 +769,6 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_downloads.setChecked(True)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
 
     def clicked_menu_button_debug(self):
         if not self.debug_window:
@@ -792,31 +780,11 @@ class TriblerWindow(QMainWindow):
         self.subscribed_channels_page.load_subscribed_channels()
         self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
         self.navigation_stack = []
-        self.hide_left_menu_playlist()
-
-    def hide_left_menu_playlist(self):
-        self.left_menu_seperator.setHidden(True)
-        self.left_menu_playlist_label.setHidden(True)
-        self.left_menu_playlist.setHidden(True)
-
-    def show_left_menu_playlist(self):
-        self.left_menu_seperator.setHidden(False)
-        self.left_menu_playlist_label.setHidden(False)
-        self.left_menu_playlist.setHidden(False)
 
     def on_channel_clicked(self, public_key):
         self.channel_page.initialize_with_channel(public_key)
         self.navigation_stack.append(self.stackedWidget.currentIndex())
         self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
-
-    def on_playlist_item_click(self, playlist_list_item):
-        list_widget = playlist_list_item.listWidget()
-        from TriblerGUI.widgets.playlist_list_item import PlaylistListItem
-        if isinstance(list_widget.itemWidget(playlist_list_item), PlaylistListItem):
-            playlist_info = playlist_list_item.data(Qt.UserRole)
-            self.playlist_page.initialize_with_playlist(playlist_info)
-            self.navigation_stack.append(self.stackedWidget.currentIndex())
-            self.stackedWidget.setCurrentIndex(PAGE_PLAYLIST_DETAILS)
 
     def on_page_back_clicked(self):
         try:

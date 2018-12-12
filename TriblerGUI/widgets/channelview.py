@@ -1,5 +1,6 @@
+from __future__ import absolute_import
+
 import base64
-import sys
 import time
 import urllib
 from PyQt5 import uic, QtCore
@@ -10,6 +11,7 @@ from PyQt5.QtWidgets import QWidget, QAction, QFileDialog, QAbstractItemView
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import TODELETE, COMMITTED, NEW
 from Tribler.Core.Modules.MetadataStore.serialization import float2time
+from Tribler.Core.Modules.restapi.util import HEALTH_MOOT, HEALTH_GOOD, HEALTH_DEAD, HEALTH_CHECKING, HEALTH_ERROR
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, \
     PAGE_EDIT_CHANNEL_CREATE_TORRENT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
@@ -17,8 +19,7 @@ from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_ui_file_path, format_size
 from TriblerGUI.widgets.lazytableview import RemoteTableModel, ACTION_BUTTONS
-from TriblerGUI.widgets.torrentdetailstabwidget import TorrentDetailsTabWidget, HEALTH_CHECKING, HEALTH_ERROR, \
-    HEALTH_GOOD, HEALTH_MOOT, HEALTH_DEAD
+from TriblerGUI.widgets.torrentdetailstabwidget import TorrentDetailsTabWidget
 
 commit_status_labels = {
     COMMITTED: "Committed",
@@ -151,7 +152,7 @@ class ChannelContentsModel(RemoteTableModel):
                                     self.channel_id,
                                     self.on_torrent_to_channel_added, method='PUT',
                                     data=((u'torrents_dir=%s' % dirname) +
-                                             (u'&recursive=1' if recursive else u'')).encode('utf-8'))
+                                          (u'&recursive=1' if recursive else u'')).encode('utf-8'))
 
     def add_torrent_url_to_channel(self, url):
         request_mgr = TriblerRequestManager()
@@ -229,6 +230,7 @@ class ChannelViewWidget(QWidget):
         self.remove_torrent_requests = []
         self.model = None
         self.dialog = None
+        self.chosen_dir = None
         self.details_tab_widget = None
         QWidget.__init__(self, parent=parent)
         uic.loadUi(get_ui_file_path('channel_view.ui'), self)
@@ -363,7 +365,7 @@ class ChannelViewWidget(QWidget):
                                                       "Please select the directory containing the .torrent files",
                                                       QDir.homePath(),
                                                       QFileDialog.ShowDirsOnly)
-        if len(chosen_dir) == 0:
+        if not chosen_dir:
             return
 
         self.chosen_dir = chosen_dir
@@ -410,7 +412,7 @@ class ChannelViewWidget(QWidget):
 
     def on_add_torrent_browse_file(self):
         filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
-        if len(filename[0]) == 0:
+        if not filename[0]:
             return
         self.model.add_torrent_to_channel(filename[0])
 
@@ -434,7 +436,7 @@ class ChannelViewWidget(QWidget):
     def clicked_edit_channel_commit_button(self):
         request_mgr = TriblerRequestManager()
         request_mgr.perform_request("mychannel", self.on_channel_committed,
-                                    data=unicode('commit_changes=1').encode('utf-8'),
+                                    data=u'commit_changes=1'.encode('utf-8'),
                                     method='POST')
 
     def on_channel_committed(self, result):

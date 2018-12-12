@@ -578,7 +578,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
 
         post_data = {'uri': 'file:%s' % os.path.join(TESTS_DIR, 'Core/data/sample_channel/channel.mdblob')}
-        expected_json = {'started': True, 'infohash': '24eb2ff24c3a738eb1257a2fb4575db064848e25'}
+        expected_json = {'started': True, 'infohash': '02c146a1a3ffd96856a0319d1832cf70989e5a47'}
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
 
