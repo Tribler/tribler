@@ -292,7 +292,7 @@ class TestTorrentDBHandler(AbstractDB):
         """
         Test the search procedure in the local database when searching for torrents
         """
-        results = self.tdb.search_in_local_torrents_db('content', ['infohash', 'num_seeders'])
+        results = self.tdb.search_in_local_torrents_db('content', ['infohash', 'num_seeders'], family_filter=False, last = 5000)
         self.assertEqual(len(results), 4849)
         self.assertNotEqual(results[0][-1], 0.0)  # Relevance score of result should not be zero
         results = self.tdb.search_in_local_torrents_db('fdsafasfds', ['infohash'])

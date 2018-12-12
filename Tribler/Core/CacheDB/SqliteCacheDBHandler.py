@@ -2365,7 +2365,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         # and 20% on the matching in the channel description.
         return 0.8 * scores[0] + 0.2 * scores[1]
 
-    def search_in_local_channels_db(self, query, first=0, last=None, count=False):
+    def search_in_local_channels_db(self, query, first=0, last=None, count=False, chan_size_limit=3):
         """
         Searches for matching channels against a given query in the database.
         """
@@ -2376,7 +2376,10 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         else:
             sql = "SELECT id, dispersy_cid, name, description, nr_torrents, nr_favorite, nr_spam, modified "
 
-        sql +="FROM Channels WHERE nr_torrents > 2 and ("
+        sql +="FROM Channels WHERE"
+        if chan_size_limit:
+            sql += " nr_torrents >= %i and " % chan_size_limit
+        sql += " ("
         for _ in xrange(len(keywords)):
             sql += " name LIKE ? OR description LIKE ? OR "
         sql = sql[:-4] + " )"
