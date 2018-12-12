@@ -18,6 +18,8 @@ class TestTriblerConfig(TriblerCoreTest):
         super(TestTriblerConfig, self).setUp()
 
         self.tribler_config = TriblerConfig()
+        self.tribler_config.get_default_state_dir = lambda **_: self.getStateDir()
+        self.tribler_config.set_state_dir(self.getStateDir())
         self.assertIsNotNone(self.tribler_config)
 
     def test_init_with_config(self):
@@ -45,7 +47,7 @@ class TestTriblerConfig(TriblerCoreTest):
         port = 4444
         self.tribler_config.set_anon_listen_port(port)
         self.tribler_config.write()
-        path = os.path.join(self.tribler_config.get_state_dir(), FILENAME)
+        path = os.path.join(self.tribler_config.get_default_state_dir(), FILENAME)
         read_config = TriblerConfig.load(path)
 
         read_config.validate()
@@ -103,8 +105,6 @@ class TestTriblerConfig(TriblerCoreTest):
         self.tribler_config.set_family_filter_enabled(False)
         self.assertEqual(self.tribler_config.get_family_filter_enabled(), False)
 
-        self.tribler_config.set_state_dir(None)
-        self.assertEqual(self.tribler_config.get_state_dir(), self.tribler_config.get_default_state_dir())
         self.tribler_config.set_state_dir("TEST")
         self.assertEqual(self.tribler_config.get_state_dir(), "TEST")
 
