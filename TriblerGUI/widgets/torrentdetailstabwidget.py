@@ -1,5 +1,5 @@
+from __future__ import absolute_import
 import logging
-import time
 
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QLabel
@@ -7,16 +7,10 @@ from PyQt5.QtWidgets import QTabWidget
 from PyQt5.QtWidgets import QTreeWidget
 from PyQt5.QtWidgets import QTreeWidgetItem
 
+from Tribler.Core.Modules.restapi.util import HEALTH_CHECKING
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size
 from TriblerGUI.widgets.ellipsebutton import EllipseButton
-
-HEALTH_CHECKING = u'Checking..'
-HEALTH_DEAD = u'No peers'
-HEALTH_ERROR = u'Error'
-HEALTH_MOOT = u'Peers found'
-HEALTH_GOOD = u'Seeds found'
-HEALTH_UNCHECKED = u'Unknown'
 
 class TorrentDetailsTabWidget(QTabWidget):
     health_check_clicked = pyqtSignal(dict)

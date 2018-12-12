@@ -1,6 +1,9 @@
+from __future__ import absolute_import
+
 import base64
 import os
 import sys
+from binascii import unhexlify
 
 from pony.orm import db_session, desc
 from twisted.internet.defer import Deferred
@@ -84,17 +87,17 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         txt_filter = None
 
         should_filter = self.session.config.get_family_filter_enabled()
-        if 'disable_filter' in request.args and len(request.args['disable_filter']) > 0 \
+        if 'disable_filter' in request.args and request.args['disable_filter'] \
                 and request.args['disable_filter'][0] == "1":
             should_filter = False
 
-        if 'firstitem' in request.args and len(request.args['firstitem']) > 0:
+        if 'firstitem' in request.args and request.args['firstitem']:
             firstitem = int(request.args['firstitem'][0])
 
-        if 'lastitem' in request.args and len(request.args['lastitem']) > 0:
+        if 'lastitem' in request.args and request.args['lastitem']:
             lastitem = int(request.args['lastitem'][0])
 
-        if 'sort_by' in request.args and len(request.args['sort_by']) > 0:
+        if 'sort_by' in request.args and request.args['sort_by']:
             sort_by = request.args['sort_by'][0]
             if sort_by.startswith(u'-'):
                 sort_direction = False
@@ -103,7 +106,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
                 sort_direction = True
                 sort_column = sort_by
 
-        if 'txt_filter' in request.args and len(request.args['txt_filter']) > 0:
+        if 'txt_filter' in request.args and request.args['txt_filter']:
             txt_filter = request.args['txt_filter'][0]
 
         if self.is_chant_channel:
@@ -229,9 +232,9 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
 
             if recursive:
                 def rec_gen():
-                    for root, dirnames, filenames in os.walk(torrents_dir):
-                        for f in filenames:
-                            yield os.path.join(root, f)
+                    for root, _, filenames in os.walk(torrents_dir):
+                        for fn in filenames:
+                            yield os.path.join(root, fn)
 
                 filename_generator = rec_gen()
             else:
@@ -240,8 +243,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
             # Build list of .torrents to process
             for f in filename_generator:
                 filepath = os.path.join(torrents_dir, f)
-                # TODO: add support for arbitrary encodings
-                filename = str(filepath) if sys.platform == 'win32' else filepath.decode('utf-8')
+                filename = str(filepath) if sys.platform == 'win32' else filepath.decode(sys.getdefaultencoding())
                 if os.path.isfile(filepath) and filename.endswith(u'.torrent'):
                     torrents_list.append(filepath)
 
@@ -453,7 +455,7 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
                 return json.dumps({"removed": True})
 
             for torrent_path in self.path.split(","):
-                infohash = torrent_path.decode('hex')
+                infohash = unhexlify(torrent_path)
                 if restore:
                     if not my_channel.cancel_torrent_deletion(infohash):
                         failed_torrents.append(torrent_path)

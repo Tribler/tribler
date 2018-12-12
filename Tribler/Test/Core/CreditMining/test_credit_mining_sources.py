@@ -57,24 +57,6 @@ class TestCreditMiningSources(TestAsServer):
         self.assertEqual(source.community, community, 'ChannelSource failed to find existing ChannelCommunity')
         source.stop()
 
-    @inlineCallbacks
-    def test_torrent_from_db(self):
-        # Torrent is a tuple: (channel_id, dispersy_id, peer_id, infohash, timestamp, name, files, trackers)
-        torrent = (0, self.cid, 42, '\00' * 20, 0, u'torrent', [], [])
-        channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
-        channel_db_handler.on_torrents_from_dispersy([torrent])
-
-        torrent_inserteds = []
-        torrent_insert_callback = lambda source, infohash, name: torrent_inserteds.append((source, infohash, name))
-        source = ChannelSource(self.session, self.cid, torrent_insert_callback)
-        source.start()
-
-        yield deferLater(reactor, 1, lambda: None)
-        self.assertIn((self.cid, hexlify(torrent[3]), torrent[5]), torrent_inserteds,
-                      'ChannelSource failed to insert torrent')
-
-        source.stop()
-
     def test_torrent_discovered(self):
         torrent_inserteds = []
         torrent_insert_callback = lambda source, infohash, name: torrent_inserteds.append((source, infohash, name))

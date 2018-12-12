@@ -57,7 +57,7 @@ class TestChannelDBHandler(AbstractDB):
         self.assertEqual(len(self.cdb.getChannelsByCID(["3"])), 0)
 
     def test_get_all_channels(self):
-        self.assertEqual(len(self.cdb.getAllChannels()), 8)
+        self.assertEqual(len(self.cdb.getAllChannels()), 3)
 
     def test_get_new_channels(self):
         self.assertEqual(len(self.cdb.getNewChannels()), 1)
@@ -118,7 +118,7 @@ class TestChannelDBHandler(AbstractDB):
         """
         Testing whether the right results are returned when searching in the local database for channels
         """
-        results = self.cdb.search_in_local_channels_db("fancy")
+        results = self.cdb.search_in_local_channels_db("fancy", chan_size_limit=None)
         self.assertEqual(len(results), 2)
         self.assertNotEqual(results[0][-1], 0.0)  # Relevance score of result should not be zero
 
