@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division
+
 from PyQt5 import QtCore
 from abc import abstractmethod
 
@@ -6,11 +8,10 @@ from PyQt5.QtGui import QIcon, QPen, QColor, QPainter, QBrush
 from PyQt5.QtWidgets import QTableView, QStyledItemDelegate, QStyle
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import TODELETE, COMMITTED, NEW
-from Tribler.Core.Modules.restapi.util import CATEGORY_CHANNEL, CATEGORY_OLD_CHANNEL
+from Tribler.Core.Modules.restapi.util import CATEGORY_CHANNEL, CATEGORY_OLD_CHANNEL, HEALTH_MOOT, HEALTH_DEAD, \
+    HEALTH_GOOD, HEALTH_UNCHECKED, HEALTH_CHECKING, HEALTH_ERROR
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_image_path
-from TriblerGUI.widgets.torrentdetailstabwidget import HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_MOOT, HEALTH_DEAD, \
-    HEALTH_GOOD, HEALTH_ERROR
 
 ACTION_BUTTONS = u'action_buttons'
 

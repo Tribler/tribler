@@ -11,7 +11,6 @@ from Tribler.Core.Session import Session
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.common import TESTS_DATA_DIR
 
-
 BUSYTIMEOUT = 5000
 
 

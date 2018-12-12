@@ -127,36 +127,18 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
         """
         request.setHeader('Content-Type', 'text/json')
 
-        if len(self.cid) == 74:
-            with db_session:
-                channel = self.session.lm.mds.ChannelMetadata.get(public_key=database_blob(self.cid))
-                if not channel:
-                    request.setResponseCode(http.NOT_FOUND)
-                    return json.dumps({"error": CHANNEL_NOT_FOUND})
+        with db_session:
+            channel = self.session.lm.mds.ChannelMetadata.get(public_key=database_blob(self.cid))
+            if not channel:
+                request.setResponseCode(http.NOT_FOUND)
+                return json.dumps({"error": CHANNEL_NOT_FOUND})
 
-                if channel.subscribed:
-                    request.setResponseCode(http.CONFLICT)
-                    return json.dumps({"error": ALREADY_SUBSCRIBED_RESPONSE_MSG})
-                channel.subscribed = True
+            if channel.subscribed:
+                request.setResponseCode(http.CONFLICT)
+                return json.dumps({"error": ALREADY_SUBSCRIBED_RESPONSE_MSG})
+            channel.subscribed = True
 
-            return json.dumps({"subscribed": True})
-
-        channel_info = self.get_channel_from_db(self.cid)
-
-        if channel_info is not None and channel_info[7] == VOTE_SUBSCRIBE:
-            request.setResponseCode(http.CONFLICT)
-            return json.dumps({"error": ALREADY_SUBSCRIBED_RESPONSE_MSG})
-
-        def on_vote_done(_):
-            request.write(json.dumps({"subscribed": True}))
-            request.finish()
-
-        def on_vote_error(failure):
-            request.processingFailed(failure)
-
-        self.vote_for_channel(self.cid, VOTE_SUBSCRIBE).addCallback(on_vote_done).addErrback(on_vote_error)
-
-        return NOT_DONE_YET
+        return json.dumps({"subscribed": True})
 
     def render_DELETE(self, request):
         """
@@ -184,7 +166,7 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
 
         if len(self.cid) == 74:
             with db_session:
-                channel = self.session.lm.mds.ChannelMetadata.get(public_key=buffer(self.cid))
+                channel = self.session.lm.mds.ChannelMetadata.get(public_key=database_blob(self.cid))
                 if not channel:
                     return ChannelsModifySubscriptionEndpoint.return_404(request)
                 elif not channel.subscribed:

@@ -6,7 +6,7 @@ from twisted.web.server import Site
 from twisted.web.util import Redirect
 
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.Utilities.utilities import http_get, is_valid_url, parse_magnetlink
+from Tribler.Core.Utilities.utilities import parse_magnetlink, is_valid_url, http_get
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.Test.tools import trial_timeout
 

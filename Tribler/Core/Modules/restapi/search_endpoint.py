@@ -1,4 +1,6 @@
+from __future__ import absolute_import
 import logging
+from binascii import unhexlify
 
 from pony.orm import db_session, desc, select
 from twisted.web import http, resource
@@ -90,6 +92,8 @@ class SearchEndpoint(resource.Resource):
 
         """
 
+
+
         first = 0
         last = None
         item_type = None
@@ -117,7 +121,7 @@ class SearchEndpoint(resource.Resource):
             item_type = str(request.args['type'][0])
 
         if 'channel' in request.args and request.args['channel'] > 0:
-            channel_id = request.args['channel'][0].decode('hex')
+            channel_id = unhexlify(request.args['channel'][0])
 
         if 'sort_by' in request.args and request.args['sort_by'] > 0:
             sort_by = request.args['sort_by'][0]
@@ -137,10 +141,14 @@ class SearchEndpoint(resource.Resource):
         results = []
         is_dispersy_channel = (len(channel_id) != 74) if channel_id else False
 
+        # ACHTUNG! In its current form, the endpoint is carefully _designed_ to mix legacy and Pony results
+        # together correctly in regards to pagination! Befor sending results for a page, it considers the whole
+        # query size for _both_ legacy and Pony DBs, and then places the results correctly (Pony first, legacy last).
+
         # Legacy query for channel contents
         if is_dispersy_channel:
             channels_list = self.channel_db_handler.getChannelsByCID([channel_id])
-            channel_info = channels_list[0] if len(channels_list) > 0 else None
+            channel_info = channels_list[0] if channels_list else None
             if channel_info is None:
                 return json.dumps({"error": "Channel with given Dispersy ID is not found"})
 
@@ -191,15 +199,15 @@ class SearchEndpoint(resource.Resource):
                 results.extend(pony_query_results)
 
             # Legacy query for subscribed channels
-            skip_dispersy = channel and not is_dispersy_channel
+            skip_dispersy = not txt_search_query or (channel and not is_dispersy_channel)
             if subscribed:
                 skip_dispersy = True
                 subscribed_channels_db = self.channel_db_handler.getMySubscribedChannels(include_dispersy=True)
                 results.extend([channel_to_torrent_adapter(c) for c in subscribed_channels_db])
 
-            # Legacy query for channels
             previous_query_size = pony_query_size
             if not skip_dispersy:
+                # Legacy query for channels
                 if item_type not in metadata_type_conversion_dict or item_type == u'channel':
                     first2 = shift_and_clamp(first, previous_query_size)
                     last2 = shift_and_clamp(last, previous_query_size)

@@ -15,6 +15,7 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
+from six import text_type
 from pony.orm import db_session
 
 from six import text_type
@@ -550,7 +551,7 @@ class TriblerLaunchMany(TaskManager):
         channel.remove_contents()
 
         # Remove all stuff matching the channel dir name / public key / torrent title
-        remove_list = [d for d in self.get_channel_downloads() if (d.tdef.get_name_utf8() == channel.dir_name)]
+        remove_list = [d for d in self.get_channel_downloads() if d.tdef.get_name_utf8() == channel.dir_name]
 
         def _on_remove_failure(failure):
             self._logger.exception(failure)
@@ -558,9 +559,8 @@ class TriblerLaunchMany(TaskManager):
         for i, d in enumerate(remove_list):
             deferred = self.session.remove_download(d, remove_content=True)
             deferred.addErrback(_on_remove_failure)
-            self.register_task(
-                u'Remove_channel' + d.tdef.get_name_utf8() + u'-' + d.tdef.get_infohash().encode('hex') + u'-' + str(i),
-                deferred)
+            self.register_task(u'Remove_channel' + d.tdef.get_name_utf8() + u'-' + binascii.hexlify(
+                d.tdef.get_infohash()) + u'-' + str(i), deferred)
 
     def download_channel(self, channel):
         """

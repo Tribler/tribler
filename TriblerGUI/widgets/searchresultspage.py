@@ -1,6 +1,7 @@
+from __future__ import absolute_import
+
 from PyQt5.QtWidgets import QWidget
 
-from TriblerGUI.widgets.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.widgets.channelview import ChannelContentsModel
 from TriblerGUI.widgets.lazytableview import ACTION_BUTTONS
 
@@ -51,11 +52,11 @@ class SearchResultsPage(QWidget):
         self.health_timer.setSingleShot(True)
         self.health_timer.timeout.connect(self.check_health_of_results)
         self.health_timer.start(2000)
-        """
     def check_health_of_results(self):
         first_torrents = self.window().search_results_list.get_first_items(5, cls=ChannelTorrentListItem)
         for torrent_item in first_torrents:
             torrent_item.check_health()
+        """
 
     def set_columns_visibility(self, column_names, hide=True):
         for column_name in column_names:
@@ -98,6 +99,3 @@ class SearchResultsPage(QWidget):
         self.window().num_search_results_label.setText("%d results" %
                                                        (len(self.search_results['channels']) +
                                                         len(self.search_results['torrents'])))
-
-
-
