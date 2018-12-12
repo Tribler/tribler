@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+
+import six
+
 from Tribler.dispersy.payload import Payload
 
 
@@ -13,7 +17,7 @@ class ChannelCastPayload(Payload):
         def __init__(self, meta, torrents):
             if __debug__:
                 assert isinstance(torrents, dict), 'torrents should be a dictionary containing cid:set(infohashes)'
-                for cid, infohashes in torrents.iteritems():
+                for cid, infohashes in six.iteritems(torrents):
                     assert isinstance(cid, str)
                     assert len(cid) == 20
                     assert isinstance(infohashes, set)
@@ -44,7 +48,7 @@ class ChannelSearchPayload(Payload):
             if __debug__:
                 assert isinstance(keywords, list), 'keywords should be list'
                 for keyword in keywords:
-                    assert isinstance(keyword, unicode), '%s is type %s' % (keyword, type(keyword))
+                    assert isinstance(keyword, six.text_type), '%s is type %s' % (keyword, type(keyword))
                     assert len(keyword) > 0
 
             super(ChannelSearchPayload.Implementation, self).__init__(meta)
@@ -63,7 +67,7 @@ class ChannelSearchResponsePayload(Payload):
             if __debug__:
                 assert isinstance(keywords, list), 'keywords should be list'
                 assert isinstance(torrents, dict), 'torrents should be a dictionary containing cid:set(infohashes)'
-                for cid, infohashes in torrents.iteritems():
+                for cid, infohashes in six.iteritems(torrents):
                     assert isinstance(cid, str)
                     assert len(cid) == 20
                     assert isinstance(infohashes, set)
@@ -96,7 +100,7 @@ class VoteCastPayload(Payload):
             assert len(cid) == 20
             assert isinstance(vote, int)
             assert vote in [-1, 0, 2]
-            assert isinstance(timestamp, (int, long))
+            assert isinstance(timestamp, six.integer_types)
 
             super(VoteCastPayload.Implementation, self).__init__(meta)
             self._cid = cid

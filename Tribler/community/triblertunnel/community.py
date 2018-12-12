@@ -1,6 +1,10 @@
+from __future__ import absolute_import
+
 import os
 import time
 import sys
+
+from six.moves import range
 
 from Tribler.community.triblertunnel.caches import BalanceRequestCache
 from Tribler.community.triblertunnel.payload import PayoutPayload, BalanceRequestPayload, BalanceResponsePayload
@@ -466,7 +470,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         self.hops = hops
 
-        for info_hash in set(new_states.keys() + self.download_states.keys()):
+        for info_hash in set(list(new_states.keys()) + self.download_states.keys()):
             new_state = new_states.get(info_hash, None)
             old_state = self.download_states.get(info_hash, None)
             state_changed = new_state != old_state
@@ -504,7 +508,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                         self.remove_circuit(cid, 'download stopped', destroy=True)
 
                 for cid, info_hash_list in self.my_intro_points.items():
-                    for i in xrange(len(info_hash_list) - 1, -1, -1):
+                    for i in range(len(info_hash_list) - 1, -1, -1):
                         if info_hash_list[i] == info_hash:
                             info_hash_list.pop(i)
 

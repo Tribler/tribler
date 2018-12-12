@@ -3,8 +3,17 @@ Dispersy Payload implementation for the search community.
 
 Author(s): Niels Zeilemaker
 """
+from __future__ import absolute_import
+
+import six
+
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.payload import Payload, IntroductionRequestPayload
+
+try:
+    long        # pylint: disable=long-builtin
+except NameError:
+    long = int  # pylint: disable=redefined-builtin
 
 
 class TasteIntroPayload(IntroductionRequestPayload):
@@ -41,7 +50,7 @@ class SearchRequestPayload(Payload):
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(keywords, list), 'keywords should be list'
                 for keyword in keywords:
-                    assert isinstance(keyword, unicode), '%s is type %s' % (keyword, type(keyword))
+                    assert isinstance(keyword, six.text_type), '%s is type %s' % (keyword, type(keyword))
                     assert len(keyword) > 0
 
                 assert not bloom_filter or isinstance(bloom_filter, BloomFilter), type(bloom_filter)
@@ -79,11 +88,11 @@ class SearchResponsePayload(Payload):
                     infohash, swarmname, length, nrfiles, category_list, creation_date, seeders, leechers, cid = result[:9]
                     assert isinstance(infohash, str), type(infohash)
                     assert len(infohash) == 20
-                    assert isinstance(swarmname, unicode), type(swarmname)
+                    assert isinstance(swarmname, six.text_type), type(swarmname)
                     assert isinstance(length, long), type(length)
                     assert isinstance(nrfiles, int), type(nrfiles)
                     assert isinstance(category_list, list), type(category_list)
-                    assert all(isinstance(key, unicode) for key in category_list), category_list
+                    assert all(isinstance(key, six.text_type) for key in category_list), category_list
                     assert isinstance(creation_date, long), type(creation_date)
                     assert isinstance(seeders, int), type(seeders)
                     assert isinstance(leechers, int), type(leechers)
@@ -110,7 +119,7 @@ class TorrentRequestPayload(Payload):
         def __init__(self, meta, torrents):
             if __debug__:
                 assert isinstance(torrents, dict), type(torrents)
-                for cid, infohashes in torrents.iteritems():
+                for cid, infohashes in six.iteritems(torrents):
                     assert isinstance(cid, str)
                     assert len(cid) == 20
                     assert isinstance(infohashes, set)

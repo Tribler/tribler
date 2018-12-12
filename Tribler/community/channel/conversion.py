@@ -1,10 +1,15 @@
+from __future__ import absolute_import
+
 import zlib
 from random import sample
 from struct import pack, unpack_from
 
+import six
+
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket, Packet, DelayPacketByMissingMessage, DelayPacketByMissingMember
+from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode, decode
 
 DEBUG = False
@@ -58,11 +63,11 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Unable to decode the channel-payload")
 
         name = values[0]
-        if not (isinstance(name, unicode) and len(name) < 256):
+        if not (isinstance(name, six.text_type) and len(name) < 256):
             raise DropPacket("Invalid 'name' type or value")
 
         description = values[1]
-        if not (isinstance(description, unicode) and len(description) < 1024):
+        if not (isinstance(description, six.text_type) and len(description) < 1024):
             raise DropPacket("Invalid 'description' type or value")
 
         return offset, placeholder.meta.payload.implement(name, description)
@@ -121,7 +126,7 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Unable to decode the torrent-payload, got %d bytes expected 28" % (len(infohash_time)))
         infohash, timestamp = unpack_from('!20sQ', infohash_time)
 
-        if not isinstance(name, unicode):
+        if not isinstance(name, six.text_type):
             raise DropPacket("Invalid 'name' type")
 
         if not isinstance(files, tuple):
@@ -135,9 +140,9 @@ class ChannelConversion(BinaryConversion):
                 raise DropPacket("Invalid 'file_len' type")
 
             path, length = file
-            if not isinstance(path, unicode):
+            if not isinstance(path, six.text_type):
                 raise DropPacket("Invalid 'files_path' type is %s" % type(path))
-            if not isinstance(length, (int, long)):
+            if not isinstance(length, six.integer_types):
                 raise DropPacket("Invalid 'files_length' type is %s" % type(length))
 
         if not isinstance(trackers, tuple):
@@ -181,13 +186,13 @@ class ChannelConversion(BinaryConversion):
         if not "text" in dic:
             raise DropPacket("Missing 'text'")
         text = dic["text"]
-        if not (isinstance(text, unicode) and len(text) < 1024):
+        if not (isinstance(text, six.text_type) and len(text) < 1024):
             raise DropPacket("Invalid 'text' type or value")
 
         if not "timestamp" in dic:
             raise DropPacket("Missing 'timestamp'")
         timestamp = dic["timestamp"]
-        if not isinstance(timestamp, (int, long)):
+        if not isinstance(timestamp, six.integer_types):
             raise DropPacket("Invalid 'timestamp' type or value")
 
         reply_to_mid = dic.get("reply-to-mid", None)
@@ -195,7 +200,7 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'reply-to-mid' type or value")
 
         reply_to_global_time = dic.get("reply-to-global-time", None)
-        if reply_to_global_time and not isinstance(reply_to_global_time, (int, long)):
+        if reply_to_global_time and not isinstance(reply_to_global_time, six.integer_types):
             raise DropPacket("Invalid 'reply-to-global-time' type")
 
         reply_after_mid = dic.get("reply-after-mid", None)
@@ -203,7 +208,7 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'reply-after-mid' type or value")
 
         reply_after_global_time = dic.get("reply-after-global-time", None)
-        if reply_after_global_time and not isinstance(reply_after_global_time, (int, long)):
+        if reply_after_global_time and not isinstance(reply_after_global_time, six.integer_types):
             raise DropPacket("Invalid 'reply-after-global-time' type")
 
         playlist_mid = dic.get("playlist-mid", None)
@@ -211,7 +216,7 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'playlist-mid' type or value")
 
         playlist_global_time = dic.get("playlist-global-time", None)
-        if playlist_global_time and not isinstance(playlist_global_time, (int, long)):
+        if playlist_global_time and not isinstance(playlist_global_time, six.integer_types):
             raise DropPacket("Invalid 'playlist-global-time' type")
 
         if playlist_mid and playlist_global_time:
@@ -249,19 +254,19 @@ class ChannelConversion(BinaryConversion):
         if not "text" in dic:
             raise DropPacket("Missing 'text'")
         text = dic["text"]
-        if not (isinstance(text, unicode) and len(text) < 1024):
+        if not (isinstance(text, six.text_type) and len(text) < 1024):
             raise DropPacket("Invalid 'text' type or value")
 
         if not "timestamp" in dic:
             raise DropPacket("Missing 'timestamp'")
         timestamp = dic["timestamp"]
-        if not isinstance(timestamp, (int, long)):
+        if not isinstance(timestamp, six.integer_types):
             raise DropPacket("Invalid 'timestamp' type or value")
 
         if not "severity" in dic:
             raise DropPacket("Missing 'severity'")
         severity = dic["severity"]
-        if not isinstance(severity, (int, long)):
+        if not isinstance(severity, six.integer_types):
             raise DropPacket("Invalid 'severity' type or value")
 
         cause_mid = dic.get("cause-mid", None)
@@ -269,7 +274,7 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'cause-mid' type or value")
 
         cause_global_time = dic.get("cause-global-time", None)
-        if not isinstance(cause_global_time, (int, long)):
+        if not isinstance(cause_global_time, six.integer_types):
             raise DropPacket("Invalid 'cause-global-time' type")
 
         try:
@@ -306,13 +311,13 @@ class ChannelConversion(BinaryConversion):
         if not "timestamp" in dic:
             raise DropPacket("Missing 'timestamp'")
         timestamp = dic["timestamp"]
-        if not isinstance(timestamp, (int, long)):
+        if not isinstance(timestamp, six.integer_types):
             raise DropPacket("Invalid 'timestamp' type or value")
 
         if not "type" in dic:
             raise DropPacket("Missing 'type'")
         type = dic["type"]
-        if not (isinstance(type, unicode) and len(type) < 25):
+        if not (isinstance(type, six.text_type) and len(type) < 25):
             raise DropPacket("Invalid 'type' type or value")
 
         return offset, placeholder.meta.payload.implement(infohash, type, timestamp)
@@ -342,19 +347,19 @@ class ChannelConversion(BinaryConversion):
         if not "modification-type" in dic:
             raise DropPacket("Missing 'modification-type'")
         modification_type = dic["modification-type"]
-        if not isinstance(modification_type, unicode):
+        if not isinstance(modification_type, six.text_type):
             raise DropPacket("Invalid 'modification_type' type")
 
         if not "modification-value" in dic:
             raise DropPacket("Missing 'modification-value'")
         modification_value = dic["modification-value"]
-        if not (isinstance(modification_value, unicode) and len(modification_value) < 1024):
+        if not (isinstance(modification_value, six.text_type) and len(modification_value) < 1024):
             raise DropPacket("Invalid 'modification_value' type or value")
 
         if not "timestamp" in dic:
             raise DropPacket("Missing 'timestamp'")
         timestamp = dic["timestamp"]
-        if not isinstance(timestamp, (int, long)):
+        if not isinstance(timestamp, six.integer_types):
             raise DropPacket("Invalid 'timestamp' type or value")
 
         if not "modification-on-mid" in dic:
@@ -366,7 +371,7 @@ class ChannelConversion(BinaryConversion):
         if not "modification-on-global-time" in dic:
             raise DropPacket("Missing 'modification-on-global-time'")
         modification_on_global_time = dic["modification-on-global-time"]
-        if not isinstance(modification_on_global_time, (int, long)):
+        if not isinstance(modification_on_global_time, six.integer_types):
             raise DropPacket("Invalid 'modification-on-global-time' type")
 
         try:
@@ -383,7 +388,7 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Invalid 'prev-modification-mid' type or value")
 
         prev_modification_global_time = dic.get("prev-modification-global-time", None)
-        if prev_modification_global_time and not isinstance(prev_modification_global_time, (int, long)):
+        if prev_modification_global_time and not isinstance(prev_modification_global_time, six.integer_types):
             raise DropPacket("Invalid 'prev-modification-global-time' type")
 
         try:
@@ -416,7 +421,7 @@ class ChannelConversion(BinaryConversion):
         return offset + 48, placeholder.meta.payload.implement(infohash, playlist)
 
     def _get_message(self, global_time, mid):
-        assert isinstance(global_time, (int, long))
+        assert isinstance(global_time, six.integer_types)
         assert isinstance(mid, str)
         assert len(mid) == 20
         if global_time and mid:
@@ -427,7 +432,7 @@ class ChannelConversion(BinaryConversion):
                     JOIN member ON (member.id = sync.member)
                     JOIN meta_message ON (meta_message.id = sync.meta_message)
                     WHERE sync.community = ? AND sync.global_time = ? AND member.mid = ?""",
-                    (self._community.database_id, global_time, buffer(mid))).next()
+                    (self._community.database_id, global_time, database_blob(mid))).next()
             except StopIteration:
                 raise DropPacket("Missing message")
 

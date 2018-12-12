@@ -1,5 +1,14 @@
+from __future__ import absolute_import
+
+import six
+
 from Tribler.dispersy.message import Packet
 from Tribler.dispersy.payload import Payload
+
+try:
+    long        # pylint: disable=long-builtin
+except NameError:
+    long = int  # pylint: disable=redefined-builtin
 
 
 class ChannelPayload(Payload):
@@ -7,9 +16,9 @@ class ChannelPayload(Payload):
     class Implementation(Payload.Implementation):
 
         def __init__(self, meta, name, description):
-            assert isinstance(name, unicode)
+            assert isinstance(name, six.text_type)
             assert len(name) < 256
-            assert isinstance(description, unicode)
+            assert isinstance(description, six.text_type)
             assert len(description) < 1024
             super(ChannelPayload.Implementation, self).__init__(meta)
             self._name = name
@@ -35,13 +44,13 @@ class TorrentPayload(Payload):
         def __init__(self, meta, infohash, timestamp, name, files, trackers):
             assert isinstance(infohash, str), 'infohash is a %s' % type(infohash)
             assert len(infohash) == 20, 'infohash has length %d' % len(infohash)
-            assert isinstance(timestamp, (int, long))
+            assert isinstance(timestamp, six.integer_types)
 
-            assert isinstance(name, unicode)
+            assert isinstance(name, six.text_type)
             assert isinstance(files, tuple)
             for path, length in files:
-                assert isinstance(path, unicode)
-                assert isinstance(length, (int, long))
+                assert isinstance(path, six.text_type)
+                assert isinstance(length, six.integer_types)
 
             assert isinstance(trackers, tuple)
             for tracker in trackers:
@@ -81,9 +90,9 @@ class CommentPayload(Payload):
 
         def __init__(self, meta, text, timestamp, reply_to_mid, reply_to_global_time, reply_after_mid,
                      reply_after_global_time, playlist_packet, infohash):
-            assert isinstance(text, unicode)
+            assert isinstance(text, six.text_type)
             assert len(text) < 1024
-            assert isinstance(timestamp, (int, long))
+            assert isinstance(timestamp, six.integer_types)
 
             assert not reply_to_mid or isinstance(reply_to_mid, str), 'reply_to_mid is a %s' % type(reply_to_mid)
             assert not reply_to_mid or len(reply_to_mid) == 20, 'reply_to_mid has length %d' % len(reply_to_mid)
@@ -155,10 +164,10 @@ class ModerationPayload(Payload):
 
             assert isinstance(causepacket, Packet)
 
-            assert isinstance(text, unicode)
+            assert isinstance(text, six.text_type)
             assert len(text) < 1024
-            assert isinstance(timestamp, (int, long))
-            assert isinstance(severity, (int, long))
+            assert isinstance(timestamp, six.integer_types)
+            assert isinstance(severity, six.integer_types)
 
             super(ModerationPayload.Implementation, self).__init__(meta)
             self._text = text
@@ -203,9 +212,9 @@ class MarkTorrentPayload(Payload):
             assert isinstance(infohash, str), 'infohash is a %s' % type(infohash)
             assert len(infohash) == 20, 'infohash has length %d' % len(infohash)
 
-            assert isinstance(type_str, unicode)
+            assert isinstance(type_str, six.text_type)
             assert len(type_str) < 25
-            assert isinstance(timestamp, (int, long))
+            assert isinstance(timestamp, six.integer_types)
 
             super(MarkTorrentPayload.Implementation, self).__init__(meta)
             self._infohash = infohash
@@ -230,9 +239,9 @@ class ModificationPayload(Payload):
     class Implementation(Payload.Implementation):
 
         def __init__(self, meta, modification_type, modification_value, timestamp, modification_on, prev_modification_packet, prev_modification_mid, prev_modification_global_time):
-            assert isinstance(modification_type, unicode)
+            assert isinstance(modification_type, six.text_type)
             assert modification_value is not None
-            assert isinstance(modification_value, unicode)
+            assert isinstance(modification_value, six.text_type)
             assert len(modification_value) < 1024
             assert isinstance(modification_on, Packet)
 

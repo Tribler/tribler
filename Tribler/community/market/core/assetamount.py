@@ -1,3 +1,9 @@
+try:
+    long        # pylint: disable=long-builtin
+except NameError:
+    long = int  # pylint: disable=redefined-builtin
+
+
 class AssetAmount(object):
     """
     This class represents a specific number of assets. It contains various utility methods to add/substract asset

@@ -1,4 +1,8 @@
+from __future__ import absolute_import
+
 import logging
+
+import six
 
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
@@ -23,7 +27,7 @@ class OrderNumber(object):
         """
         super(OrderNumber, self).__init__()
 
-        if not isinstance(order_number, (int, long)):
+        if not isinstance(order_number, six.integer_types):
             raise ValueError("Order number must be an integer or long")
 
         self._order_number = order_number
@@ -162,9 +166,9 @@ class Order(object):
         :rtype: tuple
         """
         completed_timestamp = float(self.completed_timestamp) if self.completed_timestamp else None
-        return (unicode(self.order_id.trader_id), unicode(self.order_id.order_number), self.assets.first.amount,
-                unicode(self.assets.first.asset_id), self.assets.second.amount,
-                unicode(self.assets.second.asset_id), self.traded_quantity, int(self.timeout),
+        return (six.text_type(self.order_id.trader_id), six.text_type(self.order_id.order_number),
+                self.assets.first.amount, six.text_type(self.assets.first.asset_id), self.assets.second.amount,
+                six.text_type(self.assets.second.asset_id), self.traded_quantity, int(self.timeout),
                 float(self.timestamp), completed_timestamp, self.is_ask(), self._cancelled, self._verified)
 
     @property

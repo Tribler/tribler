@@ -1,6 +1,11 @@
 import datetime
 import time
 
+try:
+    long        # pylint: disable=long-builtin
+except NameError:
+    long = int  # pylint: disable=redefined-builtin
+
 
 class Timestamp(object):
     """Used for having a validated instance of a timestamp that we can easily compare."""

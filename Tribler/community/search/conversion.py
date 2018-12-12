@@ -3,15 +3,24 @@ Data conversions for the search community.
 
 Author(s): Niels Zeilemaker
 """
+from __future__ import absolute_import
+
 import zlib
 from math import ceil
 from random import choice, sample
 from struct import pack, unpack_from
 
+import six
+
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import encode, decode
+
+try:
+    long        # pylint: disable=long-builtin
+except NameError:
+    long = int  # pylint: disable=redefined-builtin
 
 
 class SearchConversion(BinaryConversion):
@@ -93,7 +102,7 @@ class SearchConversion(BinaryConversion):
         if not isinstance(keywords, list):
             raise DropPacket("Invalid 'keywords' type")
         for keyword in keywords:
-            if not isinstance(keyword, unicode):
+            if not isinstance(keyword, six.text_type):
                 raise DropPacket("Invalid 'keyword' type")
 
         if len(payload) > 5:
@@ -157,7 +166,7 @@ class SearchConversion(BinaryConversion):
             if len(infohash) != 20:
                 raise DropPacket("Invalid infohash length")
 
-            if not isinstance(swarmname, unicode):
+            if not isinstance(swarmname, six.text_type):
                 raise DropPacket("Invalid swarmname type")
 
             if not isinstance(length, long):
@@ -166,7 +175,7 @@ class SearchConversion(BinaryConversion):
             if not isinstance(nrfiles, int):
                 raise DropPacket("Invalid nrfiles type")
 
-            if not isinstance(category_list, list) or not all(isinstance(key, unicode) for key in category_list):
+            if not isinstance(category_list, list) or not all(isinstance(key, six.text_type) for key in category_list):
                 raise DropPacket("Invalid category_list type")
 
             if not isinstance(creation_date, long):
@@ -214,7 +223,7 @@ class SearchConversion(BinaryConversion):
         if not isinstance(payload, dict):
             raise DropPacket("Invalid payload type")
 
-        for cid, infohashes in payload.iteritems():
+        for cid, infohashes in six.iteritems(payload):
             if not (isinstance(cid, str) and len(cid) == 20):
                 raise DropPacket("Invalid 'cid' type or value")
 
@@ -304,7 +313,7 @@ class SearchConversion(BinaryConversion):
             raise DropPacket("Unable to decode the torrent-payload, got %d bytes expected 28" % (len(infohash_time)))
         infohash, timestamp = unpack_from('!20sQ', infohash_time)
 
-        if not isinstance(name, unicode):
+        if not isinstance(name, six.text_type):
             raise DropPacket("Invalid 'name' type")
 
         if not isinstance(files, tuple):
@@ -318,9 +327,9 @@ class SearchConversion(BinaryConversion):
                 raise DropPacket("Invalid 'file_len' type")
 
             path, length = file
-            if not isinstance(path, unicode):
+            if not isinstance(path, six.text_type):
                 raise DropPacket("Invalid 'files_path' type is %s" % type(path))
-            if not isinstance(length, (int, long)):
+            if not isinstance(length, six.integer_types):
                 raise DropPacket("Invalid 'files_length' type is %s" % type(length))
 
         if not isinstance(trackers, tuple):

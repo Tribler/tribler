@@ -1,5 +1,9 @@
+from __future__ import absolute_import
+
 from random import choice, sample
 from struct import pack, unpack_from
+
+import six
 
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
@@ -49,7 +53,7 @@ class AllChannelConversion(BinaryConversion):
         if not isinstance(payload, dict):
             raise DropPacket("Invalid payload type")
 
-        for cid, infohashes in payload.iteritems():
+        for cid, infohashes in six.iteritems(payload):
             if not (isinstance(cid, str) and len(cid) == 20):
                 raise DropPacket("Invalid 'cid' type or value")
 
@@ -72,7 +76,7 @@ class AllChannelConversion(BinaryConversion):
             raise DropPacket("Invalid payload type")
 
         for keyword in payload:
-            if not isinstance(keyword, unicode):
+            if not isinstance(keyword, six.text_type):
                 raise DropPacket("Invalid 'keyword' type")
         return offset, placeholder.meta.payload.implement(payload)
 
@@ -91,10 +95,10 @@ class AllChannelConversion(BinaryConversion):
 
         keywords, torrents = payload
         for keyword in keywords:
-            if not isinstance(keyword, unicode):
+            if not isinstance(keyword, six.text_type):
                 raise DropPacket("Invalid 'keyword' type")
 
-        for cid, infohashes in torrents.iteritems():
+        for cid, infohashes in six.iteritems(torrents):
             if not (isinstance(cid, str) and len(cid) == 20):
                 raise DropPacket("Invalid 'cid' type or value")
 
