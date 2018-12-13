@@ -3,6 +3,8 @@ Make torrent.
 
 Author(s): Arno Bakker, Bram Cohen
 """
+from __future__ import absolute_import
+
 import logging
 import os
 from copy import copy
@@ -11,11 +13,18 @@ from time import time
 
 from libtorrent import bencode
 import chardet
+from six import text_type
+from six.moves import xrange
 
 from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Core.Utilities.utilities import create_valid_metainfo
 from Tribler.Core.defaults import tdefdictdefaults
 from Tribler.Core.osutils import fix_filebasename
+
+try:
+    long        # pylint: disable=long-builtin
+except NameError:
+    long = int  # pylint: disable=redefined-builtin
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +81,7 @@ def uniconvert(s, enc):
     """ Convert 's' to a string containing a Unicode sequence encoded using
     encoding "enc". If 's' is not a Unicode object, we first try to convert
     it to one, guessing the encoding if necessary. """
-    if not isinstance(s, unicode):
+    if not isinstance(s, text_type):
         try:
             s = bin2unicode(s, enc)
         except UnicodeError:

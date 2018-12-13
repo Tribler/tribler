@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from six import string_types, text_type
 from six.moves.http_client import HTTP_PORT
 from six.moves.urllib.parse import urlparse
 
@@ -10,7 +11,7 @@ class MalformedTrackerURLException(Exception):
 
 def get_uniformed_tracker_url(tracker_url):
     """
-    Parse a tracker url of basestring type.
+    Parse a tracker url of string_types type.
 
     The following checks and transformations are applied to the url:
         - Check if the url is valid unicode data
@@ -25,14 +26,14 @@ def get_uniformed_tracker_url(tracker_url):
         udp://tracker.openbittorrent.com:80
         http://tracker.openbittorrent.com:80/announce
 
-    :param tracker_url: a basestring url for either a UDP or HTTP tracker
+    :param tracker_url: a string_types url for either a UDP or HTTP tracker
     :return: the tracker in a uniform format <type>://<host>:<port>/<page>
     """
-    assert isinstance(tracker_url, basestring), u"tracker_url is not a basestring: %s" % type(tracker_url)
+    assert isinstance(tracker_url, string_types), u"tracker_url is not a string_types: %s" % type(tracker_url)
 
     # check if the URL is valid unicode data
     try:
-        tracker_url = unicode(tracker_url)
+        tracker_url = text_type(tracker_url)
     except UnicodeDecodeError:
         return None
 
