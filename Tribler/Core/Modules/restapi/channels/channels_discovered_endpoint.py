@@ -1,20 +1,21 @@
+from __future__ import absolute_import
+
 from pony.orm import db_session
 from twisted.web import http
 
+import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.channels.channels_playlists_endpoint import ChannelsPlaylistsEndpoint
 from Tribler.Core.Modules.restapi.channels.channels_rss_endpoint import ChannelsRssFeedsEndpoint, \
     ChannelsRecheckFeedsEndpoint
 from Tribler.Core.Modules.restapi.channels.channels_torrents_endpoint import ChannelsTorrentsEndpoint
-from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_channel_metadata_to_tuple
-from Tribler.Core.exceptions import DuplicateChannelNameError
-import Tribler.Core.Utilities.json_util as json
 
 
 class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
     """
     This class is responsible for requests regarding the discovered channels.
     """
+
     def getChild(self, path, request):
         return ChannelsDiscoveredSpecificEndpoint(self.session, path)
 
@@ -51,35 +52,21 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
         if 'description' not in parameters or len(parameters['description']) == 0:
             description = u''
         else:
-            description = unicode(parameters['description'][0], 'utf-8')
+            description = str(parameters['description'][0]).encode('utf-8')
 
-        if self.session.config.get_chant_channel_edit():
-            my_key = self.session.trustchain_keypair
-            my_channel_id = my_key.pub().key_to_bin()
+        my_key = self.session.trustchain_keypair
+        my_channel_id = my_key.pub().key_to_bin()
 
-            # Do not allow to add a channel twice
-            if self.session.lm.mds.get_my_channel():
-                request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-                return json.dumps({"error": "channel already exists"})
+        # Do not allow to add a channel twice
+        if self.session.lm.mds.get_my_channel():
+            request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+            return json.dumps({"error": "channel already exists"})
 
-            title = unicode(parameters['name'][0], 'utf-8')
-            self.session.lm.mds.ChannelMetadata.create_channel(title, description)
-            return json.dumps({
-                "added": str(my_channel_id).encode("hex"),
-            })
-
-        if 'mode' not in parameters or len(parameters['mode']) == 0:
-            # By default, the mode of the new channel is closed.
-            mode = u'closed'
-        else:
-            mode = unicode(parameters['mode'][0], 'utf-8')
-
-        try:
-            channel_id = self.session.create_channel(unicode(parameters['name'][0], 'utf-8'), description, mode)
-        except DuplicateChannelNameError as ex:
-            return BaseChannelsEndpoint.return_500(self, request, ex)
-
-        return json.dumps({"added": channel_id})
+        title = str(parameters['name'][0]).encode('utf-8')
+        self.session.lm.mds.ChannelMetadata.create_channel(title, description)
+        return json.dumps({
+            "added": str(my_channel_id).encode("hex"),
+        })
 
 
 class ChannelsDiscoveredSpecificEndpoint(BaseChannelsEndpoint):
