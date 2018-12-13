@@ -243,7 +243,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
             for f in filename_generator:
                 filepath = os.path.join(torrents_dir, f)
                 # TODO: add support for arbitrary encodings
-                filename = str(filepath) if sys.platform == 'win32' else filepath.decode('utf-8')
+                filename = str(filepath) if sys.platform == 'win32' else filepath.decode(sys.getdefaultencoding())
                 if os.path.isfile(filepath) and filename.endswith(u'.torrent'):
                     torrents_list.append(filepath)
 

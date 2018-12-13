@@ -48,21 +48,6 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         return succeed(None)
 
     @trial_timeout(10)
-    def test_subscribe_channel(self):
-        """
-        Testing whether the API creates a request in the AllChannel community when subscribing to a channel
-        """
-
-        def verify_votecast_made(_):
-            self.assertTrue(self.create_votecast_called)
-
-        expected_json = {"subscribed": True}
-        self.expected_votecast_cid = 'rand1'
-        self.expected_votecast_vote = VOTE_SUBSCRIBE
-        return self.do_request('channels/subscribed/%s' % hexlify(b'rand1'), expected_code=200,
-                               expected_json=expected_json, request_type='PUT').addCallback(verify_votecast_made)
-
-    @trial_timeout(10)
     def test_sub_channel_throw_error(self):
         """
         Testing whether an error is returned when we subscribe to a channel and an error pops up
