@@ -1,6 +1,9 @@
+from __future__ import absolute_import
+
 import logging
 
 from pony.orm import db_session
+
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
@@ -8,6 +11,7 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_CHANNELCAST
+from Tribler.pyipv8.ipv8.database import database_blob
 
 
 class TorrentsEndpoint(resource.Resource):
@@ -140,7 +144,8 @@ class SpecificTorrentEndpoint(resource.Resource):
             # Maybe this is a chant torrent?
             infohash = self.infohash.decode('hex')
             with db_session:
-                md_list = list(self.session.lm.mds.TorrentMetadata.select(lambda g: g.infohash == buffer(infohash)))
+                md_list = list(self.session.lm.mds.TorrentMetadata.select(lambda g:
+                                                                          g.infohash == database_blob(infohash)))
                 if md_list:
                     torrent_md = md_list[0]  # Any MD containing this infohash is fine
                     # FIXME: replace these placeholder values when Dispersy is gone
@@ -313,7 +318,8 @@ class TorrentHealthEndpoint(resource.Resource):
             # Maybe this is a chant torrent?
             infohash = self.infohash.decode('hex')
             with db_session:
-                md_list = list(self.session.lm.mds.TorrentMetadata.select(lambda g: g.infohash == buffer(infohash)))
+                md_list = list(self.session.lm.mds.TorrentMetadata.select(lambda g:
+                                                                          g.infohash == database_blob(infohash)))
                 if md_list:
                     torrent_md = md_list[0]  # Any MD containing this infohash is fine
                     magnet = torrent_md.get_magnet()

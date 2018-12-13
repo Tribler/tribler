@@ -1,8 +1,11 @@
+from __future__ import absolute_import
+
 from datetime import datetime
 
 from pony import orm
 
 from Tribler.Core.Modules.MetadataStore.serialization import MetadataPayload, DeletedMetadataPayload, TYPELESS, DELETED
+from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
@@ -12,10 +15,10 @@ def define_binding(db):
         metadata_type = orm.Discriminator(int)
         _discriminator_ = TYPELESS
         # We want to make signature unique=True for safety, but can't do it in Python2 because of Pony bug #390
-        signature = orm.Optional(buffer)
+        signature = orm.Optional(database_blob)
         timestamp = orm.Optional(datetime, default=datetime.utcnow)
         tc_pointer = orm.Optional(int, size=64, default=0)
-        public_key = orm.Optional(buffer, default='\x00' * 74)
+        public_key = orm.Optional(database_blob, default='\x00' * 74)
         addition_timestamp = orm.Optional(datetime, default=datetime.utcnow)
         deleted = orm.Optional(bool, default=False)
         _payload_class = MetadataPayload
@@ -72,13 +75,13 @@ def define_binding(db):
         def sign(self, key=None):
             if not key:
                 key = self._my_key
-            self.public_key = buffer(key.pub().key_to_bin())
+            self.public_key = database_blob(key.pub().key_to_bin())
             _, self.signature = self._serialized(key)
 
         def has_valid_signature(self):
             crypto = default_eccrypto
-            return crypto.is_valid_public_bin(str(self.public_key)) \
-                   and self._payload_class(**self.to_dict()).has_valid_signature()
+            return (crypto.is_valid_public_bin(str(self.public_key))
+                    and self._payload_class(**self.to_dict()).has_valid_signature())
 
         @classmethod
         def from_payload(cls, payload):

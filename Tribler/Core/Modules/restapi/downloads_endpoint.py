@@ -2,9 +2,10 @@ from __future__ import absolute_import
 
 import logging
 
-from six import text_type
+from six import text_type, unichr  # pylint: disable=redefined-builtin
 from six.moves.urllib.parse import unquote_plus
 from six.moves.urllib.request import url2pathname
+
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 

@@ -1,12 +1,14 @@
-from __future__ import division
+from __future__ import absolute_import, division
 
 import struct
 from datetime import datetime, timedelta
 
 from Tribler.Core.exceptions import InvalidSignatureException
+from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 from Tribler.pyipv8.ipv8.messaging.payload import Payload
 from Tribler.pyipv8.ipv8.messaging.serialization import default_serializer
+
 
 EPOCH = datetime(1970, 1, 1)
 INFOHASH_SIZE = 20  # bytes
@@ -67,7 +69,7 @@ class UnknownBlobTypeException(Exception):
 
 def read_payload_with_offset(data, offset=0):
     # First we have to determine the actual payload type
-    metadata_type = struct.unpack_from('>I', buffer(data), offset=offset)[0]
+    metadata_type = struct.unpack_from('>I', database_blob(data), offset=offset)[0]
     if metadata_type == DELETED:
         return DeletedMetadataPayload.from_signed_blob_with_offset(data, check_signature=True, offset=offset)
     elif metadata_type == REGULAR_TORRENT:

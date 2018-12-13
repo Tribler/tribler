@@ -1,6 +1,11 @@
 """
 This file contains some utility methods that are used by the API.
 """
+from __future__ import absolute_import
+
+from six import string_types
+from six.moves import xrange
+
 from twisted.web import http
 
 import Tribler.Core.Utilities.json_util as json
@@ -36,8 +41,8 @@ def convert_channel_metadata_to_tuple(metadata):
     spam = 0
     relevance = 0.9
     unix_timestamp = time2float(metadata.timestamp)
-    return metadata.rowid, str(metadata.public_key), metadata.title, metadata.tags, int(metadata.size), votes, spam, \
-           my_vote, unix_timestamp, relevance
+    return (metadata.rowid, str(metadata.public_key), metadata.title, metadata.tags, int(metadata.size), votes, spam,
+            my_vote, unix_timestamp, relevance)
 
 
 def convert_torrent_metadata_to_tuple(metadata, commit_status=None):
@@ -151,7 +156,7 @@ def fix_unicode_dict(d):
             new_dict[key] = fix_unicode_array(list(value))
         elif isinstance(value, list):
             new_dict[key] = fix_unicode_array(value)
-        elif isinstance(value, (str, unicode)):
+        elif isinstance(value, string_types):
             new_dict[key] = value.decode('utf-8', 'ignore')
         else:
             new_dict[key] = value
@@ -166,7 +171,7 @@ def fix_unicode_array(arr):
     new_arr = []
 
     for ind in xrange(len(arr)):
-        if isinstance(arr[ind], (str, unicode)):
+        if isinstance(arr[ind], string_types):
             new_arr.append(arr[ind].decode('utf-8', 'ignore'))
         elif isinstance(arr[ind], dict):
             new_arr.append(fix_unicode_dict(arr[ind]))
