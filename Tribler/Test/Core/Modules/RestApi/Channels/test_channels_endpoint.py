@@ -44,7 +44,6 @@ class AbstractTestChantEndpoint(AbstractApiTest):
         super(AbstractTestChantEndpoint, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
         self.config.set_chant_enabled(True)
-        self.config.set_chant_channel_edit(True)
 
     @db_session
     def create_my_channel(self, name, description):
