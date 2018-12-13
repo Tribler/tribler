@@ -9,7 +9,7 @@ from six.moves import xrange
 from twisted.internet.defer import succeed, fail, inlineCallbacks
 from twisted.python.failure import Failure
 
-from Tribler.Core.Modules.restapi import VOTE_UNSUBSCRIBE
+from Tribler.Core.Modules.restapi import VOTE_UNSUBSCRIBE, VOTE_SUBSCRIBE
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN_CHANNEL_RESPONSE_MSG
 from Tribler.Core.Modules.restapi.channels.channels_subscription_endpoint import NOT_SUBSCRIBED_RESPONSE_MSG, \
     ChannelsModifySubscriptionEndpoint, ALREADY_SUBSCRIBED_RESPONSE_MSG
@@ -46,18 +46,6 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         self.assertEqual(vote, self.expected_votecast_vote)
         self.create_votecast_called = True
         return succeed(None)
-
-    @trial_timeout(10)
-    def test_subscribe_channel_already_subscribed(self):
-        """
-        Testing whether the API returns error 409 when subscribing to an already subscribed channel
-        """
-        cid = self.insert_channel_in_db('rand1', 42, 'Test channel', 'Test description')
-        self.vote_for_channel(cid, int(time.time()))
-        expected_json = {"error": ALREADY_SUBSCRIBED_RESPONSE_MSG}
-
-        return self.do_request('channels/subscribed/%s' % hexlify(b'rand1'),
-                               expected_code=409, expected_json=expected_json, request_type='PUT')
 
     @trial_timeout(10)
     def test_subscribe_channel(self):
