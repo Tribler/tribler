@@ -1,18 +1,18 @@
 from __future__ import absolute_import
 
-from binascii import hexlify
 import time
+from binascii import hexlify
 
-from pony.orm import db_session
 import six
+from pony.orm import db_session
 from six.moves import xrange
 from twisted.internet.defer import succeed, fail, inlineCallbacks
 from twisted.python.failure import Failure
 
-from Tribler.Core.Modules.restapi import VOTE_UNSUBSCRIBE, VOTE_SUBSCRIBE
+from Tribler.Core.Modules.restapi import VOTE_UNSUBSCRIBE
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN_CHANNEL_RESPONSE_MSG
 from Tribler.Core.Modules.restapi.channels.channels_subscription_endpoint import NOT_SUBSCRIBED_RESPONSE_MSG, \
-    ChannelsModifySubscriptionEndpoint, ALREADY_SUBSCRIBED_RESPONSE_MSG
+    ChannelsModifySubscriptionEndpoint
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint, \
     AbstractTestChantEndpoint
 from Tribler.Test.tools import trial_timeout

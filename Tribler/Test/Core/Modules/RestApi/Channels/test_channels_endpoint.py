@@ -1,11 +1,11 @@
 from __future__ import absolute_import
+
 import random
 
 from pony.orm import db_session
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
-import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
 from Tribler.Core.exceptions import DuplicateChannelNameError
@@ -59,7 +59,8 @@ class AbstractTestChantEndpoint(AbstractApiTest):
         Add a random torrent to your channel.
         """
         return self.session.lm.mds.TorrentMetadata(title='test' if not name else name,
-                                                   infohash=database_blob(bytearray(random.getrandbits(8) for _ in xrange(20))))
+                                                   infohash=database_blob(
+                                                       bytearray(random.getrandbits(8) for _ in xrange(20))))
 
     @db_session
     def add_random_channel(self):
@@ -119,4 +120,3 @@ class TestChannelsEndpoint(AbstractTestChannelsEndpoint):
         """
         self.should_check_equality = False
         return self.do_request('channels/thisendpointdoesnotexist123', expected_code=404)
-

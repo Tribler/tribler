@@ -1,18 +1,18 @@
 from __future__ import absolute_import
 
-from six import unichr
 import json
 import random
 
 from pony.orm import db_session
+from six import unichr
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_CHANNEL,
                                      SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT)
-from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.tools import trial_timeout
+from Tribler.pyipv8.ipv8.database import database_blob
 
 
 class FakeSearchManager(object):
@@ -59,8 +59,9 @@ class TestSearchEndpoint(AbstractApiTest):
 
     def insert_torrents_in_db(self, num):
         for i in xrange(0, num):
-            ih =  "".join(unichr(97 + random.randint(0,15)) for _ in range(0,20))
-            self.torrent_db_handler.addExternalTorrentNoDef(ih.encode('utf-8'), 'hay %d' % i, [('Test.txt', 1337)], [], 1337)
+            ih = "".join(unichr(97 + random.randint(0, 15)) for _ in range(0, 20))
+            self.torrent_db_handler.addExternalTorrentNoDef(ih.encode('utf-8'), 'hay %d' % i, [('Test.txt', 1337)], [],
+                                                            1337)
 
     @trial_timeout(10)
     @inlineCallbacks
@@ -92,12 +93,14 @@ class TestSearchEndpoint(AbstractApiTest):
         num_hay = 100
         with db_session:
             my_channel_id = self.session.trustchain_keypair.pub().key_to_bin()
-            channel = self.session.lm.mds.ChannelMetadata(public_key=database_blob(my_channel_id), title='test', tags='test', subscribed=True)
+            channel = self.session.lm.mds.ChannelMetadata(public_key=database_blob(my_channel_id), title='test',
+                                                          tags='test', subscribed=True)
             for x in xrange(0, num_hay):
                 self.session.lm.mds.TorrentMetadata(title='hay ' + str(x), infohash=database_blob(
                     bytearray(random.getrandbits(8) for _ in xrange(20))))
             self.session.lm.mds.TorrentMetadata(title='needle',
-                                                infohash=database_blob(bytearray(random.getrandbits(8) for _ in xrange(20))))
+                                                infohash=database_blob(
+                                                    bytearray(random.getrandbits(8) for _ in xrange(20))))
 
         self.should_check_equality = False
 
@@ -149,6 +152,3 @@ class TestSearchEndpoint(AbstractApiTest):
         expected_json = {"completions": ["tribler %d" % ind for ind in xrange(5)]}
 
         return self.do_request('search/completions?q=tribler', expected_code=200, expected_json=expected_json)
-
-
-

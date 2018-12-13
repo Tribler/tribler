@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from binascii import hexlify
 import json
 import os
 import random
+from binascii import hexlify
 
 import six
 from pony.orm import db_session
@@ -121,7 +121,7 @@ class TestChannelsDiscoveredChantEndpoints(AbstractTestChantEndpoint):
         Testing whether the API can remove a single selected torrent from a channel
         """
         with db_session:
-            channel = self.create_my_channel("bla","bla")
+            channel = self.create_my_channel("bla", "bla")
             channel_public_key = channel.public_key
             torrent = self.add_random_torrent_to_my_channel()
             torrent_infohash = torrent.infohash
@@ -143,7 +143,7 @@ class TestChannelsDiscoveredChantEndpoints(AbstractTestChantEndpoint):
         Testing whether the API can remove multiple selected torrents from a channel
         """
         with db_session:
-            channel = self.create_my_channel("bla","bla")
+            channel = self.create_my_channel("bla", "bla")
             channel_public_key = channel.public_key
             torrent1 = self.add_random_torrent_to_my_channel()
             torrent2 = self.add_random_torrent_to_my_channel()
@@ -157,7 +157,9 @@ class TestChannelsDiscoveredChantEndpoints(AbstractTestChantEndpoint):
                 self.assertEqual(len(channel.contents[:]), 0)
 
         self.should_check_equality = False
-        url = 'channels/discovered/%s/torrents/%s' % (str(channel_public_key).encode('hex'), str(torrent1_infohash).encode('hex')+','+str(torrent2_infohash).encode('hex'))
+        url = 'channels/discovered/%s/torrents/%s' % (str(channel_public_key).encode('hex'),
+                                                      str(torrent1_infohash).encode('hex') + ',' + str(
+                                                          torrent2_infohash).encode('hex'))
 
         return self.do_request(url, expected_code=200, request_type='DELETE').addCallback(verify_torrent_removed)
 
@@ -167,32 +169,20 @@ class TestChannelsDiscoveredChantEndpoints(AbstractTestChantEndpoint):
         Testing whether the API returns correct error message in case the channel public key is wrong
         """
         with db_session:
-            channel = self.create_my_channel("bla","bla")
-        url = 'channels/discovered/%s/torrents/%s' % (str('123').encode('hex'), str('123').encode('hex'))
+            self.create_my_channel("bla", "bla")
+        url = 'channels/discovered/%s/torrents/%s' % (hexlify('123'), hexlify(str('123')))
         return self.do_request(url, expected_code=405, request_type='DELETE')
 
     @trial_timeout(10)
-    def test_remove_wrong_channel(self):
+    def test_remove_nonexistent_channel(self):
         """
         Testing whether the API returns correct error message in case the personal channel is not created yet
         """
         with db_session:
-            channel = self.create_my_channel("bla","bla")
+            channel = self.create_my_channel("bla", "bla")
             channel_pubkey = channel.public_key
             channel.delete()
-        url = 'channels/discovered/%s/torrents/%s' % (str(channel_pubkey).encode('hex'), str('123').encode('hex'))
-        return self.do_request(url, expected_code=404, request_type='DELETE')
-
-    @trial_timeout(10)
-    def test_remove_wrong_channel(self):
-        """
-        Testing whether the API returns correct error message in case the personal channel is not created yet
-        """
-        with db_session:
-            channel = self.create_my_channel("bla","bla")
-            channel_pubkey = channel.public_key
-            channel.delete()
-        url = 'channels/discovered/%s/torrents/%s' % (str(channel_pubkey).encode('hex'), str('123').encode('hex'))
+        url = 'channels/discovered/%s/torrents/%s' % (hexlify(str(channel_pubkey)), hexlify(str('123')))
         return self.do_request(url, expected_code=404, request_type='DELETE')
 
     @trial_timeout(10)
@@ -202,7 +192,7 @@ class TestChannelsDiscoveredChantEndpoints(AbstractTestChantEndpoint):
         removed from a channel
         """
         with db_session:
-            channel = self.create_my_channel("bla","bla")
+            channel = self.create_my_channel("bla", "bla")
             channel_public_key = channel.public_key
         unknown_torrent_infohash = buffer(bytearray(random.getrandbits(8) for _ in xrange(20)))
 
@@ -212,6 +202,7 @@ class TestChannelsDiscoveredChantEndpoints(AbstractTestChantEndpoint):
             self.assertTrue(str(unknown_torrent_infohash).encode('hex') in json_response["failed_torrents"])
 
         self.should_check_equality = False
-        url = 'channels/discovered/%s/torrents/%s' % (str(channel_public_key).encode('hex'), str(unknown_torrent_infohash).encode('hex'))
+        url = 'channels/discovered/%s/torrents/%s' % (
+            str(channel_public_key).encode('hex'), str(unknown_torrent_infohash).encode('hex'))
 
         return self.do_request(url, expected_code=200, request_type='DELETE').addCallback(verify_torrent_removed)

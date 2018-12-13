@@ -146,7 +146,7 @@ class SearchEndpoint(resource.Resource):
         # Legacy query for channel contents
         if is_dispersy_channel:
             channels_list = self.channel_db_handler.getChannelsByCID([channel_id])
-            channel_info = channels_list[0] if len(channels_list) > 0 else None
+            channel_info = channels_list[0] if channels_list else None
             if channel_info is None:
                 return json.dumps({"error": "Channel with given Dispersy ID is not found"})
 

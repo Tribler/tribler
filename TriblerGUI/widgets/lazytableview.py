@@ -1,4 +1,5 @@
 from __future__ import absolute_import, division
+
 from PyQt5 import QtCore
 from abc import abstractmethod
 

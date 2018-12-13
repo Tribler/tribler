@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.widgets.channelview import ChannelContentsModel
@@ -98,6 +99,3 @@ class SearchResultsPage(QWidget):
         self.window().num_search_results_label.setText("%d results" %
                                                        (len(self.search_results['channels']) +
                                                         len(self.search_results['torrents'])))
-
-
-

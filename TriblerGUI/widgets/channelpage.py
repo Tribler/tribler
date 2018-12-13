@@ -28,12 +28,10 @@ class ChannelPage(QWidget):
             container.top_bar_container.setHidden(False)
             container.dirty_channel_bar.setHidden(True)
 
-        self.window().channel_preview_label.setHidden(1 == int(channel_info['subscribed']))
+        self.window().channel_preview_label.setHidden(int(channel_info['subscribed']) == 1)
         self.window().channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
 
         # initialize the page about a channel
         self.window().channel_name_label.setText(channel_info['name'])
         self.window().num_subs_label.setText(str(channel_info['votes']))
         self.window().subscription_widget.initialize_with_channel(channel_info)
-
-
