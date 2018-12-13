@@ -14,7 +14,16 @@ from twisted.web import http
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.serialization import time2float, CHANNEL_TORRENT, float2time
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE
-from TriblerGUI.widgets.torrentdetailstabwidget import HEALTH_UNCHECKED, HEALTH_GOOD
+
+HEALTH_CHECKING = u'Checking..'
+HEALTH_DEAD = u'No peers'
+HEALTH_ERROR = u'Error'
+HEALTH_MOOT = u'Peers found'
+HEALTH_GOOD = u'Seeds found'
+HEALTH_UNCHECKED = u'Unknown'
+
+
+
 
 CATEGORY_OLD_CHANNEL = u'Old channel'
 CATEGORY_CHANNEL = u'Channel'

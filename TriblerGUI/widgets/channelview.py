@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QWidget, QAction, QFileDialog, QAbstractItemView
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import TODELETE, COMMITTED, NEW
 from Tribler.Core.Modules.MetadataStore.serialization import float2time
+from Tribler.Core.Modules.restapi.util import HEALTH_MOOT, HEALTH_GOOD, HEALTH_DEAD, HEALTH_CHECKING
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, \
     PAGE_EDIT_CHANNEL_CREATE_TORRENT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
@@ -17,8 +18,6 @@ from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_ui_file_path, format_size
 from TriblerGUI.widgets.lazytableview import RemoteTableModel, ACTION_BUTTONS
-from TriblerGUI.widgets.torrentdetailstabwidget import TorrentDetailsTabWidget, HEALTH_CHECKING, HEALTH_ERROR, \
-    HEALTH_GOOD, HEALTH_MOOT, HEALTH_DEAD
 
 commit_status_labels = {
     COMMITTED: "Committed",
