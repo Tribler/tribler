@@ -72,6 +72,7 @@ class MetadataStore(object):
         self.ChannelMetadata._channels_dir = channels_dir
         self.Metadata._logger = self._logger  # Use Store-level logger for every ORM-based class
 
+        #TODO: move Category Filter into a module-level global stateless object (i.e. make it a singleton)
         self.ChannelMetadata._category_filter = Category()
 
         self._db.bind(provider='sqlite', filename=db_filename, create_db=create_db)
