@@ -282,8 +282,6 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         self.tribler_config.set_chant_enabled(False)
         self.assertFalse(self.tribler_config.get_chant_enabled())
-        self.tribler_config.set_chant_channel_edit(True)
-        self.assertTrue(self.tribler_config.get_chant_channel_edit())
         self.tribler_config.set_chant_channels_dir('test')
         self.assertEqual(self.tribler_config.get_chant_channels_dir(),
                          os.path.join(self.tribler_config.get_state_dir(), 'test'))
