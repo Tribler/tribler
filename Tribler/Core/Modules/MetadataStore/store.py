@@ -4,6 +4,7 @@ import os
 from pony import orm
 from pony.orm import db_session
 
+from Tribler.Core.Category.Category import Category
 from Tribler.Core.Modules.MetadataStore.OrmBindings import metadata, torrent_metadata, channel_metadata
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import read_payload_with_offset, REGULAR_TORRENT, \
@@ -70,6 +71,8 @@ class MetadataStore(object):
         self.Metadata._my_key = my_key
         self.ChannelMetadata._channels_dir = channels_dir
         self.Metadata._logger = self._logger  # Use Store-level logger for every ORM-based class
+
+        self.ChannelMetadata._category_filter = Category()
 
         self._db.bind(provider='sqlite', filename=db_filename, create_db=create_db)
         if create_db:

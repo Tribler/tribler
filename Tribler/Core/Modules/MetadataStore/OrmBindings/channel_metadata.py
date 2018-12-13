@@ -72,6 +72,7 @@ def define_binding(db):
         local_version = orm.Optional(int, size=64, default=0)
         _payload_class = ChannelMetadataPayload
         _channels_dir = None
+        _category_filter = None
         _CHUNK_SIZE_LIMIT = 1 * 1024 * 1024  # We use 1MB chunks as a workaround for Python's lack of string pointers
 
         @db_session
@@ -229,10 +230,17 @@ def define_binding(db):
             if self.has_torrent(tdef.get_infohash()):
                 raise DuplicateTorrentFileError()
 
+            if extra_info:
+                tags = extra_info.get('description', '')
+            elif self._category_filter:
+                tags = self._category_filter.calculateCategory(tdef.metainfo, tdef.get_name_as_unicode())
+            else:
+                tags = ''
+
             torrent_metadata = db.TorrentMetadata.from_dict({
                 "infohash": tdef.get_infohash(),
                 "title": tdef.get_name_as_unicode(),
-                "tags": extra_info.get('description', '') if extra_info else '',
+                "tags": tags,
                 "size": tdef.get_length(),
                 "torrent_date": datetime.fromtimestamp(tdef.get_creation_date()),
                 "tc_pointer": 0,
