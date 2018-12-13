@@ -1,8 +1,17 @@
+from __future__ import absolute_import
+
 import logging
 import time
 from collections import deque
 
+import six
+
 from Tribler.community.popularity.payload import SearchResponseItemPayload, ChannelItemPayload
+
+try:
+    long        # pylint: disable=long-builtin
+except NameError:
+    long = int  # pylint: disable=redefined-builtin
 
 MAX_CACHE = 200
 
@@ -140,7 +149,7 @@ class ContentRepository(object):
         if db_channels:
             for channel in db_channels:
                 channel_payload = channel[:8]
-                channel_payload[7] = channel[8] # modified
+                channel_payload[7] = channel[8]  # modified
                 results.append(ChannelItemPayload(*channel_payload))
         return results
 
@@ -151,7 +160,7 @@ class ContentRepository(object):
         """
         for result in search_results:
             (infohash, name, length, num_files, category_list, creation_date, seeders, leechers, cid) = result
-            name = u''.join([unichr(ord(c)) for c in name])
+            name = u''.join([six.unichr(ord(c)) for c in name])
             torrent_item = SearchResponseItemPayload(infohash, name, length, num_files, category_list,
                                                      creation_date, seeders, leechers, cid)
             if self.has_torrent(infohash):
