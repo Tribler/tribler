@@ -243,7 +243,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
             # Build list of .torrents to process
             for f in filename_generator:
                 filepath = os.path.join(torrents_dir, f)
-                filename = str(filepath) if sys.platform == 'win32' else filepath.decode(sys.getdefaultencoding())
+                filename = str(filepath) if sys.platform == 'win32' else filepath.decode('utf-8')
                 if os.path.isfile(filepath) and filename.endswith(u'.torrent'):
                     torrents_list.append(filepath)
 
