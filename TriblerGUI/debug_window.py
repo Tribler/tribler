@@ -1,31 +1,27 @@
+from __future__ import absolute_import
+
+import datetime
 import os
 import socket
 from time import localtime, strftime
 
-import datetime
 import matplotlib
-from PyQt5.QtCore import QTimer
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QTextCursor
-from PyQt5.QtWidgets import QFileDialog, QTextEdit, QDesktopWidget, QTreeWidget
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtWidgets import QSizePolicy
-from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
+import psutil
 from meliae import scanner
-from twisted.internet.task import LoopingCall
 
 matplotlib.use('Qt5Agg')
-
-import psutil
-from PyQt5 import uic, QtGui
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QHeaderView
-from PyQt5.QtWidgets import QMainWindow, QTreeWidgetItem
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.dates import DateFormatter
 from matplotlib.figure import Figure
 
+from PyQt5 import uic, QtGui
+from PyQt5.QtCore import QTimer, Qt, pyqtSignal
+from PyQt5.QtGui import QTextCursor
+from PyQt5.QtWidgets import QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QTreeWidgetItem, \
+    QSizePolicy
+
 import Tribler.Core.Utilities.json_util as json
+from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.utilities import get_ui_file_path, format_size
 from TriblerGUI.tribler_request_manager import performed_requests as tribler_performed_requests, TriblerRequestManager
 from TriblerGUI.event_request_manager import received_events as tribler_received_events
