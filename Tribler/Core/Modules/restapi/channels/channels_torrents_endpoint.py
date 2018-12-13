@@ -333,7 +333,7 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
         if self.is_chant_channel:
             if my_channel_id != self.cid:
                 request.setResponseCode(http.NOT_ALLOWED)
-                return json.dumps({"error": "you can only add torrents to your own chant channel"})
+                return json.dumps({"error": "you can only add torrents to your own channel"})
             channel = self.session.lm.mds.ChannelMetadata.get_channel_with_id(my_channel_id)
         else:
             channel = self.get_channel_from_db(self.cid)
