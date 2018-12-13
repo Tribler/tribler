@@ -15,6 +15,7 @@ from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import Ab
     AbstractTestChantEndpoint
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
 from Tribler.Test.tools import trial_timeout
+from Tribler.pyipv8.ipv8.database import database_blob
 
 
 class TestChannelsDiscoveredEndpoints(AbstractTestChannelsEndpoint):
@@ -194,7 +195,7 @@ class TestChannelsDiscoveredChantEndpoints(AbstractTestChantEndpoint):
         with db_session:
             channel = self.create_my_channel("bla", "bla")
             channel_public_key = channel.public_key
-        unknown_torrent_infohash = buffer(bytearray(random.getrandbits(8) for _ in xrange(20)))
+        unknown_torrent_infohash = database_blob(bytearray(random.getrandbits(8) for _ in range(20)))
 
         def verify_torrent_removed(response):
             json_response = json.loads(response)

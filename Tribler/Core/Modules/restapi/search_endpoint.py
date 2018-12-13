@@ -1,4 +1,6 @@
+from __future__ import absolute_import
 import logging
+from binascii import unhexlify
 
 from pony.orm import db_session, desc, select
 from twisted.web import http, resource
@@ -119,7 +121,7 @@ class SearchEndpoint(resource.Resource):
             item_type = str(request.args['type'][0])
 
         if 'channel' in request.args and request.args['channel'] > 0:
-            channel_id = request.args['channel'][0].decode('hex')
+            channel_id = unhexlify(request.args['channel'][0])
 
         if 'sort_by' in request.args and request.args['sort_by'] > 0:
             sort_by = request.args['sort_by'][0]

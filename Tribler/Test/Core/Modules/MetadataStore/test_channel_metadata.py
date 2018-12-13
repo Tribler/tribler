@@ -94,7 +94,6 @@ class TestChannelMetadata(TriblerCoreTest):
         self.assertEqual(2, len(channel2.contents_list))
         self.assertEqual(2, channel2.contents_len)
 
-
     @db_session
     def test_create_channel(self):
         """
