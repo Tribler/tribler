@@ -133,7 +133,7 @@ class TestChannelsDiscoveredChantEndpoints(AbstractTestChantEndpoint):
                 self.assertEqual(len(channel.contents[:]), 0)
 
         self.should_check_equality = False
-        url = 'channels/discovered/%s/torrents/%s' % (str(channel_public_key).encode('hex'), str(torrent_infohash).encode('hex'))
+        url = 'channels/discovered/%s/torrents/%s' % (hexlify(str(channel_public_key)), hexlify(str(torrent_infohash)))
 
         return self.do_request(url, expected_code=200, request_type='DELETE').addCallback(verify_torrent_removed)
 

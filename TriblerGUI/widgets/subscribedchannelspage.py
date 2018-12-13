@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM

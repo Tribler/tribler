@@ -15,8 +15,8 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
-from six import text_type
 from pony.orm import db_session
+from six import text_type
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, succeed
 from twisted.internet.task import LoopingCall
@@ -570,7 +570,7 @@ class TriblerLaunchMany(TaskManager):
             deferred = self.session.remove_download(d, remove_content=True)
             deferred.addErrback(_on_remove_failure)
             self.register_task(
-                u'Remove_channel' + d.tdef.get_name_utf8() + u'-' + d.tdef.get_infohash().encode('hex') + u'-' + str(i),
+                u'Remove_channel' + d.tdef.get_name_utf8() + u'-' + binascii.hexlify(d.tdef.get_infohash()) + u'-' + str(i),
                 deferred)
 
     def download_channel(self, channel):

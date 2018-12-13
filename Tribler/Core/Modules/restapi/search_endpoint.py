@@ -90,6 +90,8 @@ class SearchEndpoint(resource.Resource):
 
         """
 
+
+
         first = 0
         last = None
         item_type = None
@@ -136,6 +138,10 @@ class SearchEndpoint(resource.Resource):
 
         results = []
         is_dispersy_channel = (len(channel_id) != 74) if channel_id else False
+
+        # ACHTUNG! In its current form, the endpoint is carefully _designed_ to mix legacy and Pony results
+        # together correctly in regards to pagination! Befor sending results for a page, it considers the whole
+        # query size for _both_ legacy and Pony DBs, and then places the results correctly (Pony first, legacy last).
 
         # Legacy query for channel contents
         if is_dispersy_channel:

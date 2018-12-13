@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.widgets.lazytableview import ACTION_BUTTONS
@@ -31,6 +32,3 @@ class DiscoveredPage(QWidget):
     def load_discovered_channels(self):
         self.window().discovered_channels_container.model.refresh()
 
-
-    #def update_num_label(self):
-    #    self.window().num_discovered_channels_label.setText("%d items" % len(self.discovered_channels))

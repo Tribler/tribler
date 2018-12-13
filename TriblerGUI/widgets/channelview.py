@@ -1,5 +1,5 @@
+from __future__ import absolute_import
 import base64
-import sys
 import time
 import urllib
 from PyQt5 import uic, QtCore
@@ -151,7 +151,7 @@ class ChannelContentsModel(RemoteTableModel):
                                     self.channel_id,
                                     self.on_torrent_to_channel_added, method='PUT',
                                     data=((u'torrents_dir=%s' % dirname) +
-                                             (u'&recursive=1' if recursive else u'')).encode('utf-8'))
+                                          (u'&recursive=1' if recursive else u'')).encode('utf-8'))
 
     def add_torrent_url_to_channel(self, url):
         request_mgr = TriblerRequestManager()
@@ -434,7 +434,7 @@ class ChannelViewWidget(QWidget):
     def clicked_edit_channel_commit_button(self):
         request_mgr = TriblerRequestManager()
         request_mgr.perform_request("mychannel", self.on_channel_committed,
-                                    data=unicode('commit_changes=1').encode('utf-8'),
+                                    data=u'commit_changes=1'.encode('utf-8'),
                                     method='POST')
 
     def on_channel_committed(self, result):

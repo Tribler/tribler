@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+
+from binascii import hexlify
+
 """
 This file contains some utility methods that are used by the API.
 """
@@ -67,7 +71,7 @@ def convert_torrent_metadata_to_tuple(metadata):
         subscribed = 1 if metadata.subscribed else 0
     return (metadata.rowid, infohash, metadata.title, int(metadata.size), category, seeders, leechers,
             last_tracker_check, None, relevance, metadata.status, metadata.torrent_date, metadata.metadata_type,
-            str(metadata.public_key).encode('hex'), subscribed)
+            hexlify(metadata.public_key), subscribed)
 
 def convert_search_torrent_to_json(torrent):
     """
@@ -83,7 +87,7 @@ def convert_db_channel_to_json(channel, include_rel_score=False):
     """
     This method converts a channel in the database to a JSON dictionary.
     """
-    res_json = {"id": channel[0], "dispersy_cid": channel[1].encode('hex'), "name": channel[2],
+    res_json = {"id": channel[0], "dispersy_cid": hexlify(channel[1]), "name": channel[2],
                 "description": channel[3], "votes": channel[5], "torrents": channel[4], "spam": channel[6],
                 "modified": channel[8], "subscribed": (channel[7] == VOTE_SUBSCRIBE)}
 
@@ -101,7 +105,7 @@ def channel_to_torrent_adapter(channel):
             0,
             float2time(0),
             CHANNEL_TORRENT,
-            str(channel[1]).encode('hex'),
+            hexlify(channel[1]),
             int(channel[7] == VOTE_SUBSCRIBE))
 
 def convert_chant_channel_to_json(channel):
@@ -109,7 +113,7 @@ def convert_chant_channel_to_json(channel):
     This method converts a chant channel entry to a JSON dictionary.
     """
     # TODO: this stuff is mostly placeholder, especially 'modified' field. Should be changed when Dispersy is out.
-    res_json = {"id": 0, "dispersy_cid": str(channel.public_key).encode('hex'), "name": channel.title,
+    res_json = {"id": 0, "dispersy_cid": hexlify(channel.public_key), "name": channel.title,
                 "description": channel.tags, "votes": channel.votes, "torrents": channel.size, "spam": 0,
                 "modified": channel.version, "subscribed": channel.subscribed}
 
@@ -124,7 +128,7 @@ def convert_db_torrent_to_json(torrent, include_rel_score=False):
     if torrent_name is None or len(torrent_name.strip()) == 0:
         torrent_name = "Unnamed torrent"
 
-    res_json = {"id": torrent[0], "infohash": torrent[1].encode('hex'), "name": torrent_name, "size": torrent[3] or 0,
+    res_json = {"id": torrent[0], "infohash": hexlify(torrent[1]), "name": torrent_name, "size": torrent[3] or 0,
                 "category": torrent[4] if torrent[4] else "unknown", "num_seeders": torrent[5] or 0, "num_leechers": torrent[6] or 0,
                 "last_tracker_check": torrent[7] or 0,
                 "commit_status": torrent[10] if len(torrent)>=11 else 0,
@@ -148,7 +152,7 @@ def convert_remote_torrent_to_json(torrent):
     if torrent_name is None or len(torrent_name.strip()) == 0:
         torrent_name = "Unnamed torrent"
 
-    return {'id': torrent['torrent_id'], "infohash": torrent['infohash'].encode('hex'), "name": torrent_name,
+    return {'id': torrent['torrent_id'], "infohash": hexlify(torrent['infohash']), "name": torrent_name,
             'size': torrent['length'], 'category': torrent['category'], 'num_seeders': torrent['num_seeders'],
             'num_leechers': torrent['num_leechers'], 'last_tracker_check': 0}
 

@@ -1,5 +1,5 @@
-from __future__ import absolute_import
 
+from __future__ import absolute_import
 import os
 from datetime import datetime
 from libtorrent import file_storage, add_files, create_torrent, set_piece_hashes, bencode, torrent_info

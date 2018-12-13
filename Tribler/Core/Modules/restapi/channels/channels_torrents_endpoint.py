@@ -1,6 +1,8 @@
+from __future__ import absolute_import
 import base64
 import os
 import sys
+from binascii import hexlify, unhexlify
 
 from pony.orm import db_session, desc
 from twisted.internet.defer import Deferred
@@ -453,7 +455,7 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
                 return json.dumps({"removed": True})
 
             for torrent_path in self.path.split(","):
-                infohash = torrent_path.decode('hex')
+                infohash = unhexlify(torrent_path)
                 if restore:
                     if not my_channel.cancel_torrent_deletion(infohash):
                         failed_torrents.append(torrent_path)

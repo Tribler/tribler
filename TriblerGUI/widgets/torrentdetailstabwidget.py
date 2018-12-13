@@ -1,5 +1,5 @@
+from __future__ import absolute_import
 import logging
-import time
 
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QLabel

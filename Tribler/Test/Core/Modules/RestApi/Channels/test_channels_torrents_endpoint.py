@@ -4,20 +4,18 @@ import shutil
 import urllib
 
 from pony.orm import db_session
-
-from Tribler.Core.exceptions import HttpError
-from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.TorrentDef import TorrentDef
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.exceptions import HttpError
+from Tribler.Test.Core.Modules.MetadataStore.test_channel_download import CHANNEL_DIR, CHANNEL_METADATA
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint, \
     AbstractTestChantEndpoint
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
-from Tribler.dispersy.exception import CommunityNotFoundException
-from Tribler.Test.Core.Modules.MetadataStore.test_channel_download import CHANNEL_DIR, CHANNEL_METADATA
+from Tribler.Test.tools import trial_timeout
 
 
 class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
