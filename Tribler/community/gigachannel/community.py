@@ -94,14 +94,14 @@ class GigaChannelCommunity(Community):
             if truncated_channel.infohash not in self.download_queue:
                 with db_session:
                     channel = self.tribler_session.lm.mds.ChannelMetadata.get_channel_with_id(longpk)
+                    print "AAAAAAAAAAAAA " + str(truncated_channel)
                     if not channel:
                         # Insert a new channel entry into the database.
-                        # We set the version to 0 so that we receive the up-to-date information later.
                         self.tribler_session.lm.mds.ChannelMetadata.from_dict({
                             'infohash': truncated_channel.infohash,
                             'public_key': longpk,
                             'title': truncated_channel.title,
-                            'version': 0
+                            'version': truncated_channel.version
                         })
                         self.download_queue.append(truncated_channel.infohash)
                     elif truncated_channel.version > channel.local_version:

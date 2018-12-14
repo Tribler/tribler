@@ -1,16 +1,18 @@
 from __future__ import absolute_import
+
 import os
 
-from Tribler.Core.exceptions import TriblerException
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Test.tools import trial_timeout
+from Tribler.Core.Modules.restapi.settings_endpoint import SettingsEndpoint
+from Tribler.Core.exceptions import TriblerException
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.tools import trial_timeout
 
+
+def RaiseException(*args, **kwargs):
+    raise TriblerException(u"Oops! Something went wrong. Please restart Tribler")
 
 class RestRequestTest(AbstractApiTest):
-
-    def throw_unhandled_exception(self, name, description, mode=u'closed'):
-        raise TriblerException(u"Oops! Something went wrong. Please restart Tribler")
 
     @trial_timeout(10)
     def test_unhandled_exception(self):
@@ -29,15 +31,11 @@ class RestRequestTest(AbstractApiTest):
             }
             self.assertDictContainsSubset(expected_response[u"error"], error_response[u"error"])
 
-        post_data = {
-            "name": "John Smit's channel",
-            "description": "Video's of my cat",
-            "mode": "semi-open"
-        }
-        self.session.create_channel = self.throw_unhandled_exception
+        post_data = json.dumps({"settings": "bla", "ports": "bla"})
+        SettingsEndpoint.parse_settings_dict = RaiseException
         self.should_check_equality = False
-        return self.do_request('channels/discovered', expected_code=500, expected_json=None, request_type='PUT',
-                               post_data=post_data).addCallback(verify_error_message)
+        return self.do_request('settings', expected_code=500, raw_data=True, expected_json=None, request_type='POST',
+                               post_data=post_data.encode('latin_1')).addCallback(verify_error_message)
 
     @trial_timeout(10)
     def test_tribler_shutting_down(self):
