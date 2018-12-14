@@ -138,13 +138,7 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
             results_local_torrents_channel = self.channel_db_handler \
                 .getTorrentsFromChannelId(channel_info[0], True, torrent_db_columns)
 
-        results_json = []
-        for torrent_result in results_local_torrents_channel:
-            torrent_json = convert_db_torrent_to_json(torrent_result)
-            if torrent_json['name'] is None or (should_filter and torrent_json['category'] == 'xxx'):
-                continue
-
-            results_json.append(torrent_json)
+        results_json = [convert_db_torrent_to_json(t) for t in results_local_torrents_channel]
 
         return json.dumps({"torrents": results_json, "chant_dirty": chant_dirty})
 

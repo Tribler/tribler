@@ -237,13 +237,7 @@ class SearchEndpoint(resource.Resource):
                                                                                             family_filter=xxx_filter)
                     results.extend(dispersy_torrents)
 
-        results_json = []
-        for torrent_result in results:
-            torrent_json = convert_db_torrent_to_json(torrent_result)
-            if torrent_json['name'] is None or (xxx_filter and torrent_json['category'] == 'xxx'):
-                continue
-
-            results_json.append(torrent_json)
+        results_json = [convert_db_torrent_to_json(t) for t in results]
 
         return json.dumps({"torrents": results_json, "chant_dirty": chant_dirty})
 
