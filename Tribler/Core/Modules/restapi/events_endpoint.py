@@ -76,7 +76,6 @@ class EventsEndpoint(resource.Resource):
         self.session.add_observer(self.on_tribler_started, NTFY_TRIBLER, [NTFY_STARTED])
         self.session.add_observer(self.on_channel_discovered, NTFY_CHANNEL, [NTFY_DISCOVERED])
         self.session.add_observer(self.on_torrent_discovered, NTFY_TORRENT, [NTFY_DISCOVERED])
-        self.session.add_observer(self.on_torrent_removed_from_channel, NTFY_TORRENT, [NTFY_DELETE])
         self.session.add_observer(self.on_torrent_finished, NTFY_TORRENT, [NTFY_FINISHED])
         self.session.add_observer(self.on_torrent_error, NTFY_TORRENT, [NTFY_ERROR])
         self.session.add_observer(self.on_market_ask, NTFY_MARKET_ON_ASK, [NTFY_UPDATE])
@@ -169,9 +168,6 @@ class EventsEndpoint(resource.Resource):
 
     def on_torrent_discovered(self, subject, changetype, objectID, *args):
         self.write_data({"type": "torrent_discovered", "event": args[0]})
-
-    def on_torrent_removed_from_channel(self, subject, changetype, objectID, *args):
-        self.write_data({"type": "torrent_removed_from_channel", "event": args[0]})
 
     def on_torrent_finished(self, subject, changetype, objectID, *args):
         self.write_data({"type": "torrent_finished", "event": {"infohash": objectID.encode('hex'), "name": args[0]}})
