@@ -267,51 +267,6 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
 class TestChannelTorrentsChantEndpoint(AbstractTestChantEndpoint):
 
     @trial_timeout(10)
-    def test_get_torrents_unknown_channel(self):
-        """
-        Test whether querying torrents in an unknown chant channel with the API results in an error
-        """
-        return self.do_request('channels/discovered/%s/torrents' % ('a' * (74 * 2)), expected_code=404)
-
-    @trial_timeout(10)
-    def test_get_torrents_from_my_channel(self):
-        """
-        Test whether the API returns the correct torrents from our chant channel
-        """
-        def verify_response(response):
-            json_response = json.loads(response)
-            self.assertEqual(len(json_response['torrents']), 1)
-            self.assertEqual(json_response['torrents'][0]['name'], 'forthetest')
-
-        my_channel = self.create_my_channel('test', 'test')
-        self.add_random_torrent_to_my_channel(name='forthetest')
-
-        self.should_check_equality = False
-        return self.do_request('channels/discovered/%s/torrents' % str(my_channel.public_key).encode('hex'),
-                               expected_code=200).addCallback(verify_response)
-
-    @trial_timeout(10)
-    def test_get_torrents_from_channel(self):
-        """
-        Test whether the API returns the correct torrents from other's chant channel
-        """
-
-        with db_session:
-            channel = self.session.lm.mds.process_mdblob_file(CHANNEL_METADATA)[0]
-            public_key = channel.public_key
-            channel_dir = os.path.join(CHANNEL_DIR, channel.dir_name)
-            self.session.lm.mds.process_channel_dir(channel_dir, public_key)
-            channel_size = len(channel.contents_list)
-
-        def verify_response(response):
-            json_response = json.loads(response)
-            self.assertEqual(len(json_response['torrents']), channel_size)
-
-        self.should_check_equality = False
-        return self.do_request('channels/discovered/%s/torrents' % str(public_key).encode('hex'),
-                               expected_code=200).addCallback(verify_response)
-
-    @trial_timeout(10)
     def test_add_torrent_to_external_channel(self):
         """
         Test whether adding a torrent to a channel that you do not own, results in an error
