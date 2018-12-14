@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 import base64
 import os
 import shutil
@@ -11,7 +12,6 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.exceptions import HttpError
-from Tribler.Test.Core.Modules.MetadataStore.test_channel_download import CHANNEL_DIR, CHANNEL_METADATA
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint, \
     AbstractTestChantEndpoint
 from Tribler.Test.Core.base_test import MockObject
@@ -20,14 +20,6 @@ from Tribler.Test.tools import trial_timeout
 
 
 class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
-
-    @trial_timeout(10)
-    def test_get_torrents_in_channel_invalid_cid(self):
-        """
-        Testing whether the API returns error 404 if a non-existent channel is queried for torrents
-        """
-        self.should_check_equality = False
-        return self.do_request('channels/discovered/abcd/torrents', expected_code=404)
 
     @trial_timeout(10)
     def test_add_torrent_to_channel(self):
@@ -231,8 +223,8 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         torrent_url = 'magnet:fake'
         url = 'channels/discovered/%s/torrents/%s' % ('fakedispersyid'.encode('hex'), urllib.quote_plus(torrent_url))
         self.should_check_equality = False
-        return self.do_request(url, expected_code=500, expected_json=None, request_type='PUT')\
-                   .addCallback(verify_error_message)
+        return self.do_request(url, expected_code=500, expected_json=None, request_type='PUT') \
+            .addCallback(verify_error_message)
 
     @trial_timeout(10)
     def test_timeout_on_add_torrent(self):
@@ -260,8 +252,8 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         torrent_url = 'magnet:fake'
         url = 'channels/discovered/%s/torrents/%s' % ('fakedispersyid'.encode('hex'), urllib.quote_plus(torrent_url))
         self.should_check_equality = False
-        return self.do_request(url, expected_code=500, expected_json=None, request_type='PUT')\
-                   .addCallback(verify_error_message)
+        return self.do_request(url, expected_code=500, expected_json=None, request_type='PUT') \
+            .addCallback(verify_error_message)
 
 
 class TestChannelTorrentsChantEndpoint(AbstractTestChantEndpoint):
@@ -357,6 +349,7 @@ class TestModifyChantChannelTorrentEndpoint(AbstractTestChantEndpoint):
         """
         Test adding a magnet to a chant channel using the API
         """
+
         def fake_get_metainfo(_, callback, timeout=10, timeout_callback=None, notify=True):
             meta_info = TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo()
             callback(meta_info)
@@ -413,6 +406,7 @@ class TestModifyChantChannelTorrentEndpoint(AbstractTestChantEndpoint):
         """
         Test removing some torrents from your channel with the API, while that fails
         """
+
         def verify_response(response):
             json_response = json.loads(response)
             self.assertIn('failed_torrents', json_response)
