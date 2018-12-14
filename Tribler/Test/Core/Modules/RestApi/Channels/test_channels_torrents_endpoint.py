@@ -29,35 +29,6 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
         self.should_check_equality = False
         return self.do_request('channels/discovered/abcd/torrents', expected_code=404)
 
-    @trial_timeout(15)
-    @inlineCallbacks
-    def test_get_torrents_in_channel(self):
-        """
-        Testing whether the API returns inserted torrents when fetching discovered channels, with and without filter
-        """
-        def verify_torrents_filter(torrents):
-            torrents_json = json.loads(torrents)
-            self.assertEqual(len(torrents_json['torrents']), 1)
-            self.assertEqual(torrents_json['torrents'][0]['infohash'], 'a' * 40)
-
-        def verify_torrents_no_filter(torrents):
-            torrents_json = json.loads(torrents)
-            self.assertEqual(len(torrents_json['torrents']), 2)
-
-        self.should_check_equality = False
-        channel_id = self.insert_channel_in_db('rand', 42, 'Test channel', 'Test description')
-
-        torrent_list = [
-            [channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso", [['file1.txt', 42]], []],
-            [channel_id, 1, 1, ('b' * 40).decode('hex'), 1460000000, "badterm", [['file1.txt', 42]], []]
-        ]
-        self.insert_torrents_into_channel(torrent_list)
-
-        yield self.do_request('channels/discovered/%s/torrents' % 'rand'.encode('hex'), expected_code=200)\
-            .addCallback(verify_torrents_filter)
-        yield self.do_request('channels/discovered/%s/torrents?disable_filter=1' % 'rand'.encode('hex'),
-                              expected_code=200).addCallback(verify_torrents_no_filter)
-
     @trial_timeout(10)
     def test_add_torrent_to_channel(self):
         """

@@ -83,6 +83,14 @@ class TestSearchEndpoint(AbstractApiTest):
         parsed = json.loads(result)
         self.assertEqual(len(parsed["torrents"]), 10)
 
+        """
+        torrent_list = [
+            [channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso", [['file1.txt', 42]], []],
+            [channel_id, 1, 1, ('b' * 40).decode('hex'), 1460000000, "badterm", [['file1.txt', 42]], []]
+        ]
+        self.insert_torrents_into_channel(torrent_list)
+        """
+
     @trial_timeout(10)
     @inlineCallbacks
     def test_search_chant(self):
