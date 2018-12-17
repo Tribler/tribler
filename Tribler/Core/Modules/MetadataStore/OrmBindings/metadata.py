@@ -26,7 +26,7 @@ def define_binding(db):
         tc_pointer = orm.Optional(int, size=64, default=0)
         public_key = orm.Optional(database_blob, default='\x00' * PUBLIC_KEY_LEN)
         addition_timestamp = orm.Optional(datetime, default=datetime.utcnow)
-        status = orm.Optional(int, default=NEW)
+        status = orm.Optional(int, default=COMMITTED)
         _payload_class = MetadataPayload
         _my_key = None
         _logger = None

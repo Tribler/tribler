@@ -559,6 +559,7 @@ class TriblerLaunchMany(TaskManager):
     def remove_channel(self, channel):
         channel.subscribed = False
         channel.remove_contents()
+        channel.local_version = 0
 
         # Remove all stuff matching the channel dir name / public key / torrent title
         remove_list = [d for d in self.get_channel_downloads() if d.tdef.get_name_utf8() == channel.dir_name]
