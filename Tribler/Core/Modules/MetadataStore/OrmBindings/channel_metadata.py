@@ -245,7 +245,8 @@ def define_binding(db):
                 "torrent_date": datetime.fromtimestamp(tdef.get_creation_date()),
                 "tc_pointer": 0,
                 "tracker_info": tdef.get_tracker() or '',
-                "public_key": self._my_key.pub().key_to_bin()
+                "public_key": self._my_key.pub().key_to_bin(),
+                "status" : NEW
             })
             torrent_metadata.sign()
 
