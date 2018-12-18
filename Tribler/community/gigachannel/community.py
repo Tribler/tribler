@@ -1,11 +1,11 @@
+from binascii import hexlify
 from time import time
 
 from pony.orm import db_session
 
-from Tribler.community.gigachannel.payload import TruncatedChannelPayload, TruncatedChannelPlayloadBlob
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
 from Tribler.pyipv8.ipv8.community import Community
-from Tribler.pyipv8.ipv8.lazy_community import lazy_wrapper
+from Tribler.pyipv8.ipv8.lazy_community import PacketDecodingError
 from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.requestcache import NumberCache, RequestCache
@@ -46,22 +46,8 @@ class GigaChannelCommunity(Community):
         self.request_cache = RequestCache()
 
         self.decode_map.update({
-            chr(1): self.on_truncated_blob
+            chr(1): self.on_blob
         })
-
-    def get_random_entries(self):
-        """
-        Fetch some random entries from our subscribed channels.
-
-        :return: the truncated payloads to share with other peers
-        :rtype: [TruncatedChannelPayload]
-        """
-        out = []
-        with db_session:
-            for channel in self.tribler_session.lm.mds.ChannelMetadata.get_random_channels(7):
-                out.append(TruncatedChannelPayload(str(channel.infohash), str(channel.title),
-                                                   str(channel.public_key[10:]), int(channel.version)))
-        return out
 
     def send_random_to(self, peer):
         """
@@ -71,14 +57,24 @@ class GigaChannelCommunity(Community):
         :type peer: Peer
         :returs: None
         """
-        entries = self.get_random_entries()
-        if entries:
-            payload = TruncatedChannelPlayloadBlob(entries).to_pack_list()
-            auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
-            self.endpoint.send(peer.address, self._ez_pack(self._prefix, 1, [auth, payload]))
+        minimal_blob_size = 200
+        maximum_payload_size = 1024
+        max_entries = maximum_payload_size/minimal_blob_size
 
-    @lazy_wrapper(TruncatedChannelPlayloadBlob)
-    def on_truncated_blob(self, peer, blob):
+        # Choose some random entries and try to pack them into 1024 bytes
+        md_list = None
+        with db_session:
+            md_list = self.tribler_session.lm.mds.ChannelMetadata.get_random_channels(max_entries)[:]
+            blob = entries_to_chunk(md_list, maximum_payload_size)[0]
+        print "SEND " + hexlify(blob)
+
+        # Send chosen entries to peer
+        if md_list:
+            auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
+            ersatz_payload = [('raw', blob)]
+            self.endpoint.send(peer.address, self._ez_pack(self._prefix, 1, [auth, ersatz_payload]))
+
+    def on_blob(self, source_address, data):
         """
         Callback for when a TruncatedChannelPlayloadBlob message comes in.
 
@@ -88,27 +84,15 @@ class GigaChannelCommunity(Community):
         :type blob: TruncatedChannelPlayloadBlob
         :returns: None
         """
-        for truncated_channel in blob.payload_list:
-            # The database stores the long format of the keys
-            longpk = "LibNaCLPK:" + truncated_channel.public_key
-            if truncated_channel.infohash not in self.download_queue:
-                with db_session:
-                    channel = self.tribler_session.lm.mds.ChannelMetadata.get_channel_with_id(longpk)
-                    print "AAAAAAAAAAAAA " + str(truncated_channel)
-                    if not channel:
-                        # Insert a new channel entry into the database.
-                        self.tribler_session.lm.mds.ChannelMetadata.from_dict({
-                            'infohash': truncated_channel.infohash,
-                            'public_key': longpk,
-                            'title': truncated_channel.title,
-                            'version': truncated_channel.version
-                        })
-                        self.download_queue.append(truncated_channel.infohash)
-                    elif truncated_channel.version > channel.local_version:
-                        # The sent version is newer than the one we have, queue the download.
-                        channel.infohash = truncated_channel.infohash
-                        self.download_queue.append(truncated_channel.infohash)
-                    # We don't update anything if the channel version is older than the one we know.
+        auth, remainder = self.serializer.unpack_to_serializables([BinMemberAuthenticationPayload, ], data[23:])
+        signature_valid, remainder = self._verify_signature(auth, data)
+        blob = remainder[23:]
+
+        if not signature_valid:
+            raise PacketDecodingError("Incoming packet %s has an invalid signature" % str(self.__class__))
+        print "RCV " + hexlify(blob)
+        self.tribler_session.lm.mds.process_squashed_mdblob(blob)
+        #self.tribler_session.lm.update_channel(channel_payload)
 
     def update_from_download(self, download):
         """
