@@ -1,13 +1,15 @@
 from __future__ import absolute_import
 
 import os
+import random
 from datetime import datetime
 from libtorrent import file_storage, add_files, create_torrent, set_piece_hashes, bencode, torrent_info
 
 from pony import orm
-from pony.orm import db_session, raw_sql
+from pony.orm import db_session, raw_sql, select
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import TODELETE, NEW, COMMITTED, PUBLIC_KEY_LEN
+from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import TODELETE, NEW, COMMITTED, PUBLIC_KEY_LEN, \
+    JUST_RECEIVED, PREVIEW_UPDATE_AVAILABLE
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, CHANNEL_TORRENT
 from Tribler.Core.exceptions import DuplicateTorrentFileError, DuplicateChannelNameError
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -70,6 +72,8 @@ def define_binding(db):
         subscribed = orm.Optional(bool, default=False)
         votes = orm.Optional(int, size=64, default=0)
         local_version = orm.Optional(int, size=64, default=0)
+        # For a new channel, by default we insert it in a random place in the download queue
+        download_priority = orm.Optional(float, default=lambda: random.uniform(0, 1))
         _payload_class = ChannelMetadataPayload
         _channels_dir = None
         _category_filter = None
@@ -352,8 +356,8 @@ def define_binding(db):
         @db_session
         def get_channel_with_dirname(cls, dirname):
             # It is impossible to use LIKE queries on BLOBs, so we have to use comparisons
-            def extend_to_bitmask(h):
-                return h + "0" * (PUBLIC_KEY_LEN * 2 - CHANNEL_DIR_NAME_LENGTH)
+            def extend_to_bitmask(txt):
+                return txt + "0" * (PUBLIC_KEY_LEN * 2 - CHANNEL_DIR_NAME_LENGTH)
 
             dirname_binmask_start = "x'" + extend_to_bitmask(dirname) + "'"
 
@@ -378,5 +382,12 @@ def define_binding(db):
         @db_session
         def remove_contents(self):
             self.contents.delete()
+
+        @classmethod
+        @db_session
+        def get_download_queue(cls):
+            return select(g for g in cls
+                              if g.status == JUST_RECEIVED
+                              or g.status == PREVIEW_UPDATE_AVAILABLE).sort_by(lambda g: g.download_priority)
 
     return ChannelMetadata

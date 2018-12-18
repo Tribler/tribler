@@ -25,6 +25,8 @@ from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
+from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import JUST_RECEIVED, UPDATE_AVAILABLE, \
+    PREVIEW_UPDATE_AVAILABLE
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, float2time
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Modules.payout_manager import PayoutManager
@@ -123,6 +125,8 @@ class TriblerLaunchMany(TaskManager):
         self.dht_community = None
         self.payout_manager = None
         self.mds = None
+
+        self.channels_downloads_limit = 20
 
     def register(self, session, session_lock):
         assert isInIOThread()
@@ -512,6 +516,12 @@ class TriblerLaunchMany(TaskManager):
             channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
             database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
             self.mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair)
+            # Metadata Store checks the database at regular intervals to see if new channels are available for preview
+            # or subscribed channels require updating.
+            queue_check_interval = 2.0 # seconds
+            #TODO: add errback here
+            self.register_task("Process channels download queue",
+                               LoopingCall(self._process_channels_queue)).start(queue_check_interval)
 
         self.session.set_download_states_callback(self.sesscb_states_callback)
 
@@ -519,6 +529,23 @@ class TriblerLaunchMany(TaskManager):
             self.payout_manager = PayoutManager(self.trustchain_community, self.dht_community)
 
         self.initComplete = True
+
+    def _process_channels_queue(self):
+        with db_session:
+            channels_queue = list(self.mds.ChannelMetadata.get_download_queue())
+
+        channel_downloads = [d for d in self.session.get_downloads() if d.get_channel_download()]
+
+        for _ in range(0, self.channels_downloads_limit - len(channel_downloads)):
+            channel = channels_queue.pop()
+            if not self.session.has_download(channel.infohash):
+                if channel.status == JUST_RECEIVED:
+                    self.download_channel_preview(channel)
+                elif channel.status == UPDATE_AVAILABLE:
+                    self.download_channel(channel)
+                elif channel.status == PREVIEW_UPDATE_AVAILABLE:
+                    self.update_channel_preview(channel)
+
 
     def on_channel_download_finished(self, download, channel_id, finished_deferred=None):
         if download.get_channel_download():
@@ -580,6 +607,26 @@ class TriblerLaunchMany(TaskManager):
         """
         finished_deferred = Deferred()
 
+        dcfg = DownloadStartupConfig()
+        dcfg.set_dest_dir(self.mds.channels_dir)
+        dcfg.set_channel_download(True)
+        tdef = TorrentDefNoMetainfo(infohash=str(channel.infohash), name=channel.dir_name)
+        download = self.session.start_download_from_tdef(tdef, dcfg)
+        channel_id = channel.public_key
+        download.finished_callback = lambda dl: self.on_channel_download_finished(dl, channel_id, finished_deferred)
+        if download.get_state().get_status() == DLSTATUS_SEEDING and not download.finished_callback_already_called:
+            download.finished_callback_already_called = True
+            download.finished_callback(download)
+        return download, finished_deferred
+
+    def download_channel_preview(self, channel):
+        """
+        Download preview of a channel with a given infohash and title.
+        :param channel: The channel metadata ORM object.
+        """
+        finished_deferred = Deferred()
+
+        # TODO
         dcfg = DownloadStartupConfig()
         dcfg.set_dest_dir(self.mds.channels_dir)
         dcfg.set_channel_download(True)
