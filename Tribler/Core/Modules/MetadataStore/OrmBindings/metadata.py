@@ -9,11 +9,16 @@ from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
+# Metadata, torrents and channel statuses
 NEW = 0
 TODELETE = 1
 COMMITTED = 2
+JUST_RECEIVED = 3
+UPDATE_AVAILABLE = 4
+PREVIEW_UPDATE_AVAILABLE = 5
 
 PUBLIC_KEY_LEN = 74
+
 
 def define_binding(db):
     class Metadata(db.Entity):

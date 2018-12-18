@@ -1,19 +1,22 @@
+from __future__ import absolute_import
+
 import logging
 import os
 
 from pony import orm
-from pony.orm import db_session
+from pony.orm import db_session, select
 
 from Tribler.Core.Category.Category import Category
 from Tribler.Core.Modules.MetadataStore.OrmBindings import metadata, torrent_metadata, channel_metadata
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
+from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import JUST_RECEIVED, UPDATE_AVAILABLE, \
+    PREVIEW_UPDATE_AVAILABLE
 from Tribler.Core.Modules.MetadataStore.serialization import read_payload_with_offset, REGULAR_TORRENT, \
-    CHANNEL_TORRENT, DELETED
+    CHANNEL_TORRENT, DELETED, float2time, ChannelMetadataPayload
 # This table should never be used from ORM directly.
 # It is created as a VIRTUAL table by raw SQL and
 # maintained by SQL triggers.
 from Tribler.Core.exceptions import InvalidSignatureException
-from Tribler.pyipv8.ipv8.messaging.serialization import Serializer
 
 sql_create_fts_table = """
     CREATE VIRTUAL TABLE IF NOT EXISTS FtsIndex USING FTS5
@@ -43,6 +46,7 @@ sql_add_fts_trigger_update = """
 sql_add_signature_index = "CREATE INDEX SignatureIndex ON Metadata(signature);"
 sql_add_public_key_index = "CREATE INDEX PublicKeyIndex ON Metadata(public_key);"
 sql_add_infohash_index = "CREATE INDEX InfohashIndex ON Metadata(infohash);"
+sql_add_download_priority_index = "CREATE INDEX DownloadPriorityIndex ON Metadata(download_priority);"
 
 
 class BadChunkException(Exception):
@@ -72,7 +76,7 @@ class MetadataStore(object):
         self.ChannelMetadata._channels_dir = channels_dir
         self.Metadata._logger = self._logger  # Use Store-level logger for every ORM-based class
 
-        #TODO: move Category Filter into a module-level global stateless object (i.e. make it a singleton)
+        # TODO: move Category Filter into a module-level global stateless object (i.e. make it a singleton)
         self.ChannelMetadata._category_filter = Category()
 
         self._db.bind(provider='sqlite', filename=db_filename, create_db=create_db)
@@ -88,6 +92,7 @@ class MetadataStore(object):
                 self._db.execute(sql_add_signature_index)
                 self._db.execute(sql_add_public_key_index)
                 self._db.execute(sql_add_infohash_index)
+                self._db.execute(sql_add_download_priority_index)
 
     def shutdown(self):
         self._db.disconnect()
@@ -162,7 +167,44 @@ class MetadataStore(object):
             elif payload.metadata_type == REGULAR_TORRENT:
                 return self.TorrentMetadata.from_payload(payload)
             elif payload.metadata_type == CHANNEL_TORRENT:
-                return self.ChannelMetadata.from_payload(payload)
+                return self.update_channel_info(payload)
+
+    @db_session
+    def update_channel_info(self, payload):
+        """
+        We received some channel metadata, possibly over the network.
+        Validate the signature, update the local metadata store and put in at the beginning of the download queue
+        if necessary.
+        :param payload: The channel metadata, in serialized form.
+        """
+
+        channel = self.ChannelMetadata.get_channel_with_id(payload.public_key)
+        if channel:
+            if float2time(payload.timestamp) > channel.timestamp:
+                # Update the channel that is already there.
+                self._logger.info("Updating channel metadata %s ts %s->%s", str(channel.public_key).encode("hex"),
+                                  str(channel.timestamp), str(float2time(payload.timestamp)))
+                channel.set(**ChannelMetadataPayload.to_dict(payload))
+
+                if channel.version > channel.local_version:
+                    if channel.subscribed:
+                        # This is an update of a channel we are already subscribed to
+                        channel.download_priority += 100
+                        channel.status = UPDATE_AVAILABLE
+                    else:
+                        channel.status = PREVIEW_UPDATE_AVAILABLE
+        else:
+            # Add new channel object to DB
+            channel = self.ChannelMetadata.from_payload(payload)
+            channel.status = JUST_RECEIVED
+
+        """
+        if channel.version > channel.local_version:
+            self._logger.info("Downloading new channel version %s ver %i->%i", str(channel.public_key).encode("hex"),
+                              channel.local_version, channel.version)
+        #TODO: handle the case where the local version is the same as the new one and is not seeded
+        """
+        return channel
 
     @db_session
     def get_my_channel(self):

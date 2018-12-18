@@ -61,12 +61,11 @@ class GigaChannelCommunity(Community):
         maximum_payload_size = 1024
         max_entries = maximum_payload_size/minimal_blob_size
 
-        # Choose some random entries and try to pack them into 1024 bytes
+        # Choose some random entries and try to pack them into maximum_payload_size bytes
         md_list = None
         with db_session:
             md_list = self.tribler_session.lm.mds.ChannelMetadata.get_random_channels(max_entries)[:]
-            blob = entries_to_chunk(md_list, maximum_payload_size)[0]
-        print "SEND " + hexlify(blob)
+            blob = entries_to_chunk(md_list, maximum_payload_size)[0] if md_list else None
 
         # Send chosen entries to peer
         if md_list:
@@ -90,9 +89,8 @@ class GigaChannelCommunity(Community):
 
         if not signature_valid:
             raise PacketDecodingError("Incoming packet %s has an invalid signature" % str(self.__class__))
-        print "RCV " + hexlify(blob)
+        #print "RCV " + hexlify(blob)
         self.tribler_session.lm.mds.process_squashed_mdblob(blob)
-        #self.tribler_session.lm.update_channel(channel_payload)
 
     def update_from_download(self, download):
         """
