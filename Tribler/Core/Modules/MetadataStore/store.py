@@ -4,13 +4,11 @@ import logging
 import os
 
 from pony import orm
-from pony.orm import db_session, select
+from pony.orm import db_session
 
 from Tribler.Core.Category.Category import Category
 from Tribler.Core.Modules.MetadataStore.OrmBindings import metadata, torrent_metadata, channel_metadata
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
-from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import JUST_RECEIVED, UPDATE_AVAILABLE, \
-    PREVIEW_UPDATE_AVAILABLE
 from Tribler.Core.Modules.MetadataStore.serialization import read_payload_with_offset, REGULAR_TORRENT, \
     CHANNEL_TORRENT, DELETED, float2time, ChannelMetadataPayload
 # This table should never be used from ORM directly.
@@ -46,7 +44,6 @@ sql_add_fts_trigger_update = """
 sql_add_signature_index = "CREATE INDEX SignatureIndex ON Metadata(signature);"
 sql_add_public_key_index = "CREATE INDEX PublicKeyIndex ON Metadata(public_key);"
 sql_add_infohash_index = "CREATE INDEX InfohashIndex ON Metadata(infohash);"
-sql_add_download_priority_index = "CREATE INDEX DownloadPriorityIndex ON Metadata(download_priority);"
 
 
 class BadChunkException(Exception):
@@ -92,7 +89,6 @@ class MetadataStore(object):
                 self._db.execute(sql_add_signature_index)
                 self._db.execute(sql_add_public_key_index)
                 self._db.execute(sql_add_infohash_index)
-                self._db.execute(sql_add_download_priority_index)
 
     def shutdown(self):
         self._db.disconnect()
@@ -185,23 +181,12 @@ class MetadataStore(object):
                 self._logger.info("Updating channel metadata %s ts %s->%s", str(channel.public_key).encode("hex"),
                                   str(channel.timestamp), str(float2time(payload.timestamp)))
                 channel.set(**ChannelMetadataPayload.to_dict(payload))
-
-                if channel.version > channel.local_version:
-                    if channel.subscribed:
-                        # This is an update of a channel we are already subscribed to
-                        channel.download_priority += 100
-                        channel.status = UPDATE_AVAILABLE
-                    else:
-                        channel.status = PREVIEW_UPDATE_AVAILABLE
         else:
             # Add new channel object to DB
             channel = self.ChannelMetadata.from_payload(payload)
-            channel.status = JUST_RECEIVED
 
         """
         if channel.version > channel.local_version:
-            self._logger.info("Downloading new channel version %s ver %i->%i", str(channel.public_key).encode("hex"),
-                              channel.local_version, channel.version)
         #TODO: handle the case where the local version is the same as the new one and is not seeded
         """
         return channel

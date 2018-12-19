@@ -38,6 +38,7 @@ def define_binding(db):
 
         def __init__(self, *args, **kwargs):
             super(Metadata, self).__init__(*args, **kwargs)
+            # FIXME: race condition here. To avoid it, we must call "super" *after* generating the signature
             # If no key/signature given, sign with our own key.
             if "public_key" not in kwargs or (kwargs["public_key"] == self._my_key and "signature" not in kwargs):
                 self.sign(self._my_key)
