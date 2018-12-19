@@ -1,9 +1,6 @@
-from binascii import hexlify
-from time import time
-
 from pony.orm import db_session
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
 from Tribler.pyipv8.ipv8.community import Community
 from Tribler.pyipv8.ipv8.lazy_community import PacketDecodingError
 from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
@@ -42,7 +39,6 @@ class GigaChannelCommunity(Community):
     def __init__(self, my_peer, endpoint, network, tribler_session):
         super(GigaChannelCommunity, self).__init__(my_peer, endpoint, network)
         self.tribler_session = tribler_session
-        self.download_queue = []
         self.request_cache = RequestCache()
 
         self.decode_map.update({
@@ -55,16 +51,22 @@ class GigaChannelCommunity(Community):
 
         :param peer: the peer to send to
         :type peer: Peer
-        :returs: None
+        :returns: None
         """
         minimal_blob_size = 200
         maximum_payload_size = 1024
-        max_entries = maximum_payload_size/minimal_blob_size
+        max_entries = maximum_payload_size / minimal_blob_size
 
         # Choose some random entries and try to pack them into maximum_payload_size bytes
-        md_list = None
+        md_list = []
         with db_session:
-            md_list = self.tribler_session.lm.mds.ChannelMetadata.get_random_channels(max_entries)[:]
+            channel_l = self.tribler_session.lm.mds.ChannelMetadata.select(lambda g: g.subscribed).random(1)[:]
+            if not channel_l:
+                return
+            channel = channel_l[0]
+            # TODO: when the health table will be there, send popular torrents instead
+            md_list.append(channel)
+            md_list.extend(list(channel.get_random_torrents(max_entries - 1)))
             blob = entries_to_chunk(md_list, maximum_payload_size)[0] if md_list else None
 
         # Send chosen entries to peer
@@ -75,13 +77,10 @@ class GigaChannelCommunity(Community):
 
     def on_blob(self, source_address, data):
         """
-        Callback for when a TruncatedChannelPlayloadBlob message comes in.
+        Callback for when a MetadataBlob message comes in.
 
         :param peer: the peer that sent us the blob
-        :type peer: Peer
-        :param blob: the truncated channel message
-        :type blob: TruncatedChannelPlayloadBlob
-        :returns: None
+        :param data: payload raw data
         """
         auth, remainder = self.serializer.unpack_to_serializables([BinMemberAuthenticationPayload, ], data[23:])
         signature_valid, remainder = self._verify_signature(auth, data)
@@ -89,75 +88,7 @@ class GigaChannelCommunity(Community):
 
         if not signature_valid:
             raise PacketDecodingError("Incoming packet %s has an invalid signature" % str(self.__class__))
-        #print "RCV " + hexlify(blob)
         self.tribler_session.lm.mds.process_squashed_mdblob(blob)
-
-    def update_from_download(self, download):
-        """
-        Given a channel download, update the amount of votes.
-
-        :param download: the channel download to inspect
-        :type download: LibtorrentDownloadImpl
-        :returns: None
-        """
-        infohash = download.tdef.get_infohash()
-        with db_session:
-            channel = self.tribler_session.lm.mds.ChannelMetadata.get_channel_with_infohash(infohash)
-            if channel:
-                channel.votes = download.get_num_connected_seeds_peers()[0]
-            else:
-                # We have an older version in our list, decide what to do with it
-                my_key_hex = str(self.tribler_session.lm.mds.my_key.pub().key_to_bin()).encode('hex')
-                dirname = my_key_hex[-CHANNEL_DIR_NAME_LENGTH:]
-                if download.tdef.get_name() != dirname or time() - download.tdef.get_creation_date() > 604800:
-                    # This is not our channel or more than a week old version of our channel: delete it
-                    self.logger.debug("Removing old channel version %s", infohash.encode('hex'))
-                    self.tribler_session.remove_download(download)
-
-    def download_completed(self, download):
-        """
-        Callback for when a channel download finished.
-
-        :param download: the channel download which completed
-        :type download: LibtorrentDownloadImpl
-        :returns: None
-        """
-        if self.request_cache.has(u"channel-download-cache", 0):
-            self.request_cache.pop(u"channel-download-cache", 0)
-        self.update_from_download(download)
-
-    def update_states(self, states_list):
-        """
-        Callback for when the download states are updated in Tribler.
-        We still need to filter out the channel downloads from this list.
-
-        :param states_list: the list of download states
-        :type states_list: [DownloadState]
-        :returns: None
-        """
-        for ds in states_list:
-            if ds.get_download().dlconfig.get('download_defaults', 'channel_download'):
-                self.update_from_download(ds.get_download())
-
-    def fetch_next(self):
-        """
-        If we have nothing to process right now, start downloading a new channel.
-
-        :returns: None
-        """
-        if self.request_cache.has(u"channel-download-cache", 0):
-            return
-        if self.download_queue:
-            infohash = self.download_queue.pop(0)
-            if not self.tribler_session.has_download(infohash):
-                self._logger.info("Starting channel download with infohash %s", infohash.encode('hex'))
-                # Reserve the token
-                self.request_cache.add(ChannelDownloadCache(self.request_cache))
-                # Start downloading this channel
-                with db_session:
-                    channel = self.tribler_session.lm.mds.ChannelMetadata.get_channel_with_infohash(infohash)
-                finished_deferred = self.tribler_session.lm.download_channel(channel)[1]
-                finished_deferred.addCallback(self.download_completed)
 
 
 class GigaChannelTestnetCommunity(GigaChannelCommunity):

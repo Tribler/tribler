@@ -1,15 +1,13 @@
 from __future__ import absolute_import
 
 import os
-import random
 from datetime import datetime
 from libtorrent import file_storage, add_files, create_torrent, set_piece_hashes, bencode, torrent_info
 
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import TODELETE, NEW, COMMITTED, PUBLIC_KEY_LEN, \
-    JUST_RECEIVED, PREVIEW_UPDATE_AVAILABLE
+from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import TODELETE, NEW, COMMITTED, PUBLIC_KEY_LEN
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, CHANNEL_TORRENT
 from Tribler.Core.exceptions import DuplicateTorrentFileError, DuplicateChannelNameError
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -72,8 +70,6 @@ def define_binding(db):
         subscribed = orm.Optional(bool, default=False)
         votes = orm.Optional(int, size=64, default=0)
         local_version = orm.Optional(int, size=64, default=0)
-        # For a new channel, by default we insert it in a random place in the download queue
-        download_priority = orm.Optional(float, default=lambda: random.uniform(0, 1))
         _payload_class = ChannelMetadataPayload
         _channels_dir = None
         _category_filter = None
@@ -106,6 +102,11 @@ def define_binding(db):
             if payload.version > channel.version:
                 channel.set(**payload.to_dict())
             return channel
+
+        @classmethod
+        @db_session
+        def get_my_channel(cls):
+            return ChannelMetadata.get_channel_with_id(cls._my_key.pub().key_to_bin())
 
         @classmethod
         @db_session
@@ -250,7 +251,7 @@ def define_binding(db):
                 "tc_pointer": 0,
                 "tracker_info": tdef.get_tracker() or '',
                 "public_key": self._my_key.pub().key_to_bin(),
-                "status" : NEW
+                "status": NEW
             })
             torrent_metadata.sign()
 
@@ -369,15 +370,19 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_random_channels(cls, limit):
+        def get_random_subscribed_channels(cls, limit):
             """
-            Fetch up to some limit of channels we are subscribed to.
+            Fetch up to some limit of torrents from this channel
 
-            :param limit: the maximum amount of channels to fetch
+            :param limit: the maximum amount of torrents to fetch
             :return: the subset of random channels we are subscribed to
             :rtype: list
             """
             return db.ChannelMetadata.select(lambda g: g.subscribed).random(limit)
+
+        @db_session
+        def get_random_torrents(self, limit):
+            return self.contents.random(limit)
 
         @db_session
         def remove_contents(self):
@@ -385,9 +390,7 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_download_queue(cls):
-            return select(g for g in cls
-                              if g.status == JUST_RECEIVED
-                              or g.status == PREVIEW_UPDATE_AVAILABLE).sort_by(lambda g: g.download_priority)
+        def get_updated_channels(cls):
+            return select(g for g in cls if g.subscribed and (g.local_version < g.version))
 
     return ChannelMetadata

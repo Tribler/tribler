@@ -25,9 +25,6 @@ from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
-from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import JUST_RECEIVED, UPDATE_AVAILABLE, \
-    PREVIEW_UPDATE_AVAILABLE
-from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, float2time
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Modules.payout_manager import PayoutManager
 from Tribler.Core.Modules.resource_monitor import ResourceMonitor
@@ -41,7 +38,6 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Video.VideoServer import VideoServer
-from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,
                                      NTFY_FINISHED, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
                                      DLSTATUS_SEEDING, NTFY_TORRENT, STATE_STARTING_DISPERSY, STATE_LOADING_COMMUNITIES,
@@ -126,7 +122,6 @@ class TriblerLaunchMany(TaskManager):
         self.payout_manager = None
         self.mds = None
 
-        self.channels_downloads_limit = 20
 
     def register(self, session, session_lock):
         assert isInIOThread()
@@ -521,7 +516,7 @@ class TriblerLaunchMany(TaskManager):
             queue_check_interval = 2.0 # seconds
             #TODO: add errback here
             self.register_task("Process channels download queue",
-                               LoopingCall(self._process_channels_queue)).start(queue_check_interval)
+                               LoopingCall(self.check_channels_updates)).start(queue_check_interval)
 
         self.session.set_download_states_callback(self.sesscb_states_callback)
 
@@ -530,22 +525,30 @@ class TriblerLaunchMany(TaskManager):
 
         self.initComplete = True
 
-    def _process_channels_queue(self):
+    def check_channels_updates(self):
         with db_session:
-            channels_queue = list(self.mds.ChannelMetadata.get_download_queue())
+            channels_queue = list(self.mds.ChannelMetadata.get_updated_channels())
 
-        channel_downloads = [d for d in self.session.get_downloads() if d.get_channel_download()]
+        for channel in channels_queue:
+            if not self.session.has_download(binascii.hexlify(str(channel.infohash))):
+                self._logger.info("Downloading new channel version %s ver %i->%i",
+                                  str(channel.public_key).encode("hex"),
+                                  channel.local_version, channel.version)
+                self.download_channel(channel)
 
-        for _ in range(0, self.channels_downloads_limit - len(channel_downloads)):
-            channel = channels_queue.pop()
-            if not self.session.has_download(channel.infohash):
-                if channel.status == JUST_RECEIVED:
-                    self.download_channel_preview(channel)
-                elif channel.status == UPDATE_AVAILABLE:
-                    self.download_channel(channel)
-                elif channel.status == PREVIEW_UPDATE_AVAILABLE:
-                    self.update_channel_preview(channel)
+    def check_obsolete_channel_torrents(self):
+        # Now check for obsolete channel torrents
+        #channel.votes = download.get_num_connected_seeds_peers()[0]
 
+        for dl in [d for d in self.session.get_downloads() if
+                   d.get_channel_download() and (time.time() - dl.tdef.get_creation_date()) > 604800]:
+            infohash = dl.tdef.infohash()
+            with db_session:
+                if self.mds.ChannelMetadata.get_channel_with_infohash(infohash):
+                    continue
+            # This is more than a week old previous version of some channel: delete it
+            self._logger.debug("Removing old channel version %s", infohash.encode('hex'))
+            self.session.remove_download(dl)
 
     def on_channel_download_finished(self, download, channel_id, finished_deferred=None):
         if download.get_channel_download():
@@ -553,34 +556,6 @@ class TriblerLaunchMany(TaskManager):
             self.mds.process_channel_dir(channel_dirname, channel_id)
             if finished_deferred:
                 finished_deferred.callback(download)
-
-    @db_session
-    def update_channel(self, payload):
-        """
-        We received some channel metadata, possibly over the network.
-        Validate the signature, update the local metadata store and start downloading this channel if needed.
-        :param payload: The channel metadata, in serialized form.
-        """
-        if not payload.has_valid_signature():
-            raise InvalidSignatureException("The signature of the channel metadata is invalid.")
-
-        channel = self.mds.ChannelMetadata.get_channel_with_id(payload.public_key)
-        if channel:
-            if float2time(payload.timestamp) > channel.timestamp:
-                # Update the channel that is already there.
-                self._logger.info("Updating channel metadata %s ts %s->%s", str(channel.public_key).encode("hex"),
-                                  str(channel.timestamp), str(float2time(payload.timestamp)))
-                channel.set(**ChannelMetadataPayload.to_dict(payload))
-        else:
-            # Add new channel object to DB
-            channel = self.mds.ChannelMetadata.from_payload(payload)
-            channel.subscribed = True
-
-        if channel.version > channel.local_version:
-            self._logger.info("Downloading new channel version %s ver %i->%i", str(channel.public_key).encode("hex"),
-                              channel.local_version, channel.version)
-        #TODO: handle the case where the local version is the same as the new one and is not seeded
-        return self.download_channel(channel)
 
     @db_session
     def remove_channel(self, channel):
@@ -917,9 +892,6 @@ class TriblerLaunchMany(TaskManager):
                 self.tunnel_community.monitor_downloads(states_list)
             if self.credit_mining_manager:
                 self.credit_mining_manager.monitor_downloads(states_list)
-
-        if self.gigachannel_community:
-            self.gigachannel_community.update_states(states_list)
 
         return []
 
