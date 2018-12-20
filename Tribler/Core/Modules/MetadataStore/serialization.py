@@ -178,17 +178,17 @@ class TorrentMetadataPayload(MetadataPayload):
         super(TorrentMetadataPayload, self).__init__(metadata_type, public_key, timestamp, tc_pointer, **kwargs)
         self.infohash = str(infohash)
         self.size = size
-        self.title = title.encode("utf-8")
-        self.tags = tags.encode("utf-8")
-        self.tracker_info = tracker_info.encode("utf-8")
+        self.title = title.decode('utf-8') if type(title) == str else title
+        self.tags = tags.decode('utf-8') if type(tags) == str else tags
+        self.tracker_info = tracker_info.decode('utf-8') if type(tracker_info) == str else tracker_info
 
     def to_pack_list(self):
         data = super(TorrentMetadataPayload, self).to_pack_list()
         data.append(('20s', self.infohash))
         data.append(('Q', self.size))
-        data.append(('varlenI', self.title))
-        data.append(('varlenI', self.tags))
-        data.append(('varlenI', self.tracker_info))
+        data.append(('varlenI', self.title.encode('utf-8')))
+        data.append(('varlenI', self.tags.encode('utf-8')))
+        data.append(('varlenI', self.tracker_info.encode('utf-8')))
         return data
 
     @classmethod
