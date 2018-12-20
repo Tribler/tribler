@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division
 
 import struct
+from binascii import hexlify
 from datetime import datetime, timedelta
 
 from Tribler.Core.exceptions import InvalidSignatureException
@@ -8,7 +9,6 @@ from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 from Tribler.pyipv8.ipv8.messaging.payload import Payload
 from Tribler.pyipv8.ipv8.messaging.serialization import default_serializer
-
 
 EPOCH = datetime(1970, 1, 1)
 INFOHASH_SIZE = 20  # bytes
@@ -102,7 +102,8 @@ class MetadataPayload(Payload):
 
     def has_valid_signature(self):
         sig_data = default_serializer.pack_multiple(self.to_pack_list())[0]
-        return default_eccrypto.is_valid_signature(default_eccrypto.key_from_public_bin(self.public_key), sig_data, self.signature)
+        return default_eccrypto.is_valid_signature(default_eccrypto.key_from_public_bin(self.public_key), sig_data,
+                                                   self.signature)
 
     def to_pack_list(self):
         data = [('I', self.metadata_type),
@@ -146,7 +147,15 @@ class MetadataPayload(Payload):
             raise KeysMismatchException(self.public_key, str(key.pub().key_to_bin()))
 
         serialized_data = default_serializer.pack_multiple(self.to_pack_list())[0]
-        signature = default_eccrypto.create_signature(key, serialized_data) if key else self.signature
+        if key:
+            signature = default_eccrypto.create_signature(key, serialized_data)
+
+        # This check ensures that an entry with a wrong signature will not proliferate further
+        elif default_eccrypto.is_valid_signature(default_eccrypto.key_from_public_bin(self.public_key), serialized_data,
+                                                 self.signature):
+            signature = self.signature
+        else:
+            raise InvalidSignatureException(hexlify(self.signature))
         return str(serialized_data), str(signature)
 
     def serialized(self, key=None):
