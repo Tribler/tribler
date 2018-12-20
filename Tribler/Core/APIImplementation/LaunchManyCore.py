@@ -588,26 +588,7 @@ class TriblerLaunchMany(TaskManager):
         tdef = TorrentDefNoMetainfo(infohash=str(channel.infohash), name=channel.dir_name)
         download = self.session.start_download_from_tdef(tdef, dcfg)
         channel_id = channel.public_key
-        download.finished_callback = lambda dl: self.on_channel_download_finished(dl, channel_id, finished_deferred)
-        if download.get_state().get_status() == DLSTATUS_SEEDING and not download.finished_callback_already_called:
-            download.finished_callback_already_called = True
-            download.finished_callback(download)
-        return download, finished_deferred
-
-    def download_channel_preview(self, channel):
-        """
-        Download preview of a channel with a given infohash and title.
-        :param channel: The channel metadata ORM object.
-        """
-        finished_deferred = Deferred()
-
-        # TODO
-        dcfg = DownloadStartupConfig()
-        dcfg.set_dest_dir(self.mds.channels_dir)
-        dcfg.set_channel_download(True)
-        tdef = TorrentDefNoMetainfo(infohash=str(channel.infohash), name=channel.dir_name)
-        download = self.session.start_download_from_tdef(tdef, dcfg)
-        channel_id = channel.public_key
+        #TODO: add errbacks here!
         download.finished_callback = lambda dl: self.on_channel_download_finished(dl, channel_id, finished_deferred)
         if download.get_state().get_status() == DLSTATUS_SEEDING and not download.finished_callback_already_called:
             download.finished_callback_already_called = True

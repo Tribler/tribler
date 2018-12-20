@@ -346,7 +346,14 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     request.setResponseCode(http.BAD_REQUEST)
                     return json.dumps({"error": "Metadata has invalid signature"})
 
-                download, _ = self.session.lm.update_channel(payload)
+                with db_session:
+                    channel = self.session.lm.mds.process_payload(payload)
+                    if channel and not channel.subscribed and channel.local_version < channel.version:
+                        channel.subscribed = True
+                        download, _ = self.session.lm.download_channel(channel)
+                    else:
+                        return json.dumps({"error": "Already subscribed"})
+
                 return json.dumps({"started": True, "infohash": str(download.get_def().get_infohash()).encode('hex')})
             else:
                 download_uri = u"file:%s" % url2pathname(uri[5:]).decode('utf-8')

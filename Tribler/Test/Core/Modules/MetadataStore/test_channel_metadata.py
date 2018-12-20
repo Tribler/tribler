@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import os
+from binascii import hexlify
 from datetime import datetime
 
 from pony.orm import db_session
@@ -9,6 +10,7 @@ from twisted.internet.defer import inlineCallbacks
 from typing import Optional, Any
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
+from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
@@ -80,15 +82,14 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         Test whether a correct list with channel content is returned from the database
         """
-        pub_key1 = default_eccrypto.generate_key('low').pub().key_to_bin()
-        pub_key2 = default_eccrypto.generate_key('low').pub().key_to_bin()
+        self.mds.Metadata._my_key = default_eccrypto.generate_key('low')
+        channel1 = self.mds.ChannelMetadata()
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template))
 
-        channel1 = self.mds.ChannelMetadata(public_key=pub_key1)
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, public_key=pub_key1))
-
-        channel2 = self.mds.ChannelMetadata(public_key=pub_key2)
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, public_key=pub_key2))
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, public_key=pub_key2))
+        self.mds.Metadata._my_key = default_eccrypto.generate_key('low')
+        channel2 = self.mds.ChannelMetadata()
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template))
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template))
 
         self.assertEqual(1, len(channel1.contents_list))
         self.assertEqual(2, len(channel2.contents_list))
@@ -175,7 +176,7 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         channel_metadata = self.mds.ChannelMetadata.create_channel('test', 'test')
         self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, public_key=channel_metadata.public_key))
+            dict(self.torrent_template, public_key=channel_metadata.public_key, status=NEW))
         channel_metadata.commit_channel_torrent()
 
         self.assertEqual(channel_metadata.version, 1)
@@ -227,8 +228,8 @@ class TestChannelMetadata(TriblerCoreTest):
         channel.commit_channel_torrent()
 
         # 2nd torrent
-        self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, public_key=channel.public_key))
+        md = self.mds.TorrentMetadata.from_dict(
+            dict(self.torrent_template, public_key=channel.public_key, status=NEW))
         channel.commit_channel_torrent()
 
         # Delete entry

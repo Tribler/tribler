@@ -1,5 +1,5 @@
 import os
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 from urllib import pathname2url
 
 from pony.orm import db_session
@@ -591,8 +591,9 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
         with open(file_path, "wb") as out_file:
             with db_session:
                 my_channel = self.session.lm.mds.ChannelMetadata.create_channel('test', 'test')
-                my_channel.signature = "lalala"
-            out_file.write(my_channel.serialized())
+
+            hexed = hexlify(my_channel.serialized())[:-5] + "aaaaa"
+            out_file.write(unhexlify(hexed))
 
         post_data = {'uri': 'file:%s' % file_path, 'metadata_download': '1'}
         expected_json = {'error': "Metadata has invalid signature"}
