@@ -7,6 +7,7 @@ from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
+from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import (ChannelMetadataPayload, MetadataPayload,
                                                               UnknownBlobTypeException)
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
@@ -92,7 +93,7 @@ class TestMetadataStore(TriblerCoreTest):
 
         num_entries = 10
         channel = self.mds.ChannelMetadata(title='testchan')
-        md_list = [self.mds.TorrentMetadata(title='test' + str(x)) for x in xrange(0, num_entries)]
+        md_list = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW) for x in range(0, num_entries)]
         channel.commit_channel_torrent()
 
         channel.local_version = 0

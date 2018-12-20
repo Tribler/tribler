@@ -6,6 +6,7 @@ from pony.orm import db_session
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
+from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
 from Tribler.Core.exceptions import DuplicateChannelNameError
@@ -57,7 +58,7 @@ class AbstractTestChantEndpoint(AbstractApiTest):
         """
         Add a random torrent to your channel.
         """
-        return self.session.lm.mds.TorrentMetadata(title='test' if not name else name,
+        return self.session.lm.mds.TorrentMetadata(status=NEW, title='test' if not name else name,
                                                    infohash=database_blob(
                                                        bytearray(random.getrandbits(8) for _ in xrange(20))))
 
@@ -69,6 +70,7 @@ class AbstractTestChantEndpoint(AbstractApiTest):
         """
         rand_key = default_eccrypto.generate_key('low')
         new_channel = self.session.lm.mds.ChannelMetadata(
+            sign_with=rand_key,
             public_key=database_blob(rand_key.pub().key_to_bin()), title='test', tags='test')
         new_channel.sign(rand_key)
         return new_channel
