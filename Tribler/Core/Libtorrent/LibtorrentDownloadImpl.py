@@ -611,8 +611,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.checkpoint()
 
     def on_file_renamed_alert(self, alert):
-        if os.path.exists(self.unwanteddir_abs) and not os.listdir(self.unwanteddir_abs) and all(self.handle.file_priorities()):
-            os.rmdir(self.unwanteddir_abs)
+        unwanteddir_abs = os.path.join(self.get_save_path().decode('utf-8'), self.unwanted_directory_name)
+        if os.path.exists(unwanteddir_abs) and not os.listdir(unwanteddir_abs) and all(self.handle.file_priorities()):
+            os.rmdir(unwanteddir_abs)
 
     def on_performance_alert(self, alert):
         if self.get_anon_mode() or self.ltmgr.ltsessions is None:
@@ -701,6 +702,22 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         if self.get_corrected_filename() and self.get_corrected_filename() != '' and 'files' in self.tdef.get_metainfo()['info']:
             self.correctedinfoname = self.get_corrected_filename()
 
+    @property
+    def swarmname(self):
+        """
+        Return the swarm name of the torrent.
+        """
+        is_multifile = len(self.orig_files) > 1
+        commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else u''
+        return commonprefix.partition(os.path.sep)[0]
+
+    @property
+    def unwanted_directory_name(self):
+        """
+        Return the name of the directory containing the unwanted files (files with a priority of 0).
+        """
+        return os.path.join(self.swarmname, u'.unwanted')
+
     @checkHandleAndSynchronize()
     def set_selected_files(self, selected_files=None):
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
@@ -710,12 +727,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             else:
                 DownloadConfigInterface.set_selected_files(self, selected_files)
 
-            is_multifile = len(self.orig_files) > 1
-            commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else u''
-            swarmname = commonprefix.partition(os.path.sep)[0]
-            unwanteddir = os.path.join(swarmname, u'.unwanted')
-            unwanteddir_abs = os.path.join(self.get_save_path().decode('utf-8'), unwanteddir)
-
+            unwanteddir_abs = os.path.join(self.get_save_path().decode('utf-8'), self.unwanted_directory_name)
             torrent_info = get_info_from_handle(self.handle)
             if not torrent_info or not hasattr(torrent_info, 'files'):
                 self._logger.error("File info not available for torrent [%s]", self.correctedinfoname)
@@ -725,14 +737,15 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             torrent_storage = torrent_info.files()
 
             for index, orig_path in enumerate(self.orig_files):
-                filename = orig_path[len(swarmname) + 1:] if swarmname else orig_path
+                filename = orig_path[len(self.swarmname) + 1:] if self.swarmname else orig_path
 
                 if filename in selected_files or not selected_files:
                     filepriorities.append(1)
                     new_path = orig_path
                 else:
                     filepriorities.append(0)
-                    new_path = os.path.join(unwanteddir, '%s%d' % (hexlify(self.tdef.get_infohash()), index))
+                    new_path = os.path.join(self.unwanted_directory_name,
+                                            '%s%d' % (hexlify(self.tdef.get_infohash()), index))
 
                 # as from libtorrent 1.0, files returning file_storage (lazy-iterable)
                 if hasattr(lt, 'file_storage') and isinstance(torrent_storage, lt.file_storage):
@@ -741,7 +754,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     cur_path = torrent_storage[index].path.decode('utf-8')
 
                 if cur_path != new_path:
-                    if not os.path.exists(unwanteddir_abs) and unwanteddir in new_path:
+                    if not os.path.exists(unwanteddir_abs) and self.unwanted_directory_name in new_path:
                         try:
                             os.makedirs(unwanteddir_abs)
                             if sys.platform == "win32":
@@ -762,8 +775,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             # if in share mode, don't change priority of the file
             if not self.get_share_mode():
                 self.handle.prioritize_files(filepriorities)
-
-            self.unwanteddir_abs = unwanteddir_abs
 
     @checkHandleAndSynchronize(False)
     def move_storage(self, new_dir):
