@@ -476,6 +476,19 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
 
         return test_deferred
 
+    def test_on_file_renamed_alert(self):
+        """
+        Test whether we do the correct actions when receiving a file renamed alert
+        """
+        unwanted_dir = os.path.join(self.getStateDir(), '.unwanted')
+        os.mkdir(unwanted_dir)
+        self.libtorrent_download_impl.handle.save_path = lambda: self.getStateDir()
+        self.libtorrent_download_impl.handle.file_priorities = lambda: [1]
+        self.libtorrent_download_impl.orig_files = ['test']
+
+        self.libtorrent_download_impl.on_file_renamed_alert(None)
+        self.assertFalse(os.path.exists(unwanted_dir))
+
     def test_metadata_received_invalid_info(self):
         """
         Testing whether the right operations happen when we receive metadata but the torrent info is invalid
