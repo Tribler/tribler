@@ -27,6 +27,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         self.my_key = default_eccrypto.generate_key(u"curve25519")
         self.mds = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir,
                                  self.my_key)
+
     @inlineCallbacks
     def tearDown(self):
         self.mds.shutdown()
@@ -47,7 +48,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
         torrent_metadata = self.mds.TorrentMetadata.from_dict({})
         self.assertTrue(torrent_metadata.get_magnet())
-        torrent_metadata2 = self.mds.TorrentMetadata.from_dict({'title':u'\U0001f4a9'})
+        torrent_metadata2 = self.mds.TorrentMetadata.from_dict({'title': u'\U0001f4a9'})
         self.assertTrue(torrent_metadata2.get_magnet())
 
     @db_session

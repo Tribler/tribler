@@ -56,10 +56,3 @@ class TestChannelDownload(TestAsServer):
             channel2 = self.session.lm.mds.ChannelMetadata.get_channel_with_id(payload.public_key)
             self.assertEqual(5, len(list(self.session.lm.mds.TorrentMetadata.select())))
             self.assertEqual(6, channel2.local_version)
-
-    def test_wrong_signature_exception_on_channel_update(self):
-        # Test wrong signature exception
-        old_payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA)
-        payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA_UPDATED)
-        payload.signature = old_payload.signature
-        self.assertRaises(InvalidSignatureException, self.session.lm.update_channel, payload)
