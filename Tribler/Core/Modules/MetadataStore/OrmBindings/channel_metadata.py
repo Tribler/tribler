@@ -35,7 +35,6 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
     """
     For efficiency reasons, this is deliberately written in C style
     :param metadata_list: the list of metadata to process.
-    :param limit: maximum size of a resulting chunk, in bytes.
     :param start_index: the index of the element of metadata_list from which the processing should start.
     :return: (chunk, last_entry_index) tuple, where chunk is the resulting chunk in string form and
         last_entry_index is the index of the element of the input list that was put into the chunk the last.

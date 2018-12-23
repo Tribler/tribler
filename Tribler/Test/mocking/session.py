@@ -2,6 +2,7 @@ from twisted.internet.defer import Deferred
 
 from .channel import MockChannel
 
+
 class MockSession(object):
 
     class MockLm(object):
@@ -18,8 +19,8 @@ class MockSession(object):
                 def set_random_channels(self, channel_list):
                     self.random_channels = channel_list
 
-                def get_random_channels(self, limit):
-                    return self.random_channels[:limit]
+                def get_random_subscribed_channels(self, _):
+                    return self.random_channels
 
                 def add(self, channel):
                     self.channel_with_infohash[channel.infohash] = channel

@@ -7,6 +7,7 @@ from twisted.internet.task import LoopingCall
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
