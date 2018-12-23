@@ -350,7 +350,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     channel = self.session.lm.mds.process_payload(payload)
                     if channel and not channel.subscribed and channel.local_version < channel.version:
                         channel.subscribed = True
-                        download, _ = self.session.lm.download_channel(channel)
+                        download, _ = self.session.lm.gigachannel_manager.download_channel(channel)
                     else:
                         return json.dumps({"error": "Already subscribed"})
 
