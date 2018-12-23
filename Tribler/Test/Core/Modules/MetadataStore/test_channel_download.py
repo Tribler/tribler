@@ -47,7 +47,7 @@ class TestChannelDownload(TestAsServer):
         # Download the channel in our session
         with db_session:
             channel = self.session.lm.mds.process_payload(payload)
-        download, finished_deferred = self.session.lm.download_channel(channel)
+        download, finished_deferred = self.session.lm.gigachannel_manager.download_channel(channel)
         download.add_peer(("127.0.0.1", self.seeder_session.config.get_libtorrent_port()))
         yield finished_deferred
 
