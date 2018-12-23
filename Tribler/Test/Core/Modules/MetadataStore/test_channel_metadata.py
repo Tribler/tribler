@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
 import os
-from binascii import hexlify
 from datetime import datetime
 
 from pony.orm import db_session
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
-from typing import Optional, Any
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
 from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
@@ -157,7 +155,7 @@ class TestChannelMetadata(TriblerCoreTest):
         sample_channel_dict = TestChannelMetadata.get_sample_channel_dict(self.my_key)
         channel_metadata = self.mds.ChannelMetadata.from_dict(sample_channel_dict)
         dirname = channel_metadata.dir_name
-        channel_result = self.mds.ChannelMetadata.get_channel_with_dirname(dirname)  # type: Optional[Any]
+        channel_result = self.mds.ChannelMetadata.get_channel_with_dirname(dirname)
         self.assertEqual(channel_metadata, channel_result)
 
     @db_session
