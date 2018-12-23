@@ -5,25 +5,6 @@ from Tribler.pyipv8.ipv8.community import Community
 from Tribler.pyipv8.ipv8.lazy_community import PacketDecodingError
 from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
 from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.requestcache import NumberCache, RequestCache
-
-
-class ChannelDownloadCache(NumberCache):
-    """
-    Token for channel downloads.
-
-    This token is held for a maximum of 10 seconds or until the current download finishes.
-    """
-
-    def __init__(self, request_cache):
-        super(ChannelDownloadCache, self).__init__(request_cache, u"channel-download-cache", 0)
-
-    @property
-    def timeout_delay(self):
-        return 10.0
-
-    def on_timeout(self):
-        pass
 
 
 class GigaChannelCommunity(Community):
@@ -36,10 +17,9 @@ class GigaChannelCommunity(Community):
                        "362eb29d3b074187bcfbce6869acb35d8bcef3bb8713c9e9c3b3329f59ff3546c3cd560518f03009ca57895a5421b"
                        "4afc5b90a59d2096b43eb22becfacded111e84d605a01e91a600e2b55a79d".decode('hex'))
 
-    def __init__(self, my_peer, endpoint, network, tribler_session):
+    def __init__(self, my_peer, endpoint, network, metadata_store):
         super(GigaChannelCommunity, self).__init__(my_peer, endpoint, network)
-        self.tribler_session = tribler_session
-        self.request_cache = RequestCache()
+        self.metadata_store = metadata_store
 
         self.decode_map.update({
             chr(1): self.on_blob
@@ -60,7 +40,7 @@ class GigaChannelCommunity(Community):
         # Choose some random entries and try to pack them into maximum_payload_size bytes
         md_list = []
         with db_session:
-            channel_l = self.tribler_session.lm.mds.ChannelMetadata.select(lambda g: g.subscribed).random(1)[:]
+            channel_l = self.metadata_store.ChannelMetadata.get_random_subscribed_channels(1)[:]
             if not channel_l:
                 return
             channel = channel_l[0]
@@ -79,7 +59,7 @@ class GigaChannelCommunity(Community):
         """
         Callback for when a MetadataBlob message comes in.
 
-        :param peer: the peer that sent us the blob
+        :param source_address: the peer that sent us the blob
         :param data: payload raw data
         """
         auth, remainder = self.serializer.unpack_to_serializables([BinMemberAuthenticationPayload, ], data[23:])
@@ -88,7 +68,7 @@ class GigaChannelCommunity(Community):
 
         if not signature_valid:
             raise PacketDecodingError("Incoming packet %s has an invalid signature" % str(self.__class__))
-        self.tribler_session.lm.mds.process_squashed_mdblob(blob)
+        self.metadata_store.process_squashed_mdblob(blob)
 
 
 class GigaChannelTestnetCommunity(GigaChannelCommunity):

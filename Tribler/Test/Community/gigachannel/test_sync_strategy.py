@@ -20,6 +20,7 @@ class MockCommunity(object):
     def get_peers(self):
         return self.get_peers_return
 
+
 class TestSyncChannels(TestBase):
 
     def setUp(self):
@@ -29,12 +30,11 @@ class TestSyncChannels(TestBase):
 
     def test_strategy_no_peers(self):
         """
-        If we have no peers, we should still inspect our download queue.
+        If we have no peers, no random entries should have been sent.
         """
         self.strategy.take_step()
 
         self.assertListEqual([], self.community.send_random_to_called)
-        self.assertTrue(self.community.fetch_next_called)
 
     def test_strategy_one_peer(self):
         """
@@ -45,7 +45,6 @@ class TestSyncChannels(TestBase):
 
         self.assertEqual(1, len(self.community.send_random_to_called))
         self.assertEqual(self.community.get_peers_return[0], self.community.send_random_to_called[0])
-        self.assertTrue(self.community.fetch_next_called)
 
     def test_strategy_multi_peer(self):
         """
@@ -59,4 +58,3 @@ class TestSyncChannels(TestBase):
 
         self.assertEqual(1, len(self.community.send_random_to_called))
         self.assertIn(self.community.send_random_to_called[0], self.community.get_peers_return)
-        self.assertTrue(self.community.fetch_next_called)

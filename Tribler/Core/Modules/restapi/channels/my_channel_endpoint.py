@@ -110,7 +110,7 @@ class MyChannelEndpoint(BaseChannelsEndpoint):
                 # Update torrent if we have uncommitted content in the channel
                 my_channel.commit_channel_torrent()
                 torrent_path = os.path.join(self.session.lm.mds.channels_dir, my_channel.dir_name + ".torrent")
-                self.session.lm.updated_my_channel(torrent_path)
+                self.session.lm.gigachannel_manager.updated_my_channel(torrent_path)
                 modified = True
 
             return json.dumps({'modified': modified})
