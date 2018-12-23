@@ -171,7 +171,7 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
                     return ChannelsModifySubscriptionEndpoint.return_404(request)
                 elif not channel.subscribed:
                     return ChannelsModifySubscriptionEndpoint.return_404(request, message=NOT_SUBSCRIBED_RESPONSE_MSG)
-                self.session.lm.remove_channel(channel)
+                self.session.lm.gigachannel_manager.remove_channel(channel)
             return json.dumps({"unsubscribed": True})
 
         channel_info = self.get_channel_from_db(self.cid)
