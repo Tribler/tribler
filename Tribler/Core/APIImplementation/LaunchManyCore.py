@@ -451,6 +451,13 @@ class TriblerLaunchMany(TaskManager):
             except ImportError:
                 self._logger.error("bitcoinlib library cannot be found, Bitcoin wallet not available!")
 
+        if self.session.config.get_chant_enabled():
+            channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
+            database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
+            self.mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair)
+            self.gigachannel_manager = GigaChannelManager(self.session)
+            self.gigachannel_manager.start()
+
         if self.session.config.get_dummy_wallets_enabled():
             # For debugging purposes, we create dummy wallets
             dummy_wallet1 = DummyWallet1()
@@ -515,13 +522,6 @@ class TriblerLaunchMany(TaskManager):
         if self.session.config.get_version_checker_enabled():
             self.version_check_manager = VersionCheckManager(self.session)
             self.version_check_manager.start()
-
-        if self.session.config.get_chant_enabled():
-            channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
-            database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
-            self.mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair)
-            self.gigachannel_manager = GigaChannelManager(self.session)
-            self.gigachannel_manager.start()
 
         self.session.set_download_states_callback(self.sesscb_states_callback)
 
