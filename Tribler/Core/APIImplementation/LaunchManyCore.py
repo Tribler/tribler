@@ -320,7 +320,8 @@ class TriblerLaunchMany(TaskManager):
                                                   trustchain=self.trustchain_community,
                                                   dht=self.dht_community,
                                                   wallets=self.wallets,
-                                                  working_directory=self.session.config.get_state_dir())
+                                                  working_directory=self.session.config.get_state_dir(),
+                                                  record_transactions=self.session.config.get_record_transactions())
 
             self.ipv8.overlays.append(self.market_community)
 

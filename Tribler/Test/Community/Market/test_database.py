@@ -104,6 +104,31 @@ class TestDatabase(AbstractServer):
         self.assertEqual(len(transactions), 1)
         self.assertEqual(len(self.database.get_payments(self.transaction1.transaction_id)), 1)
 
+    def test_insert_or_update_transaction(self):
+        """
+        Test the conditional insertion or update of a transaction in the database
+        """
+        # Test insertion
+        self.database.insert_or_update_transaction(self.transaction1)
+        transactions = self.database.get_all_transactions()
+        self.assertEqual(len(transactions), 1)
+
+        # Test try to update with older timestamp
+        before_trans1 = Transaction(self.transaction1.transaction_id, self.transaction1.assets,
+                                    self.transaction1.order_id, self.transaction1.partner_order_id,
+                                    Timestamp(float(self.transaction1.timestamp) - 1.0))
+        self.database.insert_or_update_transaction(before_trans1)
+        transaction = self.database.get_transaction(self.transaction1.transaction_id)
+        self.assertEqual(float(transaction.timestamp), float(self.transaction1.timestamp))
+
+        # Test update with newer timestamp
+        after_trans1 = Transaction(self.transaction1.transaction_id, self.transaction1.assets,
+                                   self.transaction1.order_id, self.transaction1.partner_order_id,
+                                   Timestamp(float(self.transaction1.timestamp) + 1.0))
+        self.database.insert_or_update_transaction(after_trans1)
+        transaction = self.database.get_transaction(self.transaction1.transaction_id)
+        self.assertEqual(float(transaction.timestamp), float(after_trans1.timestamp))
+
     def test_get_specific_transaction(self):
         """
         Test the retrieval of a specific transaction

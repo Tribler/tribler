@@ -1,6 +1,9 @@
 """
 This file contains everything related to persistence for the market community.
 """
+from __future__ import absolute_import
+
+import six
 from os import path
 
 
@@ -242,6 +245,33 @@ class MarketDB(TrustChainDB):
         self.delete_payments(transaction.transaction_id)
         for payment in transaction.payments:
             self.add_payment(payment)
+
+    def insert_or_update_transaction(self, transaction):
+        """
+        Inserts or updates a specific transaction in the database, according to the timestamp.
+        Updates only if the timestamp is more recent than the one in the database.
+        """
+        self.execute(
+            u"INSERT OR IGNORE INTO transactions (trader_id, transaction_number, order_trader_id, order_number,"
+            u"partner_trader_id, partner_order_number, asset1_amount, asset1_type, asset1_transferred, asset2_amount,"
+            u"asset2_type, asset2_transferred, transaction_timestamp, sent_wallet_info, received_wallet_info,"
+            u"incoming_address, outgoing_address, partner_incoming_address, partner_outgoing_address, match_id) "
+            u"VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", transaction.to_database())
+
+        self.execute(
+            u"UPDATE transactions SET asset1_amount = ?, asset1_transferred = ?, asset2_amount = ?, "
+            u"asset2_transferred = ?, transaction_timestamp = ? WHERE trader_id = ? AND transaction_number = ?"
+            u"AND transaction_timestamp < ?", (transaction.assets.first.amount,
+                                               transaction.transferred_assets.first.amount,
+                                               transaction.assets.second.amount,
+                                               transaction.transferred_assets.second.amount,
+                                               float(transaction.timestamp),
+                                               six.text_type(transaction.transaction_id.trader_id),
+                                               int(transaction.transaction_id.transaction_number),
+                                               float(transaction.timestamp))
+        )
+
+        self.commit()
 
     def delete_transaction(self, transaction_id):
         """

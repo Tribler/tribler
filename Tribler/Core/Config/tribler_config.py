@@ -548,6 +548,12 @@ class TriblerConfig(object):
     def get_is_matchmaker(self):
         return self.config['market_community']['matchmaker']
 
+    def set_record_transactions(self, value):
+        self.config['market_community']['record_transactions'] = value
+
+    def get_record_transactions(self):
+        return self.config['market_community']['record_transactions']
+
     # DHT
 
     def set_dht_enabled(self, value):
