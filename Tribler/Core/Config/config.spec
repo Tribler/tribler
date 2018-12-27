@@ -29,6 +29,7 @@ competing_slots = integer(default=15)
 enabled = boolean(default=True)
 matchmaker = boolean(default=True)
 ec_keypair_filename = string(default='')
+record_transactions = boolean(default=False)
 
 [dht]
 enabled = boolean(default=True)

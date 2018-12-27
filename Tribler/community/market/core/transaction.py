@@ -167,6 +167,52 @@ class Transaction(object):
 
         return transaction
 
+    @classmethod
+    def from_block(cls, block_info):
+        """
+        Create a Transaction object based on information in a tx_init/tx_done block.
+        """
+        trader_id = block_info["tx"]["trader_id"]
+        transaction_number = block_info["tx"]["transaction_number"]
+        order_trader_id = block_info["tx"]["trader_id"]
+        order_number = block_info["tx"]["order_number"]
+        partner_trader_id = block_info["tx"]["partner_trader_id"]
+        partner_order_number = block_info["tx"]["partner_order_number"]
+        asset1_amount = block_info["tx"]["assets"]["first"]["amount"]
+        asset1_type = block_info["tx"]["assets"]["first"]["type"]
+        asset1_transferred = block_info["tx"]["transferred"]["first"]["amount"]
+        asset2_amount = block_info["tx"]["assets"]["second"]["amount"]
+        asset2_type = block_info["tx"]["assets"]["second"]["type"]
+        asset2_transferred = block_info["tx"]["transferred"]["second"]["amount"]
+        transaction_timestamp = block_info["tx"]["timestamp"]
+        sent_wallet_info = False
+        received_wallet_info = False
+        incoming_address = None
+        outgoing_address = None
+        partner_incoming_address = None
+        partner_outgoing_address = None
+        match_id = ''
+
+        transaction_id = TransactionId(TraderId(str(trader_id)), TransactionNumber(transaction_number))
+        transaction = cls(transaction_id,
+                          AssetPair(AssetAmount(asset1_amount, str(asset1_type)),
+                                    AssetAmount(asset2_amount, str(asset2_type))),
+                          OrderId(TraderId(str(order_trader_id)), OrderNumber(order_number)),
+                          OrderId(TraderId(str(partner_trader_id)), OrderNumber(partner_order_number)),
+                          Timestamp(float(transaction_timestamp)))
+
+        transaction._transferred_assets = AssetPair(AssetAmount(asset1_transferred, str(asset1_type)),
+                                                    AssetAmount(asset2_transferred, str(asset2_type)))
+        transaction.sent_wallet_info = sent_wallet_info
+        transaction.received_wallet_info = received_wallet_info
+        transaction.incoming_address = WalletAddress(str(incoming_address))
+        transaction.outgoing_address = WalletAddress(str(outgoing_address))
+        transaction.partner_incoming_address = WalletAddress(str(partner_incoming_address))
+        transaction.partner_outgoing_address = WalletAddress(str(partner_outgoing_address))
+        transaction.match_id = str(match_id)
+
+        return transaction
+
     def to_database(self):
         """
         Returns a database representation of a Transaction object.
