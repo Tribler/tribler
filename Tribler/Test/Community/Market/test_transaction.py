@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+
+import six
 import unittest
 
 from Tribler.community.market.core.assetamount import AssetAmount
@@ -205,3 +208,58 @@ class StartTransactionTestSuite(unittest.TestCase):
         """
         data = self.start_transaction.to_network()
         self.assertEqual(data[0], self.start_transaction.trader_id)
+
+    def test_from_block(self):
+        """
+        Test the from block method of a transaction
+        """
+        block = {
+            'tx': {
+                'payment_complete': False,
+                'status': 'pending',
+                'partner_trader_id': '1111111111111111111111111111111111111111',
+                'trader_id': '0000000000000000000000000000000000000000',
+                'timestamp': 0.0,
+                'transferred': {
+                    'second': {
+                        'amount': 0,
+                        'type': 'MB'
+                    },
+                    'first': {
+                        'amount': 0,
+                        'type': 'BTC'
+                    }
+                },
+                'partner_order_number': 1,
+                'order_number': 1,
+                'transaction_number': 1,
+                'assets': {
+                    'second': {
+                        'amount': 30,
+                        'type': 'MB'
+                    },
+                    'first': {
+                        'amount': 30,
+                        'type': 'BTC'
+                    }
+                }
+            }
+        }
+
+        transaction = Transaction.from_block(block)
+
+        self.assertEqual(block['tx']['trader_id'], six.text_type(transaction.transaction_id.trader_id))
+        self.assertEqual(block['tx']['transaction_number'], int(transaction.transaction_id.transaction_number))
+        self.assertEqual(block['tx']['trader_id'], six.text_type(transaction.order_id.trader_id))
+        self.assertEqual(block['tx']['transaction_number'], int(transaction.order_id.order_number))
+        self.assertEqual(block['tx']['partner_trader_id'], six.text_type(transaction.partner_order_id.trader_id))
+        self.assertEqual(block['tx']['partner_order_number'], int(transaction.partner_order_id.order_number))
+        self.assertEqual(block['tx']['timestamp'], float(transaction.timestamp))
+        self.assertEqual(block['tx']['assets']['first']['amount'], transaction.assets.first.amount)
+        self.assertEqual(block['tx']['assets']['first']['type'], transaction.assets.first.asset_id)
+        self.assertEqual(block['tx']['assets']['second']['amount'], transaction.assets.second.amount)
+        self.assertEqual(block['tx']['assets']['second']['type'], transaction.assets.second.asset_id)
+        self.assertEqual(block['tx']['transferred']['first']['amount'], transaction.transferred_assets.first.amount)
+        self.assertEqual(block['tx']['transferred']['first']['type'], transaction.transferred_assets.first.asset_id)
+        self.assertEqual(block['tx']['transferred']['second']['amount'], transaction.transferred_assets.second.amount)
+        self.assertEqual(block['tx']['transferred']['second']['type'], transaction.transferred_assets.second.asset_id)

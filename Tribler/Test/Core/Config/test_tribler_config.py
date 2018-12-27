@@ -393,3 +393,10 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         self.tribler_config.set_dht_enabled(False)
         self.assertFalse(self.tribler_config.get_dht_enabled())
+
+    def test_get_set_methods_record_transactions(self):
+        """
+        Check whether record_transactions get and set methods are working as expected.
+        """
+        self.tribler_config.set_record_transactions(True)
+        self.assertTrue(self.tribler_config.get_record_transactions())
