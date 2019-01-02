@@ -68,7 +68,7 @@ class GigaChannelCommunity(Community):
 
         if not signature_valid:
             raise PacketDecodingError("Incoming packet %s has an invalid signature" % str(self.__class__))
-        self.metadata_store.process_squashed_mdblob(blob)
+        self.metadata_store.process_compressed_mdblob(blob)
 
 
 class GigaChannelTestnetCommunity(GigaChannelCommunity):

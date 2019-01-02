@@ -1,6 +1,7 @@
 import os
 
 from pony.orm import db_session
+from pyramid_debugtoolbar.utils import hexlify
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
@@ -43,7 +44,6 @@ class TestChannelDownload(TestAsServer):
         yield self.setup_seeder(channel_tdef, CHANNEL_DIR, libtorrent_port)
 
         payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA_UPDATED)
-
         # Download the channel in our session
         with db_session:
             channel = self.session.lm.mds.process_payload(payload)
