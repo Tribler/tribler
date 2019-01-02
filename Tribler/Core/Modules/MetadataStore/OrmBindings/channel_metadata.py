@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 from libtorrent import file_storage, add_files, create_torrent, set_piece_hashes, bencode, torrent_info
 
+import lz4.frame
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
@@ -12,8 +13,9 @@ from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayl
 from Tribler.Core.exceptions import DuplicateTorrentFileError, DuplicateChannelNameError
 from Tribler.pyipv8.ipv8.database import database_blob
 
-CHANNEL_DIR_NAME_LENGTH = 60  # Its not 40 so it could be distinguished from infohash
+CHANNEL_DIR_NAME_LENGTH = 32  # Its not 40 so it could be distinguished from infohash
 BLOB_EXTENSION = '.mdblob'
+LZ4_END_MARK_SIZE = 4 # in bytes, from original specification. We don't use CRC
 
 
 def create_torrent_from_dir(directory, torrent_filename):
@@ -41,19 +43,23 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
     """
     # Try to fit as many blobs into this chunk as permitted by chunk_size and
     # calculate their ends' offsets in the blob
-    out_list = []
 
-    offset = 0
     last_entry_index = None
-    for index, metadata in enumerate(metadata_list[start_index:], start_index):
-        blob = ''.join(metadata.serialized_delete() if metadata.status == TODELETE else metadata.serialized())
-        # Chunk size limit reached?
-        if offset + len(blob) > chunk_size:
-            break
-        # Now that we now it will fit in, we can safely append it
-        offset += len(blob)
-        last_entry_index = index
-        out_list.append(blob)
+    with lz4.frame.LZ4FrameCompressor(auto_flush=True) as c:
+        header = c.begin()
+        offset = len(header)
+        out_list = [header] # LZ4 header
+        for index, metadata in enumerate(metadata_list[start_index:], start_index):
+            blob = c.compress(
+                ''.join(metadata.serialized_delete() if metadata.status == TODELETE else metadata.serialized()))
+            # Chunk size limit reached?
+            if offset + len(blob) > (chunk_size - LZ4_END_MARK_SIZE):
+                break
+            # Now that we now it will fit in, we can safely append it
+            offset += len(blob)
+            last_entry_index = index
+            out_list.append(blob)
+        out_list.append(c.flush()) # LZ4 end mark
 
     chunk = ''.join(out_list)
     if last_entry_index is None:
@@ -65,10 +71,16 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0):
 def define_binding(db):
     class ChannelMetadata(db.TorrentMetadata):
         _discriminator_ = CHANNEL_TORRENT
+
+        # Serializable
         version = orm.Optional(int, size=64, default=0)
+        num_entries = orm.Optional(int, size=64, default=0)
+
+        #Local
         subscribed = orm.Optional(bool, default=False)
         votes = orm.Optional(int, size=64, default=0)
         local_version = orm.Optional(int, size=64, default=0)
+
         _payload_class = ChannelMetadataPayload
         _channels_dir = None
         _category_filter = None
@@ -105,7 +117,7 @@ def define_binding(db):
         @classmethod
         @db_session
         def get_my_channel(cls):
-            return ChannelMetadata.get_channel_with_id(cls._my_key.pub().key_to_bin())
+            return ChannelMetadata.get_channel_with_id(cls._my_key.pub().key_to_bin()[10:])
 
         @classmethod
         @db_session
@@ -116,10 +128,10 @@ def define_binding(db):
             :param description: The description of the channel
             :return: The channel metadata
             """
-            if ChannelMetadata.get_channel_with_id(cls._my_key.pub().key_to_bin()):
+            if ChannelMetadata.get_channel_with_id(cls._my_key.pub().key_to_bin()[10:]):
                 raise DuplicateChannelNameError()
 
-            my_channel = cls(public_key=database_blob(cls._my_key.pub().key_to_bin()), title=title,
+            my_channel = cls(public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]), title=title,
                              tags=description, subscribed=True)
             my_channel.sign()
             return my_channel
@@ -137,7 +149,7 @@ def define_binding(db):
             for filename in os.listdir(folder):
                 file_path = os.path.join(folder, filename)
                 # We only remove mdblobs and leave the rest as it is
-                if filename.endswith(BLOB_EXTENSION):
+                if filename.endswith(BLOB_EXTENSION) or filename.endswith(BLOB_EXTENSION+'.lz4'):
                     os.unlink(file_path)
             for g in self.contents:
                 g.status = NEW
@@ -162,7 +174,7 @@ def define_binding(db):
             while index < len(metadata_list):
                 # Squash several serialized and signed metadata entries into a single file
                 data, index = entries_to_chunk(metadata_list, self._CHUNK_SIZE_LIMIT, start_index=index)
-                blob_filename = str(old_version + index).zfill(12) + BLOB_EXTENSION
+                blob_filename = str(old_version + index).zfill(12) + BLOB_EXTENSION + '.lz4'
                 with open(os.path.join(channel_dir, blob_filename), 'wb') as f:
                     f.write(data)
 
@@ -208,8 +220,7 @@ def define_binding(db):
                         g.delete()
 
                 # Write the channel mdblob to disk
-                with open(os.path.join(self._channels_dir, self.dir_name + BLOB_EXTENSION), 'wb') as out_file:
-                    out_file.write(''.join(self.serialized()))
+                self.to_file(os.path.join(self._channels_dir, self.dir_name + BLOB_EXTENSION))
 
                 self._logger.info("Channel %s committed with %i new entries. New version is %i",
                                   str(self.public_key).encode("hex"), len(md_list), update_dict['version'])
@@ -250,7 +261,7 @@ def define_binding(db):
                 "tracker_info": tdef.get_tracker() or '',
                 "status": NEW
             })
-            torrent_metadata.sign()
+            return torrent_metadata
 
         @property
         def dirty(self):

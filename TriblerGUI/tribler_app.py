@@ -2,6 +2,7 @@ import os
 import sys
 
 from PyQt5.QtCore import QEvent
+from PyQt5.QtWidgets import QApplication
 
 from TriblerGUI.code_executor import CodeExecutor
 from TriblerGUI.single_application import QtSingleApplication
@@ -12,7 +13,7 @@ class TriblerApplication(QtSingleApplication):
     This class represents the main Tribler application.
     """
     def __init__(self, app_name, args):
-        QtSingleApplication.__init__(self, app_name, args)
+        QApplication.__init__(self, args)
         self.code_executor = None
         self.messageReceived.connect(self.on_app_message)
 
