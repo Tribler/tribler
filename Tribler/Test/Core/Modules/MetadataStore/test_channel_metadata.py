@@ -7,7 +7,7 @@ from pony.orm import db_session
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk, CHANNEL_DIR_NAME_LENGTH
 from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
@@ -56,7 +56,7 @@ class TestChannelMetadata(TriblerCoreTest):
             "torrent_date": datetime.utcnow(),
             "tags": "bla",
             "tc_pointer": 123,
-            "public_key": database_blob(my_key.pub().key_to_bin()),
+            "public_key": database_blob(my_key.pub().key_to_bin()[10:]),
             "title": "lalala"
         }
 
@@ -148,7 +148,7 @@ class TestChannelMetadata(TriblerCoreTest):
         sample_channel_dict = TestChannelMetadata.get_sample_channel_dict(self.my_key)
         channel_metadata = self.mds.ChannelMetadata.from_dict(sample_channel_dict)
 
-        self.assertEqual(len(channel_metadata.dir_name), 60)
+        self.assertEqual(len(channel_metadata.dir_name), CHANNEL_DIR_NAME_LENGTH)
 
     @db_session
     def test_get_channel_with_dirname(self):

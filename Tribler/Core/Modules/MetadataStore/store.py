@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 import logging
 import os
+from binascii import hexlify
 
+import lz4.frame
 from pony import orm
 from pony.orm import db_session
 
@@ -110,8 +112,14 @@ class MetadataStore(object):
             with db_session:
                 channel = self.ChannelMetadata.get(public_key=channel_id)
                 full_filename = os.path.join(dirname, filename)
+
+                blob_sequence_number = None
                 if filename.endswith(BLOB_EXTENSION):
                     blob_sequence_number = int(filename[:-len(BLOB_EXTENSION)])
+                elif filename.endswith(BLOB_EXTENSION + '.lz4'):
+                    blob_sequence_number = int(filename[:-len(BLOB_EXTENSION + '.lz4')])
+
+                if blob_sequence_number is not None:
                     # Skip blobs containing data we already have and those that are
                     # ahead of the channel version known to us
                     if blob_sequence_number <= channel.local_version or blob_sequence_number > channel.version:
@@ -131,11 +139,20 @@ class MetadataStore(object):
         """
         Process a file with metadata in a channel directory.
         :param filepath: The path to the file
-        :return a Metadata object if we can correctly load the metadata
+        :return Metadata objects list if we can correctly load the metadata
         """
         with open(filepath, 'rb') as f:
             serialized_data = f.read()
-        return self.process_squashed_mdblob(serialized_data)
+
+        if filepath.endswith('.lz4'):
+            return self.process_compressed_mdblob(serialized_data)
+        else:
+            return self.process_squashed_mdblob(serialized_data)
+
+    @db_session
+    def process_compressed_mdblob(self, compressed_data):
+        return self.process_squashed_mdblob(lz4.frame.decompress(compressed_data))
+
 
     @db_session
     def process_squashed_mdblob(self, chunk_data):
@@ -193,4 +210,4 @@ class MetadataStore(object):
 
     @db_session
     def get_my_channel(self):
-        return self.ChannelMetadata.get_channel_with_id(self.my_key.pub().key_to_bin())
+        return self.ChannelMetadata.get_channel_with_id(self.my_key.pub().key_to_bin()[10:])

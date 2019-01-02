@@ -90,7 +90,7 @@ class MetadataPayload(Payload):
     Payload for metadata.
     """
 
-    format_list = ['I', '74s', 'f', 'Q']
+    format_list = ['I', '64s', 'd', 'Q']
 
     def __init__(self, metadata_type, public_key, timestamp, tc_pointer, **kwargs):
         super(MetadataPayload, self).__init__()
@@ -102,13 +102,13 @@ class MetadataPayload(Payload):
 
     def has_valid_signature(self):
         sig_data = default_serializer.pack_multiple(self.to_pack_list())[0]
-        return default_eccrypto.is_valid_signature(default_eccrypto.key_from_public_bin(self.public_key), sig_data,
+        return default_eccrypto.is_valid_signature(default_eccrypto.key_from_public_bin(b"LibNaCLPK:"+self.public_key), sig_data,
                                                    self.signature)
 
     def to_pack_list(self):
         data = [('I', self.metadata_type),
-                ('74s', self.public_key),
-                ('f', self.timestamp),
+                ('64s', self.public_key),
+                ('d', self.timestamp),
                 ('Q', self.tc_pointer)]
         return data
 
@@ -127,7 +127,7 @@ class MetadataPayload(Payload):
         if check_signature:
             payload.signature = data[end_offset:end_offset + SIGNATURE_SIZE]
             data_unsigned = data[offset:end_offset]
-            key = default_eccrypto.key_from_public_bin(payload.public_key)
+            key = default_eccrypto.key_from_public_bin(b"LibNaCLPK:"+payload.public_key)
             if not default_eccrypto.is_valid_signature(key, data_unsigned, payload.signature):
                 raise InvalidSignatureException
         return payload, end_offset + SIGNATURE_SIZE
@@ -143,15 +143,15 @@ class MetadataPayload(Payload):
 
     def _serialized(self, key=None):
         # If we are going to sign it, we must provide a matching key
-        if key and self.public_key != str(key.pub().key_to_bin()):
-            raise KeysMismatchException(self.public_key, str(key.pub().key_to_bin()))
+        if key and self.public_key != str(key.pub().key_to_bin()[10:]):
+            raise KeysMismatchException(self.public_key, str(key.pub().key_to_bin()[10:]))
 
         serialized_data = default_serializer.pack_multiple(self.to_pack_list())[0]
         if key:
             signature = default_eccrypto.create_signature(key, serialized_data)
 
         # This check ensures that an entry with a wrong signature will not proliferate further
-        elif default_eccrypto.is_valid_signature(default_eccrypto.key_from_public_bin(self.public_key), serialized_data,
+        elif default_eccrypto.is_valid_signature(default_eccrypto.key_from_public_bin(b"LibNaCLPK:"+self.public_key), serialized_data,
                                                  self.signature):
             signature = self.signature
         else:
@@ -219,28 +219,31 @@ class ChannelMetadataPayload(TorrentMetadataPayload):
     """
     Payload for metadata that stores a channel.
     """
-    format_list = TorrentMetadataPayload.format_list + ['Q']
+    format_list = TorrentMetadataPayload.format_list + ['Q', 'Q']
 
     def __init__(self, metadata_type, public_key, timestamp, tc_pointer, infohash, size, title, tags, tracker_info,
-                 version, **kwargs):
+                 version, num_entries, **kwargs):
         super(ChannelMetadataPayload, self).__init__(metadata_type, public_key, timestamp, tc_pointer,
                                                      infohash, size, title, tags, tracker_info, **kwargs)
         self.version = version
+        self.num_entries = num_entries
 
     def to_pack_list(self):
         data = super(ChannelMetadataPayload, self).to_pack_list()
         data.append(('Q', self.version))
+        data.append(('Q', self.num_entries))
         return data
 
     @classmethod
     def from_unpack_list(cls, metadata_type, public_key, timestamp, tc_pointer, infohash, size, title, tags,
-                         tracker_info, version):
+                         tracker_info, version, num_entries):
         return ChannelMetadataPayload(metadata_type, public_key, timestamp, tc_pointer, infohash, size,
-                                      title, tags, tracker_info, version)
+                                      title, tags, tracker_info, version, num_entries)
 
     def to_dict(self):
         dct = super(ChannelMetadataPayload, self).to_dict()
-        dct.update({"version": self.version})
+        dct.update({"version": self.version,
+                    "num_entries": self.num_entries})
         return dct
 
 
