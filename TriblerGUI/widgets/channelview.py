@@ -10,7 +10,7 @@ from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QWidget, QAction, QFileDialog, QAbstractItemView
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import TODELETE, COMMITTED, NEW
-from Tribler.Core.Modules.MetadataStore.serialization import float2time
+from Tribler.Core.Modules.MetadataStore.serialization import int2time
 from Tribler.Core.Modules.restapi.util import HEALTH_MOOT, HEALTH_GOOD, HEALTH_DEAD, HEALTH_CHECKING, HEALTH_ERROR
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, \
     PAGE_EDIT_CHANNEL_CREATE_TORRENT
@@ -55,7 +55,7 @@ class ChannelContentsModel(RemoteTableModel):
 
     column_display_filters = {
         u'size': lambda data: format_size(float(data)),
-        u'date': lambda data: str((float2time(float(data)).strftime("%Y-%m-%d")))
+        u'date': lambda data: str((int2time(int(data)).strftime("%Y-%m-%d")))
     }
 
     def __init__(self, parent=None, channel_id=None, search_query=None, search_type=None, subscribed=None,

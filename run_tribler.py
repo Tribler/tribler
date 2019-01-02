@@ -3,6 +3,7 @@ import sys
 import logging.config
 
 import signal
+import random
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.exceptions import TriblerException
@@ -114,15 +115,7 @@ if __name__ == "__main__":
 
             app = TriblerApplication("triblerapp", sys.argv)
 
-            if app.is_running():
-                for arg in sys.argv[1:]:
-                    if os.path.exists(arg) and arg.endswith(".torrent"):
-                        app.send_message("file:%s" % arg)
-                    elif arg.startswith('magnet'):
-                        app.send_message(arg)
-                sys.exit(1)
-
-            window = TriblerWindow()
+            window = TriblerWindow(api_port=random.randint(10000,20000))
             window.setWindowTitle("Tribler")
             app.set_activation_window(window)
             app.parse_sys_args(sys.argv)
