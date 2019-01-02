@@ -7,7 +7,7 @@ from pony.orm import db_session
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk, CHANNEL_DIR_NAME_LENGTH
 from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
@@ -52,11 +52,10 @@ class TestChannelMetadata(TriblerCoreTest):
         return {
             "infohash": database_blob("1" * 20),
             "size": 123,
-            "timestamp": datetime.utcnow(),
             "torrent_date": datetime.utcnow(),
             "tags": "bla",
-            "tc_pointer": 123,
-            "public_key": database_blob(my_key.pub().key_to_bin()),
+            "id_": 123,
+            "public_key": database_blob(my_key.pub().key_to_bin()[10:]),
             "title": "lalala"
         }
 
@@ -65,7 +64,7 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         Utility method to return a dictionary with a channel information.
         """
-        return dict(TestChannelMetadata.get_sample_torrent_dict(my_key), votes=222, subscribed=False, version=1)
+        return dict(TestChannelMetadata.get_sample_torrent_dict(my_key), votes=222, subscribed=False, timestamp=1)
 
     @db_session
     def test_serialization(self):
@@ -113,7 +112,7 @@ class TestChannelMetadata(TriblerCoreTest):
         channel_metadata = self.mds.ChannelMetadata.from_dict(sample_channel_dict)
         self.mds.TorrentMetadata.from_dict(self.torrent_template)
         update_dict = {
-            "tc_pointer": 222,
+            "id_": 222,
             "tags": "eee",
             "title": "qqq"
         }
@@ -134,10 +133,10 @@ class TestChannelMetadata(TriblerCoreTest):
         self.assertEqual(len(self.mds.ChannelMetadata.select()), 1)
 
         # Check that we always take the latest version
-        channel_metadata.version -= 1
-        self.assertEqual(channel_metadata.version, 4)
+        channel_metadata.timestamp -= 1
+        self.assertEqual(channel_metadata.timestamp, 10)
         channel_metadata = self.mds.ChannelMetadata.process_channel_metadata_payload(payload)
-        self.assertEqual(channel_metadata.version, 5)
+        self.assertEqual(channel_metadata.timestamp, 11)
         self.assertEqual(len(self.mds.ChannelMetadata.select()), 1)
 
     @db_session
@@ -148,7 +147,7 @@ class TestChannelMetadata(TriblerCoreTest):
         sample_channel_dict = TestChannelMetadata.get_sample_channel_dict(self.my_key)
         channel_metadata = self.mds.ChannelMetadata.from_dict(sample_channel_dict)
 
-        self.assertEqual(len(channel_metadata.dir_name), 60)
+        self.assertEqual(len(channel_metadata.dir_name), CHANNEL_DIR_NAME_LENGTH)
 
     @db_session
     def test_get_channel_with_dirname(self):
@@ -177,8 +176,9 @@ class TestChannelMetadata(TriblerCoreTest):
             dict(self.torrent_template, public_key=channel_metadata.public_key, status=NEW))
         channel_metadata.commit_channel_torrent()
 
-        self.assertEqual(channel_metadata.version, 1)
-        self.assertEqual(channel_metadata.size, 1)
+        self.assertEqual(channel_metadata.id_, 1)
+        self.assertEqual(channel_metadata.timestamp, 4)
+        self.assertEqual(channel_metadata.num_entries, 1)
 
     @db_session
     def test_add_torrent_to_channel(self):

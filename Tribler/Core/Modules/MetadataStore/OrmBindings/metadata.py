@@ -18,31 +18,39 @@ JUST_RECEIVED = 3
 UPDATE_AVAILABLE = 4
 PREVIEW_UPDATE_AVAILABLE = 5
 
-PUBLIC_KEY_LEN = 74
+PUBLIC_KEY_LEN = 64
 
 
 def define_binding(db):
     class Metadata(db.Entity):
-        rowid = orm.PrimaryKey(int, auto=True)
-        metadata_type = orm.Discriminator(int)
         _discriminator_ = TYPELESS
+
+        # Serializable
+        metadata_type = orm.Discriminator(int)
         # We want to make signature unique=True for safety, but can't do it in Python2 because of Pony bug #390
         signature = orm.Optional(database_blob)
-        timestamp = orm.Optional(datetime, default=datetime.utcnow)
-        tc_pointer = orm.Optional(int, size=64, default=0)
+        id_ = orm.Optional(int, size=64, default=0)
         public_key = orm.Optional(database_blob, default='\x00' * PUBLIC_KEY_LEN)
+
+        # Local
+        rowid = orm.PrimaryKey(int, auto=True)
         addition_timestamp = orm.Optional(datetime, default=datetime.utcnow)
         status = orm.Optional(int, default=COMMITTED)
+
+        # Special properties
         _payload_class = MetadataPayload
         _my_key = None
         _logger = None
+        _clock = None
 
         def __init__(self, *args, **kwargs):
+            if "id_" not in kwargs:
+                kwargs["id_"] = self._clock.tick()
 
             # Special "sign_with" argument given, sign with it
             private_key_override = None
             if "sign_with" in kwargs:
-                kwargs["public_key"] = database_blob(kwargs["sign_with"].pub().key_to_bin())
+                kwargs["public_key"] = database_blob(kwargs["sign_with"].pub().key_to_bin()[10:])
                 private_key_override = kwargs["sign_with"]
                 kwargs.pop("sign_with")
 
@@ -55,7 +63,7 @@ def define_binding(db):
             # No key/signature given, sign with our own key.
             elif ("signature" not in kwargs) and \
                     (("public_key" not in kwargs) or (
-                            kwargs["public_key"] == database_blob(self._my_key.pub().key_to_bin()))):
+                            kwargs["public_key"] == database_blob(self._my_key.pub().key_to_bin()[10:]))):
                 self.sign(self._my_key)
                 return
 
@@ -125,12 +133,12 @@ def define_binding(db):
         def sign(self, key=None):
             if not key:
                 key = self._my_key
-            self.public_key = database_blob(key.pub().key_to_bin())
+            self.public_key = database_blob(key.pub().key_to_bin()[10:])
             _, self.signature = self._serialized(key)
 
         def has_valid_signature(self):
             crypto = default_eccrypto
-            return (crypto.is_valid_public_bin(str(self.public_key))
+            return (crypto.is_valid_public_bin(b"LibNaCLPK:"+str(self.public_key))
                     and self._payload_class(**self.to_dict()).has_valid_signature())
 
         @classmethod

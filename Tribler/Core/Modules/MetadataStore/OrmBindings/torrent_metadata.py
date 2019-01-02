@@ -11,12 +11,20 @@ from Tribler.pyipv8.ipv8.database import database_blob
 def define_binding(db):
     class TorrentMetadata(db.Metadata):
         _discriminator_ = REGULAR_TORRENT
+
+        # Serializable
+
+        timestamp = orm.Required(int, size=64, default=0)
         infohash = orm.Optional(database_blob, default='\x00' * 20)
-        title = orm.Optional(str, default='')
         size = orm.Optional(int, size=64, default=0)
+        torrent_date = orm.Optional(datetime, default=datetime.utcnow)
+        title = orm.Optional(str, default='')
         tags = orm.Optional(str, default='')
         tracker_info = orm.Optional(str, default='')
-        torrent_date = orm.Optional(datetime, default=datetime.utcnow)
+
+        # Local
+        xxx = orm.Optional(float, default=0)
+
         _payload_class = TorrentMetadataPayload
 
         def get_magnet(self):

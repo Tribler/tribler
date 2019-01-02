@@ -6,7 +6,6 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
 
@@ -43,7 +42,6 @@ class TestChannelDownload(TestAsServer):
         yield self.setup_seeder(channel_tdef, CHANNEL_DIR, libtorrent_port)
 
         payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA_UPDATED)
-
         # Download the channel in our session
         with db_session:
             channel = self.session.lm.mds.process_payload(payload)
@@ -55,4 +53,4 @@ class TestChannelDownload(TestAsServer):
             # There should be 4 torrents + 1 channel torrent
             channel2 = self.session.lm.mds.ChannelMetadata.get_channel_with_id(payload.public_key)
             self.assertEqual(5, len(list(self.session.lm.mds.TorrentMetadata.select())))
-            self.assertEqual(6, channel2.local_version)
+            self.assertEqual(13, channel2.local_version)
