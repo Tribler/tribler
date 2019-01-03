@@ -29,3 +29,9 @@ class TabButtonPanel(QWidget):
             button.setEnabled(True)
             button.setChecked(False)
         except_select.setChecked(True)
+
+    def get_selected_index(self):
+        for index, button in enumerate(self.buttons):
+            if button.isChecked():
+                return index
+        return -1

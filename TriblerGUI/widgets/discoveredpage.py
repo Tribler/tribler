@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 from PyQt5.QtWidgets import QWidget
 
-from TriblerGUI.widgets.lazytableview import ACTION_BUTTONS
+from TriblerGUI.widgets.tablecontentmodel import ChannelsContentModel
+from TriblerGUI.widgets.triblertablecontrollers import ChannelsTableViewController
 
 
 class DiscoveredPage(QWidget):
@@ -13,21 +14,17 @@ class DiscoveredPage(QWidget):
     def __init__(self):
         QWidget.__init__(self)
         self.initialized = False
+        self.model = None
+        self.controller = None
 
     def initialize_discovered_page(self):
         if not self.initialized:
             self.initialized = True
-            container = self.window().discovered_channels_container
-
-            container.initialize_model(search_type=u'channel')
-            container.channel_entry_clicked.connect(self.window().on_channel_clicked)
-            container.details_tab_widget.setHidden(True)
-            container.buttons_container.setHidden(True)
-            container.top_bar_container.setHidden(True)
-
-            container.torrents_table.setColumnHidden(container.model.column_position[u'commit_status'], True)
-            container.torrents_table.setColumnHidden(container.model.column_position[u'health'], True)
-            container.torrents_table.setColumnHidden(container.model.column_position[ACTION_BUTTONS], True)
+            self.model = ChannelsContentModel()
+            self.controller = ChannelsTableViewController(self.model, self.window().discovered_channels_list,
+                                                          self.window().num_discovered_channels_label,
+                                                          self.window().discovered_channels_filter_input)
 
     def load_discovered_channels(self):
-        self.window().discovered_channels_container.model.refresh()
+        self.controller.model.reset()
+        self.controller.load_channels(1, 50)  # Load the first 50 discovered channels

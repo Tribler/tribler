@@ -15,13 +15,6 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, time2int, int2time
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE
 
-HEALTH_CHECKING = u'Checking..'
-HEALTH_DEAD = u'No peers'
-HEALTH_ERROR = u'Error'
-HEALTH_MOOT = u'Peers found'
-HEALTH_GOOD = u'Seeds found'
-HEALTH_UNCHECKED = u'Unknown'
-
 CATEGORY_OLD_CHANNEL = u'Old channel'
 CATEGORY_CHANNEL = u'Channel'
 CATEGORY_UNKNOWN = u'Unknown'
