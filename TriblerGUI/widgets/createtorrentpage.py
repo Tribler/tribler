@@ -1,14 +1,17 @@
+from __future__ import absolute_import
+
 import os
 import urllib
 
 from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 
-from PyQt5.QtWidgets import QWidget, QFileDialog, QAction
+from six.moves import xrange
 
-from TriblerGUI.tribler_action_menu import TriblerActionMenu
-from TriblerGUI.defs import PAGE_EDIT_CHANNEL_TORRENTS, BUTTON_TYPE_NORMAL
+from TriblerGUI.defs import BUTTON_TYPE_NORMAL, PAGE_EDIT_CHANNEL_TORRENTS
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
+from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_image_path
 
@@ -27,8 +30,7 @@ class CreateTorrentPage(QWidget):
         self.selected_item_index = -1
         self.initialized = False
 
-    def initialize(self, identifier):
-        self.channel_identifier = identifier
+    def initialize(self):
         self.window().create_torrent_name_field.setText('')
         self.window().create_torrent_description_field.setText('')
         self.window().create_torrent_files_list.clear()
@@ -109,8 +111,7 @@ class CreateTorrentPage(QWidget):
     def add_torrent_to_channel(self, torrent):
         post_data = str("torrent=%s" % urllib.quote_plus(torrent))
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("channels/discovered/%s/torrents" %
-                                         self.channel_identifier, self.on_torrent_to_channel_added,
+        self.request_mgr.perform_request("mychannel/torrents", self.on_torrent_to_channel_added,
                                          data=post_data, method='PUT')
 
     def on_torrent_to_channel_added(self, result):

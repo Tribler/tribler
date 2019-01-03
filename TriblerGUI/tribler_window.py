@@ -1,37 +1,41 @@
+from __future__ import absolute_import
+
 import glob
 import logging
 import os
-import sys
-import traceback
-from urllib import pathname2url, unquote
-import urlparse
 import signal
-
+import sys
 import time
+import traceback
+import urlparse
+from urllib import pathname2url, unquote
+
 from PyQt5 import uic
 from PyQt5.QtCore import QDir
-from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication, pyqtSlot, QUrl, \
-    QObject, QTimer
-from PyQt5.QtGui import QIcon, QDesktopServices
+from PyQt5.QtCore import QCoreApplication, QObject, QPoint, QSettings, QStringListModel, QTimer, QUrl, Qt, pyqtSignal, \
+    pyqtSlot
+from PyQt5.QtGui import QDesktopServices, QIcon
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QMainWindow, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
-    QCompleter, QApplication, QStyledItemDelegate, QListWidget
+from PyQt5.QtWidgets import QAction, QApplication, QCompleter, QFileDialog, QLineEdit, QListWidget, QMainWindow, \
+    QStyledItemDelegate, QSystemTrayIcon, QTreeWidget
 from PyQt5.QtWidgets import QShortcut
 
+import six
+
 from Tribler.Core.Modules.process_checker import ProcessChecker
-from TriblerGUI.tribler_action_menu import TriblerActionMenu
+
 from TriblerGUI.core_manager import CoreManager
 from TriblerGUI.debug_window import DebugWindow
-from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
-    PAGE_HOME, PAGE_EDIT_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
-    PAGE_CHANNEL_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, PAGE_LOADING, \
-    PAGE_DISCOVERING, PAGE_DISCOVERED, PAGE_TRUST, SHUTDOWN_WAITING_PERIOD, DEFAULT_API_PORT
+from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, PAGE_CHANNEL_DETAILS, \
+    PAGE_DISCOVERED, PAGE_DISCOVERING, PAGE_DOWNLOADS, PAGE_EDIT_CHANNEL, PAGE_HOME, PAGE_LOADING, \
+    PAGE_SEARCH_RESULTS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, PAGE_TRUST, PAGE_VIDEO_PLAYER, SHUTDOWN_WAITING_PERIOD
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
-from TriblerGUI.tribler_request_manager import request_queue, TriblerRequestManager, dispatcher
-from TriblerGUI.utilities import get_ui_file_path, get_image_path, get_gui_setting, is_dir_writable, quote_plus_unicode
+from TriblerGUI.tribler_action_menu import TriblerActionMenu
+from TriblerGUI.tribler_request_manager import TriblerRequestManager, dispatcher, request_queue
+from TriblerGUI.utilities import get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable, quote_plus_unicode
 
 # Pre-load form UI classes
 fc_home_recommended_item, _ = uic.loadUiType(get_ui_file_path('home_recommended_item.ui'))
@@ -157,6 +161,7 @@ class TriblerWindow(QMainWindow):
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
         self.discovered_page.initialize_discovered_page()
+        self.channel_page.initialize_channel_page()
         self.trust_page.initialize_trust_page()
 
         self.stackedWidget.setCurrentIndex(PAGE_LOADING)
@@ -400,7 +405,7 @@ class TriblerWindow(QMainWindow):
         # Save the download location to the GUI settings
         current_settings = get_gui_setting(self.gui_settings, "recent_download_locations", "")
         recent_locations = current_settings.split(",") if len(current_settings) > 0 else []
-        if isinstance(destination, unicode):
+        if isinstance(destination, six.text_type):
             destination = destination.encode('utf-8')
         encoded_destination = destination.encode('hex')
         if encoded_destination in recent_locations:
@@ -786,8 +791,8 @@ class TriblerWindow(QMainWindow):
 
     def clicked_menu_button_subscriptions(self):
         self.deselect_all_menu_buttons(self.left_menu_button_subscriptions)
-        self.subscribed_channels_page.load_subscribed_channels()
         self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
+        self.subscribed_channels_page.load_subscribed_channels()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
