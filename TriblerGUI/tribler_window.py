@@ -12,8 +12,8 @@ from PyQt5 import uic
 from urllib import pathname2url, unquote
 
 import six
-from PyQt5.QtCore import QCoreApplication, QObject, QPoint, QSettings, QStringListModel, QTimer, QUrl, Qt, \
-    pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QCoreApplication, QObject, QPoint, QSettings, QStringListModel, QTimer, QUrl, Qt, pyqtSignal, \
+    pyqtSlot
 from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QDesktopServices, QIcon
 from PyQt5.QtGui import QKeySequence
@@ -25,10 +25,9 @@ from PyQt5.QtWidgets import QShortcut
 from Tribler.Core.Modules.process_checker import ProcessChecker
 from TriblerGUI.core_manager import CoreManager
 from TriblerGUI.debug_window import DebugWindow
-from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
-    PAGE_HOME, PAGE_EDIT_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
-    PAGE_CHANNEL_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, PAGE_LOADING, \
-    PAGE_DISCOVERING, PAGE_DISCOVERED, PAGE_TRUST, SHUTDOWN_WAITING_PERIOD, DEFAULT_API_PORT
+from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, PAGE_CHANNEL_DETAILS, \
+    PAGE_DISCOVERED, PAGE_DISCOVERING, PAGE_DOWNLOADS, PAGE_EDIT_CHANNEL, PAGE_HOME, PAGE_LOADING, \
+    PAGE_SEARCH_RESULTS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, PAGE_TRUST, PAGE_VIDEO_PLAYER, SHUTDOWN_WAITING_PERIOD
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
@@ -160,6 +159,7 @@ class TriblerWindow(QMainWindow):
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
         self.discovered_page.initialize_discovered_page()
+        self.channel_page.initialize_channel_page()
         self.trust_page.initialize_trust_page()
         self.token_mining_page.initialize_token_mining_page()
 
@@ -790,8 +790,8 @@ class TriblerWindow(QMainWindow):
 
     def clicked_menu_button_subscriptions(self):
         self.deselect_all_menu_buttons(self.left_menu_button_subscriptions)
-        self.subscribed_channels_page.load_subscribed_channels()
         self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
+        self.subscribed_channels_page.load_subscribed_channels()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 

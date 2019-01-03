@@ -1,16 +1,15 @@
 from __future__ import absolute_import
+
 import logging
 
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QLabel
-from PyQt5.QtWidgets import QTabWidget
-from PyQt5.QtWidgets import QTreeWidget
-from PyQt5.QtWidgets import QTreeWidgetItem
+from PyQt5.QtWidgets import QLabel, QTabWidget, QTreeWidget, QTreeWidgetItem
 
-from Tribler.Core.Modules.restapi.util import HEALTH_CHECKING
+from TriblerGUI.defs import HEALTH_CHECKING
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size
 from TriblerGUI.widgets.ellipsebutton import EllipseButton
+
 
 class TorrentDetailsTabWidget(QTabWidget):
     health_check_clicked = pyqtSignal(dict)
@@ -19,7 +18,6 @@ class TorrentDetailsTabWidget(QTabWidget):
     includes the generic info about the torrent, files and trackers.
     """
 
-    #TODO: rewrite this as a view into ChannelContentsModel
     def __init__(self, parent):
         QTabWidget.__init__(self, parent)
         self.torrent_info = None
@@ -115,7 +113,6 @@ class TorrentDetailsTabWidget(QTabWidget):
 
     def on_check_health_clicked(self, timeout=15):
         self.health_check_clicked.emit(self.torrent_info)
-
 
     def update_health(self, seeders, leechers, health=None):
         try:

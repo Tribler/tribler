@@ -15,6 +15,7 @@ class SubscriptionsWidget(QWidget):
 
     unsubscribed_channel = pyqtSignal(object)
     subscribed_channel = pyqtSignal(object)
+    credit_mining_toggled = pyqtSignal(bool)
 
     def __init__(self, parent):
         QWidget.__init__(self, parent)
@@ -55,30 +56,28 @@ class SubscriptionsWidget(QWidget):
 
         if self.window().tribler_settings:  # It could be that the settings are not loaded yet
             self.credit_mining_button.setHidden(not self.window().tribler_settings["credit_mining"]["enabled"])
-            if self.channel_info["dispersy_cid"] in self.window().tribler_settings["credit_mining"]["sources"]:
+            if self.channel_info["public_key"] in self.window().tribler_settings["credit_mining"]["sources"]:
                 self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path('credit_mining_yes.png'))))
             else:
                 self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path('credit_mining_not.png'))))
         else:
             self.credit_mining_button.hide()
-        # Hide credit mining button until everything else works
-        self.credit_mining_button.hide()
 
     def on_subscribe_button_click(self):
         self.request_mgr = TriblerRequestManager()
         if int(self.channel_info["subscribed"]):
-            self.request_mgr.perform_request("channels/subscribed/%s" %
-                                             self.channel_info['dispersy_cid'],
-                                             self.on_channel_unsubscribed, method='DELETE')
+            self.request_mgr.perform_request("metadata/channels/%s" %
+                                             self.channel_info['public_key'],
+                                             self.on_channel_unsubscribed, data='subscribe=0', method='POST')
         else:
-            self.request_mgr.perform_request("channels/subscribed/%s" %
-                                             self.channel_info['dispersy_cid'],
-                                             self.on_channel_subscribed, method='PUT')
+            self.request_mgr.perform_request("metadata/channels/%s" %
+                                             self.channel_info['public_key'],
+                                             self.on_channel_subscribed, data='subscribe=1', method='POST')
 
     def on_channel_unsubscribed(self, json_result):
         if not json_result:
             return
-        if json_result["unsubscribed"]:
+        if json_result["success"]:
             self.unsubscribed_channel.emit(self.channel_info)
             self.channel_info["subscribed"] = False
             self.channel_info["votes"] -= 1
@@ -87,7 +86,7 @@ class SubscriptionsWidget(QWidget):
     def on_channel_subscribed(self, json_result):
         if not json_result or not self:
             return
-        if json_result["subscribed"]:
+        if json_result["success"]:
             self.subscribed_channel.emit(self.channel_info)
             self.channel_info["subscribed"] = True
             self.channel_info["votes"] += 1
@@ -95,28 +94,26 @@ class SubscriptionsWidget(QWidget):
 
     def on_credit_mining_button_click(self):
         old_sources = self.window().tribler_settings["credit_mining"]["sources"]
-        new_sources = [] if self.channel_info["dispersy_cid"] in old_sources else [self.channel_info["dispersy_cid"]]
+        new_sources = [] if self.channel_info["public_key"] in old_sources \
+            else [self.channel_info["public_key"]]
         settings = {"credit_mining": {"sources": new_sources}}
 
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("settings", self.on_credit_mining_sources,
-                                         method='POST', data=json.dumps(settings))
+                                         method='PUT', data=json.dumps(settings))
 
     def on_credit_mining_sources(self, json_result):
         if not json_result:
             return
         if json_result["modified"]:
             old_source = next(iter(self.window().tribler_settings["credit_mining"]["sources"]), None)
+            if self.channel_info["public_key"] != old_source:
+                self.credit_mining_toggled.emit(True)
+                new_sources = [self.channel_info["public_key"]]
+            else:
+                self.credit_mining_toggled.emit(False)
+                new_sources = []
 
-            new_sources = [self.channel_info["dispersy_cid"]] if self.channel_info["dispersy_cid"] != old_source else []
             self.window().tribler_settings["credit_mining"]["sources"] = new_sources
 
             self.update_subscribe_button()
-
-            channels_list = self.window().discovered_channels_list
-            for index, data_item in enumerate(channels_list.data_items):
-                if data_item[1]['dispersy_cid'] == old_source:
-                    channel_item = channels_list.itemWidget(channels_list.item(index))
-                    if channel_item:
-                        channel_item.subscriptions_widget.update_subscribe_button()
-                    break

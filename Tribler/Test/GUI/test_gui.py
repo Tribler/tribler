@@ -1,34 +1,33 @@
 from __future__ import absolute_import
+
 import logging
 import os
 import sys
 import threading
-from random import randint
-import unittest
-from unittest import skipUnless, skipIf
-
 import time
-from PyQt5.QtCore import QPoint, Qt, QTimer
+import unittest
+from unittest import skipIf, skipUnless
+
+from PyQt5.QtCore import QPoint, QTimer, Qt
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget, QTextEdit
+from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget
 
 from six.moves import xrange
 
+from Tribler.Core.Utilities.network_utils import get_random_port
+
+import TriblerGUI
 import TriblerGUI.core_manager as core_manager
 import TriblerGUI.defs
-from Tribler.Core.Utilities.network_utils import get_random_port
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
+from TriblerGUI.tribler_window import TriblerWindow
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
+from TriblerGUI.widgets.loading_list_item import LoadingListItem
 
 api_port = get_random_port()
 core_manager.START_FAKE_API = True
-
-import TriblerGUI
 TriblerGUI.defs.DEFAULT_API_PORT = api_port
-
-from TriblerGUI.widgets.loading_list_item import LoadingListItem
-from TriblerGUI.tribler_window import TriblerWindow
 
 if os.environ.get("TEST_GUI") == "yes":
     app = QApplication(sys.argv)
@@ -141,6 +140,8 @@ class AbstractTriblerGUITest(unittest.TestCase):
             elif isinstance(llist, QTreeWidget) and llist.topLevelItemCount() >= num_items:
                 if not isinstance(llist.topLevelItem(0), LoadingListItem):
                     return
+            elif isinstance(llist, QTableView) and llist.verticalHeader().count() >= num_items:
+                return
 
         # List was not populated in time, fail the test
         raise TimeoutException("The list was not populated within 10 seconds")
@@ -206,6 +207,11 @@ class AbstractTriblerGUITest(unittest.TestCase):
         # QTextEdit was not populated in time, fail the test
         raise TimeoutException("QTextEdit was not populated within 10 seconds")
 
+    def get_index_of_row(self, table_view, row):
+        x = table_view.columnViewportPosition(0)
+        y = table_view.rowViewportPosition(row)
+        return table_view.indexAt(QPoint(x, y))
+
 
 @skipUnless(os.environ.get("TEST_GUI") == "yes", "Not testing the GUI by default")
 class TriblerGUITest(AbstractTriblerGUITest):
@@ -233,12 +239,67 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.wait_for_list_populated(window.subscribed_channels_list)
         self.screenshot(window, name="subscriptions")
 
-        first_widget = window.subscribed_channels_list.itemWidget(window.subscribed_channels_list.item(0))
-        QTest.mouseClick(first_widget.subscribe_button, Qt.LeftButton)
-        self.wait_for_signal(first_widget.subscriptions_widget.unsubscribed_channel)
+        # Sort
+        window.subscribed_channels_list.sortByColumn(1, 1)
+        self.wait_for_list_populated(window.subscribed_channels_list)
+        self.screenshot(window, name="subscriptions_sorted")
+        max_items = min(window.subscribed_channels_list.model().total_items, 50)
+        self.assertLessEqual(window.subscribed_channels_list.verticalHeader().count(), max_items)
+
+        # Filter
+        old_num_items = window.subscribed_channels_list.verticalHeader().count()
+        QTest.keyClick(window.subscribed_channels_filter_input, '1')
+        self.wait_for_list_populated(window.subscribed_channels_list)
+        self.screenshot(window, name="subscriptions_filtered")
+        self.assertLessEqual(window.subscribed_channels_list.verticalHeader().count(), old_num_items)
+        window.subscribed_channels_filter_input.setText('')
+        self.wait_for_list_populated(window.subscribed_channels_list)
+
+        # Unsubscribe and subscribe again
+        index = self.get_index_of_row(window.subscribed_channels_list, 0)
+        window.subscribed_channels_list.on_subscribe_control_clicked(index)
+        self.wait_for_signal(window.subscribed_channels_list.on_unsubscribed_channel)
         self.screenshot(window, name="unsubscribed")
-        QTest.mouseClick(first_widget.subscribe_button, Qt.LeftButton)
-        self.wait_for_signal(first_widget.subscriptions_widget.subscribed_channel)
+
+        window.subscribed_channels_list.on_subscribe_control_clicked(index)
+        self.wait_for_signal(window.subscribed_channels_list.on_subscribed_channel)
+
+    def test_discovered_page(self):
+        QTest.mouseClick(window.left_menu_button_discovered, Qt.LeftButton)
+        self.wait_for_list_populated(window.discovered_channels_list)
+        self.screenshot(window, name="discovered_page")
+
+        # Sort
+        window.discovered_channels_list.sortByColumn(1, 1)
+        self.wait_for_list_populated(window.discovered_channels_list)
+        self.screenshot(window, name="discovered_sorted")
+        max_items = min(window.discovered_channels_list.model().total_items, 50)
+        self.assertLessEqual(window.discovered_channels_list.verticalHeader().count(), max_items)
+
+        # Filter
+        old_num_items = window.discovered_channels_list.verticalHeader().count()
+        QTest.keyClick(window.discovered_channels_filter_input, '1')
+        self.wait_for_list_populated(window.discovered_channels_list)
+        self.screenshot(window, name="discovered_filtered")
+        self.assertLessEqual(window.discovered_channels_list.verticalHeader().count(), old_num_items)
+
+    def test_channel_torrents(self):
+        QTest.mouseClick(window.left_menu_button_subscriptions, Qt.LeftButton)
+        self.wait_for_list_populated(window.subscribed_channels_list)
+        index = self.get_index_of_row(window.subscribed_channels_list, 0)
+        window.subscribed_channels_list.on_table_item_clicked(index)
+        self.wait_for_list_populated(window.channel_page_container.content_table)
+        self.screenshot(window, name="channel_torrents_loaded")
+
+        # Toggle credit mining
+        QTest.mouseClick(window.credit_mining_button, Qt.LeftButton)
+        self.wait_for_signal(window.subscription_widget.credit_mining_toggled)
+
+        # Click the first torrent
+        index = self.get_index_of_row(window.channel_page_container.content_table, 0)
+        window.channel_page_container.content_table.on_table_item_clicked(index)
+        QTest.qWait(100)
+        self.screenshot(window, name="channel_overview_details")
 
     def test_edit_channel_overview(self):
         QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
@@ -258,53 +319,55 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.wait_for_variable("edit_channel_page.channel_overview")
         QTest.mouseClick(window.edit_channel_torrents_button, Qt.LeftButton)
         self.screenshot(window, name="edit_channel_torrents_loading")
-        self.wait_for_list_populated(window.edit_channel_torrents_list)
+        self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
         self.screenshot(window, name="edit_channel_torrents")
 
-        first_widget = window.edit_channel_torrents_list.itemWidget(window.edit_channel_torrents_list.item(0))
-        QTest.mouseClick(first_widget, Qt.LeftButton)
-        self.screenshot(window, name="edit_channel_torrents_selected")
-        QTest.mouseClick(window.edit_channel_torrents_remove_selected_button, Qt.LeftButton)
-        self.screenshot(window, name="remove_channel_torrent_dialog")
-        QTest.mouseClick(window.edit_channel_page.dialog.buttons[1], Qt.LeftButton)
+        # Sort
+        window.edit_channel_torrents_container.content_table.sortByColumn(2, 1)  # Size
+        self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
+        self.screenshot(window, name="edit_channel_torrents_sorted")
+        max_items = min(window.discovered_channels_list.model().total_items, 50)
+        self.assertLessEqual(window.discovered_channels_list.verticalHeader().count(), max_items)
 
-        QTest.mouseClick(window.edit_channel_torrents_remove_all_button, Qt.LeftButton)
-        self.screenshot(window, name="remove_all_channel_torrent_dialog")
-        QTest.mouseClick(window.edit_channel_page.dialog.buttons[1], Qt.LeftButton)
+        # Filter
+        old_num_items = window.edit_channel_torrents_container.content_table.verticalHeader().count()
+        QTest.keyClick(window.edit_channel_torrents_filter, 'a')
+        self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
+        self.screenshot(window, name="edit_channel_torrents_filtered")
+        self.assertLessEqual(window.edit_channel_torrents_container.content_table.verticalHeader().count(),
+                             old_num_items)
+        window.edit_channel_torrents_filter.setText('')
+        self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
 
-    def test_edit_channel_playlists(self):
-        QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
-        self.wait_for_variable("edit_channel_page.channel_overview")
-        QTest.mouseClick(window.edit_channel_playlists_button, Qt.LeftButton)
-        self.screenshot(window, name="edit_channel_playlists_loading")
-        self.wait_for_list_populated(window.edit_channel_playlists_list)
-        self.screenshot(window, name="edit_channel_playlists")
-
-    def test_edit_channel_rssfeeds(self):
-        QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
-        self.wait_for_variable("edit_channel_page.channel_overview")
-        QTest.mouseClick(window.edit_channel_rss_feeds_button, Qt.LeftButton)
-        self.screenshot(window, name="edit_channel_rssfeeds_loading")
-        self.wait_for_list_populated(window.edit_channel_rss_feeds_list)
-        self.screenshot(window, name="edit_channel_rssfeeds")
-
-    def test_add_remove_refresh_rssfeed(self):
-        QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
-        self.wait_for_variable("edit_channel_page.channel_overview")
-        QTest.mouseClick(window.edit_channel_rss_feeds_button, Qt.LeftButton)
-        self.wait_for_list_populated(window.edit_channel_rss_feeds_list)
-        QTest.mouseClick(window.edit_channel_details_rss_add_button, Qt.LeftButton)
-        self.screenshot(window, name="edit_channel_add_rssfeeds_dialog")
-        window.edit_channel_page.dialog.dialog_widget.dialog_input.setText("http://test.com/rss.xml")
+        # Remove a single torrent
+        index = self.get_index_of_row(window.edit_channel_torrents_container.content_table, 0)
+        window.edit_channel_torrents_container.content_table.setCurrentIndex(index)
+        QTest.mouseClick(window.remove_selected_button, Qt.LeftButton)
+        self.screenshot(window, name="edit_channel_remove_torrent_dialog")
         QTest.mouseClick(window.edit_channel_page.dialog.buttons[0], Qt.LeftButton)
+        self.wait_for_signal(window.edit_channel_page.on_torrents_removed)
 
-        # Remove item
-        window.edit_channel_rss_feeds_list.topLevelItem(0).setSelected(True)
-        QTest.mouseClick(window.edit_channel_details_rss_feeds_remove_selected_button, Qt.LeftButton)
-        self.screenshot(window, name="edit_channel_remove_rssfeeds_dialog")
+        # Remove all torrents
+        QTest.mouseClick(window.remove_all_button, Qt.LeftButton)
+        self.screenshot(window, name="edit_channel_remove_all_dialog")
         QTest.mouseClick(window.edit_channel_page.dialog.buttons[0], Qt.LeftButton)
+        self.wait_for_signal(window.edit_channel_page.on_all_torrents_removed, no_args=True)
+        self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
+        self.screenshot(window, name="edit_channel_remove_all_pending")
 
-        QTest.mouseClick(window.edit_channel_details_rss_refresh_button, Qt.LeftButton)
+        # Commit the result
+        QTest.mouseClick(window.edit_channel_commit_button, Qt.LeftButton)
+        self.wait_for_signal(window.edit_channel_page.on_commit, no_args=True)
+        self.screenshot(window, name="edit_channel_committed")
+
+    def test_create_torrent(self):
+        QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
+        self.wait_for_variable("edit_channel_page.channel_overview")
+        QTest.mouseClick(window.edit_channel_torrents_button, Qt.LeftButton)
+        self.wait_for_list_populated(window.edit_channel_torrents_container.content_table)
+        window.edit_channel_page.on_create_torrent_from_files()
+        self.screenshot(window, name="create_torrent_page")
+        QTest.mouseClick(window.manage_channel_create_torrent_back, Qt.LeftButton)
 
     def test_settings(self):
         QTest.mouseClick(window.settings_button, Qt.LeftButton)
@@ -366,7 +429,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
     def test_search(self):
         window.top_search_bar.setText("trib")
         QTest.keyClick(window.top_search_bar, Qt.Key_Enter)
-        self.wait_for_list_populated(window.search_results_list, num_items=20)
+        self.wait_for_list_populated(window.search_results_list)
         self.screenshot(window, name="search_results_all")
 
         QTest.mouseClick(window.search_results_channels_button, Qt.LeftButton)
@@ -375,64 +438,6 @@ class TriblerGUITest(AbstractTriblerGUITest):
         QTest.mouseClick(window.search_results_torrents_button, Qt.LeftButton)
         self.wait_for_list_populated(window.search_results_list)
         self.screenshot(window, name="search_results_torrents")
-
-    def test_channel_playlist(self):
-        QTest.mouseClick(window.left_menu_button_subscriptions, Qt.LeftButton)
-        self.wait_for_list_populated(window.subscribed_channels_list)
-        first_widget = window.subscribed_channels_list.itemWidget(window.subscribed_channels_list.item(0))
-        QTest.mouseClick(first_widget, Qt.LeftButton)
-        self.screenshot(window, name="channel_loading")
-        self.wait_for_list_populated(window.channel_torrents_list)
-        self.screenshot(window, name="channel")
-
-        first_widget = window.channel_torrents_list.itemWidget(window.channel_torrents_list.item(0))
-        QTest.mouseClick(first_widget, Qt.LeftButton)
-        self.screenshot(window, name="channel_playlist")
-
-    def test_create_remove_playlist(self):
-        QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
-        self.wait_for_variable("edit_channel_page.channel_overview")
-        QTest.mouseClick(window.edit_channel_playlists_button, Qt.LeftButton)
-        self.wait_for_list_populated(window.edit_channel_playlists_list)
-        old_count = window.edit_channel_playlists_list.count()
-        QTest.mouseClick(window.edit_channel_create_playlist_button, Qt.LeftButton)
-        self.screenshot(window, "create_playlist")
-
-        # Create playlist
-        window.playlist_edit_name.setText("Unit test playlist")
-        window.playlist_edit_description.setText("Unit test playlist description")
-        QTest.mouseClick(window.playlist_edit_save_button, Qt.LeftButton)
-        self.wait_for_signal(window.edit_channel_page.playlists_loaded)
-        self.assertEqual(old_count + 1, window.edit_channel_playlists_list.count())
-
-        # Remove playlist
-        last_widget = window.edit_channel_playlists_list.itemWidget(window.edit_channel_playlists_list.item(old_count))
-        QTest.mouseClick(last_widget.remove_playlist_button, Qt.LeftButton)
-        self.screenshot(window, name="remove_playlist_dialog")
-        QTest.mouseClick(window.edit_channel_page.dialog.buttons[0], Qt.LeftButton)
-        self.wait_for_signal(window.edit_channel_page.playlists_loaded)
-        self.assertEqual(old_count, window.edit_channel_playlists_list.count())
-
-    def test_edit_playlist(self):
-        QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
-        self.wait_for_variable("edit_channel_page.channel_overview")
-        QTest.mouseClick(window.edit_channel_playlists_button, Qt.LeftButton)
-        self.wait_for_list_populated(window.edit_channel_playlists_list)
-
-        first_widget = window.edit_channel_playlists_list.itemWidget(window.edit_channel_playlists_list.item(0))
-        QTest.mouseClick(first_widget.edit_playlist_button, Qt.LeftButton)
-        self.screenshot(window, name="edit_playlist")
-
-        rand_name = "Random name %d" % randint(1, 1000)
-        rand_desc = "Random description %d" % randint(1, 1000)
-
-        window.playlist_edit_name.setText(rand_name)
-        window.playlist_edit_description.setText(rand_desc)
-        QTest.mouseClick(window.playlist_edit_save_button, Qt.LeftButton)
-        self.wait_for_signal(window.edit_channel_page.playlists_loaded)
-
-        first_widget = window.edit_channel_playlists_list.itemWidget(window.edit_channel_playlists_list.item(0))
-        self.assertEqual(first_widget.playlist_name.text(), rand_name)
 
     def test_add_download_url(self):
         window.on_add_torrent_from_url()
@@ -503,11 +508,6 @@ class TriblerGUITest(AbstractTriblerGUITest):
         QTest.mouseClick(dialog.send_report_button, Qt.LeftButton)
         QTimer.singleShot(1000, screenshot_dialog)
         dialog.exec_()
-
-    def test_discovered_page(self):
-        QTest.mouseClick(window.left_menu_button_discovered, Qt.LeftButton)
-        self.wait_for_list_populated(window.discovered_channels_list)
-        self.screenshot(window, name="discovered_page")
 
     def test_debug_pane(self):
         self.wait_for_variable("tribler_settings")
@@ -604,37 +604,6 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window.debug_window, name="debug_panel_libtorrent_session_tab")
 
         window.debug_window.close()
-
-    def test_create_torrent(self):
-        QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
-        self.wait_for_variable("edit_channel_page.channel_overview")
-        QTest.mouseClick(window.edit_channel_torrents_button, Qt.LeftButton)
-        self.wait_for_list_populated(window.edit_channel_torrents_list)
-        window.edit_channel_page.on_create_torrent_from_files()
-        self.screenshot(window, name="create_torrent_page")
-        QTest.mouseClick(window.manage_channel_create_torrent_back, Qt.LeftButton)
-
-    def test_manage_playlist(self):
-        QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
-        self.wait_for_variable("edit_channel_page.channel_overview")
-        QTest.mouseClick(window.edit_channel_playlists_button, Qt.LeftButton)
-        self.wait_for_list_populated(window.edit_channel_playlists_list)
-        first_widget = window.edit_channel_playlists_list.itemWidget(window.edit_channel_playlists_list.item(0))
-        QTest.mouseClick(first_widget, Qt.LeftButton)
-        QTest.mouseClick(window.edit_channel_playlist_manage_torrents_button, Qt.LeftButton)
-        self.wait_for_list_populated(window.playlist_manage_in_playlist_list)
-        self.screenshot(window, name="manage_playlist_before")
-
-        # Swap the first item of the lists around
-        window.playlist_manage_in_playlist_list.setCurrentRow(0)
-        QTest.mouseClick(window.playlist_manage_remove_from_playlist, Qt.LeftButton)
-
-        window.playlist_manage_in_channel_list.setCurrentRow(0)
-        QTest.mouseClick(window.playlist_manage_add_to_playlist, Qt.LeftButton)
-
-        self.screenshot(window, name="manage_playlist_after")
-
-        QTest.mouseClick(window.edit_channel_manage_playlist_save_button, Qt.LeftButton)
 
     def test_trust_page(self):
         QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
