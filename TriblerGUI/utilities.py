@@ -9,6 +9,12 @@ import TriblerGUI
 from TriblerGUI.defs import VIDEO_EXTS
 
 
+def index2uri(index):
+    infohash = index.model().data_items[index.row()][u'infohash']
+    name = index.model().data_items[index.row()][u'name']
+    return u"magnet:?xt=urn:btih:%s&dn=%s" % (infohash, name)
+
+
 def format_size(num, suffix='B'):
     for unit in ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z']:
         if abs(num) < 1024.0:

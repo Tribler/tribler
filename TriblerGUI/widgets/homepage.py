@@ -1,10 +1,13 @@
 from __future__ import absolute_import
+
 from PyQt5.QtWidgets import QWidget
 
+from six.moves import xrange
+
 from TriblerGUI.defs import PAGE_CHANNEL_DETAILS
+from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
 from TriblerGUI.widgets.loading_list_item import LoadingListItem
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
 class HomePage(QWidget):
@@ -35,12 +38,14 @@ class HomePage(QWidget):
 
     def load_popular_torrents(self):
         self.recommended_request_mgr = TriblerRequestManager()
-        self.recommended_request_mgr.perform_request("torrents/random?limit=50", self.received_popular_torrents)
+        self.recommended_request_mgr.perform_request("metadata/torrents/random?limit=50",
+                                                     self.received_popular_torrents)
 
     def clicked_tab_button(self, tab_button_name):
         if tab_button_name == "home_tab_channels_button":
             self.recommended_request_mgr = TriblerRequestManager()
-            self.recommended_request_mgr.perform_request("channels/popular?limit=50", self.received_popular_channels)
+            self.recommended_request_mgr.perform_request("metadata/channels/popular?limit=50",
+                                                         self.received_popular_channels)
         elif tab_button_name == "home_tab_torrents_button":
             self.load_popular_torrents()
 
