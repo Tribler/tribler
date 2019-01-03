@@ -89,11 +89,7 @@ class SearchEndpoint(resource.Resource):
                    ],
                    "chant_dirty":false
                 }
-
         """
-
-
-
         first = 0
         last = None
         item_type = None
@@ -107,9 +103,6 @@ class SearchEndpoint(resource.Resource):
         channel = None
 
         xxx_filter = self.session.config.get_family_filter_enabled()
-        if 'xxx_filter' in request.args and request.args['xxx_filter'] > 0 \
-                and request.args['xxx_filter'][0] == "1":
-            xxx_filter = False
 
         if 'first' in request.args and request.args['first'] > 0:
             first = int(request.args['first'][0])
@@ -125,12 +118,8 @@ class SearchEndpoint(resource.Resource):
 
         if 'sort_by' in request.args and request.args['sort_by'] > 0:
             sort_by = request.args['sort_by'][0]
-            if sort_by.startswith(u'-'):
-                sort_forward = False
-                sort_column = sort_by[1:]
-            else:
-                sort_forward = True
-                sort_column = sort_by
+            sort_forward = True  #TODO(Martijn): fix correctly
+            sort_column = sort_by
 
         if 'txt' in request.args and request.args['txt'] > 0:
             txt_search_query = request.args['txt'][0]
@@ -199,7 +188,7 @@ class SearchEndpoint(resource.Resource):
                 results.extend(pony_query_results)
 
             # Legacy query for subscribed channels
-            skip_dispersy = not txt_search_query or (channel and not is_dispersy_channel)
+            skip_dispersy = txt_search_query or (channel and not is_dispersy_channel)
             if subscribed:
                 skip_dispersy = True
                 subscribed_channels_db = self.channel_db_handler.getMySubscribedChannels(include_dispersy=True)

@@ -48,6 +48,46 @@ background-color: red;
 }
 QStatusBar::item {
 border: 0px solid black;
+}
+QTableView {
+border: none;
+font-size: 13px;
+outline: 0;
+}
+QTableView::item::hover {
+background-color: rgba(255,255,255, 50);
+}
+QTableView::item {
+color: white;
+height: 40px;
+border-bottom: 1px solid #303030;
+}
+
+QHeaderView {
+background-color: transparent;
+}
+QHeaderView::section {
+background-color: transparent;
+border: none;
+color: #B5B5B5;
+padding: 10px;
+font-size: 14px;
+border-bottom: 1px solid #303030;
+}
+QHeaderView::section:hover {
+color: white;
+}
+QTableCornerButton::section {
+background-color: transparent;
+}
+QHeaderView::section:up-arrow {
+color: white;
+}
+QHeaderView::section:down-arrow {
+color: white;
+}
+QHeaderView {
+qproperty-defaultAlignment: AlignLeft;
 }</string>
   </property>
   <widget class="QWidget" name="central_widget">
@@ -1050,7 +1090,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>14</number>
+         <number>2</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1850,7 +1890,7 @@ font-size: 14px;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>3</number>
+                 <number>2</number>
                 </property>
                 <widget class="QWidget" name="edit_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -2300,7 +2340,355 @@ font-size: 14px;</string>
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="ChannelViewWidget" name="edit_channel_torrents_list" native="true"/>
+                   <widget class="QLabel" name="dirty_channel_status_bar">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>30</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>16777215</width>
+                      <height>30</height>
+                     </size>
+                    </property>
+                    <property name="styleSheet">
+                     <string notr="true">font-size: 14px; background-color: #cc6600;
+color: #eee;</string>
+                    </property>
+                    <property name="text">
+                     <string>Your channel has uncommitted changes.</string>
+                    </property>
+                    <property name="alignment">
+                     <set>Qt::AlignCenter</set>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QWidget" name="edit_channel_torrents_top_bar" native="true">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>50</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>16777215</width>
+                      <height>50</height>
+                     </size>
+                    </property>
+                    <layout class="QHBoxLayout" name="horizontalLayout_6">
+                     <property name="spacing">
+                      <number>0</number>
+                     </property>
+                     <property name="leftMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>0</number>
+                     </property>
+                     <item>
+                      <spacer name="horizontalSpacer_43">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeType">
+                        <enum>QSizePolicy::Fixed</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>10</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
+                      <widget class="QLabel" name="edit_channel_torrents_num_items_label">
+                       <property name="styleSheet">
+                        <string notr="true"/>
+                       </property>
+                       <property name="text">
+                        <string>0 items</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_22">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeType">
+                        <enum>QSizePolicy::Expanding</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>10</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
+                      <widget class="QLineEdit" name="edit_channel_torrents_filter">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>180</width>
+                         <height>28</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>180</width>
+                         <height>28</height>
+                        </size>
+                       </property>
+                       <property name="baseSize">
+                        <size>
+                         <width>200</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">QLineEdit {
+border-radius: 3px;
+}
+QLineEdit:focus, QLineEdit::hover {
+background-color: #404040;
+color: white;
+}</string>
+                       </property>
+                       <property name="text">
+                        <string/>
+                       </property>
+                       <property name="placeholderText">
+                        <string>Filter</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_31">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeType">
+                        <enum>QSizePolicy::Maximum</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>16</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
+                      <widget class="EllipseButton" name="edit_channel_commit_button">
+                       <property name="minimumSize">
+                        <size>
+                         <width>0</width>
+                         <height>28</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>16777215</width>
+                         <height>28</height>
+                        </size>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">border-radius: 12px;
+padding-left: 4px;
+padding-right: 4px;</string>
+                       </property>
+                       <property name="text">
+                        <string>APPLY CHANGES</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_36">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeType">
+                        <enum>QSizePolicy::Fixed</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>10</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="TorrentsListWidget" name="edit_channel_torrents_container" native="true"/>
+                  </item>
+                  <item>
+                   <widget class="QWidget" name="edit_channel_torrents_buttons_container" native="true">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>50</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>16777215</width>
+                      <height>50</height>
+                     </size>
+                    </property>
+                    <layout class="QHBoxLayout" name="horizontalLayout_4">
+                     <property name="leftMargin">
+                      <number>8</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>8</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>8</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>8</number>
+                     </property>
+                     <item>
+                      <spacer name="horizontalSpacer_30">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>390</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
+                      <widget class="EllipseButton" name="remove_selected_button">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>0</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>16777215</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="cursor">
+                        <cursorShape>PointingHandCursor</cursorShape>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">border-radius: 12px;
+padding-left: 4px;
+padding-right: 4px;</string>
+                       </property>
+                       <property name="text">
+                        <string>REMOVE SELECTED</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="EllipseButton" name="remove_all_button">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>0</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>16777215</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="cursor">
+                        <cursorShape>PointingHandCursor</cursorShape>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">border-radius: 12px;
+padding-left: 4px;
+padding-right: 4px;</string>
+                       </property>
+                       <property name="text">
+                        <string>REMOVE ALL</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="EllipseButton" name="add_button">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>0</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>16777215</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="cursor">
+                        <cursorShape>PointingHandCursor</cursorShape>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">border-radius: 12px;
+padding-left: 4px;
+padding-right: 4px;</string>
+                       </property>
+                       <property name="text">
+                        <string>ADD</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </widget>
                   </item>
                  </layout>
                 </widget>
@@ -2870,7 +3258,7 @@ font-weight: bold;</string>
 color: #B5B5B5;</string>
                </property>
                <property name="text">
-                <string>- results</string>
+                <string>0 results</string>
                </property>
               </widget>
              </item>
@@ -3052,13 +3440,86 @@ color: #B5B5B5;</string>
            </widget>
           </item>
           <item>
-           <widget class="ChannelViewWidget" name="search_page_container" native="true">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
+           <widget class="QWidget" name="widget_11" native="true">
+            <layout class="QVBoxLayout" name="verticalLayout_11">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QSplitter" name="splitter_2">
+               <property name="styleSheet">
+                <string notr="true">QSplitter::handle { background-color: #555; }</string>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="opaqueResize">
+                <bool>false</bool>
+               </property>
+               <property name="childrenCollapsible">
+                <bool>false</bool>
+               </property>
+               <widget class="SearchResultsTableView" name="search_results_list">
+                <property name="horizontalScrollBarPolicy">
+                 <enum>Qt::ScrollBarAlwaysOff</enum>
+                </property>
+                <property name="selectionMode">
+                 <enum>QAbstractItemView::SingleSelection</enum>
+                </property>
+                <property name="selectionBehavior">
+                 <enum>QAbstractItemView::SelectRows</enum>
+                </property>
+                <property name="showGrid">
+                 <bool>false</bool>
+                </property>
+                <property name="sortingEnabled">
+                 <bool>true</bool>
+                </property>
+                <property name="cornerButtonEnabled">
+                 <bool>false</bool>
+                </property>
+                <attribute name="horizontalHeaderHighlightSections">
+                 <bool>false</bool>
+                </attribute>
+                <attribute name="verticalHeaderVisible">
+                 <bool>false</bool>
+                </attribute>
+               </widget>
+               <widget class="TorrentDetailsContainer" name="search_details_container" native="true">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>200</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>200</height>
+                 </size>
+                </property>
+               </widget>
+              </widget>
+             </item>
+            </layout>
            </widget>
           </item>
          </layout>
@@ -3241,6 +3702,56 @@ font-weight: bold;</string>
                <property name="sizeHint" stdset="0">
                 <size>
                  <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QLineEdit" name="channel_torrents_filter_input">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>180</width>
+                 <height>28</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>180</width>
+                 <height>28</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">QLineEdit {
+border-radius: 3px;
+}
+QLineEdit:focus, QLineEdit::hover {
+background-color: #404040;
+color: white;
+}</string>
+               </property>
+               <property name="placeholderText">
+                <string>Filter</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_32">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Minimum</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>16</width>
                  <height>20</height>
                 </size>
                </property>
@@ -3446,7 +3957,7 @@ background-color: transparent;
            </widget>
           </item>
           <item>
-           <widget class="ChannelViewWidget" name="channel_page_container" native="true">
+           <widget class="TorrentsListWidget" name="channel_page_container" native="true">
             <property name="styleSheet">
              <string notr="true"/>
             </property>
@@ -6109,7 +6620,7 @@ font-size: 12px;</string>
              <item>
               <widget class="QLabel" name="subscribed_channels_header_label">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -6139,6 +6650,34 @@ margin: 10px;</string>
               </widget>
              </item>
              <item>
+              <widget class="QLineEdit" name="subscribed_channels_filter_input">
+               <property name="minimumSize">
+                <size>
+                 <width>180</width>
+                 <height>28</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>180</width>
+                 <height>28</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">QLineEdit {
+border-radius: 3px;
+}
+QLineEdit:focus, QLineEdit::hover {
+background-color: #404040;
+color: white;
+}</string>
+               </property>
+               <property name="placeholderText">
+                <string>filter</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <spacer name="horizontalSpacer_19">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
@@ -6155,32 +6694,24 @@ margin: 10px;</string>
               </spacer>
              </item>
              <item>
-              <widget class="EllipseButton" name="add_subscription_button">
-               <property name="minimumSize">
-                <size>
-                 <width>42</width>
-                 <height>24</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>42</width>
-                 <height>24</height>
-                </size>
-               </property>
-               <property name="cursor">
-                <cursorShape>PointingHandCursor</cursorShape>
+              <widget class="QLabel" name="num_subscribed_channels_label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
                </property>
                <property name="styleSheet">
-                <string notr="true"/>
+                <string notr="true">font-size: 14px;
+color: #B5B5B5;</string>
                </property>
                <property name="text">
-                <string>ADD</string>
+                <string>0 items</string>
                </property>
               </widget>
              </item>
              <item>
-              <spacer name="horizontalSpacer_20">
+              <spacer name="horizontalSpacer_38">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
                </property>
@@ -6199,19 +6730,28 @@ margin: 10px;</string>
            </widget>
           </item>
           <item>
-           <widget class="ChannelViewWidget" name="subscribed_channels_container" native="true">
-            <property name="styleSheet">
-             <string notr="true">QListWidget::item:hover {
-background-color: #303030;
-}
-QListWidget::item {
-border-bottom: 1px solid #303030;
-}
-QListWidget {
-border: none;
-border-top: 1px solid #555;
-}</string>
+           <widget class="ChannelsTableView" name="subscribed_channels_list">
+            <property name="horizontalScrollBarPolicy">
+             <enum>Qt::ScrollBarAlwaysOff</enum>
             </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::NoSelection</enum>
+            </property>
+            <property name="showGrid">
+             <bool>false</bool>
+            </property>
+            <property name="sortingEnabled">
+             <bool>true</bool>
+            </property>
+            <property name="cornerButtonEnabled">
+             <bool>false</bool>
+            </property>
+            <attribute name="horizontalHeaderHighlightSections">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
            </widget>
           </item>
          </layout>
@@ -7891,6 +8431,34 @@ margin: 10px;</string>
               </widget>
              </item>
              <item>
+              <widget class="QLineEdit" name="discovered_channels_filter_input">
+               <property name="minimumSize">
+                <size>
+                 <width>180</width>
+                 <height>28</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>180</width>
+                 <height>28</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">QLineEdit {
+border-radius: 3px;
+}
+QLineEdit:focus, QLineEdit::hover {
+background-color: #404040;
+color: white;
+}</string>
+               </property>
+               <property name="placeholderText">
+                <string>filter</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <spacer name="horizontalSpacer_59">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
@@ -7943,7 +8511,35 @@ color: #B5B5B5;</string>
            </widget>
           </item>
           <item>
-           <widget class="ChannelViewWidget" name="discovered_channels_container" native="true"/>
+           <widget class="ChannelsTableView" name="discovered_channels_list">
+            <property name="horizontalScrollBarPolicy">
+             <enum>Qt::ScrollBarAlwaysOff</enum>
+            </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::NoSelection</enum>
+            </property>
+            <property name="showGrid">
+             <bool>false</bool>
+            </property>
+            <property name="sortingEnabled">
+             <bool>true</bool>
+            </property>
+            <property name="cornerButtonEnabled">
+             <bool>false</bool>
+            </property>
+            <attribute name="horizontalHeaderCascadingSectionResizes">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="horizontalHeaderHighlightSections">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="horizontalHeaderStretchLastSection">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -11199,7 +11795,7 @@ color: #eee;</string>
           <string notr="true">font-size: 14px;</string>
          </property>
          <property name="text">
-          <string>Transaction in process, Please don't close Tribler.</string>
+          <string>Transaction in progress, Please don't close Tribler.</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -11383,9 +11979,25 @@ color: #eee;</string>
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>ChannelViewWidget</class>
+   <class>TorrentsListWidget</class>
    <extends>QWidget</extends>
-   <header location="global">TriblerGUI.widgets.channelview.h</header>
+   <header>TriblerGUI.widgets.torrentslistwidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ChannelsTableView</class>
+   <extends>QTableView</extends>
+   <header>TriblerGUI.widgets.lazytableview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>TorrentDetailsContainer</class>
+   <extends>QWidget</extends>
+   <header>TriblerGUI.widgets.torrentdetailscontainer.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>SearchResultsTableView</class>
+   <extends>QTableView</extends>
+   <header>TriblerGUI.widgets.lazytableview.h</header>
   </customwidget>
   <customwidget>
    <class>TokenMiningPage</class>

@@ -93,5 +93,20 @@ SHUTDOWN_WAITING_PERIOD = 120000
 # Garbage collection timer (in minutes)
 GC_TIMEOUT = 10
 
+ACTION_BUTTONS = u'action_buttons'
+
+# Torrent commit status constants
+COMMIT_STATUS_NEW = 0
+COMMIT_STATUS_TODELETE = 1
+COMMIT_STATUS_COMMITTED = 2
+
+
+HEALTH_CHECKING = u'Checking..'
+HEALTH_DEAD = u'No peers'
+HEALTH_ERROR = u'Error'
+HEALTH_MOOT = u'Peers found'
+HEALTH_GOOD = u'Seeds found'
+HEALTH_UNCHECKED = u'Unknown'
+
 # Interval for refreshing the results in the debug pane
 DEBUG_PANE_REFRESH_TIMEOUT = 5000   # 5 seconds
