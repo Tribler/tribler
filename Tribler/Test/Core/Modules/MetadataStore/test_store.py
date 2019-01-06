@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import os
-from datetime import datetime
 
 from pony.orm import db_session
 from six.moves import xrange
@@ -19,7 +18,7 @@ from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 def make_wrong_payload(filename):
     key = default_eccrypto.generate_key(u"curve25519")
-    metadata_payload = MetadataPayload(666, database_blob(key.pub().key_to_bin()[10:]), datetime.utcnow(), 123)
+    metadata_payload = MetadataPayload(666, database_blob(key.pub().key_to_bin()[10:]), 123)
     with open(filename, 'wb') as output_file:
         output_file.write(''.join(metadata_payload.serialized(key)))
 
@@ -117,4 +116,4 @@ class TestMetadataStore(TriblerCoreTest):
         self.assertFalse(channel.contents_list)
         self.mds.process_channel_dir(self.CHANNEL_DIR, channel.public_key)
         self.assertEqual(len(channel.contents_list), 3)
-        self.assertEqual(channel.local_version, 5)
+        self.assertEqual(channel.local_version, 10)

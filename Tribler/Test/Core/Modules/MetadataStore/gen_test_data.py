@@ -1,7 +1,6 @@
 import os
-import time
-from datetime import datetime
 import random
+from datetime import datetime
 
 from pony.orm import db_session
 
@@ -16,7 +15,6 @@ from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 DATA_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), '..', '..', 'data')
 SAMPLE_DIR = os.path.join(DATA_DIR, 'sample_channel')
 
-
 my_key = default_eccrypto.generate_key(u"curve25519")
 
 
@@ -29,6 +27,7 @@ def gen_random_entry():
         "tags": "video",
         "status": NEW
     }
+
 
 @db_session
 def gen_sample_channel(mds):
@@ -46,8 +45,8 @@ def gen_sample_channel(mds):
     my_channel.commit_channel_torrent()
 
     # Rename files to stable names
-    mdblob_name = os.path.join(SAMPLE_DIR, my_channel.dir_name+".mdblob")
-    torrent_name = os.path.join(SAMPLE_DIR, my_channel.dir_name+".torrent")
+    mdblob_name = os.path.join(SAMPLE_DIR, my_channel.dir_name + ".mdblob")
+    torrent_name = os.path.join(SAMPLE_DIR, my_channel.dir_name + ".torrent")
 
     os.rename(mdblob_name, CHANNEL_METADATA)
     os.rename(torrent_name, CHANNEL_TORRENT)
