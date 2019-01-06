@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import logging
 import os
-from binascii import hexlify
 
 import lz4.frame
 from pony import orm
@@ -12,11 +11,13 @@ from Tribler.Core.Category.Category import Category
 from Tribler.Core.Modules.MetadataStore.OrmBindings import metadata, torrent_metadata, channel_metadata
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import read_payload_with_offset, REGULAR_TORRENT, \
-    CHANNEL_TORRENT, DELETED, float2time, ChannelMetadataPayload
+    CHANNEL_TORRENT, DELETED, ChannelMetadataPayload, int2time
 # This table should never be used from ORM directly.
 # It is created as a VIRTUAL table by raw SQL and
 # maintained by SQL triggers.
 from Tribler.Core.exceptions import InvalidSignatureException
+
+CLOCK_STATE_FILE = "clock.state"
 
 sql_create_fts_table = """
     CREATE VIRTUAL TABLE IF NOT EXISTS FtsIndex USING FTS5
@@ -52,12 +53,32 @@ class BadChunkException(Exception):
     pass
 
 
+class DiscreteClock(object):
+    # Lamport-clock-like persistent counter
+    # Horribly inefficient and stupid, but works
+    def __init__(self, filename=None):
+        self.filename = filename
+        self.clock = 0
+        # Read the clock from the disk if the filename is given
+        if self.filename and os.path.isfile(self.filename):
+            with open(self.filename, 'rb') as f:
+                self.clock = int(f.read())
+
+    def tick(self):
+        self.clock += 1
+        if self.filename:
+            with open(self.filename, 'wb') as f:
+                f.write(str(self.clock))
+        return self.clock
+
+
 class MetadataStore(object):
     def __init__(self, db_filename, channels_dir, my_key):
         self.db_filename = db_filename
         self.channels_dir = channels_dir
         self.my_key = my_key
         self._logger = logging.getLogger(self.__class__.__name__)
+        self.clock = DiscreteClock(None if db_filename == ":memory:" else os.path.join(channels_dir, CLOCK_STATE_FILE))
 
         create_db = (db_filename == ":memory:" or not os.path.isfile(self.db_filename))
 
@@ -71,9 +92,11 @@ class MetadataStore(object):
         self.TorrentMetadata = torrent_metadata.define_binding(self._db)
         self.ChannelMetadata = channel_metadata.define_binding(self._db)
 
-        self.Metadata._my_key = my_key
-        self.ChannelMetadata._channels_dir = channels_dir
         self.Metadata._logger = self._logger  # Use Store-level logger for every ORM-based class
+        self.Metadata._my_key = my_key
+        self.Metadata._clock = self.clock
+
+        self.ChannelMetadata._channels_dir = channels_dir
 
         # TODO: move Category Filter into a module-level global stateless object (i.e. make it a singleton)
         self.ChannelMetadata._category_filter = Category()
@@ -106,7 +129,8 @@ class MetadataStore(object):
         with db_session:
             channel = self.ChannelMetadata.get(public_key=channel_id)
             self._logger.debug("Starting processing channel dir %s. Channel %s local/max version %i/%i",
-                               dirname, str(channel.public_key).encode("hex"), channel.local_version, channel.version)
+                               dirname, str(channel.public_key).encode("hex"), channel.local_version,
+                               channel.timestamp)
 
         for filename in sorted(os.listdir(dirname)):
             with db_session:
@@ -122,7 +146,7 @@ class MetadataStore(object):
                 if blob_sequence_number is not None:
                     # Skip blobs containing data we already have and those that are
                     # ahead of the channel version known to us
-                    if blob_sequence_number <= channel.local_version or blob_sequence_number > channel.version:
+                    if blob_sequence_number <= channel.local_version or blob_sequence_number > channel.timestamp:
                         continue
                     try:
                         self.process_mdblob_file(full_filename)
@@ -132,7 +156,8 @@ class MetadataStore(object):
                         self._logger.error("Not processing metadata located at %s: invalid signature", full_filename)
 
         self._logger.debug("Finished processing channel dir %s. Channel %s local/max version %i/%i",
-                           dirname, str(channel.public_key).encode("hex"), channel.local_version, channel.version)
+                           dirname, str(channel.public_key).encode("hex"), channel.local_version,
+                           channel.timestamp)
 
     @db_session
     def process_mdblob_file(self, filepath):
@@ -152,7 +177,6 @@ class MetadataStore(object):
     @db_session
     def process_compressed_mdblob(self, compressed_data):
         return self.process_squashed_mdblob(lz4.frame.decompress(compressed_data))
-
 
     @db_session
     def process_squashed_mdblob(self, chunk_data):
@@ -193,10 +217,10 @@ class MetadataStore(object):
 
         channel = self.ChannelMetadata.get_channel_with_id(payload.public_key)
         if channel:
-            if float2time(payload.timestamp) > channel.timestamp:
+            if payload.timestamp > channel.timestamp:
                 # Update the channel that is already there.
                 self._logger.info("Updating channel metadata %s ts %s->%s", str(channel.public_key).encode("hex"),
-                                  str(channel.timestamp), str(float2time(payload.timestamp)))
+                                  str(channel.timestamp), str(int2time(payload.timestamp)))
                 channel.set(**ChannelMetadataPayload.to_dict(payload))
         else:
             # Add new channel object to DB

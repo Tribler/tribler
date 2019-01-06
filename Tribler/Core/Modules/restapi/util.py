@@ -12,7 +12,7 @@ from six.moves import xrange
 from twisted.web import http
 
 import Tribler.Core.Utilities.json_util as json
-from Tribler.Core.Modules.MetadataStore.serialization import time2float, CHANNEL_TORRENT, float2time
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, time2int, int2time
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE
 
 HEALTH_CHECKING = u'Checking..'
@@ -54,7 +54,7 @@ def convert_channel_metadata_to_tuple(metadata):
     my_vote = 2
     spam = 0
     relevance = 0.9
-    unix_timestamp = time2float(metadata.timestamp)
+    unix_timestamp = time2int(metadata.timestamp)
     return metadata.rowid, str(metadata.public_key), metadata.title, metadata.tags, int(metadata.size), votes, spam, \
            my_vote, unix_timestamp, relevance, metadata.status, metadata.torrent_date, metadata.metadata_type
 
@@ -111,7 +111,7 @@ def channel_to_torrent_adapter(channel):
             0,
             0,
             0,
-            float2time(0),
+            int2time(0),
             CHANNEL_TORRENT,
             hexlify(channel[1]),
             int(channel[7] == VOTE_SUBSCRIBE))
@@ -142,7 +142,7 @@ def convert_db_torrent_to_json(torrent, include_rel_score=False):
                 "num_leechers": torrent[6] or 0,
                 "last_tracker_check": torrent[7] or 0,
                 "commit_status": torrent[10] if len(torrent) >= 11 else 0,
-                "date": str(time2float(torrent[11])) if len(torrent) >= 12 else 0,
+                "date": str(time2int(torrent[11])) if len(torrent) >= 12 else 0,
                 "type": str('channel' if len(torrent) >= 13 and torrent[12] == CHANNEL_TORRENT else 'torrent'),
                 "public_key": str(torrent[13]) if len(torrent) >= 14 else '',
                 "relevance_score": torrent[9] if include_rel_score else 0,
