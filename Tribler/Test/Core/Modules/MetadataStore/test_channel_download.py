@@ -1,13 +1,11 @@
 import os
 
 from pony.orm import db_session
-from pyramid_debugtoolbar.utils import hexlify
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
 
@@ -55,4 +53,4 @@ class TestChannelDownload(TestAsServer):
             # There should be 4 torrents + 1 channel torrent
             channel2 = self.session.lm.mds.ChannelMetadata.get_channel_with_id(payload.public_key)
             self.assertEqual(5, len(list(self.session.lm.mds.TorrentMetadata.select())))
-            self.assertEqual(6, channel2.local_version)
+            self.assertEqual(13, channel2.local_version)
