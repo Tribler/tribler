@@ -3,7 +3,11 @@ Conversions to unicode.
 
 Author(s): Arno Bakker
 """
+from __future__ import absolute_import
+
 import sys
+
+from six import text_type
 
 
 def bin2unicode(bin, possible_encoding='utf_8'):
@@ -32,7 +36,7 @@ def bin2unicode(bin, possible_encoding='utf_8'):
 
 def str2unicode(s):
     try:
-        return unicode(s)
+        return text_type(s)
     except UnicodeDecodeError:
         for encoding in [sys.getfilesystemencoding(), 'utf_8', 'iso-8859-1']:
             try:
@@ -44,7 +48,7 @@ def str2unicode(s):
 
 def dunno2unicode(dunno):
     newdunno = None
-    if isinstance(dunno, unicode):
+    if isinstance(dunno, text_type):
         newdunno = dunno
     else:
         try:

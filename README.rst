@@ -83,8 +83,8 @@ Submodule notes
 - Take care of not accidentally committing a submodule revision change with ``git commit -a``.
 - Do not commit a submodule update without running all the tests first and making sure the new code is not breaking Tribler.
 
-.. |jenkins_build| image:: http://jenkins-ci.tribler.org/job/Test_tribler_next/badge/icon
-    :target: http://jenkins-ci.tribler.org/job/Test_tribler_next/
+.. |jenkins_build| image:: http://jenkins-ci.tribler.org/job/Test_tribler_devel/badge/icon
+    :target: http://jenkins-ci.tribler.org/job/Test_tribler_devel/
     :alt: Build status on Jenkins
 
 .. |pr_closed| image:: https://img.shields.io/github/issues-pr-closed/tribler/tribler.svg?style=flat

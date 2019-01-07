@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from twisted.internet.defer import Deferred
 
 from Tribler.pyipv8.ipv8.requestcache import RandomNumberCache

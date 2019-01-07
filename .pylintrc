@@ -112,6 +112,10 @@ additional-builtins=
 # name must start or end with one of those strings.
 callbacks=cb_,_cb,on_
 
+# List of qualified module names which can have objects that can redefine
+# builtins.
+redefining-builtins-modules=six.moves
+
 
 [TYPECHECK]
 

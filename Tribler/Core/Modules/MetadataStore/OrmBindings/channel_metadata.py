@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import os
 from datetime import datetime
 from libtorrent import file_storage, add_files, create_torrent, set_piece_hashes, bencode, torrent_info
@@ -7,6 +9,7 @@ from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, CHANNEL_TORRENT
 from Tribler.Core.exceptions import DuplicateTorrentFileError, DuplicateChannelNameError
+from Tribler.pyipv8.ipv8.database import database_blob
 
 CHANNEL_DIR_NAME_LENGTH = 60  # Its not 40 so it could be distinguished from infohash
 BLOB_EXTENSION = '.mdblob'
@@ -110,7 +113,7 @@ def define_binding(db):
             if ChannelMetadata.get_channel_with_id(cls._my_key.pub().key_to_bin()):
                 raise DuplicateChannelNameError()
 
-            my_channel = cls(public_key=buffer(cls._my_key.pub().key_to_bin()), title=title,
+            my_channel = cls(public_key=database_blob(cls._my_key.pub().key_to_bin()), title=title,
                              tags=description, subscribed=True)
             my_channel.sign()
             return my_channel
@@ -308,12 +311,12 @@ def define_binding(db):
             :param channel_id: The ID of the channel to fetch.
             :return: the ChannelMetadata object, or None if it is not available.
             """
-            return cls.get(public_key=buffer(channel_id))
+            return cls.get(public_key=database_blob(channel_id))
 
         @classmethod
         @db_session
         def get_channel_with_infohash(cls, infohash):
-            return cls.get(infohash=buffer(infohash))
+            return cls.get(infohash=database_blob(infohash))
 
         @classmethod
         @db_session

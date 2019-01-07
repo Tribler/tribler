@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import logging
 from abc import abstractmethod
 from copy import copy

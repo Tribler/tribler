@@ -149,7 +149,7 @@ class ContentRepository(object):
         if db_channels:
             for channel in db_channels:
                 channel_payload = channel[:8]
-                channel_payload[7] = channel[8] # modified
+                channel_payload[7] = channel[8]  # modified
                 results.append(ChannelItemPayload(*channel_payload))
         return results
 

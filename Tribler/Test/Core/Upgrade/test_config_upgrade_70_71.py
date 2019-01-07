@@ -1,6 +1,8 @@
+from __future__ import absolute_import
+
 import os
 import shutil
-from ConfigParser import RawConfigParser
+from six.moves.configparser import RawConfigParser
 
 from Tribler.Core.simpledefs import STATEDIR_DLPSTATE_DIR
 from configobj import ConfigObj

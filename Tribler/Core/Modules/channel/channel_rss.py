@@ -18,6 +18,11 @@ from Tribler.Core.simpledefs import (SIGNAL_CHANNEL_COMMUNITY, SIGNAL_ON_TORRENT
                                      SIGNAL_ON_UPDATED)
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
+try:
+    long        # pylint: disable=long-builtin
+except NameError:
+    long = int  # pylint: disable=redefined-builtin
+
 DEFAULT_CHECK_INTERVAL = 1800  # half an hour
 
 

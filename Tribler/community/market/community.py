@@ -139,6 +139,7 @@ class MarketCommunity(Community, BlockListener):
         self.tribler_session = kwargs.pop('tribler_session', None)
         self.wallets = kwargs.pop('wallets', {})
         self.trustchain = kwargs.pop('trustchain')
+        self.record_transactions = kwargs.pop('record_transactions', False)
         self.trustchain.settings.broadcast_blocks = False
         self.trustchain.add_listener(self, ['ask', 'bid', 'cancel_order', 'tx_init', 'tx_payment', 'tx_done'])
         self.dht = kwargs.pop('dht')
@@ -440,6 +441,9 @@ class MarketCommunity(Community, BlockListener):
             bid_order_id = OrderId(TraderId(tx_dict["bid"]["trader_id"]), OrderNumber(tx_dict["bid"]["order_number"]))
             self.match_order_ids([ask_order_id, bid_order_id])
 
+        if self.record_transactions:
+            self.market_database.insert_or_update_transaction(Transaction.from_block(block.transaction))
+
     def process_tx_done_block(self, block):
         """
         Process a TradeChain block containing a transaction completion
@@ -464,6 +468,9 @@ class MarketCommunity(Community, BlockListener):
             ask_order_id = OrderId(TraderId(tx_dict["ask"]["trader_id"]), OrderNumber(tx_dict["ask"]["order_number"]))
             bid_order_id = OrderId(TraderId(tx_dict["bid"]["trader_id"]), OrderNumber(tx_dict["bid"]["order_number"]))
             self.match_order_ids([ask_order_id, bid_order_id])
+
+        if self.record_transactions:
+            self.market_database.insert_or_update_transaction(Transaction.from_block(block.transaction))
 
     def process_cancel_order_block(self, block):
         """

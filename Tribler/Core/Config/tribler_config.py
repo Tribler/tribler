@@ -89,8 +89,8 @@ class TriblerConfig(object):
         """
         if not os.path.exists(self.get_state_dir()):
             os.makedirs(self.get_state_dir())
-        with open(os.path.join(self.get_state_dir(), FILENAME), 'w') as outfile:
-            self.config.write(outfile=outfile)
+        self.config.filename = os.path.join(self.get_state_dir(), FILENAME)
+        self.config.write()
 
     @staticmethod
     def get_default_state_dir(home_dir_postfix=u'.Tribler'):
@@ -547,6 +547,12 @@ class TriblerConfig(object):
 
     def get_is_matchmaker(self):
         return self.config['market_community']['matchmaker']
+
+    def set_record_transactions(self, value):
+        self.config['market_community']['record_transactions'] = value
+
+    def get_record_transactions(self):
+        return self.config['market_community']['record_transactions']
 
     # DHT
 

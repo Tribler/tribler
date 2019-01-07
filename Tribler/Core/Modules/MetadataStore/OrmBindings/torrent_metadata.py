@@ -1,15 +1,18 @@
+from __future__ import absolute_import
+
 from datetime import datetime
 
 from pony import orm
 from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.serialization import TorrentMetadataPayload, REGULAR_TORRENT
+from Tribler.pyipv8.ipv8.database import database_blob
 
 
 def define_binding(db):
     class TorrentMetadata(db.Metadata):
         _discriminator_ = REGULAR_TORRENT
-        infohash = orm.Optional(buffer, default='\x00' * 20)
+        infohash = orm.Optional(database_blob, default='\x00' * 20)
         title = orm.Optional(str, default='')
         size = orm.Optional(int, size=64, default=0)
         tags = orm.Optional(str, default='')

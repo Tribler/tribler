@@ -1,7 +1,10 @@
+from __future__ import absolute_import
+
 import logging
 import os
 
 import libtorrent
+from six import text_type
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +108,7 @@ def create_torrent_file(file_path_list, params):
     postfix = u'.torrent'
 
     if params.get('name'):
-        if not isinstance(params['name'], unicode):
+        if not isinstance(params['name'], text_type):
             params['name'] = unicode(params['name'], 'utf-8')
         torrent_file_name = os.path.join(base_path, params['name'] + postfix)
     else:

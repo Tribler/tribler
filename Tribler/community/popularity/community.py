@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.simpledefs import SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS

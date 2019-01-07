@@ -77,9 +77,10 @@ def initialize_lib(wallet_dir):
 
         # Make sure the OPCODES are known to the transaction files
         import bitcoinlib
-        from bitcoinlib.config.opcodes import opcodes, opcodenames
+        from bitcoinlib.config.opcodes import opcodes, opcodenames, OP_N_CODES
         bitcoinlib.transactions.opcodes = opcodes
         bitcoinlib.transactions.opcodenames = opcodenames
+        bitcoinlib.transactions.OP_N_CODES = OP_N_CODES
     except ImportError:
         pass
 
