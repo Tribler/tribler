@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import os
 
 from six.moves import xrange
-
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import deferLater
@@ -63,7 +62,6 @@ class TestTunnelBase(TestAsServer):
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
-        self.config.set_dispersy_enabled(False)
         self.config.set_ipv8_enabled(True)
         self.config.set_libtorrent_enabled(True)
         self.config.set_trustchain_enabled(False)
@@ -103,9 +101,9 @@ class TestTunnelBase(TestAsServer):
 
         self._logger.info("Introducing all nodes to each other in tests")
         for community_introduce in self.tunnel_communities + ([self.tunnel_community_seeder] if
-                                                              self.tunnel_community_seeder else []):
+        self.tunnel_community_seeder else []):
             for community in self.tunnel_communities + ([self.tunnel_community_seeder] if
-                                                        self.tunnel_community_seeder else []):
+            self.tunnel_community_seeder else []):
                 if community != community_introduce:
                     community.walk_to(community_introduce.endpoint.get_address())
 
@@ -152,7 +150,6 @@ class TestTunnelBase(TestAsServer):
         self.setUpPreSession()
         config = self.config.copy()
         config.set_libtorrent_enabled(True)
-        config.set_dispersy_enabled(False)
         config.set_state_dir(self.getStateDir(index))
         config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
@@ -170,7 +167,6 @@ class TestTunnelBase(TestAsServer):
 
         self.seed_config = self.config.copy()
         self.seed_config.set_state_dir(self.getStateDir(2))
-        self.seed_config.set_megacache_enabled(True)
         self.seed_config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
         if self.session2 is None:
             self.session2 = Session(self.seed_config)

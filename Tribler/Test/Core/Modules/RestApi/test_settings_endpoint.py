@@ -18,9 +18,8 @@ class TestSettingsEndpoint(AbstractApiTest):
         """
         Verify that the expected sections are present.
         """
-        check_section = ['libtorrent', 'mainline_dht', 'torrent_store', 'general', 'torrent_checking',
-                         'allchannel_community', 'tunnel_community', 'http_api', 'torrent_collecting', 'dispersy',
-                         'trustchain', 'watch_folder', 'search_community', 'metadata']
+        check_section = ['libtorrent', 'mainline_dht', 'general', 'torrent_checking',
+                         'tunnel_community', 'http_api', 'trustchain', 'watch_folder']
 
         settings_json = json.loads(settings)
         self.assertTrue(settings_json['settings'])

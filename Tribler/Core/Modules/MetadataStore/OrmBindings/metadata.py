@@ -44,6 +44,20 @@ def define_binding(db):
         _clock = None
 
         def __init__(self, *args, **kwargs):
+            """
+            Initialize a metadata object.
+
+            Note: this is a way to manually define Pony entity default attributes in case we really
+            have to generate the signature before creating the object
+            from pony.orm.core import DEFAULT
+            def generate_dict_from_pony_args(cls, **kwargs):
+                d = {}
+                for attr in cls._attrs_:
+                    val = kwargs.get(attr.name, DEFAULT)
+                    d[attr.name] = attr.validate(val, entity=cls)
+                return d
+            """
+
             # Special "sign_with" argument given, sign with it
             private_key_override = None
             if "sign_with" in kwargs:
@@ -73,18 +87,6 @@ def define_binding(db):
                 ("Attempted to create %s object with invalid signature/PK: " % str(self.__class__.__name__)) +
                 (hexlify(self.signature) if self.signature else "empty signature ") + " / " +
                 (hexlify(self.public_key) if self.public_key else " empty PK"))
-
-            """
-            # This is a way to manually define Pony entity default attributes in case we really
-            have to generate the signature before creating the object 
-            from pony.orm.core import DEFAULT
-            def generate_dict_from_pony_args(cls, **kwargs):
-                d = {}
-                for attr in cls._attrs_:
-                    val = kwargs.get(attr.name, DEFAULT)
-                    d[attr.name] = attr.validate(val, entity=cls)
-                return d
-            """
 
         def _serialized(self, key=None):
             """

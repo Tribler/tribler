@@ -1,15 +1,12 @@
-from datetime import datetime
-
 from pony import orm
 
-from Tribler.Core.Modules.MetadataStore.serialization import EPOCH
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url, MalformedTrackerURLException
 
 
 def define_binding(db):
     class TrackerState(db.Entity):
         url = orm.PrimaryKey(str)
-        last_check = orm.Optional(datetime, default=EPOCH)
+        last_check = orm.Optional(int, size=64, default=0)
         alive = orm.Optional(bool, default=True)
         torrents = orm.Set('TorrentState', reverse='trackers')
         failures = orm.Optional(int, size=32, default=0)

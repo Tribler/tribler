@@ -1,29 +1,53 @@
 """
 This twistd plugin enables to start a tunnel helper headless using the twistd command.
 """
+from __future__ import absolute_import
+
 import logging
 import os
-import signal
 import re
+import signal
 import time
+from socket import inet_aton
 
-from twisted.application.service import MultiService, IServiceMaker
+from twisted.application.service import IServiceMaker, MultiService
 from twisted.conch import manhole_tap
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 from twisted.plugin import IPlugin
 from twisted.python import usage
 from twisted.python.log import msg
+
 from zope.interface import implements
-from socket import inet_aton
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
+from Tribler.Core.simpledefs import NTFY_REMOVE, NTFY_TUNNEL
 
-# Register yappi profiler
-from Tribler.dispersy.utils import twistd_yappi
+logger = logging.getLogger(__name__)
+
+
+def clean_twisted_observers(publisher=None):
+    try:
+        from twisted.logger import LogPublisher, LimitedHistoryLogObserver, globalLogPublisher
+        if not publisher:
+            publisher = globalLogPublisher
+    except ImportError:
+        logger.debug("Running an older version of twisted, no need to clean the observers")
+        return
+
+    logger.debug("Looking for rogue observers in %r", publisher._observers)
+
+    for observer in publisher._observers:
+        if isinstance(observer, LogPublisher):
+            clean_twisted_observers(observer)
+
+        elif isinstance(observer, LimitedHistoryLogObserver):
+            publisher.removeObserver(observer)
+            logger.debug("Removing observer %s", observer)
+
+        else:
+            logger.debug("Leaving alone observer %s", observer)
 
 
 def check_api_port(val):
@@ -154,16 +178,11 @@ class Tunnel(object):
         config.set_tunnel_community_random_slots(self.options["random_slots"])
         config.set_tunnel_community_competing_slots(self.options["competing_slots"])
         config.set_torrent_checking_enabled(False)
-        config.set_megacache_enabled(False)
-        config.set_dispersy_enabled(False)
         config.set_ipv8_enabled(True)
-        config.set_torrent_collecting_enabled(False)
         config.set_libtorrent_enabled(False)
         config.set_video_server_enabled(False)
-        config.set_dispersy_port(ipv8_port)
+        config.set_ipv8_port(ipv8_port)
         config.set_ipv8_address(self.options["ipv8_address"])
-        config.set_torrent_search_enabled(False)
-        config.set_channel_search_enabled(False)
         config.set_trustchain_enabled(True)
         config.set_credit_mining_enabled(False)
         config.set_market_community_enabled(False)

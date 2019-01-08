@@ -30,11 +30,8 @@ class TestLibtorrentDownloadImpl(TestAsServer):
     def setUpPreSession(self):
         super(TestLibtorrentDownloadImpl, self).setUpPreSession()
         self.config.set_torrent_checking_enabled(False)
-        self.config.set_megacache_enabled(True)
-        self.config.set_dispersy_enabled(False)
         self.config.set_tunnel_community_enabled(False)
         self.config.set_mainline_dht_enabled(False)
-        self.config.set_torrent_collecting_enabled(False)
         self.config.set_libtorrent_enabled(True)
         self.config.set_video_server_enabled(False)
 
@@ -481,7 +478,6 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.checkpoint = mocked_checkpoint
         self.libtorrent_download_impl.session = MockObject()
         self.libtorrent_download_impl.session.lm = MockObject()
-        self.libtorrent_download_impl.session.lm.rtorrent_handler = None
         self.libtorrent_download_impl.session.lm.torrent_db = None
         self.libtorrent_download_impl.handle.save_path = lambda: None
         self.libtorrent_download_impl.handle.prioritize_files = lambda _: None
