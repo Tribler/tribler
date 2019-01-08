@@ -1,5 +1,6 @@
 import os
 
+from pony import orm
 from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
