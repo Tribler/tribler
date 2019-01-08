@@ -116,4 +116,4 @@ class TestMetadataStore(TriblerCoreTest):
         self.assertFalse(channel.contents_list)
         self.mds.process_channel_dir(self.CHANNEL_DIR, channel.public_key)
         self.assertEqual(len(channel.contents_list), 3)
-        self.assertEqual(channel.local_version, 10)
+        self.assertEqual(channel.local_version, 9)
