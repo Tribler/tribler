@@ -7,7 +7,8 @@ from pony.orm import db_session
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk, CHANNEL_DIR_NAME_LENGTH
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk, CHANNEL_DIR_NAME_LENGTH, \
+    ROOT_CHANNEL_ID
 from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
@@ -134,9 +135,9 @@ class TestChannelMetadata(TriblerCoreTest):
 
         # Check that we always take the latest version
         channel_metadata.timestamp -= 1
-        self.assertEqual(channel_metadata.timestamp, 10)
+        self.assertEqual(channel_metadata.timestamp, 9)
         channel_metadata = self.mds.ChannelMetadata.process_channel_metadata_payload(payload)
-        self.assertEqual(channel_metadata.timestamp, 11)
+        self.assertEqual(channel_metadata.timestamp, 10)
         self.assertEqual(len(self.mds.ChannelMetadata.select()), 1)
 
     @db_session
@@ -176,8 +177,8 @@ class TestChannelMetadata(TriblerCoreTest):
             dict(self.torrent_template, public_key=channel_metadata.public_key, status=NEW))
         channel_metadata.commit_channel_torrent()
 
-        self.assertEqual(channel_metadata.id_, 1)
-        self.assertEqual(channel_metadata.timestamp, 4)
+        self.assertEqual(channel_metadata.id_, ROOT_CHANNEL_ID)
+        self.assertEqual(channel_metadata.timestamp, 3)
         self.assertEqual(channel_metadata.num_entries, 1)
 
     @db_session
