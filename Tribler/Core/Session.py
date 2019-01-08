@@ -30,7 +30,8 @@ from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnab
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_MYPREFERENCES, NTFY_PEERS,
                                      NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
                                      STATEDIR_WALLET_DIR, STATE_OPEN_DB, STATE_START_API, STATE_UPGRADING_READABLE,
-                                     STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED, NTFY_TRIBLER, STATE_SHUTDOWN)
+                                     STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED, NTFY_TRIBLER, STATE_SHUTDOWN,
+                                     STATEDIR_CHANNELS_DIR)
 from Tribler.Core.statistics import TriblerStatistics
 
 try:
@@ -109,6 +110,7 @@ class Session(object):
         create_in_state_dir(DB_DIR_NAME)
         create_in_state_dir(STATEDIR_DLPSTATE_DIR)
         create_in_state_dir(STATEDIR_WALLET_DIR)
+        create_in_state_dir(STATEDIR_CHANNELS_DIR)
 
     def get_ports_in_config(self):
         """Claim all required random ports."""
