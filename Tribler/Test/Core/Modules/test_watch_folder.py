@@ -1,7 +1,9 @@
+from __future__ import absolute_import
+
 import os
 import shutil
 
-from Tribler.Test.common import TORRENT_UBUNTU_FILE, TESTS_DATA_DIR
+from Tribler.Test.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TestAsServer
 
 
@@ -11,7 +13,6 @@ class TestWatchFolder(TestAsServer):
         super(TestWatchFolder, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
         self.config.set_watch_folder_enabled(True)
-        self.config.set_dispersy_enabled(True)
 
         self.watch_dir = os.path.join(self.session_base_dir, 'watch')
         os.mkdir(self.watch_dir)

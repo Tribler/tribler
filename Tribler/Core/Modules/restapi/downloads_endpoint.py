@@ -2,11 +2,15 @@ from __future__ import absolute_import
 
 import logging
 
+from libtorrent import bencode, create_torrent
+
 from pony.orm import db_session
-from six import text_type
+
+import six
 from six import unichr  # pylint: disable=redefined-builtin
 from six.moves.urllib.parse import unquote_plus
 from six.moves.urllib.request import url2pathname
+
 from twisted.web import http, resource
 from twisted.web.server import NOT_DONE_YET
 
@@ -14,9 +18,10 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.Modules.restapi.util import return_handled_exception
+from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.utilities import unichar_string
 from Tribler.Core.exceptions import InvalidSignatureException
-from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLMODE_VOD
+from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.util import cast_to_unicode_utf8
 
@@ -87,11 +92,11 @@ class DownloadBaseEndpoint(resource.Resource):
             download_config.set_safe_seeding(True)
 
         if 'destination' in parameters and len(parameters['destination']) > 0:
-            dest_dir = unicode(parameters['destination'][0], 'utf-8')
+            dest_dir = cast_to_unicode_utf8(parameters['destination'][0])
             download_config.set_dest_dir(dest_dir)
 
         if 'selected_files[]' in parameters:
-            selected_files_list = [unicode(f, 'utf-8') for f in parameters['selected_files[]']]
+            selected_files_list = [cast_to_unicode_utf8(f) for f in parameters['selected_files[]']]
             download_config.set_selected_files(selected_files_list)
 
         return download_config, None
@@ -336,7 +341,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
         uri = parameters['uri'][0]
         if uri.startswith("file:"):
             if uri.endswith(".mdblob"):
-                filename = url2pathname(uri[5:].encode('utf-8') if isinstance(uri, text_type) else uri[5:])
+                filename = url2pathname(uri[5:].encode('utf-8') if isinstance(uri, six.text_type) else uri[5:])
                 try:
                     payload = ChannelMetadataPayload.from_file(filename)
                 except IOError:
@@ -348,7 +353,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
 
                 with db_session:
                     channel = self.session.lm.mds.process_payload(payload)
-                    if channel and not channel.subscribed and channel.local_version < channel.version:
+                    if channel and not channel.subscribed and channel.local_version < channel.timestamp:
                         channel.subscribed = True
                         download, _ = self.session.lm.gigachannel_manager.download_channel(channel)
                     else:
@@ -552,13 +557,21 @@ class DownloadExportTorrentEndpoint(DownloadBaseEndpoint):
 
             The contents of the .torrent file.
         """
-        torrent = self.session.get_collected_torrent(self.infohash)
-        if not torrent:
-            return DownloadExportTorrentEndpoint.return_404(request)
+        download = self.session.get_download(self.infohash)
+        if not download:
+            return DownloadSpecificEndpoint.return_404(request)
+
+        if not download.handle or not download.handle.is_valid() or not download.handle.has_metadata():
+            return DownloadSpecificEndpoint.return_404(request)
+
+        torrent_info = get_info_from_handle(download.handle)
+        t = create_torrent(torrent_info)
+        torrent = t.generate()
+        bencoded_torrent = bencode(torrent)
 
         request.setHeader(b'content-type', 'application/x-bittorrent')
         request.setHeader(b'Content-Disposition', 'attachment; filename=%s.torrent' % self.infohash.encode('hex'))
-        return torrent
+        return bencoded_torrent
 
 
 class DownloadFilesEndpoint(DownloadBaseEndpoint):

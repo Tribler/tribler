@@ -4,6 +4,11 @@ import json
 
 from twisted.internet.defer import inlineCallbacks, succeed
 
+from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
+from Tribler.Core.Modules.wallet.dummy_wallet import DummyWallet1, DummyWallet2
+from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.tools import trial_timeout
 from Tribler.community.market.community import MarketCommunity
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
@@ -15,11 +20,6 @@ from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import Trade
 from Tribler.community.market.core.wallet_address import WalletAddress
-from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
-from Tribler.Core.Modules.wallet.dummy_wallet import DummyWallet1, DummyWallet2
-from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
-from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.tools import trial_timeout
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 
 

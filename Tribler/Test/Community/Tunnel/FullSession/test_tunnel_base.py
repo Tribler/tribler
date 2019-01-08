@@ -1,21 +1,22 @@
 from __future__ import absolute_import
+
 import os
 
 from six.moves import xrange
-from twisted.internet import reactor
-from twisted.internet.task import deferLater
 
-from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
-from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
-from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.peerdiscovery.community import DiscoveryCommunity
-from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
-from twisted.internet.defer import returnValue, inlineCallbacks
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.task import deferLater
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
+from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
+from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
+from Tribler.pyipv8.ipv8.peer import Peer
+from Tribler.pyipv8.ipv8.peerdiscovery.community import DiscoveryCommunity
+from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
 
 
 # Map of info_hash -> peer list
@@ -63,7 +64,6 @@ class TestTunnelBase(TestAsServer):
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
-        self.config.set_dispersy_enabled(False)
         self.config.set_ipv8_enabled(True)
         self.config.set_libtorrent_enabled(True)
         self.config.set_trustchain_enabled(False)
@@ -152,7 +152,6 @@ class TestTunnelBase(TestAsServer):
         self.setUpPreSession()
         config = self.config.copy()
         config.set_libtorrent_enabled(True)
-        config.set_dispersy_enabled(False)
         config.set_state_dir(self.getStateDir(index))
         config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
 
@@ -170,7 +169,6 @@ class TestTunnelBase(TestAsServer):
 
         self.seed_config = self.config.copy()
         self.seed_config.set_state_dir(self.getStateDir(2))
-        self.seed_config.set_megacache_enabled(True)
         self.seed_config.set_tunnel_community_socks5_listen_ports(self.get_socks5_ports())
         if self.session2 is None:
             self.session2 = Session(self.seed_config)

@@ -1,6 +1,3 @@
-[submodule "Tribler/dispersy"]
-	path = Tribler/dispersy
-	url = https://github.com/Tribler/dispersy.git
 [submodule "py-ipv8"]
 	path = Tribler/pyipv8
 	url = https://github.com/Tribler/py-ipv8.git
