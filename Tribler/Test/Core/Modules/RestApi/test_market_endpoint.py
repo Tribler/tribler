@@ -1,4 +1,8 @@
+from __future__ import absolute_import
+
 import json
+
+from twisted.internet.defer import inlineCallbacks, succeed
 
 from Tribler.community.market.community import MarketCommunity
 from Tribler.community.market.core.assetamount import AssetAmount
@@ -17,7 +21,6 @@ from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.tools import trial_timeout
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
-from twisted.internet.defer import inlineCallbacks, succeed
 
 
 class TestMarketEndpoint(AbstractApiTest):

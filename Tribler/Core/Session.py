@@ -17,7 +17,6 @@ from twisted.python.log import addObserver
 from twisted.python.threadable import isInIOThread
 
 import Tribler.Core.permid as permid_module
-from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.CacheDB.sqlitecachedb import DB_DIR_NAME, DB_FILE_RELATIVE_PATH, SQLiteCacheDB
@@ -29,14 +28,15 @@ from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
 from Tribler.Core.exceptions import DuplicateTorrentFileError, NotYetImplementedException, \
     OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_MYPREFERENCES, NTFY_PEERS,
-                                     NTFY_TORRENTS, NTFY_TRIBLER, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
+                                     STATEDIR_CHANNELS_DIR, NTFY_TORRENTS, NTFY_TRIBLER, NTFY_UPDATE, NTFY_VOTECAST,
+                                     STATEDIR_DLPSTATE_DIR,
                                      STATEDIR_WALLET_DIR, STATE_LOAD_CHECKPOINTS, STATE_OPEN_DB, STATE_READABLE_STARTED,
                                      STATE_SHUTDOWN, STATE_START_API, STATE_UPGRADING_READABLE)
 from Tribler.Core.statistics import TriblerStatistics
 from Tribler.pyipv8.ipv8.util import cast_to_long
 
 try:
-    long        # pylint: disable=long-builtin
+    long  # pylint: disable=long-builtin
 except NameError:
     long = int  # pylint: disable=redefined-builtin
 
@@ -98,6 +98,7 @@ class Session(object):
 
     def create_state_directory_structure(self):
         """Create directory structure of the state directory."""
+
         def create_dir(path):
             if not os.path.isdir(path):
                 os.makedirs(path)
@@ -111,6 +112,7 @@ class Session(object):
         create_in_state_dir(DB_DIR_NAME)
         create_in_state_dir(STATEDIR_DLPSTATE_DIR)
         create_in_state_dir(STATEDIR_WALLET_DIR)
+        create_in_state_dir(STATEDIR_CHANNELS_DIR)
 
     def get_ports_in_config(self):
         """Claim all required random ports."""

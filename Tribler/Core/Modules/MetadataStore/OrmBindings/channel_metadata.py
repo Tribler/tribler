@@ -1,16 +1,19 @@
 from __future__ import absolute_import
 
 import os
+from binascii import hexlify
 from datetime import datetime
-from libtorrent import file_storage, add_files, create_torrent, set_piece_hashes, bencode, torrent_info
+
+from libtorrent import add_files, bencode, create_torrent, file_storage, set_piece_hashes, torrent_info
 
 import lz4.frame
+
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import TODELETE, NEW, COMMITTED, PUBLIC_KEY_LEN
-from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, CHANNEL_TORRENT
-from Tribler.Core.exceptions import DuplicateTorrentFileError, DuplicateChannelNameError
+from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import COMMITTED, NEW, PUBLIC_KEY_LEN, TODELETE
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
+from Tribler.Core.exceptions import DuplicateChannelNameError, DuplicateTorrentFileError
 from Tribler.pyipv8.ipv8.database import database_blob
 
 CHANNEL_DIR_NAME_LENGTH = 32  # Its not 40 so it could be distinguished from infohash
@@ -214,13 +217,13 @@ def define_binding(db):
             return new_infohash
 
         @db_session
-        def has_torrent(self, infohash):
+        def get_torrent(self, infohash):
             """
-            Check whether this channel contains the torrent with a provided infohash.
+            Return the torrent with a provided infohash.
             :param infohash: The infohash of the torrent to search for
-            :return: True if the torrent exists in the channel, else False
+            :return: TorrentMetadata if the torrent exists in the channel, else None
             """
-            return db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash) is not None
+            return db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash)
 
         @db_session
         def add_torrent_to_channel(self, tdef, extra_info):
@@ -229,7 +232,7 @@ def define_binding(db):
             :param tdef: The torrent definition file of the torrent to add
             :param extra_info: Optional extra info to add to the torrent
             """
-            if self.has_torrent(tdef.get_infohash()):
+            if self.get_torrent(tdef.get_infohash()):
                 raise DuplicateTorrentFileError()
 
             if extra_info:
@@ -287,22 +290,23 @@ def define_binding(db):
             return orm.count(self.contents)
 
         @db_session
-        def delete_torrent_from_channel(self, infohash):
+        def delete_torrent(self, infohash):
             """
             Remove a torrent from this channel.
             Obsolete blob files are never deleted except on defragmentation of the channel.
             :param infohash: The infohash of the torrent to remove
             :return True if deleted, False if no MD with the given infohash found
             """
-            if self.has_torrent(infohash):
-                torrent_metadata = db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash)
-            else:
+            torrent_metadata = db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash)
+            if not torrent_metadata:
                 return False
+
             if torrent_metadata.status == NEW:
                 # Uncommited metadata. Delete immediately
                 torrent_metadata.delete()
             else:
                 torrent_metadata.status = TODELETE
+
             return True
 
         @db_session
@@ -312,7 +316,7 @@ def define_binding(db):
             :param infohash: The infohash of the torrent to act upon
             :return True if deleteion cancelled, False if no MD with the given infohash found
             """
-            if self.has_torrent(infohash):
+            if self.get_torrent(infohash):
                 torrent_metadata = db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash)
             else:
                 return False
@@ -366,15 +370,18 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_random_subscribed_channels(cls, limit):
+        def get_random_channels(cls, limit, subscribed=False):
             """
             Fetch up to some limit of torrents from this channel
 
             :param limit: the maximum amount of torrents to fetch
+            :param subscribed: whether we want random channels we are subscribed to
             :return: the subset of random channels we are subscribed to
             :rtype: list
             """
-            return db.ChannelMetadata.select(lambda g: g.subscribed).random(limit)
+            if subscribed:
+                return db.ChannelMetadata.select(lambda g: g.subscribed).random(limit)
+            return db.ChannelMetadata.select().random(limit)
 
         @db_session
         def get_random_torrents(self, limit):
@@ -388,5 +395,39 @@ def define_binding(db):
         @db_session
         def get_updated_channels(cls):
             return select(g for g in cls if g.subscribed and (g.local_version < g.timestamp))
+
+        @classmethod
+        @db_session
+        def get_channels(cls, first=1, last=50, sort_by=None, sort_asc=True, query_filter=None, subscribed=False):
+            """
+            Get some channels. Optionally sort the results by a specific field, or filter the channels based
+            on a keyword/whether you are subscribed to it.
+            :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
+                     the total number of results, regardless the passed first/last parameter.
+            """
+            pony_query = ChannelMetadata.get_entries_query(
+                ChannelMetadata, sort_by=sort_by, sort_asc=sort_asc, query_filter=query_filter)
+
+            # Filter subscribed/non-subscribed
+            if subscribed:
+                pony_query = pony_query.where(subscribed=subscribed)
+
+            total_results = pony_query.count()
+
+            return pony_query[first-1:last], total_results
+
+        @db_session
+        def to_simple_dict(self):
+            """
+            Return a basic dictionary with information about the channel.
+            """
+            return {
+                "id": self.rowid,
+                "public_key": hexlify(self.public_key),
+                "name": self.title,
+                "torrents": self.contents_len,
+                "subscribed": self.subscribed,
+                "votes": self.votes
+            }
 
     return ChannelMetadata

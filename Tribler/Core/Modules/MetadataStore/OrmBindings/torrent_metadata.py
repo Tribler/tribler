@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from binascii import hexlify
 from datetime import datetime
 
 from pony import orm
@@ -74,5 +75,57 @@ def define_binding(db):
                 if term != keyword:
                     all_terms.add(term)
             return list(all_terms)
+
+        @classmethod
+        @db_session
+        def get_random_torrents(cls, limit):
+            """
+            Return some random torrents from the database.
+            """
+            return TorrentMetadata.select().where(metadata_type=REGULAR_TORRENT).random(limit)
+
+        @classmethod
+        @db_session
+        def get_torrents(cls, first=1, last=50, sort_by=None, sort_asc=True, query_filter=None, channel_pk=False):
+            """
+            Get some torrents. Optionally sort the results by a specific field, or filter the channels based
+            on a keyword/whether you are subscribed to it.
+            :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
+                     the total number of results, regardless the passed first/last parameter.
+            """
+            pony_query = TorrentMetadata.get_entries_query(
+                TorrentMetadata, sort_by=sort_by, sort_asc=sort_asc, query_filter=query_filter)
+
+            # We only want torrents, not channel torrents
+            pony_query = pony_query.where(metadata_type=REGULAR_TORRENT)
+
+            # Filter on channel
+            if channel_pk:
+                pony_query = pony_query.where(public_key=channel_pk)
+
+            total_results = pony_query.count()
+
+            return pony_query[first - 1:last], total_results
+
+        @db_session
+        def to_simple_dict(self, include_status=False):
+            """
+            Return a basic dictionary with information about the channel.
+            """
+            simple_dict = {
+                "id": self.rowid,
+                "name": self.title,
+                "infohash": hexlify(self.infohash),
+                "size": self.size,
+                "category": self.tags,
+                "num_seeders": self.health.seeders,
+                "num_leechers": self.health.leechers,
+                "last_tracker_check": self.health.last_check
+            }
+
+            if include_status:
+                simple_dict['status'] = self.status
+
+            return simple_dict
 
     return TorrentMetadata
