@@ -1,6 +1,7 @@
+from __future__ import absolute_import
+
 import logging
 
-from Tribler.Test.tools import trial_timeout
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.protocol import Protocol
@@ -8,15 +9,15 @@ from twisted.internet.task import deferLater
 from twisted.web.client import Agent, HTTPConnectionPool
 from twisted.web.http_headers import Headers
 
-from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT, NTFY_UPGRADER, \
-    NTFY_STARTED, NTFY_FINISHED, NTFY_UPGRADER_TICK, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, NTFY_NEW_VERSION, \
-    NTFY_CHANNEL, NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_DELETE, NTFY_MARKET_ON_ASK, NTFY_UPDATE, \
-    NTFY_MARKET_ON_BID, NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID_TIMEOUT, NTFY_MARKET_ON_TRANSACTION_COMPLETE, \
-    NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT, SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE, \
-    NTFY_CREDIT_MINING
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.simpledefs import NTFY_CHANNEL, NTFY_CREDIT_MINING, NTFY_DISCOVERED, NTFY_ERROR, NTFY_FINISHED, \
+    NTFY_INSERT, NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_BID_TIMEOUT, \
+    NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT, NTFY_MARKET_ON_TRANSACTION_COMPLETE, \
+    NTFY_NEW_VERSION, NTFY_STARTED, NTFY_TORRENT, NTFY_UPDATE, NTFY_UPGRADER, NTFY_UPGRADER_TICK, \
+    NTFY_WATCH_FOLDER_CORRUPT_TORRENT, SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
 from Tribler.Core.version import version_id
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.tools import trial_timeout
 
 
 class EventDataProtocol(Protocol):

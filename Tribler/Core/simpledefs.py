@@ -34,6 +34,7 @@ PERSISTENTSTATE_CURRENTVERSION = 5
 
 STATEDIR_DLPSTATE_DIR = u'dlcheckpoints'
 STATEDIR_WALLET_DIR = u'wallet'
+STATEDIR_CHANNELS_DIR = u'channels'
 
 # For observer/callback mechanism, see Session.add_observer()
 # subjects

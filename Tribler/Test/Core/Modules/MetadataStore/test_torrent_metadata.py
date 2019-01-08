@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+from binascii import hexlify
 from datetime import datetime
 
 from pony.orm import db_session
@@ -155,3 +156,26 @@ class TestTorrentMetadata(TriblerCoreTest):
 
         autocomplete_terms = self.mds.TorrentMetadata.get_auto_complete_terms("sheep", 2)
         self.assertEqual(len(autocomplete_terms), 2)
+
+    @db_session
+    def test_get_torrents(self):
+        """
+        Test whether we can get torrents
+        """
+
+        # First we create a few channels and add some torrents to these channels
+        for ind in xrange(5):
+            self.mds.Metadata._my_key = default_eccrypto.generate_key('curve25519')
+            _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0))
+            for torrent_ind in xrange(5):
+                _ = self.mds.TorrentMetadata(title='torrent%d' % torrent_ind)
+
+        torrents = self.mds.ChannelMetadata.get_torrents(first=1, last=5)
+        self.assertEqual(len(torrents[0]), 5)
+        self.assertEqual(torrents[1], 25)
+
+        # Test fetching torrents in a channel
+        channel_pk = self.mds.Metadata._my_key.pub().key_to_bin()[10:]
+        torrents = self.mds.ChannelMetadata.get_torrents(first=1, last=10, sort_by='title', channel_pk=channel_pk)
+        self.assertEqual(len(torrents[0]), 5)
+        self.assertEqual(torrents[1], 5)
