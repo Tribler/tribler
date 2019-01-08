@@ -1,7 +1,10 @@
+from __future__ import absolute_import
+
 import json
 from binascii import hexlify
 
 from pony.orm import db_session
+from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW, TODELETE

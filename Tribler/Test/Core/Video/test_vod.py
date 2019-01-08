@@ -1,15 +1,16 @@
+from __future__ import absolute_import
+
 import os
 from tempfile import mkstemp
 
-from M2Crypto import Rand
-from Tribler.Test.tools import trial_timeout
-from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import dlstatus_strings, UPLOAD, DOWNLOAD, DLMODE_VOD
+from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.tools import trial_timeout
 
 
 class TestVideoOnDemand(TestAsServer):
@@ -37,7 +38,7 @@ class TestVideoOnDemand(TestAsServer):
 
     def create_torrent(self):
         [srchandle, sourcefn] = mkstemp()
-        self.content = Rand.rand_bytes(self.contentlen)
+        self.content = '0' * self.contentlen
         os.write(srchandle, self.content)
         os.close(srchandle)
 

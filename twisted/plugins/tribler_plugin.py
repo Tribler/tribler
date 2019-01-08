@@ -1,29 +1,27 @@
 """
 This twistd plugin enables to start Tribler headless using the twistd command.
 """
-from socket import inet_aton
-from datetime import date
+from __future__ import absolute_import
+
 import os
+import re
 import signal
 import time
+from datetime import date
+from socket import inet_aton
 
-import re
-from twisted.application.service import MultiService, IServiceMaker
+from twisted.application.service import IServiceMaker, MultiService
 from twisted.conch import manhole_tap
 from twisted.internet import reactor
 from twisted.plugin import IPlugin
 from twisted.python import usage
 from twisted.python.log import msg
+
 from zope.interface import implements
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Core.Session import Session
-
-# Register yappi profiler
-from Tribler.community.allchannel.community import AllChannelCommunity
-from Tribler.community.search.community import SearchCommunity
-from Tribler.dispersy.utils import twistd_yappi
 
 
 def check_ipv8_bootstrap_override(val):
@@ -48,14 +46,12 @@ class Options(usage.Options):
         ["manhole", "m", 0, "Enable manhole telnet service listening at the specified port", int],
         ["statedir", "s", None, "Use an alternate statedir", str],
         ["restapi", "p", -1, "Use an alternate port for the REST API", int],
-        ["dispersy", "d", -1, "Use an alternate port for Dispersy", int],
+        ["ipv8", "i", -1, "Use an alternate port for IPv8", int],
         ["libtorrent", "l", -1, "Use an alternate port for libtorrent", int],
         ["ipv8_bootstrap_override", "b", None, "Force the usage of specific IPv8 bootstrap server (ip:port)",
          check_ipv8_bootstrap_override]
     ]
     optFlags = [
-        ["auto-join-channel", "a", "Automatically join a channel when discovered"],
-        ["log-incoming-searches", "i", "Write information about incoming remote searches to a file"],
         ["testnet", "t", "Join the testnet"]
     ]
 
@@ -119,10 +115,10 @@ class TriblerServiceMaker(object):
             config.set_http_api_enabled(True)
             config.set_http_api_port(options["restapi"])
 
-        if options["dispersy"] > 0:
-            config.set_dispersy_port(options["dispersy"])
-        elif options["dispersy"] == 0:
-            config.set_dispersy_enabled(False)
+        if options["ipv8"] > 0:
+            config.set_ipv8_port(options["ipv8"])
+        elif options["ipv8"] == 0:
+            config.set_ipv8_enabled(False)
 
         if options["libtorrent"] != -1 and options["libtorrent"] > 0:
             config.set_libtorrent_port(options["libtorrent"])
@@ -136,18 +132,6 @@ class TriblerServiceMaker(object):
         self.session = Session(config)
         self.session.start().addErrback(lambda failure: self.shutdown_process(failure.getErrorMessage()))
         msg("Tribler started")
-
-        if "auto-join-channel" in options and options["auto-join-channel"]:
-            msg("Enabling auto-joining of channels")
-            for community in self.session.get_dispersy_instance().get_communities():
-                if isinstance(community, AllChannelCommunity):
-                    community.auto_join_channel = True
-
-        if "log-incoming-searches" in options and options["log-incoming-searches"]:
-            msg("Logging incoming remote searches")
-            for community in self.session.get_dispersy_instance().get_communities():
-                if isinstance(community, SearchCommunity):
-                    community.log_incoming_searches = self.log_incoming_remote_search
 
     def makeService(self, options):
         """

@@ -1,21 +1,23 @@
 from __future__ import absolute_import
 
-import os
-import psutil
 import logging
-
+import os
+from binascii import hexlify, unhexlify
 from glob import glob
-from binascii import unhexlify, hexlify
-from six import string_types
-from twisted.internet.task import LoopingCall
-from twisted.internet.defer import Deferred, DeferredList, succeed
 
+import psutil
+
+from six import string_types
+
+from twisted.internet.defer import Deferred, DeferredList, succeed
+from twisted.internet.task import LoopingCall
+
+from Tribler.Core.CreditMining.CreditMiningPolicy import RandomPolicy, UploadPolicy
 from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
-from Tribler.Core.CreditMining.CreditMiningPolicy import UploadPolicy, RandomPolicy
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, DLSTATUS_SEEDING, \
-    DLSTATUS_STOPPED_ON_ERROR, UPLOAD, NTFY_CREDIT_MINING, NTFY_ERROR
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
+from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
+    DLSTATUS_STOPPED_ON_ERROR, NTFY_CREDIT_MINING, NTFY_ERROR, UPLOAD
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
@@ -142,8 +144,8 @@ class CreditMiningManager(TaskManager):
         if source_str not in self.sources:
             num_torrents = len(self.torrents)
 
-            if isinstance(source_str, string_types) and len(source_str) == 40:
-                source = ChannelSource(self.session, source_str, self.on_torrent_insert)
+            if isinstance(source_str, string_types):
+                source = ChannelSource(self.session, unhexlify(source_str), self.on_torrent_insert)
             else:
                 self._logger.error('Cannot add unknown source %s', source_str)
                 return
