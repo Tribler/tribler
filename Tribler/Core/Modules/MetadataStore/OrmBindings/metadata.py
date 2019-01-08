@@ -29,7 +29,6 @@ def define_binding(db):
         metadata_type = orm.Discriminator(int)
         # We want to make signature unique=True for safety, but can't do it in Python2 because of Pony bug #390
         signature = orm.Optional(database_blob)
-        id_ = orm.Optional(int, size=64, default=0)
         public_key = orm.Optional(database_blob, default='\x00' * PUBLIC_KEY_LEN)
 
         # Local
@@ -44,9 +43,6 @@ def define_binding(db):
         _clock = None
 
         def __init__(self, *args, **kwargs):
-            if "id_" not in kwargs:
-                kwargs["id_"] = self._clock.tick()
-
             # Special "sign_with" argument given, sign with it
             private_key_override = None
             if "sign_with" in kwargs:
@@ -138,7 +134,7 @@ def define_binding(db):
 
         def has_valid_signature(self):
             crypto = default_eccrypto
-            return (crypto.is_valid_public_bin(b"LibNaCLPK:"+str(self.public_key))
+            return (crypto.is_valid_public_bin(b"LibNaCLPK:" + str(self.public_key))
                     and self._payload_class(**self.to_dict()).has_valid_signature())
 
         @classmethod

@@ -16,6 +16,7 @@ from Tribler.pyipv8.ipv8.database import database_blob
 CHANNEL_DIR_NAME_LENGTH = 32  # Its not 40 so it could be distinguished from infohash
 BLOB_EXTENSION = '.mdblob'
 LZ4_END_MARK_SIZE = 4  # in bytes, from original specification. We don't use CRC
+ROOT_CHANNEL_ID = 0
 
 
 def create_torrent_from_dir(directory, torrent_filename):
@@ -128,8 +129,8 @@ def define_binding(db):
             if ChannelMetadata.get_channel_with_id(cls._my_key.pub().key_to_bin()[10:]):
                 raise DuplicateChannelNameError()
 
-            my_channel = cls(public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]), title=title,
-                             tags=description, subscribed=True)
+            my_channel = cls(id_=ROOT_CHANNEL_ID, public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]),
+                             title=title, tags=description, subscribed=True)
             my_channel.sign()
             return my_channel
 
@@ -246,6 +247,7 @@ def define_binding(db):
                 "tracker_info": tdef.get_tracker() or '',
                 "status": NEW
             })
+            torrent_metadata.parents.add(self)
             return torrent_metadata
 
         @property
