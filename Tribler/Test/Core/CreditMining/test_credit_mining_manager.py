@@ -94,7 +94,7 @@ class TestCreditMiningManager(TestAsServer):
     def __init__(self, *argv, **kwargs):
         super(TestCreditMiningManager, self).__init__(*argv, **kwargs)
         # Some fake data for convenience
-        self.cid = '0' * 40
+        self.cid = '0' * 64
         self.infohash = '0' * 40
         self.infohash_bin = '\00' * 20
         self.name = u'torrent'
@@ -107,11 +107,9 @@ class TestCreditMiningManager(TestAsServer):
 
     def setUpPreSession(self):
         super(TestCreditMiningManager, self).setUpPreSession()
-        self.config.set_megacache_enabled(True)
-        self.config.set_dispersy_enabled(True)
         self.config.set_libtorrent_enabled(True)
         self.config.set_credit_mining_enabled(True)
-        self.config.set_market_community_enabled(False)
+        self.config.set_chant_enabled(True)
 
     def test_source_add_remove(self):
         self.credit_mining_manager.add_source(self.cid)

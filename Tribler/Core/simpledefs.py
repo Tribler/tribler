@@ -35,6 +35,7 @@ PERSISTENTSTATE_CURRENTVERSION = 5
 STATEDIR_DLPSTATE_DIR = u'dlcheckpoints'
 STATEDIR_WALLET_DIR = u'wallet'
 STATEDIR_CHANNELS_DIR = u'channels'
+STATEDIR_DB_DIR = u"sqlite"
 
 # For observer/callback mechanism, see Session.add_observer()
 # subjects
@@ -145,17 +146,12 @@ STATE_STARTED = "STARTED"
 STATE_EXCEPTION = "EXCEPTION"
 STATE_SHUTDOWN = "SHUTDOWN"
 
-STATE_OPEN_DB = 'Opening database...'
 STATE_START_API = 'Starting HTTP API...'
 STATE_UPGRADING_READABLE = 'Upgrading Tribler...'
 STATE_LOAD_CHECKPOINTS = 'Loading download checkpoints...'
-STATE_STARTING_DISPERSY = 'Starting Dispersy...'
-STATE_LOADING_COMMUNITIES = 'Loading communities...'
-STATE_INITIALIZE_CHANNEL_MGR = 'Initializing channel manager...'
 STATE_START_MAINLINE_DHT = 'Starting mainline DHT...'
 STATE_START_LIBTORRENT = 'Starting libtorrent...'
 STATE_START_TORRENT_CHECKER = 'Starting torrent checker...'
-STATE_START_REMOTE_TORRENT_HANDLER = 'Starting remote torrent handler...'
 STATE_START_API_ENDPOINTS = 'Starting API endpoints...'
 STATE_START_WATCH_FOLDER = 'Starting watch folder...'
 STATE_START_CREDIT_MINING = 'Starting credit mining...'

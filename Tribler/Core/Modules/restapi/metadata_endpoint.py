@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import json
 import logging
 from binascii import unhexlify
@@ -242,8 +244,7 @@ class TorrentHealthEndpoint(resource.Resource):
     def __init__(self, session, infohash):
         resource.Resource.__init__(self)
         self.session = session
-        self.infohash = infohash
-        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        self.infohash = unhexlify(infohash)
         self._logger = logging.getLogger(self.__class__.__name__)
 
     def finish_request(self, request):
@@ -292,19 +293,9 @@ class TorrentHealthEndpoint(resource.Resource):
         if 'refresh' in request.args and request.args['refresh'] and request.args['refresh'][0] == "1":
             refresh = True
 
-        torrent_db_columns = ['C.torrent_id', 'num_seeders', 'num_leechers', 'next_tracker_check']
-        torrent_info = self.torrent_db.getTorrent(self.infohash.decode('hex'), torrent_db_columns)
-
         def on_health_result(result):
             request.write(json.dumps({'health': result}))
             self.finish_request(request)
-
-        def on_magnet_timeout_error(_):
-            if not request.finished:
-                request.setResponseCode(http.NOT_FOUND)
-                request.write(json.dumps({"error": "torrent not found in database"}))
-            if not request.finished:
-                self.finish_request(request)
 
         def on_request_error(failure):
             if not request.finished:
@@ -314,42 +305,14 @@ class TorrentHealthEndpoint(resource.Resource):
             if not request.finished:
                 self.finish_request(request)
 
-        def make_torrent_health_request():
-            self.session.check_torrent_health(self.infohash.decode('hex'), timeout=timeout, scrape_now=refresh) \
-                .addCallback(on_health_result).addErrback(on_request_error)
+        with db_session:
+            md_list = list(self.session.lm.mds.TorrentMetadata.select(lambda g:
+                                                                      g.infohash == database_blob(self.infohash)))
+            if not md_list:
+                request.setResponseCode(http.NOT_FOUND)
+                request.write(json.dumps({"error": "torrent not found in database"}))
 
-        magnet = None
-        if torrent_info is None:
-            # Maybe this is a chant torrent?
-            infohash = self.infohash.decode('hex')
-            with db_session:
-                md_list = list(self.session.lm.mds.TorrentMetadata.select(lambda g:
-                                                                          g.infohash == database_blob(infohash)))
-                if md_list:
-                    torrent_md = md_list[0]  # Any MD containing this infohash is fine
-                    magnet = torrent_md.get_magnet()
-                    if 'timeout' in request.args:
-                        timeout = int(request.args['timeout'][0])
-                    else:
-                        timeout = 50
-
-        def _add_torrent_and_check(metainfo):
-            tdef = TorrentDef.load_from_dict(metainfo)
-            assert (tdef.infohash == infohash), "DHT infohash does not match locally generated one"
-            self._logger.info("Chant-managed torrent fetched from DHT. Adding it to local cache, %s", self.infohash)
-            self.session.lm.torrent_db.addExternalTorrent(tdef)
-            self.session.lm.torrent_db._db.commit_now()
-            make_torrent_health_request()
-
-        if magnet:
-            # Try to get the torrent from DHT and add it to the local cache
-            self._logger.info("Chant-managed torrent not in cache. Going to fetch it from DHT, %s", self.infohash)
-            self.session.lm.ltmgr.get_metainfo(magnet, callback=_add_torrent_and_check,
-                                               timeout=timeout, timeout_callback=on_magnet_timeout_error, notify=False)
-        elif torrent_info is None:
-            request.setResponseCode(http.NOT_FOUND)
-            return json.dumps({"error": "torrent not found in database"})
-        else:
-            make_torrent_health_request()
+        self.session.check_torrent_health(self.infohash, timeout=timeout, scrape_now=refresh) \
+            .addCallback(on_health_result).addErrback(on_request_error)
 
         return NOT_DONE_YET

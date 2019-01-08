@@ -133,18 +133,8 @@ def add_libtribler_config(new_config, old_config):
                 temp_config.set_state_dir(value)
             elif section == "general" and name == "eckeypairfilename":
                 temp_config.set_permid_keypair_filename(value)
-            elif section == "general" and name == "megacache":
-                temp_config.set_megacache_enabled(value)
             elif section == "general" and name == "log_dir":
                 temp_config.set_log_dir(value)
-            elif section == "allchannel_community" and name == "enabled":
-                temp_config.set_channel_search_enabled(value)
-            elif section == "channel_community" and name == "enabled":
-                temp_config.set_channel_community_enabled(value)
-            elif section == "preview_channel_community" and name == "enabled":
-                temp_config.set_preview_channel_community_enabled(value)
-            elif section == "search_community" and name == "enabled":
-                temp_config.set_torrent_search_enabled(value)
             elif section == "tunnel_community" and name == "enabled":
                 temp_config.set_tunnel_community_enabled(value)
             elif section == "tunnel_community" and name == "socks5_listen_ports":
@@ -154,26 +144,12 @@ def add_libtribler_config(new_config, old_config):
                 temp_config.set_tunnel_community_exitnode_enabled(value)
             elif section == "general" and name == "ec_keypair_filename_multichain":
                 temp_config.set_trustchain_keypair_filename(value)
-            elif section == "metadata" and name == "enabled":
-                temp_config.set_metadata_enabled(value)
-            elif section == "metadata" and name == "store_dir":
-                temp_config.set_metadata_store_dir(value)
             elif section == "mainline_dht" and name == "enabled":
                 temp_config.set_mainline_dht_enabled(value)
             elif section == "mainline_dht" and name == "mainline_dht_port":
                 temp_config.set_mainline_dht_port(value)
             elif section == "torrent_checking" and name == "enabled":
                 temp_config.set_torrent_checking_enabled(value)
-            elif section == "torrent_store" and name == "enabled":
-                temp_config.set_torrent_store_enabled(value)
-            elif section == "torrent_store" and name == "dir":
-                temp_config.set_torrent_store_dir(value)
-            elif section == "torrent_collecting" and name == "enabled":
-                temp_config.set_torrent_collecting_enabled(value)
-            elif section == "torrent_collecting" and name == "torrent_collecting_max_torrents":
-                temp_config.set_torrent_collecting_max_torrents(value)
-            elif section == "torrent_collecting" and name == "torrent_collecting_dir":
-                temp_config.set_torrent_collecting_dir(value)
             elif section == "libtorrent" and name == "lt_proxytype":
                 temp_config.config["libtorrent"]["proxy_type"] = value
             elif section == "libtorrent" and name == "lt_proxyserver":
@@ -198,10 +174,6 @@ def add_libtribler_config(new_config, old_config):
                     temp_config.config["libtorrent"]["anon_proxy_server_ports"] = [str(port) for port in value[1]]
             elif section == "libtorrent" and name == "anon_proxyauth":
                 temp_config.config["libtorrent"]["anon_proxy_auth"] = value
-            elif section == "dispersy" and name == "enabled":
-                temp_config.set_dispersy_enabled(value)
-            elif section == "dispersy" and name == "dispersy_port":
-                temp_config.set_dispersy_port(value)
             elif section == "video" and name == "enabled":
                 temp_config.set_video_server_enabled(value)
             elif section == "video" and name == "port":

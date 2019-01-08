@@ -74,38 +74,13 @@ class TestEventsEndpoint(AbstractApiTest):
         return self.connection_pool.closeCachedConnections()
 
     @trial_timeout(20)
-    def test_search_results(self):
-        """
-        Testing whether the event endpoint returns search results when we have search results available
-        """
-        def verify_search_results(results):
-            self.assertEqual(len(results), 2)
-
-        self.messages_to_wait_for = 2
-
-        def send_notifications(_):
-            self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
-
-            results_dict = {"keywords": ["test"], "result_list": [('a',) * 10]}
-            self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
-            self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
-
-        self.socket_open_deferred.addCallback(send_notifications)
-
-        return self.events_deferred.addCallback(verify_search_results)
-
-    @trial_timeout(20)
     def test_events(self):
         """
         Testing whether various events are coming through the events endpoints
         """
-        self.messages_to_wait_for = 21
+        self.messages_to_wait_for = 19
 
         def send_notifications(_):
-            self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
-            results_dict = {"keywords": ["test"], "result_list": [('a',) * 10]}
-            self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
-            self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
             self.session.notifier.notify(NTFY_UPGRADER, NTFY_STARTED, None, None)
             self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, None)
             self.session.notifier.notify(NTFY_UPGRADER, NTFY_FINISHED, None, None)
@@ -127,31 +102,5 @@ class TestEventsEndpoint(AbstractApiTest):
             self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception("hi")
 
         self.socket_open_deferred.addCallback(send_notifications)
-
-        return self.events_deferred
-
-    @trial_timeout(20)
-    def test_family_filter_search(self):
-        """
-        Testing the family filter when searching for torrents and channels
-        """
-        self.messages_to_wait_for = 2
-
-        def send_searches(_):
-            events_endpoint = self.session.lm.api_manager.root_endpoint.events_endpoint
-
-            channels = [['a', ] * 10, ['a', ] * 10]
-            channels[0][2] = 'badterm'
-            events_endpoint.on_search_results_channels(None, None, None, {"keywords": ["test"],
-                                                                          "result_list": channels})
-            self.assertEqual(len(events_endpoint.channel_cids_sent), 1)
-
-            torrents = [['a', ] * 10, ['a', ] * 10]
-            torrents[0][4] = 'xxx'
-            events_endpoint.on_search_results_torrents(None, None, None, {"keywords": ["test"],
-                                                                          "result_list": torrents})
-            self.assertEqual(len(events_endpoint.infohashes_sent), 1)
-
-        self.socket_open_deferred.addCallback(send_searches)
 
         return self.events_deferred

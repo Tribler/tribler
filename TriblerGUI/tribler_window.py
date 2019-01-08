@@ -466,8 +466,6 @@ class TriblerWindow(QMainWindow):
         self.video_player_page.video_player_port = settings["ports"]["video_server~port"]
 
         # Disable various components based on the settings
-        if not self.tribler_settings['search_community']['enabled']:
-            self.window().top_search_bar.setHidden(True)
         if not self.tribler_settings['video_server']['enabled']:
             self.left_menu_button_video_player.setHidden(True)
         self.downloads_creditmining_button.setHidden(not self.tribler_settings["credit_mining"]["enabled"])

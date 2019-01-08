@@ -11,18 +11,16 @@ import os
 import sys
 import time
 from binascii import hexlify
+from threading import RLock
 
 import libtorrent as lt
-
 import six
 from six.moves import xrange
-
 from twisted.internet import reactor
 from twisted.internet.defer import CancelledError, Deferred, succeed
 from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
 
-from Tribler.Core import NoDispersyRLock
 from Tribler.Core.DownloadConfig import DownloadConfigInterface, DownloadStartupConfig, get_default_dest_dir
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Libtorrent import checkHandleAndSynchronize
@@ -51,7 +49,7 @@ class VODFile(object):
         self._download = d
 
         pieces = self._download.tdef.get_pieces()
-        self.pieces = [pieces[x:x + 20]for x in xrange(0, len(pieces), 20)]
+        self.pieces = [pieces[x:x + 20] for x in xrange(0, len(pieces), 20)]
         self.piecesize = self._download.tdef.get_piece_length()
 
         self.startpiece = get_info_from_handle(self._download.handle).map_file(
@@ -64,7 +62,9 @@ class VODFile(object):
 
         self._logger.debug('VODFile: get bytes %s - %s', oldpos, oldpos + args[0])
 
-        while not self._file.closed and self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1 and self._download.vod_seekpos is not None:
+        while not self._file.closed and self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos,
+                                                                           oldpos + args[
+                                                                               0])]) < 1 and self._download.vod_seekpos is not None:
             time.sleep(1)
 
         if self._file.closed:
@@ -94,7 +94,7 @@ class VODFile(object):
 
         self._logger.debug('VODFile: seek, get pieces %s', self._download.handle.piece_priorities())
         self._logger.debug('VODFile: seek, got pieces %s', [
-                           int(piece) for piece in self._download.handle.status().pieces])
+            int(piece) for piece in self._download.handle.status().pieces])
 
     def close(self, *args):
         self._file.close(*args)
@@ -105,7 +105,6 @@ class VODFile(object):
 
 
 class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
-
     """ Download subclass that represents a libtorrent download."""
 
     def __init__(self, session, tdef):
@@ -113,7 +112,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.dllock = NoDispersyRLock()
+        self.dllock = RLock()
         self.session = session
         self.tdef = tdef
         self.handle = None
@@ -396,7 +395,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         encoded_str = ""
         for i in range(0, len(bitstr), 8):
-            encoded_str += chr(int(bitstr[i:i+8].ljust(8, '0'), 2))
+            encoded_str += chr(int(bitstr[i:i + 8].ljust(8, '0'), 2))
         return base64.b64encode(encoded_str)
 
     @checkHandleAndSynchronize(0.0)
@@ -438,7 +437,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     do_prio = True
             else:
                 self._logger.info(
-                    "LibtorrentDownloadImpl: could not set priority for non-existing piece %d / %d", piece, len(piecepriorities))
+                    "LibtorrentDownloadImpl: could not set priority for non-existing piece %d / %d", piece,
+                    len(piecepriorities))
         if do_prio:
             self.handle.prioritize_pieces(piecepriorities)
         else:
@@ -574,11 +574,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.set_filepieceranges()
         self.set_selected_files()
 
-        if self.session.lm.rtorrent_handler:
-            self.session.lm.rtorrent_handler.save_torrent(self.tdef)
-        elif self.session.lm.torrent_db:
-            self.session.lm.torrent_db.addExternalTorrent(self.tdef, extra_info={'status': 'good'})
-
         self.checkpoint()
 
     def on_file_renamed_alert(self, alert):
@@ -645,6 +640,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                         return
                     if self.get_state().get_progress() == 1.0:
                         self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
+
                 self.register_anonymous_task("reset_priorities", reactor.callLater(5, reset_priorities))
 
             if self.endbuffsize:
@@ -670,7 +666,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         self.correctedinfoname = fix_filebasename(self.tdef.get_name_as_unicode())
 
         # Allow correctedinfoname to be overwritten for multifile torrents only
-        if self.get_corrected_filename() and self.get_corrected_filename() != '' and 'files' in self.tdef.get_metainfo()['info']:
+        if self.get_corrected_filename() and self.get_corrected_filename() != '' and 'files' in \
+                self.tdef.get_metainfo()['info']:
             self.correctedinfoname = self.get_corrected_filename()
 
     @property
@@ -814,8 +811,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     [(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize),
                      (self.get_vod_fileindex(), -self.endbuffsize - 1, -1)], consecutive=consecutive)
             else:
-                return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)],
-                                              consecutive=consecutive)
+                return self.get_byte_progress(
+                    [(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)],
+                    consecutive=consecutive)
         else:
             return 0.0
 
@@ -1042,7 +1040,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
             if not os.path.isfile(filename):
                 resume_data = self.pstate_for_restart.get('state', 'engineresumedata') \
-                              if self.pstate_for_restart else None
+                    if self.pstate_for_restart else None
 
                 # 2. If there is no saved data for this infohash, checkpoint it without data so we do not
                 #    lose it when we crash or restart before the download becomes known.
@@ -1051,7 +1049,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                     'file-version': 1,
                     'info-hash': self.tdef.get_infohash()
                 }
-                alert = type('anonymous_alert', (object, ), dict(resume_data=resume_data))
+                alert = type('anonymous_alert', (object,), dict(resume_data=resume_data))
                 self.on_save_resume_data_alert(alert)
             return succeed(None)
 
@@ -1068,7 +1066,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         pstate.set('state', 'version', PERSISTENTSTATE_CURRENTVERSION)
         if isinstance(self.tdef, TorrentDefNoMetainfo):
             pstate.set('state', 'metainfo', {
-                       'infohash': self.tdef.get_infohash(), 'name': self.tdef.get_name_as_unicode(), 'url': self.tdef.get_url()})
+                'infohash': self.tdef.get_infohash(), 'name': self.tdef.get_name_as_unicode(),
+                'url': self.tdef.get_url()})
         else:
             pstate.set('state', 'metainfo', self.tdef.get_metainfo())
 

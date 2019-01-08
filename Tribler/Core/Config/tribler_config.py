@@ -196,12 +196,6 @@ class TriblerConfig(object):
     def get_trustchain_live_edges_enabled(self):
         return self.config['trustchain']['live_edges_enabled']
 
-    def set_megacache_enabled(self, value):
-        self.config['general']['megacache'] = value
-
-    def get_megacache_enabled(self):
-        return self.config['general']['megacache']
-
     def set_log_dir(self, value):
         self.config['general']['log_dir'] = value
 
@@ -252,20 +246,6 @@ class TriblerConfig(object):
     def get_http_api_retry_port(self):
         return self.config['http_api']['retry_port']
 
-    # Dispersy
-
-    def set_dispersy_enabled(self, value):
-        self.config['dispersy']['enabled'] = value
-
-    def get_dispersy_enabled(self):
-        return self.config['dispersy']['enabled']
-
-    def set_dispersy_port(self, value):
-        self.config['dispersy']['port'] = value
-
-    def get_dispersy_port(self):
-        return self._obtain_port('dispersy', 'port')
-
     # IPv8
 
     def set_ipv8_enabled(self, value):
@@ -273,6 +253,12 @@ class TriblerConfig(object):
 
     def get_ipv8_enabled(self):
         return self.config['ipv8']['enabled']
+
+    def set_ipv8_port(self, value):
+        self.config['ipv8']['port'] = value
+
+    def get_ipv8_port(self):
+        return self._obtain_port('ipv8', 'port')
 
     def set_ipv8_bootstrap_override(self, value):
         self.config['ipv8']['bootstrap_override'] = value
@@ -577,86 +563,6 @@ class TriblerConfig(object):
 
     def set_popularity_community_enabled(self, value):
         self.config['popularity_community']['enabled'] = value
-
-    # Torrent store
-
-    def get_torrent_store_enabled(self):
-        return self.config['torrent_store']['enabled']
-
-    def set_torrent_store_enabled(self, value):
-        self.config['torrent_store']['enabled'] = value
-
-    def get_torrent_store_dir(self):
-        return os.path.join(self.get_state_dir(), self.config['torrent_store']['store_dir'])
-
-    def set_torrent_store_dir(self, value):
-        self.config['torrent_store']['store_dir'] = value
-
-    # Metadata
-
-    def get_metadata_enabled(self):
-        return self.config['metadata']['enabled']
-
-    def set_metadata_enabled(self, mode):
-        self.config['metadata']['enabled'] = mode
-
-    def get_metadata_store_dir(self):
-        return os.path.join(self.get_state_dir(), self.config['metadata']['store_dir'])
-
-    def set_metadata_store_dir(self, value):
-        self.config['metadata']['store_dir'] = value
-
-    # Torrent collecting
-
-    def set_torrent_collecting_enabled(self, value):
-        self.config['torrent_collecting']['enabled'] = value
-
-    def get_torrent_collecting_enabled(self):
-        return self.config['torrent_collecting']['enabled']
-
-    def set_torrent_collecting_max_torrents(self, value):
-        self.config['torrent_collecting']['max_torrents'] = value
-
-    def get_torrent_collecting_max_torrents(self):
-        return self.config['torrent_collecting']['max_torrents']
-
-    def set_torrent_collecting_dir(self, value):
-        self.config['torrent_collecting']['directory'] = value
-
-    def get_torrent_collecting_dir(self):
-        return self.config['torrent_collecting']['directory']
-
-    # Search Community
-
-    def set_torrent_search_enabled(self, mode):
-        self.config['search_community']['enabled'] = mode
-
-    def get_torrent_search_enabled(self):
-        return self.config['search_community']['enabled']
-
-    # AllChannel Community
-
-    def set_channel_search_enabled(self, mode):
-        self.config['allchannel_community']['enabled'] = mode
-
-    def get_channel_search_enabled(self):
-        return self.config['allchannel_community']['enabled']
-
-    # Channel Community
-
-    def set_channel_community_enabled(self, value):
-        self.config['channel_community']['enabled'] = value
-
-    def get_channel_community_enabled(self):
-        return self.config['channel_community']['enabled']
-
-    # PreviewChannel Community
-
-    def set_preview_channel_community_enabled(self, value):
-        self.config['preview_channel_community']['enabled'] = value
-
-    def get_preview_channel_community_enabled(self):
-        return self.config['preview_channel_community']['enabled']
 
     # Watch folder
 

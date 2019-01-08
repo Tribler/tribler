@@ -13,9 +13,7 @@ class StatisticsEndpoint(resource.Resource):
 
         child_handler_dict = {
             "tribler": StatisticsTriblerEndpoint,
-            "dispersy": StatisticsDispersyEndpoint,
             "ipv8": StatisticsIPv8Endpoint,
-            "communities": StatisticsCommunitiesEndpoint
         }
 
         for path, child_cls in child_handler_dict.iteritems():
@@ -65,50 +63,6 @@ class StatisticsTriblerEndpoint(resource.Resource):
         return json.dumps({'tribler_statistics': self.session.get_tribler_statistics()})
 
 
-class StatisticsDispersyEndpoint(resource.Resource):
-    """
-    This class handles requests regarding Dispersy statistics.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    def render_GET(self, request):
-        """
-        .. http:get:: /statistics/dispersy
-
-        A GET request to this endpoint returns general statistics in Dispersy.
-        The returned runtime is the amount of seconds that Dispersy is active. The total uploaded and total downloaded
-        statistics are in bytes.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X GET http://localhost:8085/statistics/dispersy
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "dispersy_statistics": {
-                        "wan_address": "123.321.456.654:1234",
-                        "lan_address": "192.168.1.2:1435",
-                        "connection": "unknown",
-                        "runtime": 859.34,
-                        "total_downloaded": 538.53,
-                        "total_uploaded": 983.24,
-                        "packets_sent": 43,
-                        "packets_received": 89,
-                        ...
-                    }
-                }
-        """
-        return json.dumps({'dispersy_statistics': self.session.get_dispersy_statistics()})
-
-
 class StatisticsIPv8Endpoint(resource.Resource):
     """
     This class handles requests regarding IPv8 statistics.
@@ -143,48 +97,4 @@ class StatisticsIPv8Endpoint(resource.Resource):
         """
         return json.dumps({
             'ipv8_statistics': self.session.get_ipv8_statistics()
-        })
-
-
-class StatisticsCommunitiesEndpoint(resource.Resource):
-    """
-    This class handles requests regarding Dispersy communities statistics.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    def render_GET(self, request):
-        """
-        .. http:get:: /statistics/communities
-
-        A GET request to this endpoint returns general statistics of active Dispersy communities.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X GET http://localhost:8085/statistics/communities
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "dispersy_community_statistics": [{
-                        "identifier": "48d04e922dec4430daf22400c9d4cc5a3a53b27d",
-                        "member": "a66ebac9d88a239ef348a030d5ed3837868fc06d",
-                        "candidates": 43,
-                        "global_time": 42,
-                        "classification", "ChannelCommunity",
-                        "packets_sent": 43,
-                        "packets_received": 89,
-                        ...
-                    }, { ... }]
-                }
-        """
-        return json.dumps({
-            'dispersy_community_statistics': self.session.get_dispersy_community_statistics(),
-            'ipv8_overlay_statistics': self.session.get_ipv8_overlay_statistics()
         })
