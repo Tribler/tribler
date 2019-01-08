@@ -4,11 +4,13 @@ import os
 from datetime import datetime
 
 from pony.orm import db_session
+
 from six.moves import xrange
+
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk, CHANNEL_DIR_NAME_LENGTH, \
-    ROOT_CHANNEL_ID
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, ROOT_CHANNEL_ID, \
+    entries_to_chunk
 from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
@@ -202,14 +204,14 @@ class TestChannelMetadata(TriblerCoreTest):
 
         # Check that nothing is committed when deleting uncommited torrent metadata
         channel_metadata.add_torrent_to_channel(tdef, None)
-        channel_metadata.delete_torrent_from_channel(tdef.get_infohash())
+        channel_metadata.delete_torrent(tdef.get_infohash())
         self.assertEqual(0, len(channel_metadata.contents_list))
 
         # Check append-only deletion process
         channel_metadata.add_torrent_to_channel(tdef, None)
         channel_metadata.commit_channel_torrent()
         self.assertEqual(1, len(channel_metadata.contents_list))
-        channel_metadata.delete_torrent_from_channel(tdef.get_infohash())
+        channel_metadata.delete_torrent(tdef.get_infohash())
         channel_metadata.commit_channel_torrent()
         self.assertEqual(0, len(channel_metadata.contents_list))
 
@@ -232,7 +234,7 @@ class TestChannelMetadata(TriblerCoreTest):
         channel.commit_channel_torrent()
 
         # Delete entry
-        channel.delete_torrent_from_channel(tdef.get_infohash())
+        channel.delete_torrent(tdef.get_infohash())
         channel.commit_channel_torrent()
 
         self.assertEqual(1, len(channel.contents_list))
@@ -244,3 +246,30 @@ class TestChannelMetadata(TriblerCoreTest):
         with db_session:
             md_list = [self.mds.TorrentMetadata(title='test' + str(x)) for x in xrange(0, 1)]
         self.assertRaises(Exception, entries_to_chunk, md_list, chunk_size=1)
+
+    @db_session
+    def test_get_channels(self):
+        """
+        Test whether we can get channels
+        """
+
+        # First we create a few channels
+        for ind in xrange(10):
+            self.mds.Metadata._my_key = default_eccrypto.generate_key('low')
+            _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0))
+        channels = self.mds.ChannelMetadata.get_channels(first=1, last=5)
+        self.assertEqual(len(channels[0]), 5)
+        self.assertEqual(channels[1], 10)
+
+        # Test filtering
+        channels = self.mds.ChannelMetadata.get_channels(first=1, last=5, query_filter='channel5')
+        self.assertEqual(len(channels[0]), 1)
+
+        # Test sorting
+        channels = self.mds.ChannelMetadata.get_channels(first=1, last=10, sort_by='title', sort_asc=False)
+        self.assertEqual(len(channels[0]), 10)
+        self.assertEqual(channels[0][0].title, 'channel9')
+
+        # Test fetching subscribed channels
+        channels = self.mds.ChannelMetadata.get_channels(first=1, last=10, sort_by='title', subscribed=True)
+        self.assertEqual(len(channels[0]), 5)
