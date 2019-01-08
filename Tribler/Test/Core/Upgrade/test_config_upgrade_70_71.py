@@ -2,13 +2,14 @@ from __future__ import absolute_import
 
 import os
 import shutil
+
 from six.moves.configparser import RawConfigParser
 
-from Tribler.Core.simpledefs import STATEDIR_DLPSTATE_DIR
 from configobj import ConfigObj
 
-from Tribler.Core.Config.tribler_config import TriblerConfig, CONFIG_SPEC_PATH
+from Tribler.Core.Config.tribler_config import CONFIG_SPEC_PATH, TriblerConfig
 from Tribler.Core.Upgrade.config_converter import add_libtribler_config, add_tribler_config, convert_config_to_tribler71
+from Tribler.Core.simpledefs import STATEDIR_DLPSTATE_DIR
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -40,7 +41,6 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
         result_config = add_libtribler_config(new_config, old_config)
         self.assertEqual(result_config.get_permid_keypair_filename(), "/anon/TriblerDir.gif")
         self.assertEqual(result_config.get_tunnel_community_socks5_listen_ports(), [1, 2, 3, 4, 5, 6])
-        self.assertTrue(result_config.get_metadata_store_dir().endswith("/home/.Tribler/testFile"))
         self.assertEqual(result_config.get_anon_proxy_settings(), (2, ("127.0.0.1", [5, 4, 3, 2, 1]), ''))
         self.assertEqual(result_config.get_credit_mining_sources(), ['source1', 'source2'])
         self.assertEqual(result_config.get_log_dir(), '/a/b/c')
@@ -75,7 +75,6 @@ class TestConfigUpgrade70to71(TriblerCoreTest):
 
         self.assertTrue(result_config.get_permid_keypair_filename().endswith("ec.pem"))
         self.assertTrue(len(result_config.get_tunnel_community_socks5_listen_ports()), 5)
-        self.assertTrue(result_config.get_metadata_store_dir().endswith("collected_metadata"))
         self.assertEqual(result_config.get_anon_proxy_settings(), (2, ('127.0.0.1', [-1, -1, -1, -1, -1]), ''))
         self.assertEqual(result_config.get_credit_mining_sources(), new_config.get_credit_mining_sources())
 

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import json
 from binascii import hexlify
 
@@ -26,7 +28,7 @@ class BaseTestMetadataEndpoint(AbstractApiTest):
         # Add a few channels
         with db_session:
             for ind in xrange(10):
-                self.session.lm.mds.Metadata._my_key = default_eccrypto.generate_key('low')
+                self.session.lm.mds.Metadata._my_key = default_eccrypto.generate_key('curve25519')
                 _ = self.session.lm.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0))
                 for torrent_ind in xrange(5):
                     _ = self.session.lm.mds.TorrentMetadata(title='torrent%d' % torrent_ind, infohash=random_infohash())
@@ -96,7 +98,7 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         """
         self.should_check_equality = False
         post_params = {'subscribe': '1'}
-        channel_pk = hexlify(self.session.lm.mds.Metadata._my_key.pub().key_to_bin())
+        channel_pk = hexlify(self.session.lm.mds.Metadata._my_key.pub().key_to_bin()[10:])
         return self.do_request('metadata/channels/%s' % channel_pk, expected_code=200,
                                request_type='POST', post_data=post_params)
 
@@ -112,7 +114,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMetadataEndpoint):
             self.assertEqual(len(json_dict['torrents']), 5)
 
         self.should_check_equality = False
-        channel_pk = hexlify(self.session.lm.mds.Metadata._my_key.pub().key_to_bin())
+        channel_pk = hexlify(self.session.lm.mds.Metadata._my_key.pub().key_to_bin()[10:])
         return self.do_request('metadata/channels/%s/torrents' % channel_pk, expected_code=200).addCallback(on_response)
 
 
@@ -189,71 +191,16 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
     @inlineCallbacks
     def test_check_torrent_health(self):
         """
-        Test the endpoint to fetch the health of a torrent
-        """
-        torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
-        torrent_db.addExternalTorrentNoDef('a' * 20, 'ubuntu-torrent.iso', [['file1.txt', 42]],
-                                           ('udp://localhost:%s/announce' % self.udp_port,
-                                            'http://localhost:%s/announce' % self.http_port), time.time())
-
-        url = 'metadata/torrents/%s/health?timeout=10&refresh=1' % hexlify(b'a' * 20)
-
-        self.should_check_equality = False
-        yield self.do_request(url, expected_code=400, request_type='GET')  # No torrent checker
-
-        def call_cb(infohash, callback, **_):
-            callback({"seeders": 1, "leechers": 2})
-
-        # Initialize the torrent checker
-        self.session.lm.torrent_checker = TorrentChecker(self.session)
-        self.session.lm.torrent_checker.initialize()
-        self.session.lm.ltmgr = MockObject()
-        self.session.lm.ltmgr.get_metainfo = call_cb
-
-        yield self.do_request('torrents/%s/health' % ('f' * 40), expected_code=404, request_type='GET')
-
-        def verify_response_no_trackers(response):
-            json_response = json.loads(response)
-            self.assertTrue('DHT' in json_response['health'])
-
-        def verify_response_with_trackers(response):
-            hex_as = hexlify(b'a' * 20)
-            json_response = json.loads(response)
-            expected_dict = {u"health":
-                             {u"DHT":
-                                  {u"leechers": 2, u"seeders": 1, u"infohash": hex_as},
-                              u"udp://localhost:%s" % self.udp_port:
-                                  {u"leechers": 20, u"seeders": 10, u"infohash": hex_as},
-                              u"http://localhost:%s/announce" % self.http_port:
-                                  {u"leechers": 30, u"seeders": 20, u"infohash": hex_as}}}
-            self.assertDictEqual(json_response, expected_dict)
-
-        yield self.do_request(url, expected_code=200, request_type='GET').addCallback(verify_response_no_trackers)
-
-        self.udp_tracker.start()
-        self.udp_tracker.tracker_info.add_info_about_infohash('a' * 20, 10, 20)
-
-        self.http_tracker.start()
-        self.http_tracker.tracker_info.add_info_about_infohash('a' * 20, 20, 30)
-
-        yield self.do_request(url, expected_code=200, request_type='GET').addCallback(verify_response_with_trackers)
-
-    @trial_timeout(20)
-    @inlineCallbacks
-    def test_check_torrent_health_chant(self):
-        """
         Test the endpoint to fetch the health of a chant-managed, infohash-only torrent
         """
         infohash = 'a' * 20
         tracker_url = 'udp://localhost:%s/announce' % self.udp_port
-
-        meta_info = {"info": {"name": "my_torrent", "piece length": 42,
-                              "root hash": infohash, "files": [],
-                              "url-list": tracker_url}}
-        tdef = TorrentDef.load_from_dict(meta_info)
+        self.udp_tracker.tracker_info.add_info_about_infohash(infohash, 12, 11, 1)
 
         with db_session:
-            self.session.lm.mds.TorrentMetadata(infohash=tdef.infohash,
+            tracker_state = self.session.lm.mds.TrackerState(url=tracker_url)
+            torrent_state = self.session.lm.mds.TorrentState(trackers=tracker_state, infohash=infohash)
+            self.session.lm.mds.TorrentMetadata(infohash=infohash,
                                                 title='ubuntu-torrent.iso',
                                                 size=42,
                                                 tracker_info=tracker_url,

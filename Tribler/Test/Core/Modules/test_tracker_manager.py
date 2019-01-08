@@ -1,33 +1,17 @@
-from twisted.internet.defer import inlineCallbacks
+from __future__ import absolute_import
 
-from Tribler.Core.Config.tribler_config import TriblerConfig
-from Tribler.Core.Modules.tracker_manager import TrackerManager
-from Tribler.Core.Session import Session
-from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.Test.test_as_server import TestAsServer
 
 
-class TestTrackerManager(TriblerCoreTest):
+class TestTrackerManager(TestAsServer):
 
     def setUpPreSession(self):
-        self.config = TriblerConfig()
-        self.config.set_state_dir(self.getStateDir())
+        super(TestTrackerManager, self).setUpPreSession()
+        self.config.set_chant_enabled(True)
 
-    @inlineCallbacks
-    def setUp(self):
-        yield super(TestTrackerManager, self).setUp()
-
-        self.setUpPreSession()
-        self.session = Session(self.config)
-        self.session.start_database()
-        self.tracker_manager = TrackerManager(self.session)
-
-    @inlineCallbacks
-    def tearDown(self):
-        if self.session is not None:
-            yield self.session.shutdown()
-            assert self.session.has_shutdown()
-            self.session = None
-        yield super(TestTrackerManager, self).tearDown()
+    @property
+    def tracker_manager(self):
+        return self.session.lm.tracker_manager
 
     def test_add_tracker(self):
         """

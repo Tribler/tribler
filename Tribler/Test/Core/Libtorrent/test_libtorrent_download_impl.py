@@ -1,20 +1,22 @@
 from __future__ import absolute_import
+
 import binascii
 import os
 
+import libtorrent as lt
+
 from six.moves import xrange
+
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, succeed
-
-import libtorrent as lt
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLMODE_VOD
-from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
+from Tribler.Core.simpledefs import DLMODE_VOD, DLSTATUS_DOWNLOADING
+from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
@@ -28,11 +30,8 @@ class TestLibtorrentDownloadImpl(TestAsServer):
     def setUpPreSession(self):
         super(TestLibtorrentDownloadImpl, self).setUpPreSession()
         self.config.set_torrent_checking_enabled(False)
-        self.config.set_megacache_enabled(True)
-        self.config.set_dispersy_enabled(False)
         self.config.set_tunnel_community_enabled(False)
         self.config.set_mainline_dht_enabled(False)
-        self.config.set_torrent_collecting_enabled(False)
         self.config.set_libtorrent_enabled(True)
         self.config.set_video_server_enabled(False)
 
@@ -466,7 +465,6 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.checkpoint = mocked_checkpoint
         self.libtorrent_download_impl.session = MockObject()
         self.libtorrent_download_impl.session.lm = MockObject()
-        self.libtorrent_download_impl.session.lm.rtorrent_handler = None
         self.libtorrent_download_impl.session.lm.torrent_db = None
         self.libtorrent_download_impl.handle.save_path = lambda: None
         self.libtorrent_download_impl.handle.prioritize_files = lambda _: None

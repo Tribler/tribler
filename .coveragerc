@@ -1,5 +1,4 @@
 # .coveragerc to control coverage.py
 [run]
 branch = True
-omit = Tribler/dispersy/*
-       Tribler/Core/DecentralizedTracking/pymdht/*
+omit = Tribler/Core/DecentralizedTracking/pymdht/*

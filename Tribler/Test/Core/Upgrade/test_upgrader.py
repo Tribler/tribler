@@ -1,9 +1,9 @@
-import os
+from __future__ import absolute_import
+
 from twisted.internet.defer import Deferred, inlineCallbacks
 
-from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION, LOWEST_SUPPORTED_DB_VERSION
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
-from Tribler.Core.simpledefs import NTFY_UPGRADER_TICK, NTFY_STARTED
+from Tribler.Core.simpledefs import NTFY_STARTED, NTFY_UPGRADER_TICK
 from Tribler.Test.Core.Upgrade.upgrade_base import AbstractUpgrader
 from Tribler.Test.tools import trial_timeout
 
@@ -13,38 +13,7 @@ class TestUpgrader(AbstractUpgrader):
     @inlineCallbacks
     def setUp(self):
         yield super(TestUpgrader, self).setUp()
-        self.copy_and_initialize_upgrade_database('tribler_v17.sdb')
-        self.upgrader = TriblerUpgrader(self.session, self.sqlitedb)
-
-    def test_stash_database(self):
-        self.upgrader.stash_database()
-        old_dir = os.path.dirname(self.sqlitedb.sqlite_db_path)
-        self.assertTrue(os.path.exists(u'%s_backup_%d' % (old_dir, LATEST_DB_VERSION)))
-        self.assertIsNotNone(self.sqlitedb._connection)
-        self.assertTrue(self.upgrader.is_done)
-
-    def test_should_upgrade(self):
-        self.sqlitedb._version = LATEST_DB_VERSION + 1
-        self.assertTrue(self.upgrader.check_should_upgrade_database()[0])
-        self.assertFalse(self.upgrader.check_should_upgrade_database()[1])
-
-        self.sqlitedb._version = LOWEST_SUPPORTED_DB_VERSION - 1
-        self.assertTrue(self.upgrader.check_should_upgrade_database()[0])
-        self.assertFalse(self.upgrader.check_should_upgrade_database()[1])
-
-        self.sqlitedb._version = LATEST_DB_VERSION
-        self.assertFalse(self.upgrader.check_should_upgrade_database()[0])
-        self.assertFalse(self.upgrader.check_should_upgrade_database()[1])
-
-        self.sqlitedb._version = LATEST_DB_VERSION - 1
-        self.assertFalse(self.upgrader.check_should_upgrade_database()[0])
-        self.assertTrue(self.upgrader.check_should_upgrade_database()[1])
-
-    def test_upgrade_with_upgrader_enabled(self):
-        self.upgrader.run()
-
-        self.assertTrue(self.upgrader.is_done)
-        self.assertFalse(self.upgrader.failed)
+        self.upgrader = TriblerUpgrader(self.session)
 
     def test_run(self):
         """

@@ -1,18 +1,20 @@
+from __future__ import absolute_import
+
 import os
 import urllib
 
 from twisted.internet import reactor
-from twisted.internet.defer import succeed, inlineCallbacks
-from twisted.python.threadable import isInIOThread
-from twisted.web.client import Agent, readBody, HTTPConnectionPool
+from twisted.internet.defer import inlineCallbacks, succeed
+from twisted.web.client import Agent, HTTPConnectionPool, readBody
 from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
+
 from zope.interface import implements
 
-from Tribler.Core.Modules.restapi import get_param
 import Tribler.Core.Utilities.json_util as json
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.version import version_id
+from Tribler.Core.Modules.restapi import get_param
 from Tribler.Test.test_as_server import TestAsServer
 
 
@@ -60,7 +62,6 @@ class AbstractBaseApiTest(TestAsServer):
         super(AbstractBaseApiTest, self).setUpPreSession()
         self.config.set_http_api_enabled(True)
         self.config.set_http_api_retry_port(True)
-        self.config.set_megacache_enabled(True)
         self.config.set_tunnel_community_enabled(False)
 
         # Make sure we select a random port for the HTTP API
