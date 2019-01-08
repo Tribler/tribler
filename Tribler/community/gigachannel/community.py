@@ -40,7 +40,7 @@ class GigaChannelCommunity(Community):
         # Choose some random entries and try to pack them into maximum_payload_size bytes
         md_list = []
         with db_session:
-            channel_l = self.metadata_store.ChannelMetadata.get_random_subscribed_channels(1)[:]
+            channel_l = self.metadata_store.ChannelMetadata.get_random_channels(1)[:]
             if not channel_l:
                 return
             channel = channel_l[0]
