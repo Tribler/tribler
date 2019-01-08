@@ -3,14 +3,12 @@ from __future__ import division
 
 import logging
 import os
+import psutil
 import time
 from binascii import hexlify, unhexlify
 from glob import glob
 
-import psutil
-
 from six import string_types
-
 from twisted.internet.defer import Deferred, DeferredList, succeed
 from twisted.internet.task import LoopingCall
 
@@ -19,7 +17,8 @@ from Tribler.Core.CreditMining.CreditMiningSource import ChannelSource
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
-    DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, NTFY_CREDIT_MINING, NTFY_ERROR, UPLOAD
+    DLSTATUS_STOPPED_ON_ERROR, NTFY_CREDIT_MINING, NTFY_ERROR, UPLOAD
+from Tribler.Core.simpledefs import DOWNLOAD
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
@@ -27,6 +26,7 @@ class CreditMiningTorrent(object):
     """
     Wrapper class for Credit Mining download
     """
+
     def __init__(self, infohash, name, download=None, state=None):
         self.infohash = infohash
         self.name = name
@@ -49,6 +49,7 @@ class CreditMiningSettings(object):
     """
     This class contains settings used by the credit mining manager
     """
+
     def __init__(self, config=None):
         self.max_torrents_active = 8
         self.max_torrents_listed = 100
@@ -158,8 +159,8 @@ class CreditMiningManager(TaskManager):
         if source_str not in self.sources:
             num_torrents = len(self.torrents)
 
-            if isinstance(source_str, string_types) and len(source_str) == 40:
-                source = ChannelSource(self.session, source_str, self.on_torrent_insert)
+            if isinstance(source_str, string_types):
+                source = ChannelSource(self.session, unhexlify(source_str), self.on_torrent_insert)
             else:
                 self._logger.error('Cannot add unknown source %s', source_str)
                 return
@@ -222,7 +223,7 @@ class CreditMiningManager(TaskManager):
 
         # If a download already exists or already has a checkpoint, skip this torrent
         if self.session.get_download(unhexlify(infohash)) or \
-           os.path.exists(os.path.join(self.session.get_downloads_pstate_dir(), infohash + '.state')):
+                os.path.exists(os.path.join(self.session.get_downloads_pstate_dir(), infohash + '.state')):
             self._logger.debug('Skipping torrent %s (download already running or scheduled to run)', infohash)
             return
 
@@ -337,7 +338,7 @@ class CreditMiningManager(TaskManager):
 
         self._logger.info('Downloading: %d, Uploading: %d, Stopped: %d', num_seeding, num_downloading, stopped)
         self._logger.info('%d active download(s), %.3f MB uploaded, %.3f MB downloaded',
-                          num_seeding + num_downloading, bytes_uploaded/MB, bytes_downloaded/MB)
+                          num_seeding + num_downloading, bytes_uploaded / MB, bytes_downloaded / MB)
 
         if not self.session_ready.called and len(dslist) == self.num_checkpoints:
             self.session_ready.callback(None)

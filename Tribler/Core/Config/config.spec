@@ -2,21 +2,8 @@
 family_filter = boolean(default=True)
 state_dir = string(default='')
 ec_keypair_filename = string(default='')
-megacache = boolean(default=True)
 log_dir = string(default=None)
 testnet = boolean(default=False)
-
-[allchannel_community]
-enabled = boolean(default=True)
-
-[channel_community]
-enabled = boolean(default=True)
-
-[preview_channel_community]
-enabled = boolean(default=True)
-
-[search_community]
-enabled = boolean(default=True)
 
 [tunnel_community]
 enabled = boolean(default=True)
@@ -49,25 +36,12 @@ enabled = boolean(default=True)
 channel_edit = boolean(default=False)
 channels_dir = string(default='channels')
 
-[metadata]
-enabled = boolean(default=True)
-store_dir = string(default=collected_metadata)
-
 [mainline_dht]
 enabled = boolean(default=True)
 port = integer(min=-1, max=65536, default=-1)
 
 [torrent_checking]
 enabled = boolean(default=True)
-
-[torrent_store]
-enabled = boolean(default=True)
-store_dir = string(default=collected_torrents)
-
-[torrent_collecting]
-enabled = boolean(default=True)
-max_torrents = integer(default=50000)
-directory = string(default='')
 
 [libtorrent]
 enabled = boolean(default=True)
@@ -97,12 +71,9 @@ seeding_ratio = float(default=2.0)
 seeding_time = float(default=60)
 channel_download = boolean(default=False)
 
-[dispersy]
-enabled = boolean(default=True)
-port = integer(min=-1, max=65536, default=-1)
-
 [ipv8]
 enabled = boolean(default=True)
+port = integer(min=-1, max=65536, default=-1)
 address = string(default='0.0.0.0')
 bootstrap_override = string(default='')
 statistics = boolean(default=False)

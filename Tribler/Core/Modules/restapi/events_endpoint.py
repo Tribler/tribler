@@ -1,11 +1,11 @@
+from __future__ import absolute_import
+
 from twisted.web import server, resource
 
-from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_search_torrent_to_json, \
-    fix_unicode_dict
-from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT,
-                                     NTFY_UPGRADER, NTFY_STARTED, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT,
+from Tribler.Core.Modules.restapi.util import fix_unicode_dict
+from Tribler.Core.simpledefs import (NTFY_UPGRADER, NTFY_STARTED, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT,
                                      NTFY_NEW_VERSION, NTFY_FINISHED, NTFY_TRIBLER, NTFY_UPGRADER_TICK, NTFY_CHANNEL,
-                                     NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_DELETE, NTFY_MARKET_ON_ASK,
+                                     NTFY_DISCOVERED, NTFY_TORRENT, NTFY_ERROR, NTFY_MARKET_ON_ASK,
                                      NTFY_UPDATE, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_TRANSACTION_COMPLETE,
                                      NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID_TIMEOUT,
                                      NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT,
@@ -65,8 +65,6 @@ class EventsEndpoint(resource.Resource):
         self.infohashes_sent = set()
         self.channel_cids_sent = set()
 
-        self.session.add_observer(self.on_search_results_channels, SIGNAL_CHANNEL, [SIGNAL_ON_SEARCH_RESULTS])
-        self.session.add_observer(self.on_search_results_torrents, SIGNAL_TORRENT, [SIGNAL_ON_SEARCH_RESULTS])
         self.session.add_observer(self.on_upgrader_started, NTFY_UPGRADER, [NTFY_STARTED])
         self.session.add_observer(self.on_upgrader_finished, NTFY_UPGRADER, [NTFY_FINISHED])
         self.session.add_observer(self.on_upgrader_tick, NTFY_UPGRADER_TICK, [NTFY_STARTED])
@@ -104,46 +102,6 @@ class EventsEndpoint(resource.Resource):
             return
         else:
             [request.write(message_str + '\n') for request in self.events_requests]
-
-    def start_new_query(self):
-        self.infohashes_sent = set()
-        self.channel_cids_sent = set()
-
-    def on_search_results_channels(self, subject, changetype, objectID, results):
-        """
-        Returns the channel search results over the events endpoint.
-        """
-        query = ' '.join(results['keywords'])
-
-        for channel in results['result_list']:
-            channel_json = convert_db_channel_to_json(channel, include_rel_score=True)
-
-            if self.session.config.get_family_filter_enabled() and \
-                    self.session.lm.category.xxx_filter.isXXX(channel_json['name']):
-                continue
-
-            if channel_json['dispersy_cid'] not in self.channel_cids_sent:
-                self.write_data({"type": "search_result_channel", "event": {"query": query, "result": channel_json}})
-                self.channel_cids_sent.add(channel_json['dispersy_cid'])
-
-    def on_search_results_torrents(self, subject, changetype, objectID, results):
-        """
-        Returns the torrent search results over the events endpoint.
-        """
-        query = ' '.join(results['keywords'])
-
-        for torrent in results['result_list']:
-            torrent_json = convert_search_torrent_to_json(torrent)
-            torrent_name = torrent_json['name']
-            torrent_json['relevance_score'] = torrent_json['relevance_score'] if 'relevance_score' in torrent_json \
-                else self.session.lm.torrent_db.relevance_score_remote_torrent(torrent_name)
-
-            if self.session.config.get_family_filter_enabled() and torrent_json['category'] == 'xxx':
-                continue
-
-            if 'infohash' in torrent_json and torrent_json['infohash'] not in self.infohashes_sent:
-                self.write_data({"type": "search_result_torrent", "event": {"query": query, "result": torrent_json}})
-                self.infohashes_sent.add(torrent_json['infohash'])
 
     def on_upgrader_started(self, subject, changetype, objectID, *args):
         self.write_data({"type": "upgrader_started"})

@@ -9,7 +9,7 @@
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
-ignore=.git,dispersy,libnacl,data
+ignore=.git,libnacl,data
 
 # Pickle collected data for later comparisons.
 persistent=yes
@@ -150,7 +150,7 @@ generated-members=
 # sudo apt install aspell-en
 
 # List of comma separated words that should not be checked.
-spelling-ignore-words=Tribler,dispersy
+spelling-ignore-words=Tribler
 
 # A path to a file that contains private dictionary; one word per line.
 spelling-private-dict-file=

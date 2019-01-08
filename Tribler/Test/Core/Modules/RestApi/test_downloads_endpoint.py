@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import os
 from binascii import hexlify, unhexlify
 from urllib import pathname2url
@@ -20,8 +22,6 @@ class TestDownloadsEndpoint(AbstractApiTest):
     def setUpPreSession(self):
         super(TestDownloadsEndpoint, self).setUpPreSession()
         self.config.set_libtorrent_enabled(True)
-        self.config.set_megacache_enabled(True)
-        self.config.set_torrent_store_enabled(True)
 
     @trial_timeout(10)
     def test_get_downloads_no_downloads(self):
@@ -483,18 +483,17 @@ class TestDownloadsEndpoint(AbstractApiTest):
         Testing whether the API returns the contents of the torrent file if a download is exported
         """
         video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
-        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
-
-        with open(os.path.join(TESTS_DATA_DIR, 'bak_single.torrent')) as torrent_file:
-            raw_data = torrent_file.read()
-        self.session.get_collected_torrent = lambda _: raw_data
+        download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
 
         def verify_exported_data(result):
-            self.assertEqual(raw_data, result)
+            self.assertTrue(result)
 
-        self.should_check_equality = False
-        return self.do_request('downloads/%s/torrent' % video_tdef.get_infohash().encode('hex'),
-                               expected_code=200, request_type='GET').addCallback(verify_exported_data)
+        def on_handle_available(_):
+            self.should_check_equality = False
+            return self.do_request('downloads/%s/torrent' % video_tdef.get_infohash().encode('hex'),
+                                   expected_code=200, request_type='GET').addCallback(verify_exported_data)
+
+        return download.get_handle().addCallback(on_handle_available)
 
     @trial_timeout(10)
     def test_get_files_unknown_download(self):
@@ -578,7 +577,7 @@ class TestMetadataDownloadEndpoint(AbstractApiTest):
             self.assertGreaterEqual(len(self.session.get_downloads()), 1)
 
         post_data = {'uri': 'file:%s' % os.path.join(TESTS_DIR, 'Core/data/sample_channel/channel.mdblob')}
-        expected_json = {'started': True, 'infohash': '02c146a1a3ffd96856a0319d1832cf70989e5a47'}
+        expected_json = {'started': True, 'infohash': 'ec98c89912a98ce6561d3d47a77e35ee5388fb88'}
         return self.do_request('downloads', expected_code=200, request_type='PUT', post_data=post_data,
                                expected_json=expected_json).addCallback(verify_download)
 

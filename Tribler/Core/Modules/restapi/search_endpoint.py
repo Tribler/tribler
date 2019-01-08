@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import logging
-from binascii import unhexlify
 
 from pony.orm import db_session
 
@@ -21,8 +20,6 @@ class SearchEndpoint(resource.Resource):
         resource.Resource.__init__(self)
         self.session = session
         self.events_endpoint = None
-        self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
-        self.torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.putChild("completions", SearchCompletionsEndpoint(session))

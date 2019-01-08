@@ -1,17 +1,18 @@
+from __future__ import absolute_import
+
 import socket
 import time
 
-from Tribler.Test.tools import trial_timeout
+from pony.orm import db_session
+
 from twisted.internet.defer import Deferred, inlineCallbacks
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
-from Tribler.Core.Category.Category import Category
 from Tribler.Core.Modules.tracker_manager import TrackerManager
 from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UdpSocketManager
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
-from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.tools import trial_timeout
 from Tribler.community.popularity.repository import TYPE_TORRENT_HEALTH
 
 
@@ -22,20 +23,17 @@ class TestTorrentChecker(TestAsServer):
 
     def setUpPreSession(self):
         super(TestTorrentChecker, self).setUpPreSession()
-        self.config.set_megacache_enabled(True)
+        self.config.set_chant_enabled(True)
 
     @inlineCallbacks
     def setUp(self):
         yield super(TestTorrentChecker, self).setUp()
 
-        self.session.lm.torrent_db = TorrentDBHandler(self.session)
         self.session.lm.torrent_checker = TorrentChecker(self.session)
         self.session.lm.tracker_manager = TrackerManager(self.session)
         self.session.lm.popularity_community = MockObject()
 
         self.torrent_checker = self.session.lm.torrent_checker
-        self.torrent_checker._torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
-        self.torrent_checker._torrent_db.category = Category()
         self.torrent_checker.listen_on_udp = lambda: None
 
     def test_initialize(self):
@@ -43,7 +41,6 @@ class TestTorrentChecker(TestAsServer):
         Test the initialization of the torrent checker
         """
         self.torrent_checker.initialize()
-        self.assertIsNotNone(self.torrent_checker._torrent_db)
         self.assertTrue(self.torrent_checker.is_pending_task_active("torrent_checker_tracker_selection"))
 
     def test_create_socket_or_schedule_fail(self):
@@ -72,10 +69,8 @@ class TestTorrentChecker(TestAsServer):
         Test whether adding a request to fetch health of a trackerless torrent fails
         """
         test_deferred = Deferred()
-        self.torrent_checker._torrent_db.addExternalTorrentNoDef('a' * 20, 'ubuntu.iso', [['a.test', 1234]], [], 5)
-
-        # Remove the DHT tracker
-        self.torrent_checker._torrent_db._db.execute_write("DELETE FROM TorrentTrackerMapping",)
+        with db_session:
+            self.session.lm.mds.TorrentState(infohash='a' * 20)
 
         self.torrent_checker.add_gui_request('a' * 20).addErrback(lambda _: test_deferred.callback(None))
         return test_deferred
@@ -84,9 +79,10 @@ class TestTorrentChecker(TestAsServer):
         """
         Test whether cached results of a torrent are returned when fetching the health of a torrent
         """
-        self.torrent_checker._torrent_db.addExternalTorrentNoDef('a' * 20, 'ubuntu.iso', [['a.test', 1234]], [], 5)
-        self.torrent_checker._torrent_db.updateTorrentCheckResult(
-            1, 'a' * 20, 5, 10, time.time(), time.time(), 'good', 0)
+        with db_session:
+            tracker = self.session.lm.mds.TrackerState(url="http://localhost/tracker")
+            self.session.lm.mds.TorrentState(infohash='a' * 20, seeders=5, leechers=10, trackers={tracker},
+                                             last_check=int(time.time()))
 
         def verify_response(result):
             self.assertTrue('db' in result)
@@ -108,8 +104,9 @@ class TestTorrentChecker(TestAsServer):
         return self.torrent_checker._task_select_tracker()
 
     def test_task_select_tracker(self):
-        self.torrent_checker._torrent_db.addExternalTorrentNoDef(
-            'a' * 20, 'ubuntu.iso', [['a.test', 1234]], ['http://google.com/announce'], 5)
+        with db_session:
+            tracker = self.session.lm.mds.TrackerState(url="http://localhost/tracker")
+            self.session.lm.mds.TorrentState(infohash='a' * 20, seeders=5, leechers=10, trackers={tracker})
 
         controlled_session = HttpTrackerSession(None, None, None, None)
         controlled_session.connect_to_tracker = lambda: Deferred()
@@ -128,30 +125,11 @@ class TestTorrentChecker(TestAsServer):
             # Verify whether we successfully cleaned up the session after an error
             self.assertEqual(len(self.torrent_checker._session_list), 1)
 
-        self.torrent_checker._torrent_db.addExternalTorrentNoDef(
-            'a' * 20, 'ubuntu.iso', [['a.test', 1234]], ['udp://non123exiszzting456tracker89fle.abc:80/announce'], 5)
+        with db_session:
+            tracker = self.session.lm.mds.TrackerState(url="http://localhost/tracker")
+            self.session.lm.mds.TorrentState(infohash='a' * 20, seeders=5, leechers=10, trackers={tracker},
+                                             last_check=int(time.time()))
         return self.torrent_checker._task_select_tracker().addCallback(verify_cleanup)
-
-    @trial_timeout(30)
-    def test_tracker_test_invalid_tracker(self):
-        """
-        Test whether we do nothing when tracker URL is invalid
-        """
-        tracker_url = u'udp://non123exiszzting456tracker89fle.abc:80'
-        bad_tracker_url = u'xyz://non123exiszzting456tracker89fle.abc:80'
-
-        self.torrent_checker._torrent_db.addExternalTorrentNoDef(
-            'a' * 20, 'ubuntu.iso', [['a.test', 1234]], [tracker_url], 5)
-
-        # Write invalid url to the database
-        sql_stmt = u"UPDATE TrackerInfo SET tracker = ? WHERE tracker = ?"
-        self.session.sqlite_db.execute(sql_stmt, (bad_tracker_url, tracker_url))
-
-        def verify_response(resp):
-            self.assertFalse(self.session.lm.tracker_manager.get_tracker_info(bad_tracker_url))
-            self.assertIsNone(resp)
-
-        return self.torrent_checker._task_select_tracker().addCallback(verify_response)
 
     @trial_timeout(10)
     def test_tracker_no_infohashes(self):
