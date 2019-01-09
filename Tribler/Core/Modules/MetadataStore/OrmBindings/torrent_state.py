@@ -12,5 +12,6 @@ def define_binding(db):
         leechers = orm.Optional(int, default=0)
         last_check = orm.Optional(datetime, default=datetime.utcnow)
         metadata = orm.Set('TorrentMetadata')
+        trackers = orm.Set('TrackerState', reverse='torrents')
 
     return TorrentState
