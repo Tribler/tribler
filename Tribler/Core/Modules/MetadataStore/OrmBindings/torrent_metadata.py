@@ -21,10 +21,10 @@ def define_binding(db):
         title = orm.Optional(str, default='')
         tags = orm.Optional(str, default='')
         tracker_info = orm.Optional(str, default='')
-        health = orm.Optional('TorrentState', reverse='metadata')
 
         # Local
         xxx = orm.Optional(float, default=0)
+        health = orm.Optional('TorrentState', reverse='metadata')
 
         _payload_class = TorrentMetadataPayload
 
