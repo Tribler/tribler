@@ -188,6 +188,7 @@ class TriblerWindow(QMainWindow):
         else:
             self.tray_icon = None
 
+        self.hide_left_menu_playlist()
         self.left_menu_button_debug.setHidden(True)
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
@@ -505,6 +506,7 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
         self.settings_page.load_settings()
         self.navigation_stack = []
+        self.hide_left_menu_playlist()
 
     def on_token_balance_click(self, _):
         self.raise_window()
@@ -513,6 +515,7 @@ class TriblerWindow(QMainWindow):
         self.load_token_balance()
         self.trust_page.load_blocks()
         self.navigation_stack = []
+        self.hide_left_menu_playlist()
 
     def load_token_balance(self):
         self.request_mgr = TriblerRequestManager()
@@ -744,28 +747,33 @@ class TriblerWindow(QMainWindow):
         self.deselect_all_menu_buttons(self.left_menu_button_home)
         self.stackedWidget.setCurrentIndex(PAGE_HOME)
         self.navigation_stack = []
+        self.hide_left_menu_playlist()
 
     def clicked_menu_button_search(self):
         self.deselect_all_menu_buttons(self.left_menu_button_search)
         self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
         self.navigation_stack = []
+        self.hide_left_menu_playlist()
 
     def clicked_menu_button_discovered(self):
         self.deselect_all_menu_buttons(self.left_menu_button_discovered)
         self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
         self.discovered_page.load_discovered_channels()
         self.navigation_stack = []
+        self.hide_left_menu_playlist()
 
     def clicked_menu_button_my_channel(self):
         self.deselect_all_menu_buttons(self.left_menu_button_my_channel)
         self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
         self.edit_channel_page.load_my_channel_overview()
         self.navigation_stack = []
+        self.hide_left_menu_playlist()
 
     def clicked_menu_button_video_player(self):
         self.deselect_all_menu_buttons(self.left_menu_button_video_player)
         self.stackedWidget.setCurrentIndex(PAGE_VIDEO_PLAYER)
         self.navigation_stack = []
+        self.show_left_menu_playlist()
 
     def clicked_menu_button_downloads(self):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
@@ -773,6 +781,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_downloads.setChecked(True)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
         self.navigation_stack = []
+        self.hide_left_menu_playlist()
 
     def clicked_menu_button_debug(self):
         if not self.debug_window:
@@ -784,6 +793,17 @@ class TriblerWindow(QMainWindow):
         self.subscribed_channels_page.load_subscribed_channels()
         self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
         self.navigation_stack = []
+        self.hide_left_menu_playlist()
+
+    def hide_left_menu_playlist(self):
+        self.left_menu_seperator.setHidden(True)
+        self.left_menu_playlist_label.setHidden(True)
+        self.left_menu_playlist.setHidden(True)
+
+    def show_left_menu_playlist(self):
+        self.left_menu_seperator.setHidden(False)
+        self.left_menu_playlist_label.setHidden(False)
+        self.left_menu_playlist.setHidden(False)
 
     def on_channel_clicked(self, public_key):
         self.channel_page.initialize_with_channel(public_key)
