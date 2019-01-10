@@ -89,7 +89,7 @@ class MetadataStore(object):
         self._db = orm.Database()
 
         # Accessors for ORM-managed classes
-        #self.Author = author.define_binding(self._db)
+        # self.Author = author.define_binding(self._db)
 
         self.TrackerState = tracker_state.define_binding(self._db)
         self.TorrentState = torrent_state.define_binding(self._db)
@@ -242,3 +242,11 @@ class MetadataStore(object):
     @db_session
     def get_my_channel(self):
         return self.ChannelMetadata.get_channel_with_id(self.my_key.pub().key_to_bin()[10:])
+
+    @db_session
+    def get_num_channels(self):
+        return orm.count(self.ChannelMetadata.select(lambda g: g.metadata_type == CHANNEL_TORRENT))
+
+    @db_session
+    def get_num_torrents(self):
+        return orm.count(self.TorrentMetadata.select(lambda g: g.metadata_type == REGULAR_TORRENT))

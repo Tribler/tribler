@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
 import os
+import random
+import string
+from binascii import unhexlify
 
 from pony.orm import db_session
-from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk, CHANNEL_DIR_NAME_LENGTH
@@ -75,13 +77,15 @@ class TestMetadataStore(TriblerCoreTest):
     @db_session
     def test_squash_mdblobs(self):
         chunk_size = self.mds.ChannelMetadata._CHUNK_SIZE_LIMIT
-        md_list = [self.mds.TorrentMetadata(title='test' + str(x)) for x in xrange(0, 10)]
+        md_list = [self.mds.TorrentMetadata(
+            title=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20))) for _ in
+            range(0, 10)]
         chunk, _ = entries_to_chunk(md_list, chunk_size=chunk_size)
         self.assertItemsEqual(md_list, self.mds.process_compressed_mdblob(chunk))
 
         # Test splitting into multiple chunks
-        chunk, index = entries_to_chunk(md_list, chunk_size=600)
-        chunk2, _ = entries_to_chunk(md_list, chunk_size=600, start_index=index)
+        chunk, index = entries_to_chunk(md_list, chunk_size=900)
+        chunk2, _ = entries_to_chunk(md_list, chunk_size=900, start_index=index)
         self.assertItemsEqual(md_list[:index], self.mds.process_compressed_mdblob(chunk))
         self.assertItemsEqual(md_list[index:], self.mds.process_compressed_mdblob(chunk2))
 
@@ -117,3 +121,19 @@ class TestMetadataStore(TriblerCoreTest):
         self.mds.process_channel_dir(self.CHANNEL_DIR, channel.public_key)
         self.assertEqual(len(channel.contents_list), 3)
         self.assertEqual(channel.local_version, 9)
+
+    @db_session
+    def test_get_num_channels_torrents(self):
+        self.mds.ChannelMetadata(title='testchan', id_=0)
+        self.mds.ChannelMetadata(title='testchan', id_=123)
+        foreign1 = self.mds.ChannelMetadata(title='testchan', id_=0)
+        foreign1.public_key = unhexlify('1'*20)
+        foreign2 = self.mds.ChannelMetadata(title='testchan', id_=123)
+        foreign2.public_key = unhexlify('1'*20)
+
+        md_list = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW) for x in range(0, 3)]
+
+        self.assertEqual(4, self.mds.get_num_channels())
+        self.assertEqual(3, self.mds.get_num_torrents())
+
+
