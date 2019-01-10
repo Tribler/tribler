@@ -12,6 +12,7 @@ def define_binding(db):
         last_check = orm.Optional(datetime, default=EPOCH)
         alive = orm.Optional(bool, default=True)
         torrents = orm.Set('TorrentState', reverse='trackers')
+        failures = orm.Optional(int, size=32, default=0)
 
         def __init__(self, *args, **kwargs):
             # Sanitize and canonicalize the tracker URL
