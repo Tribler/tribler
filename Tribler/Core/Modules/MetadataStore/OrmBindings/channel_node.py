@@ -15,12 +15,12 @@ def define_binding(db):
         parents = orm.Set('ChannelNode', reverse='children')
         children = orm.Set('ChannelNode', reverse='parents')
 
+        # Special properties
+        _payload_class = ChannelNodePayload
+
         def __init__(self, *args, **kwargs):
             if "id_" not in kwargs:
                 kwargs["id_"] = self._clock.tick()
             super(ChannelNode, self).__init__(*args, **kwargs)
-
-        # Special properties
-        _payload_class = ChannelNodePayload
 
     return ChannelNode
