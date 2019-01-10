@@ -273,7 +273,7 @@ def define_binding(db):
         @property
         def dir_name(self):
             # Have to limit this to support Windows file path length limit
-            return str(self.public_key).encode('hex')[:CHANNEL_DIR_NAME_LENGTH]
+            return hexlify(self.public_key)[:CHANNEL_DIR_NAME_LENGTH]
 
         @property
         @db_session
@@ -362,7 +362,7 @@ def define_binding(db):
 
             dirname_binmask_start = "x'" + extend_to_bitmask(dirname) + "'"
 
-            binmask_plus_one = "%X" % (int(dirname, 16) + 1)
+            binmask_plus_one = ("%X" % (int(dirname, 16) + 1)).zfill(len(dirname))
             dirname_binmask_end = "x'" + extend_to_bitmask(binmask_plus_one) + "'"
 
             sql = "g.public_key >= " + dirname_binmask_start + " AND g.public_key < " + dirname_binmask_end

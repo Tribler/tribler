@@ -275,13 +275,9 @@ class DebugWindow(QMainWindow):
         self.window().general_tree_widget.clear()
         self.create_and_add_widget_item("Tribler version", self.tribler_version, self.window().general_tree_widget)
         self.create_and_add_widget_item("Number of channels", data["num_channels"], self.window().general_tree_widget)
-        self.create_and_add_widget_item("Database size", format_size(data["database_size"]),
+        self.create_and_add_widget_item("Database size", format_size(data["db_size"]),
                                         self.window().general_tree_widget)
-        self.create_and_add_widget_item("Number of collected torrents", data["torrents"]["num_collected"],
-                                        self.window().general_tree_widget)
-        self.create_and_add_widget_item("Number of torrent files", data["torrents"]["num_files"],
-                                        self.window().general_tree_widget)
-        self.create_and_add_widget_item("Total size of torrent files", format_size(data["torrents"]["total_size"]),
+        self.create_and_add_widget_item("Number of known torrents", data["num_torrents"],
                                         self.window().general_tree_widget)
         self.create_and_add_widget_item("", "", self.window().general_tree_widget)
 
