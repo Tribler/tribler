@@ -14,7 +14,7 @@ from binascii import hexlify
 
 import libtorrent as lt
 
-from six import text_type
+import six
 from six.moves import xrange
 
 from twisted.internet import reactor
@@ -32,7 +32,7 @@ from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.simpledefs import DLMODE_NORMAL, DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
-                                    PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
+    PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
@@ -243,7 +243,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         except Exception as e:
             self.error = e
 
-    def network_create_engine_wrapper(self, pstate, checkpoint_disabled=False, share_mode=False):
+    def network_create_engine_wrapper(self, pstate, checkpoint_disabled=False, share_mode=False, upload_mode=False):
         self.ltmgr = self.session.lm.ltmgr
         with self.dllock:
             self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
@@ -258,6 +258,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
             if share_mode:
                 atp["flags"] = lt.add_torrent_params_flags_t.flag_share_mode
+            if upload_mode:
+                atp["flags"] = lt.add_torrent_params_flags_t.flag_upload_mode
 
             self.set_checkpoint_disabled(checkpoint_disabled)
 
@@ -888,7 +890,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         for announce_entry in self.handle.trackers():
             if announce_entry['url'] not in self.tracker_status:
                 try:
-                    url = text_type(announce_entry['url'])
+                    url = six.text_type(announce_entry['url'])
                     self.tracker_status[url] = [0, 'Not contacted yet']
                 except UnicodeDecodeError:
                     pass
@@ -991,9 +993,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             if self.handle is None:
                 self.cew_scheduled = True
                 create_engine_wrapper_deferred = self.network_create_engine_wrapper(self.pstate_for_restart,
-                                                                                    share_mode=self.get_share_mode())
+                                                                                    share_mode=self.get_share_mode(),
+                                                                                    upload_mode=self.get_upload_mode())
                 create_engine_wrapper_deferred.addCallback(self.session.lm.on_download_handle_created)
             else:
+                self.handle.set_upload_mode(self.get_upload_mode())
                 self.handle.resume()
                 self.set_vod_mode(self.get_mode() == DLMODE_VOD)
 
@@ -1113,3 +1117,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
     def set_share_mode(self, share_mode):
         self.get_handle().addCallback(lambda handle: handle.set_share_mode(share_mode))
+
+    @checkHandleAndSynchronize()
+    def get_upload_mode(self):
+        return self.handle.status().upload_mode
+
+    def set_upload_mode(self, upload_mode):
+        self.get_handle().addCallback(lambda handle: handle.set_upload_mode(upload_mode))
