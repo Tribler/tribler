@@ -1,20 +1,21 @@
-import logging
+from __future__ import absolute_import
+
 import os
 import time
 
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtWidgets import QWidget, QAbstractItemView, QAction, QFileDialog, QTreeWidgetItem
+from PyQt5.QtWidgets import QAbstractItemView, QAction, QFileDialog, QTreeWidgetItem, QWidget
 
-from TriblerGUI.tribler_action_menu import TriblerActionMenu
-from TriblerGUI.defs import DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_COMPLETED, \
-    DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_INACTIVE, DOWNLOADS_FILTER_CREDITMINING, DOWNLOADS_FILTER_DEFINITION, \
-    DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, DLSTATUS_METADATA, \
-    DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_CIRCUITS, DOWNLOADS_FILTER_CHANNELS
+from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, DLSTATUS_CIRCUITS, DLSTATUS_HASHCHECKING, \
+    DLSTATUS_METADATA, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, \
+    DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_CHANNELS, DOWNLOADS_FILTER_COMPLETED, \
+    DOWNLOADS_FILTER_CREDITMINING, DOWNLOADS_FILTER_DEFINITION, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_INACTIVE
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
-from TriblerGUI.widgets.downloadwidgetitem import DownloadWidgetItem
+from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import format_speed, format_size
+from TriblerGUI.utilities import format_size, format_speed
+from TriblerGUI.widgets.downloadwidgetitem import DownloadWidgetItem
 from TriblerGUI.widgets.loading_list_item import LoadingListItem
 
 
@@ -39,6 +40,8 @@ class DownloadsPage(QWidget):
         self.downloads_request_mgr = TriblerRequestManager()
         self.request_mgr = None
         self.loading_message_widget = None
+        self.total_download = 0
+        self.total_upload = 0
 
     def showEvent(self, QShowEvent):
         """
@@ -229,13 +232,17 @@ class DownloadsPage(QWidget):
 
         bytes_max = self.window().tribler_settings["credit_mining"]["max_disk_space"]
         bytes_used = 0
+        total_up = total_down = 0
         for download in self.downloads["downloads"]:
             if download["credit_mining"] and \
                download["status"] in ("DLSTATUS_DOWNLOADING", "DLSTATUS_SEEDING",
                                       "DLSTATUS_STOPPED", "DLSTATUS_STOPPED_ON_ERROR"):
                 bytes_used += download["progress"] * download["size"]
-        self.window().diskspace_usage.setText("Current disk space usage %s / %s" % (format_size(float(bytes_used)),
-                                                                                    format_size(float(bytes_max))))
+                total_up += download["total_up"]
+                total_down += download["total_down"]
+        self.window().diskspace_usage.setText("Disk usage: %s / %s \tUpload: %.3f MB \tDownload: %.3f MB" %
+                                              (format_size(float(bytes_used)), format_size(float(bytes_max)),
+                                               total_up/1048576.0, total_down/1028576.0))
 
     @staticmethod
     def start_download_enabled(download_widgets):

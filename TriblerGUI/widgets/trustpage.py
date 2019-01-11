@@ -1,19 +1,21 @@
-import gc
-import matplotlib
-
-from TriblerGUI.defs import PAGE_MARKET, GC_TIMEOUT
-from TriblerGUI.dialogs.trustexplanationdialog import TrustExplanationDialog
-
-matplotlib.use('Qt5Agg')
+from __future__ import absolute_import
 
 import datetime
+import gc
+
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QWidget
+
+import matplotlib
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.dates import DateFormatter
 from matplotlib.figure import Figure
 
+from TriblerGUI.defs import GC_TIMEOUT, PAGE_MARKET, PAGE_TOKEN_MINING_PAGE
+from TriblerGUI.dialogs.trustexplanationdialog import TrustExplanationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
+
+matplotlib.use('Qt5Agg')
 
 
 class MplCanvas(FigureCanvas):
@@ -94,10 +96,12 @@ class TrustPage(QWidget):
 
     def initialize_trust_page(self):
         vlayout = self.window().plot_widget.layout()
-        self.trust_plot = TrustPlotMplCanvas(self.window().plot_widget, dpi=100)
-        vlayout.addWidget(self.trust_plot)
+        if vlayout.isEmpty():
+            self.trust_plot = TrustPlotMplCanvas(self.window().plot_widget, dpi=100)
+            vlayout.addWidget(self.trust_plot)
 
         self.window().trade_button.clicked.connect(self.on_trade_button_clicked)
+        self.window().mine_button.clicked.connect(self.on_mine_button_clicked)
         self.window().trust_explain_button.clicked.connect(self.on_info_button_clicked)
 
     def on_trade_button_clicked(self):
@@ -108,6 +112,11 @@ class TrustPage(QWidget):
     def on_info_button_clicked(self):
         self.dialog = TrustExplanationDialog(self.window())
         self.dialog.show()
+
+    def on_mine_button_clicked(self):
+        self.window().token_mining_page.initialize_token_mining_page()
+        self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
+        self.window().stackedWidget.setCurrentIndex(PAGE_TOKEN_MINING_PAGE)
 
     def load_blocks(self):
         self.request_mgr = TriblerRequestManager()
