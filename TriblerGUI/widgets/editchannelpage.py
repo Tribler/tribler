@@ -110,7 +110,7 @@ class EditChannelPage(QWidget):
 
         self.window().create_channel_button.setEnabled(False)
         self.editchannel_request_mgr = TriblerRequestManager()
-        self.editchannel_request_mgr.perform_request("channels/discovered", self.on_channel_created,
+        self.editchannel_request_mgr.perform_request("mychannel", self.on_channel_created,
                                                      data=(u'name=%s&description=%s' %
                                                            (channel_name, channel_description)).encode('utf-8'),
                                                      method='PUT')
@@ -282,7 +282,7 @@ class EditChannelPage(QWidget):
 
     def on_confirm_add_directory_dialog(self, action):
         if action == 0:
-            self.model.add_dir_to_channel(self.chosen_dir, recursive=self.dialog.checkbox.isChecked())
+            self.add_dir_to_channel(self.chosen_dir, recursive=self.dialog.checkbox.isChecked())
 
         if self.dialog:
             self.dialog.close_dialog()
@@ -317,7 +317,7 @@ class EditChannelPage(QWidget):
         filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
         if not filename[0]:
             return
-        self.model.add_torrent_to_channel(filename[0])
+        self.add_torrent_to_channel(filename[0])
 
     def on_add_torrent_from_url(self):
         self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link",
@@ -331,7 +331,7 @@ class EditChannelPage(QWidget):
     def on_torrent_from_url_dialog_done(self, action):
         if action == 0:
             url = urllib.quote_plus(self.dialog.dialog_widget.dialog_input.text())
-            self.model.add_torrent_url_to_channel(url)
+            self.add_torrent_url_to_channel(url)
         self.dialog.close_dialog()
         self.dialog = None
 
@@ -360,8 +360,7 @@ class EditChannelPage(QWidget):
 
     def add_dir_to_channel(self, dirname, recursive=False):
         request_mgr = TriblerRequestManager()
-        request_mgr.perform_request("mychannel/torrents" %
-                                    self.channel_id,
+        request_mgr.perform_request("mychannel/torrents",
                                     self.on_torrent_to_channel_added, method='PUT',
                                     data=((u'torrents_dir=%s' % dirname) +
                                           (u'&recursive=1' if recursive else u'')).encode('utf-8'))
