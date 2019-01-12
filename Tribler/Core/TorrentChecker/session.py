@@ -38,9 +38,9 @@ MAX_TRACKER_MULTI_SCRAPE = 74
 
 def to_unicode(s, errors='replace'):
     try:
-        return unicode(msg, errors=errors)
+        return unicode(s, errors=errors)
     except NameError:  # Python 3
-        return str(msg)
+        return str(s)
 
 
 def create_tracker_session(tracker_url, timeout, socket_manager, connection_pool=None):
