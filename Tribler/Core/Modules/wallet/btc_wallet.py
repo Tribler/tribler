@@ -86,7 +86,7 @@ class BitcoinWallet(Wallet):
 
     def transfer(self, amount, address):
         def on_balance(balance):
-            if balance['available'] >= amount:
+            if balance['available'] >= int(amount):
                 self._logger.info("Creating Bitcoin payment with amount %f to address %s", amount, address)
                 tx = self.wallet.send_to(address, int(amount))
                 return str(tx.hash)
