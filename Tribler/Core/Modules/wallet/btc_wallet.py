@@ -91,7 +91,7 @@ class BitcoinWallet(Wallet):
                 tx = self.wallet.send_to(address, int(amount))
                 return str(tx.hash)
             else:
-                return fail(InsufficientFunds())
+                return fail(InsufficientFunds("Insufficient funds"))
 
         return self.get_balance().addCallback(on_balance)
 
