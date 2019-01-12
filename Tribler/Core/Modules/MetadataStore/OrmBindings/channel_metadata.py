@@ -405,8 +405,7 @@ def define_binding(db):
             :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
                      the total number of results, regardless the passed first/last parameter.
             """
-            pony_query = ChannelMetadata.get_entries_query(
-                ChannelMetadata, sort_by=sort_by, sort_asc=sort_asc, query_filter=query_filter)
+            pony_query = ChannelMetadata.get_entries_query(sort_by=sort_by, sort_asc=sort_asc, query_filter=query_filter)
 
             # Filter subscribed/non-subscribed
             if subscribed:

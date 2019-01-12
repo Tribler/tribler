@@ -47,7 +47,7 @@ class GigaChannelManager(TaskManager):
             if not self.session.has_download(hexlify(str(channel.infohash))):
                 self._logger.info("Downloading new channel version %s ver %i->%i",
                                   str(channel.public_key).encode("hex"),
-                                  channel.local_version, channel.version)
+                                  channel.local_version, channel.timestamp)
                 self.download_channel(channel)
 
     def on_channel_download_finished(self, download, channel_id, finished_deferred=None):

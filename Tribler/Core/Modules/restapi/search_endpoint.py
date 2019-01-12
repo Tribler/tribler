@@ -2,11 +2,12 @@ from __future__ import absolute_import
 
 import logging
 
+from pony import orm
 from pony.orm import db_session
-
 from twisted.web import http, resource
 
 import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT, CHANNEL_TORRENT
 from Tribler.util import cast_to_unicode_utf8
 
 
@@ -70,7 +71,6 @@ class SearchEndpoint(resource.Resource):
         sort_by option sorts results in forward or backward, based on column name (e.g. "id" vs "-id")
         txt option uses FTS search on the chosen word* terms
         type option limits query to certain metadata types (e.g. "torrent" or "channel")
-        subscribed option limits query to channels you are subscribed for
 
             **Example request**:
 
@@ -111,38 +111,27 @@ class SearchEndpoint(resource.Resource):
         first, last, sort_by, sort_asc, data_type = SearchEndpoint.sanitize_parameters(request.args)
         query = request.args['q'][0]
 
-        torrent_results, total_torrents = self.session.lm.mds.TorrentMetadata.get_torrents(
-            first, last, sort_by, sort_asc, query_filter=query)
-        torrents_json = []
-        for torrent in torrent_results:
-            torrent_json = torrent.to_simple_dict()
-            torrent_json['type'] = 'torrent'
-            torrents_json.append(torrent_json)
-
-        channel_results, total_channels = self.session.lm.mds.ChannelMetadata.get_channels(
-            first, last, sort_by, sort_asc, query_filter=query)
-        channels_json = []
-        for channel in channel_results:
-            channel_json = channel.to_simple_dict()
-            channel_json['type'] = 'channel'
-            channels_json.append(channel_json)
-
         if not data_type:
-            search_results = channels_json + torrents_json
+            search_scope = lambda g: (g.metadata_type == REGULAR_TORRENT or g.metadata_type == CHANNEL_TORRENT)
         elif data_type == 'channel':
-            search_results = channels_json
+            search_scope = lambda g: g.metadata_type == CHANNEL_TORRENT
         elif data_type == 'torrent':
-            search_results = torrents_json
+            search_scope = lambda g: g.metadata_type == REGULAR_TORRENT
         else:
-            search_results = []
+            return json.dumps({"error": "Trying to query for unknown type of metadata"})
 
+        results = self.session.lm.mds.TorrentMetadata.get_entries_query(
+            sort_by, sort_asc, query_filter=query).where(search_scope)
+
+        search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[r.metadata_type],
+                                **(r.to_simple_dict()))) for r in results]
         return json.dumps({
             "results": search_results[first - 1:last],
             "first": first,
             "last": last,
             "sort_by": sort_by,
             "sort_asc": sort_asc,
-            "total": total_torrents + total_channels
+            "total": orm.count(results)
         })
 
 

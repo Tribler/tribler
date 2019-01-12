@@ -214,9 +214,22 @@ class SpecificTorrentEndpoint(resource.Resource):
     def __init__(self, session, infohash):
         resource.Resource.__init__(self)
         self.session = session
-        self.infohash = infohash
+        self.infohash = unhexlify(infohash)
 
         self.putChild("health", TorrentHealthEndpoint(self.session, self.infohash))
+
+    @db_session
+    def render_GET(self, request):
+        md_list = list(self.session.lm.mds.TorrentMetadata.select(lambda g:
+                                                                  g.infohash == database_blob(self.infohash)))
+        if not md_list:
+            request.setResponseCode(http.NOT_FOUND)
+            request.write(json.dumps({"error": "torrent not found in database"}))
+            return
+
+        torrent = md_list[0]
+
+        return json.dumps({"torrent": torrent.to_simple_dict(include_trackers=True)})
 
 
 class TorrentsRandomEndpoint(BaseTorrentsEndpoint):
@@ -244,7 +257,7 @@ class TorrentHealthEndpoint(resource.Resource):
     def __init__(self, session, infohash):
         resource.Resource.__init__(self)
         self.session = session
-        self.infohash = unhexlify(infohash)
+        self.infohash = infohash
         self._logger = logging.getLogger(self.__class__.__name__)
 
     def finish_request(self, request):
@@ -266,20 +279,23 @@ class TorrentHealthEndpoint(resource.Resource):
 
             .. sourcecode:: none
 
-                curl http://localhost:8085/torrents/97d2d8f5d37e56cfaeaae151d55f05b077074779/health?timeout=15&refresh=1
+                curl http://localhost:8085/metadata/torrents/97d2d8f5d37e56cfaeaae151d55f05b077074779/health
+                     ?timeout=15&refresh=1
 
             **Example response**:
 
             .. sourcecode:: javascript
 
                 {
-                    "http://mytracker.com:80/announce": [{
-                        "seeders": 43,
-                        "leechers": 20,
-                        "infohash": "97d2d8f5d37e56cfaeaae151d55f05b077074779"
-                    }],
-                    "http://nonexistingtracker.com:80/announce": {
-                        "error": "timeout"
+                    "health": {
+                        "http://mytracker.com:80/announce": {
+                            "seeders": 43,
+                            "leechers": 20,
+                            "infohash": "97d2d8f5d37e56cfaeaae151d55f05b077074779"
+                        },
+                            "http://nonexistingtracker.com:80/announce": {
+                                "error": "timeout"
+                        }
                     }
                 }
 

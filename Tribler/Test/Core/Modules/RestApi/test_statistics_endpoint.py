@@ -1,8 +1,12 @@
+import os
+
+from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Test.tools import trial_timeout
 from twisted.internet.defer import inlineCallbacks
 
 import Tribler.Core.Utilities.json_util as json
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
+from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 
@@ -21,9 +25,12 @@ class TestStatisticsEndpoint(AbstractApiTest):
         self.mock_ipv8.endpoint.bytes_down = 20
         self.session.lm.ipv8 = self.mock_ipv8
         self.session.config.set_ipv8_enabled(True)
+        my_key = default_eccrypto.generate_key(u"curve25519")
+        self.session.lm.mds = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir, my_key)
 
     @inlineCallbacks
     def tearDown(self):
+        self.session.lm.mds.shutdown()
         self.session.lm.ipv8 = None
         yield self.mock_ipv8.unload()
         yield super(TestStatisticsEndpoint, self).tearDown()

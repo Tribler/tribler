@@ -1090,7 +1090,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>2</number>
+         <number>1</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1244,6 +1244,25 @@ margin: 10px;</string>
            </widget>
           </item>
           <item>
+           <widget class="QLabel" name="home_page_no_items_label">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: white; font-size: 16px;</string>
+            </property>
+            <property name="text">
+             <string>No recommended torrents found.</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QTableWidget" name="home_page_table_view">
             <property name="cursor" stdset="0">
              <cursorShape>ArrowCursor</cursorShape>
@@ -1258,6 +1277,11 @@ padding-left: 10px;
 QTableWidget::item {
 padding-right: 10px;
 padding-bottom: 10px;
+border: none;
+}
+
+QTableWidget::item::hover {
+background: transparent;
 }</string>
             </property>
             <property name="horizontalScrollBarPolicy">

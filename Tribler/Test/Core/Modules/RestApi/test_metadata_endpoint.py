@@ -24,6 +24,7 @@ class BaseTestMetadataEndpoint(AbstractApiTest):
     @inlineCallbacks
     def setUp(self):
         yield super(BaseTestMetadataEndpoint, self).setUp()
+        self.infohashes = []
 
         # Add a few channels
         with db_session:
@@ -31,7 +32,9 @@ class BaseTestMetadataEndpoint(AbstractApiTest):
                 self.session.lm.mds.Metadata._my_key = default_eccrypto.generate_key('curve25519')
                 _ = self.session.lm.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0))
                 for torrent_ind in xrange(5):
-                    _ = self.session.lm.mds.TorrentMetadata(title='torrent%d' % torrent_ind, infohash=random_infohash())
+                    rand_infohash = random_infohash()
+                    self.infohashes.append(rand_infohash)
+                    _ = self.session.lm.mds.TorrentMetadata(title='torrent%d' % torrent_ind, infohash=rand_infohash)
 
     def setUpPreSession(self):
         super(BaseTestMetadataEndpoint, self).setUpPreSession()
@@ -137,6 +140,23 @@ class TestPopularChannelsEndpoint(BaseTestMetadataEndpoint):
 
         self.should_check_equality = False
         return self.do_request('metadata/channels/popular?limit=5', expected_code=200).addCallback(on_response)
+
+
+class TestSpecificTorrentEndpoint(BaseTestMetadataEndpoint):
+
+    def test_get_info_torrent_not_exist(self):
+        """
+        Test if an error is returned when querying information of a torrent that does not exist
+        """
+        self.should_check_equality = False
+        return self.do_request('metadata/torrents/aabbcc', expected_code=404)
+
+    def test_get_info_torrent(self):
+        """
+        Test whether we can successfully query information about a torrent with the REST API
+        """
+        self.should_check_equality = False
+        return self.do_request('metadata/torrents/%s' % hexlify(self.infohashes[0]), expected_code=200)
 
 
 class TestRandomTorrentsEndpoint(BaseTestMetadataEndpoint):

@@ -173,6 +173,13 @@ QTabBar::tab:selected {
              </property>
             </widget>
            </item>
+           <item row="1" column="1">
+            <widget class="QLabel" name="torrent_detail_category_label">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
            <item row="2" column="0">
             <widget class="QLabel" name="label_4">
              <property name="styleSheet">
@@ -183,27 +190,10 @@ QTabBar::tab:selected {
              </property>
             </widget>
            </item>
-           <item row="1" column="1">
-            <widget class="QLabel" name="torrent_detail_category_label">
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
            <item row="2" column="1">
             <widget class="QLabel" name="torrent_detail_size_label">
              <property name="text">
               <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_2">
-             <property name="styleSheet">
-              <string notr="true">font-weight: bold; margin-top:5px</string>
-             </property>
-             <property name="text">
-              <string>Health</string>
              </property>
             </widget>
            </item>
@@ -247,95 +237,18 @@ QTabBar::tab:selected {
              </item>
             </layout>
            </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_2">
+             <property name="styleSheet">
+              <string notr="true">font-weight: bold;</string>
+             </property>
+             <property name="text">
+              <string>Health</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-     <widget class="QWidget" name="tab_2">
-      <attribute name="title">
-       <string>Files</string>
-      </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_3">
-       <property name="spacing">
-        <number>0</number>
-       </property>
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
-        <number>0</number>
-       </property>
-       <item>
-        <widget class="QTreeWidget" name="torrent_detail_files_list">
-         <property name="styleSheet">
-          <string notr="true">QTreeWidget {
-border: none;
-font-size: 13px;
-}
-QTreeWidget::item {
-color: white;
-border-bottom: 1px solid #303030;
-}
-QTreeWidget::item:hover {
-background-color: #303030;
-}
-QTreeWidget::item::selected {
-background-color: #444;
-}
-QHeaderView {
-background-color: transparent;
-}
-QHeaderView::section {
-background-color: transparent;
-border: none;
-color: #B5B5B5;
-padding: 10px;
-font-size: 14px;
-border-bottom: 1px solid #303030;
-}
-QHeaderView::drop-down {
-color: red;
-}
-QHeaderView::section:hover {
-color: white;
-}
-QTableCornerButton::section {
-background-color: transparent;
-}</string>
-         </property>
-         <property name="selectionMode">
-          <enum>QAbstractItemView::NoSelection</enum>
-         </property>
-         <property name="indentation">
-          <number>0</number>
-         </property>
-         <attribute name="headerDefaultSectionSize">
-          <number>300</number>
-         </attribute>
-         <attribute name="headerShowSortIndicator" stdset="0">
-          <bool>false</bool>
-         </attribute>
-         <attribute name="headerStretchLastSection">
-          <bool>true</bool>
-         </attribute>
-         <column>
-          <property name="text">
-           <string>PATH</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>SIZE</string>
-          </property>
-         </column>
         </widget>
        </item>
       </layout>

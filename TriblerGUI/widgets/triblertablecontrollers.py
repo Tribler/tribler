@@ -40,10 +40,26 @@ class SearchResultsTableViewController(TriblerTableViewController):
     Controller for the table view that handles search results.
     """
 
-    def __init__(self, model, table_view, num_search_results_label=None):
+    def __init__(self, model, table_view, details_container, num_search_results_label=None):
         TriblerTableViewController.__init__(self, model, table_view)
         self.num_search_results_label = num_search_results_label
+        self.details_container = details_container
         self.query = None
+        table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
+
+    def _on_selection_changed(self, _):
+        selected_indices = self.table_view.selectedIndexes()
+        if not selected_indices:
+            return
+
+        torrent_info = selected_indices[0].model().data_items[selected_indices[0].row()]
+        if torrent_info['type'] == 'channel':
+            self.details_container.hide()
+            self.table_view.clearSelection()
+            return
+
+        self.details_container.show()
+        self.details_container.details_tab_widget.update_with_torrent(selected_indices[0], torrent_info)
 
     def _on_view_sort(self, column, ascending):
         self.model.reset()
@@ -155,13 +171,24 @@ class TorrentsTableViewController(TriblerTableViewController):
 
     def __init__(self, model, torrents_container, num_torrents_label=None, filter_input=None):
         TriblerTableViewController.__init__(self, model, torrents_container.content_table)
+        self.torrents_container = torrents_container
         self.num_torrents_label = num_torrents_label
         self.filter_input = filter_input
+        torrents_container.content_table.selectionModel().selectionChanged.connect(self._on_selection_changed)
 
         if self.filter_input:
             self.filter_input.textChanged.connect(self._on_filter_input_change)
 
-    def _on_filter_input_change(self, text):
+    def _on_selection_changed(self, _):
+        selected_indices = self.table_view.selectedIndexes()
+        if not selected_indices:
+            return
+
+        self.torrents_container.details_container.show()
+        torrent_info = selected_indices[0].model().data_items[selected_indices[0].row()]
+        self.torrents_container.details_tab_widget.update_with_torrent(selected_indices[0], torrent_info)
+
+    def _on_filter_input_change(self, _):
         self.model.reset()
         self.load_torrents(1, 50)
 
@@ -248,5 +275,5 @@ class MyTorrentsTableViewController(TorrentsTableViewController):
         if response['first'] >= self.model.rowCount():
             self.model.add_items(response['torrents'])
 
-        self.table_view.window().dirty_channel_status_bar.setHidden(not response['dirty'])
-        self.table_view.window().edit_channel_commit_button.setEnabled(response['dirty'])
+        self.table_view.window().edit_channel_page.channel_dirty = response['dirty']
+        self.table_view.window().edit_channel_page.update_channel_commit_views()

@@ -66,6 +66,11 @@ def define_binding(db):
                 private_key_override = kwargs["sign_with"]
                 kwargs.pop("sign_with")
 
+            skip_key_check = False
+            if "skip_key_check" in kwargs and kwargs["skip_key_check"]:
+                skip_key_check = True
+                kwargs.pop("skip_key_check")
+
             # FIXME: potential race condition here? To avoid it, generate the signature _before_ calling "super"
             super(Metadata, self).__init__(*args, **kwargs)
 
@@ -81,6 +86,8 @@ def define_binding(db):
 
             # Key/signature given, check them for correctness
             elif ("public_key" in kwargs) and ("signature" in kwargs) and self.has_valid_signature():
+                return
+            elif skip_key_check: # For getting legacy/test stuff
                 return
 
             # Otherwise, something is wrong
@@ -151,7 +158,7 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_entries_query(cls, metadata_type, sort_by=None, sort_asc=True, query_filter=None):
+        def get_entries_query(cls, sort_by=None, sort_asc=True, query_filter=None):
             """
             Get some metadata entries. Optionally sort the results by a specific field, or filter the channels based
             on a keyword/whether you are subscribed to it.
@@ -159,11 +166,11 @@ def define_binding(db):
                      the total number of results, regardless the passed first/last parameter.
             """
             # Warning! For Pony magic to work, iteration variable name (e.g. 'g') should be the same everywhere!
-            pony_query = select(g for g in metadata_type)
+            pony_query = select(g for g in cls)
 
             # Filter the results on a keyword or some keywords
             if query_filter:
-                pony_query = metadata_type.search_keyword(query_filter + "*", lim=1000)
+                pony_query = cls.search_keyword(query_filter + "*", lim=1000)
 
             # Sort the query
             if sort_by:

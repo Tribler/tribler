@@ -23,14 +23,9 @@ class SearchResultsPage(QWidget):
         self.window().search_results_tab.clicked_tab_button.connect(self.clicked_tab_button)
         self.model = SearchResultsContentModel()
         self.controller = SearchResultsTableViewController(self.model, self.window().search_results_list,
+                                                           self.window().search_details_container,
                                                            self.window().num_search_results_label)
         self.window().search_details_container.details_tab_widget.initialize_details_widget()
-
-        self.window().search_results_list.on_torrent_clicked.connect(self.on_torrent_clicked)
-
-    def on_torrent_clicked(self, torrent_info):
-        self.window().search_details_container.show()
-        self.window().search_details_container.details_tab_widget.update_with_torrent(torrent_info)
 
     def perform_search(self, query):
         self.query = query

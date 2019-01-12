@@ -34,11 +34,13 @@ class EditChannelPage(QWidget):
         self.editchannel_request_mgr = None
         self.model = None
         self.controller = None
+        self.channel_dirty = False
 
     def initialize_edit_channel_page(self):
         self.window().create_channel_intro_button.clicked.connect(self.on_create_channel_intro_button_clicked)
 
         self.window().create_channel_form.hide()
+        self.update_channel_commit_views()
 
         self.window().edit_channel_stacked_widget.setCurrentIndex(1)
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_OVERVIEW)
@@ -62,9 +64,11 @@ class EditChannelPage(QWidget):
         self.controller = MyTorrentsTableViewController(self.model, self.window().edit_channel_torrents_container,
                                                         self.window().edit_channel_torrents_num_items_label,
                                                         self.window().edit_channel_torrents_filter)
-        self.window().edit_channel_torrents_container.details_tab_widget.hide()
-        self.window().dirty_channel_status_bar.hide()
-        self.window().edit_channel_commit_button.setEnabled(False)
+        self.window().edit_channel_torrents_container.details_container.hide()
+
+    def update_channel_commit_views(self):
+        self.window().dirty_channel_status_bar.setHidden(not self.channel_dirty)
+        self.window().edit_channel_commit_button.setEnabled(self.channel_dirty)
 
     def load_my_channel_overview(self):
         if not self.channel_overview:
@@ -82,9 +86,8 @@ class EditChannelPage(QWidget):
             return
 
         self.channel_overview = overview["mychannel"]
-        if self.channel_overview['dirty']:
-            self.window().dirty_channel_status_bar.show()
-            self.window().edit_channel_commit_button.setEnabled(True)
+        self.channel_dirty = self.channel_overview['dirty']
+        self.update_channel_commit_views()
 
         self.window().export_channel_button.setHidden(False)
         self.window().edit_channel_name_label.setText("My channel")
@@ -98,7 +101,6 @@ class EditChannelPage(QWidget):
 
         self.window().edit_channel_stacked_widget.setCurrentIndex(1)
 
-        # Initiate the right model
         self.model.channel_pk = self.channel_overview["public_key"]
 
     def on_create_channel_button_pressed(self):
@@ -110,7 +112,7 @@ class EditChannelPage(QWidget):
 
         self.window().create_channel_button.setEnabled(False)
         self.editchannel_request_mgr = TriblerRequestManager()
-        self.editchannel_request_mgr.perform_request("channels/discovered", self.on_channel_created,
+        self.editchannel_request_mgr.perform_request("mychannel", self.on_channel_created,
                                                      data=(u'name=%s&description=%s' %
                                                            (channel_name, channel_description)).encode('utf-8'),
                                                      method='PUT')
@@ -282,7 +284,7 @@ class EditChannelPage(QWidget):
 
     def on_confirm_add_directory_dialog(self, action):
         if action == 0:
-            self.model.add_dir_to_channel(self.chosen_dir, recursive=self.dialog.checkbox.isChecked())
+            self.add_dir_to_channel(self.chosen_dir, recursive=self.dialog.checkbox.isChecked())
 
         if self.dialog:
             self.dialog.close_dialog()
@@ -317,7 +319,7 @@ class EditChannelPage(QWidget):
         filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
         if not filename[0]:
             return
-        self.model.add_torrent_to_channel(filename[0])
+        self.add_torrent_to_channel(filename[0])
 
     def on_add_torrent_from_url(self):
         self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link",
@@ -331,7 +333,7 @@ class EditChannelPage(QWidget):
     def on_torrent_from_url_dialog_done(self, action):
         if action == 0:
             url = urllib.quote_plus(self.dialog.dialog_widget.dialog_input.text())
-            self.model.add_torrent_url_to_channel(url)
+            self.add_torrent_url_to_channel(url)
         self.dialog.close_dialog()
         self.dialog = None
 
@@ -345,8 +347,8 @@ class EditChannelPage(QWidget):
         if not result:
             return
         if 'success' in result and result['success']:
-            self.window().dirty_channel_status_bar.hide()
-            self.window().edit_channel_commit_button.setEnabled(False)
+            self.channel_dirty = False
+            self.update_channel_commit_views()
             self.on_commit.emit()
             self.load_my_torrents()
 
@@ -360,8 +362,7 @@ class EditChannelPage(QWidget):
 
     def add_dir_to_channel(self, dirname, recursive=False):
         request_mgr = TriblerRequestManager()
-        request_mgr.perform_request("mychannel/torrents" %
-                                    self.channel_id,
+        request_mgr.perform_request("mychannel/torrents",
                                     self.on_torrent_to_channel_added, method='PUT',
                                     data=((u'torrents_dir=%s' % dirname) +
                                           (u'&recursive=1' if recursive else u'')).encode('utf-8'))

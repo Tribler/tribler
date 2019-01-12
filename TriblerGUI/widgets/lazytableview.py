@@ -42,7 +42,7 @@ class SearchResultsTableView(TriblerContentTableView):
     """
     This table displays search results, which can be both torrents and channels.
     """
-    on_torrent_clicked = pyqtSignal(dict)
+    on_torrent_clicked = pyqtSignal(QModelIndex, dict)
     on_channel_clicked = pyqtSignal(dict)
 
     def __init__(self, parent=None):
@@ -63,7 +63,7 @@ class SearchResultsTableView(TriblerContentTableView):
             self.window().stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
             self.on_channel_clicked.emit(content_info)
         else:
-            self.on_torrent_clicked.emit(content_info)
+            self.on_torrent_clicked.emit(item, content_info)
 
     def resizeEvent(self, _):
         self.setColumnWidth(0, 100)
@@ -76,7 +76,7 @@ class TorrentsTableView(TriblerContentTableView):
     """
     This table displays various torrents.
     """
-    on_torrent_clicked = pyqtSignal(dict)
+    on_torrent_clicked = pyqtSignal(QModelIndex, dict)
 
     def __init__(self, parent=None):
         TriblerContentTableView.__init__(self, parent)
@@ -100,7 +100,7 @@ class TorrentsTableView(TriblerContentTableView):
             return
 
         torrent_info = self.model().data_items[item.row()]
-        self.on_torrent_clicked.emit(torrent_info)
+        self.on_torrent_clicked.emit(item, torrent_info)
 
     def on_play_button_clicked(self, index):
         infohash = index.model().data_items[index.row()][u'infohash']
@@ -141,6 +141,9 @@ class TorrentsTableView(TriblerContentTableView):
 
         if 'success' in json_result and json_result['success']:
             index.model().data_items[index.row()][u'status'] = json_result['new_status']
+
+            self.window().edit_channel_page.channel_dirty = json_result['dirty']
+            self.window().edit_channel_page.update_channel_commit_views()
 
     def resizeEvent(self, _):
         if isinstance(self.model(), MyTorrentsContentModel):
