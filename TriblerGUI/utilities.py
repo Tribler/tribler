@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from urllib import quote_plus
 
 import TriblerGUI
-from TriblerGUI.defs import VIDEO_EXTS
+from TriblerGUI.defs import VIDEO_EXTS, HEALTH_GOOD, HEALTH_UNCHECKED, HEALTH_MOOT, HEALTH_DEAD
 
 
 def index2uri(index):
@@ -181,27 +181,6 @@ def get_image_path(filename):
     return os.path.join(get_base_path(), 'images/%s' % filename)
 
 
-def bisect_right(item, item_list, is_torrent):
-    """
-    This method inserts a channel/torrent in a sorted list. The sorting is based on relevance score.
-    The implementation is based on bisect_right.
-    """
-    lo = 0
-    hi = len(item_list)
-    while lo < hi:
-        mid = (lo+hi) // 2
-        if item['relevance_score'] == item_list[mid]['relevance_score'] and is_torrent:
-            if len(split_into_keywords(item['name'])) < len(split_into_keywords(item_list[mid]['name'])):
-                hi = mid
-            else:
-                lo = mid + 1
-        elif item['relevance_score'] > item_list[mid]['relevance_score']:
-            hi = mid
-        else:
-            lo = mid + 1
-    return lo
-
-
 def get_gui_setting(gui_settings, value, default, is_bool=False):
     """
     Utility method to get a specific GUI setting. The is_bool flag defines whether we expect a boolean so we convert it
@@ -260,3 +239,14 @@ def prec_div(number, precision):
     Divide a given number by 10^precision.
     """
     return float(number) / float(10 ** precision)
+
+
+def get_health(seeders, leechers, last_tracker_check):
+    if last_tracker_check == 0:
+        return HEALTH_UNCHECKED
+    if seeders > 0:
+        return HEALTH_GOOD
+    elif leechers > 0:
+        return HEALTH_MOOT
+    else:
+        return HEALTH_DEAD

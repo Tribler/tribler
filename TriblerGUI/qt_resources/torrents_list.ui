@@ -118,7 +118,7 @@ QTableView::item::hover {
        <enum>Qt::ScrollBarAlwaysOff</enum>
       </property>
       <property name="selectionMode">
-       <enum>QAbstractItemView::ExtendedSelection</enum>
+       <enum>QAbstractItemView::SingleSelection</enum>
       </property>
       <property name="selectionBehavior">
        <enum>QAbstractItemView::SelectRows</enum>
@@ -165,15 +165,15 @@ QTableView::item::hover {
  </widget>
  <customwidgets>
   <customwidget>
-   <class>TorrentsTableView</class>
-   <extends>QTableView</extends>
-   <header>TriblerGUI.widgets.lazytableview.h</header>
-  </customwidget>
-  <customwidget>
    <class>TorrentDetailsContainer</class>
    <extends>QWidget</extends>
    <header>TriblerGUI.widgets.torrentdetailscontainer.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>TorrentsTableView</class>
+   <extends>QTableView</extends>
+   <header>TriblerGUI.widgets.lazytableview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

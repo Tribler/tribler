@@ -48,6 +48,8 @@ class RESTManager(TaskManager):
                 except CannotListenError:
                     bind_attempts += 1
 
+        self._logger.info("Starting REST API on port %d", self.site.port)
+
         # REST Manager does not accept any new requests if Tribler is shutting down.
         # Note that environment variable 'TRIBLER_SHUTTING_DOWN' is set to 'TRUE' (string)
         # when shutdown has started. Also see RESTRequest.process() method below.
