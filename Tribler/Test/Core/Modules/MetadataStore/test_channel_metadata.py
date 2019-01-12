@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import os
+from binascii import hexlify, unhexlify
 from datetime import datetime
 
 from pony.orm import db_session
@@ -158,6 +159,11 @@ class TestChannelMetadata(TriblerCoreTest):
         channel_metadata = self.mds.ChannelMetadata.from_dict(sample_channel_dict)
         dirname = channel_metadata.dir_name
         channel_result = self.mds.ChannelMetadata.get_channel_with_dirname(dirname)
+        self.assertEqual(channel_metadata, channel_result)
+
+        # Test for corner-case of channel PK starting with zeroes
+        channel_metadata.public_key = database_blob(unhexlify('0'*128))
+        channel_result = self.mds.ChannelMetadata.get_channel_with_dirname(channel_metadata.dir_name)
         self.assertEqual(channel_metadata, channel_result)
 
     @db_session
