@@ -36,6 +36,13 @@ DHT_TRACKER_MAX_RETRIES = 8
 MAX_TRACKER_MULTI_SCRAPE = 74
 
 
+def to_unicode(s, errors='replace'):
+    try:
+        return unicode(msg, errors=errors)
+    except NameError:  # Python 3
+        return str(msg)
+
+
 def create_tracker_session(tracker_url, timeout, socket_manager, connection_pool=None):
     """
     Creates a tracker session with the given tracker URL.
@@ -289,7 +296,7 @@ class HttpTrackerSession(TrackerSession):
         if self.result_deferred and not self.result_deferred.called:
             result_msg = "HTTP tracker failed for url %s" % self._tracker_url
             if msg:
-                result_msg += " (error: %s)" % unicode(msg, errors='replace')
+                result_msg += " (error: %s)" % to_unicode(msg)
             self.result_deferred.errback(ValueError(result_msg))
 
     def _process_scrape_response(self, body):
@@ -449,7 +456,7 @@ class UdpTrackerSession(TrackerSession):
         if self.result_deferred and not self.result_deferred.called and not self._is_failed:
             result_msg = "UDP tracker failed for url %s" % self._tracker_url
             if msg:
-                result_msg += " (error: %s)" % unicode(msg, errors='replace')
+                result_msg += " (error: %s)" % to_unicode(msg)
             self.result_deferred.errback(ValueError(result_msg))
 
         self._is_failed = True
