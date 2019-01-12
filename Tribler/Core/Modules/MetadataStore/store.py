@@ -242,3 +242,11 @@ class MetadataStore(object):
     @db_session
     def get_my_channel(self):
         return self.ChannelMetadata.get_channel_with_id(self.my_key.pub().key_to_bin()[10:])
+
+    @db_session
+    def get_num_channels(self):
+        return orm.count(self.ChannelMetadata.select(lambda g: g.metadata_type == CHANNEL_TORRENT))
+
+    @db_session
+    def get_num_torrents(self):
+        return orm.count(self.TorrentMetadata.select(lambda g: g.metadata_type == REGULAR_TORRENT))
