@@ -71,7 +71,6 @@ class SearchEndpoint(resource.Resource):
         sort_by option sorts results in forward or backward, based on column name (e.g. "id" vs "-id")
         txt option uses FTS search on the chosen word* terms
         type option limits query to certain metadata types (e.g. "torrent" or "channel")
-        subscribed option limits query to channels you are subscribed for
 
             **Example request**:
 
