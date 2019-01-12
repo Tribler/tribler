@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import os
 import random
 import string
+from binascii import unhexlify
 
 from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
@@ -120,3 +121,19 @@ class TestMetadataStore(TriblerCoreTest):
         self.mds.process_channel_dir(self.CHANNEL_DIR, channel.public_key)
         self.assertEqual(len(channel.contents_list), 3)
         self.assertEqual(channel.local_version, 9)
+
+    @db_session
+    def test_get_num_channels_torrents(self):
+        self.mds.ChannelMetadata(title='testchan', id_=0)
+        self.mds.ChannelMetadata(title='testchan', id_=123)
+        foreign1 = self.mds.ChannelMetadata(title='testchan', id_=0)
+        foreign1.public_key = unhexlify('1'*20)
+        foreign2 = self.mds.ChannelMetadata(title='testchan', id_=123)
+        foreign2.public_key = unhexlify('1'*20)
+
+        md_list = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW) for x in range(0, 3)]
+
+        self.assertEqual(4, self.mds.get_num_channels())
+        self.assertEqual(3, self.mds.get_num_torrents())
+
+
