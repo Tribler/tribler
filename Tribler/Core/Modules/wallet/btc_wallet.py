@@ -1,14 +1,13 @@
 import os
-
 import time
+from binascii import hexlify
 
-# Important import, do not remove
-import Tribler.Core.Modules.bitcoinlib_main as bitcoinlib_main
-
-from Tribler.Core.Modules.wallet.wallet import Wallet, InsufficientFunds
-from twisted.internet.defer import Deferred, succeed, inlineCallbacks, fail
+from twisted.internet.defer import Deferred, fail, inlineCallbacks, succeed
 from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
+
+import Tribler.Core.Modules.bitcoinlib_main as bitcoinlib_main
+from Tribler.Core.Modules.wallet.wallet import InsufficientFunds, Wallet
 
 
 class BitcoinWallet(Wallet):
