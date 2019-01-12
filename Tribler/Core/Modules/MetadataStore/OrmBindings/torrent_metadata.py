@@ -94,7 +94,7 @@ def define_binding(db):
                      the total number of results, regardless the passed first/last parameter.
             """
             pony_query = TorrentMetadata.get_entries_query(
-                TorrentMetadata, sort_by=sort_by, sort_asc=sort_asc, query_filter=query_filter)
+                sort_by=sort_by, sort_asc=sort_asc, query_filter=query_filter)
 
             # We only want torrents, not channel torrents
             pony_query = pony_query.where(metadata_type=REGULAR_TORRENT)
