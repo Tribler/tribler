@@ -40,14 +40,8 @@ class ChannelPage(QWidget):
         self.window().subscription_widget.initialize_with_channel(channel_info)
         self.window().channel_page_container.details_container.hide()
 
-        self.window().channel_page_container.content_table.on_torrent_clicked.connect(self.on_torrent_clicked)
-
         self.model.channel_pk = channel_info['public_key']
         self.load_torrents()
-
-    def on_torrent_clicked(self, torrent_info):
-        self.window().channel_page_container.details_container.show()
-        self.window().channel_page_container.details_tab_widget.update_with_torrent(torrent_info)
 
     def load_torrents(self):
         self.controller.model.reset()
