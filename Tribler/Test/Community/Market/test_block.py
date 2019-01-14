@@ -1,5 +1,8 @@
+from __future__ import absolute_import
+
 from twisted.internet.defer import inlineCallbacks
 
+from Tribler.Test.test_as_server import AbstractServer
 from Tribler.community.market.block import MarketBlock
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
@@ -9,7 +12,6 @@ from Tribler.community.market.core.tick import Ask
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.transaction import Transaction, TransactionId, TransactionNumber
-from Tribler.Test.test_as_server import AbstractServer
 
 
 class TestMarketBlock(AbstractServer):
@@ -71,6 +73,10 @@ class TestMarketBlock(AbstractServer):
         Test whether a tick block can be correctly verified
         """
         self.assertTrue(self.tick_block.is_valid_tick_block())
+
+        self.tick_block.transaction['tick']['timeout'] = -1
+        self.assertFalse(self.tick_block.is_valid_tick_block())
+        self.tick_block.transaction['tick']['timeout'] = 3600
 
         self.tick_block.type = 'test'
         self.assertFalse(self.tick_block.is_valid_tick_block())

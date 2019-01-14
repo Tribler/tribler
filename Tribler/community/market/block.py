@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+
+from six import integer_types
+
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock
 
 
@@ -30,9 +34,9 @@ class MarketBlock(TrustChainBlock):
         if 'amount' not in assets_dict['second'] or 'type' not in assets_dict['second']:
             return False
 
-        if not MarketBlock.has_required_types([('amount', (int, long)), ('type', str)], assets_dict['first']):
+        if not MarketBlock.has_required_types([('amount', integer_types), ('type', str)], assets_dict['first']):
             return False
-        if not MarketBlock.has_required_types([('amount', (int, long)), ('type', str)], assets_dict['second']):
+        if not MarketBlock.has_required_types([('amount', integer_types), ('type', str)], assets_dict['second']):
             return False
 
         if amount_positive and (assets_dict['first']['amount'] <= 0 or assets_dict['second']['amount'] <= 0):
@@ -68,6 +72,8 @@ class MarketBlock(TrustChainBlock):
         if not MarketBlock.is_valid_asset_pair(tick['assets']):
             return False
         if not MarketBlock.has_required_types(required_types, tick):
+            return False
+        if tick['timeout'] < 0 or tick['timeout'] > 3600 * 24:
             return False
 
         return True
