@@ -10,7 +10,7 @@ class WalletAddress(object):
         super(WalletAddress, self).__init__()
 
         if not isinstance(wallet_address, str):
-            raise ValueError("Wallet address must be a string")
+            raise ValueError("Wallet address must be a string, found %s instead" % type(wallet_address))
 
         self._wallet_address = wallet_address
 

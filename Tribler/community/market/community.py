@@ -4,11 +4,12 @@ from base64 import b64decode
 from binascii import unhexlify
 
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, succeed, Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
-from Tribler.Core.simpledefs import NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_TRANSACTION_COMPLETE, \
-    NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID_TIMEOUT, NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT
+from Tribler.Core.simpledefs import NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID,\
+    NTFY_MARKET_ON_BID_TIMEOUT, NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT,\
+    NTFY_MARKET_ON_TRANSACTION_COMPLETE
 from Tribler.Core.simpledefs import NTFY_UPDATE
 from Tribler.community.market.block import MarketBlock
 from Tribler.community.market.core import DeclineMatchReason, DeclinedTradeReason
@@ -23,23 +24,22 @@ from Tribler.community.market.core.payment_id import PaymentId
 from Tribler.community.market.core.tick import Ask, Bid, Tick
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.core.trade import Trade, ProposedTrade, DeclinedTrade, CounterTrade
-from Tribler.community.market.core.transaction import StartTransaction, TransactionId, Transaction, TransactionNumber
+from Tribler.community.market.core.trade import CounterTrade, DeclinedTrade, ProposedTrade, Trade
+from Tribler.community.market.core.transaction import StartTransaction, Transaction, TransactionId, TransactionNumber
 from Tribler.community.market.core.transaction_manager import TransactionManager
 from Tribler.community.market.core.transaction_repository import DatabaseTransactionRepository,\
     MemoryTransactionRepository
 from Tribler.community.market.core.wallet_address import WalletAddress
 from Tribler.community.market.database import MarketDB
-from Tribler.community.market.payload import InfoPayload, MatchPayload, TradePayload, StartTransactionPayload, \
-    AcceptMatchPayload, OrderStatusRequestPayload, OrderStatusResponsePayload, WalletInfoPayload, PaymentPayload, \
-    DeclineMatchPayload, DeclineTradePayload, OrderbookSyncPayload, PingPongPayload
+from Tribler.community.market.payload import AcceptMatchPayload, DeclineMatchPayload, DeclineTradePayload, InfoPayload,\
+    MatchPayload, OrderStatusRequestPayload, OrderStatusResponsePayload, OrderbookSyncPayload, PaymentPayload,\
+    PingPongPayload, StartTransactionPayload, TradePayload, WalletInfoPayload
 from Tribler.community.market.reputation.temporal_pagerank_manager import TemporalPagerankReputationManager
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import synchronized
 from Tribler.pyipv8.ipv8.attestation.trustchain.listener import BlockListener
 from Tribler.pyipv8.ipv8.attestation.trustchain.payload import HalfBlockPairPayload
 from Tribler.pyipv8.ipv8.community import Community, lazy_wrapper
 from Tribler.pyipv8.ipv8.messaging.bloomfilter import BloomFilter
-from Tribler.pyipv8.ipv8.messaging.payload import IntroductionRequestPayload, IntroductionResponsePayload
 from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
 from Tribler.pyipv8.ipv8.messaging.payload_headers import GlobalTimeDistributionPayload
 from Tribler.pyipv8.ipv8.peer import Peer
@@ -570,6 +570,9 @@ class MarketCommunity(Community, BlockListener):
 
         if timeout < 0:
             raise RuntimeError("The timeout for this order should be positive")
+
+        if timeout > 3600 * 24:
+            raise RuntimeError("The timeout for this order should be less than a day")
 
     def create_ask(self, assets, timeout):
         """

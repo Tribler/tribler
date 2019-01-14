@@ -1,22 +1,26 @@
+from __future__ import absolute_import
+
+from nose.tools import raises
+
+from twisted.internet.defer import fail, inlineCallbacks
 from twisted.python.failure import Failure
 
 from Tribler.Core.Modules.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Test.Core.base_test import MockObject
+from Tribler.Test.tools import trial_timeout
 from Tribler.community.market.block import MarketBlock
-from Tribler.community.market.community import MarketCommunity, PingRequestCache
+from Tribler.community.market.community import MarketCommunity
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.community.market.core.message import TraderId
-from Tribler.community.market.core.order import OrderId, OrderNumber, Order
+from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.tick import Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.core.transaction import TransactionId, TransactionNumber, Transaction
+from Tribler.community.market.core.transaction import Transaction, TransactionId, TransactionNumber
 from Tribler.pyipv8.ipv8.test.base import TestBase
 from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
-from Tribler.Test.tools import trial_timeout
-from twisted.internet.defer import fail, succeed, inlineCallbacks
 
 
 class TestMarketCommunityBase(TestBase):
@@ -515,3 +519,10 @@ class TestMarketCommunitySingle(TestMarketCommunityBase):
         self.nodes[0].overlay.received_block(tx_done)
         self.assertEqual(len(self.nodes[0].overlay.order_book.asks), 0)
         self.assertEqual(len(self.nodes[0].overlay.order_book.bids), 0)
+
+    @raises(RuntimeError)
+    def test_order_invalid_timeout(self):
+        """
+        Test whether we cannot create an order with an invalid timeout
+        """
+        self.nodes[0].overlay.create_ask(AssetPair(AssetAmount(10, 'DUM1'), AssetAmount(10, 'DUM2')), 3600 * 1000)
