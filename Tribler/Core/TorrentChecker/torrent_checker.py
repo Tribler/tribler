@@ -121,9 +121,8 @@ class TorrentChecker(TaskManager):
         # get the torrents that should be checked
         infohashes = []
         with db_session:
-            tracker = list(self.tribler_session.lm.mds.TrackerState.select(lambda g: str(g.url) == tracker_url))
+            tracker = self.tribler_session.lm.mds.TrackerState[tracker_url]
             if tracker:
-                tracker = tracker[0]
                 torrents = tracker.torrents
                 for torrent in torrents:
                     dynamic_interval = self._torrent_check_retry_interval * (2 ** tracker.failures)
@@ -175,8 +174,7 @@ class TorrentChecker(TaskManager):
     @db_session
     def get_valid_trackers_of_torrent(self, torrent_id):
         """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
-        db_tracker_list = list(self.tribler_session.lm.mds.TorrentState.select(
-            lambda g: g.infohash == database_blob(torrent_id)))[0].trackers
+        db_tracker_list = self.tribler_session.lm.mds.TorrentState[database_blob(torrent_id)].trackers
         return set([str(tracker.url) for tracker in db_tracker_list if
                     is_valid_url(str(tracker.url)) or str(tracker.url) == u'DHT'])
 
@@ -214,12 +212,10 @@ class TorrentChecker(TaskManager):
         :param scrape_now: Flag whether we want to force scraping immediately
         """
         with db_session:
-            result = list(self.tribler_session.lm.mds.TorrentState.select(
-                lambda g: g.infohash == database_blob(infohash)))
+            result = self.tribler_session.lm.mds.TorrentState[database_blob(infohash)]
             if not result:
                 self._logger.warn(u"torrent info not found, skip. infohash: %s", hexlify(infohash))
                 return fail(Failure(RuntimeError("Torrent not found")))
-            result = result[0]
 
             torrent_id = str(result.infohash)
             last_check = result.last_check
@@ -311,8 +307,7 @@ class TorrentChecker(TaskManager):
         self._logger.debug(u"Update result %s/%s for %s", seeders, leechers, hexlify(infohash))
 
         with db_session:
-            result = list(self.tribler_session.lm.mds.TorrentState.select(
-                lambda g: g.infohash == database_blob(infohash)))[0]
+            result = self.tribler_session.lm.mds.TorrentState[database_blob(infohash)]
             for tracker in result.trackers:
                 tracker.last_check = int(time.time())
                 if update_dict.get(tracker.url, {'seeders': 0, 'leechers': 0}) > 0:
