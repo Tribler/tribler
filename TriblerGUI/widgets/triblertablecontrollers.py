@@ -248,5 +248,5 @@ class MyTorrentsTableViewController(TorrentsTableViewController):
         if response['first'] >= self.model.rowCount():
             self.model.add_items(response['torrents'])
 
-        self.table_view.window().dirty_channel_status_bar.setHidden(not response['dirty'])
-        self.table_view.window().edit_channel_commit_button.setEnabled(response['dirty'])
+        self.table_view.window().edit_channel_page.channel_dirty = response['dirty']
+        self.table_view.window().edit_channel_page.update_channel_commit_views()

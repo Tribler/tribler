@@ -34,11 +34,13 @@ class EditChannelPage(QWidget):
         self.editchannel_request_mgr = None
         self.model = None
         self.controller = None
+        self.channel_dirty = False
 
     def initialize_edit_channel_page(self):
         self.window().create_channel_intro_button.clicked.connect(self.on_create_channel_intro_button_clicked)
 
         self.window().create_channel_form.hide()
+        self.update_channel_commit_views()
 
         self.window().edit_channel_stacked_widget.setCurrentIndex(1)
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_OVERVIEW)
@@ -63,8 +65,10 @@ class EditChannelPage(QWidget):
                                                         self.window().edit_channel_torrents_num_items_label,
                                                         self.window().edit_channel_torrents_filter)
         self.window().edit_channel_torrents_container.details_tab_widget.hide()
-        self.window().dirty_channel_status_bar.hide()
-        self.window().edit_channel_commit_button.setEnabled(False)
+
+    def update_channel_commit_views(self):
+        self.window().dirty_channel_status_bar.setHidden(not self.channel_dirty)
+        self.window().edit_channel_commit_button.setEnabled(self.channel_dirty)
 
     def load_my_channel_overview(self):
         if not self.channel_overview:
@@ -82,9 +86,8 @@ class EditChannelPage(QWidget):
             return
 
         self.channel_overview = overview["mychannel"]
-        if self.channel_overview['dirty']:
-            self.window().dirty_channel_status_bar.show()
-            self.window().edit_channel_commit_button.setEnabled(True)
+        self.channel_dirty = self.channel_overview['dirty']
+        self.update_channel_commit_views()
 
         self.window().export_channel_button.setHidden(False)
         self.window().edit_channel_name_label.setText("My channel")
@@ -98,7 +101,6 @@ class EditChannelPage(QWidget):
 
         self.window().edit_channel_stacked_widget.setCurrentIndex(1)
 
-        # Initiate the right model
         self.model.channel_pk = self.channel_overview["public_key"]
 
     def on_create_channel_button_pressed(self):
@@ -345,8 +347,8 @@ class EditChannelPage(QWidget):
         if not result:
             return
         if 'success' in result and result['success']:
-            self.window().dirty_channel_status_bar.hide()
-            self.window().edit_channel_commit_button.setEnabled(False)
+            self.channel_dirty = False
+            self.update_channel_commit_views()
             self.on_commit.emit()
             self.load_my_torrents()
 

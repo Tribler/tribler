@@ -142,6 +142,9 @@ class TorrentsTableView(TriblerContentTableView):
         if 'success' in json_result and json_result['success']:
             index.model().data_items[index.row()][u'status'] = json_result['new_status']
 
+            self.window().edit_channel_page.channel_dirty = json_result['dirty']
+            self.window().edit_channel_page.update_channel_commit_views()
+
     def resizeEvent(self, _):
         if isinstance(self.model(), MyTorrentsContentModel):
             self.setColumnWidth(0, 100)
