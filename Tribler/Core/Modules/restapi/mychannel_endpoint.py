@@ -194,16 +194,14 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
 
             .. sourcecode:: none
 
-                curl -X PUT http://localhost:8085/mychannel/torrents?torrents_dir=some_dir&recursive=1
-                --data ""
+                curl -X PUT http://localhost:8085/mychannel/torrents? --data "torrents_dir=some_dir&recursive=1"
 
             **Example response**:
 
             .. sourcecode:: javascript
 
                 {
-                    "added": True
-                    "num_added_torrents": 13
+                    "added": 13
                 }
 
             :statuscode 404: if your channel does not exist.
@@ -221,12 +219,14 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             torrents_dir = parameters['torrents_dir'][0]
             if not os.path.isabs(torrents_dir):
                 request.setResponseCode(http.BAD_REQUEST)
+                return json.dumps({"error": "the torrents_dir should point to a directory"})
 
         recursive = False
         if 'recursive' in parameters and parameters['recursive'] > 0:
             recursive = parameters['recursive'][0]
             if not torrents_dir:
                 request.setResponseCode(http.BAD_REQUEST)
+                return json.dumps({"the torrents_dir parameter should be provided when the rec"})
 
         if torrents_dir:
             torrents_list = []
@@ -274,15 +274,17 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
         try:
             torrent = base64.b64decode(parameters['torrent'][0])
             torrent_def = TorrentDef.load_from_memory(torrent)
-        except ValueError as exc:
-            return BaseMyChannelEndpoint.return_500(self, request, exc)
+        except ValueError:
+            request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+            return json.dumps({"error": "invalid torrent file"})
 
         try:
             my_channel.add_torrent_to_channel(torrent_def, extra_info)
-        except DuplicateTorrentFileError as exc:
-            return BaseMyChannelEndpoint.return_500(self, request, exc)
+        except DuplicateTorrentFileError:
+            request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+            return json.dumps({"error": "this torrent already exists in your channel"})
 
-        return json.dumps({"added": True})
+        return json.dumps({"added": 1})
 
 
 class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):

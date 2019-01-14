@@ -30,12 +30,12 @@ class HomePage(QWidget):
 
     def load_cells(self, num_items):
         self.window().home_page_table_view.clear()
-        for x in xrange(0, 3):
-            for y in xrange(0, 3):
-                if x * 3 + y >= num_items:
-                    return
+        for y in xrange(0, 3):
+            for x in xrange(0, 3):
                 widget_item = HomeRecommendedItem(self)
-                self.window().home_page_table_view.setCellWidget(x, y, widget_item)
+                self.window().home_page_table_view.setCellWidget(y, x, widget_item)
+                if y * 3 + x >= num_items - 1:
+                    return
 
     def load_popular_torrents(self):
         self.recommended_request_mgr = TriblerRequestManager()
@@ -64,7 +64,7 @@ class HomePage(QWidget):
         self.update_home_page_views(True)
         self.load_cells(len(result["channels"][:9]))
         for channel in result["channels"][:9]:
-            self.window().home_page_table_view.cellWidget(cur_ind % 3, cur_ind / 3).update_with_channel(channel)
+            self.window().home_page_table_view.cellWidget(cur_ind / 3, cur_ind % 3).update_with_channel(channel)
             cur_ind += 1
 
         self.start_resize_timer()
@@ -87,7 +87,7 @@ class HomePage(QWidget):
         self.update_home_page_views(True)
         self.load_cells(len(result["torrents"][:9]))
         for torrent in result["torrents"][:9]:
-            self.window().home_page_table_view.cellWidget(cur_ind % 3, cur_ind / 3).update_with_torrent(torrent)
+            self.window().home_page_table_view.cellWidget(cur_ind / 3, cur_ind % 3).update_with_torrent(torrent)
             cur_ind += 1
 
         self.start_resize_timer()
