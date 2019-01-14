@@ -108,7 +108,7 @@ def define_binding(db):
             return pony_query[first - 1:last], total_results
 
         @db_session
-        def to_simple_dict(self, include_status=False):
+        def to_simple_dict(self, include_status=False, include_trackers=False):
             """
             Return a basic dictionary with information about the channel.
             """
@@ -125,6 +125,9 @@ def define_binding(db):
 
             if include_status:
                 simple_dict['status'] = self.status
+
+            if include_trackers:
+                simple_dict['trackers'] = [tracker.url for tracker in self.health.trackers]
 
             return simple_dict
 
