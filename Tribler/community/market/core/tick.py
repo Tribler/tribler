@@ -1,5 +1,8 @@
+from __future__ import absolute_import
+
 import time
 
+from Tribler.community.market import MAX_ORDER_TIMEOUT
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
 from Tribler.community.market.core.message import TraderId
@@ -155,7 +158,7 @@ class Tick(object):
         :rtype: bool
         """
         return not self._timeout.is_timed_out(self._timestamp) and \
-            time.time() >= float(self.timestamp) - self.TIME_TOLERANCE
+            time.time() >= float(self.timestamp) - self.TIME_TOLERANCE and int(self._timeout) <= MAX_ORDER_TIMEOUT
 
     def to_network(self):
         """
