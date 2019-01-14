@@ -98,10 +98,10 @@ class SearchResultsContentModel(TriblerContentModel):
     columns = [u'category', u'name', u'health', ACTION_BUTTONS]
     column_headers = [u'Category', u'Name', u'health', u'']
     column_flags = {
-        u'category': Qt.ItemIsEnabled,
-        u'name': Qt.ItemIsEnabled,
-        u'health': Qt.ItemIsEnabled,
-        ACTION_BUTTONS: Qt.ItemIsEnabled
+        u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        u'health': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
 
     def __init__(self):
@@ -144,74 +144,7 @@ class TorrentsContentModel(TriblerContentModel):
 
     def __init__(self, channel_pk=''):
         TriblerContentModel.__init__(self)
-
         self.channel_pk = channel_pk
-
-        # This dict keeps the mapping of infohashes in data_items to indexes
-        # It is used by Health Checker to track the health status updates across model refreshes
-        self.infohashes = {}
-        self.last_health_check_ts = {}
-
-    def reset(self):
-        # Health Checker related
-        # Infohash to data_items mapping should be cleaned each time we refresh the model
-        self.infohashes.clear()
-        super(TorrentsContentModel, self).reset()
-
-    def update_torrent_health(self, infohash, seeders, leechers, health):
-        if infohash in self.infohashes:
-            row = self.infohashes[infohash]
-            self.data_items[row][u'num_seeders'] = seeders
-            self.data_items[row][u'num_leechers'] = leechers
-            self.data_items[row][u'health'] = health
-            index = self.index(row, self.column_position[u'health'])
-            self.dataChanged.emit(index, index, [])
-
-    def check_torrent_health(self, index):
-        timeout = 15
-        infohash = self.data_items[index.row()][u'infohash']
-
-        # TODO: move timeout check to the endpoint
-        if infohash in self.last_health_check_ts and \
-                (time.time() - self.last_health_check_ts[infohash] < timeout):
-            return
-        self.last_health_check_ts[infohash] = time.time()
-
-        def on_cancel_health_check():
-            pass
-
-        def on_health_response(response):
-            self.last_health_check_ts[infohash] = time.time()
-            total_seeders = 0
-            total_leechers = 0
-
-            if not response or 'error' in response:
-                self.update_torrent_health(infohash, 0, 0, HEALTH_ERROR)  # Just set the health to 0 seeders, 0 leechers
-                return
-
-            for _, status in response['health'].iteritems():
-                if 'error' in status:
-                    continue  # Timeout or invalid status
-                total_seeders += int(status['seeders'])
-                total_leechers += int(status['leechers'])
-
-            if total_seeders > 0:
-                health = HEALTH_GOOD
-            elif total_leechers > 0:
-                health = HEALTH_MOOT
-            else:
-                health = HEALTH_DEAD
-
-            self.update_torrent_health(infohash, total_seeders, total_leechers, health)
-
-        self.data_items[index.row()][u'health'] = HEALTH_CHECKING
-        index_upd = self.index(index.row(), self.column_position[u'health'])
-        self.dataChanged.emit(index_upd, index_upd, [])
-        health_request_mgr = TriblerRequestManager()
-        health_request_mgr.perform_request("torrents/%s/health?timeout=%s&refresh=%d" %
-                                           (infohash, timeout, 1),
-                                           on_health_response, capture_errors=False, priority="LOW",
-                                           on_cancel=on_cancel_health_check)
 
 
 class MyTorrentsContentModel(TorrentsContentModel):

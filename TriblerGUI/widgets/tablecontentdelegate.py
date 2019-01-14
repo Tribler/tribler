@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QStyle, QStyledItemDelegate
 
 from TriblerGUI.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, \
     HEALTH_CHECKING, HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
-from TriblerGUI.utilities import get_image_path
+from TriblerGUI.utilities import get_image_path, get_health
 from TriblerGUI.widgets.tableiconbuttons import DownloadIconButton, PlayIconButton
 
 
@@ -443,20 +443,20 @@ class CommitStatusControl(QObject):
 
 class HealthStatusDisplay(QObject):
     indicator_side = 10
-    indicator_border = 2
+    indicator_border = 6
     health_colors = {
         HEALTH_GOOD: QColor(Qt.green),
         HEALTH_DEAD: QColor(Qt.red),
         HEALTH_MOOT: QColor(Qt.yellow),
         HEALTH_UNCHECKED: QColor("#B5B5B5"),
-        HEALTH_CHECKING: QColor(Qt.blue),
-        HEALTH_ERROR: QColor(Qt.cyan)
+        HEALTH_CHECKING: QColor(Qt.yellow),
+        HEALTH_ERROR: QColor(Qt.red)
 
     }
 
     def draw_text(self, painter, rect, text, color=QColor("#B5B5B5"), font=None, alignment=Qt.AlignVCenter):
         painter.save()
-        text_flags = Qt.AlignHCenter | alignment | Qt.TextSingleLine
+        text_flags = Qt.AlignLeft | alignment | Qt.TextSingleLine
         text_box = painter.boundingRect(rect, text_flags, text)
         painter.setPen(QPen(color, 1, Qt.SolidLine, Qt.RoundCap))
         if font:
@@ -468,10 +468,10 @@ class HealthStatusDisplay(QObject):
     def paint(self, painter, rect, index):
         data_item = index.model().data_items[index.row()]
 
-        if u'health' in data_item:
-            health = data_item[u'health']
-        else:
-            health = HEALTH_UNCHECKED
+        if u'health' not in data_item:
+            data_item[u'health'] = get_health(data_item['num_seeders'], data_item['num_leechers'],
+                                              data_item['last_tracker_check'])
+        health = data_item[u'health']
 
         # ----------------
         # |b---b|        |
@@ -491,7 +491,7 @@ class HealthStatusDisplay(QObject):
         # Paint indicator
         painter.save()
         painter.setBrush(QBrush(self.health_colors[health]))
-        painter.setPen(QPen(QColor(Qt.darkGray), 0, Qt.SolidLine, Qt.RoundCap))
+        painter.setPen(QPen(self.health_colors[health], 0, Qt.SolidLine, Qt.RoundCap))
         painter.drawEllipse(indicator_rect)
         painter.restore()
 
