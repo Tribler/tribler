@@ -102,9 +102,6 @@ class TorrentsTableView(TriblerContentTableView):
         torrent_info = self.model().data_items[item.row()]
         self.on_torrent_clicked.emit(item, torrent_info)
 
-    def on_selection_changed(self, event):
-        print event
-
     def on_play_button_clicked(self, index):
         infohash = index.model().data_items[index.row()][u'infohash']
 
