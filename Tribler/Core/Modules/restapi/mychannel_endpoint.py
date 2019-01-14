@@ -284,33 +284,34 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
 
         return json.dumps({"added": True})
 
+
 class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):
 
     def __init__(self, session, infohash):
         BaseMyChannelEndpoint.__init__(self, session)
         self.infohash = unhexlify(infohash)
 
+    @db_session
     def render_PATCH(self, request):
         parameters = http.parse_qs(request.content.read(), 1)
         if 'status' not in parameters:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "status parameter missing"})
 
-        with db_session:
-            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
-            if not my_channel:
-                request.setResponseCode(http.NOT_FOUND)
-                return json.dumps({"error": "your channel has not been created"})
+        my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+        if not my_channel:
+            request.setResponseCode(http.NOT_FOUND)
+            return json.dumps({"error": "your channel has not been created"})
 
-            torrent = my_channel.get_torrent(self.infohash)
-            if not torrent:
-                request.setResponseCode(http.NOT_FOUND)
-                return json.dumps({"error": "torrent with the specified infohash could not be found"})
+        torrent = my_channel.get_torrent(self.infohash)
+        if not torrent:
+            request.setResponseCode(http.NOT_FOUND)
+            return json.dumps({"error": "torrent with the specified infohash could not be found"})
 
-            new_status = int(parameters['status'][0])
-            torrent.status = new_status
+        new_status = int(parameters['status'][0])
+        torrent.status = new_status
 
-        return json.dumps({"success": True, "new_status": new_status})
+        return json.dumps({"success": True, "new_status": new_status, "dirty": my_channel.dirty})
 
 
 class MyChannelCommitEndpoint(BaseMyChannelEndpoint):
