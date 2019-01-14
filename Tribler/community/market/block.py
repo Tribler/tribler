@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from six import integer_types
 
+from Tribler.community.market import MAX_ORDER_TIMEOUT
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import TrustChainBlock
 
 
@@ -73,7 +74,7 @@ class MarketBlock(TrustChainBlock):
             return False
         if not MarketBlock.has_required_types(required_types, tick):
             return False
-        if tick['timeout'] < 0 or tick['timeout'] > 3600 * 24:
+        if tick['timeout'] < 0 or tick['timeout'] > MAX_ORDER_TIMEOUT:
             return False
 
         return True

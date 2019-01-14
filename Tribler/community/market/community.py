@@ -8,6 +8,7 @@ from Tribler.Core.simpledefs import NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_ASK_TIMEO
     NTFY_MARKET_ON_BID_TIMEOUT, NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT,\
     NTFY_MARKET_ON_TRANSACTION_COMPLETE
 from Tribler.Core.simpledefs import NTFY_UPDATE
+from Tribler.community.market import MAX_ORDER_TIMEOUT
 from Tribler.community.market.block import MarketBlock
 from Tribler.community.market.core import DeclineMatchReason, DeclinedTradeReason
 from Tribler.community.market.core.matching_engine import MatchingEngine, PriceTimeStrategy
@@ -37,6 +38,7 @@ from Tribler.pyipv8.ipv8.attestation.trustchain.listener import BlockListener
 from Tribler.pyipv8.ipv8.attestation.trustchain.payload import HalfBlockPairPayload
 from Tribler.pyipv8.ipv8.community import Community, lazy_wrapper
 from Tribler.pyipv8.ipv8.messaging.bloomfilter import BloomFilter
+from Tribler.pyipv8.ipv8.messaging.payload import IntroductionRequestPayload, IntroductionResponsePayload
 from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
 from Tribler.pyipv8.ipv8.messaging.payload_headers import GlobalTimeDistributionPayload
 from Tribler.pyipv8.ipv8.peer import Peer
@@ -572,7 +574,7 @@ class MarketCommunity(Community, BlockListener):
         if timeout < 0:
             raise RuntimeError("The timeout for this order should be positive")
 
-        if timeout > 3600 * 24:
+        if timeout > MAX_ORDER_TIMEOUT:
             raise RuntimeError("The timeout for this order should be less than a day")
 
     def create_ask(self, assets, timeout):
