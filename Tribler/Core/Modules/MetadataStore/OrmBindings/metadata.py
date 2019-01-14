@@ -66,6 +66,11 @@ def define_binding(db):
                 private_key_override = kwargs["sign_with"]
                 kwargs.pop("sign_with")
 
+            skip_key_check = False
+            if "skip_key_check" in kwargs and kwargs["skip_key_check"]:
+                skip_key_check = True
+                kwargs.pop("skip_key_check")
+
             # FIXME: potential race condition here? To avoid it, generate the signature _before_ calling "super"
             super(Metadata, self).__init__(*args, **kwargs)
 
@@ -81,6 +86,8 @@ def define_binding(db):
 
             # Key/signature given, check them for correctness
             elif ("public_key" in kwargs) and ("signature" in kwargs) and self.has_valid_signature():
+                return
+            elif skip_key_check: # For getting legacy/test stuff
                 return
 
             # Otherwise, something is wrong
