@@ -50,9 +50,18 @@ class TestGetUniformedTrackerUrl(TriblerCoreTest):
         result = get_uniformed_tracker_url("http://torrent.ubuntu.com:80/announce")
         self.assertEqual(result, u'http://torrent.ubuntu.com/announce')
 
-    def test_uniform_trailing_hex(self):
+    def test_uniform_trailing_zero_hex(self):
         result = get_uniformed_tracker_url("udp://tracker.1337x.org:80\x00")
+        self.assertEqual(result, u'udp://tracker.1337x.org:80')
+
+    def test_uniform_trailing_hex(self):
+        result = get_uniformed_tracker_url("udp://tracker.1337x.org:80\xff")
         self.assertIsNone(result)
+
+    def test_uniform_bad_urlenc(self):
+        result = get_uniformed_tracker_url(u'http://btjunkie.org/?do=upload')
+        self.assertIsNone(result)
+
 
 
 class TestParseTrackerUrl(TriblerCoreTest):

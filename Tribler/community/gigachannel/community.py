@@ -1,6 +1,9 @@
+from binascii import unhexlify
+
 from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
+from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.pyipv8.ipv8.community import Community
 from Tribler.pyipv8.ipv8.lazy_community import PacketDecodingError
 from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
@@ -12,10 +15,11 @@ class GigaChannelCommunity(Community):
     Community to gossip around gigachannels.
     """
 
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b81040027038192000400118911f5102bac4fca2d6ee5c3cb41978a4b657"
-                       "e9707ce2031685c7face02bb3bf42b74a47c1d2c5f936ea2fa2324af12de216abffe01f10f97680e8fe548b82dedf"
-                       "362eb29d3b074187bcfbce6869acb35d8bcef3bb8713c9e9c3b3329f59ff3546c3cd560518f03009ca57895a5421b"
-                       "4afc5b90a59d2096b43eb22becfacded111e84d605a01e91a600e2b55a79d".decode('hex'))
+    master_peer = Peer(unhexlify("3081a7301006072a8648ce3d020106052b8104002703819200040448a078b597b62d3761a061872cd86"
+                                 "10f58cb513f1dc21e66dd59f1e01d582f633b182d9ca6e5859a9a34e61eb77b768e5e9202f642fd50c6"
+                                 "0b89d8d8b0bdc355cdf8caac262f6707c80da00b1bcbe7bf91ed5015e5163a76a2b2e630afac96925f5"
+                                 "daa8556605043c6da4db7d26113cba9f9cbe63fddf74625117598317e05cb5b8cbd606d0911683570ad"
+                                 "bb921c91"))
 
     def __init__(self, my_peer, endpoint, network, metadata_store):
         super(GigaChannelCommunity, self).__init__(my_peer, endpoint, network)
@@ -40,11 +44,11 @@ class GigaChannelCommunity(Community):
         # Choose some random entries and try to pack them into maximum_payload_size bytes
         md_list = []
         with db_session:
-            channel_l = self.metadata_store.ChannelMetadata.get_random_channels(1)[:]
+            # TODO: when the health table will be there, send popular torrents instead
+            channel_l = self.metadata_store.ChannelMetadata.get_random_channels(1, subscribed=True)[:]
             if not channel_l:
                 return
             channel = channel_l[0]
-            # TODO: when the health table will be there, send popular torrents instead
             md_list.append(channel)
             md_list.extend(list(channel.get_random_torrents(max_entries - 1)))
             blob = entries_to_chunk(md_list, maximum_payload_size)[0] if md_list else None
@@ -75,7 +79,8 @@ class GigaChannelTestnetCommunity(GigaChannelCommunity):
     """
     This community defines a testnet for the giga channels, used for testing purposes.
     """
-    master_peer = Peer("3081a7301006072a8648ce3d020106052b8104002703819200040726f5b6558151e1b82c3d30c08175c446f5f696b"
-                       "e9b005ee23050fe55f7e4f73c1b84bf30eb0a254c350705f89369ba2c6b6795a50f0aa562b3095bfa8aa069747221"
-                       "c0fb92e207052b7d03fa8a76e0b236d74ac650de37e5dfa02cbd6b9fe2146147f3555bfa7410b9c499a8ec49a80ac"
-                       "84b433fb2bf1740a15e96a5bad2b90b0488bdc791633ee7d829dcd583ee5f".decode('hex'))
+    master_peer = Peer(unhexlify("3081a7301006072a8648ce3d020106052b81040027038192000401b9f303778e7727b35a4c26487481f"
+                                 "a7011e252cc4a6f885f3756bd8898c9620cf1c32e79dd5e75ae277a56702a47428ce47676d005e262fa"
+                                 "fd1a131a2cb66be744d52cb1e0fca503658cb3368e9ebe232e7b8c01e3172ebfdb0620b316467e5b2c4"
+                                 "c6809565cf2142e8d4322f66a3d13a8c4bb18059c9ed97975a97716a085a93e3e62b0387e63f0bf389a"
+                                 "0e9bffe6"))

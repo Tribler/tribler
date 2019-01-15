@@ -8,8 +8,8 @@ from pony import orm
 from pony.orm import db_session
 
 from Tribler.Core.Category.Category import Category
-from Tribler.Core.Modules.MetadataStore.OrmBindings import metadata, torrent_metadata, channel_metadata, channel_node, \
-    torrent_state, tracker_state
+from Tribler.Core.Modules.MetadataStore.OrmBindings import torrent_metadata, channel_metadata, \
+    torrent_state, tracker_state, channel_node
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import read_payload_with_offset, REGULAR_TORRENT, \
     CHANNEL_TORRENT, DELETED, ChannelMetadataPayload, int2time
@@ -22,32 +22,32 @@ CLOCK_STATE_FILE = "clock.state"
 
 sql_create_fts_table = """
     CREATE VIRTUAL TABLE IF NOT EXISTS FtsIndex USING FTS5
-        (title, tags, content='Metadata',
+        (title, tags, content='ChannelNode',
          tokenize='porter unicode61 remove_diacritics 1');"""
 
 sql_add_fts_trigger_insert = """
-    CREATE TRIGGER IF NOT EXISTS fts_ai AFTER INSERT ON Metadata
+    CREATE TRIGGER IF NOT EXISTS fts_ai AFTER INSERT ON ChannelNode
     BEGIN
         INSERT INTO FtsIndex(rowid, title, tags) VALUES
             (new.rowid, new.title, new.tags);
     END;"""
 
 sql_add_fts_trigger_delete = """
-    CREATE TRIGGER IF NOT EXISTS fts_ad AFTER DELETE ON Metadata
+    CREATE TRIGGER IF NOT EXISTS fts_ad AFTER DELETE ON ChannelNode
     BEGIN
         DELETE FROM FtsIndex WHERE rowid = old.rowid;
     END;"""
 
 sql_add_fts_trigger_update = """
-    CREATE TRIGGER IF NOT EXISTS fts_au AFTER UPDATE ON Metadata BEGIN
+    CREATE TRIGGER IF NOT EXISTS fts_au AFTER UPDATE ON ChannelNode BEGIN
         DELETE FROM FtsIndex WHERE rowid = old.rowid;
         INSERT INTO FtsIndex(rowid, title, tags) VALUES (new.rowid, new.title,
       new.tags);
     END;"""
 
-sql_add_signature_index = "CREATE INDEX SignatureIndex ON Metadata(signature);"
-sql_add_public_key_index = "CREATE INDEX PublicKeyIndex ON Metadata(public_key);"
-sql_add_infohash_index = "CREATE INDEX InfohashIndex ON Metadata(infohash);"
+sql_add_signature_index = "CREATE INDEX SignatureIndex ON ChannelNode(signature);"
+sql_add_public_key_index = "CREATE INDEX PublicKeyIndex ON ChannelNode(public_key);"
+sql_add_infohash_index = "CREATE INDEX InfohashIndex ON ChannelNode(infohash);"
 
 
 class BadChunkException(Exception):
@@ -94,14 +94,13 @@ class MetadataStore(object):
         self.TrackerState = tracker_state.define_binding(self._db)
         self.TorrentState = torrent_state.define_binding(self._db)
 
-        self.Metadata = metadata.define_binding(self._db)
         self.ChannelNode = channel_node.define_binding(self._db)
         self.TorrentMetadata = torrent_metadata.define_binding(self._db)
         self.ChannelMetadata = channel_metadata.define_binding(self._db)
 
-        self.Metadata._logger = self._logger  # Use Store-level logger for every ORM-based class
-        self.Metadata._my_key = my_key
-        self.Metadata._clock = self.clock
+        self.ChannelNode._logger = self._logger  # Use Store-level logger for every ORM-based class
+        self.ChannelNode._my_key = my_key
+        self.ChannelNode._clock = self.clock
 
         self.ChannelMetadata._channels_dir = channels_dir
 
@@ -132,7 +131,6 @@ class MetadataStore(object):
         :param channel_id: public_key of the channel.
         """
         # We use multiple separate db_sessions here to limit memory usage when reading big channels
-
         with db_session:
             channel = self.ChannelMetadata.get(public_key=channel_id)
             self._logger.debug("Starting processing channel dir %s. Channel %s local/max version %i/%i",
@@ -171,7 +169,7 @@ class MetadataStore(object):
         """
         Process a file with metadata in a channel directory.
         :param filepath: The path to the file
-        :return Metadata objects list if we can correctly load the metadata
+        :return ChannelNode objects list if we can correctly load the metadata
         """
         with open(filepath, 'rb') as f:
             serialized_data = f.read()
@@ -199,12 +197,13 @@ class MetadataStore(object):
     # Can't use db_session wrapper here, performance drops 10 times! Pony bug!
     def process_payload(self, payload):
         with db_session:
-            if self.Metadata.exists(signature=payload.signature):
-                return self.Metadata.get(signature=payload.signature)
+            if self.ChannelNode.exists(signature=payload.signature):
+                return self.ChannelNode.get(signature=payload.signature)
 
             if payload.metadata_type == DELETED:
                 # We only allow people to delete their own entries, thus PKs must match
-                existing_metadata = self.Metadata.get(signature=payload.delete_signature, public_key=payload.public_key)
+                existing_metadata = self.ChannelNode.get(signature=payload.delete_signature,
+                                                         public_key=payload.public_key)
                 if existing_metadata:
                     existing_metadata.delete()
                 return None

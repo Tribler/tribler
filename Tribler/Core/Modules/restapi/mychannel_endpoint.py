@@ -4,6 +4,7 @@ import base64
 import json
 import os
 import sys
+import urllib
 from binascii import unhexlify, hexlify
 
 from pony.orm import db_session
@@ -11,7 +12,7 @@ from twisted.web import resource, http
 
 from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorrentsEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.exceptions import DuplicateTorrentFileError, HttpError
+from Tribler.Core.exceptions import DuplicateTorrentFileError
 
 
 def chunks(l, n):
@@ -63,8 +64,8 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
                 return json.dumps({"error": "your channel has not been created"})
 
             my_channel.update_metadata(update_dict={
-                "tags": parameters['name'][0].encode('utf-8'),
-                "title": parameters['description'][0].encode('utf-8')
+                "tags": urllib.unquote(parameters['description'][0]).decode('utf-8'),
+                "title": urllib.unquote(parameters['name'][0]).decode('utf-8')
             })
 
         return json.dumps({"edited": True})
@@ -79,7 +80,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
         if 'description' not in parameters or not parameters['description']:
             description = u''
         else:
-            description = str(parameters['description'][0]).encode('utf-8')
+            description = urllib.unquote(parameters['description'][0]).decode('utf-8')
 
         my_key = self.session.trustchain_keypair
         my_channel_pk = my_key.pub().key_to_bin()
@@ -89,7 +90,7 @@ class MyChannelEndpoint(BaseMyChannelEndpoint):
             request.setResponseCode(http.CONFLICT)
             return json.dumps({"error": "channel already exists"})
 
-        title = str(parameters['name'][0]).encode('utf-8')
+        title = urllib.unquote(parameters['name'][0]).decode('utf-8')
         self.session.lm.mds.ChannelMetadata.create_channel(title, description)
         return json.dumps({
             "added": str(my_channel_pk).encode("hex"),
@@ -114,7 +115,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
 
             torrents, total = self.session.lm.mds.TorrentMetadata.get_torrents(
                 first, last, sort_by, sort_asc, query_filter, channel)
-            torrents = [torrent.to_simple_dict(include_status=True) for torrent in torrents]
+            torrents = [torrent.to_simple_dict() for torrent in torrents]
 
             return json.dumps({
                 "torrents": torrents,

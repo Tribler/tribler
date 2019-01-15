@@ -6,7 +6,9 @@ from datetime import datetime
 from pony import orm
 from pony.orm import db_session, raw_sql
 
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.serialization import TorrentMetadataPayload, REGULAR_TORRENT
+from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.pyipv8.ipv8.database import database_blob
 
 
@@ -31,8 +33,14 @@ def define_binding(db):
 
         def __init__(self, *args, **kwargs):
             if "health" not in kwargs and "infohash" in kwargs:
-                ts = db.TorrentState.get(infohash=kwargs["infohash"])
-                kwargs["health"] = ts or db.TorrentState(infohash=kwargs["infohash"])
+                kwargs["health"] = db.TorrentState.get(infohash=kwargs["infohash"]) or db.TorrentState(
+                    infohash=kwargs["infohash"])
+                if 'tracker_info' in kwargs:
+                    sanitized_url = get_uniformed_tracker_url(kwargs["tracker_info"])
+                    if sanitized_url:
+                        tracker = db.TrackerState.get(url=sanitized_url) or db.TrackerState(url=sanitized_url)
+                        kwargs["health"].trackers.add(tracker)
+
             super(TorrentMetadata, self).__init__(*args, **kwargs)
 
         def get_magnet(self):
@@ -82,7 +90,8 @@ def define_binding(db):
             """
             Return some random torrents from the database.
             """
-            return TorrentMetadata.select().where(metadata_type=REGULAR_TORRENT).random(limit)
+            return TorrentMetadata.select(
+                lambda g: g.metadata_type == REGULAR_TORRENT and g.status != LEGACY_ENTRY).random(limit)
 
         @classmethod
         @db_session
@@ -108,7 +117,7 @@ def define_binding(db):
             return pony_query[first - 1:last], total_results
 
         @db_session
-        def to_simple_dict(self, include_status=False, include_trackers=False):
+        def to_simple_dict(self, include_trackers=False):
             """
             Return a basic dictionary with information about the channel.
             """
@@ -120,11 +129,9 @@ def define_binding(db):
                 "category": self.tags,
                 "num_seeders": self.health.seeders,
                 "num_leechers": self.health.leechers,
-                "last_tracker_check": self.health.last_check
+                "last_tracker_check": self.health.last_check,
+                "status": self.status
             }
-
-            if include_status:
-                simple_dict['status'] = self.status
 
             if include_trackers:
                 simple_dict['trackers'] = [tracker.url for tracker in self.health.trackers]

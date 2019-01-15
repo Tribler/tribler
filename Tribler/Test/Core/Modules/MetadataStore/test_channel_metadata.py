@@ -12,7 +12,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, ROOT_CHANNEL_ID, \
     entries_to_chunk
-from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
@@ -83,11 +83,11 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         Test whether a correct list with channel content is returned from the database
         """
-        self.mds.Metadata._my_key = default_eccrypto.generate_key('low')
+        self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
         channel1 = self.mds.ChannelMetadata()
         self.mds.TorrentMetadata.from_dict(dict(self.torrent_template))
 
-        self.mds.Metadata._my_key = default_eccrypto.generate_key('low')
+        self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
         channel2 = self.mds.ChannelMetadata()
         self.mds.TorrentMetadata.from_dict(dict(self.torrent_template))
         self.mds.TorrentMetadata.from_dict(dict(self.torrent_template))
@@ -138,9 +138,9 @@ class TestChannelMetadata(TriblerCoreTest):
 
         # Check that we always take the latest version
         channel_metadata.timestamp -= 1
-        self.assertEqual(channel_metadata.timestamp, 9)
+        self.assertEqual(channel_metadata.timestamp, 6)
         channel_metadata = self.mds.ChannelMetadata.process_channel_metadata_payload(payload)
-        self.assertEqual(channel_metadata.timestamp, 10)
+        self.assertEqual(channel_metadata.timestamp, 7)
         self.assertEqual(len(self.mds.ChannelMetadata.select()), 1)
 
     @db_session
@@ -181,12 +181,11 @@ class TestChannelMetadata(TriblerCoreTest):
         Test whether adding new torrents to a channel works as expected
         """
         channel_metadata = self.mds.ChannelMetadata.create_channel('test', 'test')
-        self.mds.TorrentMetadata.from_dict(
-            dict(self.torrent_template, public_key=channel_metadata.public_key, status=NEW))
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template,  status=NEW))
         channel_metadata.commit_channel_torrent()
 
         self.assertEqual(channel_metadata.id_, ROOT_CHANNEL_ID)
-        self.assertEqual(channel_metadata.timestamp, 3)
+        self.assertEqual(channel_metadata.timestamp, 2)
         self.assertEqual(channel_metadata.num_entries, 1)
 
     @db_session
@@ -261,7 +260,7 @@ class TestChannelMetadata(TriblerCoreTest):
 
         # First we create a few channels
         for ind in xrange(10):
-            self.mds.Metadata._my_key = default_eccrypto.generate_key('low')
+            self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
             _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0))
         channels = self.mds.ChannelMetadata.get_channels(first=1, last=5)
         self.assertEqual(len(channels[0]), 5)

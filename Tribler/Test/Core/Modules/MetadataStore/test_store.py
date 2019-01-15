@@ -9,8 +9,8 @@ from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk, CHANNEL_DIR_NAME_LENGTH
-from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
-from Tribler.Core.Modules.MetadataStore.serialization import (ChannelMetadataPayload, MetadataPayload,
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
+from Tribler.Core.Modules.MetadataStore.serialization import (ChannelMetadataPayload, SignedPayload,
                                                               UnknownBlobTypeException)
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Test.Core.base_test import TriblerCoreTest
@@ -20,9 +20,9 @@ from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 def make_wrong_payload(filename):
     key = default_eccrypto.generate_key(u"curve25519")
-    metadata_payload = MetadataPayload(666, database_blob(key.pub().key_to_bin()[10:]))
+    metadata_payload = SignedPayload(666, database_blob(key.pub().key_to_bin()[10:]), signature='\x00'*64, skip_key_check=True)
     with open(filename, 'wb') as output_file:
-        output_file.write(''.join(metadata_payload.serialized(key)))
+        output_file.write(''.join(metadata_payload.serialized()))
 
 
 class TestMetadataStore(TriblerCoreTest):
@@ -120,16 +120,15 @@ class TestMetadataStore(TriblerCoreTest):
         self.assertFalse(channel.contents_list)
         self.mds.process_channel_dir(self.CHANNEL_DIR, channel.public_key)
         self.assertEqual(len(channel.contents_list), 3)
-        self.assertEqual(channel.local_version, 9)
+        self.assertEqual(channel.timestamp, 7)
+        self.assertEqual(channel.local_version, channel.timestamp)
 
     @db_session
     def test_get_num_channels_torrents(self):
         self.mds.ChannelMetadata(title='testchan', id_=0)
         self.mds.ChannelMetadata(title='testchan', id_=123)
-        foreign1 = self.mds.ChannelMetadata(title='testchan', id_=0)
-        foreign1.public_key = unhexlify('1'*20)
-        foreign2 = self.mds.ChannelMetadata(title='testchan', id_=123)
-        foreign2.public_key = unhexlify('1'*20)
+        self.mds.ChannelMetadata(title='testchan', id_=0, public_key=unhexlify('0'*20), signature=unhexlify('0'*64), skip_key_check=True)
+        self.mds.ChannelMetadata(title='testchan', id_=0, public_key=unhexlify('1'*20), signature=unhexlify('1'*64), skip_key_check=True)
 
         md_list = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW) for x in range(0, 3)]
 
