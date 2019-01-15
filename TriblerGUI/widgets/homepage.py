@@ -32,10 +32,10 @@ class HomePage(QWidget):
         self.window().home_page_table_view.clear()
         for x in xrange(0, 3):
             for y in xrange(0, 3):
-                if x * 3 + y >= num_items:
-                    return
                 widget_item = HomeRecommendedItem(self)
                 self.window().home_page_table_view.setCellWidget(x, y, widget_item)
+                if x * 3 + y >= num_items:
+                    return
 
     def load_popular_torrents(self):
         self.recommended_request_mgr = TriblerRequestManager()
