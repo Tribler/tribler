@@ -1090,7 +1090,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>4</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -4387,7 +4387,7 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>300</width>
+               <width>661</width>
                <height>616</height>
               </rect>
              </property>
@@ -4800,16 +4800,6 @@ color: white;</string>
                   </item>
                   <item row="12" column="1">
                    <widget class="QCheckBox" name="use_monochrome_icon_checkbox">
-                    <property name="styleSheet">
-                     <string notr="true">margin-top: 2px;</string>
-                    </property>
-                    <property name="text">
-                     <string/>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="13" column="1">
-                   <widget class="QCheckBox" name="chant_channel_edit">
                     <property name="styleSheet">
                      <string notr="true">margin-top: 2px;</string>
                     </property>
