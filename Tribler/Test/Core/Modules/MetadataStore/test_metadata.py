@@ -7,6 +7,7 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.MetadataStore.serialization import MetadataPayload, KeysMismatchException
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 
@@ -43,6 +44,7 @@ class TestMetadata(TriblerCoreTest):
         metadata1 = self.mds.Metadata.from_dict({})
         serialized1 = metadata1.serialized()
         metadata1.delete()
+        orm.flush()
 
         metadata2 = self.mds.Metadata.from_payload(MetadataPayload.from_signed_blob(serialized1))
         serialized2 = metadata2.serialized()
@@ -72,14 +74,18 @@ class TestMetadata(TriblerCoreTest):
         metadata = self.mds.Metadata.from_dict({})
         self.assertTrue(metadata.has_valid_signature())
 
-        saved_key = metadata.public_key
-        # Mess with the public key
-        metadata.public_key = 'a'
-        self.assertFalse(metadata.has_valid_signature())
+        md_dict = metadata.to_dict()
 
         # Mess with the signature
-        metadata.public_key = saved_key
         metadata.signature = 'a'
+        self.assertFalse(metadata.has_valid_signature())
+
+        # Create metadata with wrong key
+        metadata.delete()
+        md_dict.update(public_key=database_blob("aaa"))
+        md_dict.pop("rowid")
+
+        metadata = self.mds.Metadata(skip_key_check=True, **md_dict)
         self.assertFalse(metadata.has_valid_signature())
 
     @db_session
@@ -90,5 +96,6 @@ class TestMetadata(TriblerCoreTest):
         metadata = self.mds.Metadata.from_dict({})
         metadata_dict = metadata.to_dict()
         metadata.delete()
+        orm.flush()
         metadata_payload = MetadataPayload(**metadata_dict)
         self.assertTrue(self.mds.Metadata.from_payload(metadata_payload))

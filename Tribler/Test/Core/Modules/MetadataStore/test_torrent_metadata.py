@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import os
 from datetime import datetime
 
+from pony import orm
 from pony.orm import db_session
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
@@ -67,7 +68,9 @@ class TestTorrentMetadata(TriblerCoreTest):
             dict(self.torrent_template, title="xoxoxo bar", tags="video"))
         self.mds.TorrentMetadata.from_dict(
             dict(self.torrent_template, title="xoxoxo bar", tags="audio"))
+        orm.flush()
 
+        print torrent1.rowid
         # Search for torrents with the keyword 'foo', it should return one result
         results = self.mds.TorrentMetadata.search_keyword("foo")[:]
         self.assertEqual(len(results), 1)

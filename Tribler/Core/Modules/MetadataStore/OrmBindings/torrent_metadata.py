@@ -11,7 +11,7 @@ from Tribler.pyipv8.ipv8.database import database_blob
 
 
 def define_binding(db):
-    class TorrentMetadata(db.ChannelNode):
+    class TorrentMetadata(db.Metadata):
         _discriminator_ = REGULAR_TORRENT
 
         # Serializable

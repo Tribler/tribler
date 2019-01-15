@@ -8,7 +8,7 @@ from pony import orm
 from pony.orm import db_session
 
 from Tribler.Core.Category.Category import Category
-from Tribler.Core.Modules.MetadataStore.OrmBindings import metadata, torrent_metadata, channel_metadata, channel_node, \
+from Tribler.Core.Modules.MetadataStore.OrmBindings import metadata, torrent_metadata, channel_metadata, \
     torrent_state, tracker_state
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import read_payload_with_offset, REGULAR_TORRENT, \
@@ -95,7 +95,6 @@ class MetadataStore(object):
         self.TorrentState = torrent_state.define_binding(self._db)
 
         self.Metadata = metadata.define_binding(self._db)
-        self.ChannelNode = channel_node.define_binding(self._db)
         self.TorrentMetadata = torrent_metadata.define_binding(self._db)
         self.ChannelMetadata = channel_metadata.define_binding(self._db)
 
