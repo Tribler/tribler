@@ -79,7 +79,7 @@ class SignedPayload(Payload):
 
     format_list = ['I', '64s']
 
-    def __init__(self, metadata_type, public_key,  **kwargs):
+    def __init__(self, metadata_type, public_key, **kwargs):
         super(SignedPayload, self).__init__()
         self.metadata_type = metadata_type
         self.public_key = str(public_key)
@@ -88,20 +88,21 @@ class SignedPayload(Payload):
         skip_key_check = kwargs["skip_key_check"] if "skip_key_check" in kwargs else False
 
         serialized_data = default_serializer.pack_multiple(self.to_pack_list())[0]
-        if "key" in kwargs and kwargs["key"]:
-            key = kwargs["key"]
-            if self.public_key != str(key.pub().key_to_bin()[10:]):
-                raise KeysMismatchException(self.public_key, str(key.pub().key_to_bin()[10:]))
+        if not skip_key_check:
+            if "key" in kwargs and kwargs["key"]:
+                key = kwargs["key"]
+                if self.public_key != str(key.pub().key_to_bin()[10:]):
+                    raise KeysMismatchException(self.public_key, str(key.pub().key_to_bin()[10:]))
 
-            self.signature = default_eccrypto.create_signature(key, serialized_data)
-        elif "signature" in kwargs and not skip_key_check:
-            # This check ensures that an entry with a wrong signature will not proliferate further
-            if not default_eccrypto.is_valid_signature(
-                    default_eccrypto.key_from_public_bin(b"LibNaCLPK:" + self.public_key),
-                    serialized_data, self.signature):
-                raise InvalidSignatureException("Tried to create payload with wrong signature")
-        else:
-            raise InvalidSignatureException("Tried to create payload without signature")
+                self.signature = default_eccrypto.create_signature(key, serialized_data)
+            elif "signature" in kwargs:
+                # This check ensures that an entry with a wrong signature will not proliferate further
+                if not default_eccrypto.is_valid_signature(
+                        default_eccrypto.key_from_public_bin(b"LibNaCLPK:" + self.public_key),
+                        serialized_data, self.signature):
+                    raise InvalidSignatureException("Tried to create payload with wrong signature")
+            else:
+                raise InvalidSignatureException("Tried to create payload without signature")
 
     def has_valid_signature(self):
         sig_data = default_serializer.pack_multiple(self.to_pack_list())[0]
@@ -115,7 +116,7 @@ class SignedPayload(Payload):
         return data
 
     @classmethod
-    def from_unpack_list(cls, metadata_type, public_key,  **kwargs):
+    def from_unpack_list(cls, metadata_type, public_key, **kwargs):
         return SignedPayload(metadata_type, public_key, **kwargs)
 
     @classmethod
@@ -172,13 +173,16 @@ class ChannelNodePayload(SignedPayload):
 
     @classmethod
     def from_unpack_list(cls, metadata_type, public_key,
-                         id_, origin_id):
+                         id_, origin_id,
+                         **kwargs):
         return ChannelNodePayload(metadata_type, public_key,
-                                  id_, origin_id)
+                                  id_, origin_id,
+                                  **kwargs)
 
     def to_dict(self):
         dct = super(ChannelNodePayload, self).to_dict()
         dct.update({
+            "id_": self.id_,
             "origin_id": self.origin_id
         })
         return dct
@@ -188,7 +192,7 @@ class TorrentMetadataPayload(ChannelNodePayload):
     """
     Payload for metadata that stores a torrent.
     """
-    format_list = SignedPayload.format_list + ['Q', '20s', 'Q', 'I', 'varlenI', 'varlenI', 'varlenI']
+    format_list = ChannelNodePayload.format_list + ['Q', '20s', 'Q', 'I', 'varlenI', 'varlenI', 'varlenI']
 
     def __init__(self, metadata_type, public_key,
                  id_, origin_id,
@@ -201,8 +205,8 @@ class TorrentMetadataPayload(ChannelNodePayload):
         self.title = title.decode('utf-8') if type(title) == str else title
         self.tags = tags.decode('utf-8') if type(tags) == str else tags
         self.tracker_info = tracker_info.decode('utf-8') if type(tracker_info) == str else tracker_info
-        super(TorrentMetadataPayload, self).__init__(metadata_type, public_key, id_,
-                                                     origin_id,
+        super(TorrentMetadataPayload, self).__init__(metadata_type, public_key,
+                                                     id_, origin_id,
                                                      **kwargs)
 
     def to_pack_list(self):

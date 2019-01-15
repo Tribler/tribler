@@ -107,8 +107,8 @@ def define_binding(db):
                         raise InvalidSignatureException(
                             ("Attempted to create %s object with invalid signature/PK: " % str(
                                 self.__class__.__name__)) +
-                            (hexlify(self.signature) if self.signature else "empty signature ") + " / " +
-                            (hexlify(self.public_key) if self.public_key else " empty PK"))
+                            (hexlify(kwargs["signature"]) if "signature" in kwargs else "empty signature ") + " / " +
+                            (hexlify(kwargs["public_key"]) if "public_key" in kwargs else " empty PK"))
 
             if private_key_override:
                 # Get default values for Pony class attributes. We have to do it manually because we need
@@ -148,7 +148,7 @@ def define_binding(db):
             my_dict = ChannelNode.to_dict(self)
             my_dict.update({"metadata_type": DELETED,
                             "delete_signature": self.signature})
-            return DeletedMetadataPayload(**my_dict)._serialized(self._my_key)
+            return DeletedMetadataPayload(key=self._my_key, **my_dict)._serialized()
 
         def serialized_delete(self):
             """
