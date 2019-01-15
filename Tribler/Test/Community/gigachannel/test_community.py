@@ -3,7 +3,7 @@ import os
 from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.random_utils import random_infohash
 from Tribler.community.gigachannel.community import GigaChannelCommunity

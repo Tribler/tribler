@@ -4,7 +4,7 @@ from pony import orm
 from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.serialization import SignedPayload, KeysMismatchException
+from Tribler.Core.Modules.MetadataStore.serialization import SignedPayload, KeysMismatchException, ChannelNodePayload
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -46,7 +46,7 @@ class TestMetadata(TriblerCoreTest):
         metadata1.delete()
         orm.flush()
 
-        metadata2 = self.mds.ChannelNode.from_payload(SignedPayload.from_signed_blob(serialized1))
+        metadata2 = self.mds.ChannelNode.from_payload(ChannelNodePayload.from_signed_blob(serialized1))
         serialized2 = metadata2.serialized()
         self.assertEqual(serialized1, serialized2)
 
@@ -97,5 +97,5 @@ class TestMetadata(TriblerCoreTest):
         metadata_dict = metadata.to_dict()
         metadata.delete()
         orm.flush()
-        metadata_payload = SignedPayload(**metadata_dict)
+        metadata_payload = ChannelNodePayload(**metadata_dict)
         self.assertTrue(self.mds.ChannelNode.from_payload(metadata_payload))

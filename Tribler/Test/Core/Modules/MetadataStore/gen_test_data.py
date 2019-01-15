@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pony.orm import db_session
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.Modules.MetadataStore.test_channel_download import CHANNEL_METADATA, CHANNEL_TORRENT, \
@@ -41,7 +41,7 @@ def gen_sample_channel(mds):
     t4 = mds.TorrentMetadata.from_dict(gen_random_entry())
     my_channel.commit_channel_torrent()
 
-    my_channel.delete_torrent_from_channel(t2.infohash)
+    my_channel.delete_torrent(t2.infohash)
     my_channel.commit_channel_torrent()
 
     # Rename files to stable names

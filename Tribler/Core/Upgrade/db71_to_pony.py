@@ -6,7 +6,7 @@ import apsw
 from pony.orm import db_session
 from six import text_type
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import LEGACY_ENTRY
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.pyipv8.ipv8.database import database_blob
