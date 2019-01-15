@@ -120,10 +120,12 @@ class TorrentDetailsTabWidget(QTabWidget):
         def on_cancel_health_check():
             self.is_health_checking = False
 
-        self.index.model().data_items[self.index.row()][u'health'] = HEALTH_CHECKING
+        if u'health' in self.index.model().column_position:
+            self.index.model().data_items[self.index.row()][u'health'] = HEALTH_CHECKING
+            index = self.index.model().index(self.index.row(), self.index.model().column_position[u'health'])
+            self.index.model().dataChanged.emit(index, index, [])
+
         self.torrent_detail_health_label.setText("Checking...")
-        index = self.index.model().index(self.index.row(), self.index.model().column_position[u'health'])
-        self.index.model().dataChanged.emit(index, index, [])
         self.health_request_mgr = TriblerRequestManager()
         self.health_request_mgr.perform_request("metadata/torrents/%s/health?timeout=%s&refresh=%d" %
                                                 (infohash, timeout, 1),
@@ -153,8 +155,10 @@ class TorrentDetailsTabWidget(QTabWidget):
         data_item[u'last_tracker_check'] = time.time()
         data_item[u'health'] = get_health(data_item[u'num_seeders'], data_item[u'num_leechers'],
                                           data_item[u'last_tracker_check'])
-        index = self.index.model().index(self.index.row(), self.index.model().column_position[u'health'])
-        self.index.model().dataChanged.emit(index, index, [])
+
+        if u'health' in self.index.model().column_position:
+            index = self.index.model().index(self.index.row(), self.index.model().column_position[u'health'])
+            self.index.model().dataChanged.emit(index, index, [])
 
         # Update the health label of the detail widget
         self.update_health_label(data_item[u'num_seeders'], data_item[u'num_leechers'],
