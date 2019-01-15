@@ -29,7 +29,7 @@ class BaseTestMetadataEndpoint(AbstractApiTest):
         # Add a few channels
         with db_session:
             for ind in xrange(10):
-                self.session.lm.mds.Metadata._my_key = default_eccrypto.generate_key('curve25519')
+                self.session.lm.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
                 _ = self.session.lm.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0))
                 for torrent_ind in xrange(5):
                     rand_infohash = random_infohash()
@@ -84,7 +84,7 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         Test whether an error is returned if we try to subscribe to a channel with the REST API and missing parameters
         """
         self.should_check_equality = False
-        channel_pk = hexlify(self.session.lm.mds.Metadata._my_key.pub().key_to_bin()[10:])
+        channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
         return self.do_request('metadata/channels/%s' % channel_pk, expected_code=400, request_type='POST')
 
     def test_subscribe_no_channel(self):
@@ -101,7 +101,7 @@ class TestSpecificChannelEndpoint(BaseTestMetadataEndpoint):
         """
         self.should_check_equality = False
         post_params = {'subscribe': '1'}
-        channel_pk = hexlify(self.session.lm.mds.Metadata._my_key.pub().key_to_bin()[10:])
+        channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
         return self.do_request('metadata/channels/%s' % channel_pk, expected_code=200,
                                request_type='POST', post_data=post_params)
 
@@ -117,7 +117,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMetadataEndpoint):
             self.assertEqual(len(json_dict['torrents']), 5)
 
         self.should_check_equality = False
-        channel_pk = hexlify(self.session.lm.mds.Metadata._my_key.pub().key_to_bin()[10:])
+        channel_pk = hexlify(self.session.lm.mds.ChannelNode._my_key.pub().key_to_bin()[10:])
         return self.do_request('metadata/channels/%s/torrents' % channel_pk, expected_code=200).addCallback(on_response)
 
 
