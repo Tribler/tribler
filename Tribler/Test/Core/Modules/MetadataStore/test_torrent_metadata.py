@@ -170,7 +170,7 @@ class TestTorrentMetadata(TriblerCoreTest):
 
         # First we create a few channels and add some torrents to these channels
         for ind in xrange(5):
-            self.mds.Metadata._my_key = default_eccrypto.generate_key('curve25519')
+            self.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
             _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0))
             for torrent_ind in xrange(5):
                 _ = self.mds.TorrentMetadata(title='torrent%d' % torrent_ind)
@@ -180,7 +180,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         self.assertEqual(torrents[1], 25)
 
         # Test fetching torrents in a channel
-        channel_pk = self.mds.Metadata._my_key.pub().key_to_bin()[10:]
+        channel_pk = self.mds.ChannelNode._my_key.pub().key_to_bin()[10:]
         torrents = self.mds.ChannelMetadata.get_torrents(first=1, last=10, sort_by='title', channel_pk=channel_pk)
         self.assertEqual(len(torrents[0]), 5)
         self.assertEqual(torrents[1], 5)
