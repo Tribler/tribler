@@ -565,7 +565,7 @@ class MarketCommunity(Community, BlockListener):
                                % assets.first)
 
         asset2_min_unit = self.wallets[assets.second.asset_id].min_unit()
-        if assets.first.amount < asset2_min_unit:
+        if assets.second.amount < asset2_min_unit:
             raise RuntimeError("The assets to trade should be higher than or equal to the min unit of this asset (%s)."
                                % assets.second)
 
