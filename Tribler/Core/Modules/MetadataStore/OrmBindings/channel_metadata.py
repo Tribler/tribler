@@ -11,7 +11,7 @@ import lz4.frame
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import COMMITTED, NEW, PUBLIC_KEY_LEN, TODELETE
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, NEW, PUBLIC_KEY_LEN, TODELETE
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
 from Tribler.Core.exceptions import DuplicateChannelNameError, DuplicateTorrentFileError
 from Tribler.pyipv8.ipv8.database import database_blob

@@ -7,7 +7,8 @@ from pony import orm
 from pony.orm import db_session, select, desc
 from pony.orm.core import DEFAULT
 
-from Tribler.Core.Modules.MetadataStore.serialization import MetadataPayload, DeletedMetadataPayload, TYPELESS, DELETED
+from Tribler.Core.Modules.MetadataStore.serialization import DeletedMetadataPayload, DELETED, \
+    ChannelNodePayload, CHANNEL_NODE
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
@@ -40,30 +41,30 @@ def generate_dict_from_pony_args(cls, skip_list=None, **kwargs):
 
 
 def define_binding(db):
-    class Metadata(db.Entity):
-        _discriminator_ = TYPELESS
+    class ChannelNode(db.Entity):
+        _discriminator_ = CHANNEL_NODE
 
         rowid = orm.PrimaryKey(int, auto=True)
 
         # Serializable
         metadata_type = orm.Discriminator(int)
+        origin_id = orm.Optional(int, size=64, default=0)
 
         public_key = orm.Required(database_blob)
         id_ = orm.Required(int, size=64)
-        #orm.composite_key(public_key, id_)
+        # orm.composite_key(public_key, id_) # Requires Pony 0.7.7+ with Python2
 
-        origin_id = orm.Optional(int, size=64, default=0)
         signature = orm.Required(database_blob)
 
         # Local
         addition_timestamp = orm.Optional(datetime, default=datetime.utcnow)
         status = orm.Optional(int, default=COMMITTED)
 
-        parents = orm.Set('Metadata', reverse='children')
-        children = orm.Set('Metadata', reverse='parents')
+        parents = orm.Set('ChannelNode', reverse='children')
+        children = orm.Set('ChannelNode', reverse='parents')
 
         # Special properties
-        _payload_class = MetadataPayload
+        _payload_class = ChannelNodePayload
         _my_key = None
         _logger = None
         _clock = None
@@ -121,7 +122,7 @@ def define_binding(db):
                 kwargs["public_key"] = payload.public_key
                 kwargs["signature"] = payload.signature
 
-            super(Metadata, self).__init__(*args, **kwargs)
+            super(ChannelNode, self).__init__(*args, **kwargs)
 
         def _serialized(self, key=None):
             """
@@ -144,7 +145,7 @@ def define_binding(db):
             Create a special command to delete this metadata and encode it for transfer (tuple output).
             :return: (serialized_data, signature) tuple
             """
-            my_dict = Metadata.to_dict(self)
+            my_dict = ChannelNode.to_dict(self)
             my_dict.update({"metadata_type": DELETED,
                             "delete_signature": self.signature})
             return DeletedMetadataPayload(**my_dict)._serialized(self._my_key)
@@ -217,4 +218,4 @@ def define_binding(db):
 
             return pony_query
 
-    return Metadata
+    return ChannelNode
