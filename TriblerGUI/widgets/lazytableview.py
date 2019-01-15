@@ -27,7 +27,7 @@ class TriblerContentTableView(LazyTableView):
 
     def __init__(self, parent=None):
         LazyTableView.__init__(self, parent)
-
+        self.delegate = None
         self.setMouseTracking(True)
 
     def mouseMoveEvent(self, event):
@@ -38,70 +38,12 @@ class TriblerContentTableView(LazyTableView):
         self.viewport().update()
 
 
-class SearchResultsTableView(TriblerContentTableView):
-    """
-    This table displays search results, which can be both torrents and channels.
-    """
-    on_torrent_clicked = pyqtSignal(QModelIndex, dict)
-    on_channel_clicked = pyqtSignal(dict)
-
-    def __init__(self, parent=None):
-        TriblerContentTableView.__init__(self, parent)
-
-        self.delegate = SearchResultsDelegate()
-        self.setItemDelegate(self.delegate)
-        self.mouse_moved.connect(self.delegate.on_mouse_moved)
-        self.delegate.redraw_required.connect(self.redraw)
-
-        self.clicked.connect(self.on_table_item_clicked)
-
-    def on_table_item_clicked(self, item):
-        content_info = self.model().data_items[item.row()]
-        if content_info['type'] == 'channel':
-            self.window().channel_page.initialize_with_channel(content_info)
-            self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
-            self.window().stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
-            self.on_channel_clicked.emit(content_info)
-        else:
-            self.on_torrent_clicked.emit(item, content_info)
-
-    def resizeEvent(self, _):
-        self.setColumnWidth(0, 100)
-        self.setColumnWidth(2, 100)
-        self.setColumnWidth(3, 100)
-        self.setColumnWidth(1, self.width() - 304)  # Few pixels offset so the horizontal scrollbar does not appear
+class DownloadButtonMixin(TriblerContentTableView):
+    def on_download_button_clicked(self, index):
+        self.window().start_download_from_uri(index2uri(index))
 
 
-class TorrentsTableView(TriblerContentTableView):
-    """
-    This table displays various torrents.
-    """
-    on_torrent_clicked = pyqtSignal(QModelIndex, dict)
-
-    def __init__(self, parent=None):
-        TriblerContentTableView.__init__(self, parent)
-
-        self.delegate = TorrentsButtonsDelegate()
-        self.setItemDelegate(self.delegate)
-        self.mouse_moved.connect(self.delegate.on_mouse_moved)
-        self.delegate.redraw_required.connect(self.redraw)
-
-        self.delegate.play_button.clicked.connect(self.on_play_button_clicked)
-        self.delegate.download_button.clicked.connect(self.on_download_button_clicked)
-        self.delegate.commit_control.clicked.connect(self.on_commit_control_clicked)
-
-        self.clicked.connect(self.on_table_item_clicked)
-
-    def on_table_item_clicked(self, item):
-        if (ACTION_BUTTONS in self.model().column_position and
-                item.column() == self.model().column_position[ACTION_BUTTONS]) or \
-                (u'status' in self.model().column_position and
-                 item.column() == self.model().column_position[u'status']):
-            return
-
-        torrent_info = self.model().data_items[item.row()]
-        self.on_torrent_clicked.emit(item, torrent_info)
-
+class PlayButtonMixin(TriblerContentTableView):
     def on_play_button_clicked(self, index):
         infohash = index.model().data_items[index.row()][u'infohash']
 
@@ -119,9 +61,43 @@ class TorrentsTableView(TriblerContentTableView):
                                                      self.window().tribler_settings['download_defaults']['saveas'],
                                                      [], 0, callback=on_play_request_done)
 
-    def on_download_button_clicked(self, index):
-        self.window().start_download_from_uri(index2uri(index))
 
+class SubscribeButtonMixin(TriblerContentTableView):
+    def on_subscribe_control_clicked(self, index):
+        if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
+            return
+        if index.model().data_items[index.row()][u'my_channel']:
+            return
+        status = int(index.model().data_items[index.row()][u'subscribed'])
+        public_key = index.model().data_items[index.row()][u'public_key']
+        request_mgr = TriblerRequestManager()
+        request_mgr.perform_request("metadata/channels/%s" % public_key,
+                                    lambda _: self.on_unsubscribed_channel.emit(index) if status else
+                                    lambda _: self.on_subscribed_channel.emit(index),
+                                    data='subscribe=%i' % int(not status), method='POST')
+        index.model().data_items[index.row()][u'subscribed'] = int(not status)
+
+
+class ItemClickedMixin(TriblerContentTableView):
+    def on_table_item_clicked(self, item):
+        column_position = self.model().column_position
+        if (ACTION_BUTTONS in column_position and item.column() == column_position[ACTION_BUTTONS]) or \
+                (u'status' in column_position and item.column() == column_position[u'status']) or \
+                (u'subscribed' in column_position and item.column() == column_position[u'subscribed']):
+            return
+
+        content_info = self.model().data_items[item.row()]
+        # Safely determine if the thing is a channel. A little bit hackish
+        if 'torrents' in content_info:
+            self.window().channel_page.initialize_with_channel(content_info)
+            self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
+            self.window().stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
+            self.on_channel_clicked.emit(content_info)
+        else:
+            self.on_torrent_clicked.emit(item, content_info)
+
+
+class CommitControlMixin(TriblerContentTableView):
     def on_commit_control_clicked(self, index):
         infohash = index.model().data_items[index.row()][u'infohash']
         status = index.model().data_items[index.row()][u'status']
@@ -145,6 +121,57 @@ class TorrentsTableView(TriblerContentTableView):
             self.window().edit_channel_page.channel_dirty = json_result['dirty']
             self.window().edit_channel_page.update_channel_commit_views()
 
+
+class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMixin, SubscribeButtonMixin,
+                             TriblerContentTableView):
+    """
+    This table displays search results, which can be both torrents and channels.
+    """
+    on_torrent_clicked = pyqtSignal(QModelIndex, dict)
+    on_channel_clicked = pyqtSignal(dict)
+
+    def __init__(self, parent=None):
+        TriblerContentTableView.__init__(self, parent)
+        self.delegate = SearchResultsDelegate()
+
+        self.setItemDelegate(self.delegate)
+        self.mouse_moved.connect(self.delegate.on_mouse_moved)
+        self.delegate.redraw_required.connect(self.redraw)
+
+        # Mix-in connects
+        self.clicked.connect(self.on_table_item_clicked)
+        self.delegate.play_button.clicked.connect(self.on_play_button_clicked)
+        self.delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
+        self.delegate.download_button.clicked.connect(self.on_download_button_clicked)
+
+    def resizeEvent(self, _):
+        self.setColumnWidth(0, 100)
+        self.setColumnWidth(2, 100)
+        self.setColumnWidth(3, 100)
+        self.setColumnWidth(1, self.width() - 304)  # Few pixels offset so the horizontal scrollbar does not appear
+
+
+class TorrentsTableView(ItemClickedMixin, CommitControlMixin, DownloadButtonMixin, PlayButtonMixin,
+                        TriblerContentTableView):
+    """
+    This table displays various torrents.
+    """
+    on_torrent_clicked = pyqtSignal(QModelIndex, dict)
+
+    def __init__(self, parent=None):
+        TriblerContentTableView.__init__(self, parent)
+        self.delegate = TorrentsButtonsDelegate()
+
+        self.setItemDelegate(self.delegate)
+        self.mouse_moved.connect(self.delegate.on_mouse_moved)
+        self.delegate.redraw_required.connect(self.redraw)
+
+        # Mix-in connects
+        self.clicked.connect(self.on_table_item_clicked)
+        self.delegate.play_button.clicked.connect(self.on_play_button_clicked)
+        self.delegate.commit_control.clicked.connect(self.on_commit_control_clicked)
+        self.delegate.download_button.clicked.connect(self.on_download_button_clicked)
+
     def resizeEvent(self, _):
         if isinstance(self.model(), MyTorrentsContentModel):
             self.setColumnWidth(0, 100)
@@ -159,7 +186,8 @@ class TorrentsTableView(TriblerContentTableView):
             self.setColumnWidth(1, self.width() - 404)  # Few pixels offset so the horizontal scrollbar does not appear
 
 
-class ChannelsTableView(TriblerContentTableView):
+class ChannelsTableView(ItemClickedMixin, SubscribeButtonMixin,
+                        TriblerContentTableView):
     """
     This table displays various channels.
     """
@@ -169,47 +197,14 @@ class ChannelsTableView(TriblerContentTableView):
 
     def __init__(self, parent=None):
         TriblerContentTableView.__init__(self, parent)
+        self.delegate = ChannelsButtonsDelegate()
+        self.setItemDelegate(self.delegate)
+        self.mouse_moved.connect(self.delegate.on_mouse_moved)
+        self.delegate.redraw_required.connect(self.redraw)
 
-        delegate = ChannelsButtonsDelegate()
-        self.setItemDelegate(delegate)
-        self.mouse_moved.connect(delegate.on_mouse_moved)
-        delegate.redraw_required.connect(self.redraw)
-        delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
-
+        # Mix-in connects
         self.clicked.connect(self.on_table_item_clicked)
-
-    def on_subscribe_control_clicked(self, index):
-        status = int(index.model().data_items[index.row()][u'subscribed'])
-        if status:
-            self.on_unsubscribe_button_clicked(index)
-        else:
-            self.on_subscribe_button_clicked(index)
-        index.model().data_items[index.row()][u'subscribed'] = int(not status)
-
-    def on_subscribe_button_clicked(self, index):
-        public_key = index.model().data_items[index.row()][u'public_key']
-        request_mgr = TriblerRequestManager()
-        request_mgr.perform_request("metadata/channels/%s" % public_key,
-                                    lambda _: self.on_subscribed_channel.emit(index),
-                                    data='subscribe=1', method='POST')
-
-    def on_unsubscribe_button_clicked(self, index):
-        public_key = index.model().data_items[index.row()][u'public_key']
-        request_mgr = TriblerRequestManager()
-        request_mgr.perform_request("metadata/channels/%s" % public_key,
-                                    lambda _: self.on_unsubscribed_channel.emit(index),
-                                    data='subscribe=0', method='POST')
-
-    def on_table_item_clicked(self, item):
-        if item.column() == self.model().column_position[u'subscribed']:
-            return
-
-        channel_info = self.model().data_items[item.row()]
-        self.window().channel_page.initialize_with_channel(channel_info)
-        self.window().navigation_stack.append(self.window().stackedWidget.currentIndex())
-        self.window().stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
-
-        self.on_channel_clicked.emit(channel_info)
+        self.delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
 
     def resizeEvent(self, _):
         self.setColumnWidth(1, 150)

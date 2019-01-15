@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division
 
 import struct
-from binascii import hexlify
 from datetime import datetime, timedelta
 
 from Tribler.Core.exceptions import InvalidSignatureException
@@ -15,7 +14,6 @@ INFOHASH_SIZE = 20  # bytes
 
 SIGNATURE_SIZE = 64
 EMPTY_SIG = '0' * 64
-
 
 # Metadata types. Should have been an enum, but in Python its unwieldy.
 TYPELESS = 100
@@ -74,7 +72,7 @@ def read_payload(data):
     return read_payload_with_offset(data)[0]
 
 
-class MetadataPayload(Payload):
+class SignedPayload(Payload):
     """
     Payload for metadata.
     """
@@ -82,10 +80,29 @@ class MetadataPayload(Payload):
     format_list = ['I', '64s']
 
     def __init__(self, metadata_type, public_key, **kwargs):
-        super(MetadataPayload, self).__init__()
+        super(SignedPayload, self).__init__()
         self.metadata_type = metadata_type
         self.public_key = str(public_key)
         self.signature = str(kwargs["signature"]) if "signature" in kwargs else EMPTY_SIG
+
+        skip_key_check = kwargs["skip_key_check"] if "skip_key_check" in kwargs else False
+
+        serialized_data = default_serializer.pack_multiple(self.to_pack_list())[0]
+        if not skip_key_check:
+            if "key" in kwargs and kwargs["key"]:
+                key = kwargs["key"]
+                if self.public_key != str(key.pub().key_to_bin()[10:]):
+                    raise KeysMismatchException(self.public_key, str(key.pub().key_to_bin()[10:]))
+
+                self.signature = default_eccrypto.create_signature(key, serialized_data)
+            elif "signature" in kwargs:
+                # This check ensures that an entry with a wrong signature will not proliferate further
+                if not default_eccrypto.is_valid_signature(
+                        default_eccrypto.key_from_public_bin(b"LibNaCLPK:" + self.public_key),
+                        serialized_data, self.signature):
+                    raise InvalidSignatureException("Tried to create payload with wrong signature")
+            else:
+                raise InvalidSignatureException("Tried to create payload without signature")
 
     def has_valid_signature(self):
         sig_data = default_serializer.pack_multiple(self.to_pack_list())[0]
@@ -99,8 +116,8 @@ class MetadataPayload(Payload):
         return data
 
     @classmethod
-    def from_unpack_list(cls, metadata_type, public_key):
-        return MetadataPayload(metadata_type, public_key)
+    def from_unpack_list(cls, metadata_type, public_key, **kwargs):
+        return SignedPayload(metadata_type, public_key, **kwargs)
 
     @classmethod
     def from_signed_blob(cls, data, check_signature=True):
@@ -108,14 +125,13 @@ class MetadataPayload(Payload):
 
     @classmethod
     def from_signed_blob_with_offset(cls, data, check_signature=True, offset=0):
+        # TODO: stop serializing/deserializing the stuff twice
         unpack_list, end_offset = default_serializer.unpack_multiple(cls.format_list, data, offset=offset)
-        payload = cls.from_unpack_list(*unpack_list)
         if check_signature:
-            payload.signature = data[end_offset:end_offset + SIGNATURE_SIZE]
-            data_unsigned = data[offset:end_offset]
-            key = default_eccrypto.key_from_public_bin(b"LibNaCLPK:" + payload.public_key)
-            if not default_eccrypto.is_valid_signature(key, data_unsigned, payload.signature):
-                raise InvalidSignatureException
+            signature = data[end_offset:end_offset + SIGNATURE_SIZE]
+            payload = cls.from_unpack_list(*unpack_list, signature=signature)
+        else:
+            payload = cls.from_unpack_list(*unpack_list, skip_key_check=True)
         return payload, end_offset + SIGNATURE_SIZE
 
     def to_dict(self):
@@ -125,26 +141,12 @@ class MetadataPayload(Payload):
             "signature": self.signature
         }
 
-    def _serialized(self, key=None):
-        # If we are going to sign it, we must provide a matching key
-        if key and self.public_key != str(key.pub().key_to_bin()[10:]):
-            raise KeysMismatchException(self.public_key, str(key.pub().key_to_bin()[10:]))
-
+    def _serialized(self):
         serialized_data = default_serializer.pack_multiple(self.to_pack_list())[0]
-        if key:
-            signature = default_eccrypto.create_signature(key, serialized_data)
+        return str(serialized_data), str(self.signature)
 
-        # This check ensures that an entry with a wrong signature will not proliferate further
-        elif default_eccrypto.is_valid_signature(default_eccrypto.key_from_public_bin(b"LibNaCLPK:" + self.public_key),
-                                                 serialized_data,
-                                                 self.signature):
-            signature = self.signature
-        else:
-            raise InvalidSignatureException(hexlify(self.signature))
-        return str(serialized_data), str(signature)
-
-    def serialized(self, key=None):
-        return ''.join(self._serialized(key))
+    def serialized(self):
+        return ''.join(self._serialized())
 
     @classmethod
     def from_file(cls, filepath):
@@ -152,16 +154,16 @@ class MetadataPayload(Payload):
             return cls.from_signed_blob(f.read())
 
 
-class ChannelNodePayload(MetadataPayload):
-    format_list = MetadataPayload.format_list + ['Q'] + ['Q']
+class ChannelNodePayload(SignedPayload):
+    format_list = SignedPayload.format_list + ['Q', 'Q']
 
     def __init__(self, metadata_type, public_key,
                  id_, origin_id,
                  **kwargs):
-        super(ChannelNodePayload, self).__init__(metadata_type, public_key,
-                                                 **kwargs)
         self.id_ = id_
         self.origin_id = origin_id
+        super(ChannelNodePayload, self).__init__(metadata_type, public_key,
+                                                 **kwargs)
 
     def to_pack_list(self):
         data = super(ChannelNodePayload, self).to_pack_list()
@@ -171,9 +173,11 @@ class ChannelNodePayload(MetadataPayload):
 
     @classmethod
     def from_unpack_list(cls, metadata_type, public_key,
-                         id_, origin_id):
+                         id_, origin_id,
+                         **kwargs):
         return ChannelNodePayload(metadata_type, public_key,
-                                  id_, origin_id)
+                                  id_, origin_id,
+                                  **kwargs)
 
     def to_dict(self):
         dct = super(ChannelNodePayload, self).to_dict()
@@ -194,9 +198,6 @@ class TorrentMetadataPayload(ChannelNodePayload):
                  id_, origin_id,
                  timestamp, infohash, size, torrent_date, title, tags, tracker_info,
                  **kwargs):
-        super(TorrentMetadataPayload, self).__init__(metadata_type, public_key,
-                                                     id_, origin_id,
-                                                     **kwargs)
         self.timestamp = timestamp
         self.infohash = str(infohash)
         self.size = size
@@ -204,6 +205,9 @@ class TorrentMetadataPayload(ChannelNodePayload):
         self.title = title.decode('utf-8') if type(title) == str else title
         self.tags = tags.decode('utf-8') if type(tags) == str else tags
         self.tracker_info = tracker_info.decode('utf-8') if type(tracker_info) == str else tracker_info
+        super(TorrentMetadataPayload, self).__init__(metadata_type, public_key,
+                                                     id_, origin_id,
+                                                     **kwargs)
 
     def to_pack_list(self):
         data = super(TorrentMetadataPayload, self).to_pack_list()
@@ -219,10 +223,10 @@ class TorrentMetadataPayload(ChannelNodePayload):
     @classmethod
     def from_unpack_list(cls, metadata_type, public_key,
                          id_, origin_id,
-                         timestamp, infohash, size, torrent_date, title, tags, tracker_info):
+                         timestamp, infohash, size, torrent_date, title, tags, tracker_info, **kwargs):
         return TorrentMetadataPayload(metadata_type, public_key,
                                       id_, origin_id,
-                                      timestamp, infohash, size, torrent_date, title, tags, tracker_info)
+                                      timestamp, infohash, size, torrent_date, title, tags, tracker_info, **kwargs)
 
     def to_dict(self):
         dct = super(TorrentMetadataPayload, self).to_dict()
@@ -255,12 +259,11 @@ class ChannelMetadataPayload(TorrentMetadataPayload):
                  timestamp, infohash, size, torrent_date, title, tags, tracker_info,
                  num_entries,
                  **kwargs):
+        self.num_entries = num_entries
         super(ChannelMetadataPayload, self).__init__(metadata_type, public_key,
                                                      id_, origin_id,
-                                                     timestamp, infohash, size, torrent_date, title, tags,
-                                                     tracker_info,
+                                                     timestamp, infohash, size, torrent_date, title, tags, tracker_info,
                                                      **kwargs)
-        self.num_entries = num_entries
 
     def to_pack_list(self):
         data = super(ChannelMetadataPayload, self).to_pack_list()
@@ -271,11 +274,13 @@ class ChannelMetadataPayload(TorrentMetadataPayload):
     def from_unpack_list(cls, metadata_type, public_key,
                          id_, origin_id,
                          timestamp, infohash, size, torrent_date, title, tags, tracker_info,
-                         num_entries):
+                         num_entries,
+                         **kwargs):
         return ChannelMetadataPayload(metadata_type, public_key,
                                       id_, origin_id,
                                       timestamp, infohash, size, torrent_date, title, tags, tracker_info,
-                                      num_entries)
+                                      num_entries,
+                                      **kwargs)
 
     def to_dict(self):
         dct = super(ChannelMetadataPayload, self).to_dict()
@@ -283,17 +288,18 @@ class ChannelMetadataPayload(TorrentMetadataPayload):
         return dct
 
 
-class DeletedMetadataPayload(MetadataPayload):
+class DeletedMetadataPayload(SignedPayload):
     """
     Payload for metadata that stores deleted metadata.
     """
-    format_list = MetadataPayload.format_list + ['64s']
+    format_list = SignedPayload.format_list + ['64s']
 
-    def __init__(self, metadata_type, public_key, delete_signature,
+    def __init__(self, metadata_type, public_key,
+                 delete_signature,
                  **kwargs):
+        self.delete_signature = str(delete_signature)
         super(DeletedMetadataPayload, self).__init__(metadata_type, public_key,
                                                      **kwargs)
-        self.delete_signature = str(delete_signature)
 
     def to_pack_list(self):
         data = super(DeletedMetadataPayload, self).to_pack_list()
@@ -302,9 +308,11 @@ class DeletedMetadataPayload(MetadataPayload):
 
     @classmethod
     def from_unpack_list(cls, metadata_type, public_key,
-                         delete_signature):
+                         delete_signature,
+                         **kwargs):
         return DeletedMetadataPayload(metadata_type, public_key,
-                                      delete_signature)
+                                      delete_signature,
+                                      **kwargs)
 
     def to_dict(self):
         dct = super(DeletedMetadataPayload, self).to_dict()

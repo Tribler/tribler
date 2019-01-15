@@ -9,7 +9,7 @@ def define_binding(db):
         seeders = orm.Optional(int, default=0)
         leechers = orm.Optional(int, default=0)
         last_check = orm.Optional(int, size=64, default=0)
-        metadata = orm.Set('TorrentMetadata')
+        metadata = orm.Set('TorrentMetadata', reverse='health')
         trackers = orm.Set('TrackerState', reverse='torrents')
 
     return TorrentState

@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 import logging.config
 
@@ -10,6 +11,8 @@ from Tribler.Core.exceptions import TriblerException
 from check_os import check_environment, check_free_space, error_and_exit, setup_gui_logging, \
     should_kill_other_tribler_instances, enable_fault_handler, set_process_priority, \
     check_and_enable_code_tracing
+api_port = random.randint(10000,20000)
+
 
 # https://github.com/Tribler/tribler/issues/3702
 # We need to make sure that anyone running cp65001 can print to the stdout before we print anything.
@@ -68,6 +71,7 @@ def start_tribler_core(base_path, api_port):
         priority_order = config.get_cpu_priority_order()
         set_process_priority(pid=os.getpid(), priority_order=priority_order)
 
+        print api_port
         config.set_http_api_port(int(api_port))
         config.set_http_api_enabled(True)
 
@@ -115,15 +119,8 @@ if __name__ == "__main__":
 
             app = TriblerApplication("triblerapp", sys.argv)
 
-            if app.is_running():
-                for arg in sys.argv[1:]:
-                    if os.path.exists(arg) and arg.endswith(".torrent"):
-                        app.send_message("file:%s" % arg)
-                    elif arg.startswith('magnet'):
-                        app.send_message(arg)
-                sys.exit(1)
 
-            window = TriblerWindow()
+            window = TriblerWindow(api_port=api_port)
             window.setWindowTitle("Tribler")
             app.set_activation_window(window)
             app.parse_sys_args(sys.argv)

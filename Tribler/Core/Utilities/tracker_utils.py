@@ -92,7 +92,7 @@ def get_uniformed_tracker_url(tracker_url):
             else:
                 uniformed_path = url.path.rstrip('/')
             # HTTP trackers must have a path
-            if url.scheme == 'http' and not url.path:
+            if url.scheme == 'http' and not uniformed_path:
                 continue
 
             if url.scheme == 'http' and uniformed_port == HTTP_PORT:
@@ -101,7 +101,8 @@ def get_uniformed_tracker_url(tracker_url):
                 uniformed_url = u'%s://%s:%d%s' % (uniformed_scheme, uniformed_hostname, uniformed_port, uniformed_path)
         except (UnicodeError, ValueError):
             continue
-        return uniformed_url
+        else:
+            return uniformed_url
     return None
 
 

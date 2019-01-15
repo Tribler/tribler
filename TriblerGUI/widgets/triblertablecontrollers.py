@@ -63,7 +63,7 @@ class SearchResultsTableViewController(TriblerTableViewController):
 
     def _on_view_sort(self, column, ascending):
         self.model.reset()
-        self.load_search_results(1, 50)
+        self.load_search_results(self.query, 1, 50)
 
     def _on_list_scroll(self, event):
         if self.table_view.verticalScrollBar().value() == self.table_view.verticalScrollBar().maximum() and \
@@ -76,17 +76,18 @@ class SearchResultsTableViewController(TriblerTableViewController):
         """
         self.query = query
 
-        if not start and not end:
+        if not start or not end:
             start, end = self.model.rowCount() + 1, self.model.rowCount() + self.model.item_load_batch
 
         sort_by, sort_asc = self._get_sort_parameters()
-
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(
-            "search?q=%s&first=%i&last=%i" % (query, start, end)
-            + ('&sort_by=%s' % sort_by)
-            + ('&sort_asc=%d' % sort_asc)
-            + ('&type=%s' % ('' if not self.model.type_filter else self.model.type_filter)),
+            ("search?q=%s" % query)
+            + (("&first=%i" % start) if start else '')
+            + (("&last=%i" % end) if end else '')
+            + (('&sort_by=%s' % sort_by) if sort_by else '')
+            + (('&sort_asc=%d' % sort_asc) if sort_asc else '')
+            + (('&type=%s' % self.model.type_filter) if self.model.type_filter else ''),
             self.on_search_results)
 
     def on_search_results(self, response):
@@ -225,7 +226,7 @@ class TorrentsTableViewController(TriblerTableViewController):
 
     def on_torrents(self, response):
         if not response:
-            return
+            return None
 
         self.model.total_items = response['total']
 
@@ -234,6 +235,7 @@ class TorrentsTableViewController(TriblerTableViewController):
 
         if response['first'] >= self.model.rowCount():
             self.model.add_items(response['torrents'])
+        return True
 
 
 class MyTorrentsTableViewController(TorrentsTableViewController):
@@ -264,16 +266,6 @@ class MyTorrentsTableViewController(TorrentsTableViewController):
             self.on_torrents)
 
     def on_torrents(self, response):
-        if not response:
-            return
-
-        self.model.total_items = response['total']
-
-        if self.num_torrents_label:
-            self.num_torrents_label.setText("%d items" % response['total'])
-
-        if response['first'] >= self.model.rowCount():
-            self.model.add_items(response['torrents'])
-
-        self.table_view.window().edit_channel_page.channel_dirty = response['dirty']
-        self.table_view.window().edit_channel_page.update_channel_commit_views()
+        if super(MyTorrentsTableViewController, self).on_torrents(response):
+            self.table_view.window().edit_channel_page.channel_dirty = response['dirty']
+            self.table_view.window().edit_channel_page.update_channel_commit_views()

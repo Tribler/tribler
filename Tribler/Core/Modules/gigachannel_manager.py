@@ -26,7 +26,7 @@ class GigaChannelManager(TaskManager):
         The Metadata Store checks the database at regular intervals to see if new channels are available for preview
         or subscribed channels require updating.
         """
-        queue_check_interval = 2.0  # seconds
+        queue_check_interval = 5.0  # seconds
         self.register_task("Process channels download queue",
                            LoopingCall(self.check_channels_updates)).start(queue_check_interval)
 
@@ -40,15 +40,22 @@ class GigaChannelManager(TaskManager):
         """
         Check whether there are channels that are updated. If so, download the new version of the channel.
         """
-        with db_session:
-            channels_queue = list(self.session.lm.mds.ChannelMetadata.get_updated_channels())
+        # FIXME: These naughty try-except-pass workarounds are necessary to keep the loop going in all circumstances
+        try:
+            with db_session:
+                channels_queue = list(self.session.lm.mds.ChannelMetadata.get_updated_channels())
 
-        for channel in channels_queue:
-            if not self.session.has_download(hexlify(str(channel.infohash))):
-                self._logger.info("Downloading new channel version %s ver %i->%i",
-                                  str(channel.public_key).encode("hex"),
-                                  channel.local_version, channel.timestamp)
-                self.download_channel(channel)
+            for channel in channels_queue:
+                try:
+                    if not self.session.has_download(hexlify(str(channel.infohash))):
+                        self._logger.info("Downloading new channel version %s ver %i->%i",
+                                          str(channel.public_key).encode("hex"),
+                                          channel.local_version, channel.timestamp)
+                        self.download_channel(channel)
+                except:
+                    pass
+        except:
+            pass
 
     def on_channel_download_finished(self, download, channel_id, finished_deferred=None):
         """

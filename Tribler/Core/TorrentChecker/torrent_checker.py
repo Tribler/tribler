@@ -121,7 +121,7 @@ class TorrentChecker(TaskManager):
         # get the torrents that should be checked
         infohashes = []
         with db_session:
-            tracker = self.tribler_session.lm.mds.TrackerState[tracker_url]
+            tracker = self.tribler_session.lm.mds.TrackerState.get(url=tracker_url)
             if tracker:
                 torrents = tracker.torrents
                 for torrent in torrents:
@@ -212,7 +212,7 @@ class TorrentChecker(TaskManager):
         :param scrape_now: Flag whether we want to force scraping immediately
         """
         with db_session:
-            result = self.tribler_session.lm.mds.TorrentState[database_blob(infohash)]
+            result = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(infohash))
             if not result:
                 self._logger.warn(u"torrent info not found, skip. infohash: %s", hexlify(infohash))
                 return fail(Failure(RuntimeError("Torrent not found")))
@@ -307,7 +307,7 @@ class TorrentChecker(TaskManager):
         self._logger.debug(u"Update result %s/%s for %s", seeders, leechers, hexlify(infohash))
 
         with db_session:
-            result = self.tribler_session.lm.mds.TorrentState[database_blob(infohash)]
+            result = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(infohash))
             for tracker in result.trackers:
                 tracker.last_check = int(time.time())
                 if update_dict.get(tracker.url, {'seeders': 0, 'leechers': 0}) > 0:

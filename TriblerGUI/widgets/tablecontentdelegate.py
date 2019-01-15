@@ -100,12 +100,12 @@ class SearchResultsDelegate(TriblerButtonsDelegate):
     def __init__(self, parent=None):
         TriblerButtonsDelegate.__init__(self, parent)
         self.subscribe_control = SubscribeToggleControl(ACTION_BUTTONS)
-        self.controls = [self.subscribe_control]
         self.health_status_widget = HealthStatusDisplay()
 
         self.play_button = PlayIconButton()
         self.download_button = DownloadIconButton()
         self.ondemand_container = [self.play_button, self.download_button]
+        self.controls = [self.play_button, self.download_button, self.subscribe_control]
 
     def paint_exact(self, painter, option, index):
         data_item = index.model().data_items[index.row()]
@@ -176,6 +176,11 @@ class ChannelsButtonsDelegate(TriblerButtonsDelegate):
         if index.column() == index.model().column_position[u'subscribed']:
             # Draw empty cell as the background
             self.paint_empty_background(painter, option)
+
+            if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
+                return True
+            if index.model().data_items[index.row()][u'my_channel']:
+                return True
 
             data_item = index.model().data_items[index.row()]
 
