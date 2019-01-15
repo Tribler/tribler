@@ -64,7 +64,7 @@ class EditChannelPage(QWidget):
         self.controller = MyTorrentsTableViewController(self.model, self.window().edit_channel_torrents_container,
                                                         self.window().edit_channel_torrents_num_items_label,
                                                         self.window().edit_channel_torrents_filter)
-        self.window().edit_channel_torrents_container.details_tab_widget.hide()
+        self.window().edit_channel_torrents_container.details_container.hide()
 
     def update_channel_commit_views(self):
         self.window().dirty_channel_status_bar.setHidden(not self.channel_dirty)
