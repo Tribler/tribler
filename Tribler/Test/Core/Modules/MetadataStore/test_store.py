@@ -10,7 +10,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk, CHANNEL_DIR_NAME_LENGTH
 from Tribler.Core.Modules.MetadataStore.OrmBindings.metadata import NEW
-from Tribler.Core.Modules.MetadataStore.serialization import (ChannelMetadataPayload, MetadataPayload,
+from Tribler.Core.Modules.MetadataStore.serialization import (ChannelMetadataPayload, SignedPayload,
                                                               UnknownBlobTypeException)
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Test.Core.base_test import TriblerCoreTest
@@ -20,7 +20,7 @@ from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 def make_wrong_payload(filename):
     key = default_eccrypto.generate_key(u"curve25519")
-    metadata_payload = MetadataPayload(666, database_blob(key.pub().key_to_bin()[10:]))
+    metadata_payload = SignedPayload(666, database_blob(key.pub().key_to_bin()[10:]))
     with open(filename, 'wb') as output_file:
         output_file.write(''.join(metadata_payload.serialized(key)))
 
