@@ -126,10 +126,8 @@ class TestMetadataStore(TriblerCoreTest):
     def test_get_num_channels_torrents(self):
         self.mds.ChannelMetadata(title='testchan', id_=0)
         self.mds.ChannelMetadata(title='testchan', id_=123)
-        foreign1 = self.mds.ChannelMetadata(title='testchan', id_=0)
-        foreign1.public_key = unhexlify('1'*20)
-        foreign2 = self.mds.ChannelMetadata(title='testchan', id_=123)
-        foreign2.public_key = unhexlify('1'*20)
+        self.mds.ChannelMetadata(title='testchan', id_=0, public_key=unhexlify('0'*20), signature=unhexlify('0'*64), skip_key_check=True)
+        self.mds.ChannelMetadata(title='testchan', id_=0, public_key=unhexlify('1'*20), signature=unhexlify('1'*64), skip_key_check=True)
 
         md_list = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW) for x in range(0, 3)]
 
