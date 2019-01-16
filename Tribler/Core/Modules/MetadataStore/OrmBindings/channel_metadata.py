@@ -13,6 +13,7 @@ from pony.orm import db_session, raw_sql, select
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, NEW, PUBLIC_KEY_LEN, TODELETE
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
+from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.exceptions import DuplicateChannelNameError, DuplicateTorrentFileError
 from Tribler.pyipv8.ipv8.database import database_blob
 
@@ -94,9 +95,6 @@ def define_binding(db):
         def update_metadata(self, update_dict=None):
             channel_dict = self.to_dict()
             channel_dict.update(update_dict or {})
-            channel_dict.update({
-                "size": self.contents_len,
-            })
             self.set(**channel_dict)
             self.sign()
 
@@ -248,7 +246,7 @@ def define_binding(db):
                 "tags": tags,
                 "size": tdef.get_length(),
                 "torrent_date": datetime.fromtimestamp(tdef.get_creation_date()),
-                "tracker_info": tdef.get_tracker() or '',
+                "tracker_info": get_uniformed_tracker_url(tdef.get_tracker()) or '',
                 "status": NEW
             })
             torrent_metadata.parents.add(self)
