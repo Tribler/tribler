@@ -1,9 +1,11 @@
 import base64
 import datetime
-from binascii import unhexlify, hexlify
+import os
+from binascii import unhexlify
 
 import apsw
-from pony.orm import db_session, show
+from pony import orm
+from pony.orm import db_session
 from six import text_type
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
@@ -11,11 +13,6 @@ from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
-
-select_channels_sql = "Select name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " \
-                      + "FROM Channels " \
-                      + "WHERE nr_torrents >= 3 " \
-                      + "AND name not NULL;"
 
 
 class DispersyToPonyMigration(object):
@@ -25,31 +22,45 @@ class DispersyToPonyMigration(object):
         self.dispersy_db = dispersy_db
         self.mds = metadata_store
 
+
+    def dispesy_cid_to_pk(self, dispersy_cid):
+        return database_blob(unhexlify(("%X" % dispersy_cid).zfill(128)))
+
+    def pseudo_signature(self):
+        return database_blob('\x00' * 32)
+
+    def final_timestamp(self):
+        return 1 << 62
+
+    select_channels_sql = "Select id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " \
+                          + "FROM Channels " \
+                          + "WHERE nr_torrents >= 3 " \
+                          + "AND name not NULL;"
+
     def get_old_channels(self):
         connection = apsw.Connection(self.tribler_db)
         cursor = connection.cursor()
 
         channels = []
-        for channel_id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam in cursor.execute(
-                select_channels_sql):
-            channels.append({"old_id": channel_id,
-                             "title": name,
-                             "public_key": dispersy_cid,
-                             "timestamp": modified,
-                             "version": nr_torrents,
-                             "votes": nr_favorite,
-                             "xxx": nr_spam})
+        for id_, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam in cursor.execute(
+                self.select_channels_sql):
+            if nr_torrents and nr_torrents > 0:
+                channels.append({"id_": 0,
+                                 "infohash": database_blob(os.urandom(20)),
+                                 "title": name or '',
+                                 "public_key": self.dispesy_cid_to_pk(id_),
+                                 "timestamp": self.final_timestamp(),
+                                 "votes": int(nr_favorite or 0),
+                                 "xxx": float(nr_spam or 0),
+                                 "origin_id": 0,
+                                 "signature": self.pseudo_signature(),
+                                 "skip_key_check": True,
+                                 "size": 0,
+                                 "local_version": self.final_timestamp(),
+                                 "subscribed": False,
+                                 "status": LEGACY_ENTRY,
+                                 "num_entries": int(nr_torrents or 0)})
         return channels
-
-    select_torrent_trackers_mapping = "select torrent_id, tracker_id from TorrentTrackerMapping"
-
-    def get_torrent_trackers_mapping(self):
-        connection = apsw.Connection(self.tribler_db)
-        cursor = connection.cursor()
-        mapping = {}
-        for torrent_id, tracker_id in cursor.execute(self.select_torrent_trackers_mapping):
-            mapping[torrent_id] = tracker_id
-        return mapping
 
     select_trackers_sql = "select tracker_id, tracker, last_check, failures, is_alive from TrackerInfo"
 
@@ -109,8 +120,8 @@ class DispersyToPonyMigration(object):
                      "id_": torrent_id or 0,
                      "origin_id": 0,
                      "tracker_info": tracker_url,
-                     "public_key": database_blob(unhexlify(("%X" % channel_id).zfill(128))),
-                     "signature": database_blob('\x00' * 32),
+                     "public_key": self.dispesy_cid_to_pk(channel_id),
+                     "signature": self.pseudo_signature(),
                      "xxx": int(category == u'xxx'),
                      "skip_key_check": True},
                  {
@@ -123,17 +134,43 @@ class DispersyToPonyMigration(object):
 
 if __name__ == "__main__":
     my_key = default_eccrypto.generate_key(u"curve25519")
-    mds = MetadataStore(":memory:", "/tmp", my_key)
+    mds = MetadataStore("/tmp/metadata.sdb", "/tmp", my_key)
     d = DispersyToPonyMigration("/tmp/tribler.sdb", "/tmp/dispersy.sdb", mds)
     # old_channels = d.get_old_channels()
     old_trackers = d.get_old_trackers()
+
+
+
+    x = 0
+    chunk_size = 1000
+    while True:
+        old_torrents = d.get_old_torrents(chunk_size=chunk_size, offset=x)
+        if not old_torrents:
+            break
+        with db_session:
+            for (t, h) in old_torrents:
+                m = mds.TorrentMetadata(**t)
+                if h["last_check"] > 0:
+                    m.health.set(**h)
+        x += chunk_size
+        break
+        print x
+        print len(old_torrents)
+
     with db_session:
-        for (t, h) in d.get_old_torrents():
-            m = mds.TorrentMetadata(**t)
-            if h["last_check"]>0:
-                m.health.set(**h)
-        for m in mds.TorrentState.select()[:]:
-            print(m.trackers)
+        old_channels = d.get_old_channels()
+        for c in old_channels:
+            c = mds.ChannelMetadata(**c)
+            c.num_entries = c.contents_len
+
+
+    with db_session:
+        mds.ChannelMetadata
+        for c in mds.ChannelMetadata.select()[:]:
+            print c.contents_list
+
+
+
 
 """
 select Torrent.infohash, Torrent.length, Torrent.name, Torrent.creation_date, ChannelTorrents.torrent_id, Torrent.category

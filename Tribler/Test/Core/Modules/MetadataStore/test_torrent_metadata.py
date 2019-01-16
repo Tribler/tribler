@@ -70,7 +70,6 @@ class TestTorrentMetadata(TriblerCoreTest):
             dict(self.torrent_template, title="xoxoxo bar", tags="audio"))
         orm.flush()
 
-        print torrent1.rowid
         # Search for torrents with the keyword 'foo', it should return one result
         results = self.mds.TorrentMetadata.search_keyword("foo")[:]
         self.assertEqual(len(results), 1)
