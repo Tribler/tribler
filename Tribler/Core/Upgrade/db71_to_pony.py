@@ -1,9 +1,9 @@
 import base64
 import datetime
-from binascii import unhexlify
+from binascii import unhexlify, hexlify
 
 import apsw
-from pony.orm import db_session
+from pony.orm import db_session, show
 from six import text_type
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
@@ -41,6 +41,16 @@ class DispersyToPonyMigration(object):
                              "xxx": nr_spam})
         return channels
 
+    select_torrent_trackers_mapping = "select torrent_id, tracker_id from TorrentTrackerMapping"
+
+    def get_torrent_trackers_mapping(self):
+        connection = apsw.Connection(self.tribler_db)
+        cursor = connection.cursor()
+        mapping = {}
+        for torrent_id, tracker_id in cursor.execute(self.select_torrent_trackers_mapping):
+            mapping[torrent_id] = tracker_id
+        return mapping
+
     select_trackers_sql = "select tracker_id, tracker, last_check, failures, is_alive from TrackerInfo"
 
     def get_old_trackers(self):
@@ -62,25 +72,24 @@ class DispersyToPonyMigration(object):
                                      "is_alive": is_alive})
         return trackers
 
-    select_torrents_sql = "SELECT ct.channel_id, tracker_id, ct.name, t.infohash, t.length, t.creation_date, t.torrent_id, t.category, t.num_seeders, t.num_leechers, t.last_tracker_check " \
-                          " FROM _ChannelTorrents ct, Torrent t, TorrentTrackerMapping mp WHERE ct.name NOT NULL and t.length>0 AND t.category NOT NULL AND ct.deleted_at IS NULL " \
-                          " AND t.torrent_id == ct.torrent_id AND mp.torrent_id == t.torrent_id "
+    select_torrents_sql = "SELECT ti.tracker, ct.channel_id, ct.name, t.infohash, t.length, t.creation_date, t.torrent_id, t.category, t.num_seeders, t.num_leechers, t.last_tracker_check " + \
+                          " FROM _ChannelTorrents ct, Torrent t, TorrentTrackerMapping mp, TrackerInfo ti WHERE ct.name NOT NULL and t.length>0 AND t.category NOT NULL AND ct.deleted_at IS NULL " + \
+                          " AND t.torrent_id == ct.torrent_id AND t.infohash NOT NULL AND mp.torrent_id == t.torrent_id AND ti.tracker_id == mp.tracker_id AND ti.tracker!='DHT' AND ti.tracker!='no-DHT' group by infohash ORDER BY ti.is_alive desc, ti.failures, ti.last_check desc "
 
-    def get_old_torrents(self, trackers, chunk_size=10000, offset=0):
+    def get_old_torrents(self, chunk_size=10000, offset=0):
         connection = apsw.Connection(self.tribler_db)
         cursor = connection.cursor()
 
         torrents = []
-        for channel_id, tracker_id, name, infohash, length, creation_date, torrent_id, category, num_seeders, num_leechers, tracker_url in cursor.execute(
+        health = []
+        for tracker_url, channel_id, name, infohash, length, creation_date, torrent_id, category, num_seeders, num_leechers, last_tracker_check in cursor.execute(
                 self.select_torrents_sql + " LIMIT " + str(chunk_size) + " OFFSET " + str(offset)):
             # check if name is valid unicode data
             try:
                 name = text_type(name)
             except UnicodeDecodeError:
                 continue
-            # num_seeders
-            # num_leechers
-            # last_tracker_check
+
             try:
                 if len(base64.decodestring(infohash)) != 20:
                     continue
@@ -88,21 +97,26 @@ class DispersyToPonyMigration(object):
                 continue
             infohash = base64.decodestring(infohash)
 
-            torrents.append({
-                "status": LEGACY_ENTRY,
-                "infohash": infohash,
-                "timestamp": torrent_id,
-                "size": length,
-                "torrent_date": datetime.datetime.utcfromtimestamp(creation_date),
-                "title": name,
-                "tags": category,
-                "id_": torrent_id,
-                "origin_id": 0,
-                "tracker_info": trackers[tracker_id]['tracker'] if tracker_id in trackers else "",
-                "public_key": database_blob(unhexlify(("%X" % channel_id).zfill(128))),
-                "signature": database_blob('\x00' * 32),
-                "xxx": int(category == u'xxx'),
-                "skip_key_check": True})
+            torrents.append(
+                ({
+                     "status": LEGACY_ENTRY,
+                     "infohash": infohash,
+                     "timestamp": int(torrent_id or 0),
+                     "size": int(length or 0),
+                     "torrent_date": datetime.datetime.utcfromtimestamp(creation_date or 0),
+                     "title": name or '',
+                     "tags": category or '',
+                     "id_": torrent_id or 0,
+                     "origin_id": 0,
+                     "tracker_info": tracker_url,
+                     "public_key": database_blob(unhexlify(("%X" % channel_id).zfill(128))),
+                     "signature": database_blob('\x00' * 32),
+                     "xxx": int(category == u'xxx'),
+                     "skip_key_check": True},
+                 {
+                     "seeders": int(num_seeders or 0),
+                     "leechers": int(num_leechers or 0),
+                     "last_check": int(last_tracker_check or 0)}))
 
         return torrents
 
@@ -114,8 +128,12 @@ if __name__ == "__main__":
     # old_channels = d.get_old_channels()
     old_trackers = d.get_old_trackers()
     with db_session:
-        for t in d.get_old_torrents(old_trackers):
-            mds.TorrentMetadata(**t)
+        for (t, h) in d.get_old_torrents():
+            m = mds.TorrentMetadata(**t)
+            if h["last_check"]>0:
+                m.health.set(**h)
+        for m in mds.TorrentState.select()[:]:
+            print(m.trackers)
 
 """
 select Torrent.infohash, Torrent.length, Torrent.name, Torrent.creation_date, ChannelTorrents.torrent_id, Torrent.category
