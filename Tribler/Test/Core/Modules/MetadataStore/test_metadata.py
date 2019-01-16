@@ -4,7 +4,7 @@ from pony import orm
 from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Modules.MetadataStore.serialization import SignedPayload, KeysMismatchException, ChannelNodePayload
+from Tribler.Core.Modules.MetadataStore.serialization import KeysMismatchException, ChannelNodePayload
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.pyipv8.ipv8.database import database_blob
