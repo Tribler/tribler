@@ -177,6 +177,9 @@ class ChannelsButtonsDelegate(TriblerButtonsDelegate):
             # Draw empty cell as the background
             self.paint_empty_background(painter, option)
 
+            if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
+                return True
+
             data_item = index.model().data_items[index.row()]
 
             if index == self.hover_index:
