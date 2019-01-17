@@ -3,6 +3,7 @@ from binascii import unhexlify
 from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
+from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.pyipv8.ipv8.community import Community
 from Tribler.pyipv8.ipv8.lazy_community import PacketDecodingError
 from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
@@ -43,11 +44,11 @@ class GigaChannelCommunity(Community):
         # Choose some random entries and try to pack them into maximum_payload_size bytes
         md_list = []
         with db_session:
-            channel_l = self.metadata_store.ChannelMetadata.get_random_channels(1)[:]
+            # TODO: when the health table will be there, send popular torrents instead
+            channel_l = self.metadata_store.ChannelMetadata.get_random_channels(1, subscribed=True)[:]
             if not channel_l:
                 return
             channel = channel_l[0]
-            # TODO: when the health table will be there, send popular torrents instead
             md_list.append(channel)
             md_list.extend(list(channel.get_random_torrents(max_entries - 1)))
             blob = entries_to_chunk(md_list, maximum_payload_size)[0] if md_list else None

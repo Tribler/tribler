@@ -376,9 +376,7 @@ def define_binding(db):
             :return: the subset of random channels we are subscribed to
             :rtype: list
             """
-            if subscribed:
-                return db.ChannelMetadata.select(lambda g: g.subscribed and g.status != LEGACY_ENTRY).random(limit)
-            return db.ChannelMetadata.select().random(limit)
+            return db.ChannelMetadata.select(lambda g: g.subscribed == subscribed and g.status != LEGACY_ENTRY).random(limit)
 
         @db_session
         def get_random_torrents(self, limit):
@@ -425,7 +423,10 @@ def define_binding(db):
                 "torrents": self.contents_len,
                 "subscribed": self.subscribed,
                 "votes": self.votes,
-                "status": self.status
+                "status": self.status,
+
+                # TODO: optimize this?
+                "my_channel": database_blob(self._my_key.pub().key_to_bin()[10:]) == database_blob(self.public_key)
             }
 
     return ChannelMetadata

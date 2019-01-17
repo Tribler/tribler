@@ -131,7 +131,6 @@ class MetadataStore(object):
         :param channel_id: public_key of the channel.
         """
         # We use multiple separate db_sessions here to limit memory usage when reading big channels
-
         with db_session:
             channel = self.ChannelMetadata.get(public_key=channel_id)
             self._logger.debug("Starting processing channel dir %s. Channel %s local/max version %i/%i",

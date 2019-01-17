@@ -179,6 +179,8 @@ class ChannelsButtonsDelegate(TriblerButtonsDelegate):
 
             if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
                 return True
+            if index.model().data_items[index.row()][u'my_channel']:
+                return True
 
             data_item = index.model().data_items[index.row()]
 

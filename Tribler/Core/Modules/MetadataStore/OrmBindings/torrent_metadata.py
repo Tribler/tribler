@@ -6,6 +6,7 @@ from datetime import datetime
 from pony import orm
 from pony.orm import db_session, raw_sql
 
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.serialization import TorrentMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -32,7 +33,8 @@ def define_binding(db):
 
         def __init__(self, *args, **kwargs):
             if "health" not in kwargs and "infohash" in kwargs:
-                kwargs["health"] = db.TorrentState.get(infohash=kwargs["infohash"]) or db.TorrentState(infohash=kwargs["infohash"])
+                kwargs["health"] = db.TorrentState.get(infohash=kwargs["infohash"]) or db.TorrentState(
+                    infohash=kwargs["infohash"])
                 if 'tracker_info' in kwargs:
                     sanitized_url = get_uniformed_tracker_url(kwargs["tracker_info"])
                     if sanitized_url:
@@ -88,7 +90,8 @@ def define_binding(db):
             """
             Return some random torrents from the database.
             """
-            return TorrentMetadata.select().where(metadata_type=REGULAR_TORRENT).random(limit)
+            return TorrentMetadata.select(
+                lambda g: g.metadata_type == REGULAR_TORRENT and g.status != LEGACY_ENTRY).random(limit)
 
         @classmethod
         @db_session
