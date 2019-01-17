@@ -4,6 +4,7 @@ import socket
 import struct
 import time
 from abc import ABCMeta, abstractmethod, abstractproperty
+from binascii import hexlify
 from libtorrent import bdecode
 from twisted.internet import reactor, defer
 from twisted.internet.defer import Deferred, inlineCallbacks
@@ -321,7 +322,7 @@ class HttpTrackerSession(TrackerSession):
                 leechers = incomplete
 
                 # Store the information in the dictionary
-                response_list.append({'infohash': infohash.encode('hex'), 'seeders': seeders, 'leechers': leechers})
+                response_list.append({'infohash': hexlify(infohash), 'seeders': seeders, 'leechers': leechers})
 
                 # remove this infohash in the infohash list of this session
                 if infohash in unprocessed_infohash_list:
@@ -334,7 +335,7 @@ class HttpTrackerSession(TrackerSession):
 
         # handle the infohashes with no result (seeders/leechers = 0/0)
         for infohash in unprocessed_infohash_list:
-            response_list.append({'infohash': infohash.encode('hex'), 'seeders': 0, 'leechers': 0})
+            response_list.append({'infohash': hexlify(infohash), 'seeders': 0, 'leechers': 0})
 
         self._is_finished = True
         if self.result_deferred and not self.result_deferred.called:
@@ -638,7 +639,7 @@ class UdpTrackerSession(TrackerSession):
             # Store the information in the hash dict to be returned.
             # Sow complete as seeders. "complete: number of peers with the entire file, i.e. seeders (integer)"
             #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
-            response_list.append({'infohash': infohash.encode('hex'), 'seeders': complete, 'leechers': incomplete})
+            response_list.append({'infohash': hexlify(infohash), 'seeders': complete, 'leechers': incomplete})
 
         # close this socket and remove its transaction ID from the list
         self.remove_transaction_id()
@@ -690,7 +691,7 @@ class FakeDHTSession(TrackerSession):
         :return: A deferred with a callback containing an empty dictionary.
         """
         def on_metainfo_received(metainfo):
-            self.result_deferred.callback({'DHT': [{'infohash': self.infohash.encode('hex'),
+            self.result_deferred.callback({'DHT': [{'infohash': hexlify(self.infohash),
                                                     'seeders': metainfo['seeders'], 'leechers': metainfo['leechers']}]})
 
         def on_metainfo_timeout(_):
