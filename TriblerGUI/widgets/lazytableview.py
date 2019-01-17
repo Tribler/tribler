@@ -179,9 +179,11 @@ class ChannelsTableView(TriblerContentTableView):
         self.clicked.connect(self.on_table_item_clicked)
 
     def on_subscribe_control_clicked(self, index):
-        status = int(index.model().data_items[index.row()][u'subscribed'])
         if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
             return
+        if index.model().data_items[index.row()][u'my_channel']:
+            return
+        status = int(index.model().data_items[index.row()][u'subscribed'])
         if status:
             self.on_unsubscribe_button_clicked(index)
         else:
