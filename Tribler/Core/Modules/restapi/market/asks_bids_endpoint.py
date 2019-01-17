@@ -1,11 +1,13 @@
+from __future__ import absolute_import
+
 from twisted.web import http
 from twisted.web.server import NOT_DONE_YET
 
+import Tribler.Core.Utilities.json_util as json
+from Tribler.Core.Modules.restapi import get_param, has_param
+from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
 from Tribler.community.market.core.assetamount import AssetAmount
 from Tribler.community.market.core.assetpair import AssetPair
-from Tribler.Core.Modules.restapi import has_param, get_param
-from Tribler.Core.Modules.restapi.market import BaseMarketEndpoint
-import Tribler.Core.Utilities.json_util as json
 
 
 class BaseAsksBidsEndpoint(BaseMarketEndpoint):
@@ -97,7 +99,20 @@ class AsksEndpoint(BaseAsksBidsEndpoint):
             .. sourcecode:: javascript
 
                 {
-                    "created": True
+                     "timestamp": 1547587907.887339,
+                     "order_number": 12,
+                     "assets": {
+                        "second": {
+                            "amount": 1000,
+                            "type": "MB"
+                        },
+                        "first": {
+                            "amount": 100000,
+                            "type": "BTC"
+                        }
+                    },
+                    "timeout": 3600,
+                    "trader_id": "9695c9e15201d08586e4230f4a8524799ebcb2d7"
                 }
         """
         parameters = http.parse_qs(request.content.read(), 1)
@@ -110,9 +125,15 @@ class AsksEndpoint(BaseAsksBidsEndpoint):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "asset type parameter missing"})
 
-        def on_ask_created(_):
+        def on_ask_created(ask):
             if not request.finished:
-                request.write(json.dumps({"created": True}))
+                request.write(json.dumps({
+                    'assets': ask.assets.to_dictionary(),
+                    'timestamp': float(ask.timestamp),
+                    'trader_id': str(ask.order_id.trader_id),
+                    'order_number': int(ask.order_id.order_number),
+                    'timeout': int(ask.timeout)
+                }))
                 request.finish()
 
         self.get_market_community().create_ask(*BaseAsksBidsEndpoint.create_ask_bid_from_params(parameters))\
@@ -185,7 +206,20 @@ class BidsEndpoint(BaseAsksBidsEndpoint):
             .. sourcecode:: javascript
 
                 {
-                    "created": True
+                     "timestamp": 1547587907.887339,
+                     "order_number": 12,
+                     "assets": {
+                        "second": {
+                            "amount": 1000,
+                            "type": "MB"
+                        },
+                        "first": {
+                            "amount": 100000,
+                            "type": "BTC"
+                        }
+                    },
+                    "timeout": 3600,
+                    "trader_id": "9695c9e15201d08586e4230f4a8524799ebcb2d7"
                 }
         """
         parameters = http.parse_qs(request.content.read(), 1)
@@ -198,9 +232,15 @@ class BidsEndpoint(BaseAsksBidsEndpoint):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "asset type parameter missing"})
 
-        def on_bid_created(_):
+        def on_bid_created(bid):
             if not request.finished:
-                request.write(json.dumps({"created": True}))
+                request.write(json.dumps({
+                    'assets': bid.assets.to_dictionary(),
+                    'timestamp': float(bid.timestamp),
+                    'trader_id': str(bid.order_id.trader_id),
+                    'order_number': int(bid.order_id.order_number),
+                    'timeout': int(bid.timeout)
+                }))
                 request.finish()
 
         self.get_market_community().create_bid(*BaseAsksBidsEndpoint.create_ask_bid_from_params(parameters))\
