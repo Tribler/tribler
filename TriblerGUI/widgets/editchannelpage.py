@@ -113,8 +113,9 @@ class EditChannelPage(QWidget):
         self.window().create_channel_button.setEnabled(False)
         self.editchannel_request_mgr = TriblerRequestManager()
         self.editchannel_request_mgr.perform_request("mychannel", self.on_channel_created,
-                                                     data=(u'name=%s&description=%s' %
-                                                           (channel_name, channel_description)).encode('utf-8'),
+                                                     data=urllib.urlencode({u'name': channel_name.encode('utf-8'),
+                                                                            u'description': channel_description.encode(
+                                                                                'utf-8')}),
                                                      method='PUT')
 
     def on_channel_created(self, result):
@@ -130,8 +131,9 @@ class EditChannelPage(QWidget):
 
         self.editchannel_request_mgr = TriblerRequestManager()
         self.editchannel_request_mgr.perform_request("mychannel", self.on_channel_edited,
-                                                     data=(u'name=%s&description=%s' %
-                                                           (channel_name, channel_description)).encode('utf-8'),
+                                                     data=urllib.urlencode({u'name': channel_name.encode('utf-8'),
+                                                                            u'description': channel_description.encode(
+                                                                                'utf-8')}),
                                                      method='POST')
 
     def on_channel_edited(self, result):

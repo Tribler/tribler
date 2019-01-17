@@ -2,6 +2,7 @@ import logging
 import random
 import socket
 import struct
+import sys
 import time
 from abc import ABCMeta, abstractmethod, abstractproperty
 from binascii import hexlify
@@ -591,8 +592,13 @@ class UdpTrackerSession(TrackerSession):
         self.generate_transaction_id()
 
         # pack and send the message
+        if sys.version_info.major > 2:
+            infohash_list = self._infohash_list
+        else:
+            infohash_list = [str(infohash) for infohash in self._infohash_list]
+
         fmt = '!qii' + ('20s' * len(self._infohash_list))
-        message = struct.pack(fmt, self._connection_id, self.action, self.transaction_id, *self._infohash_list)
+        message = struct.pack(fmt, self._connection_id, self.action, self.transaction_id, *infohash_list)
 
         # Send the scrape message
         self.socket_mgr.send_request(message, self)
