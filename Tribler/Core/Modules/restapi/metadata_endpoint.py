@@ -56,7 +56,9 @@ class MetadataEndpoint(BaseMetadataEndpoint):
             u'size': "size",
             u'infohash': "infohash",
             u'date': "torrent_date",
-            u'status': 'status'
+            u'status': 'status',
+            u'torrents': 'num_entries',
+            u'health': 'health.seeders'
         }
 
         if sort_param not in json2pony_columns:
