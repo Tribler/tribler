@@ -424,7 +424,8 @@ def define_binding(db):
                 "name": self.title,
                 "torrents": self.contents_len,
                 "subscribed": self.subscribed,
-                "votes": self.votes
+                "votes": self.votes,
+                "status": self.status
             }
 
     return ChannelMetadata
