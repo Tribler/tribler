@@ -4,7 +4,6 @@ import os
 from binascii import unhexlify
 
 import apsw
-from pony import orm
 from pony.orm import db_session
 from six import text_type
 
@@ -14,14 +13,14 @@ from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
+BATCH_SIZE = 10000
+
 
 class DispersyToPonyMigration(object):
 
-    def __init__(self, tribler_db, dispersy_db, metadata_store):
+    def __init__(self, tribler_db, metadata_store):
         self.tribler_db = tribler_db
-        self.dispersy_db = dispersy_db
         self.mds = metadata_store
-
 
     def dispesy_cid_to_pk(self, dispersy_cid):
         return database_blob(unhexlify(("%X" % dispersy_cid).zfill(128)))
@@ -83,18 +82,24 @@ class DispersyToPonyMigration(object):
                                      "is_alive": is_alive})
         return trackers
 
-    select_torrents_sql = "SELECT ti.tracker, ct.channel_id, ct.name, t.infohash, t.length, t.creation_date, t.torrent_id, t.category, t.num_seeders, t.num_leechers, t.last_tracker_check " + \
-                          " FROM _ChannelTorrents ct, Torrent t, TorrentTrackerMapping mp, TrackerInfo ti WHERE ct.name NOT NULL and t.length>0 AND t.category NOT NULL AND ct.deleted_at IS NULL " + \
+    select_torrents_sql = " FROM _ChannelTorrents ct, Torrent t, TorrentTrackerMapping mp, TrackerInfo ti WHERE ct.name NOT NULL and t.length>0 AND t.category NOT NULL AND ct.deleted_at IS NULL " + \
                           " AND t.torrent_id == ct.torrent_id AND t.infohash NOT NULL AND mp.torrent_id == t.torrent_id AND ti.tracker_id == mp.tracker_id AND ti.tracker!='DHT' AND ti.tracker!='no-DHT' group by infohash ORDER BY ti.is_alive desc, ti.failures, ti.last_check desc "
 
-    def get_old_torrents(self, chunk_size=10000, offset=0):
+    def get_old_torrents_count(self):
+        connection = apsw.Connection(self.tribler_db)
+        cursor = connection.cursor()
+        cursor.execute("SELECT COUNT(*) FROM (SELECT t.torrent_id " + self.select_torrents_sql + " )")
+        return cursor.fetchone()[0]
+
+    def get_old_torrents(self, batch_size=BATCH_SIZE, offset=0):
         connection = apsw.Connection(self.tribler_db)
         cursor = connection.cursor()
 
         torrents = []
-        health = []
         for tracker_url, channel_id, name, infohash, length, creation_date, torrent_id, category, num_seeders, num_leechers, last_tracker_check in cursor.execute(
-                self.select_torrents_sql + " LIMIT " + str(chunk_size) + " OFFSET " + str(offset)):
+                "SELECT " + \
+                "ti.tracker, ct.channel_id, ct.name, t.infohash, t.length, t.creation_date, t.torrent_id, t.category, t.num_seeders, t.num_leechers, t.last_tracker_check " + \
+                self.select_torrents_sql + (" LIMIT " + str(batch_size) + " OFFSET " + str(offset))):
             # check if name is valid unicode data
             try:
                 name = text_type(name)
@@ -134,17 +139,17 @@ class DispersyToPonyMigration(object):
 
 if __name__ == "__main__":
     my_key = default_eccrypto.generate_key(u"curve25519")
-    mds = MetadataStore("/tmp/metadata.sdb", "/tmp", my_key)
-    d = DispersyToPonyMigration("/tmp/tribler.sdb", "/tmp/dispersy.sdb", mds)
+    mds = MetadataStore("/tmp/metadata.db", "/tmp", my_key)
+    d = DispersyToPonyMigration("/tmp/tribler.sdb", mds)
     # old_channels = d.get_old_channels()
     old_trackers = d.get_old_trackers()
 
-
-
     x = 0
-    chunk_size = 1000
+    batch_size = 1000
+    total_to_convert = d.get_old_torrents_count()
+    old_torrents = d.get_old_torrents()
     while True:
-        old_torrents = d.get_old_torrents(chunk_size=chunk_size, offset=x)
+        old_torrents = d.get_old_torrents(batch_size=batch_size, offset=x)
         if not old_torrents:
             break
         with db_session:
@@ -152,34 +157,19 @@ if __name__ == "__main__":
                 m = mds.TorrentMetadata(**t)
                 if h["last_check"] > 0:
                     m.health.set(**h)
-        x += chunk_size
-        break
-        print x
-        print len(old_torrents)
+        x += batch_size
+        print ("%i/%i" % (x, total_to_convert))
 
     with db_session:
         old_channels = d.get_old_channels()
         for c in old_channels:
             c = mds.ChannelMetadata(**c)
-            c.num_entries = c.contents_len
 
     with db_session:
         for c in mds.ChannelMetadata.select()[:]:
+            c.num_entries = c.contents_len
             if c.num_entries == 0:
                 c.delete()
-
-
-
-
-"""
-select Torrent.infohash, Torrent.length, Torrent.name, Torrent.creation_date, ChannelTorrents.torrent_id, Torrent.category
-from ChannelTorrents, Channels, Torrent
-where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id 
-select Torrent.infohash, Torrent.num_seeders, Torrent.num_leechers, Torrent.last_tracker_check
-from ChannelTorrents, Channels, Torrent
-where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id
-
-"""
 
 # 1 - Move Trackers (URLs)
 # 2 - Move torrent Infohashes

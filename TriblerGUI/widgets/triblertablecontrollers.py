@@ -86,7 +86,7 @@ class SearchResultsTableViewController(TriblerTableViewController):
             "search?q=%s&first=%i&last=%i" % (query, start, end)
             + ('&sort_by=%s' % sort_by)
             + ('&sort_asc=%d' % sort_asc)
-            + ('&type=%s' % ('' if not self.model.type_filter else self.model.type_filter)),
+            + (('&type=%s' % self.model.type_filter) if self.model.type_filter else ''),
             self.on_search_results)
 
     def on_search_results(self, response):
