@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import time
 
-from PyQt5.QtCore import pyqtSignal, QModelIndex
+from PyQt5.QtCore import QModelIndex
 from PyQt5.QtWidgets import QLabel, QTabWidget, QTreeWidget, QTreeWidgetItem
 
 from TriblerGUI.defs import HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_GOOD, HEALTH_MOOT
@@ -149,7 +149,14 @@ class TorrentDetailsTabWidget(QTabWidget):
         self.update_torrent_health(total_seeders, total_leechers)
 
     def update_torrent_health(self, seeders, leechers):
-        data_item = self.index.model().data_items[self.index.row()]
+        # Check if details widget is still showing the same entry and the entry still exists in the table
+        try:
+            data_item = self.index.model().data_items[self.index.row()]
+        except IndexError:
+            return
+        if self.torrent_info["infohash"] != data_item[u'infohash']:
+            return
+
         data_item[u'num_seeders'] = seeders
         data_item[u'num_leechers'] = leechers
         data_item[u'last_tracker_check'] = time.time()

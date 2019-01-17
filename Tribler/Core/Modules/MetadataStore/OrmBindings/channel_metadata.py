@@ -3,15 +3,14 @@ from __future__ import absolute_import
 import os
 from binascii import hexlify
 from datetime import datetime
-
 from libtorrent import add_files, bencode, create_torrent, file_storage, set_piece_hashes, torrent_info
 
 import lz4.frame
-
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, NEW, PUBLIC_KEY_LEN, TODELETE
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, NEW, PUBLIC_KEY_LEN, TODELETE, \
+    LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.exceptions import DuplicateChannelNameError, DuplicateTorrentFileError
@@ -378,7 +377,7 @@ def define_binding(db):
             :rtype: list
             """
             if subscribed:
-                return db.ChannelMetadata.select(lambda g: g.subscribed).random(limit)
+                return db.ChannelMetadata.select(lambda g: g.subscribed and g.status != LEGACY_ENTRY).random(limit)
             return db.ChannelMetadata.select().random(limit)
 
         @db_session
@@ -403,7 +402,8 @@ def define_binding(db):
             :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
                      the total number of results, regardless the passed first/last parameter.
             """
-            pony_query = ChannelMetadata.get_entries_query(sort_by=sort_by, sort_asc=sort_asc, query_filter=query_filter)
+            pony_query = ChannelMetadata.get_entries_query(sort_by=sort_by, sort_asc=sort_asc,
+                                                           query_filter=query_filter)
 
             # Filter subscribed/non-subscribed
             if subscribed:
@@ -411,7 +411,7 @@ def define_binding(db):
 
             total_results = pony_query.count()
 
-            return pony_query[first-1:last], total_results
+            return pony_query[first - 1:last], total_results
 
         @db_session
         def to_simple_dict(self):

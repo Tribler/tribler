@@ -163,11 +163,10 @@ if __name__ == "__main__":
             c = mds.ChannelMetadata(**c)
             c.num_entries = c.contents_len
 
-
     with db_session:
-        mds.ChannelMetadata
         for c in mds.ChannelMetadata.select()[:]:
-            print c.contents_list
+            if c.num_entries == 0:
+                c.delete()
 
 
 
