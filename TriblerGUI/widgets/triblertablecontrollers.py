@@ -225,7 +225,7 @@ class TorrentsTableViewController(TriblerTableViewController):
 
     def on_torrents(self, response):
         if not response:
-            return
+            return None
 
         self.model.total_items = response['total']
 
@@ -234,6 +234,7 @@ class TorrentsTableViewController(TriblerTableViewController):
 
         if response['first'] >= self.model.rowCount():
             self.model.add_items(response['torrents'])
+        return True
 
 
 class MyTorrentsTableViewController(TorrentsTableViewController):
@@ -264,16 +265,6 @@ class MyTorrentsTableViewController(TorrentsTableViewController):
             self.on_torrents)
 
     def on_torrents(self, response):
-        if not response:
-            return
-
-        self.model.total_items = response['total']
-
-        if self.num_torrents_label:
-            self.num_torrents_label.setText("%d items" % response['total'])
-
-        if response['first'] >= self.model.rowCount():
-            self.model.add_items(response['torrents'])
-
-        self.table_view.window().edit_channel_page.channel_dirty = response['dirty']
-        self.table_view.window().edit_channel_page.update_channel_commit_views()
+        if super(MyTorrentsTableViewController, self).on_torrents(response):
+            self.table_view.window().edit_channel_page.channel_dirty = response['dirty']
+            self.table_view.window().edit_channel_page.update_channel_commit_views()
