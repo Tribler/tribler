@@ -115,7 +115,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
 
             torrents, total = self.session.lm.mds.TorrentMetadata.get_torrents(
                 first, last, sort_by, sort_asc, query_filter, channel)
-            torrents = [torrent.to_simple_dict(include_status=True) for torrent in torrents]
+            torrents = [torrent.to_simple_dict() for torrent in torrents]
 
             return json.dumps({
                 "torrents": torrents,

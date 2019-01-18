@@ -53,9 +53,14 @@ class SearchResultsTableView(TriblerContentTableView):
         self.mouse_moved.connect(self.delegate.on_mouse_moved)
         self.delegate.redraw_required.connect(self.redraw)
 
+        self.delegate.play_button.clicked.connect(self.on_play_button_clicked)
+        self.delegate.download_button.clicked.connect(self.on_download_button_clicked)
+        self.delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
+
         self.clicked.connect(self.on_table_item_clicked)
 
     def on_table_item_clicked(self, item):
+
         content_info = self.model().data_items[item.row()]
         if content_info['type'] == 'channel':
             self.window().channel_page.initialize_with_channel(content_info)
@@ -70,6 +75,52 @@ class SearchResultsTableView(TriblerContentTableView):
         self.setColumnWidth(2, 100)
         self.setColumnWidth(3, 100)
         self.setColumnWidth(1, self.width() - 304)  # Few pixels offset so the horizontal scrollbar does not appear
+
+    def on_play_button_clicked(self, index):
+        infohash = index.model().data_items[index.row()][u'infohash']
+
+        def on_play_request_done(_):
+            if not self:
+                return
+            self.window().left_menu_button_video_player.click()
+            self.window().video_player_page.play_media_item(infohash, -1)
+
+        self.window().perform_start_download_request(index2uri(index),
+                                                     self.window().tribler_settings['download_defaults'][
+                                                         'anonymity_enabled'],
+                                                     self.window().tribler_settings['download_defaults'][
+                                                         'safeseeding_enabled'],
+                                                     self.window().tribler_settings['download_defaults']['saveas'],
+                                                     [], 0, callback=on_play_request_done)
+
+    def on_download_button_clicked(self, index):
+        self.window().start_download_from_uri(index2uri(index))
+
+    def on_subscribe_control_clicked(self, index):
+        if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
+            return
+        if index.model().data_items[index.row()][u'my_channel']:
+            return
+        status = int(index.model().data_items[index.row()][u'subscribed'])
+        if status:
+            self.on_unsubscribe_button_clicked(index)
+        else:
+            self.on_subscribe_button_clicked(index)
+        index.model().data_items[index.row()][u'subscribed'] = int(not status)
+
+    def on_subscribe_button_clicked(self, index):
+        public_key = index.model().data_items[index.row()][u'public_key']
+        request_mgr = TriblerRequestManager()
+        request_mgr.perform_request("metadata/channels/%s" % public_key,
+                                    lambda _: self.on_subscribed_channel.emit(index),
+                                    data='subscribe=1', method='POST')
+
+    def on_unsubscribe_button_clicked(self, index):
+        public_key = index.model().data_items[index.row()][u'public_key']
+        request_mgr = TriblerRequestManager()
+        request_mgr.perform_request("metadata/channels/%s" % public_key,
+                                    lambda _: self.on_unsubscribed_channel.emit(index),
+                                    data='subscribe=0', method='POST')
 
 
 class TorrentsTableView(TriblerContentTableView):
@@ -170,11 +221,11 @@ class ChannelsTableView(TriblerContentTableView):
     def __init__(self, parent=None):
         TriblerContentTableView.__init__(self, parent)
 
-        delegate = ChannelsButtonsDelegate()
-        self.setItemDelegate(delegate)
-        self.mouse_moved.connect(delegate.on_mouse_moved)
-        delegate.redraw_required.connect(self.redraw)
-        delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
+        self.delegate = ChannelsButtonsDelegate()
+        self.setItemDelegate(self.delegate)
+        self.mouse_moved.connect(self.delegate.on_mouse_moved)
+        self.delegate.redraw_required.connect(self.redraw)
+        self.delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
 
         self.clicked.connect(self.on_table_item_clicked)
 
