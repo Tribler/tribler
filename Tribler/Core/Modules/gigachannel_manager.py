@@ -26,7 +26,7 @@ class GigaChannelManager(TaskManager):
         The Metadata Store checks the database at regular intervals to see if new channels are available for preview
         or subscribed channels require updating.
         """
-        queue_check_interval = 2.0  # seconds
+        queue_check_interval = 5.0  # seconds
         self.register_task("Process channels download queue",
                            LoopingCall(self.check_channels_updates)).start(queue_check_interval)
 

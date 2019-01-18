@@ -100,12 +100,12 @@ class SearchResultsDelegate(TriblerButtonsDelegate):
     def __init__(self, parent=None):
         TriblerButtonsDelegate.__init__(self, parent)
         self.subscribe_control = SubscribeToggleControl(ACTION_BUTTONS)
-        self.controls = [self.subscribe_control]
         self.health_status_widget = HealthStatusDisplay()
 
         self.play_button = PlayIconButton()
         self.download_button = DownloadIconButton()
         self.ondemand_container = [self.play_button, self.download_button]
+        self.controls = [self.play_button, self.download_button, self.subscribe_control]
 
     def paint_exact(self, painter, option, index):
         data_item = index.model().data_items[index.row()]
