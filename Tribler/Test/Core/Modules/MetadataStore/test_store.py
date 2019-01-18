@@ -120,7 +120,8 @@ class TestMetadataStore(TriblerCoreTest):
         self.assertFalse(channel.contents_list)
         self.mds.process_channel_dir(self.CHANNEL_DIR, channel.public_key)
         self.assertEqual(len(channel.contents_list), 3)
-        self.assertEqual(channel.local_version, 9)
+        self.assertEqual(channel.timestamp, 7)
+        self.assertEqual(channel.local_version, channel.timestamp)
 
     @db_session
     def test_get_num_channels_torrents(self):

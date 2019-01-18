@@ -138,9 +138,9 @@ class TestChannelMetadata(TriblerCoreTest):
 
         # Check that we always take the latest version
         channel_metadata.timestamp -= 1
-        self.assertEqual(channel_metadata.timestamp, 9)
+        self.assertEqual(channel_metadata.timestamp, 6)
         channel_metadata = self.mds.ChannelMetadata.process_channel_metadata_payload(payload)
-        self.assertEqual(channel_metadata.timestamp, 10)
+        self.assertEqual(channel_metadata.timestamp, 7)
         self.assertEqual(len(self.mds.ChannelMetadata.select()), 1)
 
     @db_session
@@ -185,7 +185,7 @@ class TestChannelMetadata(TriblerCoreTest):
         channel_metadata.commit_channel_torrent()
 
         self.assertEqual(channel_metadata.id_, ROOT_CHANNEL_ID)
-        self.assertEqual(channel_metadata.timestamp, 3)
+        self.assertEqual(channel_metadata.timestamp, 2)
         self.assertEqual(channel_metadata.num_entries, 1)
 
     @db_session
