@@ -144,6 +144,7 @@ if __name__ == "__main__":
     # old_channels = d.get_old_channels()
     old_trackers = d.get_old_trackers()
 
+    start = datetime.datetime.utcnow()
     x = 0
     batch_size = 1000
     total_to_convert = d.get_old_torrents_count()
@@ -163,13 +164,18 @@ if __name__ == "__main__":
     with db_session:
         old_channels = d.get_old_channels()
         for c in old_channels:
-            c = mds.ChannelMetadata(**c)
+            mds.ChannelMetadata(**c)
 
     with db_session:
         for c in mds.ChannelMetadata.select()[:]:
             c.num_entries = c.contents_len
             if c.num_entries == 0:
                 c.delete()
+
+    stop = datetime.datetime.utcnow()
+    elapsed = (stop-start).total_seconds()
+
+    print ("%i entries converted in %i seconds (%i e/s)" % (total_to_convert, int(elapsed), int(total_to_convert/elapsed)))
 
 # 1 - Move Trackers (URLs)
 # 2 - Move torrent Infohashes
