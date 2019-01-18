@@ -167,12 +167,16 @@ def define_binding(db):
                 os.makedirs(channel_dir)
 
             index = 0
+            new_timestamp = self.timestamp
             while index < len(metadata_list):
                 # Squash several serialized and signed metadata entries into a single file
                 data, index = entries_to_chunk(metadata_list, self._CHUNK_SIZE_LIMIT, start_index=index)
-                blob_filename = str(self._clock.tick()).zfill(12) + BLOB_EXTENSION + '.lz4'
+                new_timestamp = self._clock.tick()
+                blob_filename = str(new_timestamp).zfill(12) + BLOB_EXTENSION + '.lz4'
                 with open(os.path.join(channel_dir, blob_filename), 'wb') as f:
                     f.write(data)
+
+            # TODO: add error-handling routines to make sure the timestamp is not messed up in case of an error
 
             # Make torrent out of dir with metadata files
             torrent, infohash = create_torrent_from_dir(channel_dir,
@@ -180,7 +184,7 @@ def define_binding(db):
             torrent_date = datetime.utcfromtimestamp(torrent['creation date'])
 
             return {"infohash": infohash, "num_entries": self.contents_len,
-                    "timestamp": self._clock.tick(), "torrent_date": torrent_date}
+                    "timestamp": new_timestamp, "torrent_date": torrent_date}
 
         def commit_channel_torrent(self):
             """
@@ -376,7 +380,8 @@ def define_binding(db):
             :return: the subset of random channels we are subscribed to
             :rtype: list
             """
-            return db.ChannelMetadata.select(lambda g: g.subscribed == subscribed and g.status != LEGACY_ENTRY).random(limit)
+            return db.ChannelMetadata.select(lambda g: g.subscribed == subscribed and g.status != LEGACY_ENTRY).random(
+                limit)
 
         @db_session
         def get_random_torrents(self, limit):

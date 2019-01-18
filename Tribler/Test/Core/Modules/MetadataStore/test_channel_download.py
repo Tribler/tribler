@@ -53,4 +53,5 @@ class TestChannelDownload(TestAsServer):
             # There should be 4 torrents + 1 channel torrent
             channel2 = self.session.lm.mds.ChannelMetadata.get_channel_with_id(payload.public_key)
             self.assertEqual(5, len(list(self.session.lm.mds.TorrentMetadata.select())))
-            self.assertEqual(12, channel2.local_version)
+            self.assertEqual(9, channel2.timestamp)
+            self.assertEqual(channel2.timestamp, channel2.local_version)
