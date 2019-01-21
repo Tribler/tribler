@@ -1,20 +1,22 @@
 from __future__ import absolute_import
+
 import binascii
 import os
 
+import libtorrent as lt
+
 from six.moves import xrange
+
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, succeed
-
-import libtorrent as lt
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLMODE_VOD
-from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
+from Tribler.Core.simpledefs import DLMODE_VOD, DLSTATUS_DOWNLOADING
+from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
@@ -50,26 +52,6 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         tdef.save(torrentfn)
 
         return tdef
-
-    @trial_timeout(10)
-    def test_can_create_engine_wrapper(self):
-        impl = LibtorrentDownloadImpl(self.session, None)
-        impl.cew_scheduled = False
-        self.session.lm.ltmgr.is_dht_ready = lambda: True
-        return impl.can_create_engine_wrapper()
-
-    @trial_timeout(15)
-    def test_can_create_engine_wrapper_retry(self):
-        impl = LibtorrentDownloadImpl(self.session, None)
-        impl.cew_scheduled = True
-        def set_cew_false():
-            self.session.lm.ltmgr.is_dht_ready = lambda: True
-            impl.cew_scheduled = False
-
-        # Simulate Tribler changing the cew, the calllater should have fired by now
-        # and before it executed the cew is false, firing the deferred.
-        reactor.callLater(2, set_cew_false)
-        return impl.can_create_engine_wrapper()
 
     def test_get_magnet_link_none(self):
         tdef = self.create_tdef()

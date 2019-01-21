@@ -1,16 +1,19 @@
+from __future__ import absolute_import
+
 from os.path import join
 from tempfile import mkdtemp
-from twisted.internet.defer import inlineCallbacks, Deferred
 
-from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
+from twisted.internet.defer import Deferred, inlineCallbacks
+
 from Tribler.Core.Modules.wallet.tc_wallet import TrustchainWallet
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.pyipv8.ipv8.test.base import TestBase
-from Tribler.pyipv8.ipv8.test.mocking.exit_socket import MockTunnelExitSocket
-from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
+from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
 from Tribler.pyipv8.ipv8.attestation.trustchain.community import TrustChainCommunity
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RENDEZVOUS
 from Tribler.pyipv8.ipv8.peer import Peer
+from Tribler.pyipv8.ipv8.test.base import TestBase
+from Tribler.pyipv8.ipv8.test.mocking.exit_socket import MockTunnelExitSocket
+from Tribler.pyipv8.ipv8.test.mocking.ipv8 import MockIPv8
 
 # Map of info_hash -> peer list
 global_dht_services = {}
@@ -106,18 +109,6 @@ class TestTriblerTunnelCommunity(TestBase):
         yield self.deliver_messages()
         self.assertGreaterEqual(len(self.nodes[0].overlay.exit_candidates), 1)
 
-
-    def test_download_remove(self):
-        """
-        Test the effects of removing a download in the tunnel community
-        """
-        self.nodes[0].overlay.num_hops_by_downloads[1] = 1
-        mock_download = MockObject()
-        mock_download.get_hops = lambda: 1
-        self.nodes[0].overlay.on_download_removed(mock_download)
-
-        self.assertEqual(self.nodes[0].overlay.num_hops_by_downloads[1], 0)
-
     def test_readd_bittorrent_peers(self):
         """
         Test the readd bittorrent peers method
@@ -165,6 +156,7 @@ class TestTriblerTunnelCommunity(TestBase):
         mock_download.get_hops = lambda: 1
         mock_download.get_def = lambda: mock_tdef
         mock_download.add_peer = lambda x: None
+        mock_download.get_state = lambda: mock_state
         mock_state.get_status = lambda: 1
         mock_state.get_download = lambda: mock_download
         tribler_session.get_downloads = lambda: [mock_download, ]
