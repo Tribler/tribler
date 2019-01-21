@@ -25,15 +25,10 @@ class TriblerContentTableView(LazyTableView):
     # overloading leaveEvent method could be used for that
     mouse_moved = pyqtSignal(QPoint, QModelIndex)
 
-    delegate = None
-
     def __init__(self, parent=None):
         LazyTableView.__init__(self, parent)
+        self.delegate = None
         self.setMouseTracking(True)
-
-        self.setItemDelegate(self.delegate)
-        self.mouse_moved.connect(self.delegate.on_mouse_moved)
-        self.delegate.redraw_required.connect(self.redraw)
 
     def mouseMoveEvent(self, event):
         index = QModelIndex(self.indexAt(event.pos()))
@@ -134,10 +129,14 @@ class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMi
     """
     on_torrent_clicked = pyqtSignal(QModelIndex, dict)
     on_channel_clicked = pyqtSignal(dict)
-    delegate = SearchResultsDelegate()
 
     def __init__(self, parent=None):
         TriblerContentTableView.__init__(self, parent)
+        self.delegate = SearchResultsDelegate()
+
+        self.setItemDelegate(self.delegate)
+        self.mouse_moved.connect(self.delegate.on_mouse_moved)
+        self.delegate.redraw_required.connect(self.redraw)
 
         # Mix-in connects
         self.clicked.connect(self.on_table_item_clicked)
@@ -158,10 +157,14 @@ class TorrentsTableView(ItemClickedMixin, CommitControlMixin, DownloadButtonMixi
     This table displays various torrents.
     """
     on_torrent_clicked = pyqtSignal(QModelIndex, dict)
-    delegate = TorrentsButtonsDelegate()
 
     def __init__(self, parent=None):
         TriblerContentTableView.__init__(self, parent)
+        self.delegate = TorrentsButtonsDelegate()
+
+        self.setItemDelegate(self.delegate)
+        self.mouse_moved.connect(self.delegate.on_mouse_moved)
+        self.delegate.redraw_required.connect(self.redraw)
 
         # Mix-in connects
         self.clicked.connect(self.on_table_item_clicked)
@@ -192,10 +195,13 @@ class ChannelsTableView(ItemClickedMixin, SubscribeButtonMixin,
     on_unsubscribed_channel = pyqtSignal(QModelIndex)
     on_subscribed_channel = pyqtSignal(QModelIndex)
 
-    delegate = ChannelsButtonsDelegate()
-
     def __init__(self, parent=None):
         TriblerContentTableView.__init__(self, parent)
+        self.delegate = ChannelsButtonsDelegate()
+        self.setItemDelegate(self.delegate)
+        self.mouse_moved.connect(self.delegate.on_mouse_moved)
+        self.delegate.redraw_required.connect(self.redraw)
+
         # Mix-in connects
         self.clicked.connect(self.on_table_item_clicked)
         self.delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
