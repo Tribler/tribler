@@ -9,7 +9,7 @@ from six import text_type
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
-from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
+from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url, MalformedTrackerURLException
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
@@ -149,13 +149,20 @@ if __name__ == "__main__":
     batch_size = 1000
     total_to_convert = d.get_old_torrents_count()
     old_torrents = d.get_old_torrents()
+
     while True:
         old_torrents = d.get_old_torrents(batch_size=batch_size, offset=x)
         if not old_torrents:
             break
         with db_session:
             for (t, h) in old_torrents:
-                m = mds.TorrentMetadata(**t)
+                try:
+                    m = mds.TorrentMetadata(**t)
+                except MalformedTrackerURLException:
+                    print t
+                    exit(1)
+
+
                 if h["last_check"] > 0:
                     m.health.set(**h)
         x += batch_size
