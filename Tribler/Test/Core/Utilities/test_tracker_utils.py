@@ -58,6 +58,11 @@ class TestGetUniformedTrackerUrl(TriblerCoreTest):
         result = get_uniformed_tracker_url("udp://tracker.1337x.org:80\xff")
         self.assertIsNone(result)
 
+    def test_uniform_bad_urlenc(self):
+        result = get_uniformed_tracker_url(u'http://btjunkie.org/?do=upload')
+        self.assertIsNone(result)
+
+
 
 class TestParseTrackerUrl(TriblerCoreTest):
     """
