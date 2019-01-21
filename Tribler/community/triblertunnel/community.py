@@ -10,8 +10,8 @@ from twisted.internet.defer import Deferred, inlineCallbacks, succeed
 
 from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
 from Tribler.Core.Socks5.server import Socks5Server
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY_CREATED,\
-    NTFY_EXTENDED, NTFY_IP_RECREATE, NTFY_JOINED, NTFY_REMOVE, NTFY_TUNNEL
+from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
+                                    NTFY_CREATED, NTFY_EXTENDED, NTFY_IP_RECREATE, NTFY_JOINED, NTFY_REMOVE, NTFY_TUNNEL
 from Tribler.community.triblertunnel.caches import BalanceRequestCache
 from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
 from Tribler.community.triblertunnel.payload import BalanceRequestPayload, BalanceResponsePayload, PayoutPayload
@@ -20,8 +20,9 @@ from Tribler.pyipv8.ipv8.messaging.anonymization.caches import ExtendRequestCach
 from Tribler.pyipv8.ipv8.messaging.anonymization.community import SINGLE_HOP_ENC_PACKETS, message_to_payload
 from Tribler.pyipv8.ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
 from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA,\
-    CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, EXIT_NODE, RelayRoute
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA, \
+                                                               CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, EXIT_NODE, \
+                                                               RelayRoute
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
 
@@ -286,16 +287,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                u"balance-response",
                                BalanceResponsePayload.from_half_block(block, cache.to_circuit_id))
 
-    def on_download_removed(self, download):
-        """
-        This method is called when a download is removed. We check here whether we can stop building circuits for a
-        specific number of hops in case it hasn't been finished yet.
-        """
-        if download.get_hops() > 0:
-            self.num_hops_by_downloads[download.get_hops()] -= 1
-            if self.num_hops_by_downloads[download.get_hops()] == 0:
-                self.circuits_needed[download.get_hops()] = 0
-
     def readd_bittorrent_peers(self):
         for torrent, peers in self.bittorrent_peers.items():
             infohash = torrent.tdef.get_infohash().encode("hex")
@@ -460,18 +451,27 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         # Monitor downloads with anonymous flag set, and build rendezvous/introduction points when needed.
         new_states = {}
         hops = {}
+        active_downloads_per_hop = {}
 
         for ds in dslist:
             download = ds.get_download()
-            if download.get_hops() > 0:
+            hop_count = download.get_hops()
+            if hop_count > 0:
                 # Convert the real infohash to the infohash used for looking up introduction points
                 real_info_hash = download.get_def().get_infohash()
                 info_hash = self.get_lookup_info_hash(real_info_hash)
-                hops[info_hash] = download.get_hops()
+                hops[info_hash] = hop_count
+                if download.get_state().get_status() in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_METADATA]:
+                    active_downloads_per_hop[hop_count] = active_downloads_per_hop.get(hop_count, 0) + 1
                 self.service_callbacks[info_hash] = download.add_peer
                 new_states[info_hash] = ds.get_status()
 
         self.hops = hops
+        # Request 1 circuit per download while ensuring that the total number of circuits requested per hop count
+        # stays within min_circuits and max_circuits.
+        self.circuits_needed = {hop_count: min(max(download_count, self.settings.min_circuits),
+                                               self.settings.max_circuits)
+                                for hop_count, download_count in active_downloads_per_hop.items()}
 
         for info_hash in set(new_states.keys() + self.download_states.keys()):
             new_state = new_states.get(info_hash, None)
