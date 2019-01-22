@@ -174,7 +174,7 @@ class TorrentChecker(TaskManager):
     @db_session
     def get_valid_trackers_of_torrent(self, torrent_id):
         """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
-        db_tracker_list = self.tribler_session.lm.mds.TorrentState[database_blob(torrent_id)].trackers
+        db_tracker_list = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(torrent_id)).trackers
         return set([str(tracker.url) for tracker in db_tracker_list if
                     is_valid_url(str(tracker.url)) or str(tracker.url) == u'DHT'])
 
@@ -227,27 +227,22 @@ class TorrentChecker(TaskManager):
 
             # get torrent's tracker list from DB
             tracker_set = self.get_valid_trackers_of_torrent(torrent_id)
-            if not tracker_set:
-                self._logger.warn(u"no trackers, skip GUI request. infohash: %s", hexlify(infohash))
-                # TODO: add code to handle torrents with no tracker
-                return fail(Failure(RuntimeError("No trackers available for this torrent")))
 
-            deferred_list = []
-            for tracker_url in tracker_set:
-                if tracker_url == u'DHT':
-                    # Create a (fake) DHT session for the lookup
-                    session = FakeDHTSession(self.tribler_session, infohash, timeout)
-                    self._session_list['DHT'].append(session)
-                    deferred_list.append(session.connect_to_tracker().
-                                         addCallbacks(*self.get_callbacks_for_session(session)))
-                elif tracker_url != u'no-DHT':
-                    session = self._create_session_for_request(tracker_url, timeout=timeout)
-                    session.add_infohash(infohash)
-                    deferred_list.append(session.connect_to_tracker().
-                                         addCallbacks(*self.get_callbacks_for_session(session)))
+        deferred_list = []
+        for tracker_url in tracker_set:
+            session = self._create_session_for_request(tracker_url, timeout=timeout)
+            session.add_infohash(infohash)
+            deferred_list.append(session.connect_to_tracker().
+                                 addCallbacks(*self.get_callbacks_for_session(session)))
 
-            return DeferredList(deferred_list, consumeErrors=True).addCallback(
-                lambda res: self.on_gui_request_completed(infohash, res))
+        # Create a (fake) DHT session for the lookup
+        session = FakeDHTSession(self.tribler_session, infohash, timeout)
+        self._session_list['DHT'].append(session)
+        deferred_list.append(session.connect_to_tracker().
+                             addCallbacks(*self.get_callbacks_for_session(session)))
+
+        return DeferredList(deferred_list, consumeErrors=True).addCallback(
+            lambda res: self.on_gui_request_completed(infohash, res))
 
     def on_session_error(self, session, failure):
         """
@@ -325,6 +320,6 @@ class TorrentChecker(TaskManager):
             return
         content = (response['infohash'], response['seeders'], response['leechers'], response['last_check'])
         if self.tribler_session.lm.popularity_community:
-            self.tribler_session.lm.popularity_community.queue_content(TYPE_TORRENT_HEALTH, content)
+            self.tribler_session.lm.popularity_community.queue_content(content)
         else:
             self._logger.info("Popular community not available to publish torrent checker result")
