@@ -114,6 +114,9 @@ class TestMarketBlock(AbstractServer):
         assets['first']['amount'] = 3.4
         self.assertFalse(self.tick_block.is_valid_tick_block())
 
+        assets['first']['amount'] = 2 ** 64
+        self.assertFalse(self.tick_block.is_valid_tick_block())
+
         assets['first']['amount'] = 3
         assets['second']['type'] = 4
         self.assertFalse(self.tick_block.is_valid_tick_block())

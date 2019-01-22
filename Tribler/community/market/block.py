@@ -40,6 +40,9 @@ class MarketBlock(TrustChainBlock):
         if not MarketBlock.has_required_types([('amount', integer_types), ('type', str)], assets_dict['second']):
             return False
 
+        if assets_dict['first']['amount'].bit_length() > 63 or assets_dict['second']['amount'].bit_length() > 63:
+            return False
+
         if amount_positive and (assets_dict['first']['amount'] <= 0 or assets_dict['second']['amount'] <= 0):
             return False
 
