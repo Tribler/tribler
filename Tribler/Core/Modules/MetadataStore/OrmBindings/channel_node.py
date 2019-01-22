@@ -44,7 +44,7 @@ def define_binding(db):
     class ChannelNode(db.Entity):
         _discriminator_ = CHANNEL_NODE
 
-        rowid = orm.PrimaryKey(int, auto=True)
+        rowid = orm.PrimaryKey(int, size=64, auto=True)
 
         # Serializable
         metadata_type = orm.Discriminator(int)
@@ -52,10 +52,9 @@ def define_binding(db):
 
         public_key = orm.Required(database_blob)
         id_ = orm.Required(int, size=64)
-        # orm.composite_key(public_key, id_) # Requires Pony 0.7.7+ with Python2
         orm.composite_index(public_key, id_) # Requires Pony 0.7.7+ with Python2
 
-        signature = orm.Required(database_blob)
+        signature = orm.Required(database_blob, unique=True)
 
         # Local
         addition_timestamp = orm.Optional(datetime, default=datetime.utcnow)

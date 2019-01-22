@@ -249,7 +249,7 @@ def define_binding(db):
                 "tags": tags,
                 "size": tdef.get_length(),
                 "torrent_date": datetime.fromtimestamp(tdef.get_creation_date()),
-                "tracker_info": get_uniformed_tracker_url(tdef.get_tracker()) or '',
+                "tracker_info": get_uniformed_tracker_url(tdef.get_tracker() or '') or '',
                 "status": NEW
             })
             torrent_metadata.parents.add(self)
@@ -380,7 +380,8 @@ def define_binding(db):
             :return: the subset of random channels we are subscribed to
             :rtype: list
             """
-            return db.ChannelMetadata.select(lambda g: g.subscribed == subscribed and g.status != LEGACY_ENTRY).random(
+            return db.ChannelMetadata.select(
+                lambda g: g.subscribed == subscribed and g.status != LEGACY_ENTRY and g.num_entries > 0).random(
                 limit)
 
         @db_session

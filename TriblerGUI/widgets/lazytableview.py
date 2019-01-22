@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division
 
+from abc import abstractmethod
+
 from PyQt5.QtCore import QModelIndex, QPoint, pyqtSignal
 from PyQt5.QtWidgets import QTableView
 
@@ -27,8 +29,18 @@ class TriblerContentTableView(LazyTableView):
 
     def __init__(self, parent=None):
         LazyTableView.__init__(self, parent)
-        self.delegate = None
         self.setMouseTracking(True)
+
+        self.delegate = self.init_delegate()
+
+        self.setItemDelegate(self.delegate)
+        self.mouse_moved.connect(self.delegate.on_mouse_moved)
+        self.delegate.redraw_required.connect(self.redraw)
+
+    @abstractmethod
+    def init_delegate(self):
+        # This method should create a QT Delegate object and return it
+        pass
 
     def mouseMoveEvent(self, event):
         index = QModelIndex(self.indexAt(event.pos()))
@@ -63,6 +75,7 @@ class PlayButtonMixin(TriblerContentTableView):
 
 
 class SubscribeButtonMixin(TriblerContentTableView):
+    on_subscribed_channel = pyqtSignal(QModelIndex)
     def on_subscribe_control_clicked(self, index):
         if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
             return
@@ -79,6 +92,8 @@ class SubscribeButtonMixin(TriblerContentTableView):
 
 
 class ItemClickedMixin(TriblerContentTableView):
+    on_channel_clicked = pyqtSignal(dict)
+    on_torrent_clicked = pyqtSignal(QModelIndex, dict)
     def on_table_item_clicked(self, item):
         column_position = self.model().column_position
         if (ACTION_BUTTONS in column_position and item.column() == column_position[ACTION_BUTTONS]) or \
@@ -127,22 +142,18 @@ class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMi
     """
     This table displays search results, which can be both torrents and channels.
     """
-    on_torrent_clicked = pyqtSignal(QModelIndex, dict)
-    on_channel_clicked = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         TriblerContentTableView.__init__(self, parent)
-        self.delegate = SearchResultsDelegate()
-
-        self.setItemDelegate(self.delegate)
-        self.mouse_moved.connect(self.delegate.on_mouse_moved)
-        self.delegate.redraw_required.connect(self.redraw)
 
         # Mix-in connects
         self.clicked.connect(self.on_table_item_clicked)
         self.delegate.play_button.clicked.connect(self.on_play_button_clicked)
         self.delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
         self.delegate.download_button.clicked.connect(self.on_download_button_clicked)
+
+    def init_delegate(self):
+        return SearchResultsDelegate()
 
     def resizeEvent(self, _):
         self.setColumnWidth(0, 100)
@@ -156,21 +167,18 @@ class TorrentsTableView(ItemClickedMixin, CommitControlMixin, DownloadButtonMixi
     """
     This table displays various torrents.
     """
-    on_torrent_clicked = pyqtSignal(QModelIndex, dict)
 
     def __init__(self, parent=None):
         TriblerContentTableView.__init__(self, parent)
-        self.delegate = TorrentsButtonsDelegate()
-
-        self.setItemDelegate(self.delegate)
-        self.mouse_moved.connect(self.delegate.on_mouse_moved)
-        self.delegate.redraw_required.connect(self.redraw)
 
         # Mix-in connects
         self.clicked.connect(self.on_table_item_clicked)
         self.delegate.play_button.clicked.connect(self.on_play_button_clicked)
         self.delegate.commit_control.clicked.connect(self.on_commit_control_clicked)
         self.delegate.download_button.clicked.connect(self.on_download_button_clicked)
+
+    def init_delegate(self):
+        return TorrentsButtonsDelegate()
 
     def resizeEvent(self, _):
         if isinstance(self.model(), MyTorrentsContentModel):
@@ -191,20 +199,16 @@ class ChannelsTableView(ItemClickedMixin, SubscribeButtonMixin,
     """
     This table displays various channels.
     """
-    on_channel_clicked = pyqtSignal(dict)
-    on_unsubscribed_channel = pyqtSignal(QModelIndex)
-    on_subscribed_channel = pyqtSignal(QModelIndex)
 
     def __init__(self, parent=None):
         TriblerContentTableView.__init__(self, parent)
-        self.delegate = ChannelsButtonsDelegate()
-        self.setItemDelegate(self.delegate)
-        self.mouse_moved.connect(self.delegate.on_mouse_moved)
-        self.delegate.redraw_required.connect(self.redraw)
 
         # Mix-in connects
         self.clicked.connect(self.on_table_item_clicked)
         self.delegate.subscribe_control.clicked.connect(self.on_subscribe_control_clicked)
+
+    def init_delegate(self):
+        return ChannelsButtonsDelegate()
 
     def resizeEvent(self, _):
         self.setColumnWidth(1, 150)
