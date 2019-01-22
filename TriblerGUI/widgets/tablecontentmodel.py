@@ -1,12 +1,10 @@
 from __future__ import absolute_import
 
-import time
 from abc import abstractmethod
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 
-from TriblerGUI.defs import ACTION_BUTTONS, HEALTH_CHECKING, HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.defs import ACTION_BUTTONS
 from TriblerGUI.utilities import format_size
 
 

@@ -63,7 +63,7 @@ class SearchResultsTableViewController(TriblerTableViewController):
 
     def _on_view_sort(self, column, ascending):
         self.model.reset()
-        self.load_search_results(1, 50)
+        self.load_search_results(self.query, 1, 50)
 
     def _on_list_scroll(self, event):
         if self.table_view.verticalScrollBar().value() == self.table_view.verticalScrollBar().maximum() and \
@@ -76,16 +76,17 @@ class SearchResultsTableViewController(TriblerTableViewController):
         """
         self.query = query
 
-        if not start and not end:
+        if not start or not end:
             start, end = self.model.rowCount() + 1, self.model.rowCount() + self.model.item_load_batch
 
         sort_by, sort_asc = self._get_sort_parameters()
-
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(
-            "search?q=%s&first=%i&last=%i" % (query, start, end)
-            + ('&sort_by=%s' % sort_by)
-            + ('&sort_asc=%d' % sort_asc)
+            ("search?q=%s" % query)
+            + (("&first=%i" % start) if start else '')
+            + (("&last=%i" % end) if end else '')
+            + (('&sort_by=%s' % sort_by) if sort_by else '')
+            + (('&sort_asc=%d' % sort_asc) if sort_asc else '')
             + (('&type=%s' % self.model.type_filter) if self.model.type_filter else ''),
             self.on_search_results)
 
