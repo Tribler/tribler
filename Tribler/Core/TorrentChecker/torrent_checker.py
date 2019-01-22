@@ -174,7 +174,7 @@ class TorrentChecker(TaskManager):
     @db_session
     def get_valid_trackers_of_torrent(self, torrent_id):
         """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
-        db_tracker_list = self.tribler_session.lm.mds.TorrentState[database_blob(torrent_id)].trackers
+        db_tracker_list = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(torrent_id)).trackers
         return set([str(tracker.url) for tracker in db_tracker_list if
                     is_valid_url(str(tracker.url)) or str(tracker.url) == u'DHT'])
 
