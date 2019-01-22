@@ -109,30 +109,30 @@ class DispersyToPonyMigration(object):
             try:
                 if len(base64.decodestring(infohash)) != 20:
                     continue
+                infohash = base64.decodestring(infohash)
+                torrents.append(
+                    ({
+                         "status": LEGACY_ENTRY,
+                         "infohash": infohash,
+                         "timestamp": int(torrent_id or 0),
+                         "size": int(length or 0),
+                         "torrent_date": datetime.datetime.utcfromtimestamp(creation_date or 0),
+                         "title": name or '',
+                         "tags": category or '',
+                         "id_": torrent_id or 0,
+                         "origin_id": 0,
+                         "tracker_info": tracker_url,
+                         "public_key": self.dispesy_cid_to_pk(channel_id),
+                         "signature": self.pseudo_signature(),
+                         "xxx": int(category == u'xxx'),
+                         "skip_key_check": True},
+                     {
+                         "seeders": int(num_seeders or 0),
+                         "leechers": int(num_leechers or 0),
+                         "last_check": int(last_tracker_check or 0)}))
             except:
                 continue
-            infohash = base64.decodestring(infohash)
 
-            torrents.append(
-                ({
-                     "status": LEGACY_ENTRY,
-                     "infohash": infohash,
-                     "timestamp": int(torrent_id or 0),
-                     "size": int(length or 0),
-                     "torrent_date": datetime.datetime.utcfromtimestamp(creation_date or 0),
-                     "title": name or '',
-                     "tags": category or '',
-                     "id_": torrent_id or 0,
-                     "origin_id": 0,
-                     "tracker_info": tracker_url,
-                     "public_key": self.dispesy_cid_to_pk(channel_id),
-                     "signature": self.pseudo_signature(),
-                     "xxx": int(category == u'xxx'),
-                     "skip_key_check": True},
-                 {
-                     "seeders": int(num_seeders or 0),
-                     "leechers": int(num_leechers or 0),
-                     "last_check": int(last_tracker_check or 0)}))
 
         return torrents
 
