@@ -121,7 +121,15 @@ class TorrentDetailsTabWidget(QTabWidget):
             self.is_health_checking = False
 
         if u'health' in self.index.model().column_position:
-            self.index.model().data_items[self.index.row()][u'health'] = HEALTH_CHECKING
+            # TODO: DRY this copypaste!
+            # Check if details widget is still showing the same entry and the entry still exists in the table
+            try:
+                data_item = self.index.model().data_items[self.index.row()]
+            except IndexError:
+                return
+            if self.torrent_info["infohash"] != data_item[u'infohash']:
+                return
+            data_item[u'health'] = HEALTH_CHECKING
             index = self.index.model().index(self.index.row(), self.index.model().column_position[u'health'])
             self.index.model().dataChanged.emit(index, index, [])
 
