@@ -26,7 +26,7 @@ class DispersyToPonyMigration(object):
         return database_blob(unhexlify(("%X" % dispersy_cid).zfill(128)))
 
     def pseudo_signature(self):
-        return database_blob('\x00' * 32)
+        return database_blob(os.urandom(32))
 
     def final_timestamp(self):
         return 1 << 62
@@ -158,20 +158,19 @@ if __name__ == "__main__":
             for (t, h) in old_torrents:
                 try:
                     m = mds.TorrentMetadata(**t)
-                except MalformedTrackerURLException:
-                    print t
-                    exit(1)
+                except:
+                    continue
 
-
-                if h["last_check"] > 0:
-                    m.health.set(**h)
         x += batch_size
         print ("%i/%i" % (x, total_to_convert))
 
     with db_session:
         old_channels = d.get_old_channels()
         for c in old_channels:
-            mds.ChannelMetadata(**c)
+            try:
+                mds.ChannelMetadata(**c)
+            except:
+                continue
 
     with db_session:
         for c in mds.ChannelMetadata.select()[:]:

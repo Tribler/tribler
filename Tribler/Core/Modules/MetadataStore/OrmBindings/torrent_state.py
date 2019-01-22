@@ -5,7 +5,8 @@ from Tribler.pyipv8.ipv8.database import database_blob
 
 def define_binding(db):
     class TorrentState(db.Entity):
-        infohash = orm.PrimaryKey(database_blob)
+        rowid = orm.PrimaryKey(int, auto=True)
+        infohash = orm.Required(database_blob, unique=True)
         seeders = orm.Optional(int, default=0)
         leechers = orm.Optional(int, default=0)
         last_check = orm.Optional(int, size=64, default=0)
