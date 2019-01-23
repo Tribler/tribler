@@ -75,6 +75,7 @@ class PlayButtonMixin(TriblerContentTableView):
 
 
 class SubscribeButtonMixin(TriblerContentTableView):
+    on_subscribed_channel = pyqtSignal(QModelIndex)
     def on_subscribe_control_clicked(self, index):
         if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
             return
@@ -91,6 +92,8 @@ class SubscribeButtonMixin(TriblerContentTableView):
 
 
 class ItemClickedMixin(TriblerContentTableView):
+    on_channel_clicked = pyqtSignal(dict)
+    on_torrent_clicked = pyqtSignal(QModelIndex, dict)
     def on_table_item_clicked(self, item):
         column_position = self.model().column_position
         if (ACTION_BUTTONS in column_position and item.column() == column_position[ACTION_BUTTONS]) or \
@@ -139,8 +142,6 @@ class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMi
     """
     This table displays search results, which can be both torrents and channels.
     """
-    on_torrent_clicked = pyqtSignal(QModelIndex, dict)
-    on_channel_clicked = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         TriblerContentTableView.__init__(self, parent)
@@ -166,7 +167,6 @@ class TorrentsTableView(ItemClickedMixin, CommitControlMixin, DownloadButtonMixi
     """
     This table displays various torrents.
     """
-    on_torrent_clicked = pyqtSignal(QModelIndex, dict)
 
     def __init__(self, parent=None):
         TriblerContentTableView.__init__(self, parent)
@@ -199,9 +199,6 @@ class ChannelsTableView(ItemClickedMixin, SubscribeButtonMixin,
     """
     This table displays various channels.
     """
-    on_channel_clicked = pyqtSignal(dict)
-    on_unsubscribed_channel = pyqtSignal(QModelIndex)
-    on_subscribed_channel = pyqtSignal(QModelIndex)
 
     def __init__(self, parent=None):
         TriblerContentTableView.__init__(self, parent)
