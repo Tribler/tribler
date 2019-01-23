@@ -85,13 +85,16 @@ class TrackerManager(object):
         :param tracker_url: The given tracker_url.
         :param is_successful: If the check was successful.
         """
-        sanitized_tracker_url = get_uniformed_tracker_url(tracker_url) if tracker_url != u"DHT" else tracker_url
-        tracker = list(self.tracker_store.select(lambda g: g.url == sanitized_tracker_url))
+
+        if tracker_url == u"DHT":
+            return
+
+        sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)
+        tracker = self.tracker_store.get(lambda g: g.url == sanitized_tracker_url)
 
         if not tracker:
             self._logger.error("Trying to update the tracker info of an unknown tracker URL")
             return
-        tracker = tracker[0]
 
         current_time = int(time.time())
         failures = 0 if is_successful else tracker.failures + 1
