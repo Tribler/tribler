@@ -62,6 +62,10 @@ class TestGetUniformedTrackerUrl(TriblerCoreTest):
         result = get_uniformed_tracker_url(u'http://btjunkie.org/?do=upload')
         self.assertIsNone(result)
 
+    def test_uniform_empty(self):
+        result = get_uniformed_tracker_url(u'')
+        self.assertIsNone(result)
+
 
 
 class TestParseTrackerUrl(TriblerCoreTest):

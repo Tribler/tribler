@@ -249,7 +249,7 @@ def define_binding(db):
                 "tags": tags,
                 "size": tdef.get_length(),
                 "torrent_date": datetime.fromtimestamp(tdef.get_creation_date()),
-                "tracker_info": get_uniformed_tracker_url(tdef.get_tracker()) or '',
+                "tracker_info": get_uniformed_tracker_url(tdef.get_tracker() or '') or '',
                 "status": NEW
             })
             torrent_metadata.parents.add(self)
