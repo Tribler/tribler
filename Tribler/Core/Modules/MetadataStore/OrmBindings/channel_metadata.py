@@ -380,7 +380,8 @@ def define_binding(db):
             :return: the subset of random channels we are subscribed to
             :rtype: list
             """
-            return db.ChannelMetadata.select(lambda g: g.subscribed == subscribed and g.status != LEGACY_ENTRY).random(
+            return db.ChannelMetadata.select(
+                lambda g: g.subscribed == subscribed and g.status != LEGACY_ENTRY and g.num_entries > 0).random(
                 limit)
 
         @db_session
