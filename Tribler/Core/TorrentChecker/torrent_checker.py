@@ -320,6 +320,6 @@ class TorrentChecker(TaskManager):
             return
         content = (response['infohash'], response['seeders'], response['leechers'], response['last_check'])
         if self.tribler_session.lm.popularity_community:
-            self.tribler_session.lm.popularity_community.queue_content(TYPE_TORRENT_HEALTH, content)
+            self.tribler_session.lm.popularity_community.queue_content(content)
         else:
             self._logger.info("Popular community not available to publish torrent checker result")
