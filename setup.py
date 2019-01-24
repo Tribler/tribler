@@ -1,4 +1,7 @@
-from setuptools import setup, find_packages
+from __future__ import absolute_import
+
+from setuptools import find_packages, setup
+
 from Tribler.Core.version import version_id
 
 
@@ -29,8 +32,6 @@ setup(
     version=str(version_id),
     url='https://github.com/Tribler/tribler',
     author='Tribler team from Delft University of Technology',
-    package_data={'': ['*.*'],
-                  'Tribler.Core.DecentralizedTracking.pymdht.core': ['bootstrap_stable', 'bootstrap_unstable'],
-    },
+    package_data={'': ['*.*']},
     packages=find_packages() + data_dirs,
 )
