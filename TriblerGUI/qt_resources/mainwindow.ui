@@ -6928,7 +6928,6 @@ color: white;</string>
                </property>
                <property name="styleSheet">
                 <string notr="true">QLineEdit {
-background-color: transparent;
 border-radius: 3px;
 }
 QLineEdit:focus, QLineEdit::hover {
