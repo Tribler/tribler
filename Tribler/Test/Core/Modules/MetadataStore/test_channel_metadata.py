@@ -1,18 +1,16 @@
 from __future__ import absolute_import
 
 import os
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from datetime import datetime
 
 from pony.orm import db_session
-
 from six.moves import xrange
-
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, ROOT_CHANNEL_ID, \
     entries_to_chunk
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TODELETE, COMMITTED
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
@@ -162,7 +160,7 @@ class TestChannelMetadata(TriblerCoreTest):
         self.assertEqual(channel_metadata, channel_result)
 
         # Test for corner-case of channel PK starting with zeroes
-        channel_metadata.public_key = database_blob(unhexlify('0'*128))
+        channel_metadata.public_key = database_blob(unhexlify('0' * 128))
         channel_result = self.mds.ChannelMetadata.get_channel_with_dirname(channel_metadata.dir_name)
         self.assertEqual(channel_metadata, channel_result)
 
@@ -181,7 +179,7 @@ class TestChannelMetadata(TriblerCoreTest):
         Test whether adding new torrents to a channel works as expected
         """
         channel_metadata = self.mds.ChannelMetadata.create_channel('test', 'test')
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template,  status=NEW))
+        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, status=NEW))
         channel_metadata.commit_channel_torrent()
 
         self.assertEqual(channel_metadata.id_, ROOT_CHANNEL_ID)
@@ -198,6 +196,35 @@ class TestChannelMetadata(TriblerCoreTest):
         channel_metadata.add_torrent_to_channel(tdef, None)
         self.assertTrue(channel_metadata.contents_list)
         self.assertRaises(DuplicateTorrentFileError, channel_metadata.add_torrent_to_channel, tdef, None)
+
+    @db_session
+    def test_restore_torrent_in_channel(self):
+        """
+        Test if the torrent scheduled for deletion is restored/updated after the user
+        tries to re-add it.
+        """
+        channel_metadata = self.mds.ChannelMetadata.create_channel('test', 'test')
+        tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
+        md = channel_metadata.add_torrent_to_channel(tdef, None)
+
+        # Check correct re-add
+        md.status = TODELETE
+        md_updated = channel_metadata.add_torrent_to_channel(tdef, None)
+        self.assertEqual(md.status, COMMITTED)
+        self.assertEqual(md_updated, md)
+        self.assertTrue(md.has_valid_signature)
+
+        # Check update of torrent properties from a new tdef
+        md.status = TODELETE
+        new_tracker_address = u'http://tribler.org/announce'
+        tdef.input['announce'] = new_tracker_address
+        md_updated = channel_metadata.add_torrent_to_channel(tdef, None)
+        self.assertEqual(md_updated, md)
+        self.assertEqual(md.status, NEW)
+        self.assertEqual(md.tracker_info, new_tracker_address)
+        self.assertTrue(md.has_valid_signature)
+        # In addition, check that the trackers table was properly updated
+        self.assertEqual(len(md.health.trackers), 2)
 
     @db_session
     def test_delete_torrent_from_channel(self):

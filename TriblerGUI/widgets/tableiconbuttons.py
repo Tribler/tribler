@@ -64,3 +64,6 @@ class PlayIconButton(IconButton):
 
     def should_draw(self, index):
         return index.model().data_items[index.row()][u'category'] == u'Video'
+
+class DeleteIconButton(IconButton):
+    icon = QIcon(get_image_path("trash.svg"))

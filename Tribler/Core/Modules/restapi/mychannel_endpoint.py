@@ -112,9 +112,10 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
             request.args['channel'] = [str(my_channel.public_key).encode('hex')]
             first, last, sort_by, sort_asc, query_filter, channel = \
                 SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
+            exclude_deleted = 'exclude_deleted' in request.args and request.args['exclude_deleted']
 
             torrents, total = self.session.lm.mds.TorrentMetadata.get_torrents(
-                first, last, sort_by, sort_asc, query_filter, channel)
+                first, last, sort_by, sort_asc, query_filter, channel, exclude_deleted=exclude_deleted)
             torrents = [torrent.to_simple_dict() for torrent in torrents]
 
             return json.dumps({
@@ -326,8 +327,8 @@ class MyChannelCommitEndpoint(BaseMyChannelEndpoint):
                 request.setResponseCode(http.NOT_FOUND)
                 return json.dumps({"error": "your channel has not been created"})
 
-            my_channel.commit_channel_torrent()
-            torrent_path = os.path.join(self.session.lm.mds.channels_dir, my_channel.dir_name + ".torrent")
-            self.session.lm.gigachannel_manager.updated_my_channel(torrent_path)
+            if my_channel.commit_channel_torrent():
+                torrent_path = os.path.join(self.session.lm.mds.channels_dir, my_channel.dir_name + ".torrent")
+                self.session.lm.gigachannel_manager.updated_my_channel(torrent_path)
 
         return json.dumps({"success": True})

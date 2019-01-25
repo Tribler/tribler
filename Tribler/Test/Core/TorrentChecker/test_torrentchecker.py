@@ -13,7 +13,6 @@ from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.tools import trial_timeout
-from Tribler.community.popularity.repository import TYPE_TORRENT_HEALTH
 
 
 class TestTorrentChecker(TestAsServer):
@@ -35,6 +34,13 @@ class TestTorrentChecker(TestAsServer):
 
         self.torrent_checker = self.session.lm.torrent_checker
         self.torrent_checker.listen_on_udp = lambda: None
+
+        def get_metainfo(infohash, callback, **_):
+            callback({"seeders": 1, "leechers": 2})
+
+        self.session.lm.ltmgr = MockObject()
+        self.session.lm.ltmgr.get_metainfo = get_metainfo
+        self.session.lm.ltmgr.shutdown = lambda : None
 
     def test_initialize(self):
         """
@@ -170,12 +176,11 @@ class TestTorrentChecker(TestAsServer):
         original_logger_info = self.torrent_checker._logger.info
         self.torrent_checker._logger.info = lambda msg: _fake_logger_info(self.torrent_checker, msg)
 
-        def popularity_community_queue_content(torrent_checker, _type, _):
+        def popularity_community_queue_content(torrent_checker, _):
             torrent_checker.popularity_community_queue_content_called = True
-            torrent_checker.popularity_community_queue_content_called_type = _type
 
-        self.torrent_checker.tribler_session.lm.popularity_community.queue_content = lambda _type, _content: \
-            popularity_community_queue_content(self.torrent_checker, _type, _content)
+        self.torrent_checker.tribler_session.lm.popularity_community.queue_content = lambda _content: \
+            popularity_community_queue_content(self.torrent_checker, _content)
 
         # Case1: Fake torrent checker response, seeders:0
         fake_response = {'infohash': 'a'*20, 'seeders': 0, 'leechers': 0, 'last_check': time.time()}
@@ -189,7 +194,6 @@ class TestTorrentChecker(TestAsServer):
 
         self.torrent_checker.publish_torrent_result(fake_response)
         self.assertTrue(self.torrent_checker.popularity_community_queue_content_called)
-        self.assertEqual(self.torrent_checker.popularity_community_queue_content_called_type, TYPE_TORRENT_HEALTH)
 
         # Case3: Popular community is None
         self.torrent_checker.tribler_session.lm.popularity_community = None
