@@ -13,10 +13,12 @@ from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, COMMIT_STAT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.utilities import get_gui_setting
 from TriblerGUI.widgets.tablecontentmodel import MyTorrentsContentModel
 from TriblerGUI.widgets.triblertablecontrollers import MyTorrentsTableViewController
 
-CHANNEL_COMMIT_DELAY = 30000 # milliseconds
+CHANNEL_COMMIT_DELAY = 30000  # milliseconds
+
 
 class EditChannelPage(QWidget):
     """
@@ -36,12 +38,15 @@ class EditChannelPage(QWidget):
         self.model = None
         self.controller = None
         self.channel_dirty = False
+        self.gui_settings = None
 
         self.commit_timer = QTimer()
         self.commit_timer.setSingleShot(True)
         self.commit_timer.timeout.connect(self.clicked_edit_channel_commit_button)
 
-    def initialize_edit_channel_page(self):
+    def initialize_edit_channel_page(self, gui_settings):
+        self.gui_settings = gui_settings
+
         self.window().create_channel_intro_button.clicked.connect(self.on_create_channel_intro_button_clicked)
 
         self.window().create_channel_form.hide()
@@ -73,15 +78,20 @@ class EditChannelPage(QWidget):
 
         # Commit the channel just in case there are uncommitted changes left since the last time (e.g. Tribler crashed)
         # The timer thing here is a workaround for race condition with the core startup
-        self.commit_timer.stop()
-        self.commit_timer.start(10000)
+        if self.autocommit_enabled:
+            self.commit_timer.stop()
+            self.commit_timer.start(10000)
 
+    @property
+    def autocommit_enabled(self):
+        return get_gui_setting(self.gui_settings, "autocommit_enabled", True,
+                               is_bool=True) if self.gui_settings else True
 
     def update_channel_commit_views(self):
-        if self.channel_dirty:
+        if self.channel_dirty and self.autocommit_enabled:
             self.commit_timer.stop()
             self.commit_timer.start(CHANNEL_COMMIT_DELAY)
-        self.window().commit_control_bar.setHidden(not self.channel_dirty)
+        self.window().commit_control_bar.setHidden(not self.channel_dirty or self.autocommit_enabled)
 
     def load_my_channel_overview(self):
         if not self.channel_overview:

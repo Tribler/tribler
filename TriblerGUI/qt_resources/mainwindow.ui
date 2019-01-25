@@ -1090,7 +1090,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>4</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1428,7 +1428,7 @@ margin: 10px;</string>
           <item>
            <widget class="QStackedWidget" name="edit_channel_stacked_widget">
             <property name="currentIndex">
-             <number>1</number>
+             <number>2</number>
             </property>
             <widget class="QWidget" name="no_channel_intro_page">
              <layout class="QVBoxLayout" name="verticalLayout">
@@ -1914,7 +1914,7 @@ font-size: 14px;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>2</number>
+                 <number>3</number>
                 </property>
                 <widget class="QWidget" name="edit_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -4419,7 +4419,7 @@ border-top: 1px solid #555;
                <x>0</x>
                <y>0</y>
                <width>661</width>
-               <height>686</height>
+               <height>646</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -4508,6 +4508,31 @@ color: white;</string>
                   </item>
                   <item row="1" column="1">
                    <widget class="QCheckBox" name="family_filter_checkbox">
+                    <property name="text">
+                     <string/>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="13" column="0">
+                   <widget class="QLabel" name="label_42">
+                    <property name="styleSheet">
+                     <string notr="true">font-weight: bold;
+color: white;</string>
+                    </property>
+                    <property name="text">
+                     <string>Personal channel settings</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="14" column="0">
+                   <widget class="QLabel" name="label_43">
+                    <property name="text">
+                     <string>Commit changes automatically</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="14" column="1">
+                   <widget class="QCheckBox" name="channel_autocommit_checkbox">
                     <property name="text">
                      <string/>
                     </property>
