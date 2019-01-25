@@ -116,6 +116,7 @@ class ItemClickedMixin(TriblerContentTableView):
 
 
 class CommitControlMixin(TriblerContentTableView):
+
     def on_commit_control_clicked(self, index):
         infohash = index.model().data_items[index.row()][u'infohash']
         status = index.model().data_items[index.row()][u'status']
