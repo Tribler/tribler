@@ -4,7 +4,7 @@ import os
 import urllib
 from base64 import b64encode
 
-from PyQt5.QtCore import QDir, pyqtSignal
+from PyQt5.QtCore import QDir, pyqtSignal, QTimer
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 
@@ -13,8 +13,11 @@ from TriblerGUI.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, COMMIT_STAT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.utilities import get_gui_setting
 from TriblerGUI.widgets.tablecontentmodel import MyTorrentsContentModel
 from TriblerGUI.widgets.triblertablecontrollers import MyTorrentsTableViewController
+
+CHANNEL_COMMIT_DELAY = 30000  # milliseconds
 
 
 class EditChannelPage(QWidget):
@@ -35,8 +38,15 @@ class EditChannelPage(QWidget):
         self.model = None
         self.controller = None
         self.channel_dirty = False
+        self.gui_settings = None
+        self.commit_timer = None
+        self.autocommit_enabled = None
+        get_gui_setting(self.gui_settings, "autocommit_enabled", True,
+                                                  is_bool=True) if self.gui_settings else True
 
-    def initialize_edit_channel_page(self):
+    def initialize_edit_channel_page(self, gui_settings):
+        self.gui_settings = gui_settings
+
         self.window().create_channel_intro_button.clicked.connect(self.on_create_channel_intro_button_clicked)
 
         self.window().create_channel_form.hide()
@@ -55,6 +65,9 @@ class EditChannelPage(QWidget):
 
         self.window().export_channel_button.clicked.connect(self.on_export_mdblob)
 
+        # TODO: re-enable remove_selected button
+        self.window().remove_selected_button.setHidden(True)
+
         # Connect torrent addition/removal buttons
         self.window().remove_selected_button.clicked.connect(self.on_torrents_remove_selected_clicked)
         self.window().remove_all_button.clicked.connect(self.on_torrents_remove_all_clicked)
@@ -65,9 +78,34 @@ class EditChannelPage(QWidget):
                                                         self.window().edit_channel_torrents_num_items_label,
                                                         self.window().edit_channel_torrents_filter)
         self.window().edit_channel_torrents_container.details_container.hide()
+        self.autocommit_enabled = get_gui_setting(self.gui_settings, "autocommit_enabled", True,
+                        is_bool=True) if self.gui_settings else True
 
-    def update_channel_commit_views(self):
-        self.window().commit_control_bar.setHidden(not self.channel_dirty)
+        # Commit the channel just in case there are uncommitted changes left since the last time (e.g. Tribler crashed)
+        # The timer thing here is a workaround for race condition with the core startup
+        if self.autocommit_enabled:
+            if not self.commit_timer:
+                self.commit_timer = QTimer()
+                self.commit_timer.setSingleShot(True)
+                self.commit_timer.timeout.connect(self.autocommit_fired)
+
+            self.controller.table_view.setColumnHidden(3, True)
+            self.model.exclude_deleted = True
+            self.commit_timer.stop()
+            self.commit_timer.start(10000)
+        else:
+            self.controller.table_view.setColumnHidden(4, True)
+            self.model.exclude_deleted = False
+
+    def update_channel_commit_views(self, deleted_index=None):
+        if self.channel_dirty and self.autocommit_enabled:
+            self.commit_timer.stop()
+            self.commit_timer.start(CHANNEL_COMMIT_DELAY)
+            if deleted_index:
+                # TODO: instead of reloading the whole table, just remove the deleted row and update start and end
+                self.load_my_torrents()
+
+        self.window().commit_control_bar.setHidden(not self.channel_dirty or self.autocommit_enabled)
 
     def load_my_channel_overview(self):
         if not self.channel_overview:
@@ -338,6 +376,20 @@ class EditChannelPage(QWidget):
         self.dialog.close_dialog()
         self.dialog = None
 
+    def autocommit_fired(self):
+        def commit_channel(overview):
+            try:
+                if overview['mychannel']['dirty']:
+                    TriblerRequestManager().perform_request("mychannel/commit", lambda _: None, method='POST',
+                                                            capture_errors=False)
+            except KeyError:
+                return
+
+        if self.channel_overview:
+            self.clicked_edit_channel_commit_button()
+        else:
+            TriblerRequestManager().perform_request("mychannel", commit_channel, capture_errors=False)
+
     # Commit button-related methods
     def clicked_edit_channel_commit_button(self):
         request_mgr = TriblerRequestManager()
@@ -351,7 +403,8 @@ class EditChannelPage(QWidget):
             self.channel_dirty = False
             self.update_channel_commit_views()
             self.on_commit.emit()
-            self.load_my_torrents()
+            if not self.autocommit_enabled:
+                self.load_my_torrents()
 
     def add_torrent_to_channel(self, filename):
         with open(filename, "rb") as torrent_file:

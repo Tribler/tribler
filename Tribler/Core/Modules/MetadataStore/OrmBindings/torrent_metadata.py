@@ -6,7 +6,7 @@ from datetime import datetime
 from pony import orm
 from pony.orm import db_session, raw_sql
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, TODELETE
 from Tribler.Core.Modules.MetadataStore.serialization import TorrentMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -17,7 +17,6 @@ def define_binding(db):
         _discriminator_ = REGULAR_TORRENT
 
         # Serializable
-        timestamp = orm.Required(int, size=64, default=0)
         infohash = orm.Optional(database_blob, default='\x00' * 20)
         size = orm.Optional(int, size=64, default=0)
         torrent_date = orm.Optional(datetime, default=datetime.utcnow)
@@ -35,13 +34,21 @@ def define_binding(db):
             if "health" not in kwargs and "infohash" in kwargs:
                 kwargs["health"] = db.TorrentState.get(infohash=kwargs["infohash"]) or db.TorrentState(
                     infohash=kwargs["infohash"])
-                if 'tracker_info' in kwargs:
-                    sanitized_url = get_uniformed_tracker_url(kwargs["tracker_info"])
-                    if sanitized_url:
-                        tracker = db.TrackerState.get(url=sanitized_url) or db.TrackerState(url=sanitized_url)
-                        kwargs["health"].trackers.add(tracker)
 
             super(TorrentMetadata, self).__init__(*args, **kwargs)
+
+            if 'tracker_info' in kwargs:
+                self.add_tracker(kwargs["tracker_info"])
+
+        def add_tracker(self, tracker_url):
+            sanitized_url = get_uniformed_tracker_url(tracker_url)
+            if sanitized_url:
+                tracker = db.TrackerState.get(url=sanitized_url) or db.TrackerState(url=sanitized_url)
+                self.health.trackers.add(tracker)
+
+        def before_update(self):
+            self.add_tracker(self.tracker_info)
+
 
         def get_magnet(self):
             return ("magnet:?xt=urn:btih:%s&dn=%s" %
@@ -95,7 +102,8 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_torrents(cls, first=1, last=50, sort_by=None, sort_asc=True, query_filter=None, channel_pk=False):
+        def get_torrents(cls, first=1, last=50, sort_by=None, sort_asc=True, query_filter=None, channel_pk=False,
+                         exclude_deleted=False):
             """
             Get some torrents. Optionally sort the results by a specific field, or filter the channels based
             on a keyword/whether you are subscribed to it.
@@ -107,6 +115,8 @@ def define_binding(db):
 
             # We only want torrents, not channel torrents
             pony_query = pony_query.where(metadata_type=REGULAR_TORRENT)
+            if exclude_deleted:
+                pony_query = pony_query.where(lambda g: g.status != TODELETE)
 
             # Filter on channel
             if channel_pk:
@@ -137,5 +147,16 @@ def define_binding(db):
                 simple_dict['trackers'] = [tracker.url for tracker in self.health.trackers]
 
             return simple_dict
+
+        def metadata_conflicting(self, b):
+            # Check if metadata in the given dict has conflicts with this entry
+            # WARNING! This does NOT check the INFOHASH
+            a = self.to_dict()
+            for comp in ["title", "size", "tags", "torrent_date", "tracker_info"]:
+                if (comp not in b) or (str(a[comp]) == str(b[comp])):
+                    continue
+                return True
+            return False
+
 
     return TorrentMetadata

@@ -76,6 +76,8 @@ class PlayButtonMixin(TriblerContentTableView):
 
 class SubscribeButtonMixin(TriblerContentTableView):
     on_subscribed_channel = pyqtSignal(QModelIndex)
+    on_unsubscribed_channel = pyqtSignal(QModelIndex)
+
     def on_subscribe_control_clicked(self, index):
         if index.model().data_items[index.row()][u'status'] == 6:  # LEGACY ENTRIES!
             return
@@ -94,6 +96,7 @@ class SubscribeButtonMixin(TriblerContentTableView):
 class ItemClickedMixin(TriblerContentTableView):
     on_channel_clicked = pyqtSignal(dict)
     on_torrent_clicked = pyqtSignal(QModelIndex, dict)
+
     def on_table_item_clicked(self, item):
         column_position = self.model().column_position
         if (ACTION_BUTTONS in column_position and item.column() == column_position[ACTION_BUTTONS]) or \
@@ -134,7 +137,15 @@ class CommitControlMixin(TriblerContentTableView):
             index.model().data_items[index.row()][u'status'] = json_result['new_status']
 
             self.window().edit_channel_page.channel_dirty = json_result['dirty']
-            self.window().edit_channel_page.update_channel_commit_views()
+            self.window().edit_channel_page.update_channel_commit_views(deleted_index=index)
+
+
+class DeleteButtonMixin(CommitControlMixin):
+    def on_delete_button_clicked(self, index):
+        request_mgr = TriblerRequestManager()
+        request_mgr.perform_request("mychannel/torrents/%s" % index.model().data_items[index.row()][u'infohash'],
+                                    lambda response: self.on_torrent_status_updated(response, index),
+                                    data='status=%d' % COMMIT_STATUS_TODELETE, method='PATCH')
 
 
 class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMixin, SubscribeButtonMixin,
@@ -162,7 +173,7 @@ class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMi
         self.setColumnWidth(1, self.width() - 304)  # Few pixels offset so the horizontal scrollbar does not appear
 
 
-class TorrentsTableView(ItemClickedMixin, CommitControlMixin, DownloadButtonMixin, PlayButtonMixin,
+class TorrentsTableView(ItemClickedMixin, DeleteButtonMixin, DownloadButtonMixin, PlayButtonMixin,
                         TriblerContentTableView):
     """
     This table displays various torrents.
@@ -175,6 +186,7 @@ class TorrentsTableView(ItemClickedMixin, CommitControlMixin, DownloadButtonMixi
         self.clicked.connect(self.on_table_item_clicked)
         self.delegate.play_button.clicked.connect(self.on_play_button_clicked)
         self.delegate.commit_control.clicked.connect(self.on_commit_control_clicked)
+        self.delegate.delete_button.clicked.connect(self.on_delete_button_clicked)
         self.delegate.download_button.clicked.connect(self.on_download_button_clicked)
 
     def init_delegate(self):
@@ -185,7 +197,8 @@ class TorrentsTableView(ItemClickedMixin, CommitControlMixin, DownloadButtonMixi
             self.setColumnWidth(0, 100)
             self.setColumnWidth(2, 100)
             self.setColumnWidth(3, 100)
-            self.setColumnWidth(1, self.width() - 304)  # Few pixels offset so the horizontal scrollbar does not appear
+            self.setColumnWidth(4, 100)
+            self.setColumnWidth(1, self.width() - 404)  # Few pixels offset so the horizontal scrollbar does not appear
         else:
             self.setColumnWidth(0, 100)
             self.setColumnWidth(2, 100)

@@ -146,11 +146,16 @@ class TorrentsContentModel(TriblerContentModel):
 
 
 class MyTorrentsContentModel(TorrentsContentModel):
-    columns = [u'category', u'name', u'size', u'status']
-    column_headers = [u'Category', u'Name', u'Size', u'']
+    columns = [u'category', u'name', u'size', u'status', ACTION_BUTTONS]
+    column_headers = [u'Category', u'Name', u'Size', u'', u'']
     column_flags = {
         u'category': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'name': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'size': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'status': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
+        ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
+
+    def __init__(self, channel_pk=''):
+        TorrentsContentModel.__init__(self, channel_pk=channel_pk)
+        self.exclude_deleted = False

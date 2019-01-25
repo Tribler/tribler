@@ -240,7 +240,7 @@ class TorrentsTableViewController(TriblerTableViewController):
 
 class MyTorrentsTableViewController(TorrentsTableViewController):
     """
-    This class manages the list with your the torrents in your own channel.
+    This class manages the list with the torrents in your own channel.
     """
 
     def load_torrents(self, start=None, end=None):
@@ -262,7 +262,8 @@ class MyTorrentsTableViewController(TorrentsTableViewController):
             "mychannel/torrents?first=%i&last=%i" % (start, end)
             + ('&sort_by=%s' % sort_by)
             + ('&sort_asc=%d' % sort_asc)
-            + ('&filter=%s' % filter_text),
+            + ('&filter=%s' % filter_text)
+            + ('&exclude_deleted=1' if self.model.exclude_deleted else ''),
             self.on_torrents)
 
     def on_torrents(self, response):

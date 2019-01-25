@@ -153,7 +153,7 @@ class TriblerWindow(QMainWindow):
         self.search_results_page.initialize_search_results_page()
         self.settings_page.initialize_settings_page()
         self.subscribed_channels_page.initialize()
-        self.edit_channel_page.initialize_edit_channel_page()
+        self.edit_channel_page.initialize_edit_channel_page(self.gui_settings)
         self.downloads_page.initialize_downloads_page()
         self.home_page.initialize_home_page()
         self.loading_page.initialize_loading_page()

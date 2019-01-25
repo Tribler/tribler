@@ -1,8 +1,7 @@
 import sys
-
 from PIL.ImageQt import ImageQt
-
 from PyQt5 import QtGui, QtCore
+
 from PyQt5.QtWidgets import QSizePolicy
 from PyQt5.QtWidgets import QWidget, QLabel, QFileDialog
 
@@ -50,6 +49,7 @@ class SettingsPage(QWidget):
         self.window().download_location_chooser_button.clicked.connect(self.on_choose_download_dir_clicked)
         self.window().watch_folder_chooser_button.clicked.connect(self.on_choose_watch_dir_clicked)
 
+        self.window().channel_autocommit_checkbox.stateChanged.connect(self.on_channel_autocommit_checkbox_changed)
         self.window().developer_mode_enabled_checkbox.stateChanged.connect(self.on_developer_mode_checkbox_changed)
         self.window().use_monochrome_icon_checkbox.stateChanged.connect(self.on_use_monochrome_icon_checkbox_changed)
         self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
@@ -155,6 +155,9 @@ class SettingsPage(QWidget):
         else:
             ConfirmationDialog.show_error(self.window(), DEPENDENCY_ERROR_TITLE, DEPENDENCY_ERROR_MESSAGE)
 
+    def on_channel_autocommit_checkbox_changed(self, _):
+        self.window().gui_settings.setValue("autocommit_enabled", self.window().channel_autocommit_checkbox.isChecked())
+
     def on_developer_mode_checkbox_changed(self, _):
         self.window().gui_settings.setValue("debug", self.window().developer_mode_enabled_checkbox.isChecked())
         self.window().left_menu_button_debug.setHidden(not self.window().developer_mode_enabled_checkbox.isChecked())
@@ -226,6 +229,9 @@ class SettingsPage(QWidget):
         self.window().watchfolder_enabled_checkbox.setChecked(settings['watch_folder']['enabled'])
         self.window().watchfolder_location_input.setText(settings['watch_folder']['directory'])
 
+        # Channel settings
+        self.window().channel_autocommit_checkbox.setChecked(get_gui_setting(gui_settings, "autocommit_enabled", True, is_bool=True))
+
         # Log directory
         self.window().log_location_input.setText(settings['general']['log_dir'])
 
@@ -271,6 +277,7 @@ class SettingsPage(QWidget):
         self.window().developer_mode_enabled_checkbox.setChecked(get_gui_setting(gui_settings, "debug",
                                                                                  False, is_bool=True))
         self.window().checkbox_enable_resource_log.setChecked(settings['resource_monitor']['enabled'])
+
         cpu_priority = 1
         if 'cpu_priority' in settings['resource_monitor']:
             cpu_priority = int(settings['resource_monitor']['cpu_priority'])
@@ -351,7 +358,7 @@ class SettingsPage(QWidget):
             settings_data['libtorrent']['proxy_server'] = ":"
 
         if len(self.window().lt_proxy_username_input.text()) > 0 and \
-                        len(self.window().lt_proxy_password_input.text()) > 0:
+                len(self.window().lt_proxy_password_input.text()) > 0:
             settings_data['libtorrent']['proxy_auth'] = "%s:%s" % (self.window().lt_proxy_username_input.text(),
                                                                    self.window().lt_proxy_password_input.text())
         else:
@@ -386,7 +393,7 @@ class SettingsPage(QWidget):
         except ValueError:
             ConfirmationDialog.show_error(self.window(), "Invalid value for bandwidth limit",
                                           "You've entered an invalid value for the maximum upload/download rate. "
-                                          "Please enter a whole number (max: %d)" % (sys.maxsize/1000))
+                                          "Please enter a whole number (max: %d)" % (sys.maxsize / 1000))
             return
 
         try:
@@ -448,6 +455,8 @@ class SettingsPage(QWidget):
         if not data:
             return
         # Now save the GUI settings
+        self.window().gui_settings.setValue("autocommit_enabled",
+                                            self.window().channel_autocommit_checkbox.isChecked())
         self.window().gui_settings.setValue("ask_download_settings",
                                             self.window().always_ask_location_checkbox.isChecked())
         self.window().gui_settings.setValue("use_monochrome_icon",

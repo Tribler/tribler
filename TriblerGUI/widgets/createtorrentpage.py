@@ -120,7 +120,7 @@ class CreateTorrentPage(QWidget):
         self.window().edit_channel_create_torrent_progress_label.hide()
         if 'added' in result:
             self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_TORRENTS)
-            self.window().edit_channel_torrents_list.model.refresh()
+            self.window().edit_channel_page.load_my_torrents()
 
     def on_remove_entry(self):
         self.window().create_torrent_files_list.takeItem(self.selected_item_index)

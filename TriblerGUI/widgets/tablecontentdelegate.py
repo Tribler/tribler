@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QStyle, QStyledItemDelegate
 from TriblerGUI.defs import ACTION_BUTTONS, COMMIT_STATUS_COMMITTED, COMMIT_STATUS_NEW, COMMIT_STATUS_TODELETE, \
     HEALTH_CHECKING, HEALTH_DEAD, HEALTH_ERROR, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 from TriblerGUI.utilities import get_image_path, get_health
-from TriblerGUI.widgets.tableiconbuttons import DownloadIconButton, PlayIconButton
+from TriblerGUI.widgets.tableiconbuttons import DownloadIconButton, PlayIconButton, DeleteIconButton
 
 
 class TriblerButtonsDelegate(QStyledItemDelegate):
@@ -200,10 +200,11 @@ class TorrentsButtonsDelegate(TriblerButtonsDelegate):
         # On-demand buttons
         self.play_button = PlayIconButton()
         self.download_button = DownloadIconButton()
-        self.ondemand_container = [self.play_button, self.download_button]
+        self.delete_button = DeleteIconButton()
+        self.ondemand_container = [self.delete_button, self.play_button, self.download_button]
         self.commit_control = CommitStatusControl(u'status')
 
-        self.controls = [self.play_button, self.download_button, self.commit_control]
+        self.controls = [self.play_button, self.download_button, self.commit_control, self.delete_button]
 
         self.health_status_widget = HealthStatusDisplay()
 
