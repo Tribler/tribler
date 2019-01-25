@@ -4,7 +4,7 @@ import os
 import urllib
 from base64 import b64encode
 
-from PyQt5.QtCore import QDir, pyqtSignal
+from PyQt5.QtCore import QDir, pyqtSignal, QTimer
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 
@@ -16,6 +16,7 @@ from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.widgets.tablecontentmodel import MyTorrentsContentModel
 from TriblerGUI.widgets.triblertablecontrollers import MyTorrentsTableViewController
 
+CHANNEL_COMMIT_DELAY = 30000 # milliseconds
 
 class EditChannelPage(QWidget):
     """
@@ -35,6 +36,10 @@ class EditChannelPage(QWidget):
         self.model = None
         self.controller = None
         self.channel_dirty = False
+
+        self.commit_timer = QTimer()
+        self.commit_timer.setSingleShot(True)
+        self.commit_timer.timeout.connect(self.clicked_edit_channel_commit_button)
 
     def initialize_edit_channel_page(self):
         self.window().create_channel_intro_button.clicked.connect(self.on_create_channel_intro_button_clicked)
@@ -66,7 +71,16 @@ class EditChannelPage(QWidget):
                                                         self.window().edit_channel_torrents_filter)
         self.window().edit_channel_torrents_container.details_container.hide()
 
+        # Commit the channel just in case there are uncommitted changes left since the last time (e.g. Tribler crashed)
+        # The timer thing here is a workaround for race condition with the core startup
+        self.commit_timer.stop()
+        self.commit_timer.start(10000)
+
+
     def update_channel_commit_views(self):
+        if self.channel_dirty:
+            self.commit_timer.stop()
+            self.commit_timer.start(CHANNEL_COMMIT_DELAY)
         self.window().commit_control_bar.setHidden(not self.channel_dirty)
 
     def load_my_channel_overview(self):
