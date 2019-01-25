@@ -1,17 +1,14 @@
 import os
-import random
 import sys
 import logging.config
 
 import signal
-import random
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.exceptions import TriblerException
 from check_os import check_environment, check_free_space, error_and_exit, setup_gui_logging, \
     should_kill_other_tribler_instances, enable_fault_handler, set_process_priority, \
     check_and_enable_code_tracing
-api_port = random.randint(10000,20000)
 
 
 # https://github.com/Tribler/tribler/issues/3702
@@ -71,7 +68,6 @@ def start_tribler_core(base_path, api_port):
         priority_order = config.get_cpu_priority_order()
         set_process_priority(pid=os.getpid(), priority_order=priority_order)
 
-        print api_port
         config.set_http_api_port(int(api_port))
         config.set_http_api_enabled(True)
 
@@ -120,7 +116,7 @@ if __name__ == "__main__":
             app = TriblerApplication("triblerapp", sys.argv)
 
 
-            window = TriblerWindow(api_port=api_port)
+            window = TriblerWindow()
             window.setWindowTitle("Tribler")
             app.set_activation_window(window)
             app.parse_sys_args(sys.argv)
