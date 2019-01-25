@@ -1,23 +1,27 @@
-import os
-import time
-import sys
+from __future__ import absolute_import
 
-from Tribler.community.triblertunnel.caches import BalanceRequestCache
-from Tribler.community.triblertunnel.payload import PayoutPayload, BalanceRequestPayload, BalanceResponsePayload
+import os
+import sys
+import time
+
+from six.moves import xrange
+
+from twisted.internet.defer import Deferred, inlineCallbacks, succeed
+
 from Tribler.Core.Modules.wallet.bandwidth_block import TriblerBandwidthBlock
+from Tribler.Core.Socks5.server import Socks5Server
+from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY_CREATED,\
+    NTFY_EXTENDED, NTFY_IP_RECREATE, NTFY_JOINED, NTFY_REMOVE, NTFY_TUNNEL
+from Tribler.community.triblertunnel.caches import BalanceRequestCache
+from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
+from Tribler.community.triblertunnel.payload import BalanceRequestPayload, BalanceResponsePayload, PayoutPayload
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import EMPTY_PK
 from Tribler.pyipv8.ipv8.messaging.anonymization.caches import ExtendRequestCache
-from twisted.internet.defer import inlineCallbacks, succeed, Deferred
-
-from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
-from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_IP_RECREATE, NTFY_REMOVE, NTFY_EXTENDED, NTFY_CREATED,\
-    NTFY_JOINED, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED
-from Tribler.Core.Socks5.server import Socks5Server
-from Tribler.pyipv8.ipv8.messaging.anonymization.community import message_to_payload, SINGLE_HOP_ENC_PACKETS
+from Tribler.pyipv8.ipv8.messaging.anonymization.community import SINGLE_HOP_ENC_PACKETS, message_to_payload
 from Tribler.pyipv8.ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
 from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_RP, \
-    CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_RENDEZVOUS, EXIT_NODE, RelayRoute
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA,\
+    CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, EXIT_NODE, RelayRoute
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
 
@@ -385,8 +389,13 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             # Reset the circuit byte counters so we do not payout again if we receive a destroy message.
             circuit.bytes_up = circuit.bytes_down = 0
 
+        # Now we actually remove the circuit
+        remove_deferred = super(TriblerTunnelCommunity, self)\
+            .remove_circuit(circuit_id, additional_info=additional_info, remove_now=remove_now, destroy=destroy)
+
+        affected_peers = self.dispatcher.circuit_dead(circuit)
+
         def update_torrents(_):
-            affected_peers = self.dispatcher.circuit_dead(circuit)
             ltmgr = self.tribler_session.lm.ltmgr \
                 if self.tribler_session and self.tribler_session.config.get_libtorrent_enabled() else None
             if ltmgr:
@@ -395,10 +404,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                         d.get_handle().addCallback(lambda handle, download=d:
                                                    self.update_torrent(affected_peers, handle, download))
 
-        # Now we actually remove the circuit
-        remove_deferred = super(TriblerTunnelCommunity, self)\
-            .remove_circuit(circuit_id, additional_info=additional_info, remove_now=remove_now, destroy=destroy)
         remove_deferred.addCallback(update_torrents)
+
         return remove_deferred
 
     def remove_relay(self, circuit_id, additional_info='', remove_now=False, destroy=False, got_destroy_from=None,
