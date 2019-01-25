@@ -15,7 +15,6 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
-
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, succeed
 from twisted.internet.task import LoopingCall
@@ -38,12 +37,10 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Video.VideoServer import VideoServer
-from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR, NTFY_DISPERSY,
-                                     NTFY_ERROR, NTFY_FINISHED, NTFY_STARTED, NTFY_TORRENT, NTFY_TORRENTS, NTFY_TRIBLER,
-                                     NTFY_UPDATE, STATE_INITIALIZE_CHANNEL_MGR, STATE_LOADING_COMMUNITIES,
-                                     STATE_STARTING_DISPERSY, STATE_START_API_ENDPOINTS, STATE_START_CREDIT_MINING,
-                                     STATE_START_LIBTORRENT, STATE_START_REMOTE_TORRENT_HANDLER,
-                                     STATE_START_TORRENT_CHECKER, STATE_START_WATCH_FOLDER)
+from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
+                                     NTFY_FINISHED, NTFY_STARTED, NTFY_TORRENT, NTFY_TRIBLER,
+                                     STATE_START_API_ENDPOINTS, STATE_START_CREDIT_MINING,
+                                     STATE_START_LIBTORRENT, STATE_START_TORRENT_CHECKER, STATE_START_WATCH_FOLDER)
 from Tribler.pyipv8.ipv8.dht.provider import DHTCommunityProvider
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.churn import RandomChurn
@@ -208,7 +205,7 @@ class TriblerLaunchMany(TaskManager):
             random_slots = self.session.config.get_tunnel_community_random_slots()
             competing_slots = self.session.config.get_tunnel_community_competing_slots()
 
-            dht_provider = DHTCommunityProvider(self.dht_community, self.session.config.get_dispersy_port())
+            dht_provider = DHTCommunityProvider(self.dht_community, self.session.config.get_ipv8_port())
             self.tunnel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
                                                   tribler_session=self.session,
                                                   dht_provider=dht_provider,
@@ -676,7 +673,8 @@ class TriblerLaunchMany(TaskManager):
                     self._logger.exception("Could not remove state")
             else:
                 self._logger.warning("remove pstate: download is back, restarted? Canceling removal! %s",
-                                      repr(infohash))
+                                     repr(infohash))
+
         reactor.callFromThread(do_remove)
 
     @inlineCallbacks
