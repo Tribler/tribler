@@ -1090,7 +1090,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1252,7 +1252,7 @@ margin: 10px;</string>
              </sizepolicy>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: white; font-size: 16px;</string>
+             <string notr="true">color: white; font-size: 16px; border-top: 1px solid #555;</string>
             </property>
             <property name="text">
              <string>No recommended torrents found.</string>
@@ -4418,8 +4418,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>661</width>
-               <height>686</height>
+               <width>300</width>
+               <height>610</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -7678,8 +7678,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>133</width>
-                       <height>246</height>
+                       <width>131</width>
+                       <height>260</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
