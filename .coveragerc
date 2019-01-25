@@ -2,4 +2,3 @@
 [run]
 branch = True
 omit = Tribler/dispersy/*
-       Tribler/Core/DecentralizedTracking/pymdht/*

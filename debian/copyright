@@ -61,10 +61,6 @@ License: Expat
  connection with the Software or the use or other dealings in the
  Software.
 
-Files: Tribler/Core/DecentralizedTracking/pymdht/*
-Copyright: 2009-2012 Raul Jimenez, Flutra Osmani, Ismael Saad Garcia, Sara Dar, Shariq Mobeen, S.M. Sarwarul Islam Rizvi, Zinat Sultana
-License: LGPL-2.1+
-
 Files: debian/*
 Copyright: 2012 Ying-Chun Liu (PaulLiu) <paulliu@debian.org>
 License: LGPL-2.1+

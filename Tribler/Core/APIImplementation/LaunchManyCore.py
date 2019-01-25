@@ -15,16 +15,18 @@ from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
-from six import text_type
 from pony.orm import db_session
+
+from six import text_type
+
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred, inlineCallbacks, DeferredList, succeed
+from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks, succeed
 from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig, DownloadStartupConfig
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, float2time
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Modules.payout_manager import PayoutManager
@@ -40,13 +42,12 @@ from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Core.exceptions import InvalidSignatureException
-from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER,
-                                     NTFY_FINISHED, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED_ON_ERROR, NTFY_ERROR,
-                                     DLSTATUS_SEEDING, NTFY_TORRENT, STATE_STARTING_DISPERSY, STATE_LOADING_COMMUNITIES,
-                                     STATE_INITIALIZE_CHANNEL_MGR, STATE_START_MAINLINE_DHT, STATE_START_LIBTORRENT,
-                                     STATE_START_TORRENT_CHECKER, STATE_START_REMOTE_TORRENT_HANDLER,
-                                     STATE_START_API_ENDPOINTS, STATE_START_WATCH_FOLDER, STATE_START_CREDIT_MINING,
-                                     STATE_SHUTDOWN)
+from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR, NTFY_DISPERSY,
+                                     NTFY_ERROR, NTFY_FINISHED, NTFY_STARTED, NTFY_TORRENT, NTFY_TORRENTS, NTFY_TRIBLER,
+                                     NTFY_UPDATE, STATE_INITIALIZE_CHANNEL_MGR, STATE_LOADING_COMMUNITIES,
+                                     STATE_STARTING_DISPERSY, STATE_START_API_ENDPOINTS, STATE_START_CREDIT_MINING,
+                                     STATE_START_LIBTORRENT, STATE_START_REMOTE_TORRENT_HANDLER,
+                                     STATE_START_TORRENT_CHECKER, STATE_START_WATCH_FOLDER)
 from Tribler.pyipv8.ipv8.dht.provider import DHTCommunityProvider
 from Tribler.pyipv8.ipv8.keyvault.private.m2crypto import M2CryptoSK
 from Tribler.pyipv8.ipv8.peer import Peer
@@ -107,7 +108,6 @@ class TriblerLaunchMany(TaskManager):
 
         self.video_server = None
 
-        self.mainline_dht = None
         self.ltmgr = None
         self.tracker_manager = None
         self.torrent_checker = None
@@ -295,12 +295,7 @@ class TriblerLaunchMany(TaskManager):
             random_slots = self.session.config.get_tunnel_community_random_slots()
             competing_slots = self.session.config.get_tunnel_community_competing_slots()
 
-            if self.mainline_dht:
-                from Tribler.Core.DecentralizedTracking.dht_provider import MainlineDHTProvider
-                dht_provider = MainlineDHTProvider(self.mainline_dht, self.session.config.get_dispersy_port())
-            else:
-                dht_provider = DHTCommunityProvider(self.dht_community, self.session.config.get_dispersy_port())
-
+            dht_provider = DHTCommunityProvider(self.dht_community, self.session.config.get_dispersy_port())
             self.tunnel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
                                                   tribler_session=self.session,
                                                   dht_provider=dht_provider,
@@ -424,14 +419,6 @@ class TriblerLaunchMany(TaskManager):
             self.session.notifier.notify(NTFY_DISPERSY, NTFY_STARTED, None)
 
             self.session.readable_status = STATE_LOADING_COMMUNITIES
-
-        # We should load the mainline DHT before loading the IPv8 overlays since the DHT is used for the tunnel overlay.
-        if self.session.config.get_mainline_dht_enabled():
-            self.session.readable_status = STATE_START_MAINLINE_DHT
-            from Tribler.Core.DecentralizedTracking import mainlineDHT
-            self.mainline_dht = mainlineDHT.init(('127.0.0.1', self.session.config.get_mainline_dht_port()),
-                                                 self.session.config.get_state_dir())
-            self.upnp_ports.append((self.session.config.get_mainline_dht_port(), 'UDP'))
 
         # Wallets
         if self.session.config.get_bitcoinlib_enabled():
@@ -1109,12 +1096,6 @@ class TriblerLaunchMany(TaskManager):
             self.session.notify_shutdown_state("Shutting down Peer DB...")
             yield self.peer_db.close()
         self.peer_db = None
-
-        if self.mainline_dht is not None:
-            from Tribler.Core.DecentralizedTracking import mainlineDHT
-            self.session.notify_shutdown_state("Shutting down Mainline DHT...")
-            yield mainlineDHT.deinit(self.mainline_dht)
-        self.mainline_dht = None
 
         if self.torrent_store is not None:
             self.session.notify_shutdown_state("Shutting down Torrent Store...")
