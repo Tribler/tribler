@@ -45,7 +45,7 @@ class Options(usage.Options):
     optParameters = [
         ["manhole", "m", 0, "Enable manhole telnet service listening at the specified port", int],
         ["statedir", "s", None, "Use an alternate statedir", str],
-        ["restapi", "p", -1, "Use an alternate port for the REST API", int],
+        ["restapi", "p", 8085, "Use an alternate port for the REST API", int],
         ["ipv8", "i", -1, "Use an alternate port for IPv8", int],
         ["libtorrent", "l", -1, "Use an alternate port for libtorrent", int],
         ["ipv8_bootstrap_override", "b", None, "Force the usage of specific IPv8 bootstrap server (ip:port)",
