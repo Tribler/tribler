@@ -109,7 +109,7 @@ class SearchEndpoint(resource.Resource):
             return json.dumps({"error": "q parameter missing"})
 
         first, last, sort_by, sort_asc, data_type = SearchEndpoint.sanitize_parameters(request.args)
-        query = request.args['q'][0]
+        query = cast_to_unicode_utf8(request.args['q'][0])
 
         if not data_type:
             search_scope = lambda g: (g.metadata_type == REGULAR_TORRENT or g.metadata_type == CHANNEL_TORRENT)

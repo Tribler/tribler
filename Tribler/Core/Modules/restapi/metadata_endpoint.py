@@ -9,6 +9,7 @@ from twisted.web import resource, http
 from twisted.web.server import NOT_DONE_YET
 
 from Tribler.pyipv8.ipv8.database import database_blob
+from Tribler.util import cast_to_unicode_utf8
 
 
 class BaseMetadataEndpoint(resource.Resource):
@@ -22,7 +23,7 @@ class BaseMetadataEndpoint(resource.Resource):
         last = 50 if 'last' not in parameters else int(parameters['last'][0])
         sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]
         sort_asc = True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc'][0]))
-        query_filter = None if 'filter' not in parameters else parameters['filter'][0]
+        query_filter = None if 'filter' not in parameters else cast_to_unicode_utf8(parameters['filter'][0])
 
         if sort_by:
             sort_by = MetadataEndpoint.convert_sort_param_to_pony_col(sort_by)
