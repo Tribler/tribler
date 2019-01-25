@@ -205,7 +205,7 @@ class TriblerLaunchMany(TaskManager):
             random_slots = self.session.config.get_tunnel_community_random_slots()
             competing_slots = self.session.config.get_tunnel_community_competing_slots()
 
-            dht_provider = DHTCommunityProvider(self.dht_community, self.session.config.get_dispersy_port())
+            dht_provider = DHTCommunityProvider(self.dht_community, self.session.config.get_ipv8_port())
             self.tunnel_community = community_cls(peer, self.ipv8.endpoint, self.ipv8.network,
                                                   tribler_session=self.session,
                                                   dht_provider=dht_provider,
