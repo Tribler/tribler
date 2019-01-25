@@ -4527,7 +4527,8 @@ color: white;</string>
                   <item row="14" column="0">
                    <widget class="QLabel" name="label_43">
                     <property name="text">
-                     <string>Commit changes automatically</string>
+                     <string>Commit changes automatically
+(requires Tribler restart)</string>
                     </property>
                    </widget>
                   </item>

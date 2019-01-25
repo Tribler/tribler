@@ -137,7 +137,7 @@ class CommitControlMixin(TriblerContentTableView):
             index.model().data_items[index.row()][u'status'] = json_result['new_status']
 
             self.window().edit_channel_page.channel_dirty = json_result['dirty']
-            self.window().edit_channel_page.update_channel_commit_views()
+            self.window().edit_channel_page.update_channel_commit_views(deleted_index=index)
 
 
 class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMixin, SubscribeButtonMixin,
