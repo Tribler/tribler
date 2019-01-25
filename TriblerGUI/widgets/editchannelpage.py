@@ -79,18 +79,26 @@ class EditChannelPage(QWidget):
         # Commit the channel just in case there are uncommitted changes left since the last time (e.g. Tribler crashed)
         # The timer thing here is a workaround for race condition with the core startup
         if self.autocommit_enabled:
+            self.model.exclude_deleted = True
             self.commit_timer.stop()
             self.commit_timer.start(10000)
+        else:
+            self.model.exclude_deleted = False
+
 
     @property
     def autocommit_enabled(self):
         return get_gui_setting(self.gui_settings, "autocommit_enabled", True,
                                is_bool=True) if self.gui_settings else True
 
-    def update_channel_commit_views(self):
+    def update_channel_commit_views(self, deleted_index = None):
         if self.channel_dirty and self.autocommit_enabled:
             self.commit_timer.stop()
             self.commit_timer.start(CHANNEL_COMMIT_DELAY)
+            if deleted_index:
+                # TODO: instead of reloading the whole table, just remove the deleted row and update start and end
+                self.load_my_torrents()
+
         self.window().commit_control_bar.setHidden(not self.channel_dirty or self.autocommit_enabled)
 
     def load_my_channel_overview(self):

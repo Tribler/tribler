@@ -6,7 +6,7 @@ from datetime import datetime
 from pony import orm
 from pony.orm import db_session, raw_sql
 
-from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, TODELETE
 from Tribler.Core.Modules.MetadataStore.serialization import TorrentMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -95,7 +95,8 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_torrents(cls, first=1, last=50, sort_by=None, sort_asc=True, query_filter=None, channel_pk=False):
+        def get_torrents(cls, first=1, last=50, sort_by=None, sort_asc=True, query_filter=None, channel_pk=False,
+                         exclude_deleted=False):
             """
             Get some torrents. Optionally sort the results by a specific field, or filter the channels based
             on a keyword/whether you are subscribed to it.
@@ -107,6 +108,8 @@ def define_binding(db):
 
             # We only want torrents, not channel torrents
             pony_query = pony_query.where(metadata_type=REGULAR_TORRENT)
+            if exclude_deleted:
+                pony_query = pony_query.where(lambda g: g.status != TODELETE)
 
             # Filter on channel
             if channel_pk:

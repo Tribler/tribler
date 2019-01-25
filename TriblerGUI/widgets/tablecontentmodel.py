@@ -154,3 +154,7 @@ class MyTorrentsContentModel(TorrentsContentModel):
         u'size': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
         u'status': Qt.ItemIsEnabled | Qt.ItemIsSelectable,
     }
+
+    def __init__(self, channel_pk=''):
+        TorrentsContentModel.__init__(self, channel_pk=channel_pk)
+        self.exclude_deleted = False

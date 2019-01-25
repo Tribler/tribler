@@ -262,7 +262,8 @@ class MyTorrentsTableViewController(TorrentsTableViewController):
             "mychannel/torrents?first=%i&last=%i" % (start, end)
             + ('&sort_by=%s' % sort_by)
             + ('&sort_asc=%d' % sort_asc)
-            + ('&filter=%s' % filter_text),
+            + ('&filter=%s' % filter_text)
+            + ('&exclude_deleted=1' if self.model.exclude_deleted else ''),
             self.on_torrents)
 
     def on_torrents(self, response):
