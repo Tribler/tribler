@@ -1090,7 +1090,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1252,7 +1252,7 @@ margin: 10px;</string>
              </sizepolicy>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: white; font-size: 16px;</string>
+             <string notr="true">color: white; font-size: 16px; border-top: 1px solid #555;</string>
             </property>
             <property name="text">
              <string>No recommended torrents found.</string>
