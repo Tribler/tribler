@@ -67,8 +67,7 @@ class EditChannelPage(QWidget):
         self.window().edit_channel_torrents_container.details_container.hide()
 
     def update_channel_commit_views(self):
-        self.window().dirty_channel_status_bar.setHidden(not self.channel_dirty)
-        self.window().edit_channel_commit_button.setEnabled(self.channel_dirty)
+        self.window().commit_control_bar.setHidden(not self.channel_dirty)
 
     def load_my_channel_overview(self):
         if not self.channel_overview:
