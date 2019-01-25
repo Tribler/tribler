@@ -61,6 +61,7 @@ class TriblerContentModel(RemoteTableModel):
         RemoteTableModel.__init__(self, parent=None)
         self.data_items = []
         self.column_position = {name: i for i, name in enumerate(self.columns)}
+        self.edit_enabled = False
 
     def headerData(self, num, orientation, role=None):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
@@ -159,3 +160,4 @@ class MyTorrentsContentModel(TorrentsContentModel):
     def __init__(self, channel_pk=''):
         TorrentsContentModel.__init__(self, channel_pk=channel_pk)
         self.exclude_deleted = False
+        self.edit_enabled = True

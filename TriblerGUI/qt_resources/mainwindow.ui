@@ -1252,7 +1252,7 @@ margin: 10px;</string>
              </sizepolicy>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: white; font-size: 16px;</string>
+             <string notr="true">color: white; font-size: 16px; border-top: 1px solid #555;</string>
             </property>
             <property name="text">
              <string>No recommended torrents found.</string>
@@ -2437,32 +2437,6 @@ padding-right: 4px;</string>
                       </widget>
                      </item>
                      <item>
-                      <spacer name="horizontalSpacer_46">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeType">
-                        <enum>QSizePolicy::Fixed</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>10</width>
-                         <height>0</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="edit_channel_torrents_num_items_label">
-                       <property name="styleSheet">
-                        <string notr="true"/>
-                       </property>
-                       <property name="text">
-                        <string>0 items</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
                       <spacer name="horizontalSpacer_48">
                        <property name="orientation">
                         <enum>Qt::Horizontal</enum>
@@ -2735,6 +2709,32 @@ color: white;
                         <size>
                          <width>10</width>
                          <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
+                      <widget class="QLabel" name="edit_channel_torrents_num_items_label">
+                       <property name="styleSheet">
+                        <string notr="true"/>
+                       </property>
+                       <property name="text">
+                        <string>0 items</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_46">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeType">
+                        <enum>QSizePolicy::Fixed</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>10</width>
+                         <height>0</height>
                         </size>
                        </property>
                       </spacer>
@@ -4418,8 +4418,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>661</width>
-               <height>616</height>
+               <width>755</width>
+               <height>646</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -7704,8 +7704,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>121</width>
-                       <height>238</height>
+                       <width>133</width>
+                       <height>246</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -12423,4 +12423,3 @@ color: #eee;</string>
   <slot>clicked_force_shutdown()</slot>
  </slots>
 </ui>
-
