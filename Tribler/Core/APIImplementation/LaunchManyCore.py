@@ -304,8 +304,6 @@ class TriblerLaunchMany(TaskManager):
             channels_dir = os.path.join(self.session.config.get_chant_channels_dir())
             database_path = os.path.join(self.session.config.get_state_dir(), 'sqlite', 'metadata.db')
             self.mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair)
-            self.gigachannel_manager = GigaChannelManager(self.session)
-            self.gigachannel_manager.start()
 
         if self.session.config.get_dummy_wallets_enabled():
             # For debugging purposes, we create dummy wallets
@@ -330,6 +328,10 @@ class TriblerLaunchMany(TaskManager):
             self.ltmgr.initialize()
             for port, protocol in self.upnp_ports:
                 self.ltmgr.add_upnp_mapping(port, protocol)
+
+        if self.session.config.get_chant_enabled():
+            self.gigachannel_manager = GigaChannelManager(self.session)
+            self.gigachannel_manager.start()
 
         # add task for tracker checking
         if self.session.config.get_torrent_checking_enabled():
