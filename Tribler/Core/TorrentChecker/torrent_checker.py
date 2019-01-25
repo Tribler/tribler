@@ -130,7 +130,7 @@ class TorrentChecker(TaskManager):
                         infohashes.append(torrent.infohash)
 
         if len(infohashes) == 0:
-            # We have not torrent to recheck for this tracker. Still update the last_check for this tracker.
+            # We have no torrent to recheck for this tracker. Still update the last_check for this tracker.
             self._logger.info("No torrent to check for tracker %s", tracker_url)
             self.update_tracker_info(tracker_url, True)
             return succeed(None)
