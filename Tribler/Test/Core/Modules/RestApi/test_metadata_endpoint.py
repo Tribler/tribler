@@ -4,15 +4,15 @@ import json
 from binascii import hexlify
 
 import six
-from six.moves import xrange
-
 from pony.orm import db_session
+from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.random_utils import random_infohash
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.tools import trial_timeout
 from Tribler.Test.util.Tracker.HTTPTracker import HTTPTracker
 from Tribler.Test.util.Tracker.UDPTracker import UDPTracker
@@ -26,12 +26,14 @@ class BaseTestMetadataEndpoint(AbstractApiTest):
         yield super(BaseTestMetadataEndpoint, self).setUp()
         self.infohashes = []
 
+        torrents_per_channel = 5
         # Add a few channels
         with db_session:
             for ind in xrange(10):
                 self.session.lm.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
-                _ = self.session.lm.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0))
-                for torrent_ind in xrange(5):
+                _ = self.session.lm.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0),
+                                                        num_entries=torrents_per_channel)
+                for torrent_ind in xrange(torrents_per_channel):
                     rand_infohash = random_infohash()
                     self.infohashes.append(rand_infohash)
                     _ = self.session.lm.mds.TorrentMetadata(title='torrent%d' % torrent_ind, infohash=rand_infohash)
@@ -47,6 +49,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
         """
         Test whether we can query some channels in the database with the REST API
         """
+
         def on_response(response):
             json_dict = json.loads(response)
             self.assertEqual(len(json_dict['channels']), 10)
@@ -58,6 +61,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
         """
         Test whether we can query some channels in the database with the REST API and an invalid sort parameter
         """
+
         def on_response(response):
             json_dict = json.loads(response)
             self.assertEqual(len(json_dict['channels']), 10)
@@ -69,6 +73,7 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
         """
         Test whether we can successfully query channels we are subscribed to with the REST API
         """
+
         def on_response(response):
             json_dict = json.loads(response)
             self.assertEqual(len(json_dict['channels']), 5)
@@ -112,6 +117,7 @@ class TestSpecificChannelTorrentsEndpoint(BaseTestMetadataEndpoint):
         """
         Test whether we can query some torrents in the database with the REST API
         """
+
         def on_response(response):
             json_dict = json.loads(response)
             self.assertEqual(len(json_dict['torrents']), 5)
@@ -134,6 +140,7 @@ class TestPopularChannelsEndpoint(BaseTestMetadataEndpoint):
         """
         Test whether we can retrieve popular channels with the REST API
         """
+
         def on_response(response):
             json_dict = json.loads(response)
             self.assertEqual(len(json_dict['channels']), 5)
@@ -172,6 +179,7 @@ class TestRandomTorrentsEndpoint(BaseTestMetadataEndpoint):
         """
         Test whether we can retrieve some random torrents with the REST API
         """
+
         def on_response(response):
             json_dict = json.loads(response)
             self.assertEqual(len(json_dict['torrents']), 5)
@@ -240,10 +248,22 @@ class TestTorrentHealthEndpoint(AbstractApiTest):
                         u"leechers": 11,
                         u"seeders": 12,
                         u"infohash": six.text_type(hexlify(infohash))
+                    },
+                    u"DHT": {
+                        u"leechers": 2,
+                        u"seeders": 1,
+                        u"infohash": six.text_type(hexlify(infohash))
                     }
                 }
             }
             self.assertDictEqual(json_response, expected_dict)
+
+        # Add mock DHT response
+        def get_metainfo(infohash, callback, **_):
+            callback({"seeders": 1, "leechers": 2})
+
+        self.session.lm.ltmgr = MockObject()
+        self.session.lm.ltmgr.get_metainfo = get_metainfo
 
         # Left for compatibility with other tests in this object
         self.udp_tracker.start()
