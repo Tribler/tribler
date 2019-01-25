@@ -45,7 +45,7 @@ class GigaChannelCommunity(Community):
         md_list = []
         with db_session:
             # TODO: when the health table will be there, send popular torrents instead
-            channel_l = self.metadata_store.ChannelMetadata.get_random_channels(1, subscribed=True)[:]
+            channel_l = self.metadata_store.ChannelMetadata.get_random_channels(1, only_subscribed=True)[:]
             if not channel_l:
                 return
             channel = channel_l[0]
