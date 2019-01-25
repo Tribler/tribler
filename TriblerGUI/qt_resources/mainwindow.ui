@@ -1090,7 +1090,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>4</number>
+         <number>1</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -2364,38 +2364,6 @@ font-size: 14px;</string>
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QLabel" name="dirty_channel_status_bar">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>0</width>
-                      <height>30</height>
-                     </size>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>16777215</width>
-                      <height>30</height>
-                     </size>
-                    </property>
-                    <property name="styleSheet">
-                     <string notr="true">font-size: 14px; background-color: #cc6600;
-color: #eee;</string>
-                    </property>
-                    <property name="text">
-                     <string>Your channel has uncommitted changes.</string>
-                    </property>
-                    <property name="alignment">
-                     <set>Qt::AlignCenter</set>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
                    <widget class="QWidget" name="edit_channel_torrents_top_bar" native="true">
                     <property name="minimumSize">
                      <size>
@@ -2468,6 +2436,109 @@ color: #eee;</string>
                       </spacer>
                      </item>
                      <item>
+                      <widget class="QWidget" name="commit_control_bar" native="true">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <property name="minimumSize">
+                        <size>
+                         <width>50</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                       <layout class="QHBoxLayout" name="horizontalLayout_11">
+                        <item>
+                         <widget class="QLabel" name="dirty_channel_status_bar">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                          <property name="minimumSize">
+                           <size>
+                            <width>0</width>
+                            <height>30</height>
+                           </size>
+                          </property>
+                          <property name="maximumSize">
+                           <size>
+                            <width>16777215</width>
+                            <height>30</height>
+                           </size>
+                          </property>
+                          <property name="styleSheet">
+                           <string notr="true">font-size: 14px; background-color: #cc6600;
+color: #eee;</string>
+                          </property>
+                          <property name="text">
+                           <string>Your channel has uncommitted changes.</string>
+                          </property>
+                          <property name="alignment">
+                           <set>Qt::AlignCenter</set>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <spacer name="horizontalSpacer_45">
+                          <property name="orientation">
+                           <enum>Qt::Horizontal</enum>
+                          </property>
+                          <property name="sizeHint" stdset="0">
+                           <size>
+                            <width>10</width>
+                            <height>20</height>
+                           </size>
+                          </property>
+                         </spacer>
+                        </item>
+                        <item>
+                         <widget class="EllipseButton" name="edit_channel_commit_button">
+                          <property name="minimumSize">
+                           <size>
+                            <width>0</width>
+                            <height>28</height>
+                           </size>
+                          </property>
+                          <property name="maximumSize">
+                           <size>
+                            <width>16777215</width>
+                            <height>28</height>
+                           </size>
+                          </property>
+                          <property name="styleSheet">
+                           <string notr="true">border-radius: 12px;
+padding-left: 4px;
+padding-right: 4px;</string>
+                          </property>
+                          <property name="text">
+                           <string>APPLY CHANGES</string>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_31">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeType">
+                        <enum>QSizePolicy::Maximum</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>16</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
                       <widget class="QLineEdit" name="edit_channel_torrents_filter">
                        <property name="sizePolicy">
                         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -2507,46 +2578,6 @@ color: white;
                        </property>
                        <property name="placeholderText">
                         <string>Filter</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <spacer name="horizontalSpacer_31">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeType">
-                        <enum>QSizePolicy::Maximum</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>16</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                     <item>
-                      <widget class="EllipseButton" name="edit_channel_commit_button">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>28</height>
-                        </size>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border-radius: 12px;
-padding-left: 4px;
-padding-right: 4px;</string>
-                       </property>
-                       <property name="text">
-                        <string>APPLY CHANGES</string>
                        </property>
                       </widget>
                      </item>
