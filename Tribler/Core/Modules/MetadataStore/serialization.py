@@ -155,13 +155,14 @@ class SignedPayload(Payload):
 
 
 class ChannelNodePayload(SignedPayload):
-    format_list = SignedPayload.format_list + ['Q', 'Q']
+    format_list = SignedPayload.format_list + ['Q', 'Q', 'Q']
 
     def __init__(self, metadata_type, public_key,
-                 id_, origin_id,
+                 id_, origin_id, timestamp,
                  **kwargs):
         self.id_ = id_
         self.origin_id = origin_id
+        self.timestamp = timestamp
         super(ChannelNodePayload, self).__init__(metadata_type, public_key,
                                                  **kwargs)
 
@@ -169,21 +170,23 @@ class ChannelNodePayload(SignedPayload):
         data = super(ChannelNodePayload, self).to_pack_list()
         data.append(('Q', self.id_))
         data.append(('Q', self.origin_id))
+        data.append(('Q', self.timestamp))
         return data
 
     @classmethod
     def from_unpack_list(cls, metadata_type, public_key,
-                         id_, origin_id,
+                         id_, origin_id, timestamp,
                          **kwargs):
         return ChannelNodePayload(metadata_type, public_key,
-                                  id_, origin_id,
+                                  id_, origin_id, timestamp,
                                   **kwargs)
 
     def to_dict(self):
         dct = super(ChannelNodePayload, self).to_dict()
         dct.update({
             "id_": self.id_,
-            "origin_id": self.origin_id
+            "origin_id": self.origin_id,
+            "timestamp": self.timestamp
         })
         return dct
 
@@ -192,13 +195,12 @@ class TorrentMetadataPayload(ChannelNodePayload):
     """
     Payload for metadata that stores a torrent.
     """
-    format_list = ChannelNodePayload.format_list + ['Q', '20s', 'Q', 'I', 'varlenI', 'varlenI', 'varlenI']
+    format_list = ChannelNodePayload.format_list + ['20s', 'Q', 'I', 'varlenI', 'varlenI', 'varlenI']
 
     def __init__(self, metadata_type, public_key,
-                 id_, origin_id,
-                 timestamp, infohash, size, torrent_date, title, tags, tracker_info,
+                 id_, origin_id, timestamp,
+                 infohash, size, torrent_date, title, tags, tracker_info,
                  **kwargs):
-        self.timestamp = timestamp
         self.infohash = str(infohash)
         self.size = size
         self.torrent_date = time2int(torrent_date) if isinstance(torrent_date, datetime) else torrent_date
@@ -206,12 +208,11 @@ class TorrentMetadataPayload(ChannelNodePayload):
         self.tags = tags.decode('utf-8') if type(tags) == str else tags
         self.tracker_info = tracker_info.decode('utf-8') if type(tracker_info) == str else tracker_info
         super(TorrentMetadataPayload, self).__init__(metadata_type, public_key,
-                                                     id_, origin_id,
+                                                     id_, origin_id, timestamp,
                                                      **kwargs)
 
     def to_pack_list(self):
         data = super(TorrentMetadataPayload, self).to_pack_list()
-        data.append(('Q', self.timestamp))
         data.append(('20s', self.infohash))
         data.append(('Q', self.size))
         data.append(('I', self.torrent_date))
@@ -222,16 +223,15 @@ class TorrentMetadataPayload(ChannelNodePayload):
 
     @classmethod
     def from_unpack_list(cls, metadata_type, public_key,
-                         id_, origin_id,
-                         timestamp, infohash, size, torrent_date, title, tags, tracker_info, **kwargs):
+                         id_, origin_id, timestamp,
+                         infohash, size, torrent_date, title, tags, tracker_info, **kwargs):
         return TorrentMetadataPayload(metadata_type, public_key,
-                                      id_, origin_id,
-                                      timestamp, infohash, size, torrent_date, title, tags, tracker_info, **kwargs)
+                                      id_, origin_id, timestamp,
+                                      infohash, size, torrent_date, title, tags, tracker_info, **kwargs)
 
     def to_dict(self):
         dct = super(TorrentMetadataPayload, self).to_dict()
         dct.update({
-            "timestamp": self.timestamp,
             "infohash": self.infohash,
             "size": self.size,
             "torrent_date": int2time(self.torrent_date),
@@ -255,14 +255,14 @@ class ChannelMetadataPayload(TorrentMetadataPayload):
     format_list = TorrentMetadataPayload.format_list + ['Q']
 
     def __init__(self, metadata_type, public_key,
-                 id_, origin_id,
-                 timestamp, infohash, size, torrent_date, title, tags, tracker_info,
+                 id_, origin_id, timestamp,
+                 infohash, size, torrent_date, title, tags, tracker_info,
                  num_entries,
                  **kwargs):
         self.num_entries = num_entries
         super(ChannelMetadataPayload, self).__init__(metadata_type, public_key,
-                                                     id_, origin_id,
-                                                     timestamp, infohash, size, torrent_date, title, tags, tracker_info,
+                                                     id_, origin_id, timestamp,
+                                                     infohash, size, torrent_date, title, tags, tracker_info,
                                                      **kwargs)
 
     def to_pack_list(self):
@@ -272,13 +272,13 @@ class ChannelMetadataPayload(TorrentMetadataPayload):
 
     @classmethod
     def from_unpack_list(cls, metadata_type, public_key,
-                         id_, origin_id,
-                         timestamp, infohash, size, torrent_date, title, tags, tracker_info,
+                         id_, origin_id, timestamp,
+                         infohash, size, torrent_date, title, tags, tracker_info,
                          num_entries,
                          **kwargs):
         return ChannelMetadataPayload(metadata_type, public_key,
-                                      id_, origin_id,
-                                      timestamp, infohash, size, torrent_date, title, tags, tracker_info,
+                                      id_, origin_id, timestamp,
+                                      infohash, size, torrent_date, title, tags, tracker_info,
                                       num_entries,
                                       **kwargs)
 
