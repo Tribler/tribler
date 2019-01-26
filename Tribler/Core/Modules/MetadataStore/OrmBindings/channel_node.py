@@ -54,6 +54,8 @@ def define_binding(db):
         id_ = orm.Required(int, size=64)
         orm.composite_index(public_key, id_) # Requires Pony 0.7.7+ with Python2
 
+        timestamp = orm.Required(int, size=64, default=0)
+
         signature = orm.Required(database_blob, unique=True)
 
         # Local

@@ -17,7 +17,6 @@ def define_binding(db):
         _discriminator_ = REGULAR_TORRENT
 
         # Serializable
-        timestamp = orm.Required(int, size=64, default=0)
         infohash = orm.Optional(database_blob, default='\x00' * 20)
         size = orm.Optional(int, size=64, default=0)
         torrent_date = orm.Optional(datetime, default=datetime.utcnow)
