@@ -240,7 +240,7 @@ class TorrentsTableViewController(TriblerTableViewController):
 
 class MyTorrentsTableViewController(TorrentsTableViewController):
     """
-    This class manages the list with your the torrents in your own channel.
+    This class manages the list with the torrents in your own channel.
     """
 
     def load_torrents(self, start=None, end=None):

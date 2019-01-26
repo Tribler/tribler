@@ -79,10 +79,12 @@ class EditChannelPage(QWidget):
         # Commit the channel just in case there are uncommitted changes left since the last time (e.g. Tribler crashed)
         # The timer thing here is a workaround for race condition with the core startup
         if self.autocommit_enabled:
+            self.controller.table_view.setColumnHidden(3, True)
             self.model.exclude_deleted = True
             self.commit_timer.stop()
             self.commit_timer.start(10000)
         else:
+            self.controller.table_view.setColumnHidden(4, True)
             self.model.exclude_deleted = False
 
 
