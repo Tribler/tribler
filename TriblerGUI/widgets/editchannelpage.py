@@ -385,7 +385,8 @@ class EditChannelPage(QWidget):
             self.channel_dirty = False
             self.update_channel_commit_views()
             self.on_commit.emit()
-            self.load_my_torrents()
+            if not self.autocommit_enabled:
+                self.load_my_torrents()
 
     def add_torrent_to_channel(self, filename):
         with open(filename, "rb") as torrent_file:
