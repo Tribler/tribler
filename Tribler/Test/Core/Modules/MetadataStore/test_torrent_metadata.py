@@ -183,3 +183,13 @@ class TestTorrentMetadata(TriblerCoreTest):
         torrents = self.mds.ChannelMetadata.get_torrents(first=1, last=10, sort_by='title', channel_pk=channel_pk)
         self.assertEqual(len(torrents[0]), 5)
         self.assertEqual(torrents[1], 5)
+
+    @db_session
+    def test_metadata_conflicting(self):
+        tdict = dict(self.torrent_template, title="lakes sheep", tags="video", infohash='\x00\xff')
+        md = self.mds.TorrentMetadata.from_dict(tdict)
+        self.assertFalse(md.metadata_conflicting(tdict))
+        self.assertTrue(md.metadata_conflicting(dict(tdict, title="bla")))
+        tdict.pop('title')
+        self.assertFalse(md.metadata_conflicting(tdict))
+
