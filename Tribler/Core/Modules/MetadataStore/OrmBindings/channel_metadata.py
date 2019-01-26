@@ -233,9 +233,6 @@ def define_binding(db):
             :param tdef: The torrent definition file of the torrent to add
             :param extra_info: Optional extra info to add to the torrent
             """
-            if self.get_torrent(tdef.get_infohash()):
-                raise DuplicateTorrentFileError()
-
             if extra_info:
                 tags = extra_info.get('description', '')
             elif self._category_filter:
@@ -243,16 +240,36 @@ def define_binding(db):
             else:
                 tags = ''
 
-            torrent_metadata = db.TorrentMetadata.from_dict({
+            new_entry_dict = {
                 "infohash": tdef.get_infohash(),
                 "title": tdef.get_name_as_unicode(),
                 "tags": tags,
                 "size": tdef.get_length(),
                 "torrent_date": datetime.fromtimestamp(tdef.get_creation_date()),
                 "tracker_info": get_uniformed_tracker_url(tdef.get_tracker() or '') or '',
-                "status": NEW
-            })
-            torrent_metadata.parents.add(self)
+                "status": NEW}
+
+            # See if the torrent is already in the channel
+            old_torrent = self.get_torrent(tdef.get_infohash())
+            if old_torrent:
+                # If it is there, check if we were going to delete it
+                if old_torrent.status == TODELETE:
+                    if old_torrent.metadata_conflicting(new_entry_dict):
+                        # Metadata from torrent we're trying to add is conflicting with the
+                        # deleted old torrent's metadata. We will replace the old metadata.
+                        new_timestamp = self._clock.tick()
+                        old_torrent.set(timestamp=new_timestamp, **new_entry_dict)
+                        old_torrent.sign()
+                    else:
+                        # No conflict. This means the user is trying to replace the deleted torrent
+                        # with the same one. Just recover the old one.
+                        old_torrent.status = COMMITTED
+                    torrent_metadata = old_torrent
+                else:
+                    raise DuplicateTorrentFileError()
+            else:
+                torrent_metadata = db.TorrentMetadata.from_dict(new_entry_dict)
+                torrent_metadata.parents.add(self)
             return torrent_metadata
 
         @property

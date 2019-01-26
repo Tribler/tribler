@@ -35,13 +35,21 @@ def define_binding(db):
             if "health" not in kwargs and "infohash" in kwargs:
                 kwargs["health"] = db.TorrentState.get(infohash=kwargs["infohash"]) or db.TorrentState(
                     infohash=kwargs["infohash"])
-                if 'tracker_info' in kwargs:
-                    sanitized_url = get_uniformed_tracker_url(kwargs["tracker_info"])
-                    if sanitized_url:
-                        tracker = db.TrackerState.get(url=sanitized_url) or db.TrackerState(url=sanitized_url)
-                        kwargs["health"].trackers.add(tracker)
 
             super(TorrentMetadata, self).__init__(*args, **kwargs)
+
+            if 'tracker_info' in kwargs:
+                self.add_tracker(kwargs["tracker_info"])
+
+        def add_tracker(self, tracker_url):
+            sanitized_url = get_uniformed_tracker_url(tracker_url)
+            if sanitized_url:
+                tracker = db.TrackerState.get(url=sanitized_url) or db.TrackerState(url=sanitized_url)
+                self.health.trackers.add(tracker)
+
+        def before_update(self):
+            self.add_tracker(self.tracker_info)
+
 
         def get_magnet(self):
             return ("magnet:?xt=urn:btih:%s&dn=%s" %
@@ -140,5 +148,16 @@ def define_binding(db):
                 simple_dict['trackers'] = [tracker.url for tracker in self.health.trackers]
 
             return simple_dict
+
+        def metadata_conflicting(self, b):
+            # Check if metadata in the given dict has conflicts with this entry
+            # WARNING! This does NOT check the INFOHASH
+            a = self.to_dict()
+            for comp in ["title", "size", "tags", "torrent_date", "tracker_info"]:
+                if (comp not in b) or (str(a[comp]) == str(b[comp])):
+                    continue
+                return True
+            return False
+
 
     return TorrentMetadata
