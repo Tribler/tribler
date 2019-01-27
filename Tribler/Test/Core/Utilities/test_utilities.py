@@ -1,31 +1,30 @@
+from __future__ import absolute_import
+
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, maybeDeferred
 from twisted.web.server import Site
 from twisted.web.util import Redirect
 
 from Tribler.Core.Utilities.network_utils import get_random_port
-from Tribler.Core.Utilities.utilities import parse_magnetlink, is_valid_url, http_get
-from Tribler.Test.test_as_server import BaseTestCase
-from Tribler.pyipv8.ipv8.util import blocking_call_on_reactor_thread
+from Tribler.Core.Utilities.utilities import http_get, is_valid_url, parse_magnetlink
+from Tribler.Test.test_as_server import AbstractServer
 from Tribler.Test.tools import trial_timeout
 
 
-class TestMakeTorrent(BaseTestCase):
+class TestMakeTorrent(AbstractServer):
 
     def __init__(self, *argv, **kwargs):
         super(TestMakeTorrent, self).__init__(*argv, **kwargs)
         self.http_server = None
 
-    @blocking_call_on_reactor_thread
     def setUpHttpRedirectServer(self, port, redirect_url):
         self.http_server = reactor.listenTCP(port, Site(Redirect(redirect_url)))
 
-    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def tearDown(self):
-        super(TestMakeTorrent, self).tearDown()
         if self.http_server:
-            yield self.http_server.stopListening()
+            yield maybeDeferred(self.http_server.stopListening)
+        yield super(TestMakeTorrent, self).tearDown()
 
     def test_parse_magnetlink_lowercase(self):
         """
