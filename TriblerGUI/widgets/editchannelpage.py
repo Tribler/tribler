@@ -147,13 +147,13 @@ class EditChannelPage(QWidget):
             self.window().new_channel_name_label.setStyleSheet("color: red;")
             return
 
-        self.window().create_channel_button.setEnabled(False)
+        post_data = {
+            "name": channel_name,
+            "description": channel_description
+        }
         self.editchannel_request_mgr = TriblerRequestManager()
         self.editchannel_request_mgr.perform_request("mychannel", self.on_channel_created,
-                                                     data=urllib.urlencode({u'name': channel_name.encode('utf-8'),
-                                                                            u'description': channel_description.encode(
-                                                                                'utf-8')}),
-                                                     method='PUT')
+                                                     data=post_data, method='PUT')
 
     def on_channel_created(self, result):
         if not result:
@@ -165,13 +165,14 @@ class EditChannelPage(QWidget):
     def on_edit_channel_save_button_pressed(self):
         channel_name = self.window().edit_channel_name_edit.text()
         channel_description = self.window().edit_channel_description_edit.toPlainText()
+        post_data = {
+            "name": channel_name,
+            "description": channel_description
+        }
 
         self.editchannel_request_mgr = TriblerRequestManager()
         self.editchannel_request_mgr.perform_request("mychannel", self.on_channel_edited,
-                                                     data=urllib.urlencode({u'name': channel_name.encode('utf-8'),
-                                                                            u'description': channel_description.encode(
-                                                                                'utf-8')}),
-                                                     method='POST')
+                                                     data=post_data, method='POST')
 
     def on_channel_edited(self, result):
         if not result:
@@ -262,11 +263,15 @@ class EditChannelPage(QWidget):
             items = [str(item) for item in items]
             infohashes = ",".join(items)
 
+            post_data = {
+                "infohashes": infohashes,
+                "status": COMMIT_STATUS_TODELETE
+            }
+
             request_mgr = TriblerRequestManager()
             request_mgr.perform_request("mychannel/torrents",
                                         lambda response: self.on_torrents_removed_response(response, items),
-                                        data='infohashes=%s&status=%s' % (infohashes, COMMIT_STATUS_TODELETE),
-                                        method='POST')
+                                        data=post_data, method='POST')
         if self.dialog:
             self.dialog.close_dialog()
             self.dialog = None
@@ -408,18 +413,20 @@ class EditChannelPage(QWidget):
 
     def add_torrent_to_channel(self, filename):
         with open(filename, "rb") as torrent_file:
-            torrent_content = urllib.quote_plus(b64encode(torrent_file.read()))
+            torrent_content = b64encode(torrent_file.read())
             request_mgr = TriblerRequestManager()
             request_mgr.perform_request("mychannel/torrents",
                                         self.on_torrent_to_channel_added, method='PUT',
-                                        data='torrent=%s' % torrent_content)
+                                        data={"torrent": torrent_content})
 
     def add_dir_to_channel(self, dirname, recursive=False):
+        post_data = {
+            "torrents_dir": dirname,
+            "recursive": int(recursive)
+        }
         request_mgr = TriblerRequestManager()
         request_mgr.perform_request("mychannel/torrents",
-                                    self.on_torrent_to_channel_added, method='PUT',
-                                    data=((u'torrents_dir=%s' % dirname) +
-                                          (u'&recursive=1' if recursive else u'')).encode('utf-8'))
+                                    self.on_torrent_to_channel_added, method='PUT', data=post_data)
 
     def add_torrent_url_to_channel(self, url):
         request_mgr = TriblerRequestManager()

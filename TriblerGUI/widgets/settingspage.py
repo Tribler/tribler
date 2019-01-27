@@ -449,7 +449,7 @@ class SettingsPage(QWidget):
 
         self.settings_request_mgr = TriblerRequestManager()
         self.settings_request_mgr.perform_request("settings", self.on_settings_saved,
-                                                  method='POST', data=json.dumps(settings_data))
+                                                  method='POST', raw_data=json.dumps(settings_data))
 
     def on_settings_saved(self, data):
         if not data:

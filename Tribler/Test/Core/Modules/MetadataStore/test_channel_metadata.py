@@ -179,11 +179,13 @@ class TestChannelMetadata(TriblerCoreTest):
         Test whether adding new torrents to a channel works as expected
         """
         channel_metadata = self.mds.ChannelMetadata.create_channel('test', 'test')
-        self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, status=NEW))
+        original_channel = channel_metadata.to_dict()
+        md = self.mds.TorrentMetadata.from_dict(dict(self.torrent_template, status=NEW))
         channel_metadata.commit_channel_torrent()
 
         self.assertEqual(channel_metadata.id_, ROOT_CHANNEL_ID)
-        self.assertEqual(channel_metadata.timestamp, 2)
+        self.assertLess(original_channel["timestamp"], channel_metadata.timestamp)
+        self.assertLess(md.timestamp, channel_metadata.timestamp)
         self.assertEqual(channel_metadata.num_entries, 1)
 
     @db_session

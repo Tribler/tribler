@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import json
 import os
-from urllib import quote_plus
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QDialog, QTreeWidgetItem, QAction
@@ -128,20 +127,24 @@ class FeedbackDialog(QDialog):
         sys_info = ""
         for ind in xrange(self.env_variables_list.topLevelItemCount()):
             item = self.env_variables_list.topLevelItem(ind)
-            sys_info += "%s\t%s\n" % (quote_plus(item.text(0)), quote_plus(item.text(1)))
+            sys_info += "%s\t%s\n" % (item.text(0), item.text(1))
 
         comments = self.comments_text_edit.toPlainText()
         if len(comments) == 0:
             comments = "Not provided"
-        comments = quote_plus(comments)
+        stack = self.error_text_edit.toPlainText()
 
-        stack = quote_plus(self.error_text_edit.toPlainText())
+        post_data = {
+            "version": self.tribler_version,
+            "machine": platform.machine(),
+            "os": platform.platform(),
+            "timestamp": int(time.time()),
+            "sysinfo": sys_info,
+            "comments": comments,
+            "stack": stack
+        }
 
-        post_data = "version=%s&machine=%s&os=%s&timestamp=%s&sysinfo=%s&comments=%s&stack=%s" % \
-                    (self.tribler_version, platform.machine(), platform.platform(),
-                     int(time.time()), sys_info, comments, stack)
-
-        self.request_mgr.perform_request(endpoint, self.on_report_sent, data=str(post_data), method='POST')
+        self.request_mgr.perform_request(endpoint, self.on_report_sent, data=post_data, method='POST')
 
     def closeEvent(self, close_event):
         QApplication.quit()

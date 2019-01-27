@@ -182,20 +182,12 @@ class TriblerLaunchMany(TaskManager):
             peer = Peer(self.session.trustchain_testnet_keypair)
         else:
             peer = Peer(self.session.trustchain_keypair)
-
-        # Discovery Community
-        with open(self.session.config.get_permid_keypair_filename(), 'r') as key_file:
-            content = key_file.read()
-        content = content[31:-30].replace('\n', '').decode("BASE64")
-        peer = Peer(M2CryptoSK(keystring=content))
         discovery_community = DualStackDiscoveryCommunity(peer, self.ipv8.endpoint, self.ipv8.network)
         discovery_community.resolve_dns_bootstrap_addresses()
         self.ipv8.overlays.append(discovery_community)
         self.ipv8.strategies.append((RandomChurn(discovery_community), -1))
         self.ipv8.strategies.append((PeriodicSimilarity(discovery_community), -1))
-
-        if not self.session.config.get_dispersy_enabled():
-            self.ipv8.strategies.append((RandomWalk(discovery_community), 20))
+        self.ipv8.strategies.append((RandomWalk(discovery_community), 20))
 
         # TrustChain Community
         if self.session.config.get_trustchain_enabled():

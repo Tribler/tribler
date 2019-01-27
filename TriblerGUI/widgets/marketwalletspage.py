@@ -172,7 +172,7 @@ class MarketWalletsPage(QWidget):
             return
 
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("wallets/%s" % wallet_id, self.on_wallet_created, method='PUT', data='')
+        self.request_mgr.perform_request("wallets/%s" % wallet_id, self.on_wallet_created, method='PUT')
 
     def on_wallet_created(self, response):
         if not response:

@@ -19,7 +19,6 @@ from twisted.python.threadable import isInIOThread
 
 import Tribler.Core.permid as permid_module
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
-from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.restapi.rest_manager import RESTManager
 from Tribler.Core.Notifier import Notifier

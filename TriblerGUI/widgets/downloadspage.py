@@ -290,7 +290,7 @@ class DownloadsPage(QWidget):
             infohash = selected_item.download_info["infohash"]
             self.request_mgr = TriblerRequestManager()
             self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_resumed,
-                                             method='PATCH', data="state=resume")
+                                             method='PATCH', data={"state": "resume"})
 
     def on_download_resumed(self, json_result):
         if json_result and 'modified' in json_result:
@@ -305,7 +305,7 @@ class DownloadsPage(QWidget):
             infohash = selected_item.download_info["infohash"]
             self.request_mgr = TriblerRequestManager()
             self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_stopped,
-                                             method='PATCH', data="state=stop")
+                                             method='PATCH', data={"state": "stop"})
 
     def on_play_download_clicked(self):
         self.window().left_menu_button_video_player.click()
@@ -341,7 +341,7 @@ class DownloadsPage(QWidget):
 
                 self.request_mgr = TriblerRequestManager()
                 self.request_mgr.perform_request("downloads/%s" % infohash, self.on_download_removed,
-                                                 method='DELETE', data="remove_data=%d" % action)
+                                                 method='DELETE', data={"remove_data": action})
         if self.dialog:
             self.dialog.close_dialog()
             self.dialog = None
@@ -356,7 +356,7 @@ class DownloadsPage(QWidget):
             infohash = selected_item.download_info["infohash"]
             self.request_mgr = TriblerRequestManager()
             self.request_mgr.perform_request("downloads/%s" % infohash, self.on_forced_recheck,
-                                             method='PATCH', data='state=recheck')
+                                             method='PATCH', data={"state": "recheck"})
 
     def on_forced_recheck(self, result):
         if result and "modified" in result:
@@ -371,7 +371,7 @@ class DownloadsPage(QWidget):
             infohash = selected_item.download_info["infohash"]
             self.request_mgr = TriblerRequestManager()
             self.request_mgr.perform_request("downloads/%s" % infohash, lambda _: None,
-                                             method='PATCH', data='anon_hops=%d' % hops)
+                                             method='PATCH', data={"anon_hops": hops})
 
     def on_explore_files(self):
         for selected_item in self.selected_items:
