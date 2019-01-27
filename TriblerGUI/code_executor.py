@@ -53,11 +53,8 @@ class CodeExecutor(object):
 
         self.logger.info("Code execution with task %s finished:", task_id)
         self.logger.info("Stdout of task %s: %s", task_id, stdout)
-        if 'SyntaxError' in stderr:
-            self.logger.info("Got SyntaxError during code execution! %s", stderr)
-        elif 'Traceback' in stderr and 'SystemExit' not in stderr:
-            self.logger.info("Executed code with failure: %s", b64encode(code))
-            raise RuntimeError("Error during remote code execution! %s" % stderr)
+        if 'Traceback' in stderr and 'SystemExit' not in stderr:
+            self.logger.error("Executed code with failure: %s", b64encode(code))
 
         # Determine the return value
         if 'return_value' not in self.shell.console.locals:
