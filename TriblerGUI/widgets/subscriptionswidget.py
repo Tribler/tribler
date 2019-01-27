@@ -68,11 +68,11 @@ class SubscriptionsWidget(QWidget):
         if int(self.channel_info["subscribed"]):
             self.request_mgr.perform_request("metadata/channels/%s" %
                                              self.channel_info['public_key'],
-                                             self.on_channel_unsubscribed, data='subscribe=0', method='POST')
+                                             self.on_channel_unsubscribed, data={"subscribe": 0}, method='POST')
         else:
             self.request_mgr.perform_request("metadata/channels/%s" %
                                              self.channel_info['public_key'],
-                                             self.on_channel_subscribed, data='subscribe=1', method='POST')
+                                             self.on_channel_subscribed, data={"subscribe": 1}, method='POST')
 
     def on_channel_unsubscribed(self, json_result):
         if not json_result:
@@ -100,7 +100,7 @@ class SubscriptionsWidget(QWidget):
 
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("settings", self.on_credit_mining_sources,
-                                         method='PUT', data=json.dumps(settings))
+                                         method='PUT', raw_data=json.dumps(settings))
 
     def on_credit_mining_sources(self, json_result):
         if not json_result:

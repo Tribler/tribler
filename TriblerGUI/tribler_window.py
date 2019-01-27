@@ -33,7 +33,7 @@ from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_action_menu import TriblerActionMenu
 from TriblerGUI.tribler_request_manager import TriblerRequestManager, dispatcher, request_queue
-from TriblerGUI.utilities import get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable, quote_plus_unicode
+from TriblerGUI.utilities import get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable
 
 # Pre-load form UI classes
 fc_home_recommended_item, _ = uic.loadUiType(get_ui_file_path('home_recommended_item.ui'))
@@ -385,18 +385,19 @@ class TriblerWindow(QMainWindow):
             ConfirmationDialog.show_message(self.window(), "Download error <i>%s</i>" % uri, gui_error_message, "OK")
             return
 
-        selected_files_uri = ""
+        selected_files_list = []
         if len(selected_files) != total_files:  # Not all files included
-            selected_files_uri = u'&' + u''.join(u"selected_files[]=%s&" %
-                                                 quote_plus_unicode(filename) for filename in selected_files)[:-1]
+            selected_files_list = [filename for filename in selected_files]
 
         anon_hops = int(self.tribler_settings['download_defaults']['number_hops']) if anon_download else 0
         safe_seeding = 1 if safe_seeding else 0
-        post_data = "uri=%s&anon_hops=%d&safe_seeding=%d&destination=%s%s" % (quote_plus_unicode(uri), anon_hops,
-                                                                              safe_seeding, destination,
-                                                                              selected_files_uri)
-        post_data = post_data.encode('utf-8')  # We need to send bytes in the request, not unicode
-
+        post_data = {
+            "uri": uri,
+            "anon_hops": anon_hops,
+            "safe_seeding": safe_seeding,
+            "destination": destination,
+            "selected_files": selected_files_list
+        }
         request_mgr = TriblerRequestManager()
         request_mgr.perform_request("downloads", callback if callback else self.on_download_added,
                                     method='PUT', data=post_data)
@@ -441,7 +442,7 @@ class TriblerWindow(QMainWindow):
     def on_search_text_change(self, text):
         self.search_suggestion_mgr = TriblerRequestManager()
         self.search_suggestion_mgr.perform_request(
-            "search/completions?q=%s" % text, self.on_received_search_completions)
+            "search/completions", self.on_received_search_completions, url_params={'q': text})
 
     def on_received_search_completions(self, completions):
         if completions is None:

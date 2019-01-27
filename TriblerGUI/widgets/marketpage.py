@@ -246,8 +246,12 @@ class MarketPage(QWidget):
         """
         Create a new ask or bid order.
         """
-        post_data = str("first_asset_amount=%d&first_asset_type=%s&second_asset_amount=%d&second_asset_type=%s" %
-                        (asset1_amount, asset1_type, asset2_amount, asset2_type))
+        post_data = {
+            "first_asset_amount": asset1_amount,
+            "first_asset_type": asset1_type,
+            "second_asset_amount": asset2_amount,
+            "second_asset_type": asset2_type
+        }
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("market/%s" % ('asks' if is_ask else 'bids'),
                                          lambda response: self.on_order_created(response, is_ask),

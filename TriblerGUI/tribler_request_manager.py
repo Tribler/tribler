@@ -2,9 +2,11 @@ from collections import deque, namedtuple
 import logging
 from threading import RLock
 from time import time
+from urllib import quote_plus
 
 from PyQt5.QtCore import QUrl, pyqtSignal, QIODevice, QBuffer, QObject
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from six import text_type
 
 import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL, DEFAULT_API_HOST
@@ -234,20 +236,48 @@ class TriblerRequestManager(QObject):
     def set_reply_handle(self, reply):
         self.reply = reply
 
-    def perform_request(self, endpoint, read_callback, data="", method='GET', capture_errors=True,
-                        priority=QueuePriorityEnum.CRITICAL, on_cancel=lambda: None):
+    def perform_request(self, endpoint, read_callback, url_params=None, data=None, raw_data="", method='GET',
+                        capture_errors=True, priority=QueuePriorityEnum.CRITICAL, on_cancel=lambda: None):
         """
         Perform a HTTP request.
         :param endpoint: the endpoint to call (i.e. "statistics")
         :param read_callback: the callback to be called with result info when we have the data
+        :param url_params: an optional dictionary with parameters that should be included in the URL
         :param data: optional POST data to be sent with the request
+        :param raw_data: optional raw data to include in the request, will get priority over data if defined
         :param method: the HTTP verb (GET/POST/PUT/PATCH)
         :param capture_errors: whether errors should be handled by this class (defaults to True)
+        :param priority: the priority of this request
+        :param on_cancel: optional callback to invoke when the request has been cancelled
         """
         self.on_cancel = on_cancel
 
         if read_callback:
             self.received_json.connect(read_callback)
+
+        if url_params:
+            endpoint += "?" + '&'.join(["%s=%s" % (key, value) for key, value in url_params.items()])
+
+        if data and not raw_data:
+            # Convert all values that are an array to uri-encoded values
+            for key in data.keys():
+                value = data[key]
+                if isinstance(value, list):
+                    if value:
+                        data[key + "[]"] = "&".join(value)
+                    else:
+                        del data[key]
+
+            # Convert all keys and values in the data to utf-8 unicode strings
+            utf8_items = []
+            for key, value in data.items():
+                utf8_key = quote_plus(text_type(key).encode('utf-8'))
+                utf8_value = quote_plus(text_type(value).encode('utf-8'))
+                utf8_items.append("%s=%s" % (utf8_key, utf8_value))
+
+            data = "&".join(utf8_items)
+        elif raw_data:
+            data = raw_data.encode('utf-8')
 
         def reply_callback(reply, log):
             log[-1] = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
