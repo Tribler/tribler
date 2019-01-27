@@ -3,6 +3,8 @@ A wrapper around a libtorrent download.
 
 Author(s): Arno Bakker, Egbert Bouman
 """
+from __future__ import absolute_import
+
 import base64
 import logging
 import os
@@ -11,22 +13,26 @@ import time
 from binascii import hexlify
 
 import libtorrent as lt
+
+from six import text_type
+from six.moves import xrange
+
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred, CancelledError, succeed
+from twisted.internet.defer import CancelledError, Deferred, succeed
 from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
 
 from Tribler.Core import NoDispersyRLock
-from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface, get_default_dest_dir
+from Tribler.Core.DownloadConfig import DownloadConfigInterface, DownloadStartupConfig, get_default_dest_dir
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Libtorrent import checkHandleAndSynchronize
-from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
+from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities import maketorrent
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.osutils import fix_filebasename
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLMODE_VOD, DLMODE_NORMAL, \
-    PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
+from Tribler.Core.simpledefs import DLMODE_NORMAL, DLMODE_VOD, DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
+                                    PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 if sys.platform == "win32":
@@ -228,13 +234,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
                         checkpoint_disabled=checkpoint_disabled)
                     create_engine_wrapper_deferred.chainDeferred(deferred)
 
-                def schedule_create_engine_call(_):
-                    self.register_task("schedule_create_engine",
-                                       reactor.callLater(wrapperDelay, schedule_create_engine))
-
-                # Add a lambda callback that ignored the parameter of the callback which schedules
-                # a task using the taskamanger with wrapperDelay as delay.
-                self.can_create_engine_wrapper().addCallback(schedule_create_engine_call)
+                self.register_task("schedule_create_engine", reactor.callLater(wrapperDelay, schedule_create_engine))
 
             self.pstate_for_restart = pstate
             self.checkpoint()
@@ -244,39 +244,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         except Exception as e:
             self.error = e
 
-    def can_create_engine_wrapper(self):
-        """
-        Periodically checks whether the engine wrapper can be created.
-        Notifies when it's ready by calling the callback of the deferred being returned.
-        :return: A deferred that will be called when you can create the engine wrapper.
-        """
-        can_create_deferred = Deferred()
-        def do_check():
-            with self.dllock:
-                if not self.cew_scheduled:
-                    self.ltmgr = self.session.lm.ltmgr
-                    dht_ok = not isinstance(self.tdef, TorrentDefNoMetainfo) or self.ltmgr.is_dht_ready()
-                    tunnel_community = self.ltmgr.tribler_session.lm.tunnel_community
-                    tunnels_ready = tunnel_community.tunnels_ready(self.get_hops()) if tunnel_community else 1
-
-                    if not self.ltmgr or not dht_ok or tunnels_ready < 1:
-                        self._logger.info(u"LTMGR/DHT/session not ready, rescheduling create_engine_wrapper")
-
-                        if tunnel_community and tunnels_ready < 1:
-                            tunnel_community.build_tunnels(self.get_hops())
-
-                        # Schedule this function call to be called again in 5 seconds
-                        self.register_task("check_create_wrapper", reactor.callLater(5, do_check))
-                    else:
-                        can_create_deferred.callback(True)
-                else:
-                    # Schedule this function call to be called again in 5 seconds
-                    self.register_task("check_create_wrapper", reactor.callLater(5, do_check))
-
-        do_check()
-        return can_create_deferred
-
     def network_create_engine_wrapper(self, pstate, checkpoint_disabled=False, share_mode=False):
+        self.ltmgr = self.session.lm.ltmgr
         with self.dllock:
             self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
 
@@ -928,7 +897,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         for announce_entry in self.handle.trackers():
             if announce_entry['url'] not in self.tracker_status:
                 try:
-                    url = unicode(announce_entry['url'])
+                    url = text_type(announce_entry['url'])
                     self.tracker_status[url] = [0, 'Not contacted yet']
                 except UnicodeDecodeError:
                     pass
@@ -1029,14 +998,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         with self.dllock:
             if self.handle is None:
-                def schedule_create_engine(_):
-                    self.cew_scheduled = True
-                    create_engine_wrapper_deferred = self.network_create_engine_wrapper(
-                        self.pstate_for_restart, share_mode=self.get_share_mode())
-                    create_engine_wrapper_deferred.addCallback(self.session.lm.on_download_handle_created)
-
-                can_create_engine_deferred = self.can_create_engine_wrapper()
-                can_create_engine_deferred.addCallback(schedule_create_engine)
+                self.cew_scheduled = True
+                create_engine_wrapper_deferred = self.network_create_engine_wrapper(self.pstate_for_restart,
+                                                                                    share_mode=self.get_share_mode())
+                create_engine_wrapper_deferred.addCallback(self.session.lm.on_download_handle_created)
             else:
                 self.handle.resume()
                 self.set_vod_mode(self.get_mode() == DLMODE_VOD)

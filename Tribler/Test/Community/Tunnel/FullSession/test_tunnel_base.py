@@ -1,22 +1,22 @@
 from __future__ import absolute_import
+
 import os
 
 from six.moves import xrange
-from twisted.internet import reactor
-from twisted.internet.task import deferLater
 
-from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
-from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
-from Tribler.pyipv8.ipv8.peer import Peer
-from Tribler.pyipv8.ipv8.peerdiscovery.community import DiscoveryCommunity
-from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
-from twisted.internet.defer import returnValue, inlineCallbacks
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.task import deferLater
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
-
+from Tribler.community.triblertunnel.community import TriblerTunnelCommunity
+from Tribler.pyipv8.ipv8.keyvault.crypto import ECCrypto
+from Tribler.pyipv8.ipv8.peer import Peer
+from Tribler.pyipv8.ipv8.peerdiscovery.community import DiscoveryCommunity
+from Tribler.pyipv8.ipv8.peerdiscovery.network import Network
 
 # Map of info_hash -> peer list
 global_dht_services = {}
@@ -216,7 +216,8 @@ class TestTunnelBase(TestAsServer):
         dscfg.set_dest_dir(self.getDestDir())
         dscfg.set_hops(hops)
         download = self.session.start_download_from_tdef(self.seed_tdef, dscfg)
-        download.add_peer(("127.0.0.1", self.session2.config.get_libtorrent_port()))
+        tc = self.session.lm.tunnel_community
+        tc.bittorrent_peers[download] = [("127.0.0.1", self.session2.config.get_libtorrent_port())]
         return download
 
     @inlineCallbacks
