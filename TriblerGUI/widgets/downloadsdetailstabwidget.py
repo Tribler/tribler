@@ -1,5 +1,3 @@
-from urllib import quote_plus
-
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem, QAction
 
@@ -225,7 +223,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
                                                         self.get_video_file_index(file_info["index"]))
 
     def set_included_files(self, files):
-        data_str = ''.join("selected_files[]=%s&" % ind for ind in files)[:-1]
+        post_data = {"selected_files": [ind for ind in files]}
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("downloads/%s" % self.current_download['infohash'], lambda _: None,
-                                         method='PATCH', data=data_str)
+                                         method='PATCH', data=post_data)
