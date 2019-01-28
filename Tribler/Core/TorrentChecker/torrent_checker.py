@@ -15,7 +15,6 @@ from twisted.web.client import HTTPConnectionPool
 from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession, UdpSocketManager
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 from Tribler.Core.Utilities.utilities import is_valid_url
-from Tribler.community.popularity.repository import TYPE_TORRENT_HEALTH
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
@@ -147,7 +146,7 @@ class TorrentChecker(TaskManager):
                 session.add_infohash(infohash)
 
             self._logger.info(u"Selected %d new torrents to check on tracker: %s", len(infohashes), tracker_url)
-            return session.connect_to_tracker().addCallbacks(*self.get_callbacks_for_session(session))\
+            return session.connect_to_tracker().addCallbacks(*self.get_callbacks_for_session(session)) \
                 .addErrback(lambda _: None)
 
     def get_callbacks_for_session(self, session):
