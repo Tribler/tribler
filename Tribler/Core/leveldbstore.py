@@ -20,12 +20,12 @@ from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 def get_write_batch_leveldb(self, _):
-    from leveldb import WriteBatch
+    from Tribler.Core.leveldb import WriteBatch
     return WriteBatch()
 
 
 def get_write_batch_plyvel(self, db):
-    from plyveladapter import WriteBatch
+    from Tribler.Core.plyveladapter import WriteBatch
     return WriteBatch(db)
 
 try:
