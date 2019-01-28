@@ -399,9 +399,6 @@ class TriblerLaunchMany(TaskManager):
             if infohash in self.downloads:
                 del self.downloads[infohash]
 
-        if not hidden:
-            self.remove_id(infohash)
-
         return out or succeed(None)
 
     def get_downloads(self):
