@@ -9856,7 +9856,7 @@ border-radius: 10px;
               <widget class="EllipseButton" name="mine_button">
                <property name="minimumSize">
                 <size>
-                 <width>150</width>
+                 <width>80</width>
                  <height>24</height>
                 </size>
                </property>
@@ -9870,7 +9870,7 @@ border-radius: 10px;
                 <cursorShape>PointingHandCursor</cursorShape>
                </property>
                <property name="text">
-                <string>Token Mining</string>
+                <string>TOKEN MINING</string>
                </property>
               </widget>
              </item>
@@ -12960,7 +12960,7 @@ color: #eee;</string>
         <number>0</number>
        </property>
        <item>
-        <widget class="QLabel" name="token_miningtribler_status_bar_label">
+        <widget class="QLabel" name="tribler_status_bar_label">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
            <horstretch>0</horstretch>
@@ -13585,3 +13585,4 @@ color: #eee;</string>
   <slot>clicked_force_shutdown()</slot>
  </slots>
 </ui>
+
