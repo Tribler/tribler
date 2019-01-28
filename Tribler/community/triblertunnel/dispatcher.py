@@ -1,8 +1,10 @@
+from __future__ import absolute_import
+
 import logging
 
 from Tribler.Core.Socks5 import conversion
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP,\
-    CIRCUIT_ID_PORT, CIRCUIT_STATE_READY
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, CIRCUIT_STATE_READY,\
+    CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP
 
 
 class TunnelDispatcher(object):
@@ -90,8 +92,8 @@ class TunnelDispatcher(object):
         """
         counter = 0
         affected_destinations = set()
-        for hops, destinations in self.destinations.iteritems():
-            new_affected_destinations = set(destination for destination, tunnel_circuit in destinations.iteritems()
+        for hops, destinations in self.destinations.items():
+            new_affected_destinations = set(destination for destination, tunnel_circuit in destinations.items()
                                             if tunnel_circuit == broken_circuit)
             for destination in new_affected_destinations:
                 if destination in self.destinations[hops]:
