@@ -3,7 +3,6 @@ from binascii import unhexlify
 from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
-from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.pyipv8.ipv8.community import Community
 from Tribler.pyipv8.ipv8.lazy_community import PacketDecodingError
 from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload

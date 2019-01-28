@@ -107,16 +107,17 @@ class PopularityCommunity(PubSubCommunity):
             payload = TorrentHealthPayload(infohash, seeders, leechers, timestamp)
             self.send_torrent_health_response(payload)
 
-    @db_session
     def publish_latest_torrents(self, peer):
         """
         Publishes the latest torrents in local database to the given peer.
         """
-        torrents = self.content_repository.get_top_torrents()
-        self.logger.info("Publishing %d torrents to peer %s", len(torrents), peer)
-        for torrent in torrents:
-            payload = TorrentHealthPayload(str(torrent.infohash), torrent.health.seeders, torrent.health.leechers,
-                                           torrent.health.last_check)
+        with db_session:
+            torrents = self.content_repository.get_top_torrents()
+            self.logger.info("Publishing %d torrents to peer %s", len(torrents), peer)
+
+            to_send = [TorrentHealthPayload(str(torrent.infohash), torrent.health.seeders, torrent.health.leechers,
+                                            torrent.health.last_check) for torrent in torrents]
+        for payload in to_send:
             self.send_torrent_health_response(payload, peer=peer)
 
     def queue_content(self, content):
