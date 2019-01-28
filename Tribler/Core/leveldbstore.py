@@ -20,7 +20,7 @@ from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
 def get_write_batch_leveldb(self, _):
-    from Tribler.Core.leveldb import WriteBatch
+    from leveldb import WriteBatch
     return WriteBatch()
 
 
@@ -35,7 +35,7 @@ try:
     get_write_batch = get_write_batch_leveldb
 
 except ImportError:
-    from plyveladapter import LevelDB
+    from Tribler.Core.plyveladapter import LevelDB  # pylint: disable=ungrouped-imports
 
     use_leveldb = False
     get_write_batch = get_write_batch_plyvel
