@@ -67,3 +67,6 @@ class PlayIconButton(IconButton):
 
 class DeleteIconButton(IconButton):
     icon = QIcon(get_image_path("trash.svg"))
+
+    def should_draw(self, index):
+        return index.model().edit_enabled
