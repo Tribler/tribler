@@ -1,15 +1,21 @@
+from __future__ import absolute_import
+
 import logging
 import random
 import socket
 import struct
 import time
 from abc import ABCMeta, abstractmethod, abstractproperty
+
 from libtorrent import bdecode
-from twisted.internet import reactor, defer
+
+from six import text_type
+
+from twisted.internet import defer, reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.protocol import DatagramProtocol
 from twisted.python.failure import Failure
-from twisted.web.client import Agent, readBody, RedirectAgent, HTTPConnectionPool
+from twisted.web.client import Agent, HTTPConnectionPool, RedirectAgent, readBody
 
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
 from Tribler.pyipv8.ipv8.messaging.deprecated.encoding import add_url_params
@@ -289,7 +295,7 @@ class HttpTrackerSession(TrackerSession):
         if self.result_deferred and not self.result_deferred.called:
             result_msg = "HTTP tracker failed for url %s" % self._tracker_url
             if msg:
-                result_msg += " (error: %s)" % unicode(msg, errors='replace')
+                result_msg += " (error: %s)" % text_type(msg, errors='replace')
             self.result_deferred.errback(ValueError(result_msg))
 
     def _process_scrape_response(self, body):
@@ -377,10 +383,11 @@ class UdpSocketManager(DatagramProtocol):
                                  tracker_session.ip_address, tracker_session.port, exc)
 
     def datagramReceived(self, data, _):
-        # Find the tracker session and give it the data
-        transaction_id = struct.unpack_from('!i', data, 4)[0]
-        if transaction_id in self.tracker_sessions:
-            self.tracker_sessions.pop(transaction_id).handle_response(data)
+        # If the incoming data is valid, find the tracker session and give it the data
+        if data and len(data) >= 4:
+            transaction_id = struct.unpack_from('!i', data, 4)[0]
+            if transaction_id in self.tracker_sessions:
+                self.tracker_sessions.pop(transaction_id).handle_response(data)
 
 
 class UdpTrackerSession(TrackerSession):
@@ -449,7 +456,7 @@ class UdpTrackerSession(TrackerSession):
         if self.result_deferred and not self.result_deferred.called and not self._is_failed:
             result_msg = "UDP tracker failed for url %s" % self._tracker_url
             if msg:
-                result_msg += " (error: %s)" % unicode(msg, errors='replace')
+                result_msg += " (error: %s)" % text_type(msg, errors='replace')
             self.result_deferred.errback(ValueError(result_msg))
 
         self._is_failed = True
