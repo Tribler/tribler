@@ -3,17 +3,22 @@ Module of Credit mining function testing.
 
 Author(s): Mihai Capota, Ardhi Putra
 """
+from __future__ import absolute_import
+
+import logging
 import os
 import sys
+
+from six.moves import xrange
 
 from twisted.internet.defer import inlineCallbacks, succeed
 
 from Tribler.Core.CreditMining.CreditMiningManager import CreditMiningTorrent
-from Tribler.Core.CreditMining.CreditMiningPolicy import BasePolicy
-from Tribler.Core.simpledefs import DLSTATUS_STOPPED
-from Tribler.Core.simpledefs import DLSTATUS_STOPPED, NTFY_CREDIT_MINING, NTFY_ERROR
+from Tribler.Core.CreditMining.CreditMiningPolicy import BasePolicy, MB
+from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, \
+    NTFY_CREDIT_MINING, NTFY_ERROR
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.test_as_server import BaseTestCase, TestAsServer
 
 
 class FakeTorrent(object):
@@ -43,15 +48,42 @@ class FakeTorrent(object):
 
         self.handle = MockObject()
         self.handle.set_upload_mode = lambda enable: setattr(self.download, 'upload_mode', enable)
+        self.get_storage = lambda length=self.tdef.get_length(): (length, 0)
 
 
 class FakePolicy(BasePolicy):
 
     def __init__(self, reverse):
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.reverse = reverse
+        self.torrents = {}
 
     def sort(self, torrents):
         return sorted(torrents, key=lambda t: t.infohash, reverse=self.reverse)
+
+
+class TestCreditMiningTorrent(BaseTestCase):
+
+    def test_credit_mining_get_storage(self):
+        infohash_bin = '0' * 40
+        name = u'torrent'
+
+        tdef = MockObject()
+        tdef.get_infohash = lambda: infohash_bin
+        tdef.get_name = lambda: name
+        tdef.get_length = lambda: 1000
+
+        state = MockObject()
+        state.get_progress = lambda: 0.5
+
+        download = MockObject()
+        download.get_def = lambda: tdef
+        download.get_state = lambda: state
+
+        torrent = CreditMiningTorrent(infohash_bin, name, download=download)
+        total, downloaded = torrent.get_storage()
+        self.assertEqual(total, 1000)
+        self.assertEqual(downloaded, 500)
 
 
 class TestCreditMiningManager(TestAsServer):
@@ -233,6 +265,57 @@ class TestCreditMiningManager(TestAsServer):
         self.credit_mining_manager.monitor_downloads([ds])
         self.assertNotIn(infohash2, self.credit_mining_manager.torrents)
 
+    def test_monitor_downloads(self):
+        """
+        Test downloads monitoring works as expected.
+        Scenario:
+        --------------------------------------------
+        Infohash    Status          Download     Upload
+            0       Downloading       0 MB        5 MB
+            1       Seeding           10 MB       15 MB
+            2       Stopped           20 MB       25 MB
+            3       Downloading       30 MB       35 MB
+            4       Seeding           40 MB       45 MB
+            5       Downloading       50 MB       55 MB
+
+        Results:
+            Seeding = 3, Downloading = 2, Stopped = 1
+            Bytes_up = 180 MB, Bytes_down = 150 MB
+        """
+        scenario = MockObject()
+        scenario.status = [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_DOWNLOADING,
+                           DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING]
+        scenario.downloads = [10 * i * MB for i in xrange(6)]
+        scenario.uploads = [(10 * i + 5) * MB for i in xrange(6)]
+
+        download = MockObject()
+        download.tdef = MockObject()
+        download.tdef.get_infohash = lambda: '\00' * 20
+        download.tdef.get_name = lambda: self.name + str(i)
+        download.get_def = lambda _download=download: _download.tdef
+        download.force_recheck = lambda: None
+        download.get_credit_mining = lambda: True
+        download.handle = None
+
+        download_states = []
+        for i in xrange(6):
+            ds = MockObject()
+            ds.get_download = lambda: download
+            ds.get_status = lambda _i=i: scenario.status[_i]
+            ds.get_total_transferred = lambda transfer_type, _i=i: scenario.downloads[_i] \
+                if transfer_type == DOWNLOAD else scenario.uploads[_i]
+            download_states.append(ds)
+
+        # We are only interested in monitoring the states, rathen than policies here.
+        self.credit_mining_manager.policies = []
+        seeding, downloading, stopped, bytes_down, bytes_up = \
+            self.credit_mining_manager.monitor_downloads(download_states)
+        self.assertEqual(seeding, 3)
+        self.assertEqual(downloading, 2)
+        self.assertEqual(stopped, 1)
+        self.assertEqual(bytes_down, sum(scenario.downloads))
+        self.assertEqual(bytes_up, sum(scenario.uploads))
+
     def test_check_free_space(self):
         self.credit_mining_manager.cancel_pending_task('check_disk_space')
         self.credit_mining_manager.settings.low_disk_space = 1024 ** 2
@@ -249,6 +332,31 @@ class TestCreditMiningManager(TestAsServer):
         self.credit_mining_manager.get_free_disk_space = lambda: 1
         self.credit_mining_manager.check_disk_space()
         self.assertTrue(all([d.upload_mode for d in downloads]))
+
+    def test_get_reserved_space_left(self):
+        """
+        Tests the reserved space left on disk for credit mining.
+        Scenario:
+            - 10 torrents,
+            - Individual torrent size: 100MB
+            - Individual download progress: 50%
+        """
+        num_downloads = 10
+        used_space = num_downloads * 100 * MB * 0.5
+        max_space = self.credit_mining_manager.settings.max_disk_space
+
+        downloads = []
+        for i in xrange(num_downloads):
+            download = FakeTorrent(i, self.name + str(i)).download
+            download.get_def().get_length = lambda: 100 * MB
+            download.get_state().get_progress = lambda: 0.5
+            download.get_state().get_status = lambda: DLSTATUS_DOWNLOADING
+            downloads.append(download)
+
+        self.credit_mining_manager.session.get_downloads = lambda: downloads
+
+        space_left = self.credit_mining_manager.get_reserved_space_left()
+        self.assertEqual(space_left, max_space - used_space)
 
     def test_check_free_space_with_non_existing_path(self):
         self.credit_mining_manager.cancel_pending_task('check_disk_space')
