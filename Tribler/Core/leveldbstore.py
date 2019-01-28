@@ -4,16 +4,18 @@ LevelDBStore.
 Author(s): Elric Milon
 """
 from __future__ import absolute_import
+
 import logging
 import os
-from shutil import rmtree
 import sys
 from collections import MutableMapping
 from itertools import chain
+from shutil import rmtree
 
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
+from Tribler.Core.exceptions import LevelDBKeyDeletionException
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
 
@@ -94,7 +96,10 @@ class LevelDbStore(MutableMapping, TaskManager):
     def __delitem__(self, key):
         if key in self._pending_torrents:
             self._pending_torrents.pop(key)
-        self._db.Delete(key)
+        try:
+            self._db.Delete(key)
+        except Exception:
+            raise LevelDBKeyDeletionException(msg="Failed to delete key: %s" % key)
 
     def __iter__(self):
         for k in self._pending_torrents.iterkeys():

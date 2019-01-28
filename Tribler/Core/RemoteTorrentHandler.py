@@ -4,18 +4,23 @@ returned torrents for download.
 
 Author(s): Niels Zeilemaker
 """
+from __future__ import absolute_import
+
 import logging
 import sys
 import urllib
 from abc import ABCMeta, abstractmethod
 from binascii import hexlify, unhexlify
 from collections import deque
+
 from decorator import decorator
+
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.TFTP.handler import METADATA_PREFIX
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.exceptions import LevelDBKeyDeletionException
 from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_TORRENTS
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
@@ -91,9 +96,12 @@ class RemoteTorrentHandler(TaskManager):
             if num_delete > 0:
                 to_remove = min(num_delete, deletions_per_step)
                 num_delete -= to_remove
-                self.torrent_db.freeSpace(to_remove)
-                self.register_task(u"remote_torrent clean_until_done",
-                                   reactor.callLater(5, clean_until_done, num_delete, deletions_per_step))
+                try:
+                    self.torrent_db.freeSpace(to_remove)
+                    self.register_task(u"remote_torrent clean_until_done",
+                                       reactor.callLater(5, clean_until_done, num_delete, deletions_per_step))
+                except LevelDBKeyDeletionException:
+                    self._logger.error("Failed to remove collected torrents above limit.")
 
         def torrent_overflow_check():
             """
