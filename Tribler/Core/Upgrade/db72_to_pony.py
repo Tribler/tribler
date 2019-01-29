@@ -4,16 +4,25 @@ import os
 from binascii import unhexlify
 
 import apsw
+from pony import orm
 from pony.orm import db_session
 from six import text_type
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, NEW
+from Tribler.Core.Modules.MetadataStore.serialization import REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 BATCH_SIZE = 10000
+
+DISCOVERED_CONVERSION_STARTED = "discovered_conversion_started"
+CHANNELS_CONVERSION_STARTED = "channels_conversion_started"
+TRACKERS_CONVERSION_STARTED = "trackers_conversion_started"
+PERSONAL_CONVERSION_STARTED = "personal_conversion_started"
+CONVERSION_FINISHED = "conversion_finished"
+CONVERSION_FROM_72 = "conversion_from_72"
 
 
 def dispesy_cid_to_pk(dispersy_cid):
@@ -29,20 +38,6 @@ def final_timestamp():
 
 
 class DispersyToPonyMigration(object):
-
-    def __init__(self, tribler_db, metadata_store):
-        self.tribler_db = tribler_db
-        self.mds = metadata_store
-
-        self.personal_channel_id = None
-        self.personal_channel_title = None
-        try:
-            self.personal_channel_id, self.personal_channel_title = self.get_personal_channel_id_title()
-            self.personal_channel_title = self.personal_channel_title[:200] # limit the title size
-        except:
-            print ("No personal channel found")
-            raise
-
     select_channels_sql = "Select id, name, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " \
                           + "FROM Channels " \
                           + "WHERE nr_torrents >= 3 " \
@@ -59,6 +54,20 @@ class DispersyToPonyMigration(object):
                           "ct.name NOT NULL and t.length>0 AND t.category NOT NULL AND ct.deleted_at IS NULL " + \
                           " AND t.torrent_id == ct.torrent_id AND t.infohash NOT NULL "
 
+    def __init__(self, tribler_db, metadata_store, notifier_callback=None):
+        self.notifier_callback = notifier_callback
+        self.tribler_db = tribler_db
+        self.mds = metadata_store
+
+        self.personal_channel_id = None
+        self.personal_channel_title = None
+
+    def initialize(self):
+        try:
+            self.personal_channel_id, self.personal_channel_title = self.get_personal_channel_id_title()
+            self.personal_channel_title = self.personal_channel_title[:200]  # limit the title size
+        except:
+            print ("No personal channel found")
 
     def get_old_channels(self):
         connection = apsw.Connection(self.tribler_db)
@@ -105,9 +114,9 @@ class DispersyToPonyMigration(object):
                 # Skip malformed trackers
                 continue
             trackers[tracker_url_sanitized] = ({
-                                     "last_check": last_check,
-                                     "failures": failures,
-                                     "alive": is_alive})
+                "last_check": last_check,
+                "failures": failures,
+                "alive": is_alive})
         return trackers
 
     def get_old_torrents_count(self, personal_channel_only=False):
@@ -120,7 +129,7 @@ class DispersyToPonyMigration(object):
         connection = apsw.Connection(self.tribler_db)
         cursor = connection.cursor()
         cursor.execute("SELECT COUNT(*) FROM (SELECT t.torrent_id " + self.select_torrents_sql + \
-                        personal_channel_filter + "group by infohash )")
+                       personal_channel_filter + "group by infohash )")
         return cursor.fetchone()[0]
 
     def get_personal_channel_torrents_count(self):
@@ -130,7 +139,6 @@ class DispersyToPonyMigration(object):
                        (" AND ct.channel_id == %s " % self.personal_channel_id) + \
                        " group by infohash )")
         return cursor.fetchone()[0]
-
 
     def get_old_torrents(self, personal_channel_only=False, batch_size=BATCH_SIZE, offset=0,
                          sign=False):
@@ -145,7 +153,8 @@ class DispersyToPonyMigration(object):
 
         torrents = []
         for tracker_url, channel_id, name, infohash, length, creation_date, torrent_id, category, num_seeders, num_leechers, last_tracker_check in cursor.execute(
-                self.select_full + personal_channel_filter + " group by infohash" + (" LIMIT " + str(batch_size) + " OFFSET " + str(offset))):
+                self.select_full + personal_channel_filter + " group by infohash" + (
+                        " LIMIT " + str(batch_size) + " OFFSET " + str(offset))):
             # check if name is valid unicode data
             try:
                 name = text_type(name)
@@ -187,10 +196,27 @@ class DispersyToPonyMigration(object):
         return torrents
 
     def convert_personal_channel(self):
-        if not self.personal_channel_id or not d.get_personal_channel_torrents_count():
+        # Reflect conversion state
+        with db_session:
+            v = self.mds.MiscData.get(name=CONVERSION_FROM_72)
+            if v:
+                if v.value == PERSONAL_CONVERSION_STARTED:
+                    # Just drop the entries from the previous try
+
+                    my_channel = self.mds.ChannelMetadata.get_my_channel()
+                    for g in my_channel.contents_list:
+                        g.delete()
+                    my_channel.delete()
+                else:
+                    v.set(value=PERSONAL_CONVERSION_STARTED)
+
+            else:
+                self.mds.MiscData(name=CONVERSION_FROM_72, value=PERSONAL_CONVERSION_STARTED)
+
+        if not self.personal_channel_id or not self.get_personal_channel_torrents_count():
             return
 
-        old_torrents = d.get_old_torrents(personal_channel_only=True, sign=True)
+        old_torrents = self.get_old_torrents(personal_channel_only=True, sign=True)
         with db_session:
             my_channel = self.mds.ChannelMetadata.create_channel(title=self.personal_channel_title, description='')
             for (t, h) in old_torrents:
@@ -200,16 +226,27 @@ class DispersyToPonyMigration(object):
                 except:
                     continue
             my_channel.commit_channel_torrent()
-        # Notify GigaChannel Manager?
 
-    def convert_discovered_channels(self):
+    def convert_discovered_torrents(self):
+
+        offset = 0
+        # Reflect conversion state
+        with db_session:
+            v = self.mds.MiscData.get(name=CONVERSION_FROM_72)
+            if v:
+                offset = orm.count(
+                    g for g in self.mds.TorrentMetadata if g.status == LEGACY_ENTRY and g.metadata_type == REGULAR_TORRENT)
+                v.set(value=DISCOVERED_CONVERSION_STARTED)
+            else:
+                self.mds.MiscData(name=CONVERSION_FROM_72, value=DISCOVERED_CONVERSION_STARTED)
+
         start = datetime.datetime.utcnow()
-        x = 0
+        x = 0 + offset
         batch_size = 1000
         total_to_convert = self.get_old_torrents_count()
 
         while True:
-            old_torrents = d.get_old_torrents(batch_size=batch_size, offset=x)
+            old_torrents = self.get_old_torrents(batch_size=batch_size, offset=x)
             if not old_torrents:
                 break
             with db_session:
@@ -220,10 +257,32 @@ class DispersyToPonyMigration(object):
                         continue
 
             x += batch_size
-            print ("%i/%i" % (x, total_to_convert))
+            if self.notifier_callback:
+                self.notifier_callback("%i/%i" % (x, total_to_convert))
+
+        stop = datetime.datetime.utcnow()
+        elapsed = (stop - start).total_seconds()
+
+        if self.notifier_callback:
+            self.notifier_callback("%i entries converted in %i seconds (%i e/s)" % (x, int(elapsed), int(x / elapsed)))
+
+    def convert_discovered_channels(self):
+        # Reflect conversion state
+        with db_session:
+            v = self.mds.MiscData.get(name=CONVERSION_FROM_72)
+            if v:
+                if v.value == CHANNELS_CONVERSION_STARTED:
+                    # Just drop the entries from the previous try
+                    orm.delete(g for g in self.mds.ChannelMetadata if g.status == LEGACY_ENTRY)
+                else:
+                    v.set(value=CHANNELS_CONVERSION_STARTED)
+            else:
+                self.mds.MiscData(name=CONVERSION_FROM_72, value=CHANNELS_CONVERSION_STARTED)
+
+
 
         with db_session:
-            old_channels = d.get_old_channels()
+            old_channels = self.get_old_channels()
             for c in old_channels:
                 try:
                     self.mds.ChannelMetadata(**c)
@@ -236,19 +295,21 @@ class DispersyToPonyMigration(object):
                 if c.num_entries == 0:
                     c.delete()
 
-        stop = datetime.datetime.utcnow()
-        elapsed = (stop - start).total_seconds()
-
-        print ("%i entries converted in %i seconds (%i e/s)" % (
-            x, int(elapsed), int(x / elapsed)))
-
     def update_trackers_info(self):
-        old_trackers = d.get_old_trackers()
+        old_trackers = self.get_old_trackers()
         with db_session:
             trackers = self.mds.TrackerState.select()[:]
             for tracker in trackers:
                 if tracker.url in old_trackers:
                     tracker.set(**old_trackers[tracker.url])
+
+    def mark_conversion_finished(self):
+        with db_session:
+            v = self.mds.MiscData.get(name=CONVERSION_FROM_72)
+            if v:
+                v.set(value=CONVERSION_FINISHED)
+            else:
+                self.mds.MiscData(name=CONVERSION_FROM_72, value=CONVERSION_FINISHED)
 
 
 if __name__ == "__main__":
@@ -256,13 +317,7 @@ if __name__ == "__main__":
     mds = MetadataStore("/tmp/metadata.db", "/tmp", my_key)
     d = DispersyToPonyMigration("/tmp/tribler.sdb", mds)
 
+    d.initialize()
     d.convert_personal_channel()
     d.convert_discovered_channels()
     d.update_trackers_info()
-    # old_channels = d.get_old_channels()
-
-# 1 - Move Trackers (URLs)
-# 2 - Move torrent Infohashes
-# 3 - Move Infohash-Tracker relationships
-# 4 - Move Metadata, based on Infohashes
-# 5 - Move Channels
