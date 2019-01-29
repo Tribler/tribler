@@ -9,7 +9,7 @@ from pony.orm import db_session
 
 from Tribler.Core.Category.Category import Category
 from Tribler.Core.Modules.MetadataStore.OrmBindings import torrent_metadata, channel_metadata, \
-    torrent_state, tracker_state, channel_node
+    torrent_state, tracker_state, channel_node, misc
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import read_payload_with_offset, REGULAR_TORRENT, \
     CHANNEL_TORRENT, DELETED, ChannelMetadataPayload, int2time
@@ -91,6 +91,8 @@ class MetadataStore(object):
         # Accessors for ORM-managed classes
         # self.Author = author.define_binding(self._db)
 
+        self.MiscData = misc.define_binding(self._db)
+
         self.TrackerState = tracker_state.define_binding(self._db)
         self.TorrentState = torrent_state.define_binding(self._db)
 
@@ -120,6 +122,10 @@ class MetadataStore(object):
                 self._db.execute(sql_add_signature_index)
                 self._db.execute(sql_add_public_key_index)
                 self._db.execute(sql_add_infohash_index)
+
+        if create_db:
+            with db_session:
+                self.MiscData(name="db_version", value="0")
 
     def shutdown(self):
         self._db.disconnect()
