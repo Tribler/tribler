@@ -8,6 +8,7 @@ import logging
 import os
 import sys
 import time
+from Tribler.pyipv8.ipv8.util import cast_to_long
 from binascii import hexlify
 from twisted.internet import threads
 from twisted.internet.defer import inlineCallbacks, fail
@@ -768,7 +769,7 @@ class Session(object):
 
         community._disp_create_torrent(
             torrent_def.infohash,
-            long(time.time()),
+            cast_to_long(time.time()),
             torrent_def.get_name_as_unicode(),
             tuple(torrent_def.get_files_with_length()),
             torrent_def.get_trackers_as_single_tuple(),
