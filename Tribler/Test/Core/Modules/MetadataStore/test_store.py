@@ -20,7 +20,7 @@ from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
 
 def make_wrong_payload(filename):
     key = default_eccrypto.generate_key(u"curve25519")
-    metadata_payload = SignedPayload(666, database_blob(key.pub().key_to_bin()[10:]), signature='\x00'*64, skip_key_check=True)
+    metadata_payload = SignedPayload(666, 0, database_blob(key.pub().key_to_bin()[10:]), signature='\x00'*64, skip_key_check=True)
     with open(filename, 'wb') as output_file:
         output_file.write(''.join(metadata_payload.serialized()))
 

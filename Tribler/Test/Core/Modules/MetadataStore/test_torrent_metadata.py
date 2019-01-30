@@ -68,7 +68,15 @@ class TestTorrentMetadata(TriblerCoreTest):
             dict(self.torrent_template, title="xoxoxo bar", tags="video"))
         self.mds.TorrentMetadata.from_dict(
             dict(self.torrent_template, title="xoxoxo bar", tags="audio"))
+        self.mds.TorrentMetadata.from_dict(
+            dict(self.torrent_template, title=u"\"", tags="audio"))
+        self.mds.TorrentMetadata.from_dict(
+            dict(self.torrent_template, title=u"\'", tags="audio"))
         orm.flush()
+
+        # Ensure that the thing is able to process all types of quotes
+        self.mds.TorrentMetadata.search_keyword("\'")[:]
+        self.mds.TorrentMetadata.search_keyword("\"")[:]
 
         # Search for torrents with the keyword 'foo', it should return one result
         results = self.mds.TorrentMetadata.search_keyword("foo")[:]
@@ -113,6 +121,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         self.assertEqual(0, len(self.mds.TorrentMetadata.search_keyword("*")[:]))
         self.assertEqual(1, len(self.mds.TorrentMetadata.search_keyword("foobl*")[:]))
         self.assertEqual(2, len(self.mds.TorrentMetadata.search_keyword("foo*")[:]))
+        self.assertEqual(1, len(self.mds.TorrentMetadata.search_keyword("(\"12*\" + \"foobl*\")")[:]))
 
     @db_session
     def test_stemming_search(self):

@@ -49,32 +49,34 @@ def define_binding(db):
         def before_update(self):
             self.add_tracker(self.tracker_info)
 
-
         def get_magnet(self):
             return ("magnet:?xt=urn:btih:%s&dn=%s" %
                     (str(self.infohash).encode('hex'), self.title)) + \
                    ("&tr=%s" % self.tracker_info if self.tracker_info else "")
 
         @classmethod
-        def search_keyword(cls, query, entry_type=None, lim=100):
+        def search_keyword(cls, query, lim=100):
             # Requires FTS5 table "FtsIndex" to be generated and populated.
             # FTS table is maintained automatically by SQL triggers.
             # BM25 ranking is embedded in FTS5.
 
             # Sanitize FTS query
-            if not query:
+            if not query or query == "*":
                 return []
-            if query.endswith("*"):
-                query = "\"" + query[:-1] + "\"" + "*"
-            else:
-                query = "\"" + query + "\""
+            # FIXME: !!!! DO PROPER SQL SANITIZING !!!!
+            query = unicode(query)
+            query = query.translate({ord(u'"'): u"\"\"", ord(u"'"): u"\'\'"})
+            query = "("+query+")"
 
             fts_ids = raw_sql(
-                "SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT %d" % lim)
+                'SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT $lim')
             return cls.select(lambda g: g.rowid in fts_ids)
 
         @classmethod
         def get_auto_complete_terms(cls, keyword, max_terms, limit=100):
+            if not keyword:
+                return []
+
             with db_session:
                 result = cls.search_keyword(keyword + "*", lim=limit)[:]
             titles = [g.title.lower() for g in result]
@@ -157,6 +159,5 @@ def define_binding(db):
                     continue
                 return True
             return False
-
 
     return TorrentMetadata
