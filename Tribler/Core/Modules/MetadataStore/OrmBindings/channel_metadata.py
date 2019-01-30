@@ -79,6 +79,7 @@ def define_binding(db):
 
         # Serializable
         num_entries = orm.Optional(int, size=64, default=0)
+        start_timestamp = orm.Optional(int, size=64, default=0)
 
         # Local
         subscribed = orm.Optional(bool, default=False)
@@ -150,9 +151,16 @@ def define_binding(db):
                 # We only remove mdblobs and leave the rest as it is
                 if filename.endswith(BLOB_EXTENSION) or filename.endswith(BLOB_EXTENSION + '.lz4'):
                     os.unlink(file_path)
+
+            # Channel should get a new starting timestamp and its contents should get higher timestamps
+            start_timestamp = self._clock.tick()
             for g in self.contents:
-                g.status = NEW
-            self.commit_channel_torrent()
+                if g.status == COMMITTED:
+                    g.status = NEW
+                    g.timestamp = self._clock.tick()
+                    g.sign()
+
+            self.commit_channel_torrent(new_start_timestamp=start_timestamp)
 
         def update_channel_torrent(self, metadata_list):
             """
@@ -186,7 +194,7 @@ def define_binding(db):
             return {"infohash": infohash, "num_entries": self.contents_len,
                     "timestamp": new_timestamp, "torrent_date": torrent_date}
 
-        def commit_channel_torrent(self):
+        def commit_channel_torrent(self, new_start_timestamp=None):
             """
             Collect new/uncommitted and marked for deletion metadata entries, commit them to a channel torrent and
             remove the obsolete entries if the commit succeeds.
@@ -204,6 +212,8 @@ def define_binding(db):
                     "Error during channel torrent commit, not going to garbage collect the channel. Channel %s",
                     str(self.public_key).encode("hex"))
             else:
+                if new_start_timestamp:
+                    update_dict['start_timestamp'] = new_start_timestamp
                 self.update_metadata(update_dict)
                 self.local_version = self.timestamp
                 # Change status of committed metadata and clean up obsolete TODELETE entries

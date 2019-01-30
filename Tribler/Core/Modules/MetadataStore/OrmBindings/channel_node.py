@@ -47,19 +47,19 @@ def define_binding(db):
         rowid = orm.PrimaryKey(int, size=64, auto=True)
 
         # Serializable
-        metadata_type = orm.Discriminator(int)
+        metadata_type = orm.Discriminator(int, size=16)
+        reserved_flags = orm.Optional(int, size=16, default=0)
         origin_id = orm.Optional(int, size=64, default=0)
 
         public_key = orm.Required(database_blob)
         id_ = orm.Required(int, size=64)
-        orm.composite_index(public_key, id_) # Requires Pony 0.7.7+ with Python2
+        orm.composite_index(public_key, id_)
 
         timestamp = orm.Required(int, size=64, default=0)
-
         signature = orm.Required(database_blob, unique=True)
 
         # Local
-        addition_timestamp = orm.Optional(datetime, default=datetime.utcnow)
+        added_on = orm.Optional(datetime, default=datetime.utcnow)
         status = orm.Optional(int, default=COMMITTED)
 
         parents = orm.Set('ChannelNode', reverse='children')

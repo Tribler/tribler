@@ -207,13 +207,19 @@ class DispersyToPonyMigration(object):
                     for g in my_channel.contents_list:
                         g.delete()
                     my_channel.delete()
-                else:
+                elif v.value == DISCOVERED_CONVERSION_STARTED:
                     v.set(value=PERSONAL_CONVERSION_STARTED)
+                else:
+                    return
 
             else:
                 self.mds.MiscData(name=CONVERSION_FROM_72, value=PERSONAL_CONVERSION_STARTED)
 
         if not self.personal_channel_id or not self.get_personal_channel_torrents_count():
+            return
+
+        # Make sure there is nothing left of old personal channel, just in case
+        if self.mds.ChannelMetadata.get_my_channel():
             return
 
         old_torrents = self.get_old_torrents(personal_channel_only=True, sign=True)

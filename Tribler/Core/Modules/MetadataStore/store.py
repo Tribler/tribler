@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import os
+from datetime import datetime
 
 import lz4.frame
 from pony import orm
@@ -12,7 +13,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings import torrent_metadata, cha
     torrent_state, tracker_state, channel_node, misc
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import read_payload_with_offset, REGULAR_TORRENT, \
-    CHANNEL_TORRENT, DELETED, ChannelMetadataPayload, int2time
+    CHANNEL_TORRENT, DELETED, ChannelMetadataPayload, int2time, time2int
 # This table should never be used from ORM directly.
 # It is created as a VIRTUAL table by raw SQL and
 # maintained by SQL triggers.
@@ -22,7 +23,7 @@ CLOCK_STATE_FILE = "clock.state"
 
 sql_create_fts_table = """
     CREATE VIRTUAL TABLE IF NOT EXISTS FtsIndex USING FTS5
-        (title, tags, content='ChannelNode',
+        (title, tags, content='ChannelNode', prefix = '2 3 4 5',
          tokenize='porter unicode61 remove_diacritics 1');"""
 
 sql_add_fts_trigger_insert = """
@@ -59,7 +60,11 @@ class DiscreteClock(object):
     # Horribly inefficient and stupid, but works
     def __init__(self, filename=None):
         self.filename = filename
-        self.clock = 0
+        # This is a stupid workaround for people who reinstall Tribler
+        # and lose their database. We don't know what was their channel
+        # clock before, but at least we can assume that they were not
+        # adding to it 1000 torrents per second constantly...
+        self.clock = time2int(datetime.utcnow())*1000
         # Read the clock from the disk if the filename is given
         if self.filename and os.path.isfile(self.filename):
             with open(self.filename, 'rb') as f:
@@ -157,7 +162,12 @@ class MetadataStore(object):
                 if blob_sequence_number is not None:
                     # Skip blobs containing data we already have and those that are
                     # ahead of the channel version known to us
-                    if blob_sequence_number <= channel.local_version or blob_sequence_number > channel.timestamp:
+                    # ==================|          channel data       |===
+                    # ===start_timestamp|---local_version----timestamp|===
+                    # local_version is essentially a cursor pointing into the current state of update process
+                    if blob_sequence_number <= channel.start_timestamp or \
+                            blob_sequence_number <= channel.local_version or \
+                            blob_sequence_number > channel.timestamp:
                         continue
                     try:
                         self.process_mdblob_file(full_filename)
