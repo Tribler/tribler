@@ -74,6 +74,8 @@ class TokenMiningPage(QWidget):
     """
     This page shows various trust statistics.
     """
+    REFRESH_INTERVAL_MS = 10000
+    TIMEOUT_INTERVAL_MS = 30000
 
     def __init__(self):
         QWidget.__init__(self)
@@ -119,12 +121,12 @@ class TokenMiningPage(QWidget):
         self.downloads_timer = QTimer()
         self.downloads_timer.setSingleShot(True)
         self.downloads_timer.timeout.connect(self.load_downloads)
-        self.downloads_timer.start(0 if now else 1000)
+        self.downloads_timer.start(0 if now else self.REFRESH_INTERVAL_MS)
 
         self.downloads_timeout_timer = QTimer()
         self.downloads_timeout_timer.setSingleShot(True)
         self.downloads_timeout_timer.timeout.connect(self.on_downloads_request_timeout)
-        self.downloads_timeout_timer.start(16000)
+        self.downloads_timeout_timer.start(self.TIMEOUT_INTERVAL_MS)
 
     def on_downloads_request_timeout(self):
         self.downloads_request_mgr.cancel_request()
@@ -136,7 +138,7 @@ class TokenMiningPage(QWidget):
 
     def load_downloads(self):
         url = "downloads?get_pieces=1"
-        if time.time() - self.downloads_last_update > 30:
+        if time.time() - self.downloads_last_update > self.REFRESH_INTERVAL_MS/1000:
             self.downloads_last_update = time.time()
             self.downloads_request_mgr.cancel_request()
             self.downloads_request_mgr = TriblerRequestManager()
@@ -171,7 +173,7 @@ class TokenMiningPage(QWidget):
     def push_data_to_plot(self, upload, download):
         # Keep only last 100 records to show in graph
         if len(self.plot_data[1]) > 100:
-            self.plot_data[1] = self.plot_data[0][0][-100:]
+            self.plot_data[1] = self.plot_data[1][-100:]
             self.plot_data[0][0] = self.plot_data[0][0][-100:]
             self.plot_data[0][1] = self.plot_data[0][1][-100:]
 
