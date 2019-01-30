@@ -9,8 +9,9 @@ import os
 import sys
 import time
 from binascii import hexlify
+
 from twisted.internet import threads
-from twisted.internet.defer import inlineCallbacks, fail
+from twisted.internet.defer import fail, inlineCallbacks
 from twisted.python.failure import Failure
 from twisted.python.log import addObserver
 from twisted.python.threadable import isInIOThread
@@ -19,19 +20,20 @@ import Tribler.Core.permid as permid_module
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_FILE_RELATIVE_PATH, DB_DIR_NAME
+from Tribler.Core.CacheDB.sqlitecachedb import DB_DIR_NAME, DB_FILE_RELATIVE_PATH, SQLiteCacheDB
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Modules.restapi.rest_manager import RESTManager
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.Utilities import torrent_utils
 from Tribler.Core.Utilities.crypto_patcher import patch_crypto_be_discovery
-from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
-    DuplicateTorrentFileError
+from Tribler.Core.exceptions import DuplicateTorrentFileError, NotYetImplementedException, \
+    OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_MYPREFERENCES, NTFY_PEERS,
-                                     NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
-                                     STATEDIR_WALLET_DIR, STATE_OPEN_DB, STATE_START_API, STATE_UPGRADING_READABLE,
-                                     STATE_LOAD_CHECKPOINTS, STATE_READABLE_STARTED, NTFY_TRIBLER, STATE_SHUTDOWN)
+                                     NTFY_TORRENTS, NTFY_TRIBLER, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
+                                     STATEDIR_WALLET_DIR, STATE_LOAD_CHECKPOINTS, STATE_OPEN_DB, STATE_READABLE_STARTED,
+                                     STATE_SHUTDOWN, STATE_START_API, STATE_UPGRADING_READABLE)
 from Tribler.Core.statistics import TriblerStatistics
+from Tribler.pyipv8.ipv8.util import cast_to_long
 
 try:
     long        # pylint: disable=long-builtin
@@ -768,7 +770,7 @@ class Session(object):
 
         community._disp_create_torrent(
             torrent_def.infohash,
-            long(time.time()),
+            cast_to_long(time.time()),
             torrent_def.get_name_as_unicode(),
             tuple(torrent_def.get_files_with_length()),
             torrent_def.get_trackers_as_single_tuple(),
