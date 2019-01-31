@@ -15,6 +15,8 @@ from pprint import pformat
 from struct import unpack_from
 from time import time
 from traceback import print_exc
+
+from six import text_type
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
@@ -911,6 +913,12 @@ class TorrentDBHandler(BasicDBHandler):
         if self.latest_matchinfo_torrent is None:
             return 0.0
         matchinfo, keywords = self.latest_matchinfo_torrent
+
+        # Make sure the strings are utf-8 encoded
+        if not isinstance(keywords, text_type):
+            keywords = keywords.decode('raw_unicode_escape')
+        if not isinstance(torrent_name, text_type):
+            torrent_name = torrent_name.decode('raw_unicode_escape')
 
         num_phrases, num_cols, num_rows = unpack_from('III', matchinfo)
         unpack_str = 'I' * (3 * num_cols * num_phrases)

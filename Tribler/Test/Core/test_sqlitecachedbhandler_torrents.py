@@ -299,5 +299,8 @@ class TestTorrentDBHandler(AbstractDB):
         self.assertEqual(len(results), 0)
 
     def test_rel_score_remote_torrent(self):
+        self.tdb.latest_matchinfo_torrent = struct.pack("I" * 12, *([1] * 12)), u"torrent"
+        self.assertNotEqual(self.tdb.relevance_score_remote_torrent("\xe2my-torrent.iso"), 0.0)
+
         self.tdb.latest_matchinfo_torrent = struct.pack("I" * 12, *([1] * 12)), "torrent"
-        self.assertNotEqual(self.tdb.relevance_score_remote_torrent("my-torrent.iso"), 0.0)
+        self.assertNotEqual(self.tdb.relevance_score_remote_torrent(u"my-torrent.iso"), 0.0)
