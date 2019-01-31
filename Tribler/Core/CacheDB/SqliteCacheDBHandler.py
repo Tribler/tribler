@@ -912,11 +912,15 @@ class TorrentDBHandler(BasicDBHandler):
         """
         if self.latest_matchinfo_torrent is None:
             return 0.0
-        matchinfo, keywords = self.latest_matchinfo_torrent
+        matchinfo, raw_keywords = self.latest_matchinfo_torrent
 
         # Make sure the strings are utf-8 encoded
-        if not isinstance(keywords, text_type):
-            keywords = keywords.decode('raw_unicode_escape')
+        keywords = []
+        for keyword in raw_keywords:
+            if not isinstance(keyword, text_type):
+                keyword = keyword.decode('raw_unicode_escape')
+            keywords.append(keyword)
+
         if not isinstance(torrent_name, text_type):
             torrent_name = torrent_name.decode('raw_unicode_escape')
 
