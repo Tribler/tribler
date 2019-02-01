@@ -102,3 +102,6 @@ SHUTDOWN_WAITING_PERIOD = 120000
 
 # Garbage collection timer (in minutes)
 GC_TIMEOUT = 10
+
+# Interval for refreshing the results in the debug pane
+DEBUG_PANE_REFRESH_TIMEOUT = 5000   # 5 seconds

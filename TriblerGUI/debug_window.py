@@ -5,26 +5,31 @@ import os
 import socket
 from time import localtime, strftime
 
-import matplotlib
-import psutil
-from meliae import scanner
+from PyQt5 import QtGui, uic
+from PyQt5.QtCore import QTimer, Qt, pyqtSignal
+from PyQt5.QtGui import QTextCursor
+from PyQt5.QtWidgets import QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QSizePolicy, \
+    QTreeWidgetItem
 
+import matplotlib
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.dates import DateFormatter
 from matplotlib.figure import Figure
 
-from PyQt5 import uic, QtGui
-from PyQt5.QtCore import QTimer, Qt, pyqtSignal
-from PyQt5.QtGui import QTextCursor
-from PyQt5.QtWidgets import QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QTreeWidgetItem, \
-    QSizePolicy
+from meliae import scanner
+
+import psutil
+
+from six.moves import xrange
 
 import Tribler.Core.Utilities.json_util as json
+
+from TriblerGUI.defs import DEBUG_PANE_REFRESH_TIMEOUT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
-from TriblerGUI.utilities import get_ui_file_path, format_size
-from TriblerGUI.tribler_request_manager import performed_requests as tribler_performed_requests, TriblerRequestManager
 from TriblerGUI.event_request_manager import received_events as tribler_received_events
+from TriblerGUI.tribler_request_manager import TriblerRequestManager, performed_requests as tribler_performed_requests
+from TriblerGUI.utilities import format_size, get_ui_file_path
 
 
 class MplCanvas(FigureCanvas):
@@ -164,6 +169,17 @@ class DebugWindow(QMainWindow):
         frame_geometry.moveCenter(center_point)
         self.move(frame_geometry.topLeft())
 
+        # Refresh timer
+        self.refresh_timer = None
+
+    def run_with_timer(self, call_fn, timeout=DEBUG_PANE_REFRESH_TIMEOUT):
+
+        call_fn()
+        self.refresh_timer = QTimer()
+        self.refresh_timer.timeout.connect(lambda _call_fn=call_fn, _timeout=timeout:
+                                           self.run_with_timer(_call_fn, timeout=_timeout))
+        self.refresh_timer.start(timeout)
+
     def init_libtorrent_tab(self):
         self.window().libtorrent_tab_widget.setCurrentIndex(0)
         self.window().libtorrent_tab_widget.currentChanged.connect(lambda _: self.load_libtorrent_data(export=False))
@@ -182,15 +198,15 @@ class DebugWindow(QMainWindow):
         elif index == 1:
             self.load_requests_tab()
         elif index == 2:
-            self.load_trustchain_tab()
+            self.run_with_timer(self.load_trustchain_tab)
         elif index == 3:
             self.ipv8_tab_changed(self.window().ipv8_tab_widget.currentIndex())
         elif index == 4:
             self.tunnel_tab_changed(self.window().tunnel_tab_widget.currentIndex())
         elif index == 5:
-            self.load_dht_tab()
+            self.run_with_timer(self.load_dht_tab)
         elif index == 6:
-            self.load_events_tab()
+            self.run_with_timer(self.load_events_tab)
         elif index == 7:
             self.system_tab_changed(self.window().system_tab_widget.currentIndex())
         elif index == 8:
@@ -200,19 +216,19 @@ class DebugWindow(QMainWindow):
 
     def ipv8_tab_changed(self, index):
         if index == 0:
-            self.load_ipv8_general_tab()
+            self.run_with_timer(self.load_ipv8_general_tab)
         elif index == 1:
-            self.load_ipv8_communities_tab()
+            self.run_with_timer(self.load_ipv8_communities_tab)
         elif index == 2:
-            self.load_ipv8_community_details_tab()
+            self.run_with_timer(self.load_ipv8_community_details_tab)
 
     def tunnel_tab_changed(self, index):
         if index == 0:
-            self.load_tunnel_circuits_tab()
+            self.run_with_timer(self.load_tunnel_circuits_tab)
         elif index == 1:
-            self.load_tunnel_relays_tab()
+            self.run_with_timer(self.load_tunnel_relays_tab)
         elif index == 2:
-            self.load_tunnel_exits_tab()
+            self.run_with_timer(self.load_tunnel_exits_tab)
 
     def system_tab_changed(self, index):
         if index == 0:
