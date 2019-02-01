@@ -4,7 +4,24 @@ The responsibility of the controller is to populate the table view with some dat
 """
 from __future__ import absolute_import
 
+from six import text_type
+
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
+
+
+def sanitize_for_fts(text):
+    return text_type(text).translate({ord(u"\""): u"\"\"", ord(u"\'"): u"\'\'"})
+
+
+def to_fts_query(text):
+    if not text:
+        return ""
+    words = text.split(" ")
+
+    # TODO: add support for quoted exact searches
+    query_list = [u'\"' + sanitize_for_fts(word) + u'\"*' for word in words]
+
+    return " AND ".join(query_list)
 
 
 class TriblerTableViewController(object):
@@ -81,7 +98,7 @@ class SearchResultsTableViewController(TriblerTableViewController):
 
         sort_by, sort_asc = self._get_sort_parameters()
         url_params = {
-            "q": query,
+            "q": to_fts_query(query),
             "first": start if start else '',
             "last": end if end else '',
             "sort_by": sort_by if sort_by else '',
@@ -146,12 +163,15 @@ class ChannelsTableViewController(TriblerTableViewController):
 
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(
-            "metadata/channels?first=%i&last=%i" % (start, end)
-            + ('&sort_by=%s' % sort_by)
-            + ('&sort_asc=%d' % sort_asc)
-            + ('&filter=%s' % filter_text)
-            + ('&subscribed=%d' % int(self.model.subscribed)),
-            self.on_channels)
+            "metadata/channels",
+            self.on_channels,
+            url_params={
+                "first": start,
+                "last": end,
+                "sort_by": sort_by,
+                "sort_asc": sort_asc,
+                "filter": to_fts_query(filter_text),
+                "subscribed": self.model.subscribed})
 
     def on_channels(self, response):
         if not response:
@@ -219,11 +239,14 @@ class TorrentsTableViewController(TriblerTableViewController):
 
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(
-            "metadata/channels/%s/torrents?first=%i&last=%i" % (self.model.channel_pk, start, end)
-            + ('&sort_by=%s' % sort_by)
-            + ('&sort_asc=%d' % sort_asc)
-            + ('&filter=%s' % filter_text),
-            self.on_torrents)
+            "metadata/channels/%s/torrents?" % self.model.channel_pk,
+            self.on_torrents,
+            url_params={
+                "first": start,
+                "last": end,
+                "sort_by": sort_by,
+                "sort_asc": sort_asc,
+                "filter": to_fts_query(filter_text)})
 
     def on_torrents(self, response):
         if not response:
@@ -260,12 +283,13 @@ class MyTorrentsTableViewController(TorrentsTableViewController):
 
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(
-            "mychannel/torrents?first=%i&last=%i" % (start, end)
-            + ('&sort_by=%s' % sort_by)
-            + ('&sort_asc=%d' % sort_asc)
-            + ('&filter=%s' % filter_text)
-            + ('&exclude_deleted=1' if self.model.exclude_deleted else ''),
-            self.on_torrents)
+            "mychannel/torrents",
+            self.on_torrents,
+            url_params={
+                "sort_by": sort_by,
+                "sort_asc": sort_asc,
+                "filter": to_fts_query(filter_text),
+                "exclude_deleted": self.model.exclude_deleted})
 
     def on_torrents(self, response):
         if super(MyTorrentsTableViewController, self).on_torrents(response):

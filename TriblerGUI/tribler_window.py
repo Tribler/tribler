@@ -36,6 +36,8 @@ from TriblerGUI.tribler_request_manager import TriblerRequestManager, dispatcher
 from TriblerGUI.utilities import get_gui_setting, get_image_path, get_ui_file_path, is_dir_writable
 
 # Pre-load form UI classes
+from TriblerGUI.widgets.triblertablecontrollers import to_fts_query, sanitize_for_fts
+
 fc_home_recommended_item, _ = uic.loadUiType(get_ui_file_path('home_recommended_item.ui'))
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
 
@@ -442,7 +444,7 @@ class TriblerWindow(QMainWindow):
     def on_search_text_change(self, text):
         self.search_suggestion_mgr = TriblerRequestManager()
         self.search_suggestion_mgr.perform_request(
-            "search/completions", self.on_received_search_completions, url_params={'q': text})
+            "search/completions", self.on_received_search_completions, url_params={'q': sanitize_for_fts(text) })
 
     def on_received_search_completions(self, completions):
         if completions is None:

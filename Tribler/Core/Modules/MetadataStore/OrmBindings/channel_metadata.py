@@ -13,7 +13,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTE
     LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
-from Tribler.Core.exceptions import DuplicateChannelNameError, DuplicateTorrentFileError
+from Tribler.Core.exceptions import DuplicateChannelIdError, DuplicateTorrentFileError
 from Tribler.pyipv8.ipv8.database import database_blob
 
 CHANNEL_DIR_NAME_LENGTH = 32  # Its not 40 so it could be distinguished from infohash
@@ -129,7 +129,7 @@ def define_binding(db):
             :return: The channel metadata
             """
             if ChannelMetadata.get_channel_with_id(cls._my_key.pub().key_to_bin()[10:]):
-                raise DuplicateChannelNameError()
+                raise DuplicateChannelIdError()
 
             my_channel = cls(id_=ROOT_CHANNEL_ID, public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]),
                              title=title, tags=description, subscribed=True)

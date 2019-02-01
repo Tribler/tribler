@@ -47,7 +47,7 @@ class InvalidSignatureException(TriblerException):
     pass
 
 
-class DuplicateChannelNameError(TriblerException):
+class DuplicateChannelIdError(TriblerException):
     """
     The Channel name already exists in the ChannelManager channel list,
     i.e., one of your own Channels with the same name already exists.

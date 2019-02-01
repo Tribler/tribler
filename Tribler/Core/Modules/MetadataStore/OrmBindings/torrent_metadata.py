@@ -5,6 +5,7 @@ from datetime import datetime
 
 from pony import orm
 from pony.orm import db_session, raw_sql
+from six import text_type
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, TODELETE
 from Tribler.Core.Modules.MetadataStore.serialization import TorrentMetadataPayload, REGULAR_TORRENT
@@ -63,22 +64,18 @@ def define_binding(db):
             # Sanitize FTS query
             if not query or query == "*":
                 return []
-            # FIXME: !!!! DO PROPER SQL SANITIZING !!!!
-            query = unicode(query)
-            query = query.translate({ord(u'"'): u"\"\"", ord(u"'"): u"\'\'"})
-            query = "("+query+")"
 
             fts_ids = raw_sql(
                 'SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query ORDER BY bm25(FtsIndex) LIMIT $lim')
             return cls.select(lambda g: g.rowid in fts_ids)
 
         @classmethod
-        def get_auto_complete_terms(cls, keyword, max_terms, limit=100):
+        def get_auto_complete_terms(cls, keyword, max_terms, limit=10):
             if not keyword:
                 return []
 
             with db_session:
-                result = cls.search_keyword(keyword + "*", lim=limit)[:]
+                result = cls.search_keyword("\"" +keyword + "\"*", lim=limit)[:]
             titles = [g.title.lower() for g in result]
 
             # Copy-pasted from the old DBHandler (almost) completely

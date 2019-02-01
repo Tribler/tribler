@@ -1,5 +1,5 @@
-from collections import deque, namedtuple
 import logging
+from collections import deque, namedtuple
 from threading import RLock
 from time import time
 from urllib import quote_plus
@@ -11,6 +11,30 @@ from six import text_type
 import Tribler.Core.Utilities.json_util as json
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL, DEFAULT_API_HOST
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
+
+
+def tribler_urlencode(data):
+    # Convert all values that are an array to uri-encoded values
+    for key in data.keys():
+        value = data[key]
+        if isinstance(value, list):
+            if value:
+                data[key + "[]"] = "&".join(value)
+            else:
+                del data[key]
+
+    # Convert all keys and values in the data to utf-8 unicode strings
+    utf8_items = []
+    for key, value in data.items():
+        utf8_key = quote_plus(text_type(key).encode('utf-8'))
+        # Convert bool values to ints
+        if isinstance(value, bool):
+            value = int(value)
+        utf8_value = quote_plus(text_type(value).encode('utf-8'))
+        utf8_items.append("%s=%s" % (utf8_key, utf8_value))
+
+    data = "&".join(utf8_items)
+    return data
 
 
 class QueuePriorityEnum(object):
@@ -47,7 +71,7 @@ class RequestQueue(object):
         self.medium_queue = []
         self.low_queue = []
 
-        self.lock = RLock() # Don't allow asynchronous access to the queue
+        self.lock = RLock()  # Don't allow asynchronous access to the queue
 
     def parse_queue(self):
         """
@@ -117,7 +141,7 @@ class RequestQueue(object):
                 self.high_queue.append(queue_item)
             else:
                 # Get the last item of the queue
-                last_item = self.high_queue.pop(self.max_outstanding -1)
+                last_item = self.high_queue.pop(self.max_outstanding - 1)
                 # Add the original queue_item to the front of the queue
                 self.high_queue.insert(0, queue_item)
                 # reduce the priority of last_item and try to put in medium queue
@@ -255,27 +279,10 @@ class TriblerRequestManager(QObject):
         if read_callback:
             self.received_json.connect(read_callback)
 
-        if url_params:
-            endpoint += "?" + '&'.join(["%s=%s" % (key, value) for key, value in url_params.items()])
+        url = endpoint + (("?" + tribler_urlencode(url_params)) if url_params else "")
 
         if data and not raw_data:
-            # Convert all values that are an array to uri-encoded values
-            for key in data.keys():
-                value = data[key]
-                if isinstance(value, list):
-                    if value:
-                        data[key + "[]"] = "&".join(value)
-                    else:
-                        del data[key]
-
-            # Convert all keys and values in the data to utf-8 unicode strings
-            utf8_items = []
-            for key, value in data.items():
-                utf8_key = quote_plus(text_type(key).encode('utf-8'))
-                utf8_value = quote_plus(text_type(value).encode('utf-8'))
-                utf8_items.append("%s=%s" % (utf8_key, utf8_value))
-
-            data = "&".join(utf8_items)
+            data = tribler_urlencode(data)
         elif raw_data:
             data = raw_data.encode('utf-8')
 
@@ -283,7 +290,7 @@ class TriblerRequestManager(QObject):
             log[-1] = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
             self.on_finished(reply, capture_errors)
 
-        request_queue.enqueue(self, method, endpoint, data, reply_callback, priority)
+        request_queue.enqueue(self, method, url, data, reply_callback, priority)
 
     @staticmethod
     def get_message_from_error(error):
