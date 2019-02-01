@@ -74,10 +74,6 @@ class TestTorrentMetadata(TriblerCoreTest):
             dict(self.torrent_template, title=u"\'", tags="audio"))
         orm.flush()
 
-        # Ensure that the thing is able to process all types of quotes
-        self.mds.TorrentMetadata.search_keyword("\'")[:]
-        self.mds.TorrentMetadata.search_keyword("\"")[:]
-
         # Search for torrents with the keyword 'foo', it should return one result
         results = self.mds.TorrentMetadata.search_keyword("foo")[:]
         self.assertEqual(len(results), 1)
@@ -121,7 +117,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         self.assertEqual(0, len(self.mds.TorrentMetadata.search_keyword("*")[:]))
         self.assertEqual(1, len(self.mds.TorrentMetadata.search_keyword("foobl*")[:]))
         self.assertEqual(2, len(self.mds.TorrentMetadata.search_keyword("foo*")[:]))
-        self.assertEqual(1, len(self.mds.TorrentMetadata.search_keyword("(\"12*\" + \"foobl*\")")[:]))
+        self.assertEqual(1, len(self.mds.TorrentMetadata.search_keyword("(\"12\"* AND \"foobl\"*)")[:]))
 
     @db_session
     def test_stemming_search(self):
@@ -169,6 +165,7 @@ class TestTorrentMetadata(TriblerCoreTest):
 
         autocomplete_terms = self.mds.TorrentMetadata.get_auto_complete_terms("sheep", 2)
         self.assertEqual(len(autocomplete_terms), 2)
+        autocomplete_terms = self.mds.TorrentMetadata.get_auto_complete_terms(".", 2)
 
     @db_session
     def test_get_torrents(self):

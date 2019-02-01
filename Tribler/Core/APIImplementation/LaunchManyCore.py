@@ -42,7 +42,6 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      STATE_START_API_ENDPOINTS, STATE_START_CREDIT_MINING,
                                      STATE_START_LIBTORRENT, STATE_START_TORRENT_CHECKER, STATE_START_WATCH_FOLDER)
 from Tribler.pyipv8.ipv8.dht.provider import DHTCommunityProvider
-from Tribler.pyipv8.ipv8.keyvault.private.m2crypto import M2CryptoSK
 from Tribler.pyipv8.ipv8.peer import Peer
 from Tribler.pyipv8.ipv8.peerdiscovery.churn import RandomChurn
 from Tribler.pyipv8.ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity

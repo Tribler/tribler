@@ -384,7 +384,7 @@ class EditChannelPage(QWidget):
     def autocommit_fired(self):
         def commit_channel(overview):
             try:
-                if overview['mychannel']['dirty']:
+                if overview and overview['mychannel']['dirty']:
                     TriblerRequestManager().perform_request("mychannel/commit", lambda _: None, method='POST',
                                                             capture_errors=False)
             except KeyError:

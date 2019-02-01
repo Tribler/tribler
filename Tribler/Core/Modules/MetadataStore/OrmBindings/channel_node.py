@@ -210,7 +210,7 @@ def define_binding(db):
 
             # Filter the results on a keyword or some keywords
             if query_filter:
-                pony_query = cls.search_keyword(query_filter + "*", lim=1000)
+                pony_query = cls.search_keyword(query_filter, lim=1000)
 
             # Sort the query
             if sort_by:

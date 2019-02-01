@@ -14,7 +14,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TOD
 from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.exceptions import DuplicateTorrentFileError, DuplicateChannelNameError
+from Tribler.Core.exceptions import DuplicateTorrentFileError, DuplicateChannelIdError
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.common import TORRENT_UBUNTU_FILE
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -102,7 +102,7 @@ class TestChannelMetadata(TriblerCoreTest):
         channel_metadata = self.mds.ChannelMetadata.create_channel('test', 'test')
 
         self.assertTrue(channel_metadata)
-        self.assertRaises(DuplicateChannelNameError,
+        self.assertRaises(DuplicateChannelIdError,
                           self.mds.ChannelMetadata.create_channel, 'test', 'test')
 
     @db_session

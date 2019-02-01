@@ -526,7 +526,7 @@ class Session(object):
         :param description: description of the Channel
         :param mode: mode of the Channel ('open', 'semi-open', or 'closed')
         :return: a channel ID
-        :raises a DuplicateChannelNameError if name already exists
+        :raises a DuplicateChannelIdError if name already exists
         """
         return self.lm.channel_manager.create_channel(name, description, mode)
 
