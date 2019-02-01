@@ -5,28 +5,31 @@ import os
 import socket
 from time import localtime, strftime
 
+from PyQt5 import QtGui, uic
+from PyQt5.QtCore import QTimer, Qt, pyqtSignal
+from PyQt5.QtGui import QTextCursor
+from PyQt5.QtWidgets import QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QSizePolicy, \
+    QTreeWidgetItem
+
 import matplotlib
-import psutil
-from meliae import scanner
-
-from TriblerGUI.defs import DEBUG_PANE_REFRESH_TIMEOUT
-
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.dates import DateFormatter
 from matplotlib.figure import Figure
 
-from PyQt5 import uic, QtGui
-from PyQt5.QtCore import QTimer, Qt, pyqtSignal
-from PyQt5.QtGui import QTextCursor
-from PyQt5.QtWidgets import QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QTreeWidgetItem, \
-    QSizePolicy
+from meliae import scanner
+
+import psutil
+
+from six.moves import xrange
 
 import Tribler.Core.Utilities.json_util as json
+
+from TriblerGUI.defs import DEBUG_PANE_REFRESH_TIMEOUT
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
-from TriblerGUI.utilities import get_ui_file_path, format_size
-from TriblerGUI.tribler_request_manager import performed_requests as tribler_performed_requests, TriblerRequestManager
 from TriblerGUI.event_request_manager import received_events as tribler_received_events
+from TriblerGUI.tribler_request_manager import TriblerRequestManager, performed_requests as tribler_performed_requests
+from TriblerGUI.utilities import format_size, get_ui_file_path
 
 
 class MplCanvas(FigureCanvas):
@@ -170,6 +173,7 @@ class DebugWindow(QMainWindow):
         self.refresh_timer = None
 
     def run_with_timer(self, call_fn, timeout=DEBUG_PANE_REFRESH_TIMEOUT):
+
         call_fn()
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(lambda _call_fn=call_fn, _timeout=timeout:
