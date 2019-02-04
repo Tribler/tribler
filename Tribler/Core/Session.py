@@ -212,6 +212,10 @@ class Session(object):
                 self._logger.error("Internal Twisted response error, consider updating your Twisted version.")
                 return
 
+            if 'twisted.internet.error.AlreadyCalled' in text:
+                self._logger.error("Tried to cancel an already called event\n%s", text)
+                return
+
             # We already have a check for invalid infohash when adding a torrent, but if somehow we get this
             # error then we simply log and ignore it.
             if 'exceptions.RuntimeError: invalid info-hash' in text:
