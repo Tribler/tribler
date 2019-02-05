@@ -565,7 +565,7 @@ class TriblerConfig(object):
         self.config['torrent_store']['enabled'] = value
 
     def get_torrent_store_dir(self):
-        return os.path.join(self.get_state_dir(), self.config['torrent_store']['store_dir'])
+        return os.path.join(self.get_default_destination_dir(), self.config['torrent_store']['store_dir'])
 
     def set_torrent_store_dir(self, value):
         self.config['torrent_store']['store_dir'] = value
