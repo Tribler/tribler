@@ -1,8 +1,10 @@
 import os
+from datetime import datetime
 
 from pony.orm import db_session
 from twisted.internet.defer import inlineCallbacks
 
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Modules.gigachannel_manager import GigaChannelManager
 from Tribler.Core.TorrentDef import TorrentDef
@@ -25,6 +27,12 @@ class TestGigaChannelManager(TriblerCoreTest):
     @inlineCallbacks
     def setUp(self):
         yield super(TestGigaChannelManager, self).setUp()
+        self.torrent_template = {
+            "title": "",
+            "infohash": "",
+            "torrent_date": datetime(1970, 1, 1),
+            "tags": "video"
+        }
         my_key = default_eccrypto.generate_key(u"curve25519")
         self.mock_session = MockObject()
         self.mock_session.lm = MockObject()
@@ -52,6 +60,7 @@ class TestGigaChannelManager(TriblerCoreTest):
 
         # Check add personal channel on startup
         self.mock_session.has_download = lambda _: False
+        self.chanman.service_channels = lambda: None  # Disable looping call
         self.chanman.start()
         self.chanman.check_channels_updates()
         self.assertTrue(self.torrent_added)
@@ -90,25 +99,52 @@ class TestGigaChannelManager(TriblerCoreTest):
 
     def test_remove_cruft_channels(self):
         with db_session:
-            chan = self.generate_personal_channel()
-            chan.commit_channel_torrent()
-            chan.local_version -= 1
-            ih_chan2 = database_blob(str(123))
-            chan2 = self.mock_session.lm.mds.ChannelMetadata(title="bla", infohash=ih_chan2,
+            # Our personal chan is created, then updated, so there are 2 files on disk and there are 2 torrents:
+            # the old one and the new one
+            my_chan = self.generate_personal_channel()
+            my_chan.commit_channel_torrent()
+            my_chan_old_infohash = my_chan.infohash
+            md = self.mock_session.lm.mds.TorrentMetadata.from_dict(dict(self.torrent_template, status=NEW))
+            my_chan.commit_channel_torrent()
+
+            # Now we add external channel we are subscribed to.
+            chan2 = self.mock_session.lm.mds.ChannelMetadata(title="bla1", infohash=database_blob(str(123)),
                                                              public_key=database_blob(str(123)),
                                                              signature=database_blob(str(345)), skip_key_check=True,
                                                              timestamp=123, local_version=123, subscribed=True)
-            ih_chan3 = database_blob(str(124))
-            chan3 = self.mock_session.lm.mds.ChannelMetadata(title="bla", infohash=ih_chan3,
+
+            # Another external channel, but there is a catch: we recently unsubscribed from it
+            chan3 = self.mock_session.lm.mds.ChannelMetadata(title="bla2", infohash=database_blob(str(124)),
                                                              public_key=database_blob(str(124)),
                                                              signature=database_blob(str(346)), skip_key_check=True,
-                                                             timestamp=123, local_version=122, subscribed=False)
+                                                             timestamp=123, local_version=123, subscribed=False)
 
-        mock_dl_list = [MockObject() for _ in range(4)]
-        mock_dl_list[0].infohash = chan.infohash
-        mock_dl_list[1].infohash = ih_chan2
-        mock_dl_list[2].infohash = ih_chan3
-        mock_dl_list[3].infohash = database_blob(str(333))
+        class mock_dl(MockObject):
+            def __init__(self, infohash, dirname):
+                self.infohash = infohash
+                self.dirname = dirname
+
+            def get_def(self):
+                a = MockObject()
+                a.infohash = self.infohash
+                a.get_name_utf8 = lambda: self.dirname
+                return a
+
+        # Double conversion is required to make sure that buffers signatures are not the same
+        mock_dl_list = [
+            # Downloads for our personal channel
+            mock_dl(database_blob(bytes(my_chan_old_infohash)), my_chan.dir_name),
+            mock_dl(database_blob(bytes(my_chan.infohash)), my_chan.dir_name),
+
+            # Downloads for the updated external channel: "old ones" and "recent"
+            mock_dl(database_blob(bytes(str(12331244))), chan2.dir_name),
+            mock_dl(database_blob(bytes(chan2.infohash)), chan2.dir_name),
+
+            # Downloads for the unsubscribed external channel
+            mock_dl(database_blob(bytes(str(1231551))), chan3.dir_name),
+            mock_dl(database_blob(bytes(chan3.infohash)), chan3.dir_name),
+            # Orphaned download
+            mock_dl(database_blob(str(333)), u"blabla")]
 
         def mock_get_channel_downloads():
             return mock_dl_list
@@ -122,4 +158,9 @@ class TestGigaChannelManager(TriblerCoreTest):
         self.mock_session.lm.get_channel_downloads = mock_get_channel_downloads
         self.chanman.remove_cruft_channels()
         # We want to remove torrents for (a) deleted channels and (b) unsubscribed channels
-        self.assertListEqual(self.remove_list, [mock_dl_list[2], mock_dl_list[3]])
+        self.assertItemsEqual(self.remove_list,
+                              [(mock_dl_list[0], False),
+                               (mock_dl_list[2], False),
+                               (mock_dl_list[4], True),
+                               (mock_dl_list[5], True),
+                               (mock_dl_list[6], True)])

@@ -19,7 +19,7 @@ class BaseTestMyChannelEndpoint(AbstractApiTest):
         yield super(BaseTestMyChannelEndpoint, self).setUp()
         self.session.lm.gigachannel_manager = MockObject()
         self.session.lm.gigachannel_manager.shutdown = lambda: None
-        self.session.lm.gigachannel_manager.updated_my_channel = lambda _: None
+        self.session.lm.gigachannel_manager.updated_my_channel = lambda: None
 
     def create_my_channel(self):
         with db_session:

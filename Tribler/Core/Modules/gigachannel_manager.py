@@ -30,8 +30,14 @@ class GigaChannelManager(TaskManager):
         self.updated_my_channel()  # Just in case
 
         channels_check_interval = 5.0  # seconds
-        self.register_task("Process channels download queue and remove cruft",
-                           LoopingCall(self.service_channels)).start(channels_check_interval)
+        lcall = LoopingCall(self.service_channels)
+        d = self.register_task("Process channels download queue and remove cruft", lcall).start(channels_check_interval)
+
+        #def handle(f):
+        #    print "errback"
+        #    print "we got an exception: %s" % (f.getTraceback(),)
+        #    f.trap(RuntimeError)
+        #d.addErrback(handle)
 
     def shutdown(self):
         """
@@ -40,12 +46,23 @@ class GigaChannelManager(TaskManager):
         self.shutdown_task_manager()
 
     def remove_cruft_channels(self):
+        """
+        Assembles a list of obsolete channel torrents to be removed.
+        The list is formed from older versions of channels we are subscribed to and from channel torrents we are not
+        subscribed to (i.e. we recently unsubscribed from these). The unsubscribed channels are removed completely
+        with their contents, while in the case of older versions the files are left in place because the newer version
+        possibly uses them.
+        :return: list of tuples (download_to_remove=download, remove_files=Bool)
+        """
         with db_session:
             channels, _ = self.session.lm.mds.ChannelMetadata.get_channels(last=10000, subscribed=True)
-            subscribed_infohashes = [c.infohash for c in list(channels)]
+            subscribed_infohashes = [bytes(c.infohash) for c in list(channels)]
+            dirnames = [c.dir_name for c in channels]
 
-        cruft_list = [d for d in self.session.lm.get_channel_downloads() \
-                      if (d.infohash not in subscribed_infohashes)]
+        # TODO: add some more advanced logic for removal of older channel versions
+        cruft_list = [(d, d.get_def().get_name_utf8() not in dirnames) \
+                      for d in self.session.lm.get_channel_downloads() \
+                      if (bytes(d.get_def().infohash) not in subscribed_infohashes)]
         self.remove_channels_downloads(cruft_list)
 
     def service_channels(self):
@@ -57,7 +74,6 @@ class GigaChannelManager(TaskManager):
             self.check_channels_updates()
         except:
             pass
-
 
     def check_channels_updates(self):
         """
@@ -102,19 +118,60 @@ class GigaChannelManager(TaskManager):
         channel.local_version = 0
 
         # Remove all stuff matching the channel dir name / public key / torrent title
-        remove_list = [d for d in self.session.lm.get_channel_downloads() if d.tdef.get_name_utf8() == channel.dir_name]
+        remove_list = [(d, True) for d in self.session.lm.get_channel_downloads() if d.tdef.get_name_utf8() == channel.dir_name]
         self.remove_channels_downloads(remove_list)
 
-    def remove_channels_downloads(self, remove_list):
-        # FIXME: handle the case when a torrent for the old version of the channel overlaps the current version
+    # TODO: finish this routine
+    # This thing should check if the files in the torrent we're going to delete are used in another torrent for
+    # a newer version of the same channel, and determine a safe sub-set to delete.
+    """
+    def safe_files_to_remove(self, download):
+        # Check for intersection of files from old download with files from the newer version of the same channel
+        dirname = download.get_def().get_name_utf8()
+        files_to_remove = []
+        with db_session:
+            channel = self.session.lm.mds.ChannelMetadata.get_channel_with_dirname(dirname)
+        if channel and channel.subscribed:
+            print self.session.lm.downloads
+            current_version = self.session.get_download(hexlify(channel.infohash))
+            current_version_files = set(current_version.get_tdef().get_files())
+            obsolete_version_files = set(download.get_tdef().get_files())
+            files_to_remove_relative = obsolete_version_files - current_version_files
+            for f in files_to_remove_relative:
+                files_to_remove.append(os.path.join(dirname, f))
+        return files_to_remove
+    """
+
+    def remove_channels_downloads(self, to_remove_list):
+        """
+        :param to_remove_list: list of tuples (download_to_remove=download, remove_files=Bool)
+        """
+
+        """
+        files_to_remove = []
+        for download in to_remove_list:
+            files_to_remove.extend(self.safe_files_to_remove(download))
+        """
+
         def _on_remove_failure(failure):
             self._logger.error("Error when removing the channel download: %s", failure)
 
-        for i, d in enumerate(remove_list):
-            deferred = self.session.remove_download(d, remove_content=True)
+        # removed_list = []
+        for i, dl_tuple in enumerate(to_remove_list):
+            d, remove_content = dl_tuple
+            deferred = self.session.remove_download(d, remove_content=remove_content)
             deferred.addErrback(_on_remove_failure)
             self.register_task(u'remove_channel' + d.tdef.get_name_utf8() + u'-' + hexlify(d.tdef.get_infohash()) +
                                u'-' + str(i), deferred)
+            # removed_list.append(deferred)
+
+        """
+        def _on_torrents_removed(torrent):
+            print files_to_remove
+        dl = DeferredList(removed_list)
+        dl.addCallback(_on_torrents_removed)
+        self.register_task(u'remove_channels_files-' + "_".join([d.tdef.get_name_utf8() for d in to_remove_list]), dl)
+        """
 
     def download_channel(self, channel):
         """

@@ -143,7 +143,7 @@ class DeleteButtonMixin(CommitControlMixin):
         request_mgr = TriblerRequestManager()
         request_mgr.perform_request("mychannel/torrents/%s" % index.model().data_items[index.row()][u'infohash'],
                                     lambda response: self.on_torrent_status_updated(response, index),
-                                    data='status=%d' % COMMIT_STATUS_TODELETE, method='PATCH')
+                                    data={"status" : COMMIT_STATUS_TODELETE}, method='PATCH')
 
 
 class SearchResultsTableView(ItemClickedMixin, DownloadButtonMixin, PlayButtonMixin, SubscribeButtonMixin,
