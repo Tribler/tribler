@@ -29,9 +29,17 @@ class GigaChannelManager(TaskManager):
         """
         self.updated_my_channel()  # Just in case
 
+        def handle(f):
+            print "errback"
+            print "we got an exception: %s" % (f.getTraceback(),)
+            f.trap(RuntimeError)
+
         channels_check_interval = 5.0  # seconds
-        self.register_task("Process channels download queue and remove cruft",
-                           LoopingCall(self.service_channels)).start(channels_check_interval)
+        lcall = LoopingCall(self.service_channels)
+        d = self.register_task("Process channels download queue and remove cruft", lcall).start(channels_check_interval)
+        d.addErrback(handle)
+
+
 
     def shutdown(self):
         """
@@ -39,23 +47,28 @@ class GigaChannelManager(TaskManager):
         """
         self.shutdown_task_manager()
 
+
     def remove_cruft_channels(self):
         with db_session:
             channels, _ = self.session.lm.mds.ChannelMetadata.get_channels(last=10000, subscribed=True)
-            subscribed_infohashes = [c.infohash for c in list(channels)]
+            subscribed_infohashes = [bytes(c.infohash) for c in list(channels)]
 
+        print "SL ", subscribed_infohashes
         cruft_list = [d for d in self.session.lm.get_channel_downloads() \
-                      if (d.infohash not in subscribed_infohashes)]
+                      if (bytes(d.get_def().infohash) not in subscribed_infohashes)]
+        print "CL ", cruft_list
         self.remove_channels_downloads(cruft_list)
 
     def service_channels(self):
         try:
             self.remove_cruft_channels()
         except:
+            raise
             pass
         try:
             self.check_channels_updates()
         except:
+            raise
             pass
 
 

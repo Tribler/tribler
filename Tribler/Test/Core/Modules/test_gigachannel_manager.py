@@ -104,11 +104,21 @@ class TestGigaChannelManager(TriblerCoreTest):
                                                              signature=database_blob(str(346)), skip_key_check=True,
                                                              timestamp=123, local_version=122, subscribed=False)
 
-        mock_dl_list = [MockObject() for _ in range(4)]
-        mock_dl_list[0].infohash = chan.infohash
-        mock_dl_list[1].infohash = ih_chan2
-        mock_dl_list[2].infohash = ih_chan3
-        mock_dl_list[3].infohash = database_blob(str(333))
+        class mock_dl(MockObject):
+            def __init__(self, infohash):
+                self.infohash = infohash
+
+            def get_def(self):
+                a = MockObject()
+                a.infohash = self.infohash
+                return a
+
+        # Double conversion is required to make sure that buffers signatures will be different
+        mock_dl_list = [
+            mock_dl(database_blob(bytes(chan.infohash))),
+            mock_dl(database_blob(bytes(ih_chan2))),
+            mock_dl(database_blob(bytes(ih_chan3))),
+            mock_dl(database_blob(str(333)))]
 
         def mock_get_channel_downloads():
             return mock_dl_list

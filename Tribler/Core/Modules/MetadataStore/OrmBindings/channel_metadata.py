@@ -214,6 +214,7 @@ def define_binding(db):
             else:
                 if new_start_timestamp:
                     update_dict['start_timestamp'] = new_start_timestamp
+                new_infohash = update_dict['infohash'] if self.infohash != update_dict['infohash'] else None
                 self.update_metadata(update_dict)
                 self.local_version = self.timestamp
                 # Change status of committed metadata and clean up obsolete TODELETE entries

@@ -250,6 +250,15 @@ class TestChannelMetadata(TriblerCoreTest):
         self.assertEqual(0, len(channel_metadata.contents_list))
 
     @db_session
+    def test_commit_channel_torrent(self):
+        channel = self.mds.ChannelMetadata.create_channel('test', 'test')
+        tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
+        channel.add_torrent_to_channel(tdef, None)
+        # The first run should return the infohash, the second should return None, because nothing was really done
+        self.assertTrue(channel.commit_channel_torrent())
+        self.assertFalse(channel.commit_channel_torrent())
+
+    @db_session
     def test_consolidate_channel_torrent(self):
         """
         Test completely re-commit your channel
