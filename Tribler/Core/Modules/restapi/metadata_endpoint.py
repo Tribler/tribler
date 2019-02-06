@@ -24,11 +24,13 @@ class BaseMetadataEndpoint(resource.Resource):
         sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]
         sort_asc = True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc'][0]))
         query_filter = None if 'filter' not in parameters else cast_to_unicode_utf8(parameters['filter'][0])
+        hide_xxx = False if 'hide_xxx' not in parameters else bool(int(parameters['hide_xxx'][0]) > 0)
 
         if sort_by:
             sort_by = MetadataEndpoint.convert_sort_param_to_pony_col(sort_by)
 
-        return first, last, sort_by, sort_asc, query_filter
+        # TODO: stop using tuples, do proper dict
+        return first, last, sort_by, sort_asc, query_filter, hide_xxx
 
 
 class MetadataEndpoint(BaseMetadataEndpoint):
@@ -78,13 +80,13 @@ class BaseChannelsEndpoint(resource.Resource):
         """
         Sanitize the parameters for a request that fetches channels.
         """
-        first, last, sort_by, sort_asc, query_filter = BaseMetadataEndpoint.sanitize_parameters(parameters)
+        first, last, sort_by, sort_asc, query_filter, hide_xxx = BaseMetadataEndpoint.sanitize_parameters(parameters)
 
         subscribed = False
         if 'subscribed' in parameters:
             subscribed = bool(int(parameters['subscribed'][0]))
 
-        return first, last, sort_by, sort_asc, query_filter, subscribed
+        return first, last, sort_by, sort_asc, query_filter, hide_xxx, subscribed
 
 
 class ChannelsEndpoint(BaseChannelsEndpoint):
@@ -96,9 +98,10 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
         return SpecificChannelEndpoint(self.session, path)
 
     def render_GET(self, request):
-        first, last, sort_by, sort_asc, query_filter, subscribed = ChannelsEndpoint.sanitize_parameters(request.args)
+        first, last, sort_by, sort_asc, query_filter, hide_xxx, subscribed = ChannelsEndpoint.sanitize_parameters(
+            request.args)
         channels, total = self.session.lm.mds.ChannelMetadata.get_channels(
-            first, last, sort_by, sort_asc, query_filter, subscribed)
+            first, last, sort_by, sort_asc, query_filter, subscribed, hide_xxx=hide_xxx)
 
         channels = [channel.to_simple_dict() for channel in channels]
 
@@ -165,13 +168,13 @@ class BaseTorrentsEndpoint(resource.Resource):
         """
         Sanitize the parameters for a request that fetches channels.
         """
-        first, last, sort_by, sort_asc, query_filter = BaseMetadataEndpoint.sanitize_parameters(parameters)
+        first, last, sort_by, sort_asc, query_filter, hide_xxx = BaseMetadataEndpoint.sanitize_parameters(parameters)
 
         channel = ''
         if 'channel' in parameters:
             channel = unhexlify(parameters['channel'][0])
 
-        return first, last, sort_by, sort_asc, query_filter, channel
+        return first, last, sort_by, sort_asc, query_filter, hide_xxx, channel
 
 
 class SpecificChannelTorrentsEndpoint(BaseTorrentsEndpoint):
@@ -182,10 +185,10 @@ class SpecificChannelTorrentsEndpoint(BaseTorrentsEndpoint):
 
     @db_session
     def render_GET(self, request):
-        first, last, sort_by, sort_asc, query_filter, _ = \
+        first, last, sort_by, sort_asc, query_filter, hide_xxx, _ = \
             SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
         torrents, total = self.session.lm.mds.TorrentMetadata.get_torrents(
-            first, last, sort_by, sort_asc, query_filter, self.channel_pk)
+            first, last, sort_by, sort_asc, query_filter, self.channel_pk, hide_xxx=hide_xxx)
 
         torrents = [torrent.to_simple_dict() for torrent in torrents]
 

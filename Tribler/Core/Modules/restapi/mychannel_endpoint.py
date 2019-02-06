@@ -110,12 +110,12 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 return json.dumps({"error": "your channel has not been created"})
 
             request.args['channel'] = [str(my_channel.public_key).encode('hex')]
-            first, last, sort_by, sort_asc, query_filter, channel = \
+            first, last, sort_by, sort_asc, query_filter, hide_xxx, channel = \
                 SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
             exclude_deleted = 'exclude_deleted' in request.args and request.args['exclude_deleted']
 
             torrents, total = self.session.lm.mds.TorrentMetadata.get_torrents(
-                first, last, sort_by, sort_asc, query_filter, channel, exclude_deleted=exclude_deleted)
+                first, last, sort_by, sort_asc, query_filter, channel, exclude_deleted=exclude_deleted, hide_xxx=hide_xxx)
             torrents = [torrent.to_simple_dict() for torrent in torrents]
 
             return json.dumps({

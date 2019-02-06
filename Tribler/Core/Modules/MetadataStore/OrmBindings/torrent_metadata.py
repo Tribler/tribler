@@ -5,8 +5,8 @@ from datetime import datetime
 
 from pony import orm
 from pony.orm import db_session, raw_sql
-from six import text_type
 
+from Tribler.Core.Category.FamilyFilter import default_xxx_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, TODELETE
 from Tribler.Core.Modules.MetadataStore.serialization import TorrentMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
@@ -35,6 +35,8 @@ def define_binding(db):
             if "health" not in kwargs and "infohash" in kwargs:
                 kwargs["health"] = db.TorrentState.get(infohash=kwargs["infohash"]) or db.TorrentState(
                     infohash=kwargs["infohash"])
+            if 'xxx' not in kwargs:
+                kwargs["xxx"] = default_xxx_filter.isXXXTorrentMetadataDict(kwargs)
 
             super(TorrentMetadata, self).__init__(*args, **kwargs)
 
@@ -75,7 +77,7 @@ def define_binding(db):
                 return []
 
             with db_session:
-                result = cls.search_keyword("\"" +keyword + "\"*", lim=limit)[:]
+                result = cls.search_keyword("\"" + keyword + "\"*", lim=limit)[:]
             titles = [g.title.lower() for g in result]
 
             # Copy-pasted from the old DBHandler (almost) completely
@@ -102,7 +104,7 @@ def define_binding(db):
         @classmethod
         @db_session
         def get_torrents(cls, first=1, last=50, sort_by=None, sort_asc=True, query_filter=None, channel_pk=False,
-                         exclude_deleted=False):
+                         exclude_deleted=False, hide_xxx=False):
             """
             Get some torrents. Optionally sort the results by a specific field, or filter the channels based
             on a keyword/whether you are subscribed to it.
@@ -116,6 +118,8 @@ def define_binding(db):
             pony_query = pony_query.where(metadata_type=REGULAR_TORRENT)
             if exclude_deleted:
                 pony_query = pony_query.where(lambda g: g.status != TODELETE)
+            if hide_xxx:
+                pony_query = pony_query.where(lambda g: g.xxx == 0)
 
             # Filter on channel
             if channel_pk:

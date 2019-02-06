@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
 
-from TriblerGUI.utilities import get_image_path
+from TriblerGUI.utilities import get_image_path, get_gui_setting
 from TriblerGUI.widgets.tablecontentmodel import TorrentsContentModel
 from TriblerGUI.widgets.triblertablecontrollers import TorrentsTableViewController
 
@@ -18,9 +18,12 @@ class ChannelPage(QWidget):
         self.channel_info = None
         self.model = None
         self.controller = None
+        self.gui_settings = None
 
-    def initialize_channel_page(self):
-        self.model = TorrentsContentModel()
+    def initialize_channel_page(self, gui_settings):
+        self.gui_settings = gui_settings
+        self.model = TorrentsContentModel(hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True,
+                                                  is_bool=True) if self.gui_settings else True)
         self.controller = TorrentsTableViewController(self.model, self.window().channel_page_container,
                                                       None, self.window().channel_torrents_filter_input)
 

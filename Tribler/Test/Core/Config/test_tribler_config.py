@@ -104,9 +104,6 @@ class TestTriblerConfig(TriblerCoreTest):
         """
         Check whether general get and set methods are working as expected.
         """
-        self.tribler_config.set_family_filter_enabled(False)
-        self.assertEqual(self.tribler_config.get_family_filter_enabled(), False)
-
         self.tribler_config.set_state_dir("TEST")
         self.assertEqual(self.tribler_config.get_state_dir(), "TEST")
 

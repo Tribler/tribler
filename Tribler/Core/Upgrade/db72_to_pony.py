@@ -83,7 +83,7 @@ class DispersyToPonyMigration(object):
                                  "public_key": dispesy_cid_to_pk(id_),
                                  "timestamp": final_timestamp(),
                                  "votes": int(nr_favorite or 0),
-                                 "xxx": float(nr_spam or 0),
+                                 #"xxx": float(nr_spam or 0),
                                  "origin_id": 0,
                                  "signature": pseudo_signature(),
                                  "skip_key_check": True,
@@ -241,7 +241,8 @@ class DispersyToPonyMigration(object):
             v = self.mds.MiscData.get(name=CONVERSION_FROM_72)
             if v:
                 offset = orm.count(
-                    g for g in self.mds.TorrentMetadata if g.status == LEGACY_ENTRY and g.metadata_type == REGULAR_TORRENT)
+                    g for g in self.mds.TorrentMetadata if
+                    g.status == LEGACY_ENTRY and g.metadata_type == REGULAR_TORRENT)
                 v.set(value=DISCOVERED_CONVERSION_STARTED)
             else:
                 self.mds.MiscData(name=CONVERSION_FROM_72, value=DISCOVERED_CONVERSION_STARTED)
@@ -284,8 +285,6 @@ class DispersyToPonyMigration(object):
                     v.set(value=CHANNELS_CONVERSION_STARTED)
             else:
                 self.mds.MiscData(name=CONVERSION_FROM_72, value=CHANNELS_CONVERSION_STARTED)
-
-
 
         with db_session:
             old_channels = self.get_old_channels()

@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from PyQt5.QtWidgets import QWidget
 
+from TriblerGUI.utilities import get_gui_setting
 from TriblerGUI.widgets.tablecontentmodel import SearchResultsContentModel
 from TriblerGUI.widgets.triblertablecontrollers import SearchResultsTableViewController
 
@@ -17,11 +18,14 @@ class SearchResultsPage(QWidget):
         self.query = None
         self.controller = None
         self.model = None
+        self.gui_settings = None
 
-    def initialize_search_results_page(self):
+    def initialize_search_results_page(self, gui_settings):
+        self.gui_settings = gui_settings
         self.window().search_results_tab.initialize()
         self.window().search_results_tab.clicked_tab_button.connect(self.clicked_tab_button)
-        self.model = SearchResultsContentModel()
+        self.model = SearchResultsContentModel(hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True,
+                                                  is_bool=True) if self.gui_settings else True)
         self.controller = SearchResultsTableViewController(self.model, self.window().search_results_list,
                                                            self.window().search_details_container,
                                                            self.window().num_search_results_label)
