@@ -103,6 +103,7 @@ class SearchResultsTableViewController(TriblerTableViewController):
             "last": end if end else '',
             "sort_by": sort_by if sort_by else '',
             "sort_asc": sort_asc,
+            "hide_xxx": self.model.hide_xxx,
             "type": self.model.type_filter if self.model.type_filter else ''
         }
         self.request_mgr = TriblerRequestManager()
@@ -171,6 +172,7 @@ class ChannelsTableViewController(TriblerTableViewController):
                 "sort_by": sort_by,
                 "sort_asc": sort_asc,
                 "filter": to_fts_query(filter_text),
+                "hide_xxx": self.model.hide_xxx,
                 "subscribed": self.model.subscribed})
 
     def on_channels(self, response):
@@ -239,13 +241,14 @@ class TorrentsTableViewController(TriblerTableViewController):
 
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request(
-            "metadata/channels/%s/torrents?" % self.model.channel_pk,
+            "metadata/channels/%s/torrents" % self.model.channel_pk,
             self.on_torrents,
             url_params={
                 "first": start,
                 "last": end,
                 "sort_by": sort_by,
                 "sort_asc": sort_asc,
+                "hide_xxx": self.model.hide_xxx,
                 "filter": to_fts_query(filter_text)})
 
     def on_torrents(self, response):

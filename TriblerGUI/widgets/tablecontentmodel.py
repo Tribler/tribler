@@ -57,11 +57,12 @@ class TriblerContentModel(RemoteTableModel):
     column_flags = {}
     column_display_filters = {}
 
-    def __init__(self):
+    def __init__(self, hide_xxx=False):
         RemoteTableModel.__init__(self, parent=None)
         self.data_items = []
         self.column_position = {name: i for i, name in enumerate(self.columns)}
         self.edit_enabled = False
+        self.hide_xxx = hide_xxx
 
     def headerData(self, num, orientation, role=None):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
@@ -103,8 +104,8 @@ class SearchResultsContentModel(TriblerContentModel):
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
 
-    def __init__(self):
-        TriblerContentModel.__init__(self)
+    def __init__(self, **kwargs):
+        TriblerContentModel.__init__(self, **kwargs)
         self.type_filter = None
 
 
@@ -121,8 +122,8 @@ class ChannelsContentModel(TriblerContentModel):
         ACTION_BUTTONS: Qt.ItemIsEnabled
     }
 
-    def __init__(self, subscribed=False):
-        TriblerContentModel.__init__(self)
+    def __init__(self, subscribed=False, **kwargs):
+        TriblerContentModel.__init__(self, **kwargs)
         self.subscribed = subscribed
 
 
@@ -141,8 +142,8 @@ class TorrentsContentModel(TriblerContentModel):
         u'size': lambda data: format_size(float(data)),
     }
 
-    def __init__(self, channel_pk=''):
-        TriblerContentModel.__init__(self)
+    def __init__(self, channel_pk='', **kwargs):
+        TriblerContentModel.__init__(self, **kwargs)
         self.channel_pk = channel_pk
 
 
@@ -157,7 +158,7 @@ class MyTorrentsContentModel(TorrentsContentModel):
         ACTION_BUTTONS: Qt.ItemIsEnabled | Qt.ItemIsSelectable
     }
 
-    def __init__(self, channel_pk=''):
-        TorrentsContentModel.__init__(self, channel_pk=channel_pk)
+    def __init__(self, channel_pk='', **kwargs):
+        TorrentsContentModel.__init__(self, channel_pk=channel_pk, **kwargs)
         self.exclude_deleted = False
         self.edit_enabled = True

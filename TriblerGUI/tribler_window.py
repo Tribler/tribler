@@ -152,7 +152,7 @@ class TriblerWindow(QMainWindow):
                              self.left_menu_button_downloads, self.left_menu_button_discovered]
 
         self.video_player_page.initialize_player()
-        self.search_results_page.initialize_search_results_page()
+        self.search_results_page.initialize_search_results_page(self.gui_settings)
         self.settings_page.initialize_settings_page()
         self.subscribed_channels_page.initialize()
         self.edit_channel_page.initialize_edit_channel_page(self.gui_settings)
@@ -160,8 +160,8 @@ class TriblerWindow(QMainWindow):
         self.home_page.initialize_home_page()
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
-        self.discovered_page.initialize_discovered_page()
-        self.channel_page.initialize_channel_page()
+        self.discovered_page.initialize_discovered_page(self.gui_settings)
+        self.channel_page.initialize_channel_page(self.gui_settings)
         self.trust_page.initialize_trust_page()
         self.token_mining_page.initialize_token_mining_page()
 

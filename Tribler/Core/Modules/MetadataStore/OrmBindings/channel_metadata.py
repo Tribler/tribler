@@ -9,6 +9,7 @@ import lz4.frame
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
+from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, NEW, PUBLIC_KEY_LEN, TODELETE, \
     LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
@@ -249,15 +250,14 @@ def define_binding(db):
             """
             if extra_info:
                 tags = extra_info.get('description', '')
-            elif self._category_filter:
-                tags = self._category_filter.calculateCategory(tdef.metainfo, tdef.get_name_as_unicode())
             else:
-                tags = ''
+                # We only want to determine the type of the data. XXX filtering is done by the receiving side
+                tags = default_category_filter.calculateCategory(tdef.metainfo, tdef.get_name_as_unicode())
 
             new_entry_dict = {
                 "infohash": tdef.get_infohash(),
-                "title": tdef.get_name_as_unicode(),
-                "tags": tags,
+                "title": tdef.get_name_as_unicode()[:300],  # TODO: do proper size checking based on bytes
+                "tags": tags[:200],  # TODO: do proper size checking based on bytes
                 "size": tdef.get_length(),
                 "torrent_date": datetime.fromtimestamp(tdef.get_creation_date()),
                 "tracker_info": get_uniformed_tracker_url(tdef.get_tracker() or '') or '',
@@ -433,19 +433,23 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_channels(cls, first=1, last=50, sort_by=None, sort_asc=True, query_filter=None, subscribed=False):
+        def get_channels(cls, first=1, last=50, sort_by=None, sort_asc=True, query_filter=None, subscribed=False,
+                         hide_xxx=False):
             """
             Get some channels. Optionally sort the results by a specific field, or filter the channels based
             on a keyword/whether you are subscribed to it.
             :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
                      the total number of results, regardless the passed first/last parameter.
             """
+            # TODO: rewrite this with **kwargs expansion
             pony_query = ChannelMetadata.get_entries_query(sort_by=sort_by, sort_asc=sort_asc,
                                                            query_filter=query_filter)
 
             # Filter subscribed/non-subscribed
             if subscribed:
                 pony_query = pony_query.where(subscribed=subscribed)
+            if hide_xxx:
+                pony_query = pony_query.where(lambda g: g.xxx == 0)
 
             total_results = pony_query.count()
 

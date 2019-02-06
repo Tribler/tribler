@@ -1,5 +1,4 @@
 [general]
-family_filter = boolean(default=True)
 state_dir = string(default='')
 ec_keypair_filename = string(default='')
 log_dir = string(default=None)

@@ -138,13 +138,6 @@ class TriblerConfig(object):
         path = self.config['chant']['channels_dir']
         return path if os.path.isabs(path) else os.path.join(self.get_state_dir(), path)
 
-    # General
-    def set_family_filter_enabled(self, value):
-        self.config['general']['family_filter'] = bool(value)
-
-    def get_family_filter_enabled(self):
-        return self.config['general'].as_bool('family_filter')
-
     def set_state_dir(self, state_dir):
         self.config["general"]["state_dir"] = state_dir
 

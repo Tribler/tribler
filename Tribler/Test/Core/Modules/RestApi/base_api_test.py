@@ -46,9 +46,6 @@ class AbstractBaseApiTest(TestAsServer):
     def setUp(self):
         yield super(AbstractBaseApiTest, self).setUp()
         self.connection_pool = HTTPConnectionPool(reactor, False)
-        terms = self.session.lm.category.xxx_filter.xxx_terms
-        terms.add("badterm")
-        self.session.lm.category.xxx_filter.xxx_terms = terms
 
     @inlineCallbacks
     def tearDown(self):

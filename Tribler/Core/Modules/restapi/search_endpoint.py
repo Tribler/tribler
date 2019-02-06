@@ -47,18 +47,19 @@ class SearchEndpoint(resource.Resource):
         """
         Sanitize the parameters and check whether they exist
         """
+        #TODO: unify this wit MetadataEndpoint
         first = 1 if 'first' not in parameters else int(parameters['first'][0])
         last = 50 if 'last' not in parameters else int(parameters['last'][0])
         sort_by = None if 'sort_by' not in parameters else parameters['sort_by'][0]
         sort_asc = True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc'][0]))
         data_type = None if 'type' not in parameters else parameters['type'][0]
+        hide_xxx = False if 'hide_xxx' not in parameters else bool(int(parameters['hide_xxx'][0]) > 0)
 
         if sort_by:
             sort_by = SearchEndpoint.convert_sort_param_to_pony_col(sort_by)
 
-        return first, last, sort_by, sort_asc, data_type
+        return first, last, sort_by, sort_asc, data_type, hide_xxx
 
-    @db_session
     def render_GET(self, request):
         """
         .. http:get:: /search?q=(string:query)
@@ -108,7 +109,7 @@ class SearchEndpoint(resource.Resource):
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "q parameter missing"})
 
-        first, last, sort_by, sort_asc, data_type = SearchEndpoint.sanitize_parameters(request.args)
+        first, last, sort_by, sort_asc, data_type, hide_xxx = SearchEndpoint.sanitize_parameters(request.args)
         query = cast_to_unicode_utf8(request.args['q'][0])
 
         if not data_type:
@@ -120,18 +121,22 @@ class SearchEndpoint(resource.Resource):
         else:
             return json.dumps({"error": "Trying to query for unknown type of metadata"})
 
-        results = self.session.lm.mds.TorrentMetadata.get_entries_query(
-            sort_by, sort_asc, query_filter=query).where(search_scope)
+        with db_session:
+            pony_query= self.session.lm.mds.TorrentMetadata.get_entries_query(
+                sort_by, sort_asc, query_filter=query).where(search_scope)
+            if hide_xxx:
+                pony_query = pony_query.where(lambda g: g.xxx == 0)
+            total = orm.count(pony_query)
+            search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[r.metadata_type],
+                                    **(r.to_simple_dict()))) for r in pony_query]
 
-        search_results = [(dict(type={REGULAR_TORRENT: 'torrent', CHANNEL_TORRENT: 'channel'}[r.metadata_type],
-                                **(r.to_simple_dict()))) for r in results]
         return json.dumps({
             "results": search_results[first - 1:last],
             "first": first,
             "last": last,
             "sort_by": sort_by,
             "sort_asc": sort_asc,
-            "total": orm.count(results)
+            "total": total
         })
 
 
@@ -171,5 +176,6 @@ class SearchCompletionsEndpoint(resource.Resource):
             return json.dumps({"error": "query parameter missing"})
 
         keywords = cast_to_unicode_utf8(request.args['q'][0]).lower()
+        # TODO: add XXX filtering for completion terms
         results = self.session.lm.mds.TorrentMetadata.get_auto_complete_terms(keywords, max_terms=5)
         return json.dumps({"completions": results})

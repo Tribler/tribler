@@ -50,6 +50,7 @@ class SettingsPage(QWidget):
         self.window().watch_folder_chooser_button.clicked.connect(self.on_choose_watch_dir_clicked)
 
         self.window().channel_autocommit_checkbox.stateChanged.connect(self.on_channel_autocommit_checkbox_changed)
+        self.window().family_filter_checkbox.stateChanged.connect(self.on_family_filter_checkbox_changed)
         self.window().developer_mode_enabled_checkbox.stateChanged.connect(self.on_developer_mode_checkbox_changed)
         self.window().use_monochrome_icon_checkbox.stateChanged.connect(self.on_use_monochrome_icon_checkbox_changed)
         self.window().download_settings_anon_checkbox.stateChanged.connect(self.on_anon_download_state_changed)
@@ -158,6 +159,9 @@ class SettingsPage(QWidget):
     def on_channel_autocommit_checkbox_changed(self, _):
         self.window().gui_settings.setValue("autocommit_enabled", self.window().channel_autocommit_checkbox.isChecked())
 
+    def on_family_filter_checkbox_changed(self, _):
+        self.window().gui_settings.setValue("family_filter", self.window().family_filter_checkbox.isChecked())
+
     def on_developer_mode_checkbox_changed(self, _):
         self.window().gui_settings.setValue("debug", self.window().developer_mode_enabled_checkbox.isChecked())
         self.window().left_menu_button_debug.setHidden(not self.window().developer_mode_enabled_checkbox.isChecked())
@@ -217,7 +221,8 @@ class SettingsPage(QWidget):
         gui_settings = self.window().gui_settings
 
         # General settings
-        self.window().family_filter_checkbox.setChecked(settings['general']['family_filter'])
+        self.window().family_filter_checkbox.setChecked(get_gui_setting(gui_settings, 'family_filter',
+                                                                        True, is_bool=True))
         self.window().use_monochrome_icon_checkbox.setChecked(get_gui_setting(gui_settings, "use_monochrome_icon",
                                                                               False, is_bool=True))
         self.window().download_location_input.setText(settings['download_defaults']['saveas'])
@@ -230,7 +235,8 @@ class SettingsPage(QWidget):
         self.window().watchfolder_location_input.setText(settings['watch_folder']['directory'])
 
         # Channel settings
-        self.window().channel_autocommit_checkbox.setChecked(get_gui_setting(gui_settings, "autocommit_enabled", True, is_bool=True))
+        self.window().channel_autocommit_checkbox.setChecked(
+            get_gui_setting(gui_settings, "autocommit_enabled", True, is_bool=True))
 
         # Log directory
         self.window().log_location_input.setText(settings['general']['log_dir'])
@@ -334,7 +340,6 @@ class SettingsPage(QWidget):
         settings_data = {'general': {}, 'Tribler': {}, 'download_defaults': {}, 'libtorrent': {}, 'watch_folder': {},
                          'tunnel_community': {}, 'trustchain': {}, 'credit_mining': {}, 'resource_monitor': {},
                          'ipv8': {}, 'chant': {}}
-        settings_data['general']['family_filter'] = self.window().family_filter_checkbox.isChecked()
         settings_data['download_defaults']['saveas'] = self.window().download_location_input.text().encode('utf-8')
         settings_data['general']['log_dir'] = self.window().log_location_input.text()
 
@@ -455,6 +460,8 @@ class SettingsPage(QWidget):
         if not data:
             return
         # Now save the GUI settings
+        self.window().gui_settings.setValue("family_filter",
+                                            self.window().family_filter_checkbox.isChecked())
         self.window().gui_settings.setValue("autocommit_enabled",
                                             self.window().channel_autocommit_checkbox.isChecked())
         self.window().gui_settings.setValue("ask_download_settings",

@@ -21,7 +21,6 @@ from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
 
-from Tribler.Core.Category.Category import Category
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.Modules.gigachannel_manager import GigaChannelManager
@@ -134,7 +133,6 @@ class TriblerLaunchMany(TaskManager):
             self.session = session
             self.session_lock = session_lock
 
-            self.category = Category()
             self.tracker_manager = TrackerManager(self.session)
 
             # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root

@@ -98,16 +98,12 @@ class TestSettingsEndpoint(AbstractApiTest):
         download.get_credit_mining = lambda: False
         self.session.get_downloads = lambda: [download]
 
-        old_filter_setting = self.session.config.get_family_filter_enabled()
-
         def verify_response1(_):
-            self.assertNotEqual(self.session.config.get_family_filter_enabled(), old_filter_setting)
             self.assertEqual(download.get_seeding_mode(), 'time')
             self.assertEqual(download.get_seeding_time(), 100)
 
         self.should_check_equality = False
-        post_data = json.dumps({'general': {'family_filter': not old_filter_setting},
-                                'libtorrent': {'utp': False, 'max_download_rate': 50},
+        post_data = json.dumps({'libtorrent': {'utp': False, 'max_download_rate': 50},
                                 'download_defaults': {'seeding_mode': 'time', 'seeding_time': 100}})
         yield self.do_request('settings', expected_code=200, request_type='POST', post_data=post_data, raw_data=True) \
             .addCallback(verify_response1)

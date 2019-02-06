@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from PyQt5.QtWidgets import QWidget
 
+from TriblerGUI.utilities import get_gui_setting
 from TriblerGUI.widgets.tablecontentmodel import ChannelsContentModel
 from TriblerGUI.widgets.triblertablecontrollers import ChannelsTableViewController
 
@@ -16,11 +17,14 @@ class DiscoveredPage(QWidget):
         self.initialized = False
         self.model = None
         self.controller = None
+        self.gui_settings = None
 
-    def initialize_discovered_page(self):
+    def initialize_discovered_page(self, gui_settings):
         if not self.initialized:
             self.initialized = True
-            self.model = ChannelsContentModel()
+            self.gui_settings = gui_settings
+            self.model = ChannelsContentModel(hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True,
+                                                  is_bool=True) if self.gui_settings else True)
             self.controller = ChannelsTableViewController(self.model, self.window().discovered_channels_list,
                                                           self.window().num_discovered_channels_label,
                                                           self.window().discovered_channels_filter_input)

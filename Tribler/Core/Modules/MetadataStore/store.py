@@ -111,9 +111,6 @@ class MetadataStore(object):
 
         self.ChannelMetadata._channels_dir = channels_dir
 
-        # TODO: move Category Filter into a module-level global stateless object (i.e. make it a singleton)
-        self.ChannelMetadata._category_filter = Category()
-
         self._db.bind(provider='sqlite', filename=db_filename, create_db=create_db)
         if create_db:
             with db_session:
