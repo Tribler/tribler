@@ -17,9 +17,9 @@ from Tribler.community.triblertunnel.dispatcher import TunnelDispatcher
 from Tribler.community.triblertunnel.payload import BalanceRequestPayload, BalanceResponsePayload, PayoutPayload
 from Tribler.pyipv8.ipv8.attestation.trustchain.block import EMPTY_PK
 from Tribler.pyipv8.ipv8.messaging.anonymization.caches import ExtendRequestCache
-from Tribler.pyipv8.ipv8.messaging.anonymization.community import SINGLE_HOP_ENC_PACKETS, message_to_payload
+from Tribler.pyipv8.ipv8.messaging.anonymization.community import message_to_payload
 from Tribler.pyipv8.ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
-from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload
+from Tribler.pyipv8.ipv8.messaging.anonymization.payload import LinkedE2EPayload, NO_CRYPTO_PACKETS
 from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA, \
                                                                CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, EXIT_NODE, \
                                                                RelayRoute
@@ -89,8 +89,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         message_to_payload[u"balance-response"] = (26, BalanceResponsePayload)
         message_to_payload[u"relay-balance-response"] = (27, BalanceResponsePayload)
 
-        SINGLE_HOP_ENC_PACKETS.append(u"balance-request")
-        SINGLE_HOP_ENC_PACKETS.append(u"balance-response")
+        NO_CRYPTO_PACKETS.extend([24, 26])
 
         if self.exitnode_cache:
             self.restore_exitnodes_from_disk()
@@ -337,7 +336,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         payload = PayoutPayload.from_half_block(block, circuit_id, base_amount).to_pack_list()
         packet = self._ez_pack(self._prefix, 23, [payload], False)
-        self.send_packet([peer], u"payout", packet)
+        self.send_packet([peer], packet)
 
     def clean_from_slots(self, circuit_id):
         """
