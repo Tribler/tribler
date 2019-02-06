@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import datetime
+import logging
 import os
 import socket
 from time import localtime, strftime
@@ -113,6 +114,7 @@ class DebugWindow(QMainWindow):
     resize_event = pyqtSignal()
 
     def __init__(self, settings, tribler_version):
+        self._logger = logging.getLogger(self.__class__.__name__)
         QMainWindow.__init__(self)
 
         self.request_mgr = None
@@ -172,13 +174,25 @@ class DebugWindow(QMainWindow):
         # Refresh timer
         self.refresh_timer = None
 
-    def run_with_timer(self, call_fn, timeout=DEBUG_PANE_REFRESH_TIMEOUT):
+    def hideEvent(self, hide_event):
+        self.stop_timer()
 
+    def run_with_timer(self, call_fn, timeout=DEBUG_PANE_REFRESH_TIMEOUT):
         call_fn()
+        self.stop_timer()
         self.refresh_timer = QTimer()
+        self.refresh_timer.setSingleShot(True)
         self.refresh_timer.timeout.connect(lambda _call_fn=call_fn, _timeout=timeout:
                                            self.run_with_timer(_call_fn, timeout=_timeout))
         self.refresh_timer.start(timeout)
+
+    def stop_timer(self):
+        if self.refresh_timer:
+            try:
+                self.refresh_timer.stop()
+                self.refresh_timer.deleteLater()
+            except RuntimeError:
+                self._logger.error("Failed to stop refresh timer in Debug pane")
 
     def init_libtorrent_tab(self):
         self.window().libtorrent_tab_widget.setCurrentIndex(0)
