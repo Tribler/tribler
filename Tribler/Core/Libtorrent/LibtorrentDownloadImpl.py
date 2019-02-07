@@ -621,9 +621,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
             if self.finished_callback_already_called:
                 self._logger.warning("LibtorrentDownloadImpl: tried to repeat the call to finished_callback %s",
                                      self.tdef.get_name())
-            else:
-                self.finished_callback_already_called = True
+
             self.finished_callback(self)
+            self.finished_callback_already_called = True
 
         progress = self.get_state().get_progress()
         if self.get_mode() == DLMODE_VOD:

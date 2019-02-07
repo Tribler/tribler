@@ -2,6 +2,7 @@ import os
 from binascii import hexlify
 
 from pony.orm import db_session
+from twisted.internet import task, reactor
 from twisted.internet.defer import Deferred
 from twisted.internet.task import LoopingCall
 
@@ -33,11 +34,11 @@ class GigaChannelManager(TaskManager):
         lcall = LoopingCall(self.service_channels)
         d = self.register_task("Process channels download queue and remove cruft", lcall).start(channels_check_interval)
 
-        #def handle(f):
+        # def handle(f):
         #    print "errback"
         #    print "we got an exception: %s" % (f.getTraceback(),)
         #    f.trap(RuntimeError)
-        #d.addErrback(handle)
+        # d.addErrback(handle)
 
     def shutdown(self):
         """
@@ -101,11 +102,12 @@ class GigaChannelManager(TaskManager):
         :param channel_id: The ID of the channel.
         :param finished_deferred: An optional deferred that should fire if the channel download has finished.
         """
-        if download.get_channel_download():
-            channel_dirname = os.path.join(self.session.lm.mds.channels_dir, download.get_def().get_name())
-            self.session.lm.mds.process_channel_dir(channel_dirname, channel_id)
-            if finished_deferred:
-                finished_deferred.callback(download)
+        if download.finished_callback_already_called:
+            return
+        channel_dirname = os.path.join(self.session.lm.mds.channels_dir, download.get_def().get_name())
+        self.session.lm.mds.process_channel_dir(channel_dirname, channel_id)
+        if finished_deferred:
+            finished_deferred.callback(download)
 
     @db_session
     def remove_channel(self, channel):
@@ -118,7 +120,8 @@ class GigaChannelManager(TaskManager):
         channel.local_version = 0
 
         # Remove all stuff matching the channel dir name / public key / torrent title
-        remove_list = [(d, True) for d in self.session.lm.get_channel_downloads() if d.tdef.get_name_utf8() == channel.dir_name]
+        remove_list = [(d, True) for d in self.session.lm.get_channel_downloads() if
+                       d.tdef.get_name_utf8() == channel.dir_name]
         self.remove_channels_downloads(remove_list)
 
     # TODO: finish this routine
@@ -197,14 +200,23 @@ class GigaChannelManager(TaskManager):
         """
         Notify the core that we updated our channel.
         """
-        my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
-        if my_channel and my_channel.status == COMMITTED and \
-                not self.session.has_download(str(my_channel.infohash)):
-            torrent_path = os.path.join(self.session.lm.mds.channels_dir, my_channel.dir_name + ".torrent")
-        else:
-            return
-        tdef = TorrentDef.load(torrent_path)
-        dcfg = DownloadStartupConfig()
-        dcfg.set_dest_dir(self.session.lm.mds.channels_dir)
-        dcfg.set_channel_download(True)
-        self.session.lm.add(tdef, dcfg)
+        try:
+            my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            if my_channel and my_channel.status == COMMITTED and \
+                    not self.session.has_download(str(my_channel.infohash)):
+                torrent_path = os.path.join(self.session.lm.mds.channels_dir, my_channel.dir_name + ".torrent")
+            else:
+                return
+
+            tdef = TorrentDef.load(torrent_path)
+            dcfg = DownloadStartupConfig()
+            dcfg.set_dest_dir(self.session.lm.mds.channels_dir)
+            dcfg.set_channel_download(True)
+            self.session.lm.add(tdef, dcfg)
+        except:
+            # Ugly recursive workaround for race condition when the torrent file is not there
+            # FIXME: stop using intermediary torrent file for personal channel
+            taskname = "updated_my_channel delayed attempt"
+            if not self.is_pending_task_active(taskname):
+                d = task.deferLater(reactor, 7, self.updated_my_channel)
+                self.register_task(taskname, d)
