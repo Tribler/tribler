@@ -806,8 +806,8 @@ class TriblerWindow(QMainWindow):
         self.left_menu_playlist_label.setHidden(False)
         self.left_menu_playlist.setHidden(False)
 
-    def on_channel_clicked(self, public_key):
-        self.channel_page.initialize_with_channel(public_key)
+    def on_channel_clicked(self, channel_info):
+        self.channel_page.initialize_with_channel(channel_info)
         self.navigation_stack.append(self.stackedWidget.currentIndex())
         self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
 
@@ -852,7 +852,8 @@ class TriblerWindow(QMainWindow):
             self.show_loading_screen()
             self.hide_status_bar()
             self.loading_text_label.setText("Shutting down...")
-            self.debug_window.setHidden(True)
+            if self.debug_window:
+                self.debug_window.setHidden(True)
 
             self.shutdown_timer = QTimer()
             self.shutdown_timer.timeout.connect(show_force_shutdown)

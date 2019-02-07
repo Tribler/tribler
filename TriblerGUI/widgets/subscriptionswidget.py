@@ -41,6 +41,7 @@ class SubscriptionsWidget(QWidget):
         self.update_subscribe_button()
 
     def update_subscribe_button(self, remote_response=None):
+
         if remote_response and 'subscribed' in remote_response:
             self.channel_info["subscribed"] = remote_response['subscribed']
 
@@ -62,6 +63,13 @@ class SubscriptionsWidget(QWidget):
                 self.credit_mining_button.setIcon(QIcon(QPixmap(get_image_path('credit_mining_not.png'))))
         else:
             self.credit_mining_button.hide()
+
+        # Disable channel control buttons for LEGACY_ENTRY channels
+        hide_controls = (self.channel_info["status"] == 6)
+        self.num_subs_label.setHidden(hide_controls)
+        self.subscribe_button.setHidden(
+            hide_controls or ("my_channel" in self.channel_info and self.channel_info["my_channel"]))
+        self.credit_mining_button.setHidden(hide_controls)
 
     def on_subscribe_button_click(self):
         self.request_mgr = TriblerRequestManager()
