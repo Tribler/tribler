@@ -101,11 +101,12 @@ class GigaChannelManager(TaskManager):
         :param channel_id: The ID of the channel.
         :param finished_deferred: An optional deferred that should fire if the channel download has finished.
         """
-        if download.get_channel_download():
-            channel_dirname = os.path.join(self.session.lm.mds.channels_dir, download.get_def().get_name())
-            self.session.lm.mds.process_channel_dir(channel_dirname, channel_id)
-            if finished_deferred:
-                finished_deferred.callback(download)
+        if download.finished_callback_already_called:
+            return
+        channel_dirname = os.path.join(self.session.lm.mds.channels_dir, download.get_def().get_name())
+        self.session.lm.mds.process_channel_dir(channel_dirname, channel_id)
+        if finished_deferred:
+            finished_deferred.callback(download)
 
     @db_session
     def remove_channel(self, channel):
