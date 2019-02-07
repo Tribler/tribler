@@ -184,14 +184,14 @@ class SpecificChannelTorrentsEndpoint(BaseTorrentsEndpoint):
         BaseTorrentsEndpoint.__init__(self, session)
         self.channel_pk = channel_pk
 
-    @db_session
     def render_GET(self, request):
         first, last, sort_by, sort_asc, query_filter, hide_xxx, _ = \
             SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
-        torrents, total = self.session.lm.mds.TorrentMetadata.get_torrents(
-            first, last, sort_by, sort_asc, query_filter, self.channel_pk, hide_xxx=hide_xxx)
+        with db_session:
+            torrents, total = self.session.lm.mds.TorrentMetadata.get_torrents(
+                first, last, sort_by, sort_asc, query_filter, self.channel_pk, hide_xxx=hide_xxx)
 
-        torrents = [torrent.to_simple_dict() for torrent in torrents]
+            torrents = [torrent.to_simple_dict() for torrent in torrents]
 
         return json.dumps({
             "torrents": torrents,
@@ -225,23 +225,21 @@ class SpecificTorrentEndpoint(resource.Resource):
 
         self.putChild("health", TorrentHealthEndpoint(self.session, self.infohash))
 
-    @db_session
     def render_GET(self, request):
-        md_list = list(self.session.lm.mds.TorrentMetadata.select(lambda g:
-                                                                  g.infohash == database_blob(self.infohash)))
-        if not md_list:
+        with db_session:
+            md = self.session.lm.mds.TorrentMetadata.select(lambda g: g.infohash == database_blob(self.infohash))[:1]
+            torrent_dict = md[0].to_simple_dict(include_trackers=True) if md else None
+
+        if not md:
             request.setResponseCode(http.NOT_FOUND)
             request.write(json.dumps({"error": "torrent not found in database"}))
             return
 
-        torrent = md_list[0]
-
-        return json.dumps({"torrent": torrent.to_simple_dict(include_trackers=True)})
+        return json.dumps({"torrent": torrent_dict})
 
 
 class TorrentsRandomEndpoint(BaseTorrentsEndpoint):
 
-    @db_session
     def render_GET(self, request):
         limit_torrents = 10
 
@@ -252,8 +250,10 @@ class TorrentsRandomEndpoint(BaseTorrentsEndpoint):
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.dumps({"error": "the limit parameter must be a positive number"})
 
-        random_torrents = self.session.lm.mds.TorrentMetadata.get_random_torrents(limit=limit_torrents)
-        return json.dumps({"torrents": [torrent.to_simple_dict() for torrent in random_torrents]})
+        with db_session:
+            random_torrents = self.session.lm.mds.TorrentMetadata.get_random_torrents(limit=limit_torrents)
+            torrents = [torrent.to_simple_dict() for torrent in random_torrents]
+        return json.dumps({"torrents": torrents})
 
 
 class TorrentHealthEndpoint(resource.Resource):
@@ -331,9 +331,9 @@ class TorrentHealthEndpoint(resource.Resource):
         with db_session:
             md_list = list(self.session.lm.mds.TorrentMetadata.select(lambda g:
                                                                       g.infohash == database_blob(self.infohash)))
-            if not md_list:
-                request.setResponseCode(http.NOT_FOUND)
-                request.write(json.dumps({"error": "torrent not found in database"}))
+        if not md_list:
+            request.setResponseCode(http.NOT_FOUND)
+            request.write(json.dumps({"error": "torrent not found in database"}))
 
         self.session.check_torrent_health(self.infohash, timeout=timeout, scrape_now=refresh) \
             .addCallback(on_health_result).addErrback(on_request_error)
