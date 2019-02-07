@@ -207,7 +207,7 @@ class DispersyToPonyMigration(object):
                     for g in my_channel.contents_list:
                         g.delete()
                     my_channel.delete()
-                elif v.value == DISCOVERED_CONVERSION_STARTED:
+                elif v.value == CHANNELS_CONVERSION_STARTED:
                     v.set(value=PERSONAL_CONVERSION_STARTED)
                 else:
                     return
