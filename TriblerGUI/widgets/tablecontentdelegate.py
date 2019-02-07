@@ -475,7 +475,8 @@ class HealthStatusDisplay(QObject):
         data_item = index.model().data_items[index.row()]
 
         if u'health' not in data_item:
-            data_item[u'health'] = get_health(data_item['num_seeders'], data_item['num_leechers'],
+            data_item[u'health'] = get_health(data_item['num_seeders'],
+                                              data_item['num_leechers'],
                                               data_item['last_tracker_check'])
         health = data_item[u'health']
 
