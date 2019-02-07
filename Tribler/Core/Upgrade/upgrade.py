@@ -73,7 +73,6 @@ class TriblerUpgrader(object):
                 cursor.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'MiscData'")
                 result = cursor.fetchone()
                 delete_old_db = not bool(result[0] if result else False)
-                connection.close()
             except:
                 return
             finally:
