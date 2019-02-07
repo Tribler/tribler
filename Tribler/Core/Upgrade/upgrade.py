@@ -64,10 +64,31 @@ class TriblerUpgrader(object):
         new_database_exists = os.path.exists(new_database_path)
         state = None  # Previous conversion state
         if new_database_exists:
-            # Let's check if we converted all/some entries
+            # Check for the old experimental version database
+            # ACHTUNG!!! NUCLEAR OPTION!!! DO NOT MESS WITH IT!!!
+            delete_old_db = False
             try:
                 connection = apsw.Connection(new_database_path)
                 cursor = connection.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'MiscData'")
+                result = cursor.fetchone()
+                delete_old_db = not bool(result[0] if result else False)
+                connection.close()
+            except:
+                return
+            finally:
+                try:
+                    connection.close()
+                except:
+                    pass
+            if delete_old_db:
+                # We're looking at the old experimental version database. Delete it.
+                os.unlink(new_database_path)
+                new_database_exists = False
+
+        if new_database_exists:
+            # Let's check if we converted all/some entries
+            try:
                 cursor.execute('SELECT value FROM MiscData WHERE name == "db_version"')
                 version = int(cursor.fetchone()[0])
                 if version != 0:
