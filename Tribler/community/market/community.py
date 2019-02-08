@@ -1,4 +1,5 @@
 from base64 import b64decode
+from functools import wraps
 
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks, succeed
@@ -33,12 +34,10 @@ from Tribler.community.market.payload import AcceptMatchPayload, DeclineMatchPay
     MatchPayload, OrderStatusRequestPayload, OrderStatusResponsePayload, OrderbookSyncPayload, PaymentPayload,\
     PingPongPayload, StartTransactionPayload, TradePayload, WalletInfoPayload
 from Tribler.community.market.reputation.temporal_pagerank_manager import TemporalPagerankReputationManager
-from Tribler.pyipv8.ipv8.attestation.trustchain.community import synchronized
 from Tribler.pyipv8.ipv8.attestation.trustchain.listener import BlockListener
 from Tribler.pyipv8.ipv8.attestation.trustchain.payload import HalfBlockPairPayload
 from Tribler.pyipv8.ipv8.community import Community, lazy_wrapper
 from Tribler.pyipv8.ipv8.messaging.bloomfilter import BloomFilter
-from Tribler.pyipv8.ipv8.messaging.payload import IntroductionRequestPayload, IntroductionResponsePayload
 from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
 from Tribler.pyipv8.ipv8.messaging.payload_headers import GlobalTimeDistributionPayload
 from Tribler.pyipv8.ipv8.peer import Peer
@@ -62,6 +61,14 @@ MSG_BOOK_SYNC = 19
 MSG_PING = 20
 MSG_PONG = 21
 MSG_MATCH_DONE = 22
+
+
+def synchronized(f):
+    @wraps(f)
+    def wrapper(self, *args, **kwargs):
+        with self.trustchain.receive_block_lock:
+            return f(self, *args, **kwargs)
+    return wrapper
 
 
 class ProposedTradeRequestCache(NumberCache):
