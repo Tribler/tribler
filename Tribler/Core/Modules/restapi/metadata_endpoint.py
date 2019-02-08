@@ -153,6 +153,7 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
                 return json.dumps({"error": "this channel cannot be found"})
 
             channel.subscribed = to_subscribe
+            channel.local_version = 0
 
         return json.dumps({"success": True, "subscribed": to_subscribe})
 
