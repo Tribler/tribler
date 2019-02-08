@@ -127,6 +127,7 @@ class TriblerWindow(QMainWindow):
         self.start_time = time.time()
         self.exception_handler_called = False
         self.token_refresh_timer = None
+        self.shutdown_timer = None
 
         sys.excepthook = self.on_exception
 
@@ -894,7 +895,9 @@ class TriblerWindow(QMainWindow):
             self.show_loading_screen()
             self.hide_status_bar()
             self.loading_text_label.setText("Shutting down...")
-            self.debug_window.setHidden(True)
+
+            if self.debug_window:
+                self.debug_window.setHidden(True)
 
             self.shutdown_timer = QTimer()
             self.shutdown_timer.timeout.connect(show_force_shutdown)
