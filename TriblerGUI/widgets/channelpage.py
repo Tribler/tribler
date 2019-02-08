@@ -23,7 +23,7 @@ class ChannelPage(QWidget):
     def initialize_channel_page(self, gui_settings):
         self.gui_settings = gui_settings
         self.model = TorrentsContentModel(hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True,
-                                                  is_bool=True) if self.gui_settings else True)
+                                                                   is_bool=True) if self.gui_settings else True)
         self.controller = TorrentsTableViewController(self.model, self.window().channel_page_container,
                                                       None, self.window().channel_torrents_filter_input)
 
@@ -32,6 +32,14 @@ class ChannelPage(QWidget):
         self.window().channel_page_container.content_table.delegate.controls.remove(commit_control)
 
     def initialize_with_channel(self, channel_info):
+        self.playlists = []
+        self.torrents = []
+        self.loaded_channels = False
+        self.loaded_playlists = False
+
+        self.get_torents_in_channel_manager = None
+        self.get_playlists_in_channel_manager = None
+
         self.channel_info = channel_info
 
         self.window().channel_preview_label.setHidden(channel_info['subscribed'])
