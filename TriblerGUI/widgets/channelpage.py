@@ -27,6 +27,9 @@ class ChannelPage(QWidget):
         self.get_playlists_in_channel_manager = None
 
     def initialize_with_channel(self, channel_info):
+        if not channel_info:
+            return
+
         self.playlists = []
         self.torrents = []
         self.loaded_channels = False
