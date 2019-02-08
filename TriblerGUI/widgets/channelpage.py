@@ -1,12 +1,14 @@
+from __future__ import absolute_import
+
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
 
+from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.utilities import get_image_path
 from TriblerGUI.widgets.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.widgets.loading_list_item import LoadingListItem
 from TriblerGUI.widgets.playlist_list_item import PlaylistListItem
 from TriblerGUI.widgets.text_list_item import TextListItem
-from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_image_path
 
 
 class ChannelPage(QWidget):
@@ -27,6 +29,9 @@ class ChannelPage(QWidget):
         self.get_playlists_in_channel_manager = None
 
     def initialize_with_channel(self, channel_info):
+        if not channel_info:
+            return
+
         self.playlists = []
         self.torrents = []
         self.loaded_channels = False
