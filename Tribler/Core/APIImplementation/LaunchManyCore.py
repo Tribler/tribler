@@ -49,22 +49,6 @@ from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 from Tribler.pyipv8.ipv8_service import IPv8
 
 
-class DualStackDiscoveryCommunity(DiscoveryCommunity):
-    """
-    This is a stopgap measure until Dispersy is removed.
-    The reason for this class is that Dispersy bypasses IPv8's load balancing.
-    By injecting peers into IPv8, Dispersy then causes a peer explosion.
-    This subclass can be removed once Dispersy is gone.
-    """
-
-    def on_introduction_response(self, source_address, data):
-        if self.max_peers >= 0 and len(self.get_peers()) > self.max_peers:
-            self.logger.info("Dropping introduction response from (%s, %d): too many peers!",
-                             source_address[0], source_address[1])
-            return
-        return super(DualStackDiscoveryCommunity, self).on_introduction_response(source_address, data)
-
-
 class TriblerLaunchMany(TaskManager):
 
     def __init__(self):
@@ -179,7 +163,7 @@ class TriblerLaunchMany(TaskManager):
             peer = Peer(self.session.trustchain_testnet_keypair)
         else:
             peer = Peer(self.session.trustchain_keypair)
-        discovery_community = DualStackDiscoveryCommunity(peer, self.ipv8.endpoint, self.ipv8.network)
+        discovery_community = DiscoveryCommunity(peer, self.ipv8.endpoint, self.ipv8.network)
         discovery_community.resolve_dns_bootstrap_addresses()
         self.ipv8.overlays.append(discovery_community)
         self.ipv8.strategies.append((RandomChurn(discovery_community), -1))
