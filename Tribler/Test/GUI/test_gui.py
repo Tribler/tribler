@@ -1,35 +1,34 @@
 from __future__ import absolute_import
+
 import logging
 import os
 import sys
 import threading
-from random import randint
-import unittest
-from unittest import skipUnless, skipIf
-
 import time
-from PyQt5.QtCore import QPoint, Qt, QTimer
+from random import randint
+from unittest import TestCase, skipIf, skipUnless
+
+from PyQt5.QtCore import QPoint, QTimer, Qt
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget, QTextEdit
+from PyQt5.QtWidgets import QApplication, QListWidget, QTextEdit, QTreeWidget
 
 from six.moves import xrange
 
+from Tribler.Core.Utilities.network_utils import get_random_port
+
+import TriblerGUI
 import TriblerGUI.core_manager as core_manager
 import TriblerGUI.defs
-from Tribler.Core.Utilities.network_utils import get_random_port
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
+from TriblerGUI.tribler_window import TriblerWindow
 from TriblerGUI.widgets.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.widgets.home_recommended_item import HomeRecommendedItem
+from TriblerGUI.widgets.loading_list_item import LoadingListItem
 
 api_port = get_random_port()
 core_manager.START_FAKE_API = True
-
-import TriblerGUI
 TriblerGUI.defs.DEFAULT_API_PORT = api_port
-
-from TriblerGUI.widgets.loading_list_item import LoadingListItem
-from TriblerGUI.tribler_window import TriblerWindow
 
 if os.environ.get("TEST_GUI") == "yes":
     app = QApplication(sys.argv)
@@ -85,7 +84,7 @@ class TimeoutException(Exception):
     pass
 
 
-class AbstractTriblerGUITest(unittest.TestCase):
+class AbstractTriblerGUITest(TestCase):
     """
     This class contains various utility methods that are used during the GUI test, i.e. methods that wait until
     some data in a list is loaded or for taking a screenshot of the current window.
@@ -466,7 +465,9 @@ class TriblerGUITest(AbstractTriblerGUITest):
         download_dir = os.path.join(os.path.expanduser("~"), "downloads")
         window.dialog.dialog_widget.destination_input.setCurrentText(download_dir)
 
-        self.wait_for_signal(window.dialog.received_metainfo)
+        if not window.dialog.has_metainfo:  # It could be that the metainfo is already loaded by now
+            self.wait_for_signal(window.dialog.received_metainfo)
+
         self.screenshot(window, name="add_torrent_url_startdownload_dialog_files")
         QTest.mouseClick(window.dialog.dialog_widget.download_button, Qt.LeftButton)
         self.wait_for_signal(window.downloads_page.received_downloads)
@@ -763,6 +764,3 @@ class TriblerGUITest(AbstractTriblerGUITest):
         QTest.keyClick(window.market_page.dialog.dialog_widget.order_price_input, 't')
         QTest.mouseClick(window.market_page.dialog.dialog_widget.create_button, Qt.LeftButton)
         self.screenshot(window, name="market_create_order_dialog_error")
-
-if __name__ == "__main__":
-    unittest.main()
