@@ -8,7 +8,7 @@ from time import localtime, strftime
 
 from PyQt5 import QtGui, uic
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
-from PyQt5.QtGui import QTextCursor
+from PyQt5.QtGui import QBrush, QColor, QTextCursor
 from PyQt5.QtWidgets import QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QSizePolicy, \
     QTreeWidgetItem
 
@@ -333,6 +333,16 @@ class DebugWindow(QMainWindow):
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("statistics/communities", self.on_ipv8_community_stats)
 
+    def _colored_peer_count(self, peer_count, overlay_count, master_peer):
+        is_discovery = (master_peer == "3081a7301006072a8648ce3d020106052b81040027038192000403b3ab059ced9b20646ab5e01"
+                                       "762b3595c5e8855227ae1e424cff38a1e4edee73734ff2e2e829eb4f39bab20d7578284fcba72"
+                                       "51acd74e7daf96f21d01ea17077faf4d27a655837d072baeb671287a88554e1191d8904b0dc57"
+                                       "2d09ff95f10ff092c8a5e2a01cd500624376aec875a6e3028aab784cfaf0bac6527245db8d939"
+                                       "00d904ac2a922a02716ccef5a22f7968")
+        limits = [20, overlay_count * 30 + 1] if is_discovery else [20, 31]
+        color = 0xF4D03F if peer_count < limits[0] else (0x56F129 if peer_count < limits[1] else 0xF12929)
+        return QBrush(QColor(color))
+
     def on_ipv8_community_stats(self, data):
         if not data:
             return
@@ -342,7 +352,10 @@ class DebugWindow(QMainWindow):
             item.setText(0, overlay["overlay_name"])
             item.setText(1, overlay["master_peer"][-12:])
             item.setText(2, overlay["my_peer"][-12:])
-            item.setText(3, "%s" % len(overlay["peers"]))
+            peer_count = len(overlay["peers"])
+            item.setText(3, "%s" % peer_count)
+            item.setForeground(3, self._colored_peer_count(peer_count, len(data["ipv8_overlay_statistics"]),
+                                                           overlay["master_peer"]))
 
             if "statistics" in overlay and overlay["statistics"]:
                 statistics = overlay["statistics"]
