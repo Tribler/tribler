@@ -3,10 +3,16 @@ from binascii import unhexlify
 from pony.orm import db_session
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk
+from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT
+from Tribler.Core.Modules.MetadataStore.store import GOT_NEWER_VERSION
 from Tribler.pyipv8.ipv8.community import Community
 from Tribler.pyipv8.ipv8.lazy_community import PacketDecodingError
 from Tribler.pyipv8.ipv8.messaging.payload_headers import BinMemberAuthenticationPayload
 from Tribler.pyipv8.ipv8.peer import Peer
+
+minimal_blob_size = 200
+maximum_payload_size = 1024
+max_entries = maximum_payload_size / minimal_blob_size
 
 
 class GigaChannelCommunity(Community):
@@ -36,10 +42,6 @@ class GigaChannelCommunity(Community):
         :type peer: Peer
         :returns: None
         """
-        minimal_blob_size = 200
-        maximum_payload_size = 1024
-        max_entries = maximum_payload_size / minimal_blob_size
-
         # Choose some random entries and try to pack them into maximum_payload_size bytes
         md_list = []
         with db_session:
@@ -51,9 +53,11 @@ class GigaChannelCommunity(Community):
             md_list.append(channel)
             md_list.extend(list(channel.get_random_torrents(max_entries - 1)))
             blob = entries_to_chunk(md_list, maximum_payload_size)[0] if md_list else None
+        self.send_blob(peer, blob)
 
+    def send_blob(self, peer, blob):
         # Send chosen entries to peer
-        if md_list:
+        if blob:
             auth = BinMemberAuthenticationPayload(self.my_peer.public_key.key_to_bin()).to_pack_list()
             ersatz_payload = [('raw', blob)]
             self.endpoint.send(peer.address, self._ez_pack(self._prefix, 1, [auth, ersatz_payload]))
@@ -71,7 +75,17 @@ class GigaChannelCommunity(Community):
 
         if not signature_valid:
             raise PacketDecodingError("Incoming packet %s has an invalid signature" % str(self.__class__))
-        self.metadata_store.process_compressed_mdblob(blob)
+        relply_blob = None
+        with db_session:
+            md_list = self.metadata_store.process_compressed_mdblob(blob)
+            # Check if the guy who send us this metadata actually has an older version of this md than
+            # we do, and queue to send it back.
+
+            reply_list = [md for md, result in md_list if
+                          (md and (md.type == CHANNEL_TORRENT)) and (result == GOT_NEWER_VERSION)]
+            reply_blob = entries_to_chunk(reply_list, maximum_payload_size)[0] if reply_list else None
+        if reply_blob:
+            self.send_blob(source_address, reply_blob)
 
 
 class GigaChannelTestnetCommunity(GigaChannelCommunity):
