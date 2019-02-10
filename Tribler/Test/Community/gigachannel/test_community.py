@@ -78,3 +78,30 @@ class TestGigaChannelUnits(TestBase):
             self.assertEqual(len(self.nodes[1].overlay.metadata_store.ChannelMetadata.select()), 1)
             channel = self.nodes[1].overlay.metadata_store.ChannelMetadata.select()[:][0]
             self.assertLess(channel.contents_len, 20)
+
+    @inlineCallbacks
+    def test_send_and_get_channel_update_back(self):
+        """
+        Test if sending back information on updated version of a channel works
+        """
+        with db_session:
+            # Add channel to node 0
+            channel = self.nodes[0].overlay.metadata_store.ChannelMetadata.create_channel("test", "bla")
+            for _ in xrange(20):
+                self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata)
+            channel.commit_channel_torrent()
+            channel_v1_dict = channel.to_dict()
+            self.add_random_torrent(self.nodes[0].overlay.metadata_store.TorrentMetadata)
+            channel.commit_channel_torrent()
+
+            # Add the outdated version of the channel to node 1
+            self.nodes[1].overlay.metadata_store.ChannelMetadata.from_dict(channel_v1_dict)
+
+        # node1 --outdated_channel--> node0
+        self.nodes[1].overlay.send_random_to(Peer(self.nodes[0].my_peer.public_key, self.nodes[0].endpoint.wan_address))
+
+        yield self.deliver_messages()
+
+        with db_session:
+            self.assertEqual(self.nodes[1].overlay.metadata_store.ChannelMetadata.select()[:][0].timestamp,
+                             self.nodes[0].overlay.metadata_store.ChannelMetadata.select()[:][0].timestamp)

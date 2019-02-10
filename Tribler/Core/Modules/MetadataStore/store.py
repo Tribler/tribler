@@ -8,7 +8,6 @@ import lz4.frame
 from pony import orm
 from pony.orm import db_session
 
-from Tribler.Core.Category.Category import Category
 from Tribler.Core.Modules.MetadataStore.OrmBindings import torrent_metadata, channel_metadata, \
     torrent_state, tracker_state, channel_node, misc
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
@@ -20,6 +19,14 @@ from Tribler.Core.Modules.MetadataStore.serialization import read_payload_with_o
 from Tribler.Core.exceptions import InvalidSignatureException
 
 CLOCK_STATE_FILE = "clock.state"
+
+UNKNOWN_CHANNEL = 1
+UPDATED_OUR_VERSION = 2
+GOT_SAME_VERSION = 3
+GOT_NEWER_VERSION = 4
+UNKNOWN_TORRENT = 5
+NO_ACTION = 6
+DELETED_METADATA = 7
 
 sql_create_fts_table = """
     CREATE VIRTUAL TABLE IF NOT EXISTS FtsIndex USING FTS5
@@ -64,7 +71,7 @@ class DiscreteClock(object):
         # and lose their database. We don't know what was their channel
         # clock before, but at least we can assume that they were not
         # adding to it 1000 torrents per second constantly...
-        self.clock = time2int(datetime.utcnow())*1000
+        self.clock = time2int(datetime.utcnow()) * 1000
         # Read the clock from the disk if the filename is given
         if self.filename and os.path.isfile(self.filename):
             with open(self.filename, 'rb') as f:
@@ -198,20 +205,18 @@ class MetadataStore(object):
 
     @db_session
     def process_squashed_mdblob(self, chunk_data):
-        metadata_list = []
+        results_list = []
         offset = 0
         while offset < len(chunk_data):
             payload, offset = read_payload_with_offset(chunk_data, offset)
-            md = self.process_payload(payload)
-            if md:
-                metadata_list.append(md)
-        return metadata_list
+            results_list.append(self.process_payload(payload))
+        return results_list
 
     # Can't use db_session wrapper here, performance drops 10 times! Pony bug!
     def process_payload(self, payload):
         with db_session:
             if self.ChannelNode.exists(signature=payload.signature):
-                return self.ChannelNode.get(signature=payload.signature)
+                return None, GOT_SAME_VERSION
 
             if payload.metadata_type == DELETED:
                 # We only allow people to delete their own entries, thus PKs must match
@@ -219,9 +224,11 @@ class MetadataStore(object):
                                                          public_key=payload.public_key)
                 if existing_metadata:
                     existing_metadata.delete()
-                return None
+                    return None, DELETED_METADATA
+                else:
+                    return None, NO_ACTION
             elif payload.metadata_type == REGULAR_TORRENT:
-                return self.TorrentMetadata.from_payload(payload)
+                return self.TorrentMetadata.from_payload(payload), UNKNOWN_TORRENT
             elif payload.metadata_type == CHANNEL_TORRENT:
                 return self.update_channel_info(payload)
 
@@ -232,6 +239,7 @@ class MetadataStore(object):
         Validate the signature, update the local metadata store and put in at the beginning of the download queue
         if necessary.
         :param payload: The channel metadata, in serialized form.
+        :returns (metadata, status): tuple consisting of possibly newer metadata and result status
         """
 
         channel = self.ChannelMetadata.get_channel_with_id(payload.public_key)
@@ -239,9 +247,16 @@ class MetadataStore(object):
             if payload.timestamp > channel.timestamp:
                 # Update the channel that is already there.
                 self._logger.info("Updating channel metadata %s ts %s->%s", str(channel.public_key).encode("hex"),
-                                  str(channel.timestamp), str(int2time(payload.timestamp)))
+                                  str(channel.timestamp), str(payload.timestamp))
                 channel.set(**ChannelMetadataPayload.to_dict(payload))
+                status = UPDATED_OUR_VERSION
+            elif payload.timestamp == channel.timestamp:
+                status = GOT_SAME_VERSION
+            else:
+                status = GOT_NEWER_VERSION
+
         else:
+            status = UNKNOWN_CHANNEL
             # Add new channel object to DB
             channel = self.ChannelMetadata.from_payload(payload)
 
@@ -249,7 +264,7 @@ class MetadataStore(object):
         if channel.version > channel.local_version:
         #TODO: handle the case where the local version is the same as the new one and is not seeded
         """
-        return channel
+        return channel, status
 
     @db_session
     def get_my_channel(self):
