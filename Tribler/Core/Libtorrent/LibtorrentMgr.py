@@ -713,26 +713,26 @@ class LibtorrentMgr(TaskManager):
 
         assert tdef is not None, "tdef MUST not be None after loading torrent"
 
-        d = self.tribler_session.get_download(tdef.get_infohash())
-        if d:
-            # If there is an existing credit mining download with the same infohash, remove it and restart
-            if d.get_credit_mining():
-                self.tribler_session.lm.credit_mining_manager.torrents.pop(hexlify(tdef.get_infohash()), None)
-                self.tribler_session.remove_download(d).addCallback(
-                    lambda _, tf=torrentfilename, ih=infohash, td=tdef, dc=dconfig: self.start_download(tf, ih, td, dc)
-                )
-                return
-
-            new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(
-                d.get_def().get_trackers_as_single_tuple()))
-            if new_trackers:
-                self.tribler_session.update_trackers(tdef.get_infohash(), new_trackers)
-
         default_dl_config = DefaultDownloadStartupConfig.getInstance()
         dscfg = default_dl_config.copy()
 
         if dconfig is not None:
             dscfg = dconfig
+
+        d = self.tribler_session.get_download(tdef.get_infohash())
+        if d:
+            # If there is an existing credit mining download with the same infohash
+            # then move to the user download directory and checkpoint the download immediately.
+            if d.get_credit_mining():
+                self.tribler_session.lm.credit_mining_manager.torrents.pop(hexlify(tdef.get_infohash()), None)
+                d.set_credit_mining(False)
+                d.move_storage(dscfg.get_dest_dir())
+                d.checkpoint()
+
+            new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(
+                d.get_def().get_trackers_as_single_tuple()))
+            if new_trackers:
+                self.tribler_session.update_trackers(tdef.get_infohash(), new_trackers)
 
         self._logger.info('start_download: Starting in VOD mode')
         result = self.tribler_session.start_download_from_tdef(tdef, dscfg)
