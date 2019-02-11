@@ -359,7 +359,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         # Send the notification
         if self.tribler_session:
-            self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, circuit.peer.address)
+            self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, additional_info)
 
         circuit_peer = self.get_peer_from_address(circuit.peer.address)
         if circuit.bytes_down >= 1024 * 1024 and self.bandwidth_wallet and circuit_peer:
@@ -411,13 +411,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         if self.tribler_session:
             for removed_relay in removed_relays:
-                self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, removed_relay,
-                                                     removed_relay.peer.address)
+                self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, removed_relay, additional_info)
 
     def remove_exit_socket(self, circuit_id, additional_info='', remove_now=False, destroy=False):
         if circuit_id in self.exit_sockets and self.tribler_session:
             exit_socket = self.exit_sockets[circuit_id]
-            self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket, exit_socket.peer.address)
+            self.tribler_session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket, additional_info)
 
         self.clean_from_slots(circuit_id)
 

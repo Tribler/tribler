@@ -3,10 +3,11 @@ A wrapper around libtorrent
 
 Author(s): Egbert Bouman
 """
+from __future__ import absolute_import
+
 import binascii
 import logging
 import os
-import random
 import tempfile
 import threading
 import time
@@ -17,18 +18,21 @@ from shutil import rmtree
 from urllib import url2pathname
 
 import libtorrent as lt
+
+from six import text_type
+
 from twisted.internet import reactor, threads
-from twisted.internet.defer import succeed, fail, Deferred
+from twisted.internet.defer import Deferred, fail, succeed
 from twisted.internet.task import LoopingCall
 from twisted.python.failure import Failure
 
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
-from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
-from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException
+from Tribler.Core.Utilities.utilities import fix_torrent, parse_magnetlink
+from Tribler.Core.exceptions import TorrentFileException
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
-                                     NTFY_REACHABLE, NTFY_TORRENTS, NTFY_TRIBLER, STATE_SHUTDOWN)
+                                     NTFY_REACHABLE, NTFY_TORRENTS)
 from Tribler.Core.version import version_id
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
@@ -336,11 +340,11 @@ class LibtorrentMgr(TaskManager):
                 raise ValueError('No ti or url key in add_torrent_params')
 
             # Check if we added this torrent before
-            known = [str(h.info_hash()) for h in ltsession.get_torrents()]
-            if infohash in known:
+            known = {str(h.info_hash()): h for h in ltsession.get_torrents()}
+            existing_handle = known.get(infohash)
+            if existing_handle:
                 self.torrents[infohash] = (torrentdl, ltsession)
-                infohash_bin = binascii.unhexlify(infohash)
-                return succeed(ltsession.find_torrent(lt.big_number(infohash_bin)))
+                return succeed(existing_handle)
 
             if infohash in self.torrents:
                 self._logger.info("Torrent already exists in the downloads. Infohash:%s", infohash.encode('hex'))
@@ -710,26 +714,26 @@ class LibtorrentMgr(TaskManager):
 
         assert tdef is not None, "tdef MUST not be None after loading torrent"
 
-        d = self.tribler_session.get_download(tdef.get_infohash())
-        if d:
-            # If there is an existing credit mining download with the same infohash, remove it and restart
-            if d.get_credit_mining():
-                self.tribler_session.lm.credit_mining_manager.torrents.pop(hexlify(tdef.get_infohash()), None)
-                self.tribler_session.remove_download(d).addCallback(
-                    lambda _, tf=torrentfilename, ih=infohash, td=tdef, dc=dconfig: self.start_download(tf, ih, td, dc)
-                )
-                return
-
-            new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(
-                d.get_def().get_trackers_as_single_tuple()))
-            if new_trackers:
-                self.tribler_session.update_trackers(tdef.get_infohash(), new_trackers)
-
         default_dl_config = DefaultDownloadStartupConfig.getInstance()
         dscfg = default_dl_config.copy()
 
         if dconfig is not None:
             dscfg = dconfig
+
+        d = self.tribler_session.get_download(tdef.get_infohash())
+        if d:
+            # If there is an existing credit mining download with the same infohash
+            # then move to the user download directory and checkpoint the download immediately.
+            if d.get_credit_mining():
+                self.tribler_session.lm.credit_mining_manager.torrents.pop(hexlify(tdef.get_infohash()), None)
+                d.set_credit_mining(False)
+                d.move_storage(dscfg.get_dest_dir())
+                d.checkpoint()
+
+            new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(
+                d.get_def().get_trackers_as_single_tuple()))
+            if new_trackers:
+                self.tribler_session.update_trackers(tdef.get_infohash(), new_trackers)
 
         self._logger.info('start_download: Starting in VOD mode')
         result = self.tribler_session.start_download_from_tdef(tdef, dscfg)
@@ -771,6 +775,6 @@ class LibtorrentMgr(TaskManager):
 
 def encode_atp(atp):
     for k, v in atp.iteritems():
-        if isinstance(v, unicode):
+        if isinstance(v, text_type):
             atp[k] = v.encode('utf-8')
     return atp

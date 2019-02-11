@@ -14,16 +14,18 @@ from Tribler.Core.simpledefs import NTFY_CHANNEL, NTFY_CREDIT_MINING, NTFY_DISCO
     NTFY_INSERT, NTFY_MARKET_ON_ASK, NTFY_MARKET_ON_ASK_TIMEOUT, NTFY_MARKET_ON_BID, NTFY_MARKET_ON_BID_TIMEOUT, \
     NTFY_MARKET_ON_PAYMENT_RECEIVED, NTFY_MARKET_ON_PAYMENT_SENT, NTFY_MARKET_ON_TRANSACTION_COMPLETE, \
     NTFY_NEW_VERSION, NTFY_STARTED, NTFY_TORRENT, NTFY_UPDATE, NTFY_UPGRADER, NTFY_UPGRADER_TICK, \
-    NTFY_WATCH_FOLDER_CORRUPT_TORRENT, SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK
+    NTFY_WATCH_FOLDER_CORRUPT_TORRENT, SIGNAL_LOW_SPACE, SIGNAL_RESOURCE_CHECK, NTFY_REMOVE, NTFY_TUNNEL
 from Tribler.Core.version import version_id
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.tools import trial_timeout
+from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import Circuit
 
 
 class EventDataProtocol(Protocol):
     """
     This class is responsible for reading the data received over the event socket.
     """
+
     def __init__(self, messages_to_wait_for, finished, response):
         self.json_buffer = []
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -67,7 +69,7 @@ class TestEventsEndpoint(AbstractApiTest):
     def open_events_socket(self, _):
         agent = Agent(reactor, pool=self.connection_pool)
         return agent.request('GET', 'http://localhost:%s/events' % self.session.config.get_http_api_port(),
-                             Headers({'User-Agent': ['Tribler ' + version_id]}), None)\
+                             Headers({'User-Agent': ['Tribler ' + version_id]}), None) \
             .addCallback(self.on_event_socket_opened)
 
     def close_connections(self):
@@ -78,7 +80,7 @@ class TestEventsEndpoint(AbstractApiTest):
         """
         Testing whether various events are coming through the events endpoints
         """
-        self.messages_to_wait_for = 19
+        self.messages_to_wait_for = 20
 
         def send_notifications(_):
             self.session.notifier.notify(NTFY_UPGRADER, NTFY_STARTED, None, None)
@@ -99,6 +101,7 @@ class TestEventsEndpoint(AbstractApiTest):
             self.session.notifier.notify(NTFY_MARKET_ON_PAYMENT_SENT, NTFY_UPDATE, None, {'a': 'b'})
             self.session.notifier.notify(SIGNAL_RESOURCE_CHECK, SIGNAL_LOW_SPACE, None, {})
             self.session.notifier.notify(NTFY_CREDIT_MINING, NTFY_ERROR, None, {"message": "Some credit mining error"})
+            self.session.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, Circuit(1234, None), 'test')
             self.session.lm.api_manager.root_endpoint.events_endpoint.on_tribler_exception("hi")
 
         self.socket_open_deferred.addCallback(send_notifications)
