@@ -247,7 +247,7 @@ class MetadataStore(object):
             if payload.timestamp > channel.timestamp:
                 # Update the channel that is already there.
                 self._logger.info("Updating channel metadata %s ts %s->%s", str(channel.public_key).encode("hex"),
-                                  str(channel.timestamp), str(int2time(payload.timestamp)))
+                                  str(channel.timestamp), str(payload.timestamp))
                 channel.set(**ChannelMetadataPayload.to_dict(payload))
                 status = UPDATED_OUR_VERSION
             elif payload.timestamp == channel.timestamp:

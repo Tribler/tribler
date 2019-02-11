@@ -59,14 +59,14 @@ class TestMetadataStore(TriblerCoreTest):
         # We delete this TorrentMeta info now, it should be added again to the database when loading it
         test_torrent_metadata.delete()
         loaded_metadata = self.mds.process_mdblob_file(metadata_path)
-        self.assertEqual(loaded_metadata[0].title, 'test')
+        self.assertEqual(loaded_metadata[0][0].title, 'test')
 
         # Test whether we delete existing metadata when loading a DeletedMetadata blob
         metadata = self.mds.TorrentMetadata(infohash='1' * 20)
         metadata.to_delete_file(metadata_path)
         loaded_metadata = self.mds.process_mdblob_file(metadata_path)
         # Make sure the original metadata is deleted
-        self.assertListEqual(loaded_metadata, [])
+        self.assertEqual(loaded_metadata[0], (None, 7))
         self.assertIsNone(self.mds.TorrentMetadata.get(infohash='1' * 20))
 
         # Test an unknown metadata type, this should raise an exception
@@ -81,13 +81,25 @@ class TestMetadataStore(TriblerCoreTest):
             title=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20))) for _ in
             range(0, 10)]
         chunk, _ = entries_to_chunk(md_list, chunk_size=chunk_size)
-        self.assertItemsEqual(md_list, self.mds.process_compressed_mdblob(chunk))
+        dict_list = [d.to_dict()["signature"] for d in md_list]
+        for d in md_list:
+            d.delete()
+        self.assertListEqual(dict_list, [d[0].to_dict()["signature"] for d in self.mds.process_compressed_mdblob(chunk)])
 
+    @db_session
+    def test_squash_mdblobs_multiple_chunks(self):
+        chunk_size = self.mds.ChannelMetadata._CHUNK_SIZE_LIMIT
+        md_list = [self.mds.TorrentMetadata(
+            title=''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20))) for _ in
+            range(0, 10)]
         # Test splitting into multiple chunks
         chunk, index = entries_to_chunk(md_list, chunk_size=900)
         chunk2, _ = entries_to_chunk(md_list, chunk_size=900, start_index=index)
-        self.assertItemsEqual(md_list[:index], self.mds.process_compressed_mdblob(chunk))
-        self.assertItemsEqual(md_list[index:], self.mds.process_compressed_mdblob(chunk2))
+        dict_list = [d.to_dict()["signature"] for d in md_list]
+        for d in md_list:
+            d.delete()
+        self.assertListEqual(dict_list[:index], [d[0].to_dict()["signature"] for d in self.mds.process_compressed_mdblob(chunk)])
+        self.assertListEqual(dict_list[index:], [d[0].to_dict()["signature"] for d in self.mds.process_compressed_mdblob(chunk2)])
 
     @db_session
     def test_multiple_squashed_commit_and_read(self):

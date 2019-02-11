@@ -352,7 +352,7 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
                     return json.dumps({"error": "Metadata has invalid signature"})
 
                 with db_session:
-                    channel = self.session.lm.mds.process_payload(payload)
+                    channel, _ = self.session.lm.mds.process_payload(payload)
                     if channel and not channel.subscribed and channel.local_version < channel.timestamp:
                         channel.subscribed = True
                         download, _ = self.session.lm.gigachannel_manager.download_channel(channel)
