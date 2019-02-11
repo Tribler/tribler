@@ -1,29 +1,29 @@
 """
 This twistd plugin enables to start a tunnel helper headless using the twistd command.
 """
+from __future__ import absolute_import
+
 import logging
 import os
-import signal
 import re
+import signal
 import time
+from socket import inet_aton
 
-from twisted.application.service import MultiService, IServiceMaker
+from twisted.application.service import IServiceMaker, MultiService
 from twisted.conch import manhole_tap
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 from twisted.plugin import IPlugin
 from twisted.python import usage
 from twisted.python.log import msg
+
 from zope.interface import implements
-from socket import inet_aton
 
 from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
+from Tribler.Core.simpledefs import NTFY_REMOVE, NTFY_TUNNEL
 from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
-
-# Register yappi profiler
-from Tribler.dispersy.utils import twistd_yappi
 
 
 def check_api_port(val):
@@ -132,12 +132,13 @@ class Tunnel(object):
         if self.options["log-rejects"]:
             self.session.lm.tunnel_community.reject_callback = self.on_circuit_reject
 
-    def circuit_removed(self, _, __, circuit, address):
-        self.session.lm.ipv8.network.remove_by_address(address)
+    def circuit_removed(self, _, __, circuit, additional_info):
+        self.session.lm.ipv8.network.remove_by_address(circuit.peer.address)
         if self.options["log-circuits"]:
             with open(os.path.join(self.session.config.get_state_dir(), "circuits.log"), 'a') as out_file:
                 duration = time.time() - circuit.creation_time
-                out_file.write("%d,%f,%d,%d\n" % (circuit.circuit_id, duration, circuit.bytes_up, circuit.bytes_down))
+                out_file.write("%d,%f,%d,%d,%s\n" % (circuit.circuit_id, duration, circuit.bytes_up, circuit.bytes_down,
+                                                     additional_info))
 
     def start(self):
         # Determine ipv8 port
