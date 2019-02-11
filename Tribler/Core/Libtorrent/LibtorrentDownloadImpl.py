@@ -296,7 +296,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
         def on_torrent_added(handle):
             self.handle = handle
 
-            if self.handle.is_valid():
+            if self.handle and self.handle.is_valid():
                 self.set_selected_files()
 
                 user_stopped = pstate.get('download_defaults', 'user_stopped') if pstate else False
