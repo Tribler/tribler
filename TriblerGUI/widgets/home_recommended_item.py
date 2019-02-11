@@ -2,11 +2,11 @@ from urllib import quote_plus
 
 from PyQt5.QtCore import QPoint, QSize, Qt
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QWidget, QLabel, QSizePolicy, QToolButton
+from PyQt5.QtWidgets import QLabel, QSizePolicy, QToolButton, QWidget
 
 from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_window import fc_home_recommended_item
-from TriblerGUI.utilities import pretty_date, get_image_path, format_size, get_gui_setting
+from TriblerGUI.utilities import format_size, get_image_path, pretty_date
 
 HOME_ITEM_FONT_SIZE = 44
 
@@ -87,7 +87,7 @@ class HomeRecommendedItem(QWidget, fc_home_recommended_item):
         self.category_label.adjustSize()
         self.category_label.setHidden(False)
         self.setCursor(Qt.ArrowCursor)
-        self.detail_label.setText("Size: " + format_size(torrent["size"]))
+        self.detail_label.setText("Size: " + format_size(torrent.get("size", 0)))
 
     def update_with_channel(self, channel):
         if not channel:
