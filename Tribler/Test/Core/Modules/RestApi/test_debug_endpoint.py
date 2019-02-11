@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 import os
 
 from six.moves import xrange
@@ -7,54 +8,9 @@ import Tribler.Core.Utilities.json_util as json
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.tools import trial_timeout
-from Tribler.pyipv8.ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_DATA
 
 
 class TestCircuitDebugEndpoint(AbstractApiTest):
-
-    @trial_timeout(10)
-    def test_get_circuit_no_community(self):
-        """
-        Testing whether the API returns error 404 if no tunnel community is loaded
-        """
-        return self.do_request('debug/circuits', expected_code=404)
-
-    @trial_timeout(10)
-    def test_get_circuits(self):
-        """
-        Testing whether the API returns the correct circuits
-        """
-        mock_hop = MockObject()
-        mock_hop.host = 'somewhere'
-        mock_hop.port = 4242
-
-        mock_circuit = MockObject()
-        mock_circuit.state = 'TESTSTATE'
-        mock_circuit.goal_hops = 42
-        mock_circuit.bytes_up = 200
-        mock_circuit.bytes_down = 400
-        mock_circuit.creation_time = 1234
-        mock_circuit.hops = [mock_hop]
-        mock_circuit.peer = MockObject()
-        mock_circuit.peer.address = ("1.1.1.1", 1234)
-        mock_circuit.circuit_id = 1234
-        mock_circuit.ctype = CIRCUIT_TYPE_DATA
-        mock_circuit.destroy = lambda: None
-
-        self.session.lm.tunnel_community = MockObject()
-        self.session.lm.tunnel_community.circuits = {1234: mock_circuit}
-
-        def verify_response(response):
-            response_json = json.loads(response)
-            self.assertEqual(len(response_json['circuits']), 1)
-            self.assertEqual(response_json['circuits'][0]['state'], 'TESTSTATE')
-            self.assertEqual(response_json['circuits'][0]['bytes_up'], 200)
-            self.assertEqual(response_json['circuits'][0]['bytes_down'], 400)
-            self.assertEqual(len(response_json['circuits'][0]['hops']), 1)
-            self.assertEqual(response_json['circuits'][0]['hops'][0]['host'], 'somewhere:4242')
-
-        self.should_check_equality = False
-        return self.do_request('debug/circuits', expected_code=200).addCallback(verify_response)
 
     @trial_timeout(10)
     def test_get_slots(self):
