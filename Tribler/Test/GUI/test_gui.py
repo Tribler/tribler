@@ -459,6 +459,7 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window, name="add_torrent_url_dialog")
         window.dialog.dialog_widget.dialog_input.setText("http://test.url/test.torrent")
         QTest.mouseClick(window.dialog.buttons[0], Qt.LeftButton)
+        QTest.qWait(200)
         self.screenshot(window, name="add_torrent_url_startdownload_dialog")
 
         # set the download directory to a writable path
