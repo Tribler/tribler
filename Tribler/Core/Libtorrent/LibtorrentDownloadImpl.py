@@ -479,7 +479,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface, TaskManager):
 
         alert_types = ('tracker_reply_alert', 'tracker_error_alert', 'tracker_warning_alert', 'metadata_received_alert',
                        'file_renamed_alert', 'performance_alert', 'torrent_checked_alert', 'torrent_finished_alert',
-                       'save_resume_data_alert', 'save_resume_data_failed_alert', 'state_update_alert')
+                       'save_resume_data_alert', 'save_resume_data_failed_alert')
 
         if alert_type in alert_types:
             getattr(self, 'on_' + alert_type)(alert)
