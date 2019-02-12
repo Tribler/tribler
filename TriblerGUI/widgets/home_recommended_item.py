@@ -1,10 +1,9 @@
-from urllib import quote_plus
+from __future__ import absolute_import
 
 from PyQt5.QtCore import QPoint, QSize, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QLabel, QSizePolicy, QToolButton, QWidget
 
-from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_window import fc_home_recommended_item
 from TriblerGUI.utilities import format_size, get_image_path, pretty_date
 
