@@ -196,7 +196,7 @@ class TorrentChecker(TaskManager):
 
             final_response[response.keys()[0]] = response[response.keys()[0]][0]
 
-        self._update_torrent_result(torrent_update_dict, final_response)
+        self._update_torrent_result(torrent_update_dict)
 
         # Add this result to popularity community to publish to subscribers
         self.publish_torrent_result(torrent_update_dict)
@@ -291,7 +291,7 @@ class TorrentChecker(TaskManager):
 
         return result_list
 
-    def _update_torrent_result(self, response, update_dict):
+    def _update_torrent_result(self, response):
         infohash = response['infohash']
         seeders = response['seeders']
         leechers = response['leechers']
@@ -301,14 +301,11 @@ class TorrentChecker(TaskManager):
         self._logger.debug(u"Update result %s/%s for %s", seeders, leechers, hexlify(infohash))
 
         with db_session:
+            # Update torrent state
             result = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(infohash))
-            for tracker in result.trackers:
-                tracker.last_check = int(time.time())
-                if update_dict.get(tracker.url, {'seeders': 0, 'leechers': 0}) > 0:
-                    tracker.alive = True
-                    tracker.failures = 0
-                else:
-                    tracker.failures = min(tracker.failures + 1, self._max_torrent_check_retries)
+            if not result:
+                # Something is wrong, there should exist a corresponding TorrentState entry in the DB.
+                return
             result.seeders = seeders
             result.leechers = leechers
             result.last_check = last_check

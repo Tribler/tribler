@@ -99,7 +99,7 @@ def get_uniformed_tracker_url(tracker_url):
                 uniformed_url = u'%s://%s%s' % (uniformed_scheme, uniformed_hostname, uniformed_path)
             else:
                 uniformed_url = u'%s://%s:%d%s' % (uniformed_scheme, uniformed_hostname, uniformed_port, uniformed_path)
-        except (UnicodeError, ValueError):
+        except ValueError:
             continue
         else:
             return uniformed_url

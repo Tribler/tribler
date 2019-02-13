@@ -4,8 +4,8 @@ import socket
 import time
 
 from pony.orm import db_session
-
 from twisted.internet.defer import Deferred, inlineCallbacks
+from twisted.python.failure import Failure
 
 from Tribler.Core.Modules.tracker_manager import TrackerManager
 from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UdpSocketManager
@@ -40,7 +40,12 @@ class TestTorrentChecker(TestAsServer):
 
         self.session.lm.ltmgr = MockObject()
         self.session.lm.ltmgr.get_metainfo = get_metainfo
-        self.session.lm.ltmgr.shutdown = lambda : None
+        self.session.lm.ltmgr.shutdown = lambda: None
+
+    @inlineCallbacks
+    def tearDown(self):
+        yield self.torrent_checker.shutdown()
+        yield super(TestTorrentChecker, self).tearDown()
 
     def test_initialize(self):
         """
@@ -53,6 +58,7 @@ class TestTorrentChecker(TestAsServer):
         """
         Test creation of the UDP socket of the torrent checker when it fails
         """
+
         def mocked_listen_on_udp():
             raise socket.error("Something went wrong")
 
@@ -127,6 +133,7 @@ class TestTorrentChecker(TestAsServer):
         """
         Test whether we capture the error when a tracker check fails
         """
+
         def verify_cleanup(_):
             # Verify whether we successfully cleaned up the session after an error
             self.assertEqual(len(self.torrent_checker._session_list), 1)
@@ -183,7 +190,7 @@ class TestTorrentChecker(TestAsServer):
             popularity_community_queue_content(self.torrent_checker, _content)
 
         # Case1: Fake torrent checker response, seeders:0
-        fake_response = {'infohash': 'a'*20, 'seeders': 0, 'leechers': 0, 'last_check': time.time()}
+        fake_response = {'infohash': 'a' * 20, 'seeders': 0, 'leechers': 0, 'last_check': time.time()}
         self.torrent_checker.publish_torrent_result(fake_response)
         self.assertTrue(self.torrent_checker.zero_seed_torrent)
 
@@ -202,7 +209,30 @@ class TestTorrentChecker(TestAsServer):
 
         self.torrent_checker._logger.info = original_logger_info
 
-    @inlineCallbacks
-    def tearDown(self):
-        yield self.torrent_checker.shutdown()
-        yield super(TestTorrentChecker, self).tearDown()
+    def test_on_gui_request_completed(self):
+        tracker1 = 'udp://localhost:2801'
+        tracker2 = "http://badtracker.org/announce"
+        infohash = "a" * 20
+        self.session.lm.popularity_community.queue_content = lambda _: None
+
+        failure = Failure()
+        failure.tracker_url = tracker2
+        result = [
+            (True, {tracker1: [{'leechers': 11, 'seeders': 12, 'infohash': '6161616161616161616161616161616161616161'}]}),
+            (False, failure),
+            (True, {'DHT': [{'leechers': 2, 'seeders': 1, 'infohash': '6161616161616161616161616161616161616161'}]})
+        ]
+        # Check that everything works fine even if the database contains no proper infohash
+        self.torrent_checker.on_gui_request_completed(infohash, result)
+        self.assertEqual(self.torrent_checker.on_gui_request_completed(infohash, result),
+                         {'DHT': {'leechers': 2, 'seeders': 1, 'infohash': '6161616161616161616161616161616161616161'},
+                          'http://badtracker.org/announce': {'error': ''},
+                          'udp://localhost:2801': {'leechers': 11, 'seeders': 12, 'infohash': '6161616161616161616161616161616161616161'}})
+
+        with db_session:
+            ts = self.session.lm.mds.TorrentState(infohash='a' * 20)
+            previous_check = ts.last_check
+            self.torrent_checker.on_gui_request_completed(infohash, result)
+            self.assertEqual(result[0][1][tracker1][0]['leechers'], ts.leechers)
+            self.assertEqual(result[0][1][tracker1][0]['seeders'], ts.seeders)
+            self.assertLess(previous_check, ts.last_check)
