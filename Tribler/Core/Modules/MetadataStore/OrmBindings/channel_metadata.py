@@ -193,7 +193,7 @@ def define_binding(db):
             torrent_date = datetime.utcfromtimestamp(torrent['creation date'])
 
             return {"infohash": infohash, "num_entries": self.contents_len,
-                    "timestamp": new_timestamp, "torrent_date": torrent_date}
+                    "timestamp": new_timestamp, "torrent_date": torrent_date}, torrent
 
         def commit_channel_torrent(self, new_start_timestamp=None):
             """
@@ -202,12 +202,13 @@ def define_binding(db):
             :return The new infohash, should be used to update the downloads
             """
             new_infohash = None
+            torrent = None
             md_list = self.staged_entries_list
             if not md_list:
                 return None
 
             try:
-                update_dict = self.update_channel_torrent(md_list)
+                update_dict, torrent = self.update_channel_torrent(md_list)
             except IOError:
                 self._logger.error(
                     "Error during channel torrent commit, not going to garbage collect the channel. Channel %s",
@@ -230,7 +231,7 @@ def define_binding(db):
 
                 self._logger.info("Channel %s committed with %i new entries. New version is %i",
                                   str(self.public_key).encode("hex"), len(md_list), update_dict['timestamp'])
-            return new_infohash
+            return torrent
 
         @db_session
         def get_torrent(self, infohash):
@@ -412,7 +413,7 @@ def define_binding(db):
             :rtype: list
             """
             if only_subscribed:
-                select_lambda = lambda g: g.subscribed == True and g.status != LEGACY_ENTRY and g.num_entries > 0
+                select_lambda = lambda g: g.subscribed and g.status != LEGACY_ENTRY and g.num_entries > 0
             else:
                 select_lambda = lambda g: g.status != LEGACY_ENTRY and g.num_entries > 0
 
@@ -433,8 +434,7 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_channels(cls, first=1, last=50, sort_by=None, sort_asc=True, query_filter=None, subscribed=False,
-                         hide_xxx=False):
+        def get_channels(cls, first=1, last=50, subscribed=False, hide_xxx=False, **kwargs):
             """
             Get some channels. Optionally sort the results by a specific field, or filter the channels based
             on a keyword/whether you are subscribed to it.
@@ -442,8 +442,7 @@ def define_binding(db):
                      the total number of results, regardless the passed first/last parameter.
             """
             # TODO: rewrite this with **kwargs expansion
-            pony_query = ChannelMetadata.get_entries_query(sort_by=sort_by, sort_asc=sort_asc,
-                                                           query_filter=query_filter)
+            pony_query = ChannelMetadata.get_entries_query(**kwargs)
 
             # Filter subscribed/non-subscribed
             if subscribed:

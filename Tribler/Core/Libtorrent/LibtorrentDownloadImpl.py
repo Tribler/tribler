@@ -62,9 +62,10 @@ class VODFile(object):
 
         self._logger.debug('VODFile: get bytes %s - %s', oldpos, oldpos + args[0])
 
-        while not self._file.closed and self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos,
-                                                                           oldpos + args[
-                                                                               0])]) < 1 and self._download.vod_seekpos is not None:
+        while not self._file.closed \
+                and self._download.get_byte_progress(
+            [(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1 \
+                and self._download.vod_seekpos is not None:
             time.sleep(1)
 
         if self._file.closed:

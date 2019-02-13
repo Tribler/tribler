@@ -12,7 +12,7 @@ from Tribler.Core.Modules.MetadataStore.OrmBindings import torrent_metadata, cha
     torrent_state, tracker_state, channel_node, misc
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import BLOB_EXTENSION
 from Tribler.Core.Modules.MetadataStore.serialization import read_payload_with_offset, REGULAR_TORRENT, \
-    CHANNEL_TORRENT, DELETED, ChannelMetadataPayload, int2time, time2int
+    CHANNEL_TORRENT, DELETED, ChannelMetadataPayload, time2int
 # This table should never be used from ORM directly.
 # It is created as a VIRTUAL table by raw SQL and
 # maintained by SQL triggers.
@@ -100,21 +100,14 @@ class MetadataStore(object):
         # at definition.
         self._db = orm.Database()
 
-        # Accessors for ORM-managed classes
-        # self.Author = author.define_binding(self._db)
-
         self.MiscData = misc.define_binding(self._db)
 
         self.TrackerState = tracker_state.define_binding(self._db)
         self.TorrentState = torrent_state.define_binding(self._db)
 
-        self.ChannelNode = channel_node.define_binding(self._db)
+        self.ChannelNode = channel_node.define_binding(self._db, logger=self._logger, key=my_key, clock=self.clock)
         self.TorrentMetadata = torrent_metadata.define_binding(self._db)
         self.ChannelMetadata = channel_metadata.define_binding(self._db)
-
-        self.ChannelNode._logger = self._logger  # Use Store-level logger for every ORM-based class
-        self.ChannelNode._my_key = my_key
-        self.ChannelNode._clock = self.clock
 
         self.ChannelMetadata._channels_dir = channels_dir
 
@@ -194,11 +187,8 @@ class MetadataStore(object):
         with open(filepath, 'rb') as f:
             serialized_data = f.read()
 
-        if filepath.endswith('.lz4'):
-            return self.process_compressed_mdblob(serialized_data)
-        else:
-            return self.process_squashed_mdblob(serialized_data)
-
+        return (self.process_compressed_mdblob(serialized_data) if filepath.endswith('.lz4') else
+                self.process_squashed_mdblob(serialized_data))
     @db_session
     def process_compressed_mdblob(self, compressed_data):
         return self.process_squashed_mdblob(lz4.frame.decompress(compressed_data))

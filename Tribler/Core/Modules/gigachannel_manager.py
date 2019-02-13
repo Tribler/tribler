@@ -28,7 +28,17 @@ class GigaChannelManager(TaskManager):
         The Metadata Store checks the database at regular intervals to see if new channels are available for preview
         or subscribed channels require updating.
         """
-        self.updated_my_channel()  # Just in case
+
+        # Test if we our channel is there, but we don't share it because Tribler was closed unexpectedly
+        try:
+            with db_session:
+                my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
+            if my_channel and my_channel.status == COMMITTED and \
+                    not self.session.has_download(str(my_channel.infohash)):
+                torrent_path = os.path.join(self.session.lm.mds.channels_dir, my_channel.dir_name + ".torrent")
+                self.updated_my_channel(TorrentDef.load(torrent_path))
+        except:
+            pass
 
         channels_check_interval = 5.0  # seconds
         lcall = LoopingCall(self.service_channels)
@@ -63,7 +73,7 @@ class GigaChannelManager(TaskManager):
         # TODO: add some more advanced logic for removal of older channel versions
         cruft_list = [(d, d.get_def().get_name_utf8() not in dirnames) \
                       for d in self.session.lm.get_channel_downloads() \
-                      if (bytes(d.get_def().infohash) not in subscribed_infohashes)]
+                      if bytes(d.get_def().infohash) not in subscribed_infohashes]
         self.remove_channels_downloads(cruft_list)
 
     def service_channels(self):
@@ -109,24 +119,9 @@ class GigaChannelManager(TaskManager):
         if finished_deferred:
             finished_deferred.callback(download)
 
-    @db_session
-    def remove_channel(self, channel):
-        """
-        Remove a channel from your local database/download list.
-        :param channel: The channel to remove.
-        """
-        channel.subscribed = False
-        channel.remove_contents()
-        channel.local_version = 0
-
-        # Remove all stuff matching the channel dir name / public key / torrent title
-        remove_list = [(d, True) for d in self.session.lm.get_channel_downloads() if
-                       d.tdef.get_name_utf8() == channel.dir_name]
-        self.remove_channels_downloads(remove_list)
-
     # TODO: finish this routine
     # This thing should check if the files in the torrent we're going to delete are used in another torrent for
-    # a newer version of the same channel, and determine a safe sub-set to delete.
+    # the newer version of the same channel, and determine a safe sub-set to delete.
     """
     def safe_files_to_remove(self, download):
         # Check for intersection of files from old download with files from the newer version of the same channel
@@ -149,6 +144,8 @@ class GigaChannelManager(TaskManager):
         """
         :param to_remove_list: list of tuples (download_to_remove=download, remove_files=Bool)
         """
+
+        #TODO: make file removal from older versions safe (i.e. check if it overlaps with newer downloads)
 
         """
         files_to_remove = []
@@ -196,27 +193,14 @@ class GigaChannelManager(TaskManager):
             download.finished_callback(download)
         return download, finished_deferred
 
-    def updated_my_channel(self):
+    def updated_my_channel(self, tdef):
         """
         Notify the core that we updated our channel.
         """
-        try:
+        with db_session:
             my_channel = self.session.lm.mds.ChannelMetadata.get_my_channel()
-            if my_channel and my_channel.status == COMMITTED and \
-                    not self.session.has_download(str(my_channel.infohash)):
-                torrent_path = os.path.join(self.session.lm.mds.channels_dir, my_channel.dir_name + ".torrent")
-            else:
-                return
-
-            tdef = TorrentDef.load(torrent_path)
+        if my_channel and my_channel.status == COMMITTED and not self.session.has_download(str(my_channel.infohash)):
             dcfg = DownloadStartupConfig()
             dcfg.set_dest_dir(self.session.lm.mds.channels_dir)
             dcfg.set_channel_download(True)
             self.session.lm.add(tdef, dcfg)
-        except:
-            # Ugly recursive workaround for race condition when the torrent file is not there
-            # FIXME: stop using intermediary torrent file for personal channel
-            taskname = "updated_my_channel delayed attempt"
-            if not self.is_pending_task_active(taskname):
-                d = task.deferLater(reactor, 7, self.updated_my_channel)
-                self.register_task(taskname, d)

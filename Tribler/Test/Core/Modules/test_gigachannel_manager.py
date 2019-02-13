@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 from pony.orm import db_session
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, Deferred
 
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
@@ -123,11 +123,16 @@ class TestGigaChannelManager(TriblerCoreTest):
             def __init__(self, infohash, dirname):
                 self.infohash = infohash
                 self.dirname = dirname
+                self.tdef = MockObject()
+                self.tdef.get_name_utf8 = lambda : self.dirname
+                self.tdef.get_infohash = lambda : infohash
+
 
             def get_def(self):
                 a = MockObject()
                 a.infohash = self.infohash
                 a.get_name_utf8 = lambda: self.dirname
+                a.get_infohash = lambda : self.infohash
                 return a
 
         # Double conversion is required to make sure that buffers signatures are not the same
@@ -151,10 +156,14 @@ class TestGigaChannelManager(TriblerCoreTest):
 
         self.remove_list = []
 
-        def mock_remove_channels_downloads(remove_list):
-            self.remove_list = remove_list
+        def mock_remove_download(infohash, remove_content=False):
+            d = Deferred()
+            d.callback(None)
+            self.remove_list.append((infohash,remove_content))
+            return d
 
-        self.chanman.remove_channels_downloads = mock_remove_channels_downloads
+        self.chanman.session.remove_download = mock_remove_download
+
         self.mock_session.lm.get_channel_downloads = mock_get_channel_downloads
         self.chanman.remove_cruft_channels()
         # We want to remove torrents for (a) deleted channels and (b) unsubscribed channels
@@ -164,3 +173,7 @@ class TestGigaChannelManager(TriblerCoreTest):
                                (mock_dl_list[4], True),
                                (mock_dl_list[5], True),
                                (mock_dl_list[6], True)])
+
+
+
+

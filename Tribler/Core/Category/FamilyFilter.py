@@ -83,8 +83,7 @@ class XXXFilter(object):
         num_xxx = len([w for w in words + words2 if self.isXXXTerm(w, s)])
         if nonXXXFormat or (isFilename and self.isAudio(s)):
             return num_xxx > 2  # almost never classify mp3 as porn
-        else:
-            return num_xxx > 0
+        return num_xxx > 0
 
     def foundXXXTerm(self, s):
         for term in self.xxx_searchterms:

@@ -66,6 +66,18 @@ class TestGetUniformedTrackerUrl(TriblerCoreTest):
         result = get_uniformed_tracker_url(u'')
         self.assertIsNone(result)
 
+    def test_skip_truncated_url(self):
+        result = get_uniformed_tracker_url(u'http://tracker.1337x.org:80/anno...')
+        self.assertIsNone(result)
+
+    def test_skip_wrong_url_scheme(self):
+        result = get_uniformed_tracker_url(u'ftp://tracker.1337x.org:80/announce')
+        self.assertIsNone(result)
+
+    def test_skip_value_error(self):
+        result = get_uniformed_tracker_url("ftp://tracker.1337\xffx.org:80/announce")
+        self.assertIsNone(result)
+
 
 
 class TestParseTrackerUrl(TriblerCoreTest):
