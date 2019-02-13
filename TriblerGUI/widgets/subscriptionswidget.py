@@ -74,7 +74,7 @@ class SubscriptionsWidget(QWidget):
                                              self.on_channel_subscribed, method='PUT')
 
     def on_channel_unsubscribed(self, json_result):
-        if not json_result:
+        if not json_result or not self:
             return
         if json_result["unsubscribed"]:
             self.unsubscribed_channel.emit(self.channel_info)
