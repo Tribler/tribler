@@ -441,7 +441,6 @@ def define_binding(db):
             :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
                      the total number of results, regardless the passed first/last parameter.
             """
-            # TODO: rewrite this with **kwargs expansion
             pony_query = ChannelMetadata.get_entries_query(**kwargs)
 
             # Filter subscribed/non-subscribed

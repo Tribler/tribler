@@ -83,7 +83,7 @@ class DispersyToPonyMigration(object):
                                  "public_key": dispesy_cid_to_pk(id_),
                                  "timestamp": final_timestamp(),
                                  "votes": int(nr_favorite or 0),
-                                 #"xxx": float(nr_spam or 0),
+                                 # "xxx": float(nr_spam or 0),
                                  "origin_id": 0,
                                  "signature": pseudo_signature(),
                                  "skip_key_check": True,

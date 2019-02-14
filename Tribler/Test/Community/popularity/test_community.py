@@ -41,6 +41,7 @@ class TestPopularityCommunity(TestBase):
         Tests publishing next available content.
         :return:
         """
+
         def on_torrent_health_response(peer, source_address, data):
             peer.torrent_health_response_received = True
 

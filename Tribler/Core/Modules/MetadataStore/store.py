@@ -78,9 +78,9 @@ class DiscreteClock(object):
     def init_clock(self):
         if self.datastore:
             with db_session:
-                self.store_object = self.datastore.get(name=self.store_value_name, )
-                if not self.store_object:
-                    self.store_object = self.datastore(name=self.store_value_name, value=str(self.clock))
+                store_object = self.datastore.get(name=self.store_value_name, )
+                if not store_object:
+                    self.datastore(name=self.store_value_name, value=str(self.clock))
                 else:
                     self.clock = int(self.store_object.value)
 
