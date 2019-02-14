@@ -232,6 +232,8 @@ class MetadataStore(object):
             elif payload.metadata_type == CHANNEL_TORRENT:
                 return self.update_channel_info(payload)
 
+            return None, NO_ACTION
+
     @db_session
     def update_channel_info(self, payload):
         """
