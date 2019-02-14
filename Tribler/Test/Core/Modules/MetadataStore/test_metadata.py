@@ -6,6 +6,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Modules.MetadataStore.serialization import KeysMismatchException, ChannelNodePayload
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
+from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
@@ -20,8 +21,7 @@ class TestMetadata(TriblerCoreTest):
     def setUp(self):
         yield super(TestMetadata, self).setUp()
         self.my_key = default_eccrypto.generate_key(u"curve25519")
-        self.mds = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir,
-                                 self.my_key)
+        self.mds = MetadataStore(':memory:', self.session_base_dir, self.my_key)
 
     @inlineCallbacks
     def tearDown(self):
@@ -49,6 +49,11 @@ class TestMetadata(TriblerCoreTest):
         metadata2 = self.mds.ChannelNode.from_payload(ChannelNodePayload.from_signed_blob(serialized1))
         serialized2 = metadata2.serialized()
         self.assertEqual(serialized1, serialized2)
+
+        serialized3 = serialized2[:-5] + "\xee" * 5
+        self.assertRaises(InvalidSignatureException, ChannelNodePayload.from_signed_blob, serialized3)
+        # Test bypass signature check
+        ChannelNodePayload.from_signed_blob(serialized3, check_signature=False)
 
     @db_session
     def test_key_mismatch_exception(self):

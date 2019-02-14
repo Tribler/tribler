@@ -36,8 +36,7 @@ class TestGigaChannelManager(TriblerCoreTest):
         my_key = default_eccrypto.generate_key(u"curve25519")
         self.mock_session = MockObject()
         self.mock_session.lm = MockObject()
-        self.mock_session.lm.mds = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir,
-                                                 my_key)
+        self.mock_session.lm.mds = MetadataStore(":memory:", self.session_base_dir, my_key)
 
         self.chanman = GigaChannelManager(self.mock_session)
 

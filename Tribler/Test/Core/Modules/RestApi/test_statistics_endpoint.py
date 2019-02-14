@@ -26,7 +26,7 @@ class TestStatisticsEndpoint(AbstractApiTest):
         self.session.lm.ipv8 = self.mock_ipv8
         self.session.config.set_ipv8_enabled(True)
         my_key = default_eccrypto.generate_key(u"curve25519")
-        self.session.lm.mds = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir, my_key)
+        self.session.lm.mds = MetadataStore(":memory:", self.session_base_dir, my_key)
 
     @inlineCallbacks
     def tearDown(self):
