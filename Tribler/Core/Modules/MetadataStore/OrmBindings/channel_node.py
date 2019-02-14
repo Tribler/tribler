@@ -40,7 +40,7 @@ def generate_dict_from_pony_args(cls, skip_list=None, **kwargs):
     return d
 
 
-def define_binding(db):
+def define_binding(db, logger=None, key=None, clock=None):
     class ChannelNode(db.Entity):
         _discriminator_ = CHANNEL_NODE
 
@@ -67,9 +67,9 @@ def define_binding(db):
 
         # Special properties
         _payload_class = ChannelNodePayload
-        _my_key = None
-        _logger = None
-        _clock = None
+        _my_key = key
+        _logger = logger
+        _clock = clock
 
         def __init__(self, *args, **kwargs):
             """

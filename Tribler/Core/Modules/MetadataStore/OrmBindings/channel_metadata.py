@@ -193,7 +193,7 @@ def define_binding(db):
             torrent_date = datetime.utcfromtimestamp(torrent['creation date'])
 
             return {"infohash": infohash, "num_entries": self.contents_len,
-                    "timestamp": new_timestamp, "torrent_date": torrent_date}
+                    "timestamp": new_timestamp, "torrent_date": torrent_date}, torrent
 
         def commit_channel_torrent(self, new_start_timestamp=None):
             """
@@ -202,12 +202,13 @@ def define_binding(db):
             :return The new infohash, should be used to update the downloads
             """
             new_infohash = None
+            torrent = None
             md_list = self.staged_entries_list
             if not md_list:
                 return None
 
             try:
-                update_dict = self.update_channel_torrent(md_list)
+                update_dict, torrent = self.update_channel_torrent(md_list)
             except IOError:
                 self._logger.error(
                     "Error during channel torrent commit, not going to garbage collect the channel. Channel %s",
@@ -230,7 +231,7 @@ def define_binding(db):
 
                 self._logger.info("Channel %s committed with %i new entries. New version is %i",
                                   str(self.public_key).encode("hex"), len(md_list), update_dict['timestamp'])
-            return new_infohash
+            return torrent
 
         @db_session
         def get_torrent(self, infohash):

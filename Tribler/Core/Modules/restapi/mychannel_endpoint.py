@@ -326,7 +326,8 @@ class MyChannelCommitEndpoint(BaseMyChannelEndpoint):
                 request.setResponseCode(http.NOT_FOUND)
                 return json.dumps({"error": "your channel has not been created"})
 
-            if my_channel.commit_channel_torrent():
-                self.session.lm.gigachannel_manager.updated_my_channel()
+            torrent_dict = my_channel.commit_channel_torrent()
+            if torrent_dict:
+                self.session.lm.gigachannel_manager.updated_my_channel(TorrentDef(metainfo=torrent_dict))
 
         return json.dumps({"success": True})

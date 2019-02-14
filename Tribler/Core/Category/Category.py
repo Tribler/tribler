@@ -22,12 +22,12 @@ def cmp_rank(a, b):
         return 1
     if 'rank' not in b:
         return -1
+    if a['rank'] == b['rank']:
+        return 0
     if a['rank'] == -1:
         return 1
     if b['rank'] == -1:
         return -1
-    if a['rank'] == b['rank']:
-        return 0
     if a['rank'] < b['rank']:
         return -1
     return 1
@@ -102,9 +102,9 @@ class Category(object):
                 pass
         if (1 - factor) > 0.5:
             if 'strength' in category:
-                return (True, category['strength'])
+                return True, category['strength']
             else:
-                return (True, (1 - factor))
+                return True, (1 - factor)
 
         # judge each file
         matchSize = 0
