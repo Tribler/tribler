@@ -23,7 +23,8 @@ class TestPopularityCommunity(TestBase):
         self.initialize(PopularityCommunity, self.NUM_NODES)
 
     def create_node(self, *args, **kwargs):
-        mds = MetadataStore(':memory:', self.temporary_directory(), self.shared_key)
+        mds = MetadataStore(os.path.join(self.temporary_directory(), 'test.db'), self.temporary_directory(),
+                            self.shared_key)
 
         # Add some content to the metadata database
         with db_session:

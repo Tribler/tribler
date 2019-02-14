@@ -113,7 +113,7 @@ class TestMetadataStore(TriblerCoreTest):
         num_entries = 10
         channel = self.mds.ChannelMetadata(title='testchan')
         md_list = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW) for x in range(0, num_entries)]
-        channel.commit_channel_node()
+        channel.commit_channel_torrent()
 
         channel.local_version = 0
         for md in md_list:
@@ -183,6 +183,6 @@ class TestMetadataStore(TriblerCoreTest):
         md_list = [self.mds.TorrentMetadata(title='test' + str(x), status=NEW) for x in range(0, 3)]
 
         self.assertEqual(4, self.mds.get_num_channels())
-        self.assertEqual(3, self.mds.get_num_nodes())
+        self.assertEqual(3, self.mds.get_num_torrents())
 
 
