@@ -174,27 +174,27 @@ class TorrentChecker(TaskManager):
     def get_valid_trackers_of_torrent(self, torrent_id):
         """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
         db_tracker_list = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(torrent_id)).trackers
-        return set([str(tracker.url) for tracker in db_tracker_list if
-                    is_valid_url(str(tracker.url)) or str(tracker.url) == u'DHT'])
+        return set([str(tracker.url) for tracker in db_tracker_list if is_valid_url(str(tracker.url))])
 
     def on_gui_request_completed(self, infohash, result):
         final_response = {}
 
         torrent_update_dict = {'infohash': infohash, 'seeders': 0, 'leechers': 0, 'last_check': int(time.time())}
-        for success, response in result:
+        for success, response in reversed(result):
             if not success and isinstance(response, Failure):
                 final_response[response.tracker_url] = {'error': response.getErrorMessage()}
                 continue
-
-            response_seeders = response[response.keys()[0]][0]['seeders']
-            response_leechers = response[response.keys()[0]][0]['leechers']
-            if response_seeders > torrent_update_dict['seeders'] or \
-                    (response_seeders == torrent_update_dict['seeders']
-                     and response_leechers < torrent_update_dict['leechers']):
-                torrent_update_dict['seeders'] = response_seeders
-                torrent_update_dict['leechers'] = response_leechers
-
             final_response[response.keys()[0]] = response[response.keys()[0]][0]
+
+            s = response[response.keys()[0]][0]['seeders']
+            l = response[response.keys()[0]][0]['leechers']
+
+            # Less leeches is better, except for the zero seeds case. I.e. s0 l2 > s0 l1
+            if s > torrent_update_dict['seeders'] or \
+                    (s == torrent_update_dict['seeders'] and l < torrent_update_dict['leechers']) or \
+                    (s == 0 and torrent_update_dict['seeders'] == 0 and l > torrent_update_dict['leechers']):
+                torrent_update_dict['seeders'] = s
+                torrent_update_dict['leechers'] = l
 
         self._update_torrent_result(torrent_update_dict)
 

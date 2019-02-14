@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import socket
 import time
+from binascii import hexlify
 
 from pony.orm import db_session
 from twisted.internet.defer import Deferred, inlineCallbacks
@@ -212,27 +213,27 @@ class TestTorrentChecker(TestAsServer):
     def test_on_gui_request_completed(self):
         tracker1 = 'udp://localhost:2801'
         tracker2 = "http://badtracker.org/announce"
-        infohash = "a" * 20
+        infohash_bin = '\xee'*20
+        infohash_hex = hexlify(infohash_bin)
         self.session.lm.popularity_community.queue_content = lambda _: None
 
         failure = Failure()
         failure.tracker_url = tracker2
         result = [
-            (True, {tracker1: [{'leechers': 11, 'seeders': 12, 'infohash': '6161616161616161616161616161616161616161'}]}),
+            (True, {tracker1: [{'leechers': 1, 'seeders': 2, 'infohash': infohash_hex}]}),
             (False, failure),
-            (True, {'DHT': [{'leechers': 2, 'seeders': 1, 'infohash': '6161616161616161616161616161616161616161'}]})
+            (True, {'DHT': [{'leechers': 12, 'seeders': 13, 'infohash': infohash_hex}]})
         ]
         # Check that everything works fine even if the database contains no proper infohash
-        self.torrent_checker.on_gui_request_completed(infohash, result)
-        self.assertEqual(self.torrent_checker.on_gui_request_completed(infohash, result),
-                         {'DHT': {'leechers': 2, 'seeders': 1, 'infohash': '6161616161616161616161616161616161616161'},
-                          'http://badtracker.org/announce': {'error': ''},
-                          'udp://localhost:2801': {'leechers': 11, 'seeders': 12, 'infohash': '6161616161616161616161616161616161616161'}})
+        self.torrent_checker.on_gui_request_completed(infohash_bin, result)
+        self.assertDictEqual(self.torrent_checker.on_gui_request_completed(infohash_bin, result),
+                         {'DHT': {'leechers': 12, 'seeders': 13, 'infohash': infohash_hex},
+                          'http://badtracker.org/announce': {'error': ''}, 'udp://localhost:2801': {'leechers': 1, 'seeders': 2, 'infohash': infohash_hex}})
 
         with db_session:
-            ts = self.session.lm.mds.TorrentState(infohash='a' * 20)
+            ts = self.session.lm.mds.TorrentState(infohash=infohash_bin)
             previous_check = ts.last_check
-            self.torrent_checker.on_gui_request_completed(infohash, result)
-            self.assertEqual(result[0][1][tracker1][0]['leechers'], ts.leechers)
-            self.assertEqual(result[0][1][tracker1][0]['seeders'], ts.seeders)
+            self.torrent_checker.on_gui_request_completed(infohash_bin, result)
+            self.assertEqual(result[2][1]['DHT'][0]['leechers'], ts.leechers)
+            self.assertEqual(result[2][1]['DHT'][0]['seeders'], ts.seeders)
             self.assertLess(previous_check, ts.last_check)
