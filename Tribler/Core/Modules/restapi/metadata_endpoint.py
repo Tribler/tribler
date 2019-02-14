@@ -28,7 +28,6 @@ class BaseMetadataEndpoint(resource.Resource):
             "query_filter": None if 'filter' not in parameters else cast_to_unicode_utf8(parameters['filter'][0]),
             "hide_xxx": False if 'hide_xxx' not in parameters else bool(int(parameters['hide_xxx'][0]) > 0)}
 
-        # TODO: stop using tuples, do proper dict
         return sanitized
 
 

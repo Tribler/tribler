@@ -9,6 +9,7 @@ from pony.orm import db_session
 from six.moves import xrange
 from twisted.internet.defer import inlineCallbacks
 
+from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import TODELETE
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
@@ -29,8 +30,7 @@ class TestTorrentMetadata(TriblerCoreTest):
             "tags": "video"
         }
         self.my_key = default_eccrypto.generate_key(u"curve25519")
-        self.mds = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir,
-                                 self.my_key)
+        self.mds = MetadataStore(':memory:', self.session_base_dir, self.my_key)
 
     @inlineCallbacks
     def tearDown(self):
@@ -151,6 +151,9 @@ class TestTorrentMetadata(TriblerCoreTest):
         autocomplete_terms = self.mds.TorrentMetadata.get_auto_complete_terms("shee", 10)
         self.assertIn('sheepish', autocomplete_terms)
 
+        autocomplete_terms = self.mds.TorrentMetadata.get_auto_complete_terms("", 10)
+        self.assertEqual([], autocomplete_terms)
+
     @db_session
     def test_get_autocomplete_terms_max(self):
         """
@@ -165,6 +168,7 @@ class TestTorrentMetadata(TriblerCoreTest):
 
         autocomplete_terms = self.mds.TorrentMetadata.get_auto_complete_terms("sheep", 2)
         self.assertEqual(len(autocomplete_terms), 2)
+        # Check that we can chew the special character "."
         autocomplete_terms = self.mds.TorrentMetadata.get_auto_complete_terms(".", 2)
 
     @db_session
@@ -174,11 +178,13 @@ class TestTorrentMetadata(TriblerCoreTest):
         """
 
         # First we create a few channels and add some torrents to these channels
+        tlist = []
         for ind in xrange(5):
             self.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
             _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0))
-            for torrent_ind in xrange(5):
-                _ = self.mds.TorrentMetadata(title='torrent%d' % torrent_ind)
+            tlist.extend([self.mds.TorrentMetadata(title='torrent%d' % torrent_ind) for torrent_ind in xrange(5)])
+        tlist[-1].xxx = 1
+        tlist[-2].status = TODELETE
 
         torrents = self.mds.ChannelMetadata.get_torrents(first=1, last=5)
         self.assertEqual(len(torrents[0]), 5)
@@ -189,6 +195,10 @@ class TestTorrentMetadata(TriblerCoreTest):
         torrents = self.mds.ChannelMetadata.get_torrents(first=1, last=10, sort_by='title', channel_pk=channel_pk)
         self.assertEqual(len(torrents[0]), 5)
         self.assertEqual(torrents[1], 5)
+
+        torrents = self.mds.ChannelMetadata.get_torrents(channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True)
+        self.assertListEqual(torrents[0][:], tlist[-5:-2])
+        self.assertEqual(torrents[1], 3)
 
     @db_session
     def test_metadata_conflicting(self):

@@ -20,7 +20,7 @@ class TestContentRepository(TriblerCoreTest):
     def setUp(self):
         yield super(TestContentRepository, self).setUp()
         self.my_key = default_eccrypto.generate_key(u"curve25519")
-        mds = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir, self.my_key)
+        mds = MetadataStore(':memory:', self.session_base_dir, self.my_key)
         self.content_repository = ContentRepository(mds)
 
         # Add some content to the metadata database

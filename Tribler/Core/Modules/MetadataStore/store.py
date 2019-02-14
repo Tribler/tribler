@@ -65,23 +65,30 @@ class BadChunkException(Exception):
 class DiscreteClock(object):
     # Lamport-clock-like persistent counter
     # Horribly inefficient and stupid, but works
-    def __init__(self, filename=None):
-        self.filename = filename
+    store_value_name = "discrete_clock"
+
+    def __init__(self, datastore=None):
         # This is a stupid workaround for people who reinstall Tribler
         # and lose their database. We don't know what was their channel
         # clock before, but at least we can assume that they were not
         # adding to it 1000 torrents per second constantly...
         self.clock = time2int(datetime.utcnow()) * 1000
-        # Read the clock from the disk if the filename is given
-        if self.filename and os.path.isfile(self.filename):
-            with open(self.filename, 'rb') as f:
-                self.clock = int(f.read())
+        self.datastore = datastore
+
+    def init_clock(self):
+        if self.datastore:
+            with db_session:
+                store_object = self.datastore.get(name=self.store_value_name, )
+                if not store_object:
+                    self.datastore(name=self.store_value_name, value=str(self.clock))
+                else:
+                    self.clock = int(store_object.value)
 
     def tick(self):
         self.clock += 1
-        if self.filename:
-            with open(self.filename, 'wb') as f:
-                f.write(str(self.clock))
+        if self.datastore:
+            with db_session:
+                self.datastore[self.store_value_name].value = str(self.clock)
         return self.clock
 
 
@@ -91,7 +98,6 @@ class MetadataStore(object):
         self.channels_dir = channels_dir
         self.my_key = my_key
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.clock = DiscreteClock(None if db_filename == ":memory:" else os.path.join(channels_dir, CLOCK_STATE_FILE))
 
         create_db = (db_filename == ":memory:" or not os.path.isfile(self.db_filename))
 
@@ -104,6 +110,8 @@ class MetadataStore(object):
 
         self.TrackerState = tracker_state.define_binding(self._db)
         self.TorrentState = torrent_state.define_binding(self._db)
+
+        self.clock = DiscreteClock(None if db_filename == ":memory:" else self.MiscData)
 
         self.ChannelNode = channel_node.define_binding(self._db, logger=self._logger, key=my_key, clock=self.clock)
         self.TorrentMetadata = torrent_metadata.define_binding(self._db)
@@ -128,6 +136,8 @@ class MetadataStore(object):
         if create_db:
             with db_session:
                 self.MiscData(name="db_version", value="0")
+
+        self.clock.init_clock()
 
     def shutdown(self):
         self._db.disconnect()
@@ -221,6 +231,8 @@ class MetadataStore(object):
                 return self.TorrentMetadata.from_payload(payload), UNKNOWN_TORRENT
             elif payload.metadata_type == CHANNEL_TORRENT:
                 return self.update_channel_info(payload)
+
+            return None, NO_ACTION
 
     @db_session
     def update_channel_info(self, payload):

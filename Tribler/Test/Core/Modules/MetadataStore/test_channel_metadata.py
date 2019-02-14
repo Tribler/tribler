@@ -38,8 +38,7 @@ class TestChannelMetadata(TriblerCoreTest):
             "tags": "video"
         }
         self.my_key = default_eccrypto.generate_key(u"curve25519")
-        self.mds = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir,
-                                 self.my_key)
+        self.mds = MetadataStore(":memory:", self.session_base_dir, self.my_key)
 
     @inlineCallbacks
     def tearDown(self):

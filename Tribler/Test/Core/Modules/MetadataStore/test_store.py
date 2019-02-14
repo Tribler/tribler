@@ -11,8 +11,10 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import entries_to_chunk, CHANNEL_DIR_NAME_LENGTH
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW
 from Tribler.Core.Modules.MetadataStore.serialization import (ChannelMetadataPayload, SignedPayload,
-                                                              UnknownBlobTypeException)
-from Tribler.Core.Modules.MetadataStore.store import MetadataStore
+                                                              UnknownBlobTypeException, ChannelNodePayload,
+                                                              DeletedMetadataPayload)
+from Tribler.Core.Modules.MetadataStore.store import MetadataStore, GOT_SAME_VERSION, NO_ACTION, DELETED_METADATA, \
+    UNKNOWN_TORRENT, UNKNOWN_CHANNEL
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.keyvault.crypto import default_eccrypto
@@ -40,7 +42,7 @@ class TestMetadataStore(TriblerCoreTest):
     def setUp(self):
         yield super(TestMetadataStore, self).setUp()
         my_key = default_eccrypto.generate_key(u"curve25519")
-        self.mds = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir, my_key)
+        self.mds = MetadataStore(":memory:", self.session_base_dir, my_key)
 
     @inlineCallbacks
     def tearDown(self):
@@ -50,14 +52,14 @@ class TestMetadataStore(TriblerCoreTest):
     @db_session
     def test_process_channel_dir_file(self):
         """
-        Test whether we are able to process files in a directory containing torrent metadata
+        Test whether we are able to process files in a directory containing node metadata
         """
 
-        test_torrent_metadata = self.mds.TorrentMetadata(title='test')
+        test_node_metadata = self.mds.TorrentMetadata(title='test')
         metadata_path = os.path.join(self.session_base_dir, 'metadata.data')
-        test_torrent_metadata.to_file(metadata_path)
+        test_node_metadata.to_file(metadata_path)
         # We delete this TorrentMeta info now, it should be added again to the database when loading it
-        test_torrent_metadata.delete()
+        test_node_metadata.delete()
         loaded_metadata = self.mds.process_mdblob_file(metadata_path)
         self.assertEqual(loaded_metadata[0][0].title, 'test')
 
@@ -136,7 +138,43 @@ class TestMetadataStore(TriblerCoreTest):
         self.assertEqual(channel.local_version, channel.timestamp)
 
     @db_session
-    def test_get_num_channels_torrents(self):
+    def test_process_payload(self):
+        def get_payloads(entity_class):
+            c = entity_class()
+            payload = c._payload_class.from_signed_blob(c.serialized())
+            deleted_payload = DeletedMetadataPayload.from_signed_blob(c.serialized_delete())
+            return c, payload, deleted_payload
+
+        _, node_payload, node_deleted_payload = get_payloads(self.mds.ChannelNode)
+
+        self.assertEqual((None, GOT_SAME_VERSION), self.mds.process_payload(node_payload))
+        self.assertEqual((None, DELETED_METADATA), self.mds.process_payload(node_deleted_payload))
+        # Do nothing in case it is unknown/abstract payload type, like ChannelNode
+        self.assertEqual((None, NO_ACTION), self.mds.process_payload(node_payload))
+
+        # Check if node metadata object is properly created on payload processing
+        node, node_payload, node_deleted_payload = get_payloads(self.mds.TorrentMetadata)
+        node_dict = node.to_dict()
+        node.delete()
+        result = self.mds.process_payload(node_payload)
+        self.assertEqual(UNKNOWN_TORRENT, result[1])
+        self.assertEqual(node_dict['metadata_type'], result[0].to_dict()['metadata_type'])
+
+        # Check the same for a channel
+        node, node_payload, node_deleted_payload = get_payloads(self.mds.ChannelMetadata)
+        node_dict = node.to_dict()
+        node.delete()
+        # Check there is no action if the signature on the delete object is unknown
+        self.assertEqual((None, NO_ACTION), self.mds.process_payload(node_deleted_payload))
+        result = self.mds.process_payload(node_payload)
+        self.assertEqual(UNKNOWN_CHANNEL, result[1])
+        self.assertEqual(node_dict['metadata_type'], result[0].to_dict()['metadata_type'])
+
+
+
+
+    @db_session
+    def test_get_num_channels_nodes(self):
         self.mds.ChannelMetadata(title='testchan', id_=0)
         self.mds.ChannelMetadata(title='testchan', id_=123)
         self.mds.ChannelMetadata(title='testchan', id_=0, public_key=unhexlify('0'*20), signature=unhexlify('0'*64), skip_key_check=True)

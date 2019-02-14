@@ -71,7 +71,7 @@ class TestGetUniformedTrackerUrl(TriblerCoreTest):
         self.assertIsNone(result)
 
     def test_skip_wrong_url_scheme(self):
-        result = get_uniformed_tracker_url(u'ftp://tracker.1337x.org:80/announce')
+        result = get_uniformed_tracker_url(u'wss://tracker.1337x.org:80/announce')
         self.assertIsNone(result)
 
     def test_skip_value_error(self):
