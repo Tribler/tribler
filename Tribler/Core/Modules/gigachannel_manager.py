@@ -63,7 +63,7 @@ class GigaChannelManager(TaskManager):
         # TODO: add some more advanced logic for removal of older channel versions
         cruft_list = [(d, d.get_def().get_name_utf8() not in dirnames) \
                       for d in self.session.lm.get_channel_downloads() \
-                      if (bytes(d.get_def().infohash) not in subscribed_infohashes)]
+                      if bytes(d.get_def().infohash) not in subscribed_infohashes]
         self.remove_channels_downloads(cruft_list)
 
     def service_channels(self):

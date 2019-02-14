@@ -18,20 +18,19 @@ CATEGORY_CONFIG_FILE = "category.conf"
 
 
 def cmp_rank(a, b):
-    if not ('rank' in a):
+    if 'rank' not in a:
         return 1
-    elif not ('rank' in b):
+    if 'rank' not in b:
         return -1
-    elif a['rank'] == -1:
+    if a['rank'] == -1:
         return 1
-    elif b['rank'] == -1:
+    if b['rank'] == -1:
         return -1
-    elif a['rank'] == b['rank']:
+    if a['rank'] == b['rank']:
         return 0
-    elif a['rank'] < b['rank']:
+    if a['rank'] < b['rank']:
         return -1
-    else:
-        return 1
+    return 1
 
 
 class Category(object):

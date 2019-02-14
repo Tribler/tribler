@@ -100,9 +100,6 @@ class MetadataStore(object):
         # at definition.
         self._db = orm.Database()
 
-        # Accessors for ORM-managed classes
-        # self.Author = author.define_binding(self._db)
-
         self.MiscData = misc.define_binding(self._db)
 
         self.TrackerState = tracker_state.define_binding(self._db)

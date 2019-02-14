@@ -103,16 +103,14 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_torrents(cls, first=1, last=50, sort_by=None, sort_asc=True, query_filter=None, channel_pk=False,
-                         exclude_deleted=False, hide_xxx=False):
+        def get_torrents(cls, first=1, last=50, channel_pk=False, exclude_deleted=False, hide_xxx=False, **kwargs):
             """
             Get some torrents. Optionally sort the results by a specific field, or filter the channels based
             on a keyword/whether you are subscribed to it.
             :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
                      the total number of results, regardless the passed first/last parameter.
             """
-            pony_query = TorrentMetadata.get_entries_query(
-                sort_by=sort_by, sort_asc=sort_asc, query_filter=query_filter)
+            pony_query = TorrentMetadata.get_entries_query(**kwargs)
 
             # We only want torrents, not channel torrents
             pony_query = pony_query.where(metadata_type=REGULAR_TORRENT)

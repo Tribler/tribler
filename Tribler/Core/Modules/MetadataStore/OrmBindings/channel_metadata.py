@@ -412,7 +412,7 @@ def define_binding(db):
             :rtype: list
             """
             if only_subscribed:
-                select_lambda = lambda g: g.subscribed == True and g.status != LEGACY_ENTRY and g.num_entries > 0
+                select_lambda = lambda g: g.subscribed and g.status != LEGACY_ENTRY and g.num_entries > 0
             else:
                 select_lambda = lambda g: g.status != LEGACY_ENTRY and g.num_entries > 0
 
@@ -433,8 +433,7 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_channels(cls, first=1, last=50, sort_by=None, sort_asc=True, query_filter=None, subscribed=False,
-                         hide_xxx=False):
+        def get_channels(cls, first=1, last=50, subscribed=False, hide_xxx=False, **kwargs):
             """
             Get some channels. Optionally sort the results by a specific field, or filter the channels based
             on a keyword/whether you are subscribed to it.
@@ -442,8 +441,7 @@ def define_binding(db):
                      the total number of results, regardless the passed first/last parameter.
             """
             # TODO: rewrite this with **kwargs expansion
-            pony_query = ChannelMetadata.get_entries_query(sort_by=sort_by, sort_asc=sort_asc,
-                                                           query_filter=query_filter)
+            pony_query = ChannelMetadata.get_entries_query(**kwargs)
 
             # Filter subscribed/non-subscribed
             if subscribed:
