@@ -59,7 +59,7 @@ class MetadataEndpoint(BaseMetadataEndpoint):
             u'date': "torrent_date",
             u'status': 'status',
             u'torrents': 'num_entries',
-            u'health': 'health.seeders'
+            u'health': 'HEALTH'
         }
 
         if sort_param not in json2pony_columns:
@@ -305,6 +305,10 @@ class TorrentHealthEndpoint(resource.Resource):
         if 'refresh' in request.args and request.args['refresh'] and request.args['refresh'][0] == "1":
             refresh = True
 
+        nowait = False
+        if 'nowait' in request.args and request.args['nowait'] and request.args['nowait'][0] == "1":
+            nowait = True
+
         def on_health_result(result):
             request.write(json.dumps({'health': result}))
             self.finish_request(request)
@@ -317,14 +321,10 @@ class TorrentHealthEndpoint(resource.Resource):
             if not request.finished:
                 self.finish_request(request)
 
-        with db_session:
-            md_list = list(self.session.lm.mds.TorrentMetadata.select(lambda g:
-                                                                      g.infohash == database_blob(self.infohash)))
-        if not md_list:
-            request.setResponseCode(http.NOT_FOUND)
-            request.write(json.dumps({"error": "torrent not found in database"}))
-
-        self.session.check_torrent_health(self.infohash, timeout=timeout, scrape_now=refresh) \
-            .addCallback(on_health_result).addErrback(on_request_error)
+        result_deferred = self.session.check_torrent_health(self.infohash, timeout=timeout, scrape_now=refresh)
+        # return immediately. Used by GUI to schedule health updates through the EventsEndpoint
+        if nowait:
+            return json.dumps({'checking': '1'})
+        result_deferred.addCallback(on_health_result).addErrback(on_request_error)
 
         return NOT_DONE_YET

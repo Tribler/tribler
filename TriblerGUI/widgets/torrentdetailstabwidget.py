@@ -64,7 +64,8 @@ class TorrentDetailsTabWidget(QTabWidget):
             self.health_request_mgr.cancel_request()
             self.is_health_checking = False
 
-        self.update_health_label(torrent_info["torrent"]['num_seeders'], torrent_info["torrent"]['num_leechers'],
+        self.update_health_label(torrent_info["torrent"]['num_seeders'],
+                                 torrent_info["torrent"]['num_leechers'],
                                  torrent_info["torrent"]['last_tracker_check'])
 
         # If we do not have the health of this torrent, query it
@@ -135,9 +136,11 @@ class TorrentDetailsTabWidget(QTabWidget):
 
         self.torrent_detail_health_label.setText("Checking...")
         self.health_request_mgr = TriblerRequestManager()
-        self.health_request_mgr.perform_request("metadata/torrents/%s/health?timeout=%s&refresh=%d" %
-                                                (infohash, timeout, 1),
-                                                self.on_health_response, capture_errors=False, priority="LOW",
+        self.health_request_mgr.perform_request("metadata/torrents/%s/health" % infohash,
+                                                self.on_health_response,
+                                                url_params={"nowait": True,
+                                                            "refresh": True},
+                                                capture_errors=False, priority="LOW",
                                                 on_cancel=on_cancel_health_check)
 
     def on_health_response(self, response):
@@ -148,6 +151,8 @@ class TorrentDetailsTabWidget(QTabWidget):
             self.update_torrent_health(0, 0)  # Just set the health to 0 seeders, 0 leechers
             return
 
+        if 'checking' in response:
+            return
         for _, status in response['health'].items():
             if 'error' in status:
                 continue  # Timeout or invalid status

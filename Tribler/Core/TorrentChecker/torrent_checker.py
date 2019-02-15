@@ -15,6 +15,7 @@ from twisted.web.client import HTTPConnectionPool
 from Tribler.Core.TorrentChecker.session import create_tracker_session, FakeDHTSession, UdpSocketManager
 from Tribler.Core.Utilities.tracker_utils import MalformedTrackerURLException
 from Tribler.Core.Utilities.utilities import is_valid_url
+from Tribler.Core.simpledefs import NTFY_TORRENT, NTFY_UPDATE
 from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.pyipv8.ipv8.taskmanager import TaskManager
 
@@ -189,10 +190,9 @@ class TorrentChecker(TaskManager):
             s = response[response.keys()[0]][0]['seeders']
             l = response[response.keys()[0]][0]['leechers']
 
-            # Less leeches is better, except for the zero seeds case. I.e. s0 l2 > s0 l1
+            # More leeches is better, because undefined peers are marked as leeches in DHT
             if s > torrent_update_dict['seeders'] or \
-                    (s == torrent_update_dict['seeders'] and l < torrent_update_dict['leechers']) or \
-                    (s == 0 and torrent_update_dict['seeders'] == 0 and l > torrent_update_dict['leechers']):
+                    (s == torrent_update_dict['seeders'] and l > torrent_update_dict['leechers']):
                 torrent_update_dict['seeders'] = s
                 torrent_update_dict['leechers'] = l
 
@@ -201,9 +201,15 @@ class TorrentChecker(TaskManager):
         # Add this result to popularity community to publish to subscribers
         self.publish_torrent_result(torrent_update_dict)
 
+        # TODO: DRY! Stop doing lots of formats, just make REST endpoint automatically encode binary data to hex!
+        self.tribler_session.notifier.notify(NTFY_TORRENT, NTFY_UPDATE, infohash,
+                                             {"num_seeders": torrent_update_dict["seeders"],
+                                              "num_leechers": torrent_update_dict["leechers"],
+                                              "last_tracker_check": torrent_update_dict["last_check"],
+                                              "health": "updated"})
         return final_response
 
-    def add_gui_request(self, infohash, timeout=20, scrape_now=False):
+    def add_gui_request(self, infohash, timeout=20, scrape_now=False, notify=False):
         """
         Public API for adding a GUI request.
         :param infohash: Torrent infohash.
@@ -222,7 +228,8 @@ class TorrentChecker(TaskManager):
             if time_diff < self._torrent_check_interval and not scrape_now:
                 self._logger.debug(u"time interval too short, skip GUI request. infohash: %s", hexlify(infohash))
                 return succeed({"db": {"seeders": result.seeders,
-                                       "leechers": result.leechers, "infohash": hexlify(infohash)}})
+                                       "leechers": result.leechers,
+                                       "infohash": hexlify(infohash)}})
 
             # get torrent's tracker list from DB
             tracker_set = self.get_valid_trackers_of_torrent(torrent_id)
@@ -297,18 +304,17 @@ class TorrentChecker(TaskManager):
         leechers = response['leechers']
         last_check = response['last_check']
 
-        # the torrent status logic, TODO: do it in other way
         self._logger.debug(u"Update result %s/%s for %s", seeders, leechers, hexlify(infohash))
 
         with db_session:
             # Update torrent state
-            result = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(infohash))
-            if not result:
+            torrent = self.tribler_session.lm.mds.TorrentState.get(infohash=database_blob(infohash))
+            if not torrent:
                 # Something is wrong, there should exist a corresponding TorrentState entry in the DB.
                 return
-            result.seeders = seeders
-            result.leechers = leechers
-            result.last_check = last_check
+            torrent.seeders = seeders
+            torrent.leechers = leechers
+            torrent.last_check = last_check
 
     def publish_torrent_result(self, response):
         if response['seeders'] == 0:

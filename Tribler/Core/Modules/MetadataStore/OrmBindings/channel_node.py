@@ -214,10 +214,13 @@ def define_binding(db, logger=None, key=None, clock=None):
 
             # Sort the query
             if sort_by:
-                sort_expression = "g." + sort_by
-                sort_expression = sort_expression if sort_asc else desc(sort_expression)
-                pony_query = pony_query.sort_by(sort_expression)
-
+                if sort_by == "HEALTH":
+                    pony_query = pony_query.sort_by("(g.health.seeders, g.health.leechers)") if sort_asc else \
+                        pony_query.sort_by("(desc(g.health.seeders), desc(g.health.leechers))")
+                else:
+                    sort_expression = "g." + sort_by
+                    sort_expression = sort_expression if sort_asc else desc(sort_expression)
+                    pony_query = pony_query.sort_by(sort_expression)
             return pony_query
 
     return ChannelNode

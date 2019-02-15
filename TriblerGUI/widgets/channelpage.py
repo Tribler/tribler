@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
 
@@ -24,6 +25,7 @@ class ChannelPage(QWidget):
         self.gui_settings = gui_settings
         self.model = TorrentsContentModel(hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True,
                                                                    is_bool=True) if self.gui_settings else True)
+        self.window().core_manager.events_manager.torrent_info_updated.connect(self.model.update_torrent_info)
         self.controller = TorrentsTableViewController(self.model, self.window().channel_page_container,
                                                       None, self.window().channel_torrents_filter_input)
 

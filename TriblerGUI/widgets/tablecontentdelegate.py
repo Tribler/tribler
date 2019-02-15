@@ -474,7 +474,7 @@ class HealthStatusDisplay(QObject):
     def paint(self, painter, rect, index):
         data_item = index.model().data_items[index.row()]
 
-        if u'health' not in data_item:
+        if u'health' not in data_item or data_item[u'health'] == "updated":
             data_item[u'health'] = get_health(data_item['num_seeders'],
                                               data_item['num_leechers'],
                                               data_item['last_tracker_check'])
