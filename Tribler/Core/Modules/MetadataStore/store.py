@@ -82,7 +82,7 @@ class DiscreteClock(object):
                 if not store_object:
                     self.datastore(name=self.store_value_name, value=str(self.clock))
                 else:
-                    self.clock = int(self.store_object.value)
+                    self.clock = int(store_object.value)
 
     def tick(self):
         self.clock += 1
