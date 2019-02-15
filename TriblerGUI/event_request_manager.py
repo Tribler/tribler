@@ -13,6 +13,7 @@ class EventRequestManager(QNetworkAccessManager):
     The EventRequestManager class handles the events connection over which important events in Tribler are pushed.
     """
 
+    torrent_info_updated = pyqtSignal(object)
     received_search_result_channel = pyqtSignal(object)
     received_search_result_torrent = pyqtSignal(object)
     tribler_started = pyqtSignal()
@@ -80,7 +81,9 @@ class EventRequestManager(QNetworkAccessManager):
                 if len(received_events) > 100:  # Only buffer the last 100 events
                     received_events.pop()
 
-                if json_dict["type"] == "tribler_started" and not self.emitted_tribler_started:
+                if json_dict["type"] == "torrent_info_updated":
+                    self.torrent_info_updated.emit(json_dict["event"])
+                elif json_dict["type"] == "tribler_started" and not self.emitted_tribler_started:
                     self.tribler_started.emit()
                     self.emitted_tribler_started = True
                 elif json_dict["type"] == "new_version_available":

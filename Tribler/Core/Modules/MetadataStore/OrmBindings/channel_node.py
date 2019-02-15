@@ -4,7 +4,6 @@ from binascii import hexlify
 from datetime import datetime
 
 from pony import orm
-from pony.orm import db_session, select, desc
 from pony.orm.core import DEFAULT
 
 from Tribler.Core.Modules.MetadataStore.serialization import DeletedMetadataPayload, DELETED, \
@@ -195,29 +194,5 @@ def define_binding(db, logger=None, key=None, clock=None):
         @classmethod
         def from_dict(cls, dct):
             return cls(**dct)
-
-        @classmethod
-        @db_session
-        def get_entries_query(cls, sort_by=None, sort_asc=True, query_filter=None):
-            """
-            Get some metadata entries. Optionally sort the results by a specific field, or filter the channels based
-            on a keyword/whether you are subscribed to it.
-            :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
-                     the total number of results, regardless the passed first/last parameter.
-            """
-            # Warning! For Pony magic to work, iteration variable name (e.g. 'g') should be the same everywhere!
-            pony_query = select(g for g in cls)
-
-            # Filter the results on a keyword or some keywords
-            if query_filter:
-                pony_query = cls.search_keyword(query_filter, lim=1000)
-
-            # Sort the query
-            if sort_by:
-                sort_expression = "g." + sort_by
-                sort_expression = sort_expression if sort_asc else desc(sort_expression)
-                pony_query = pony_query.sort_by(sort_expression)
-
-            return pony_query
 
     return ChannelNode

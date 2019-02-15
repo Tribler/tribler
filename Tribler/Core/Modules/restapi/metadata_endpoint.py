@@ -59,7 +59,7 @@ class MetadataEndpoint(BaseMetadataEndpoint):
             u'date': "torrent_date",
             u'status': 'status',
             u'torrents': 'num_entries',
-            u'health': 'health.seeders'
+            u'health': 'HEALTH'
         }
 
         if sort_param not in json2pony_columns:
@@ -96,12 +96,12 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
 
     def render_GET(self, request):
         sanitized = ChannelsEndpoint.sanitize_parameters(request.args)
-        channels, total = self.session.lm.mds.ChannelMetadata.get_channels(**sanitized)
-
-        channels = [channel.to_simple_dict() for channel in channels]
+        with db_session:
+            channels, total = self.session.lm.mds.ChannelMetadata.get_entries(**sanitized)
+            channels_list = [channel.to_simple_dict() for channel in channels]
 
         return json.dumps({
-            "channels": channels,
+            "channels": channels_list,
             "first": sanitized["first"],
             "last": sanitized["last"],
             "sort_by": sanitized["sort_by"],
@@ -179,11 +179,11 @@ class SpecificChannelTorrentsEndpoint(BaseTorrentsEndpoint):
     def render_GET(self, request):
         sanitized = SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
         with db_session:
-            torrents, total = self.session.lm.mds.TorrentMetadata.get_torrents(channel_pk=self.channel_pk, **sanitized)
-            torrents = [torrent.to_simple_dict() for torrent in torrents]
+            torrents, total = self.session.lm.mds.TorrentMetadata.get_entries(channel_pk=self.channel_pk, **sanitized)
+            torrents_list = [torrent.to_simple_dict() for torrent in torrents]
 
         return json.dumps({
-            "torrents": torrents,
+            "torrents": torrents_list,
             "first": sanitized['first'],
             "last": sanitized['last'],
             "sort_by": sanitized['sort_by'],
@@ -305,6 +305,10 @@ class TorrentHealthEndpoint(resource.Resource):
         if 'refresh' in request.args and request.args['refresh'] and request.args['refresh'][0] == "1":
             refresh = True
 
+        nowait = False
+        if 'nowait' in request.args and request.args['nowait'] and request.args['nowait'][0] == "1":
+            nowait = True
+
         def on_health_result(result):
             request.write(json.dumps({'health': result}))
             self.finish_request(request)
@@ -317,14 +321,10 @@ class TorrentHealthEndpoint(resource.Resource):
             if not request.finished:
                 self.finish_request(request)
 
-        with db_session:
-            md_list = list(self.session.lm.mds.TorrentMetadata.select(lambda g:
-                                                                      g.infohash == database_blob(self.infohash)))
-        if not md_list:
-            request.setResponseCode(http.NOT_FOUND)
-            request.write(json.dumps({"error": "torrent not found in database"}))
-
-        self.session.check_torrent_health(self.infohash, timeout=timeout, scrape_now=refresh) \
-            .addCallback(on_health_result).addErrback(on_request_error)
+        result_deferred = self.session.check_torrent_health(self.infohash, timeout=timeout, scrape_now=refresh)
+        # return immediately. Used by GUI to schedule health updates through the EventsEndpoint
+        if nowait:
+            return json.dumps({'checking': '1'})
+        result_deferred.addCallback(on_health_result).addErrback(on_request_error)
 
         return NOT_DONE_YET

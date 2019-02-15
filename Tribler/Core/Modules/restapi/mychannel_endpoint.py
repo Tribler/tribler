@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import base64
 import json
 import os
-import sys
 import urllib
 from binascii import unhexlify, hexlify
 
@@ -13,12 +12,7 @@ from twisted.web import resource, http
 from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorrentsEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import DuplicateTorrentFileError
-
-
-def chunks(l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(l), n):
-        yield l[i:i + n]
+from Tribler.pyipv8.ipv8.database import database_blob
 
 
 class BaseMyChannelEndpoint(resource.Resource):
@@ -109,12 +103,12 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 request.setResponseCode(http.NOT_FOUND)
                 return json.dumps({"error": "your channel has not been created"})
 
-            request.args['channel_pk'] = [str(my_channel.public_key).encode('hex')]
             sanitized = SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
             if 'exclude_deleted' in request.args:
                 sanitized['exclude_deleted'] = request.args['exclude_deleted']
 
-            torrents, total = self.session.lm.mds.TorrentMetadata.get_torrents(**sanitized)
+            torrents, total = self.session.lm.mds.TorrentMetadata.get_entries(
+                channel_pk=database_blob(my_channel.public_key), **sanitized)
             torrents = [torrent.to_simple_dict() for torrent in torrents]
 
             return json.dumps({
@@ -157,10 +151,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 request.setResponseCode(http.NOT_FOUND)
                 return json.dumps({"error": "your channel has not been created"})
 
-            # Remove all torrents in your channel
-            torrents = my_channel.contents_list
-            for torrent in torrents:
-                my_channel.delete_torrent(torrent.infohash)
+            my_channel.drop_channel_contents()
 
         return json.dumps({"success": True})
 
@@ -230,36 +221,7 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 return json.dumps({"the torrents_dir parameter should be provided when the rec"})
 
         if torrents_dir:
-            torrents_list = []
-            errors_list = []
-
-            if recursive:
-                def rec_gen():
-                    for root, _, filenames in os.walk(torrents_dir):
-                        for fn in filenames:
-                            yield os.path.join(root, fn)
-
-                filename_generator = rec_gen()
-            else:
-                filename_generator = os.listdir(torrents_dir)
-
-            # Build list of .torrents to process
-            for f in filename_generator:
-                filepath = os.path.join(torrents_dir, f)
-                filename = str(filepath) if sys.platform == 'win32' else filepath.decode('utf-8')
-                if os.path.isfile(filepath) and filename.endswith(u'.torrent'):
-                    torrents_list.append(filepath)
-
-            for chunk in chunks(torrents_list, 100):  # 100 is a reasonable chunk size for commits
-                with db_session:
-                    for f in chunk:
-                        try:
-                            my_channel.add_torrent_to_channel(TorrentDef.load(f), {})
-                        except DuplicateTorrentFileError:
-                            pass
-                        except:
-                            errors_list.append(f)
-
+            torrents_list, errors_list = my_channel.add_torrents_from_dir(torrents_dir, recursive)
             return json.dumps({"added": len(torrents_list), "errors": errors_list})
 
         if 'torrent' not in parameters or len(parameters['torrent']) == 0:
@@ -293,7 +255,6 @@ class MyChannelSpecificTorrentEndpoint(BaseMyChannelEndpoint):
     def __init__(self, session, infohash):
         BaseMyChannelEndpoint.__init__(self, session)
         self.infohash = unhexlify(infohash)
-
     @db_session
     def render_PATCH(self, request):
         parameters = http.parse_qs(request.content.read(), 1)
@@ -328,6 +289,6 @@ class MyChannelCommitEndpoint(BaseMyChannelEndpoint):
 
             torrent_dict = my_channel.commit_channel_torrent()
             if torrent_dict:
-                self.session.lm.gigachannel_manager.updated_my_channel(TorrentDef(metainfo=torrent_dict))
+                self.session.lm.gigachannel_manager.updated_my_channel(TorrentDef.load_from_dict(torrent_dict))
 
         return json.dumps({"success": True})

@@ -5,6 +5,9 @@
 # Apple
 .DS_Store
 
+
+*.autosave
+*.stats
 .*project
 local.properties
 *.bak
@@ -41,6 +44,7 @@ htmlcov/
 
 # Ignore nosetest output logs
 Tribler/Test/logs/
+Tribler/Test/Core/logs/
 # Ignore trial temp dirs
 _trial_temp*/
 _trial_temp*.lock

@@ -172,7 +172,7 @@ class TestTorrentMetadata(TriblerCoreTest):
         autocomplete_terms = self.mds.TorrentMetadata.get_auto_complete_terms(".", 2)
 
     @db_session
-    def test_get_torrents(self):
+    def test_get_entries(self):
         """
         Test whether we can get torrents
         """
@@ -186,19 +186,20 @@ class TestTorrentMetadata(TriblerCoreTest):
         tlist[-1].xxx = 1
         tlist[-2].status = TODELETE
 
-        torrents = self.mds.ChannelMetadata.get_torrents(first=1, last=5)
-        self.assertEqual(len(torrents[0]), 5)
-        self.assertEqual(torrents[1], 25)
+        torrents, count = self.mds.TorrentMetadata.get_entries(first=1, last=5)
+        self.assertEqual(5, len(torrents))
+        self.assertEqual(25, count)
 
         # Test fetching torrents in a channel
         channel_pk = self.mds.ChannelNode._my_key.pub().key_to_bin()[10:]
-        torrents = self.mds.ChannelMetadata.get_torrents(first=1, last=10, sort_by='title', channel_pk=channel_pk)
-        self.assertEqual(len(torrents[0]), 5)
-        self.assertEqual(torrents[1], 5)
+        torrents, count = self.mds.TorrentMetadata.get_entries(first=1, last=10, sort_by='title', channel_pk=channel_pk)
+        self.assertEqual(5, len(torrents))
+        self.assertEqual(5, count)
 
-        torrents = self.mds.ChannelMetadata.get_torrents(channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True)
-        self.assertListEqual(torrents[0][:], tlist[-5:-2])
-        self.assertEqual(torrents[1], 3)
+        torrents, count = self.mds.TorrentMetadata.get_entries(channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True)[:]
+
+        self.assertListEqual(tlist[-5:-2], list(torrents))
+        self.assertEqual(count, 3)
 
     @db_session
     def test_metadata_conflicting(self):

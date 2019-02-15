@@ -42,7 +42,8 @@ class Notifier(object):
         self.observertimers = {}
         self.observerLock = threading.Lock()
 
-    def add_observer(self, func, subject, changeTypes=[NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id=None, cache=0):
+    def add_observer(self, func, subject, changeTypes=None, id=None, cache=0):
+        changeTypes = changeTypes or [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE]
         """
         Add observer function which will be called upon certain event
         Example:

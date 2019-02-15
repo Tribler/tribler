@@ -315,14 +315,3 @@ class DispersyToPonyMigration(object):
                 v.set(value=CONVERSION_FINISHED)
             else:
                 self.mds.MiscData(name=CONVERSION_FROM_72, value=CONVERSION_FINISHED)
-
-
-if __name__ == "__main__":
-    my_key = default_eccrypto.generate_key(u"curve25519")
-    mds = MetadataStore("/tmp/metadata.db", "/tmp", my_key)
-    d = DispersyToPonyMigration("/tmp/tribler.sdb", mds)
-
-    d.initialize()
-    d.convert_personal_channel()
-    d.convert_discovered_channels()
-    d.update_trackers_info()

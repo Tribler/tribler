@@ -14,13 +14,13 @@ class RemoteTableModel(QAbstractTableModel):
     It is specifically designed to fetch data from a remote data source, i.e. over a RESTful API.
     """
     on_sort = pyqtSignal(str, bool)
-    columns = []
 
     def __init__(self, parent=None):
         super(RemoteTableModel, self).__init__(parent)
         self.data_items = []
         self.item_load_batch = 50
         self.total_items = 0  # The total number of items without pagination
+        self.infohashes = {}
 
     @abstractmethod
     def _get_remote_data(self, start, end, **kwargs):
@@ -41,11 +41,11 @@ class RemoteTableModel(QAbstractTableModel):
         self.on_sort.emit(self.columns[column], bool(order))
 
     def add_items(self, new_data_items):
+        if not new_data_items:
+            return
         # If we want to block the signal like itemChanged, we must use QSignalBlocker object
         old_end = self.rowCount()
         new_end = self.rowCount() + len(new_data_items)
-        if old_end == new_end:
-            return
         self.beginInsertRows(QModelIndex(), old_end, new_end - 1)
         self.data_items.extend(new_data_items)
         self.endInsertRows()
@@ -89,6 +89,25 @@ class TriblerContentModel(RemoteTableModel):
             data = self.data_items[index.row()][column] if column in self.data_items[index.row()] else u'UNDEFINED'
             return self.column_display_filters.get(column, str(data))(data) \
                 if column in self.column_display_filters else data
+
+    def add_items(self, new_data_items):
+        super(TriblerContentModel, self).add_items(new_data_items)
+        # Build reverse mapping from infohashes to rows
+        items_len = len(self.data_items)
+        new_items_len = len(new_data_items)
+        for i, item in enumerate(new_data_items):
+            if "infohash" in item:
+                self.infohashes[item["infohash"]] = items_len - new_items_len + i
+
+    def reset(self):
+        self.infohashes.clear()
+        super(TriblerContentModel, self).reset()
+
+    def update_torrent_info(self, update_dict):
+        row = self.infohashes.get(update_dict["infohash"])
+        if row:
+            self.data_items[row].update(**update_dict)
+            self.dataChanged.emit(self.index(row, 0), self.index(row, len(self.columns)), [])
 
 
 class SearchResultsContentModel(TriblerContentModel):

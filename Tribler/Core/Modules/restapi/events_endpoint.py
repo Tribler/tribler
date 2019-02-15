@@ -80,6 +80,7 @@ class EventsEndpoint(resource.Resource):
         self.session.add_observer(self.on_torrent_discovered, NTFY_TORRENT, [NTFY_DISCOVERED])
         self.session.add_observer(self.on_torrent_finished, NTFY_TORRENT, [NTFY_FINISHED])
         self.session.add_observer(self.on_torrent_error, NTFY_TORRENT, [NTFY_ERROR])
+        self.session.add_observer(self.on_torrent_info_updated, NTFY_TORRENT, [NTFY_UPDATE])
         self.session.add_observer(self.on_market_ask, NTFY_MARKET_ON_ASK, [NTFY_UPDATE])
         self.session.add_observer(self.on_market_bid, NTFY_MARKET_ON_BID, [NTFY_UPDATE])
         self.session.add_observer(self.on_market_ask_timeout, NTFY_MARKET_ON_ASK_TIMEOUT, [NTFY_UPDATE])
@@ -137,6 +138,9 @@ class EventsEndpoint(resource.Resource):
 
     def on_torrent_error(self, subject, changetype, objectID, *args):
         self.write_data({"type": "torrent_error", "event": {"infohash": objectID.encode('hex'), "error": args[0]}})
+
+    def on_torrent_info_updated(self, subject, changetype, objectID, *args):
+        self.write_data({"type": "torrent_info_updated", "event": dict(infohash=objectID.encode('hex'), **args[0])})
 
     def on_tribler_exception(self, exception_text):
         self.write_data({"type": "tribler_exception", "event": {"text": exception_text}})

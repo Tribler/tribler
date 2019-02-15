@@ -19,7 +19,6 @@ from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.Utilities.utilities import unichar_string
 from Tribler.Core.exceptions import InvalidSignatureException
 from Tribler.Core.simpledefs import DLMODE_VOD, DOWNLOAD, UPLOAD, dlstatus_strings
-from Tribler.pyipv8.ipv8.database import database_blob
 from Tribler.util import cast_to_unicode_utf8
 
 
@@ -227,23 +226,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             num_seeds, num_peers = state.get_num_seeds_peers()
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
-            @db_session
-            def get_chant_name(name, infohash):
-                channel = None
-                try:
-                    channel = self.session.lm.mds.ChannelMetadata.get_channel_with_dirname(name)
-                except UnicodeEncodeError:
-                    channel = self.session.lm.mds.ChannelMetadata.get_channel_with_infohash(infohash)
-
-                if not channel:
-                    return name
-                if channel.infohash == database_blob(infohash):
-                    return channel.title
-                else:
-                    return u'OLD:' + channel.title
-
-            download_json = {"name": get_chant_name(tdef.get_name_utf8(), tdef.get_infohash())
-                                if download.get_channel_download() else tdef.get_name_utf8(),
+            download_json = {"name": self.session.lm.mds.ChannelMetadata.get_channel_name(
+                             tdef.get_name_utf8(), tdef.get_infohash()) if download.get_channel_download() else tdef.get_name_utf8(),
                              "progress": state.get_progress(),
                              "infohash": tdef.get_infohash().encode('hex'),
                              "speed_down": state.get_current_payload_speed(DOWNLOAD),

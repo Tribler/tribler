@@ -93,6 +93,13 @@ class TestMetadata(TriblerCoreTest):
         metadata = self.mds.ChannelNode(skip_key_check=True, **md_dict)
         self.assertFalse(metadata.has_valid_signature())
 
+        key = default_eccrypto.generate_key(u"curve25519")
+        metadata2 = self.mds.ChannelNode(sign_with=key, **md_dict)
+        self.assertTrue(database_blob(key.pub().key_to_bin()[10:]), metadata2.public_key)
+        md_dict2 = metadata2.to_dict()
+        md_dict2["signature"] = md_dict["signature"]
+        self.assertRaises(InvalidSignatureException, self.mds.ChannelNode, **md_dict2)
+
     @db_session
     def test_from_payload(self):
         """

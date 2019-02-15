@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import os
+import sys
 from binascii import hexlify
 from datetime import datetime
 from libtorrent import add_files, bencode, create_torrent, file_storage, set_piece_hashes, torrent_info
@@ -13,6 +14,7 @@ from Tribler.Core.Category.Category import default_category_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import COMMITTED, NEW, PUBLIC_KEY_LEN, TODELETE, \
     LEGACY_ENTRY
 from Tribler.Core.Modules.MetadataStore.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.Core.exceptions import DuplicateChannelIdError, DuplicateTorrentFileError
 from Tribler.pyipv8.ipv8.database import database_blob
@@ -21,6 +23,12 @@ CHANNEL_DIR_NAME_LENGTH = 32  # Its not 40 so it could be distinguished from inf
 BLOB_EXTENSION = '.mdblob'
 LZ4_END_MARK_SIZE = 4  # in bytes, from original specification. We don't use CRC
 ROOT_CHANNEL_ID = 0
+
+
+def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
 
 
 def create_torrent_from_dir(directory, torrent_filename):
@@ -122,7 +130,7 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def create_channel(cls, title, description):
+        def create_channel(cls, title, description=""):
             """
             Create a channel and sign it with a given key.
             :param title: The title of the channel
@@ -243,7 +251,7 @@ def define_binding(db):
             return db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash)
 
         @db_session
-        def add_torrent_to_channel(self, tdef, extra_info):
+        def add_torrent_to_channel(self, tdef, extra_info=None):
             """
             Add a torrent to your channel.
             :param tdef: The torrent definition file of the torrent to add
@@ -342,24 +350,6 @@ def define_binding(db):
 
             return True
 
-        @db_session
-        def cancel_torrent_deletion(self, infohash):
-            """
-            Cancel pending removal of torrent marked for deletion.
-            :param infohash: The infohash of the torrent to act upon
-            :return True if deleteion cancelled, False if no MD with the given infohash found
-            """
-            if self.get_torrent(infohash):
-                torrent_metadata = db.TorrentMetadata.get(public_key=self.public_key, infohash=infohash)
-            else:
-                return False
-
-            # As any NEW metadata is deleted immediately, only COMMITTED -> TODELETE
-            # Therefore we restore the entry's status to COMMITTED
-            if torrent_metadata.status == TODELETE:
-                torrent_metadata.status = COMMITTED
-            return True
-
         @classmethod
         @db_session
         def get_channel_with_id(cls, channel_id):
@@ -423,10 +413,6 @@ def define_binding(db):
         def get_random_torrents(self, limit):
             return self.contents.random(limit)
 
-        @db_session
-        def remove_contents(self):
-            self.contents.delete()
-
         @classmethod
         @db_session
         def get_updated_channels(cls):
@@ -434,24 +420,18 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_channels(cls, first=1, last=50, subscribed=False, hide_xxx=False, **kwargs):
+        def get_entries(cls, first=None, last=None, subscribed=False, metadata_type=CHANNEL_TORRENT, **kwargs):
             """
             Get some channels. Optionally sort the results by a specific field, or filter the channels based
             on a keyword/whether you are subscribed to it.
             :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
                      the total number of results, regardless the passed first/last parameter.
             """
-            pony_query = ChannelMetadata.get_entries_query(**kwargs)
-
-            # Filter subscribed/non-subscribed
+            pony_query, count = super(ChannelMetadata, cls).get_entries(metadata_type=metadata_type, **kwargs)
             if subscribed:
                 pony_query = pony_query.where(subscribed=subscribed)
-            if hide_xxx:
-                pony_query = pony_query.where(lambda g: g.xxx == 0)
 
-            total_results = pony_query.count()
-
-            return pony_query[first - 1:last], total_results
+            return pony_query[(first or 1) - 1:last] if first or last else pony_query, count
 
         @db_session
         def to_simple_dict(self):
@@ -470,5 +450,63 @@ def define_binding(db):
                 # TODO: optimize this?
                 "my_channel": database_blob(self._my_key.pub().key_to_bin()[10:]) == database_blob(self.public_key)
             }
+
+        @classmethod
+        @db_session
+        def get_channel_name(cls, name, infohash):
+            """
+            Try to translate a Tribler download name into matching channel name. By searching for a channel with the
+            given dirname and/or infohash. Try do determine if infohash belongs to an older version of
+            some channel we already have.
+            :param name - name of the download. Should match the directory name of the channel.
+            :param infohash - infohash of the download.
+            :return: Channel title as a string, prefixed with 'OLD:' for older versions
+            """
+            try:
+                channel = cls.get_channel_with_dirname(name)
+            except UnicodeEncodeError:
+                channel = cls.get_channel_with_infohash(infohash)
+
+            if not channel:
+                return name
+            if channel.infohash == database_blob(infohash):
+                return channel.title
+            else:
+                return u'OLD:' + channel.title
+
+        @db_session
+        def add_torrents_from_dir(self, torrents_dir, recursive=False):
+            # TODO: Optimize this properly!!!!
+            torrents_list = []
+            errors_list = []
+
+            if recursive:
+                def rec_gen():
+                    for root, _, filenames in os.walk(torrents_dir):
+                        for fn in filenames:
+                            yield os.path.join(root, fn)
+
+                filename_generator = rec_gen()
+            else:
+                filename_generator = os.listdir(torrents_dir)
+
+            # Build list of .torrents to process
+            for f in filename_generator:
+                filepath = os.path.join(torrents_dir, f)
+                filename = str(filepath) if sys.platform == 'win32' else filepath.decode('utf-8')
+                if os.path.isfile(filepath) and filename.endswith(u'.torrent'):
+                    torrents_list.append(filepath)
+
+            for chunk in chunks(torrents_list, 100):  # 100 is a reasonable chunk size for commits
+                for f in chunk:
+                    try:
+                        self.add_torrent_to_channel(TorrentDef.load(f))
+                    except DuplicateTorrentFileError:
+                        pass
+                    except:
+                        errors_list.append(f)
+                orm.commit()  # Kinda optimization to drop excess cache?
+
+            return torrents_list, errors_list
 
     return ChannelMetadata

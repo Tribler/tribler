@@ -32,7 +32,7 @@ class BaseTestMetadataEndpoint(AbstractApiTest):
             for ind in xrange(10):
                 self.session.lm.mds.ChannelNode._my_key = default_eccrypto.generate_key('curve25519')
                 _ = self.session.lm.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0),
-                                                        num_entries=torrents_per_channel)
+                                                        num_entries=torrents_per_channel, infohash=random_infohash())
                 for torrent_ind in xrange(torrents_per_channel):
                     rand_infohash = random_infohash()
                     self.infohashes.append(rand_infohash)
@@ -56,6 +56,14 @@ class TestChannelsEndpoint(BaseTestMetadataEndpoint):
 
         self.should_check_equality = False
         return self.do_request('metadata/channels?sort_by=title', expected_code=200).addCallback(on_response)
+
+    def test_get_channels_sort_by_health(self):
+        def on_response(response):
+            json_dict = json.loads(response)
+            self.assertEqual(len(json_dict['channels']), 10)
+
+        self.should_check_equality = False
+        return self.do_request('metadata/channels?sort_by=health', expected_code=200).addCallback(on_response)
 
     def test_get_channels_invalid_sort(self):
         """

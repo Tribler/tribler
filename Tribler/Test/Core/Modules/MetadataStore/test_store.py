@@ -49,6 +49,16 @@ class TestMetadataStore(TriblerCoreTest):
         self.mds.shutdown()
         yield super(TestMetadataStore, self).tearDown()
 
+
+    def test_store_clock(self):
+        my_key = default_eccrypto.generate_key(u"curve25519")
+        mds2 = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir, my_key)
+        tick = mds2.clock.tick()
+        mds2.shutdown()
+        mds2 = MetadataStore(os.path.join(self.session_base_dir, 'test.db'), self.session_base_dir, my_key)
+        self.assertEqual(mds2.clock.clock, tick)
+        mds2.shutdown()
+
     @db_session
     def test_process_channel_dir_file(self):
         """
