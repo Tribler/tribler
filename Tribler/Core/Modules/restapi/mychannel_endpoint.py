@@ -13,6 +13,7 @@ from twisted.web import resource, http
 from Tribler.Core.Modules.restapi.metadata_endpoint import SpecificChannelTorrentsEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import DuplicateTorrentFileError
+from Tribler.pyipv8.ipv8.database import database_blob
 
 
 def chunks(l, n):
@@ -109,12 +110,12 @@ class MyChannelTorrentsEndpoint(BaseMyChannelEndpoint):
                 request.setResponseCode(http.NOT_FOUND)
                 return json.dumps({"error": "your channel has not been created"})
 
-            request.args['channel_pk'] = [str(my_channel.public_key).encode('hex')]
             sanitized = SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
             if 'exclude_deleted' in request.args:
                 sanitized['exclude_deleted'] = request.args['exclude_deleted']
 
-            torrents, total = self.session.lm.mds.TorrentMetadata.get_torrents(**sanitized)
+            torrents, total = self.session.lm.mds.TorrentMetadata.get_torrents(
+                channel_pk=database_blob(my_channel.public_key), **sanitized)
             torrents = [torrent.to_simple_dict() for torrent in torrents]
 
             return json.dumps({
