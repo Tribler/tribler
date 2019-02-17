@@ -329,6 +329,6 @@ class MyChannelCommitEndpoint(BaseMyChannelEndpoint):
 
             torrent_dict = my_channel.commit_channel_torrent()
             if torrent_dict:
-                self.session.lm.gigachannel_manager.updated_my_channel(TorrentDef(metainfo=torrent_dict))
+                self.session.lm.gigachannel_manager.updated_my_channel(TorrentDef.load_from_dict(torrent_dict))
 
         return json.dumps({"success": True})
