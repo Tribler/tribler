@@ -96,7 +96,7 @@ class ChannelsEndpoint(BaseChannelsEndpoint):
 
     def render_GET(self, request):
         sanitized = ChannelsEndpoint.sanitize_parameters(request.args)
-        channels, total = self.session.lm.mds.ChannelMetadata.get_channels(**sanitized)
+        channels, total = self.session.lm.mds.ChannelMetadata.get_entries(**sanitized)
 
         channels = [channel.to_simple_dict() for channel in channels]
 
@@ -179,7 +179,7 @@ class SpecificChannelTorrentsEndpoint(BaseTorrentsEndpoint):
     def render_GET(self, request):
         sanitized = SpecificChannelTorrentsEndpoint.sanitize_parameters(request.args)
         with db_session:
-            torrents, total = self.session.lm.mds.TorrentMetadata.get_torrents(channel_pk=self.channel_pk, **sanitized)
+            torrents, total = self.session.lm.mds.TorrentMetadata.get_entries(channel_pk=self.channel_pk, **sanitized)
             torrents = [torrent.to_simple_dict() for torrent in torrents]
 
         return json.dumps({

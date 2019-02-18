@@ -4,7 +4,7 @@ from binascii import hexlify
 from datetime import datetime
 
 from pony import orm
-from pony.orm import db_session, raw_sql
+from pony.orm import db_session, raw_sql, select, desc
 
 from Tribler.Core.Category.FamilyFilter import default_xxx_filter
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import LEGACY_ENTRY, TODELETE
@@ -103,17 +103,43 @@ def define_binding(db):
 
         @classmethod
         @db_session
-        def get_torrents(cls, first=1, last=50, channel_pk=False, exclude_deleted=False, hide_xxx=False, **kwargs):
+        def get_entries_query(cls, sort_by=None, sort_asc=True, query_filter=None):
+            """
+            Get some metadata entries. Optionally sort the results by a specific field, or filter the channels based
+            on a keyword/whether you are subscribed to it.
+            :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
+                     the total number of results, regardless the passed first/last parameter.
+            """
+            # Warning! For Pony magic to work, iteration variable name (e.g. 'g') should be the same everywhere!
+            # Filter the results on a keyword or some keywords
+            pony_query = cls.search_keyword(query_filter, lim=1000) if query_filter else select(g for g in cls)
+
+            # Sort the query
+            if sort_by:
+                if sort_by == "HEALTH":
+                    pony_query = pony_query.sort_by("(g.health.seeders, g.health.leechers)") if sort_asc else \
+                        pony_query.sort_by("(desc(g.health.seeders), desc(g.health.leechers))")
+                else:
+                    sort_expression = "g." + sort_by
+                    sort_expression = sort_expression if sort_asc else desc(sort_expression)
+                    pony_query = pony_query.sort_by(sort_expression)
+            return pony_query
+
+
+        @classmethod
+        @db_session
+        def get_entries(cls, first=None, last=None, metadata_type=REGULAR_TORRENT, channel_pk=False,
+                        exclude_deleted=False, hide_xxx=False, **kwargs):
             """
             Get some torrents. Optionally sort the results by a specific field, or filter the channels based
             on a keyword/whether you are subscribed to it.
             :return: A tuple. The first entry is a list of ChannelMetadata entries. The second entry indicates
                      the total number of results, regardless the passed first/last parameter.
             """
-            pony_query = TorrentMetadata.get_entries_query(**kwargs)
+            pony_query = cls.get_entries_query(**kwargs)
 
             # We only want torrents, not channel torrents
-            pony_query = pony_query.where(metadata_type=REGULAR_TORRENT)
+            pony_query = pony_query.where(metadata_type=metadata_type)
             if exclude_deleted:
                 pony_query = pony_query.where(lambda g: g.status != TODELETE)
             if hide_xxx:
@@ -123,9 +149,9 @@ def define_binding(db):
             if channel_pk:
                 pony_query = pony_query.where(public_key=channel_pk)
 
-            total_results = pony_query.count()
+            count = pony_query.count()
 
-            return pony_query[first - 1:last], total_results
+            return pony_query[(first or 1) - 1:last] if first or last else pony_query, count
 
         @db_session
         def to_simple_dict(self, include_trackers=False):

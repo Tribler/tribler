@@ -11,7 +11,7 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, ROOT_CHANNEL_ID, \
     entries_to_chunk
 from Tribler.Core.Modules.MetadataStore.OrmBindings.channel_node import NEW, TODELETE, COMMITTED
-from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload
+from Tribler.Core.Modules.MetadataStore.serialization import ChannelMetadataPayload, REGULAR_TORRENT
 from Tribler.Core.Modules.MetadataStore.store import MetadataStore
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import DuplicateTorrentFileError, DuplicateChannelIdError
@@ -194,7 +194,7 @@ class TestChannelMetadata(TriblerCoreTest):
         """
         channel_metadata = self.mds.ChannelMetadata.create_channel('test', 'test')
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
-        channel_metadata.add_torrent_to_channel(tdef, None)
+        channel_metadata.add_torrent_to_channel(tdef, {'description': 'blabla'})
         self.assertTrue(channel_metadata.contents_list)
         self.assertRaises(DuplicateTorrentFileError, channel_metadata.add_torrent_to_channel, tdef, None)
 
@@ -299,19 +299,50 @@ class TestChannelMetadata(TriblerCoreTest):
         for ind in xrange(10):
             self.mds.ChannelNode._my_key = default_eccrypto.generate_key('low')
             _ = self.mds.ChannelMetadata(title='channel%d' % ind, subscribed=(ind % 2 == 0))
-        channels = self.mds.ChannelMetadata.get_channels(first=1, last=5)
+        channels = self.mds.ChannelMetadata.get_entries(first=1, last=5)
         self.assertEqual(len(channels[0]), 5)
         self.assertEqual(channels[1], 10)
 
         # Test filtering
-        channels = self.mds.ChannelMetadata.get_channels(first=1, last=5, query_filter='channel5')
+        channels = self.mds.ChannelMetadata.get_entries(first=1, last=5, query_filter='channel5')
         self.assertEqual(len(channels[0]), 1)
 
         # Test sorting
-        channels = self.mds.ChannelMetadata.get_channels(first=1, last=10, sort_by='title', sort_asc=False)
+        channels = self.mds.ChannelMetadata.get_entries(first=1, last=10, sort_by='title', sort_asc=False)
         self.assertEqual(len(channels[0]), 10)
         self.assertEqual(channels[0][0].title, 'channel9')
 
         # Test fetching subscribed channels
-        channels = self.mds.ChannelMetadata.get_channels(first=1, last=10, sort_by='title', subscribed=True)
+        channels = self.mds.ChannelMetadata.get_entries(first=1, last=10, sort_by='title', subscribed=True)
         self.assertEqual(len(channels[0]), 5)
+
+    @db_session
+    def test_get_channel_name(self):
+        infohash = "\x00" * 20
+        title = "testchan"
+        chan = self.mds.ChannelMetadata(title=title, infohash=database_blob(infohash))
+        dirname = chan.dir_name
+
+        self.assertEqual(title, self.mds.ChannelMetadata.get_channel_name(dirname, infohash))
+        chan.infohash = "\x11" * 20
+        self.assertEqual("OLD:" + title, self.mds.ChannelMetadata.get_channel_name(dirname, infohash))
+        chan.delete()
+        self.assertEqual(dirname, self.mds.ChannelMetadata.get_channel_name(dirname, infohash))
+
+    @db_session
+    def check_add(self, torrents_in_dir, errors, recursive):
+        TEST_TORRENTS_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))),
+                                         '..', '..', '..', 'data', 'linux_torrents')
+        chan = self.mds.ChannelMetadata.create_channel(title='testchan')
+        torrents, e = chan.add_torrents_from_dir(TEST_TORRENTS_DIR, recursive)
+        self.assertEqual(torrents_in_dir, len(torrents))
+        self.assertEqual(errors, len(e))
+        with db_session:
+            q = self.mds.TorrentMetadata.select(lambda g: g.metadata_type == REGULAR_TORRENT)
+            self.assertEqual(torrents_in_dir - len(e), q.count())
+
+    def test_add_torrents_from_dir(self):
+        self.check_add(9, 0, recursive=False)
+
+    def test_add_torrents_from_dir_recursive(self):
+        self.check_add(11, 1, recursive=True)

@@ -1,0 +1,123 @@
+version: 1
+creator: yappi
+pid: 8714
+cmd:  /snap/pycharm-community/108/helpers/pycharm/_jb_nosetest_runner.py /home/vader/src/TRIBLER/tribler_ichorid/Tribler/Test/Core
+part: 1
+
+events: Ticks
+
+fl=(5) /home/vader/.local/lib/python2.7/site-packages/twisted/trial/_synctest.py
+fl=(3) /home/vader/.local/lib/python2.7/site-packages/twisted/trial/_synctest.py
+fl=(9) /home/vader/.local/lib/python2.7/site-packages/twisted/trial/_synctest.py
+fl=(1) /home/vader/.local/lib/python2.7/site-packages/twisted/trial/_synctest.py
+fl=(7) /home/vader/.local/lib/python2.7/site-packages/twisted/trial/_synctest.py
+fl=(4) /home/vader/.local/lib/python2.7/site-packages/twisted/trial/_synctest.py
+fl=(8) /home/vader/src/TRIBLER/tribler_ichorid/Tribler/Core/Modules/resource_monitor.py
+fl=(2) /usr/lib/python2.7/unittest/case.py
+fl=(0) time
+fl=(11) __builtin__
+fl=(10) __builtin__
+fl=(6) /home/vader/.local/lib/python2.7/site-packages/twisted/trial/_synctest.py
+fl=(12) /home/vader/src/TRIBLER/tribler_ichorid/Tribler/Core/Modules/resource_monitor.py
+
+fn=(5) _AssertRaisesContext._handle /home/vader/.local/lib/python2.7/site-packages/twisted/trial/_synctest.py:303
+fn=(3) TestResourceMonitor.assertRaises /home/vader/.local/lib/python2.7/site-packages/twisted/trial/_synctest.py:400
+fn=(9) _AssertRaisesContext.__exit__ /home/vader/.local/lib/python2.7/site-packages/twisted/trial/_synctest.py:323
+fn=(1) TestResourceMonitor.assertTrue /home/vader/.local/lib/python2.7/site-packages/twisted/trial/_synctest.py:389
+fn=(7) <lambda> /home/vader/.local/lib/python2.7/site-packages/twisted/trial/_synctest.py:421
+fn=(4) _AssertRaisesContext.__init__ /home/vader/.local/lib/python2.7/site-packages/twisted/trial/_synctest.py:287
+fn=(8) ResourceMonitor.start_profiler /home/vader/src/TRIBLER/tribler_ichorid/Tribler/Core/Modules/resource_monitor.py:56
+fn=(2) TestResourceMonitor.assertTrue /usr/lib/python2.7/unittest/case.py:418
+fn=(0) time time:0
+fn=(11) issubclass __builtin__:0
+fn=(10) isinstance __builtin__:0
+fn=(6) _AssertRaisesContext.__enter__ /home/vader/.local/lib/python2.7/site-packages/twisted/trial/_synctest.py:319
+fn=(12) ResourceMonitor.stop_profiler /home/vader/src/TRIBLER/tribler_ichorid/Tribler/Core/Modules/resource_monitor.py:71
+
+fl=(5)
+fn=(5)
+303 28
+cfl=(9)
+cfn=(9)
+calls=1 0
+0 26
+cfl=(7)
+cfn=(7)
+calls=1 0
+0 11
+cfl=(6)
+cfn=(6)
+calls=1 0
+0 1
+
+fl=(3)
+fn=(3)
+400 26
+cfl=(5)
+cfn=(5)
+calls=1 0
+0 67
+cfl=(4)
+cfn=(4)
+calls=1 0
+0 4
+
+fl=(9)
+fn=(9)
+323 23
+cfl=(11)
+cfn=(11)
+calls=1 0
+0 1
+cfl=(10)
+cfn=(10)
+calls=1 0
+0 1
+
+fl=(1)
+fn=(1)
+389 12
+cfl=(2)
+cfn=(2)
+calls=1 0
+0 1
+
+fl=(7)
+fn=(7)
+421 8
+cfl=(8)
+cfn=(8)
+calls=1 0
+0 3
+
+fl=(4)
+fn=(4)
+287 4
+
+fl=(8)
+fn=(8)
+56 3
+
+fl=(2)
+fn=(2)
+418 1
+
+fl=(0)
+fn=(0)
+0 1
+
+fl=(11)
+fn=(11)
+0 1
+
+fl=(10)
+fn=(10)
+0 1
+
+fl=(6)
+fn=(6)
+319 1
+
+fl=(12)
+fn=(12)
+71 0
