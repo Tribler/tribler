@@ -191,10 +191,6 @@ class LibtorrentMgr(TaskManager):
             if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
                 settings["listen_interfaces"] = "0.0.0.0:%d" % self.tribler_session.config.get_anon_listen_port()
 
-            # No PEX for anonymous sessions
-            if lt.create_ut_pex_plugin in extensions:
-                extensions.remove(lt.create_ut_pex_plugin)
-
         ltsession.set_settings(settings)
         ltsession.set_alert_mask(self.default_alert_mask)
 
