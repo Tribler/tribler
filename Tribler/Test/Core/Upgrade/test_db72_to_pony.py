@@ -57,7 +57,7 @@ class TestUpgradeDB72ToPony(TriblerCoreTest):
         self.m.initialize()
         self.m.convert_discovered_torrents()
         self.m.convert_discovered_channels()
-        chans = self.mds.ChannelMetadata.get_channels()
+        chans = self.mds.ChannelMetadata.get_entries()
 
         self.assertEqual(len(chans[0]), 2)
         for c in chans[0]:
