@@ -1,12 +1,16 @@
 from __future__ import absolute_import
+
 import random
 import string
 from unittest import TestCase
 
 from six.moves import xrange
-from Tribler.community.popularity.payload import SearchResponsePayload, SearchResponseItemPayload, ContentInfoRequest, \
-    Pagination, ContentInfoResponse, ContentSubscription, TorrentHealthPayload, ChannelHealthPayload, \
-    TorrentInfoResponsePayload, encode_values, decode_values
+
+from Tribler.community.popularity.payload import (ChannelHealthPayload, ContentInfoRequest, ContentInfoResponse,
+                                                  ContentSubscription, Pagination, SearchResponseItemPayload,
+                                                  SearchResponsePayload, TorrentHealthPayload,
+                                                  TorrentInfoResponsePayload, decode_values, encode_values,
+                                                  unpack_responses)
 from Tribler.pyipv8.ipv8.messaging.serialization import Serializer
 
 
@@ -138,10 +142,9 @@ class TestSerializer(TestCase):
         (search_results, _) = self.serializer.unpack_multiple(response_format, serialized_results)
 
         # De-serialize each individual search result items
-        item_format = SearchResponseItemPayload.format_list
-        (all_items, _) = self.serializer.unpack_multiple_as_list(item_format, search_results[2])
+        all_items = unpack_responses(search_results[2], True)
         for index in xrange(len(all_items)):
-            response_item = SearchResponseItemPayload.from_unpack_list(*all_items[index])
+            response_item = all_items[index]
             sample_item = sample_items[index]
 
             self.assertEqual(sample_item.infohash, response_item.infohash)

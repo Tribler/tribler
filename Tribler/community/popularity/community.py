@@ -2,15 +2,16 @@ from __future__ import absolute_import
 
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.simpledefs import SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS
-from Tribler.community.popularity.constants import MSG_TORRENT_HEALTH_RESPONSE, MSG_CHANNEL_HEALTH_RESPONSE, \
-    MSG_TORRENT_INFO_REQUEST, MSG_TORRENT_INFO_RESPONSE, \
-    ERROR_UNKNOWN_RESPONSE, MAX_PACKET_PAYLOAD_SIZE, ERROR_UNKNOWN_PEER, ERROR_NO_CONTENT, \
-    MSG_CONTENT_INFO_REQUEST, \
-    SEARCH_TORRENT_REQUEST, MSG_CONTENT_INFO_RESPONSE, SEARCH_TORRENT_RESPONSE
-from Tribler.community.popularity.payload import TorrentHealthPayload, ContentSubscription, TorrentInfoRequestPayload, \
-    TorrentInfoResponsePayload, SearchResponseItemPayload, \
-    ContentInfoRequest, Pagination, ContentInfoResponse, decode_values
+from Tribler.Core.simpledefs import SIGNAL_ON_SEARCH_RESULTS, SIGNAL_SEARCH_COMMUNITY
+from Tribler.community.popularity.constants import (ERROR_NO_CONTENT, ERROR_UNKNOWN_PEER, ERROR_UNKNOWN_RESPONSE,
+                                                    MAX_PACKET_PAYLOAD_SIZE, MSG_CHANNEL_HEALTH_RESPONSE,
+                                                    MSG_CONTENT_INFO_REQUEST, MSG_CONTENT_INFO_RESPONSE,
+                                                    MSG_TORRENT_HEALTH_RESPONSE, MSG_TORRENT_INFO_REQUEST,
+                                                    MSG_TORRENT_INFO_RESPONSE, SEARCH_TORRENT_REQUEST,
+                                                    SEARCH_TORRENT_RESPONSE)
+from Tribler.community.popularity.payload import (ContentInfoRequest, ContentInfoResponse, ContentSubscription,
+                                                  Pagination, TorrentHealthPayload, TorrentInfoRequestPayload,
+                                                  TorrentInfoResponsePayload, unpack_responses)
 from Tribler.community.popularity.pubsub import PubSubCommunity
 from Tribler.community.popularity.repository import ContentRepository, TYPE_TORRENT_HEALTH
 from Tribler.community.popularity.request import ContentRequest
@@ -143,11 +144,7 @@ class PopularityCommunity(PubSubCommunity):
             cache.finish()
 
     def process_torrent_search_response(self, query, payload):
-        item_format = SearchResponseItemPayload.format_list
-        response, _ = self.serializer.unpack_multiple_as_list(item_format, payload.response)
-        # Decode the category string to list
-        for response_item in response:
-            response_item[4] = decode_values(response_item[4])
+        response = unpack_responses(payload.response)
 
         self.content_repository.update_from_torrent_search_results(response)
 
