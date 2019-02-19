@@ -50,10 +50,16 @@ class TestMetadata(TriblerCoreTest):
         serialized2 = metadata2.serialized()
         self.assertEqual(serialized1, serialized2)
 
+        # Test no signature exception
+        metadata2_dict = metadata2.to_dict()
+        metadata2_dict.pop("signature")
+        self.assertRaises(InvalidSignatureException, ChannelNodePayload, **metadata2_dict)
+
         serialized3 = serialized2[:-5] + "\xee" * 5
         self.assertRaises(InvalidSignatureException, ChannelNodePayload.from_signed_blob, serialized3)
         # Test bypass signature check
         ChannelNodePayload.from_signed_blob(serialized3, check_signature=False)
+
 
     @db_session
     def test_key_mismatch_exception(self):

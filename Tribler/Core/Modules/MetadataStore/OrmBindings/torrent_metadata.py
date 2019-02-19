@@ -138,8 +138,11 @@ def define_binding(db):
             """
             pony_query = cls.get_entries_query(**kwargs)
 
-            # We only want torrents, not channel torrents
-            pony_query = pony_query.where(metadata_type=metadata_type)
+            if type(metadata_type) == list:
+                pony_query = pony_query.where(lambda g: g.metadata_type in metadata_type)
+            else:
+                pony_query = pony_query.where(metadata_type=metadata_type)
+
             if exclude_deleted:
                 pony_query = pony_query.where(lambda g: g.status != TODELETE)
             if hide_xxx:

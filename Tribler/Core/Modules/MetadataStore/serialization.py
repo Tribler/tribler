@@ -105,12 +105,6 @@ class SignedPayload(Payload):
             else:
                 raise InvalidSignatureException("Tried to create payload without signature")
 
-    def has_valid_signature(self):
-        sig_data = default_serializer.pack_multiple(self.to_pack_list())[0]
-        return default_eccrypto.is_valid_signature(
-            default_eccrypto.key_from_public_bin(b"LibNaCLPK:" + self.public_key), sig_data,
-            self.signature)
-
     def to_pack_list(self):
         data = [('H', self.metadata_type),
                 ('H', self.reserved_flags),

@@ -14,6 +14,10 @@ from Tribler.util import cast_to_unicode_utf8
 
 class BaseMetadataEndpoint(resource.Resource):
 
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
     @staticmethod
     def sanitize_parameters(parameters):
         """
@@ -22,27 +26,13 @@ class BaseMetadataEndpoint(resource.Resource):
         sanitized = {
             "first": 1 if 'first' not in parameters else int(parameters['first'][0]),
             "last": 50 if 'last' not in parameters else int(parameters['last'][0]),
-            "sort_by": None if 'sort_by' not in parameters else MetadataEndpoint.convert_sort_param_to_pony_col(
+            "sort_by": None if 'sort_by' not in parameters else BaseMetadataEndpoint.convert_sort_param_to_pony_col(
                 parameters['sort_by'][0]),
             "sort_asc": True if 'sort_asc' not in parameters else bool(int(parameters['sort_asc'][0])),
             "query_filter": None if 'filter' not in parameters else cast_to_unicode_utf8(parameters['filter'][0]),
             "hide_xxx": False if 'hide_xxx' not in parameters else bool(int(parameters['hide_xxx'][0]) > 0)}
 
         return sanitized
-
-
-class MetadataEndpoint(BaseMetadataEndpoint):
-
-    def __init__(self, session):
-        BaseMetadataEndpoint.__init__(self)
-
-        child_handler_dict = {
-            "channels": ChannelsEndpoint,
-            "torrents": TorrentsEndpoint
-        }
-
-        for path, child_cls in child_handler_dict.items():
-            self.putChild(path, child_cls(session))
 
     @staticmethod
     def convert_sort_param_to_pony_col(sort_param):
@@ -62,17 +52,24 @@ class MetadataEndpoint(BaseMetadataEndpoint):
             u'health': 'HEALTH'
         }
 
-        if sort_param not in json2pony_columns:
-            return None
-        return json2pony_columns[sort_param]
+        return json2pony_columns[sort_param] if sort_param in json2pony_columns else None
 
 
-class BaseChannelsEndpoint(resource.Resource):
+class MetadataEndpoint(resource.Resource):
 
     def __init__(self, session):
         resource.Resource.__init__(self)
-        self.session = session
 
+        child_handler_dict = {
+            "channels": ChannelsEndpoint,
+            "torrents": TorrentsEndpoint
+        }
+
+        for path, child_cls in child_handler_dict.items():
+            self.putChild(path, child_cls(session))
+
+
+class BaseChannelsEndpoint(BaseMetadataEndpoint):
     @staticmethod
     def sanitize_parameters(parameters):
         """
@@ -153,27 +150,10 @@ class SpecificChannelEndpoint(BaseChannelsEndpoint):
         return json.dumps({"success": True, "subscribed": to_subscribe})
 
 
-class BaseTorrentsEndpoint(resource.Resource):
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-
-    @staticmethod
-    def sanitize_parameters(parameters):
-        """
-        Sanitize the parameters for a request that fetches channels.
-        """
-        sanitized = BaseMetadataEndpoint.sanitize_parameters(parameters)
-        if 'channel' in parameters:
-            sanitized['channel'] = unhexlify(parameters['channel'][0])
-        return sanitized
-
-
-class SpecificChannelTorrentsEndpoint(BaseTorrentsEndpoint):
+class SpecificChannelTorrentsEndpoint(BaseMetadataEndpoint):
 
     def __init__(self, session, channel_pk):
-        BaseTorrentsEndpoint.__init__(self, session)
+        BaseMetadataEndpoint.__init__(self, session)
         self.channel_pk = channel_pk
 
     def render_GET(self, request):
@@ -192,10 +172,10 @@ class SpecificChannelTorrentsEndpoint(BaseTorrentsEndpoint):
         })
 
 
-class TorrentsEndpoint(BaseTorrentsEndpoint):
+class TorrentsEndpoint(BaseMetadataEndpoint):
 
     def __init__(self, session):
-        BaseTorrentsEndpoint.__init__(self, session)
+        BaseMetadataEndpoint.__init__(self, session)
         self.putChild("random", TorrentsRandomEndpoint(session))
 
     def getChild(self, path, request):
@@ -227,7 +207,7 @@ class SpecificTorrentEndpoint(resource.Resource):
         return json.dumps({"torrent": torrent_dict})
 
 
-class TorrentsRandomEndpoint(BaseTorrentsEndpoint):
+class TorrentsRandomEndpoint(BaseMetadataEndpoint):
 
     def render_GET(self, request):
         limit_torrents = 10
